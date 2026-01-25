@@ -3,6 +3,7 @@ package ch.zhaw.statefulconversation.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -100,6 +101,16 @@ public class EventHistory {
     public List<Event> toList() {
         List<Event> result = List.copyOf(this.eventList);
         return result;
+    }
+
+    public Stream<Event> stream() {
+        return this.eventList.stream();
+    }
+
+    public List<Event> filter(EventFilter filter) {
+        return this.eventList.stream()
+                .filter(filter::test)
+                .toList();
     }
 
     @Override

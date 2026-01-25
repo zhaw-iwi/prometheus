@@ -35,6 +35,10 @@ class VerbalEventSmokeTest {
         assertEquals("assistant", second.getRole());
         assertEquals("Hi, how can I help?", second.getContent());
 
+        List<Event> verbalEvents = state.getEventHistory()
+                .filter(EventFilter.type(Event.TYPE_USER_UTTERANCE, Event.TYPE_ASSISTANT_UTTERANCE));
+        assertEquals(2, verbalEvents.size());
+
         assertNotNull(agent.getCurrentState());
         assertTrue(agent.isActive());
         assertFalse(agent.getConversation().isEmpty());
