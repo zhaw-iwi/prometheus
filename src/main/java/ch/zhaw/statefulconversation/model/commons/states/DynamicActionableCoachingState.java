@@ -12,7 +12,7 @@ import ch.zhaw.statefulconversation.model.State;
 import ch.zhaw.statefulconversation.model.Storage;
 import ch.zhaw.statefulconversation.model.Transition;
 import ch.zhaw.statefulconversation.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.statefulconversation.model.commons.actions.TransferUtterancesAction;
+import ch.zhaw.statefulconversation.model.commons.actions.TransferEventHistoryAction;
 import ch.zhaw.statefulconversation.model.commons.decisions.StaticDecision;
 import ch.zhaw.statefulconversation.utils.NamedParametersFormatter;
 import jakarta.persistence.Entity;
@@ -79,7 +79,7 @@ public class DynamicActionableCoachingState extends State {
                                 storage,
                                 storageKeyTo);
                 Transition transition = new Transition(List.of(trigger),
-                                List.of(action, new TransferUtterancesAction(subsequentState)), subsequentState);
+                                List.of(action, new TransferEventHistoryAction(subsequentState)), subsequentState);
                 this.addTransition(transition);
         }
 

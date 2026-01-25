@@ -21,8 +21,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import ch.zhaw.statefulconversation.model.Utterance;
-import ch.zhaw.statefulconversation.model.Utterances;
+import ch.zhaw.statefulconversation.model.Event;
+import ch.zhaw.statefulconversation.model.EventHistory;
 
 public class LMOpenAI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LMOpenAI.class);
@@ -37,111 +37,109 @@ public class LMOpenAI {
             """;
     private static final String REMINDER_SUMMARISATION = "Remember to reply with the summary in JSON format only so that it can be parsed with a Java program using the GSON library.";
 
-    public static String complete(Utterances utterances, String systemPrepend, String stateName) {
-        List<Utterance> totalPrompt = LMOpenAI.composePrompt(utterances, systemPrepend, stateName);
+    public static String complete(EventHistory eventHistory, String systemPrepend, String stateName) {
+        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, stateName);
         LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt);
         return result;
     }
 
-    public static String complete(Utterances utterances, String systemPrepend, String systemAppend, String stateName) {
-        List<Utterance> totalPrompt = LMOpenAI.composePrompt(utterances, systemPrepend, systemAppend, stateName); // Corrected
+    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend, String stateName) {
+        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, systemAppend, stateName); // Corrected
                                                                                                                   // call
         LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt);
         return result;
     }
 
-    public static boolean decide(Utterances utterances, String systemPrepend) {
-        if (utterances.isEmpty()) {
-            throw new RuntimeException("cannot decide about empty utterances");
+    public static boolean decide(EventHistory eventHistory, String systemPrepend) {
+        if (eventHistory.isEmpty()) {
+            throw new RuntimeException("cannot decide about empty events");
         }
-        List<Utterance> totalPrompt = LMOpenAI.composePromptCondensed(utterances, systemPrepend,
+        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
                 LMOpenAI.REMINDER_DECISION);
         LMOpenAI.LOGGER.info("LMOpenAI.decide() with " + totalPrompt);
         String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
         return Boolean.parseBoolean(response);
     }
 
-    public static JsonElement extract(Utterances utterances, String systemPrepend) {
-        if (utterances.isEmpty()) {
-            throw new RuntimeException("cannot extract from empty utterances");
+    public static JsonElement extract(EventHistory eventHistory, String systemPrepend) {
+        if (eventHistory.isEmpty()) {
+            throw new RuntimeException("cannot extract from empty events");
         }
-        List<Utterance> totalPrompt = LMOpenAI.composePromptCondensed(utterances, systemPrepend,
+        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
                 LMOpenAI.REMINDER_EXTRACTION);
         LMOpenAI.LOGGER.info("LMOpenAI.extract() with " + totalPrompt);
         String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
         return new Gson().fromJson(response, JsonElement.class);
     }
 
-    public static JsonElement summarise(Utterances utterances, String systemPrepend) {
-        if (utterances.isEmpty()) {
-            throw new RuntimeException("cannot summarise from empty utterance");
+    public static JsonElement summarise(EventHistory eventHistory, String systemPrepend) {
+        if (eventHistory.isEmpty()) {
+            throw new RuntimeException("cannot summarise from empty event");
         }
-        List<Utterance> totalPrompt = LMOpenAI.composePromptCondensed(utterances, systemPrepend,
+        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
                 LMOpenAI.REMINDER_SUMMARISATION);
         LMOpenAI.LOGGER.info("LMOpenAI.summarise() with " + totalPrompt);
         String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
         return new Gson().fromJson(response, JsonElement.class);
     }
 
-    public static String summariseOffline(Utterances utterances, String systemPrepend) {
-        if (utterances.isEmpty()) {
-            throw new RuntimeException("cannot summarise offline from empty utterance");
+    public static String summariseOffline(EventHistory eventHistory, String systemPrepend) {
+        if (eventHistory.isEmpty()) {
+            throw new RuntimeException("cannot summarise offline from empty event");
         }
-        List<Utterance> totalPrompt = LMOpenAI.composePromptCondensed(utterances, systemPrepend);
+        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend);
         LMOpenAI.LOGGER.info("LMOpenAI.summariseOffline() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
         return result;
     }
 
-    private static List<Utterance> composePrompt(Utterances utterances, String systemPrepend, String stateName) {
-        List<Utterance> result = new ArrayList<Utterance>();
+    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String stateName) {
+        List<Event> result = new ArrayList<Event>();
         if (systemPrepend == null) {
             throw new NullPointerException(systemPrepend + " systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(new Utterance("system", systemPrepend, stateName));
-        result.addAll(utterances.toList());
+        result.add(Event.systemPrompt(systemPrepend, stateName));
+        result.addAll(eventHistory.toList());
         return result;
     }
 
-    private static List<Utterance> composePrompt(Utterances utterances, String systemPrepend, String systemAppend,
+    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String systemAppend,
             String stateName) {
-        List<Utterance> result = new ArrayList<>();
+        List<Event> result = new ArrayList<>();
         if (systemPrepend == null) {
             throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(new Utterance("system", systemPrepend, stateName));
-        result.addAll(utterances.toList());
+        result.add(Event.systemPrompt(systemPrepend, stateName));
+        result.addAll(eventHistory.toList());
         if (systemAppend != null) {
-            result.add(new Utterance("system", systemAppend, stateName));
+            result.add(Event.systemPrompt(systemAppend, stateName));
         }
         return result;
     }
 
-    private static List<Utterance> composePromptCondensed(Utterances utterances, String systemPrepend) {
-        List<Utterance> result = new ArrayList<>();
+    private static List<Event> composePromptCondensed(EventHistory eventHistory, String systemPrepend) {
+        List<Event> result = new ArrayList<>();
         if (systemPrepend == null) {
             throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(new Utterance("system", systemPrepend, null)); // Check whether this is the best way to handle the
-                                                                  // absence of stateName
-        result.add(new Utterance("system", "<conversation>" + utterances.toString() + "</conversation>", null));
+        result.add(Event.systemPrompt(systemPrepend, null));
+        result.add(Event.systemPrompt("<conversation>" + eventHistory.toString() + "</conversation>", null));
         return result;
     }
 
-    private static List<Utterance> composePromptCondensed(Utterances utterances, String systemPrepend,
+    private static List<Event> composePromptCondensed(EventHistory eventHistory, String systemPrepend,
             String systemAppend) {
-        List<Utterance> result = composePromptCondensed(utterances, systemPrepend);
+        List<Event> result = composePromptCondensed(eventHistory, systemPrepend);
         if (systemAppend == null) {
             throw new NullPointerException("systemAppend cannot be null.");
         }
-        result.add(new Utterance("system", systemAppend, null)); // Check whether this is the best way to handle the
-                                                                 // absence of stateName
+        result.add(Event.systemPrompt(systemAppend, null));
         return result;
     }
 
-    private static String openai(List<Utterance> messages) {
+    private static String openai(List<Event> messages) {
         return LMOpenAI.openai(messages, 1, 1);
     }
 
@@ -160,7 +158,7 @@ public class LMOpenAI {
 
     }).create();
 
-    public static String openai(List<Utterance> message, float temperature, float topP) {
+    public static String openai(List<Event> message, float temperature, float topP) {
         try {
 
             Instant start = Instant.now();

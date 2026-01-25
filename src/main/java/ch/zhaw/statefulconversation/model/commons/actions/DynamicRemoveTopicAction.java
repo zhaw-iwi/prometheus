@@ -9,7 +9,7 @@ import com.google.gson.JsonPrimitive;
 
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Storage;
-import ch.zhaw.statefulconversation.model.Utterances;
+import ch.zhaw.statefulconversation.model.EventHistory;
 import jakarta.persistence.Entity;
 
 @Entity
@@ -25,7 +25,7 @@ public class DynamicRemoveTopicAction extends Action {
     }
 
     @Override
-    public void execute(Utterances utterances) {
+    public void execute(EventHistory eventHistory) {
         // Get the JSON array from storage
         JsonElement topicsTo = this.getStorage().get(this.getStorageKeysFrom().get(0));
         JsonElement topicFrom = this.getStorage().get(this.getStorageKeyTo());

@@ -76,7 +76,7 @@ public class Transition {
         this.subsequentState = subsequentState;
     }
 
-    public boolean decide(Utterances utterances) {
+    public boolean decide(EventHistory eventHistory) {
         Transition.LOGGER.info("Checking decisions if transition to " + this.subsequentState.getName());
         if (this.decisions.isEmpty()) {
             Transition.LOGGER.info("No decisions present");
@@ -86,7 +86,7 @@ public class Transition {
         boolean currentDecision;
         for (Decision current : this.decisions) {
             currentDecisionPrompt = current.getPrompt();
-            currentDecision = LMOpenAI.decide(utterances, currentDecisionPrompt);
+            currentDecision = LMOpenAI.decide(eventHistory, currentDecisionPrompt);
             if (!currentDecision) {
                 return false;
             }
@@ -94,14 +94,14 @@ public class Transition {
         return true;
     }
 
-    public void action(Utterances utterances) {
+    public void action(EventHistory eventHistory) {
         Transition.LOGGER.info("Executing actions while transitioning to " + this.subsequentState.getName());
         if (this.actions.isEmpty()) {
             Transition.LOGGER.info("No actions present");
             return;
         }
         for (Action current : this.actions) {
-            current.execute(utterances);
+            current.execute(eventHistory);
         }
     }
 

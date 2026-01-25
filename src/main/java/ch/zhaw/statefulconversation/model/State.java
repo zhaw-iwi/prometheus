@@ -38,7 +38,7 @@ public class State extends Prompt {
     @OrderColumn(name = "transition_index")
     private List<Transition> transitions;
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    protected Utterances utterances;
+    protected EventHistory eventHistory;
 
     public State(String prompt, String name, String starterPrompt, List<Transition> transitions) {
         super(prompt);
@@ -48,7 +48,7 @@ public class State extends Prompt {
         this.summarisePrompt = State.SUMMARISE_PROMPT;
         this.isStarting = true;
         this.isOblivious = false;
-        this.utterances = new Utterances();
+        this.eventHistory = new EventHistory();
     }
 
     public State(String prompt, String name, String starterPrompt, List<Transition> transitions, String summarisePrompt,
@@ -69,7 +69,7 @@ public class State extends Prompt {
         this.summarisePrompt = SUMMARISE_PROMPT;
         this.isStarting = true;
         this.isOblivious = false;
-        this.utterances = new Utterances();
+        this.eventHistory = new EventHistory();
     }
 
     public State(String prompt, String name, String starterPrompt, List<Transition> transitions, String summarisePrompt,
@@ -90,8 +90,8 @@ public class State extends Prompt {
         return this.isStarting;
     }
 
-    public Utterances getUtterances() {
-        return this.utterances;
+    public EventHistory getEventHistory() {
+        return this.eventHistory;
     }
 
     public boolean isActive() {
@@ -134,10 +134,10 @@ public class State extends Prompt {
     }
 
     private boolean transitThisOne(Transition transition) {
-        if (transition.decide(this.utterances)) {
+        if (transition.decide(this.eventHistory)) {
             State.LOGGER.info(this.getName() + ": Transition to "
                     + transition.getSubsequentState().getName() + ": YES");
-            transition.action(this.utterances);
+            transition.action(this.eventHistory);
             return true;
         }
         State.LOGGER.info(this.getName() + ": Transition to "
@@ -156,25 +156,25 @@ public class State extends Prompt {
         if (totalPromptPrepend.isEmpty()) {
             return null;
         }
-        String assistantSays = LMOpenAI.complete(this.utterances, totalPromptPrepend, this.starterPrompt, this.name);
-        this.utterances.appendAssistantSays(assistantSays, this);
+        String assistantSays = LMOpenAI.complete(this.eventHistory, totalPromptPrepend, this.starterPrompt, this.name);
+        this.eventHistory.appendAssistantUtterance(assistantSays, this);
         return new Response(this, assistantSays);
     }
 
-    public Response respond(String userSays) throws TransitionException {
-        return this.respond(userSays, null);
+    public Response respond(Event event) throws TransitionException {
+        return this.respond(event, null);
     }
 
-    public Response respond(String userSays, String outerPrompt) throws TransitionException {
-        this.acknowledge(userSays, outerPrompt);
+    public Response respond(Event event, String outerPrompt) throws TransitionException {
+        this.acknowledge(event, outerPrompt);
         // no transition, compose prompt
         String totalPrompt = this.composeTotalPrompt(outerPrompt);
         // @todo: is it ok to avoid completion if there's no prompt?
         if (totalPrompt.isEmpty()) {
             return null;
         }
-        String assistantSays = LMOpenAI.complete(this.utterances, totalPrompt, this.name);
-        this.utterances.appendAssistantSays(assistantSays, this);
+        String assistantSays = LMOpenAI.complete(this.eventHistory, totalPrompt, this.name);
+        this.eventHistory.appendAssistantUtterance(assistantSays, this);
         return new Response(this, assistantSays);
     }
 
@@ -184,25 +184,25 @@ public class State extends Prompt {
         if (this.isOblivious) {
             State.LOGGER
                     .info(this.getName() + " Oblivious");
-            this.utterances.reset();
+            this.eventHistory.reset();
         }
     }
 
-    public void acknowledge(String userSays) throws TransitionException {
-        this.acknowledge(userSays, null);
+    public void acknowledge(Event event) throws TransitionException {
+        this.acknowledge(event, null);
     }
 
-    public void acknowledge(String userSays, String outerPrompt) throws TransitionException {
+    public void acknowledge(Event event, String outerPrompt) throws TransitionException {
         State.LOGGER
-                .info(this.getName() + " ACK User: \"" + userSays + "\"");
-        this.utterances.appendUserSays(userSays, this);
+                .info(this.getName() + " ACK Event: \"" + event.getContent() + "\"");
+        this.eventHistory.appendEvent(event, this);
         this.raiseIfTransit();
     }
 
     public void appendAssistantSays(String assistantSays) {
         State.LOGGER
                 .info(this.getName() + " ACK Assistant: \"" + assistantSays + "\"");
-        this.utterances.appendAssistantSays(assistantSays, this);
+        this.eventHistory.appendAssistantUtterance(assistantSays, this);
     }
 
     public String getTotalPrompt() {
@@ -226,7 +226,7 @@ public class State extends Prompt {
 
     public PromptResult getPromptBundle(String outerPrompt) {
         String totalPrompt = this.getTotalPrompt(outerPrompt);
-        List<Utterance> conversation = this.utterances.toList();
+        List<Event> conversation = this.eventHistory.toList();
         return new PromptResult(this, totalPrompt, conversation);
     }
 
@@ -239,7 +239,7 @@ public class State extends Prompt {
     }
 
     public String summarise() {
-        String result = LMOpenAI.summariseOffline(this.utterances, this.summarisePrompt);
+        String result = LMOpenAI.summariseOffline(this.eventHistory, this.summarisePrompt);
         return result;
     }
 
@@ -251,7 +251,7 @@ public class State extends Prompt {
         if (statesAlreadyReseted.contains(this)) {
             return;
         }
-        this.utterances.reset();
+        this.eventHistory.reset();
         statesAlreadyReseted.add(this);
         for (Transition current : this.transitions) {
             current.getSubsequentState().reset(statesAlreadyReseted);

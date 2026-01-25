@@ -36,7 +36,7 @@ public abstract class Action extends Prompt {
         return this.storageKeyTo;
     }
 
-    public abstract void execute(Utterances utterances);
+    public abstract void execute(EventHistory eventHistory);
 
     @Override
     public String toString() {

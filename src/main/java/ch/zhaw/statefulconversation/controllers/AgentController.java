@@ -19,11 +19,11 @@ import ch.zhaw.statefulconversation.controllers.views.AgentInfoView;
 import ch.zhaw.statefulconversation.controllers.views.AgentStateInfoView;
 import ch.zhaw.statefulconversation.controllers.views.ResponseView;
 import ch.zhaw.statefulconversation.controllers.views.StorageEntryView;
-import ch.zhaw.statefulconversation.controllers.views.UtteranceRequest;
+import ch.zhaw.statefulconversation.controllers.views.EventRequest;
 import ch.zhaw.statefulconversation.model.Agent;
+import ch.zhaw.statefulconversation.model.Event;
 import ch.zhaw.statefulconversation.model.Response;
 import ch.zhaw.statefulconversation.model.State;
-import ch.zhaw.statefulconversation.model.Utterance;
 import ch.zhaw.statefulconversation.repositories.AgentRepository;
 
 @RestController
@@ -46,15 +46,15 @@ public class AgentController {
     }
 
     @GetMapping("{agentID}/conversation")
-    public ResponseEntity<List<Utterance>> conversation(@PathVariable @NonNull UUID agentID) {
+    public ResponseEntity<List<Event>> conversation(@PathVariable @NonNull UUID agentID) {
         Optional<Agent> agentMaybe = this.repository.findById(agentID);
         if (agentMaybe.isEmpty()) {
-            return new ResponseEntity<List<Utterance>>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<List<Event>>(HttpStatus.NOT_FOUND);
         }
 
-        List<Utterance> conversation = agentMaybe.get().getConversation();
+        List<Event> conversation = agentMaybe.get().getConversation();
 
-        return new ResponseEntity<List<Utterance>>(conversation, HttpStatus.OK);
+        return new ResponseEntity<List<Event>>(conversation, HttpStatus.OK);
     }
 
     @GetMapping("{agentID}/state")
@@ -124,13 +124,13 @@ public class AgentController {
 
     @PostMapping("{agentID}/respond")
     public ResponseEntity<ResponseView> respond(@PathVariable @NonNull UUID agentID,
-            @RequestBody UtteranceRequest userSays) {
+            @RequestBody EventRequest request) {
 
         Optional<Agent> agentMaybe = this.repository.findById(agentID);
         if (agentMaybe.isEmpty()) {
             return new ResponseEntity<ResponseView>(HttpStatus.NOT_FOUND);
         }
-        if (userSays == null || userSays.getContent() == null || userSays.getContent().isBlank()) {
+        if (request == null || request.getContent() == null || request.getContent().isBlank()) {
             return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
         }
 
@@ -138,7 +138,12 @@ public class AgentController {
         if (agent == null) {
             return new ResponseEntity<ResponseView>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        Response response = agent.respond(userSays.getContent());
+        if (request.getType() != null && !request.getType().isBlank()
+                && !Event.TYPE_USER_UTTERANCE.equals(request.getType())) {
+            return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
+        }
+        Event event = Event.userUtterance(request.getContent(), agent.getCurrentState().getName());
+        Response response = agent.respond(event);
         this.repository.save(agent);
 
         return new ResponseEntity<ResponseView>(new ResponseView(response, agent.isActive()),

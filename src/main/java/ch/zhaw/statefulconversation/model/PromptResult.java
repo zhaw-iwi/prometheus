@@ -5,10 +5,10 @@ import java.util.List;
 public class PromptResult {
     private final String stateName;
     private final String systemPrompt;
-    private final List<Utterance> conversation;
+    private final List<Event> conversation;
     private final boolean starting;
 
-    public PromptResult(State state, String systemPrompt, List<Utterance> conversation) {
+    public PromptResult(State state, String systemPrompt, List<Event> conversation) {
         this.stateName = state.getName();
         this.systemPrompt = systemPrompt;
         this.conversation = conversation;
@@ -23,7 +23,7 @@ public class PromptResult {
         return systemPrompt;
     }
 
-    public List<Utterance> getConversation() {
+    public List<Event> getConversation() {
         return conversation;
     }
 

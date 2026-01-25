@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Storage;
-import ch.zhaw.statefulconversation.model.Utterances;
+import ch.zhaw.statefulconversation.model.EventHistory;
 import ch.zhaw.statefulconversation.spi.LMOpenAI;
 import jakarta.persistence.Entity;
 
@@ -20,8 +20,8 @@ public class StaticSummarisationAction extends Action {
     }
 
     @Override
-    public void execute(Utterances utterances) {
-        JsonElement result = LMOpenAI.summarise(utterances, this.getPrompt());
+    public void execute(EventHistory eventHistory) {
+        JsonElement result = LMOpenAI.summarise(eventHistory, this.getPrompt());
         this.getStorage().put(this.getStorageKeyTo(), result);
     }
 

@@ -3,12 +3,12 @@ package ch.zhaw.statefulconversation.controllers.views;
 import java.util.List;
 
 import ch.zhaw.statefulconversation.model.PromptResult;
-import ch.zhaw.statefulconversation.model.Utterance;
+import ch.zhaw.statefulconversation.model.Event;
 
 public class PromptResponseView {
     private String stateName;
     private String systemPrompt;
-    private List<Utterance> conversation;
+    private List<Event> conversation;
     private boolean isActive;
     private boolean starting;
 
@@ -28,7 +28,7 @@ public class PromptResponseView {
         return systemPrompt;
     }
 
-    public List<Utterance> getConversation() {
+    public List<Event> getConversation() {
         return conversation;
     }
 

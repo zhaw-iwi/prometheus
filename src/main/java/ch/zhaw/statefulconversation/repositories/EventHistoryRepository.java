@@ -4,8 +4,8 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import ch.zhaw.statefulconversation.model.Utterances;
+import ch.zhaw.statefulconversation.model.EventHistory;
 
-public interface UtterancesRepository extends JpaRepository<Utterances, UUID> {
+public interface EventHistoryRepository extends JpaRepository<EventHistory, UUID> {
 
 }

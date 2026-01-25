@@ -57,49 +57,49 @@ public class OuterState extends State {
                 : this.composeTotalPrompt(outerPrompt));
 
         Response assistantResponse = this.innerCurrent.start(totalPrompt);
-        this.utterances.appendAssistantSays(assistantResponse.getText(), this);
+        this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
         return assistantResponse;
     }
 
-    public Response respond(String userSays) throws TransitionException {
-        return this.respond(userSays, null);
+    public Response respond(Event event) throws TransitionException {
+        return this.respond(event, null);
     }
 
-    public Response respond(String userSays, String outerPrompt) throws TransitionException {
-        this.utterances.appendUserSays(userSays, this);
+    public Response respond(Event event, String outerPrompt) throws TransitionException {
+        this.eventHistory.appendEvent(event, this);
         this.raiseIfTransit();
         String totalPrompt = this.composeTotalPrompt(outerPrompt);
         Response assistantResponse = null;
         try {
-            assistantResponse = this.innerCurrent.respond(userSays, totalPrompt);
-            this.utterances.appendAssistantSays(assistantResponse.getText(), this);
+            assistantResponse = this.innerCurrent.respond(event, totalPrompt);
+            this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
             return assistantResponse;
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
                 assistantResponse = this.innerCurrent.start(totalPrompt);
             } else {
-                assistantResponse = this.innerCurrent.respond(userSays, totalPrompt);
+                assistantResponse = this.innerCurrent.respond(event, totalPrompt);
             }
-            this.utterances.appendAssistantSays(assistantResponse.getText(), this);
+            this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
             return assistantResponse;
         }
     }
 
     @Override
-    public void acknowledge(String userSays, String outerPrompt) throws TransitionException {
-        this.utterances.appendUserSays(userSays, this);
+    public void acknowledge(Event event, String outerPrompt) throws TransitionException {
+        this.eventHistory.appendEvent(event, this);
         this.raiseIfTransit();
         String totalPrompt = this.composeTotalPrompt(outerPrompt);
         try {
-            this.innerCurrent.acknowledge(userSays, totalPrompt);
+            this.innerCurrent.acknowledge(event, totalPrompt);
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
                 // do not append userSays to new state (cf. respond(..))
                 this.innerCurrent.enter();
             } else {
-                this.innerCurrent.acknowledge(userSays, totalPrompt);
+                this.innerCurrent.acknowledge(event, totalPrompt);
             }
         }
     }
@@ -120,7 +120,7 @@ public class OuterState extends State {
     @Override
     public void appendAssistantSays(String assistantSays) {
         this.innerCurrent.appendAssistantSays(assistantSays);
-        this.utterances.appendAssistantSays(assistantSays, this);
+        this.eventHistory.appendAssistantUtterance(assistantSays, this);
     }
 
     @Override

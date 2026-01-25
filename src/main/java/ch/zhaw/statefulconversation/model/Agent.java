@@ -80,11 +80,11 @@ public class Agent {
         return this.currentState.isActive();
     }
 
-    public List<Utterance> getConversation() {
+    public List<Event> getConversation() {
         if (this.isActive()) {
-            return this.currentState.getUtterances().toList();
+            return this.currentState.getEventHistory().toList();
         }
-        return this.initialState.getUtterances().toList();
+        return this.initialState.getEventHistory().toList();
     }
 
     public String summarise() {
@@ -104,9 +104,9 @@ public class Agent {
         }
     }
 
-    public Response respond(String userSays) {
+    public Response respond(Event event) {
         try {
-            return this.currentState.respond(userSays);
+            return this.currentState.respond(event);
         } catch (ContenFilterException e) {
             throw e;
         } catch (TransitionException e) {
@@ -114,19 +114,19 @@ public class Agent {
             if (this.currentState.isStarting()) {
                 return this.start();
             }
-            return this.respond(userSays);
+            return this.respond(event);
         }
     }
 
-    public void acknowledge(String userSays) {
+    public void acknowledge(Event event) {
         try {
-            this.currentState.acknowledge(userSays);
+            this.currentState.acknowledge(event);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 this.currentState.enter();
             } else {
-                this.acknowledge(userSays);
+                this.acknowledge(event);
             }
         }
     }
@@ -141,8 +141,8 @@ public class Agent {
             throw new RuntimeException("cannot rerespond if agent is inactive.");
         }
 
-        String lastUserSays = this.currentState.getUtterances().removeLastTwoUtterances();
-        return this.respond(lastUserSays);
+        String lastUserSays = this.currentState.getEventHistory().removeLastTwoUtteranceEvents();
+        return this.respond(Event.userUtterance(lastUserSays, this.currentState.getName()));
     }
 
     public void appendAssistantResponse(String assistantSays) {

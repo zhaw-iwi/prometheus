@@ -2,30 +2,30 @@ package ch.zhaw.statefulconversation.model.commons.actions;
 
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.State;
-import ch.zhaw.statefulconversation.model.Utterances;
+import ch.zhaw.statefulconversation.model.EventHistory;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 
 @Entity
-public class RemoveLastUtteranceAction extends Action {
+public class RemoveLastEventAction extends Action {
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private State removeFrom;
 
-    protected RemoveLastUtteranceAction() {
+    protected RemoveLastEventAction() {
 
     }
 
-    public RemoveLastUtteranceAction(State removeFrom) {
+    public RemoveLastEventAction(State removeFrom) {
         super(null); // @TODO: maybe redesign the inheritance hierarchy to avoid this?
         this.removeFrom = removeFrom;
     }
 
     @Override
-    public void execute(Utterances utterances) {
-        this.removeFrom.getUtterances().removeLastUtterance();
+    public void execute(EventHistory eventHistory) {
+        this.removeFrom.getEventHistory().removeLastUserEvent();
     }
 
     @Override

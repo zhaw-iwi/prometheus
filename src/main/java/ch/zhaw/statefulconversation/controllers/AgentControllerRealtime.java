@@ -13,8 +13,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.statefulconversation.controllers.views.PromptResponseView;
-import ch.zhaw.statefulconversation.controllers.views.UtteranceRequest;
+import ch.zhaw.statefulconversation.controllers.views.EventRequest;
 import ch.zhaw.statefulconversation.model.Agent;
+import ch.zhaw.statefulconversation.model.Event;
 import ch.zhaw.statefulconversation.repositories.AgentRepository;
 
 @RestController
@@ -39,7 +40,7 @@ public class AgentControllerRealtime {
     }
 
     @PostMapping("{agentID}/acknowledge")
-    public ResponseEntity<Void> acknowledge(@PathVariable UUID agentID, @RequestBody UtteranceRequest userSays) {
+    public ResponseEntity<Void> acknowledge(@PathVariable UUID agentID, @RequestBody EventRequest request) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -47,19 +48,24 @@ public class AgentControllerRealtime {
         if (agentMaybe.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        if (userSays == null || userSays.getContent() == null || userSays.getContent().isBlank()) {
+        if (request == null || request.getContent() == null || request.getContent().isBlank()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
         Agent agent = agentMaybe.get();
-        agent.acknowledge(userSays.getContent());
+        if (request.getType() != null && !request.getType().isBlank()
+                && !Event.TYPE_USER_UTTERANCE.equals(request.getType())) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        Event event = Event.userUtterance(request.getContent(), agent.getCurrentState().getName());
+        agent.acknowledge(event);
         this.repository.save(agent);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PostMapping("{agentID}/assistant")
-    public ResponseEntity<Void> assistant(@PathVariable UUID agentID, @RequestBody UtteranceRequest assistantSays) {
+    public ResponseEntity<Void> assistant(@PathVariable UUID agentID, @RequestBody EventRequest request) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -67,12 +73,16 @@ public class AgentControllerRealtime {
         if (agentMaybe.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        if (assistantSays == null || assistantSays.getContent() == null || assistantSays.getContent().isBlank()) {
+        if (request == null || request.getContent() == null || request.getContent().isBlank()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
         Agent agent = agentMaybe.get();
-        agent.appendAssistantResponse(assistantSays.getContent());
+        if (request.getType() != null && !request.getType().isBlank()
+                && !Event.TYPE_ASSISTANT_UTTERANCE.equals(request.getType())) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        agent.appendAssistantResponse(request.getContent());
         this.repository.save(agent);
 
         return new ResponseEntity<>(HttpStatus.OK);
