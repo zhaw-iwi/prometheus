@@ -5,7 +5,7 @@
         </encoder>
     </appender>
 
-    <appender name="SSE" class="ch.zhaw.statefulconversation.logging.SseLogAppender" />
+    <appender name="SSE" class="ch.zhaw.prometheus.logging.SseLogAppender" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />

@@ -117,7 +117,7 @@ $(document).ready(function () {
         return;
     }
     get_info();
-    get_conversation();
+    get_eventhistory();
     $("#send_message").on("click", function () {
         user_says();
     });
@@ -139,7 +139,7 @@ function session_from_url() {
     return new Session(getAgentId());
 }
 
-function reset_conversation_view() {
+function reset_eventhistory_view() {
     $("#messages").empty();
 }
 
@@ -152,21 +152,21 @@ function get_info() {
     });
 }
 
-function get_conversation() {
-    reset_conversation_view();
-    $.get(session.agent_id + "/conversation", function (data) {
+function get_eventhistory() {
+    reset_eventhistory_view();
+    $.get(session.agent_id + "/eventhistory", function (data) {
         stop_assistant_istyping_temp();
-        show_conversation(data);
+        show_eventhistory(data);
     });
 }
 
-function show_conversation(conversation) {
+function show_eventhistory(eventhistory) {
     $("#messages").empty();
-    $.each(conversation, function (index, current) {
+    $.each(eventhistory, function (index, current) {
         let current_message = null;
-        if (current.role == "assistant") {
+        if (current.actor == "assistant") {
             current_message = get_assistant_message(current.content);
-        } else if (current.role == "user") {
+        } else if (current.actor == "user") {
             current_message = get_user_message(current.content);
         }
         if (current_message) {
@@ -270,12 +270,23 @@ function user_says() {
     $.ajax({
         type: "POST",
         url: session.agent_id + "/respond",
-        data: JSON.stringify({ content: user_says_what }),
+        data: JSON.stringify({
+            type: "obs.user_utterance",
+            actor: "user",
+            kind: "observation",
+            content: user_says_what
+        }),
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (data) {
             set_is_active(data.active);
-            show_assistant_says_incremental_recursively([data.assistantResponse.text], 0);
+            if (data.responseEvent && data.responseEvent.content) {
+                show_assistant_says_incremental_recursively([data.responseEvent.content], 0);
+            } else {
+                stop_assistant_istyping_temp();
+                $("#user_says_input").prop('disabled', false);
+                $("#send_message").prop("disabled", false);
+            }
         },
         failure: function (errMsg) {
             alert(errMsg);
@@ -285,12 +296,12 @@ function user_says() {
 
 function reset(event) {
     event.preventDefault();
-    const sure = confirm("Delete the current conversation?");
+    const sure = confirm("Delete the current event history?");
     if (sure) {
         $("#user_says_input").prop('disabled', true);
         $("#send_message").prop("disabled", true);
         $("#user_says_input").val("");
-        reset_conversation_view();
+        reset_eventhistory_view();
         start_assistant_istyping_temp();
         $.ajax({
             type: "DELETE",
@@ -299,7 +310,13 @@ function reset(event) {
             dataType: "json",
             success: function (data) {
                 set_is_active(data.active);
-                show_assistant_says_incremental_recursively([data.assistantResponse.text], 0);
+                if (data.responseEvent && data.responseEvent.content) {
+                    show_assistant_says_incremental_recursively([data.responseEvent.content], 0);
+                } else {
+                    stop_assistant_istyping_temp();
+                    $("#user_says_input").prop('disabled', false);
+                    $("#send_message").prop("disabled", false);
+                }
             },
             failure: function (errMsg) {
                 alert(errMsg);

@@ -131,47 +131,47 @@ function buildSystemPrompt(promptBundle) {
   if (!promptBundle) {
     return "";
   }
-  const basePrompt = promptBundle.systemPrompt || "";
-  const conversationBlock = buildConversationContext(promptBundle.conversation || []);
-  if (!conversationBlock) {
+  const basePrompt = promptBundle.systemPolicy || "";
+  const eventHistoryBlock = buildEventHistoryContext(promptBundle.eventHistory || []);
+  if (!eventHistoryBlock) {
     return basePrompt;
   }
   if (!basePrompt) {
-    return conversationBlock;
+    return eventHistoryBlock;
   }
-  return `${basePrompt}\n\n${conversationBlock}`;
+  return `${basePrompt}\n\n${eventHistoryBlock}`;
 }
 
-function buildConversationContext(conversation) {
-  if (!Array.isArray(conversation) || conversation.length === 0) {
+function buildEventHistoryContext(eventHistory) {
+  if (!Array.isArray(eventHistory) || eventHistory.length === 0) {
     return "";
   }
-  const lines = conversation
-    .map((utterance) => {
-      if (!utterance) {
+  const lines = eventHistory
+    .map((event) => {
+      if (!event) {
         return null;
       }
-      const role = utterance.role || "unknown";
-      const content = utterance.content || "";
-      return `${role}: ${content}`;
+      const actor = event.actor || "unknown";
+      const content = event.content || "";
+      return `${actor}: ${content}`;
     })
     .filter((line) => line && line.trim().length > 0);
   if (lines.length === 0) {
     return "";
   }
-  return `Conversation so far:\n${lines.join("\n")}`;
+  return `Event history so far:\n${lines.join("\n")}`;
 }
 
 function buildResponseInstruction(promptBundle) {
   if (promptBundle && promptBundle.active === false) {
-    // return "The conversation has ended. Briefly acknowledge the user's message, state that the session is complete, and do not ask questions or introduce new topics.";
-    return promptBundle.systemPrompt;
+    // return "The interaction has ended. Briefly acknowledge the user's message, state that the session is complete, and do not ask questions or introduce new topics.";
+    return promptBundle.systemPolicy;
   }
   if (promptBundle && typeof promptBundle.starting === "boolean") {
-    return promptBundle.starting ? "Begin the conversation now." : "Respond to the user's latest message.";
+    return promptBundle.starting ? "Begin the interaction now." : "Respond to the user's latest message.";
   }
-  if (promptBundle && Array.isArray(promptBundle.conversation) && promptBundle.conversation.length === 0) {
-    return "Begin the conversation now.";
+  if (promptBundle && Array.isArray(promptBundle.eventHistory) && promptBundle.eventHistory.length === 0) {
+    return "Begin the interaction now.";
   }
   return "Respond to the user's latest message.";
 }
@@ -188,9 +188,9 @@ async function startListening() {
   appendLog("app", "Starting realtime session...");
   setListeningState(true);
   try {
-    const [promptBundle, conversation] = await Promise.all([
+    const [promptBundle, eventHistory] = await Promise.all([
       fetchPromptBundle(),
-      fetchConversation(),
+      fetchEventHistory(),
     ]);
     setActiveStatus(promptBundle.active);
     const sessionInfo = await createRealtimeSession();
@@ -198,10 +198,10 @@ async function startListening() {
     await waitForDataChannelOpen();
     applySessionSettings();
     updatePushToTalkUi();
-    const lastAssistantFromHistory = getLastAssistantUtterance(conversation || []);
+    const lastAssistantFromHistory = getLastAssistantResponse(eventHistory || []);
     if (lastAssistantFromHistory) {
       sendSessionUpdate(buildSystemPrompt(promptBundle), sessionSettings);
-      speakStoredAssistantUtterance(lastAssistantFromHistory);
+      speakStoredAssistantResponse(lastAssistantFromHistory);
     } else {
       applyPromptBundle(promptBundle, true);
     }
@@ -262,10 +262,10 @@ async function showAgentInfo() {
   alert(`Name\n${data.name}\n\nDescription\n${data.description}`);
 }
 
-async function fetchConversation() {
-  const response = await fetch(`/${session.agentId}/conversation`);
+async function fetchEventHistory() {
+  const response = await fetch(`/${session.agentId}/eventhistory`);
   if (!response.ok) {
-    appendLog("app", "Unable to load conversation history.");
+    appendLog("app", "Unable to load event history.");
     return [];
   }
   return await response.json();
@@ -274,11 +274,11 @@ async function fetchConversation() {
 async function fetchPromptBundle() {
   const response = await fetch(`/${session.agentId}/prompt`);
   if (!response.ok) {
-    throw new Error("PROMISE prompt fetch failed.");
+    throw new Error("Prompt fetch failed.");
   }
   const data = await response.json();
-  console.log(`[prompt] state=${data.stateName || "unknown"} active=${data.active} systemPrompt=${(data.systemPrompt || "").slice(0, 160)}`);
-  appendLog("promise", "Prompt bundle received.");
+  console.log(`[policy] state=${data.stateName || "unknown"} active=${data.active} systemPolicy=${(data.systemPolicy || "").slice(0, 160)}`);
+  appendLog("policy", "Prompt bundle received.");
   return data;
 }
 
@@ -414,10 +414,15 @@ async function handleUserTranscript(transcript) {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
       },
-      body: JSON.stringify({ content: transcript }),
+      body: JSON.stringify({
+        type: "obs.user_utterance",
+        actor: "user",
+        kind: "observation",
+        content: transcript,
+      }),
     });
     if (!ackResponse.ok) {
-      appendLog("promise", "acknowledge failed.");
+      appendLog("policy", "acknowledge failed.");
       return;
     }
     const data = await fetchPromptBundle();
@@ -431,22 +436,27 @@ async function handleUserTranscript(transcript) {
 }
 
 async function appendAssistantTranscript(transcript) {
-  const response = await fetch(`/${session.agentId}/assistant`, {
+  const response = await fetch(`/${session.agentId}/acknowledge`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json; charset=utf-8",
     },
-    body: JSON.stringify({ content: transcript }),
+    body: JSON.stringify({
+      type: "resp.assistant_utterance",
+      actor: "assistant",
+      kind: "response",
+      content: transcript,
+    }),
   });
   if (!response.ok) {
-    appendLog("promise", "assistant append failed.");
+    appendLog("policy", "assistant append failed.");
     return;
   }
-  appendLog("promise", "Assistant transcript stored.");
+  appendLog("policy", "Assistant response stored.");
 }
 
 async function resetAgent() {
-  if (!confirm("Reset the conversation?")) {
+  if (!confirm("Reset the event history?")) {
     return;
   }
   const response = await fetch(`/${session.agentId}/reset`, {
@@ -468,8 +478,8 @@ async function resetAgent() {
   } catch (error) {
     appendLog("app", "Unable to refresh prompt after reset.");
   }
-  if (data.assistantResponse && data.assistantResponse.text) {
-    speakStoredAssistantUtterance(data.assistantResponse.text);
+  if (data.responseEvent && data.responseEvent.content) {
+    speakStoredAssistantResponse(data.responseEvent.content);
   }
 }
 
@@ -708,18 +718,18 @@ function appendLog(source, message) {
   console.log(`${prefix}${message}`);
 }
 
-function getLastAssistantUtterance(conversation) {
-  if (!Array.isArray(conversation) || conversation.length === 0) {
+function getLastAssistantResponse(eventHistory) {
+  if (!Array.isArray(eventHistory) || eventHistory.length === 0) {
     return null;
   }
-  const last = conversation[conversation.length - 1];
-  if (!last || last.role !== "assistant") {
+  const last = eventHistory[eventHistory.length - 1];
+  if (!last || last.actor !== "assistant") {
     return null;
   }
   return last.content || null;
 }
 
-function speakStoredAssistantUtterance(text) {
+function speakStoredAssistantResponse(text) {
   if (!text) {
     return;
   }

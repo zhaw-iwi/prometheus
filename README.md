@@ -8,34 +8,33 @@ Current focus:
 - Testable, incremental roadmap toward multimodal BehaviourPlans and regulation
 
 Status
-- Iteration 1 complete: Event model replaces utterances for input and history
+- Iteration 1 complete: Events, shared history, policies, and response-as-event workflows
 - Iteration 2 next: BehaviourPlan output abstraction
 
-## Interim Changes (Between Iteration 1 and 2)
+## Iteration 1 — Event-Based Interaction (done)
 
-- Added a single per-agent event history (event repository) with state-scoped filtering by `stateName`.
-- Removed per-state event histories; states now read/write the shared history.
-- Introduced state response policies to decouple verbal prompting from state logic (prompt handling moved into `StateResponsePolicy` implementations).
-- Renamed prompt-facing APIs and views to policy terminology (`PolicyResult`, `PolicyResponseView`, `getTotalPolicy`).
+- Unified `Event` model (type/actor/kind/content/payload/stateName).
+- Single per-agent event history with state-scoped filtering.
+- States read/write shared history; per-state histories removed.
+- Policies externalized (`Policy` / `PromptPolicy`); decisions/actions/states use policies.
+- Responses are modeled as events and appended to the shared event history.
+- Event selectors introduced for history selection (state/actor/kind).
+- Prompt-facing APIs and views use policy terminology (`PolicyResult`, `PolicyResponseView`, `getTotalPolicy`).
 
 ## Roadmap (Iterative Development)
 
 Each iteration ends with something runnable and testable.
 
-Iteration 1 - Event-Based Input (complete)
-- Introduce Event as the core input type
-- Replace utterance history with event history
-- Map text input to obs.user_utterance events
-- Deliverable: conversational agent works end-to-end using events
-
 Iteration 2 - BehaviourPlan Output (next)
-- Introduce BehaviourPlan as the output abstraction
+- Introduce BehaviourPlan as the output abstraction (as event payload)
+- Replace text response events with BehaviourPlan events (speech + optional non-verbal)
 - Add a simple speech-only renderer
-- Deliverable: same conversational agent, new output abstraction
+- Deliverable: same conversational agent, BehaviourPlan-driven responses
 
 Iteration 3 - Observation Snapshots
-- Snapshot aggregation over events
-- Fact extraction helpers
+- Snapshot aggregation over events into explicit snapshot/fact artifacts
+- Fact extraction helpers and confidence handling
+- Decisions/actions use snapshots in addition to raw events
 - Deliverable: guards/decisions based on facts, not raw events
 
 Iteration 4 - Continuous Evaluation
@@ -44,7 +43,7 @@ Iteration 4 - Continuous Evaluation
 - Deliverable: agents react even without new input
 
 Iteration 5 - Regulation Runtime Integration
-- RegulationSystem interface
+- RegulationSystem interface consumes events and emits modulation + control events
 - Tanks with decay
 - Modulation bundles
 - Internal control events
@@ -63,7 +62,8 @@ Iteration 7 - SupportProvisioning Modules
 - Deliverable: phone retrieval with graceful abort
 
 Iteration 8 - Multi-Actor and Group Support
-- Actor- and group-scoped events
+- Actor- and group-scoped events (beyond single-actor)
+- Group-level selectors and permissions
 - Display-oriented BehaviourPlans
 - Deliverable: meeting monitor agent with dashboards
 
@@ -80,6 +80,6 @@ Iteration 10 - Capability Negotiation and Realizers
 
 Iteration 11 - Monitoring and Replay Tooling
 - Rich monitoring UI
-- Event trace replay
+- Event trace replay (enabled by event-first design)
 - Deterministic testing
 - Deliverable: full observability and regression testing
