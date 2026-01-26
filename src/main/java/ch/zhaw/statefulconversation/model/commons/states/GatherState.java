@@ -4,6 +4,7 @@ import java.util.List;
 
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Decision;
+import ch.zhaw.statefulconversation.model.PromptStateResponsePolicy;
 import ch.zhaw.statefulconversation.model.State;
 import ch.zhaw.statefulconversation.model.Storage;
 import ch.zhaw.statefulconversation.model.Transition;
@@ -31,17 +32,14 @@ public class GatherState extends State {
         public GatherState(String name, List<String> slots, State subsequentState, Storage storage, String storageKeyTo,
                         boolean isStarting,
                         boolean isOblivious) {
-                super(new StringBuilder(GatherState.GATHER_PROMPT)
-                                .append(String.join(", ", slots))
-                                .toString(),
-                                name,
-                                GatherState.GATHER_STARTER_PROMPT,
-                                List.of(),
-                                State.SUMMARISE_PROMPT,
-                                isStarting,
-                                isOblivious,
-                                storage,
-                                List.of());
+                super(name,
+                                new PromptStateResponsePolicy(
+                                                new StringBuilder(GatherState.GATHER_PROMPT)
+                                                                .append(String.join(", ", slots))
+                                                                .toString(),
+                                                GatherState.GATHER_STARTER_PROMPT,
+                                                PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                                List.of(), isStarting, isOblivious);
                 Decision trigger = new StaticDecision(
                                 new StringBuilder(GatherState.GATHER_TRIGGER)
                                                 .append(String.join(", ", slots))

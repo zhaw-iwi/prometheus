@@ -18,6 +18,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PostLoad;
 
 @Entity
 public class Agent {
@@ -43,6 +44,8 @@ public class Agent {
     private State currentState;
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Storage storage;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private EventHistory eventHistory;
 
     public Agent(String name, String description, State initialState) {
         this(name, description, initialState, null);
@@ -54,6 +57,8 @@ public class Agent {
         this.initialState = initialState;
         this.storage = storage;
         this.currentState = this.initialState;
+        this.eventHistory = new EventHistory();
+        this.attachEventHistory();
     }
 
     public String getName() {
@@ -66,6 +71,17 @@ public class Agent {
 
     public State getCurrentState() {
         return this.currentState;
+    }
+
+    public EventHistory getEventHistory() {
+        return this.eventHistory;
+    }
+
+    public List<Event> getEventsForState(String stateName) {
+        if (this.eventHistory == null) {
+            return List.of();
+        }
+        return this.eventHistory.filter(EventFilter.stateName(stateName));
     }
 
     @JsonIgnore
@@ -131,8 +147,8 @@ public class Agent {
         }
     }
 
-    public PromptResult getTotalPrompt() {
-        return this.currentState.getPromptBundle();
+    public PolicyResult getTotalPolicy() {
+        return this.currentState.getPolicyBundle();
     }
 
     public Response reRespond() {
@@ -141,7 +157,7 @@ public class Agent {
             throw new RuntimeException("cannot rerespond if agent is inactive.");
         }
 
-        String lastUserSays = this.currentState.getEventHistory().removeLastTwoUtteranceEvents();
+        String lastUserSays = this.eventHistory.removeLastTwoUtteranceEvents(this.currentState.getName());
         return this.respond(Event.userUtterance(lastUserSays, this.currentState.getName()));
     }
 
@@ -160,6 +176,9 @@ public class Agent {
         // @TODO: if is starting = True, consider sending starting message again.
         this.currentState = this.initialState;
         this.currentState.reset();
+        if (this.eventHistory != null) {
+            this.eventHistory.reset();
+        }
     }
 
     public void resetCurrentState() {
@@ -169,5 +188,25 @@ public class Agent {
     @Override
     public String toString() {
         return "Agent with current state " + this.currentState;
+    }
+
+    @PostLoad
+    private void postLoad() {
+        if (this.eventHistory == null) {
+            this.eventHistory = new EventHistory();
+        }
+        this.attachEventHistory();
+    }
+
+    private void attachEventHistory() {
+        if (this.initialState == null || this.eventHistory == null) {
+            return;
+        }
+        Set<State> visited = new HashSet<>();
+        List<State> states = new ArrayList<>();
+        this.initialState.collectStates(visited, states);
+        for (State state : states) {
+            state.setEventHistory(this.eventHistory);
+        }
     }
 }

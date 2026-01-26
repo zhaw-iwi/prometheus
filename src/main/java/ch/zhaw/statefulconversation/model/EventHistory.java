@@ -32,6 +32,19 @@ public class EventHistory {
         this.eventList = new ArrayList<Event>();
     }
 
+    public EventHistory filtered(EventFilter filter) {
+        EventHistory filtered = new EventHistory();
+        for (Event current : this.eventList) {
+            if (filter.test(current)) {
+                Event copy = new Event(current.getType(), current.getRole(), current.getContent(),
+                        current.getStateName());
+                copy.setEventHistory(filtered);
+                filtered.eventList.add(copy);
+            }
+        }
+        return filtered;
+    }
+
     public void append(EventHistory source, State state) {
         for (Event current : source.toList()) {
             Event event = new Event(current.getType(), current.getRole(), current.getContent(), state.getName());
@@ -69,6 +82,17 @@ public class EventHistory {
         this.eventList.removeLast();
     }
 
+    public void removeLastUserEvent(String stateName) {
+        for (int i = this.eventList.size() - 1; i >= 0; i--) {
+            Event current = this.eventList.get(i);
+            if ("user".equals(current.getRole()) && stateName.equals(current.getStateName())) {
+                this.eventList.remove(i);
+                return;
+            }
+        }
+        throw new RuntimeException("no user event found for state " + stateName);
+    }
+
     public String removeLastTwoUtteranceEvents() {
         if (!"assistant".equals(this.eventList.getLast().getRole())) {
             throw new RuntimeException("assumption that last event has role == assistant failed");
@@ -90,12 +114,47 @@ public class EventHistory {
         return lastUserEvent.getContent();
     }
 
+    public String removeLastTwoUtteranceEvents(String stateName) {
+        int assistantIndex = -1;
+        for (int i = this.eventList.size() - 1; i >= 0; i--) {
+            Event current = this.eventList.get(i);
+            if ("assistant".equals(current.getRole()) && stateName.equals(current.getStateName())) {
+                assistantIndex = i;
+                break;
+            }
+        }
+        if (assistantIndex == -1) {
+            throw new RuntimeException("no assistant event found for state " + stateName);
+        }
+        for (int i = assistantIndex; i >= 0; i--) {
+            Event current = this.eventList.get(i);
+            if (!"assistant".equals(current.getRole()) || !stateName.equals(current.getStateName())) {
+                break;
+            }
+            this.eventList.remove(i);
+            assistantIndex = i - 1;
+        }
+
+        for (int i = assistantIndex; i >= 0; i--) {
+            Event current = this.eventList.get(i);
+            if ("user".equals(current.getRole()) && stateName.equals(current.getStateName())) {
+                this.eventList.remove(i);
+                return current.getContent();
+            }
+        }
+        throw new RuntimeException("no user event found for state " + stateName);
+    }
+
     public boolean isEmpty() {
         return this.eventList.isEmpty();
     }
 
     public void reset() {
         this.eventList.clear();
+    }
+
+    public void clearStateEvents(String stateName) {
+        this.eventList.removeIf(event -> stateName.equals(event.getStateName()));
     }
 
     public List<Event> toList() {

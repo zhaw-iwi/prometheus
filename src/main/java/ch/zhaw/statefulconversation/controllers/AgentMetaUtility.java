@@ -7,6 +7,8 @@ import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Agent;
 import ch.zhaw.statefulconversation.model.Decision;
 import ch.zhaw.statefulconversation.model.Final;
+import ch.zhaw.statefulconversation.model.PromptStateResponsePolicy;
+import ch.zhaw.statefulconversation.model.StateResponsePolicy;
 import ch.zhaw.statefulconversation.model.State;
 import ch.zhaw.statefulconversation.model.Storage;
 import ch.zhaw.statefulconversation.model.Transition;
@@ -24,8 +26,9 @@ public class AgentMetaUtility {
                 Transition transition = new Transition(List.of(trigger, guard), List.of(action),
                                 new Final("User Exit Final"));
 
-                State state = new State(data.getStatePrompt(), data.getStateName(), data.getStateStarterPrompt(),
-                                List.of(transition));
+                StateResponsePolicy responsePolicy = new PromptStateResponsePolicy(data.getStatePrompt(),
+                                data.getStateStarterPrompt(), PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT);
+                State state = new State(data.getStateName(), responsePolicy, List.of(transition));
 
                 Agent result = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
                 result.start();

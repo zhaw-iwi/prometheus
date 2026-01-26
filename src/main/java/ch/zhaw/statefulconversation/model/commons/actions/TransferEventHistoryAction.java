@@ -25,7 +25,7 @@ public class TransferEventHistoryAction extends Action {
 
     @Override
     public void execute(EventHistory eventHistory) {
-        this.to.getEventHistory().append(eventHistory, this.to);
+        this.to.getSharedEventHistory().append(eventHistory, this.to);
     }
 
     @Override

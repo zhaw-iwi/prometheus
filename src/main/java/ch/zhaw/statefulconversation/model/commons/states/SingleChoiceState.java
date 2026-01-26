@@ -4,6 +4,7 @@ import java.util.List;
 
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Decision;
+import ch.zhaw.statefulconversation.model.PromptStateResponsePolicy;
 import ch.zhaw.statefulconversation.model.State;
 import ch.zhaw.statefulconversation.model.Storage;
 import ch.zhaw.statefulconversation.model.Transition;
@@ -18,8 +19,6 @@ public class SingleChoiceState extends State {
         private static final String SINGLECHOICE_STARTER_PROMPT = "Ask the user.";
         private static final String SINGLECHOICE_TRIGGER = "Examine the following chat and decide if the user indicates one choice among the following choices: ";
         private static final String SINGLECHOICE_ACTION = "Examine the following chat and extract extract the one choice the user made among the following choices: ";
-        private static final String SUMMARISE_PROMPT = "Please summarise the following conversation. Be concise, but ensure that the key points and issues are included. ";
-
         protected SingleChoiceState() {
 
         }
@@ -33,17 +32,14 @@ public class SingleChoiceState extends State {
                         String storageKeyTo,
                         boolean isStarting,
                         boolean isOblivious) {
-                super(new StringBuilder(SingleChoiceState.SINGLECHOICE_PROMPT)
-                                .append(String.join(", ", choices))
-                                .toString(),
-                                name,
-                                SingleChoiceState.SINGLECHOICE_STARTER_PROMPT,
-                                List.of(),
-                                SUMMARISE_PROMPT,
-                                isStarting,
-                                isOblivious,
-                                storage,
-                                List.of());
+                super(name,
+                                new PromptStateResponsePolicy(
+                                                new StringBuilder(SingleChoiceState.SINGLECHOICE_PROMPT)
+                                                                .append(String.join(", ", choices))
+                                                                .toString(),
+                                                SingleChoiceState.SINGLECHOICE_STARTER_PROMPT,
+                                                PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                                List.of(), isStarting, isOblivious);
                 Decision trigger = new StaticDecision(
                                 new StringBuilder(SingleChoiceState.SINGLECHOICE_TRIGGER)
                                                 .append(String.join(", ", choices))

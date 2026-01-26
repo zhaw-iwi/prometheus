@@ -22,14 +22,15 @@ public class OuterState extends State {
     private State innerCurrent;
 
     public OuterState(String prompt, String name, List<Transition> transitions, State innerInitial) {
-        super(prompt, name, null, transitions);
+        super(name, new PromptStateResponsePolicy(prompt, null, PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                transitions);
         this.innerInitial = innerInitial;
         this.innerCurrent = this.innerInitial;
     }
 
     public OuterState(String prompt, String name, List<Transition> transitions, State innerInitial,
             String summarisePrompt) {
-        super(prompt, name, null, transitions, summarisePrompt, true, false);
+        super(name, new PromptStateResponsePolicy(prompt, null, summarisePrompt), transitions, true, false);
         this.innerInitial = innerInitial;
         this.innerCurrent = this.innerInitial;
     }
@@ -52,12 +53,10 @@ public class OuterState extends State {
         return this.start(null);
     }
 
-    public Response start(String outerPrompt) {
-        String totalPrompt = (this.composeTotalPrompt(outerPrompt).isEmpty() ? null
-                : this.composeTotalPrompt(outerPrompt));
-
-        Response assistantResponse = this.innerCurrent.start(totalPrompt);
-        this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
+    public Response start(StateResponsePolicy outerPolicy) {
+        StateResponsePolicy totalPolicy = this.resolveResponsePolicy(outerPolicy);
+        Response assistantResponse = this.innerCurrent.start(totalPolicy);
+        this.requireSharedEventHistory().appendAssistantUtterance(assistantResponse.getText(), this);
         return assistantResponse;
     }
 
@@ -65,62 +64,61 @@ public class OuterState extends State {
         return this.respond(event, null);
     }
 
-    public Response respond(Event event, String outerPrompt) throws TransitionException {
-        this.eventHistory.appendEvent(event, this);
+    public Response respond(Event event, StateResponsePolicy outerPolicy) throws TransitionException {
+        this.requireSharedEventHistory().appendEvent(event, this);
         this.raiseIfTransit();
-        String totalPrompt = this.composeTotalPrompt(outerPrompt);
+        StateResponsePolicy totalPolicy = this.resolveResponsePolicy(outerPolicy);
         Response assistantResponse = null;
         try {
-            assistantResponse = this.innerCurrent.respond(event, totalPrompt);
-            this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
+            assistantResponse = this.innerCurrent.respond(event, totalPolicy);
+            this.requireSharedEventHistory().appendAssistantUtterance(assistantResponse.getText(), this);
             return assistantResponse;
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
-                assistantResponse = this.innerCurrent.start(totalPrompt);
+                assistantResponse = this.innerCurrent.start(totalPolicy);
             } else {
-                assistantResponse = this.innerCurrent.respond(event, totalPrompt);
+                assistantResponse = this.innerCurrent.respond(event, totalPolicy);
             }
-            this.eventHistory.appendAssistantUtterance(assistantResponse.getText(), this);
+            this.requireSharedEventHistory().appendAssistantUtterance(assistantResponse.getText(), this);
             return assistantResponse;
         }
     }
 
     @Override
-    public void acknowledge(Event event, String outerPrompt) throws TransitionException {
-        this.eventHistory.appendEvent(event, this);
+    public void acknowledge(Event event, StateResponsePolicy outerPolicy) throws TransitionException {
+        this.requireSharedEventHistory().appendEvent(event, this);
         this.raiseIfTransit();
-        String totalPrompt = this.composeTotalPrompt(outerPrompt);
+        StateResponsePolicy totalPolicy = this.resolveResponsePolicy(outerPolicy);
         try {
-            this.innerCurrent.acknowledge(event, totalPrompt);
+            this.innerCurrent.acknowledge(event, totalPolicy);
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
                 // do not append userSays to new state (cf. respond(..))
                 this.innerCurrent.enter();
             } else {
-                this.innerCurrent.acknowledge(event, totalPrompt);
+                this.innerCurrent.acknowledge(event, totalPolicy);
             }
         }
     }
 
     @Override
-    public String getTotalPrompt(String outerPrompt) {
-        String totalPrompt = this.composeTotalPrompt(outerPrompt);
-        return this.innerCurrent.getTotalPrompt(totalPrompt);
+    public String getTotalPolicy(StateResponsePolicy outerPolicy) {
+        StateResponsePolicy totalPolicy = this.resolveResponsePolicy(outerPolicy);
+        return this.innerCurrent.getTotalPolicy(totalPolicy);
     }
 
     @Override
-    public PromptResult getPromptBundle(String outerPrompt) {
-        String totalPrompt = (this.composeTotalPrompt(outerPrompt).isEmpty() ? null
-                : this.composeTotalPrompt(outerPrompt));
-        return this.innerCurrent.getPromptBundle(totalPrompt);
+    public PolicyResult getPolicyBundle(StateResponsePolicy outerPolicy) {
+        StateResponsePolicy totalPolicy = this.resolveResponsePolicy(outerPolicy);
+        return this.innerCurrent.getPolicyBundle(totalPolicy);
     }
 
     @Override
     public void appendAssistantSays(String assistantSays) {
         this.innerCurrent.appendAssistantSays(assistantSays);
-        this.eventHistory.appendAssistantUtterance(assistantSays, this);
+        this.requireSharedEventHistory().appendAssistantUtterance(assistantSays, this);
     }
 
     @Override

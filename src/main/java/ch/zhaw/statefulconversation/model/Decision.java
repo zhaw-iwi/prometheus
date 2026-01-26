@@ -5,7 +5,7 @@ import java.util.List;
 import jakarta.persistence.Entity;
 
 @Entity
-public abstract class Decision extends Prompt {
+public abstract class Decision extends PromptedNode {
 
     protected Decision() {
 

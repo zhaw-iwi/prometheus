@@ -2,15 +2,15 @@ package ch.zhaw.statefulconversation.model;
 
 import java.util.List;
 
-public class PromptResult {
+public class PolicyResult {
     private final String stateName;
-    private final String systemPrompt;
+    private final String systemPolicy;
     private final List<Event> conversation;
     private final boolean starting;
 
-    public PromptResult(State state, String systemPrompt, List<Event> conversation) {
+    public PolicyResult(State state, String systemPolicy, List<Event> conversation) {
         this.stateName = state.getName();
-        this.systemPrompt = systemPrompt;
+        this.systemPolicy = systemPolicy;
         this.conversation = conversation;
         this.starting = state.isStarting();
     }
@@ -19,8 +19,8 @@ public class PromptResult {
         return stateName;
     }
 
-    public String getSystemPrompt() {
-        return systemPrompt;
+    public String getSystemPolicy() {
+        return systemPolicy;
     }
 
     public List<Event> getConversation() {

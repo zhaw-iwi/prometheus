@@ -25,7 +25,7 @@ public class RemoveLastEventAction extends Action {
 
     @Override
     public void execute(EventHistory eventHistory) {
-        this.removeFrom.getEventHistory().removeLastUserEvent();
+        this.removeFrom.removeLastUserEvent();
     }
 
     @Override

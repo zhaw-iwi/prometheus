@@ -8,76 +8,44 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.zhaw.statefulconversation.spi.LMOpenAI;
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Transient;
 
 @Entity
-public class State extends Prompt {
+public class State extends PersistedNode {
     private static final Logger LOGGER = LoggerFactory.getLogger(State.class);
-    protected static final String SUMMARISE_PROMPT = "Please summarise the following conversation. Be concise, but ensure that the key points and issues are included. ";
-
     protected State() {
 
     }
 
     private String name;
-    @Column(length = 3000)
-    private String starterPrompt;
-    @Column(length = 3000)
-    private String summarisePrompt;
     private boolean isStarting;
     private boolean isOblivious;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @OrderColumn(name = "transition_index")
     private List<Transition> transitions;
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @Transient
     protected EventHistory eventHistory;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    private StateResponsePolicy responsePolicy;
 
-    public State(String prompt, String name, String starterPrompt, List<Transition> transitions) {
-        super(prompt);
+    public State(String name, StateResponsePolicy responsePolicy, List<Transition> transitions) {
         this.name = name;
-        this.starterPrompt = starterPrompt;
         this.transitions = new ArrayList<Transition>(transitions);
-        this.summarisePrompt = State.SUMMARISE_PROMPT;
         this.isStarting = true;
         this.isOblivious = false;
-        this.eventHistory = new EventHistory();
+        this.responsePolicy = responsePolicy;
     }
 
-    public State(String prompt, String name, String starterPrompt, List<Transition> transitions, String summarisePrompt,
-            boolean isStarting,
+    public State(String name, StateResponsePolicy responsePolicy, List<Transition> transitions, boolean isStarting,
             boolean isOblivious) {
-        this(prompt, name, starterPrompt, transitions);
-        this.summarisePrompt = summarisePrompt;
-        this.isStarting = isStarting;
-        this.isOblivious = isOblivious;
-    }
-
-    public State(String prompt, String name, String starterPrompt, List<Transition> transitions, Storage storage,
-            List<String> storageKeysFrom) {
-        super(prompt, storage, storageKeysFrom);
-        this.name = name;
-        this.starterPrompt = starterPrompt;
-        this.transitions = new ArrayList<Transition>(transitions);
-        this.summarisePrompt = SUMMARISE_PROMPT;
-        this.isStarting = true;
-        this.isOblivious = false;
-        this.eventHistory = new EventHistory();
-    }
-
-    public State(String prompt, String name, String starterPrompt, List<Transition> transitions, String summarisePrompt,
-            boolean isStarting,
-            boolean isOblivious,
-            Storage storage, List<String> storageKeysFrom) {
-        this(prompt, name, starterPrompt, transitions, storage, storageKeysFrom);
-        this.summarisePrompt = summarisePrompt;
+        this(name, responsePolicy, transitions);
         this.isStarting = isStarting;
         this.isOblivious = isOblivious;
     }
@@ -91,11 +59,27 @@ public class State extends Prompt {
     }
 
     public EventHistory getEventHistory() {
-        return this.eventHistory;
+        return this.requireSharedEventHistory().filtered(EventFilter.stateName(this.name));
+    }
+
+    public EventHistory getEventHistory(EventFilter filter) {
+        return this.requireSharedEventHistory().filtered(filter);
+    }
+
+    public EventHistory getSharedEventHistory() {
+        return this.requireSharedEventHistory();
+    }
+
+    public void setEventHistory(EventHistory eventHistory) {
+        this.eventHistory = eventHistory;
     }
 
     public boolean isActive() {
         return true;
+    }
+
+    public void setResponsePolicy(StateResponsePolicy responsePolicy) {
+        this.responsePolicy = responsePolicy;
     }
 
     public void addTransition(Transition transition) {
@@ -134,10 +118,10 @@ public class State extends Prompt {
     }
 
     private boolean transitThisOne(Transition transition) {
-        if (transition.decide(this.eventHistory)) {
+        if (transition.decide(this.getEventHistory())) {
             State.LOGGER.info(this.getName() + ": Transition to "
                     + transition.getSubsequentState().getName() + ": YES");
-            transition.action(this.eventHistory);
+            transition.action(this.getEventHistory());
             return true;
         }
         State.LOGGER.info(this.getName() + ": Transition to "
@@ -149,33 +133,18 @@ public class State extends Prompt {
         return this.start(null);
     }
 
-    public Response start(String outerPrompt) {
+    public Response start(StateResponsePolicy outerPolicy) {
         this.enter();
-        String totalPromptPrepend = this.composeTotalPrompt(outerPrompt);
-        // @todo: is it ok to avoid completion if there's no prompt?
-        if (totalPromptPrepend.isEmpty()) {
-            return null;
-        }
-        String assistantSays = LMOpenAI.complete(this.eventHistory, totalPromptPrepend, this.starterPrompt, this.name);
-        this.eventHistory.appendAssistantUtterance(assistantSays, this);
-        return new Response(this, assistantSays);
+        return this.handleStart(outerPolicy);
     }
 
     public Response respond(Event event) throws TransitionException {
         return this.respond(event, null);
     }
 
-    public Response respond(Event event, String outerPrompt) throws TransitionException {
-        this.acknowledge(event, outerPrompt);
-        // no transition, compose prompt
-        String totalPrompt = this.composeTotalPrompt(outerPrompt);
-        // @todo: is it ok to avoid completion if there's no prompt?
-        if (totalPrompt.isEmpty()) {
-            return null;
-        }
-        String assistantSays = LMOpenAI.complete(this.eventHistory, totalPrompt, this.name);
-        this.eventHistory.appendAssistantUtterance(assistantSays, this);
-        return new Response(this, assistantSays);
+    public Response respond(Event event, StateResponsePolicy outerPolicy) throws TransitionException {
+        this.acknowledge(event, outerPolicy);
+        return this.handleResponse(outerPolicy);
     }
 
     public void enter() {
@@ -184,7 +153,7 @@ public class State extends Prompt {
         if (this.isOblivious) {
             State.LOGGER
                     .info(this.getName() + " Oblivious");
-            this.eventHistory.reset();
+            this.requireSharedEventHistory().clearStateEvents(this.name);
         }
     }
 
@@ -192,55 +161,45 @@ public class State extends Prompt {
         this.acknowledge(event, null);
     }
 
-    public void acknowledge(Event event, String outerPrompt) throws TransitionException {
+    public void acknowledge(Event event, StateResponsePolicy outerPolicy) throws TransitionException {
         State.LOGGER
                 .info(this.getName() + " ACK Event: \"" + event.getContent() + "\"");
-        this.eventHistory.appendEvent(event, this);
+        this.appendEvent(event);
         this.raiseIfTransit();
     }
 
     public void appendAssistantSays(String assistantSays) {
         State.LOGGER
                 .info(this.getName() + " ACK Assistant: \"" + assistantSays + "\"");
-        this.eventHistory.appendAssistantUtterance(assistantSays, this);
+        this.appendAssistantUtterance(assistantSays);
     }
 
-    public String getTotalPrompt() {
-        return this.getTotalPrompt(null);
+    public void removeLastUserEvent() {
+        this.requireSharedEventHistory().removeLastUserEvent(this.name);
     }
 
-    public String getTotalPrompt(String outerPrompt) {
-        String totalPrompt = this.composeTotalPrompt(outerPrompt);
-        if (this.isStarting && this.starterPrompt != null && !this.starterPrompt.isEmpty()) {
-            if (!totalPrompt.isEmpty()) {
-                totalPrompt = totalPrompt + " ";
-            }
-            totalPrompt = totalPrompt + this.starterPrompt;
-        }
-        return totalPrompt;
+    public String getTotalPolicy() {
+        return this.getTotalPolicy(null);
     }
 
-    public PromptResult getPromptBundle() {
-        return this.getPromptBundle(null);
+    public String getTotalPolicy(StateResponsePolicy outerPolicy) {
+        return this.resolveResponsePolicy(outerPolicy).describe();
     }
 
-    public PromptResult getPromptBundle(String outerPrompt) {
-        String totalPrompt = this.getTotalPrompt(outerPrompt);
-        List<Event> conversation = this.eventHistory.toList();
-        return new PromptResult(this, totalPrompt, conversation);
+    public PolicyResult getPolicyBundle() {
+        return this.getPolicyBundle(null);
     }
 
-    protected String composeTotalPrompt(String outerPrompt) {
-        String totalPrompt = (this.getPrompt() != null ? this.getPrompt() : "");
-        if (outerPrompt != null) {
-            totalPrompt = outerPrompt + " " + totalPrompt;
-        }
-        return totalPrompt.trim();
+    public PolicyResult getPolicyBundle(StateResponsePolicy outerPolicy) {
+        String totalPrompt = this.getTotalPolicy(outerPolicy);
+        List<Event> conversation = this.getEventHistory().toList();
+        return new PolicyResult(this, totalPrompt, conversation);
     }
 
     public String summarise() {
-        String result = LMOpenAI.summariseOffline(this.eventHistory, this.summarisePrompt);
-        return result;
+        StateResponsePolicy policy = this.resolveResponsePolicy(null);
+        String result = policy.summarise(this);
+        return result == null ? "" : result;
     }
 
     public void reset() {
@@ -251,16 +210,61 @@ public class State extends Prompt {
         if (statesAlreadyReseted.contains(this)) {
             return;
         }
-        this.eventHistory.reset();
+        this.requireSharedEventHistory().clearStateEvents(this.name);
         statesAlreadyReseted.add(this);
         for (Transition current : this.transitions) {
             current.getSubsequentState().reset(statesAlreadyReseted);
         }
     }
 
+    private void appendEvent(Event event) {
+        this.requireSharedEventHistory().appendEvent(event, this);
+    }
+
+    private void appendAssistantUtterance(String assistantSays) {
+        this.requireSharedEventHistory().appendAssistantUtterance(assistantSays, this);
+    }
+
+    protected EventHistory requireSharedEventHistory() {
+        if (this.eventHistory == null) {
+            throw new IllegalStateException("event history not attached to state " + this.name);
+        }
+        return this.eventHistory;
+    }
+
+    private Response handleStart(StateResponsePolicy outerPolicy) {
+        StateResponsePolicy policy = this.resolveResponsePolicy(outerPolicy);
+        String assistantSays = policy.onStart(this);
+        if (assistantSays == null || assistantSays.isEmpty()) {
+            return null;
+        }
+        this.appendAssistantUtterance(assistantSays);
+        return new Response(this, assistantSays);
+    }
+
+    private Response handleResponse(StateResponsePolicy outerPolicy) {
+        StateResponsePolicy policy = this.resolveResponsePolicy(outerPolicy);
+        String assistantSays = policy.onRespond(this);
+        if (assistantSays == null || assistantSays.isEmpty()) {
+            return null;
+        }
+        this.appendAssistantUtterance(assistantSays);
+        return new Response(this, assistantSays);
+    }
+
+    protected StateResponsePolicy resolveResponsePolicy(StateResponsePolicy outerPolicy) {
+        if (this.responsePolicy == null) {
+            this.responsePolicy = new PromptStateResponsePolicy();
+        }
+        if (outerPolicy == null) {
+            return this.responsePolicy;
+        }
+        return this.responsePolicy.withOuterPolicy(outerPolicy);
+    }
+
     @Override
     public String toString() {
-        return "State IS-A " + super.toString() + " with name " + this.getName();
+        return "State with name " + this.getName();
     }
 
 }

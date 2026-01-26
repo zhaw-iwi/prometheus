@@ -4,39 +4,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import com.google.gson.JsonElement;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Inheritance;
-import jakarta.persistence.InheritanceType;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MappedSuperclass;
 
-@Entity
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(length = 60)
-public class Prompt {
-
-    @Id
-    @GeneratedValue
-    private UUID id;
-
-    public UUID getId() {
-        return this.id;
-    }
-
-    protected Prompt() {
-
-    }
-
+@MappedSuperclass
+public abstract class PromptedNode extends PersistedNode {
     @Column(length = 3000)
     private String prompt;
 
@@ -46,13 +25,17 @@ public class Prompt {
     @ElementCollection(fetch = FetchType.EAGER)
     private List<String> storageKeysFrom;
 
-    public Prompt(String prompt) {
+    protected PromptedNode() {
+
+    }
+
+    public PromptedNode(String prompt) {
         this.prompt = prompt;
         this.storage = null;
         this.storageKeysFrom = List.of();
     }
 
-    public Prompt(String prompt, Storage storage, List<String> storageKeysFrom) {
+    public PromptedNode(String prompt, Storage storage, List<String> storageKeysFrom) {
         this(prompt);
         this.storage = storage;
         this.storageKeysFrom = new ArrayList<>(storageKeysFrom);

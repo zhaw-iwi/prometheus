@@ -20,27 +20,40 @@ public class Final extends State {
     private static final String FINAL_STARTER_PROMPT = "Give a very brief, courteous goodbye to end on a positive and respectful note.";
 
     public Final(String name) {
-        super(Final.FINAL_PROMPT, name, Final.FINAL_STARTER_PROMPT, List.of());
+        super(name,
+                new PromptStateResponsePolicy(Final.FINAL_PROMPT, Final.FINAL_STARTER_PROMPT,
+                        PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of());
     }
 
     public Final(String name, boolean isStarting, String summarisePrompt) {
-        super(Final.FINAL_PROMPT, name, Final.FINAL_STARTER_PROMPT, List.of(), summarisePrompt, isStarting, false);
+        super(name,
+                new PromptStateResponsePolicy(Final.FINAL_PROMPT, Final.FINAL_STARTER_PROMPT, summarisePrompt),
+                List.of(), isStarting, false);
     }
 
     public Final(String name, String prompt) {
-        super(prompt, name, Final.FINAL_STARTER_PROMPT, List.of());
+        super(name,
+                new PromptStateResponsePolicy(prompt, Final.FINAL_STARTER_PROMPT,
+                        PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of());
     }
 
     public Final(String name, String prompt, boolean isStarting, String summarisePrompt) {
-        super(prompt, name, Final.FINAL_STARTER_PROMPT, List.of(), summarisePrompt, isStarting, false);
+        super(name, new PromptStateResponsePolicy(prompt, Final.FINAL_STARTER_PROMPT, summarisePrompt), List.of(),
+                isStarting, false);
     }
 
     public Final(String name, String prompt, String starterPrompt) {
-        super(prompt, name, starterPrompt, List.of());
+        super(name,
+                new PromptStateResponsePolicy(prompt, starterPrompt,
+                        PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of());
     }
 
     public Final(String name, String prompt, String starterPrompt, boolean isStarting, String summarisePrompt) {
-        super(prompt, name, starterPrompt, List.of(), summarisePrompt, isStarting, false);
+        super(name, new PromptStateResponsePolicy(prompt, starterPrompt, summarisePrompt), List.of(), isStarting,
+                false);
     }
 
     @Override

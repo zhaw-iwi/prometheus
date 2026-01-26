@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import ch.zhaw.statefulconversation.controllers.views.PromptResponseView;
+import ch.zhaw.statefulconversation.controllers.views.PolicyResponseView;
 import ch.zhaw.statefulconversation.controllers.views.EventRequest;
 import ch.zhaw.statefulconversation.model.Agent;
 import ch.zhaw.statefulconversation.model.Event;
@@ -25,7 +25,7 @@ public class AgentControllerRealtime {
     private AgentRepository repository;
 
     @GetMapping("{agentID}/prompt")
-    public ResponseEntity<PromptResponseView> prompt(@PathVariable UUID agentID) {
+    public ResponseEntity<PolicyResponseView> prompt(@PathVariable UUID agentID) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -34,7 +34,7 @@ public class AgentControllerRealtime {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        PromptResponseView view = new PromptResponseView(agentMaybe.get().getTotalPrompt(),
+        PolicyResponseView view = new PolicyResponseView(agentMaybe.get().getTotalPolicy(),
                 agentMaybe.get().isActive());
         return new ResponseEntity<>(view, HttpStatus.OK);
     }

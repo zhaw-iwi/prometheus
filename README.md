@@ -11,6 +11,13 @@ Status
 - Iteration 1 complete: Event model replaces utterances for input and history
 - Iteration 2 next: BehaviourPlan output abstraction
 
+## Interim Changes (Between Iteration 1 and 2)
+
+- Added a single per-agent event history (event repository) with state-scoped filtering by `stateName`.
+- Removed per-state event histories; states now read/write the shared history.
+- Introduced state response policies to decouple verbal prompting from state logic (prompt handling moved into `StateResponsePolicy` implementations).
+- Renamed prompt-facing APIs and views to policy terminology (`PolicyResult`, `PolicyResponseView`, `getTotalPolicy`).
+
 ## Roadmap (Iterative Development)
 
 Each iteration ends with something runnable and testable.

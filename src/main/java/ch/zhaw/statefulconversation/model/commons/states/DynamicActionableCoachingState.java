@@ -1,20 +1,16 @@
 package ch.zhaw.statefulconversation.model.commons.states;
 
 import java.util.List;
-import java.util.Map;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
 import ch.zhaw.statefulconversation.model.Action;
 import ch.zhaw.statefulconversation.model.Decision;
+import ch.zhaw.statefulconversation.model.PromptStateResponsePolicy;
+import ch.zhaw.statefulconversation.model.PromptValueShape;
 import ch.zhaw.statefulconversation.model.State;
 import ch.zhaw.statefulconversation.model.Storage;
 import ch.zhaw.statefulconversation.model.Transition;
 import ch.zhaw.statefulconversation.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.statefulconversation.model.commons.actions.TransferEventHistoryAction;
 import ch.zhaw.statefulconversation.model.commons.decisions.StaticDecision;
-import ch.zhaw.statefulconversation.utils.NamedParametersFormatter;
 import jakarta.persistence.Entity;
 
 @Entity
@@ -45,7 +41,6 @@ public class DynamicActionableCoachingState extends State {
                                 }
                         }
                         """;
-
         protected DynamicActionableCoachingState() {
 
         }
@@ -63,16 +58,16 @@ public class DynamicActionableCoachingState extends State {
                         String storageKeyTo,
                         boolean isStarting,
                         boolean isOblivious) {
-                super(DynamicActionableCoachingState.PROMPT_BEFORE + "${" + storageKeyFrom + "}"
-                                + DynamicActionableCoachingState.PROMPT_AFTER,
-                                name,
-                                DynamicActionableCoachingState.STARTER_PROMPT,
-                                List.of(),
-                                DynamicActionableCoachingState.ACTION,
-                                isStarting,
-                                isOblivious,
-                                storage,
-                                List.of(storageKeyFrom));
+                super(name,
+                                new PromptStateResponsePolicy(
+                                                DynamicActionableCoachingState.PROMPT_BEFORE + "${" + storageKeyFrom
+                                                                + "}" + DynamicActionableCoachingState.PROMPT_AFTER,
+                                                DynamicActionableCoachingState.STARTER_PROMPT,
+                                                DynamicActionableCoachingState.ACTION,
+                                                storage,
+                                                List.of(storageKeyFrom),
+                                                PromptValueShape.OBJECT),
+                                List.of(), isStarting, isOblivious);
                 Decision trigger = new StaticDecision(DynamicActionableCoachingState.TRIGGER);
                 Action action = new StaticExtractionAction(
                                 DynamicActionableCoachingState.ACTION,
@@ -81,19 +76,6 @@ public class DynamicActionableCoachingState extends State {
                 Transition transition = new Transition(List.of(trigger),
                                 List.of(action, new TransferEventHistoryAction(subsequentState)), subsequentState);
                 this.addTransition(transition);
-        }
-
-        @Override
-        protected String getPrompt() {
-                Map<String, JsonElement> valuesForKeys = this.getValuesForKeys();
-                if (!(valuesForKeys.values().iterator().next() instanceof JsonObject)) {
-                        throw new RuntimeException(
-                                        "expected storageKeyFrom being associated to an object (JsonObject) but enountered "
-                                                        + valuesForKeys.values().iterator().next().getClass()
-                                                        + " instead");
-                }
-
-                return NamedParametersFormatter.format(super.getPrompt(), valuesForKeys);
         }
 
         @Override

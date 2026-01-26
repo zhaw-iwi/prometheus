@@ -15,7 +15,8 @@ class VerbalEventSmokeTest {
 
     @Test
     void userUtteranceProducesVerbalHistory() {
-        State state = new State("", "verbalSmoke", "", List.of());
+        StateResponsePolicy responsePolicy = new PromptStateResponsePolicy("", "", PromptStateResponsePolicy.DEFAULT_SUMMARISE_PROMPT);
+        State state = new State("verbalSmoke", responsePolicy, List.of());
         Agent agent = new Agent("Verbal Agent", "Verifies verbal events", state);
 
         Event userEvent = Event.userUtterance("Hello there", state.getName());
@@ -42,5 +43,12 @@ class VerbalEventSmokeTest {
         assertNotNull(agent.getCurrentState());
         assertTrue(agent.isActive());
         assertFalse(agent.getConversation().isEmpty());
+
+        List<Event> repositoryEvents = agent.getEventHistory().toList();
+        assertEquals(2, repositoryEvents.size());
+        assertEquals(state.getName(), repositoryEvents.get(0).getStateName());
+        assertEquals(state.getName(), repositoryEvents.get(1).getStateName());
+        List<Event> stateEvents = agent.getEventsForState(state.getName());
+        assertEquals(2, stateEvents.size());
     }
 }
