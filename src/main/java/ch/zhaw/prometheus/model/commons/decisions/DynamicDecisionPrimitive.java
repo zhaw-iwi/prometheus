@@ -1,8 +1,8 @@
 package ch.zhaw.prometheus.model.commons.decisions;
 
 import ch.zhaw.prometheus.model.Decision;
-import ch.zhaw.prometheus.model.PromptPolicy;
-import ch.zhaw.prometheus.model.PromptValueShape;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PromptValueShape;
 import ch.zhaw.prometheus.model.Storage;
 import jakarta.persistence.Entity;
 

@@ -21,7 +21,7 @@ import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Event;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 
@@ -170,3 +170,4 @@ public class AgentController {
     }
 
 }
+

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.event;
 
 import java.time.Instant;
 import java.util.UUID;

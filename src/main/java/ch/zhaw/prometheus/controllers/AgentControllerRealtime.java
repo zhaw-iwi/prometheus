@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Event;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 
 @RestController

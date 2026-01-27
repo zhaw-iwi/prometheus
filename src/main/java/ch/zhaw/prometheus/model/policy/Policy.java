@@ -1,7 +1,10 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.policy;
 
 import com.google.gson.JsonElement;
 
+import ch.zhaw.prometheus.model.PersistedNode;
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.event.EventHistory;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Inheritance;

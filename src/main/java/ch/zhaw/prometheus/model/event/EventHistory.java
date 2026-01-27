@@ -1,10 +1,11 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.event;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import ch.zhaw.prometheus.model.State;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

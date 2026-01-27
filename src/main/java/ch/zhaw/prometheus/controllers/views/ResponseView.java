@@ -1,6 +1,6 @@
 package ch.zhaw.prometheus.controllers.views;
 
-import ch.zhaw.prometheus.model.Event;
+import ch.zhaw.prometheus.model.event.Event;
 
 public class ResponseView {
     private Event responseEvent;

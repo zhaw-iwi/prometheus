@@ -7,6 +7,9 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.Policy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;

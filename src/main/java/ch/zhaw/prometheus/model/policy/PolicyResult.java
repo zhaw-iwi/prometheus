@@ -1,6 +1,9 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.policy;
 
 import java.util.List;
+
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.event.Event;
 
 public class PolicyResult {
     private final String stateName;

@@ -1,5 +1,8 @@
 package ch.zhaw.prometheus.model;
 
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.Policy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

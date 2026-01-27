@@ -3,8 +3,8 @@ package ch.zhaw.prometheus.model.commons.actions;
 import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.model.Action;
-import ch.zhaw.prometheus.model.EventHistory;
-import ch.zhaw.prometheus.model.PromptPolicy;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.Storage;
 import jakarta.persistence.Entity;
 

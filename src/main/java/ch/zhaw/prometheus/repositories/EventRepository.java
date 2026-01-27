@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import ch.zhaw.prometheus.model.Event;
+import ch.zhaw.prometheus.model.event.Event;
 
 public interface EventRepository extends JpaRepository<Event, UUID> {
 

@@ -1,7 +1,7 @@
 package ch.zhaw.prometheus.model.commons.decisions;
 
 import ch.zhaw.prometheus.model.Decision;
-import ch.zhaw.prometheus.model.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.Entity;
 
 @Entity

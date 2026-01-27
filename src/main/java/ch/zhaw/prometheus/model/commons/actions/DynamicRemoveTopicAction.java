@@ -8,8 +8,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import ch.zhaw.prometheus.model.Action;
-import ch.zhaw.prometheus.model.EventHistory;
-import ch.zhaw.prometheus.model.NoOpPolicy;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.Storage;
 import jakarta.persistence.Entity;
 

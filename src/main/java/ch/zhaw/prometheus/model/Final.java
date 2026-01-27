@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.model;
 
 import java.util.List;
 
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.Entity;
 
 @Entity

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.policy;
 
 import java.util.HashMap;
 import java.util.List;
@@ -6,6 +6,9 @@ import java.util.Map;
 
 import com.google.gson.JsonElement;
 
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.Storage;
+import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LMOpenAI;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
 import jakarta.persistence.CascadeType;

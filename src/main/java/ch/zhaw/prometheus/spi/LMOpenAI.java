@@ -21,8 +21,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import ch.zhaw.prometheus.model.Event;
-import ch.zhaw.prometheus.model.EventHistory;
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
 
 public class LMOpenAI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LMOpenAI.class);

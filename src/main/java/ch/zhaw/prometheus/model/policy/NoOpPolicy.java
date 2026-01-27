@@ -1,5 +1,7 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.policy;
 
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.event.EventHistory;
 import jakarta.persistence.Entity;
 
 @Entity

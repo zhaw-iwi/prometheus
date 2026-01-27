@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.event;
 
 import java.util.Set;
 import java.util.function.Predicate;

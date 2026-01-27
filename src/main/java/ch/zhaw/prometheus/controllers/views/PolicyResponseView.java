@@ -2,8 +2,8 @@ package ch.zhaw.prometheus.controllers.views;
 
 import java.util.List;
 
-import ch.zhaw.prometheus.model.Event;
-import ch.zhaw.prometheus.model.PolicyResult;
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.PolicyResult;
 
 public class PolicyResponseView {
     private String stateName;

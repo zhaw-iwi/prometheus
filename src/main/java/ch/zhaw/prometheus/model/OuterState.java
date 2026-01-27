@@ -4,6 +4,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

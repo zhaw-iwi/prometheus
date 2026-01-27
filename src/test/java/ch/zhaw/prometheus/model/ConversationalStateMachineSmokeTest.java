@@ -13,6 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.NoOpPolicy;
+import ch.zhaw.prometheus.model.policy.Policy;
+
 @SpringBootTest
 class ConversationalStateMachineSmokeTest {
 

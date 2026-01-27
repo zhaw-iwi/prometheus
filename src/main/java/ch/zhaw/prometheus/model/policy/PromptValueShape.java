@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.model;
+package ch.zhaw.prometheus.model.policy;
 
 public enum PromptValueShape {
     NONE,

@@ -1,8 +1,8 @@
 package ch.zhaw.prometheus.model.commons.actions;
 
 import ch.zhaw.prometheus.model.Action;
-import ch.zhaw.prometheus.model.EventHistory;
-import ch.zhaw.prometheus.model.NoOpPolicy;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.State;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

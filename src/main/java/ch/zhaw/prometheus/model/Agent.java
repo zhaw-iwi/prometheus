@@ -10,6 +10,10 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.gson.JsonElement;
 
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.spi.ContenFilterException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;

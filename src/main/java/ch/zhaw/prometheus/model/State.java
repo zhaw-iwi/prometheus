@@ -8,6 +8,12 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,6 +25,7 @@ import jakarta.persistence.Transient;
 @Entity
 public class State extends PersistedNode {
     private static final Logger LOGGER = LoggerFactory.getLogger(State.class);
+
     protected State() {
 
     }

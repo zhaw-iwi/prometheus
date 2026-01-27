@@ -4,8 +4,8 @@ import java.util.List;
 
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Decision;
-import ch.zhaw.prometheus.model.PromptPolicy;
-import ch.zhaw.prometheus.model.PromptValueShape;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PromptValueShape;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
