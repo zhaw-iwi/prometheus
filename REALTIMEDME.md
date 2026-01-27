@@ -1,30 +1,17 @@
-# PROMISE Realtime Integration
+# PROMISE 26 Realtime Integration
 
 This document describes the Realtime-focused functionality added on top of PROMISE. It assumes you already read README.md and want only what changed and how to use it.
 
 ## Table of Contents
-- [PROMISE Realtime Integration](#promise-realtime-integration)
-  - [Table of Contents](#table-of-contents)
-  - [What This Adds](#what-this-adds)
-  - [Clients](#clients)
-    - [Realtime](#realtime)
-    - [Monitor](#monitor)
-    - [Python](#python)
-  - [Conceptual Model](#conceptual-model)
-  - [What This Supports](#what-this-supports)
-  - [Implementation Overview](#implementation-overview)
-    - [Additional API Endpoints](#additional-api-endpoints)
-    - [Additional Clients](#additional-clients)
-    - [Realtime Session Creation](#realtime-session-creation)
-    - [Logging to the Browser](#logging-to-the-browser)
-    - [State Listing](#state-listing)
-  - [Setup and Getting Started](#setup-and-getting-started)
-  - [Developer Options](#developer-options)
-    - [Turn Boundary](#turn-boundary)
-    - [Prompt Update Strategy](#prompt-update-strategy)
-    - [Assistant Transcript Handling](#assistant-transcript-handling)
-    - [Response Trigger Strategy](#response-trigger-strategy)
-  - [Notes and Constraints](#notes-and-constraints)
+- [Table of Contents](#table-of-contents)
+- [What This Adds](#what-this-adds)
+- [Clients](#clients)
+- [Conceptual Model](#conceptual-model)
+- [What This Supports](#what-this-supports)
+- [Implementation Overview](#implementation-overview)
+- [Setup and Getting Started](#setup-and-getting-started)
+- [Developer Options](#developer-options)
+- [Notes and Constraints](#notes-and-constraints)
 
 ## What This Adds
 - A prompt-orchestration flow that bypasses LLM response generation inside PROMISE.
