@@ -10,10 +10,10 @@
 		<!-- lookup parent from repository -->
 	</parent>
 	<groupId>ch.zhaw</groupId>
-	<artifactId>statefulconversation</artifactId>
+	<artifactId>prometheus</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>statefulconversation</name>
-	<description>Framweork for Stateful Language Model Prompt Composition</description>
+	<name>prometheus</name>
+	<description>Prometheus event-driven agent framework</description>
 	<properties>
 		<java.version>21</java.version>
 		<tomcat.version>10.1.47</tomcat.version>

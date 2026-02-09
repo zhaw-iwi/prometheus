@@ -1,5 +1,6 @@
 # dbms and db connection data
-spring.datasource.url=jdbc:mysql://localhost:3306/statefulconversation?useSSL=false&allowPublicKeyRetrieval=true
+spring.application.name=prometheus
+spring.datasource.url=jdbc:mysql://localhost:3306/prometheus?useSSL=false&allowPublicKeyRetrieval=true
 spring.datasource.username=root
 spring.datasource.password=achselle9
 
@@ -7,7 +8,7 @@ spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.MySQLDialect
 spring.jpa.hibernate.ddl-auto=update
 
 # log level
-logging.level.ch.zhaw.statefulconversation=INFO
+logging.level.ch.zhaw.prometheus=INFO
 logging.level.org=ERROR
 logging.level.com=ERROR
 

@@ -47,7 +47,8 @@ public class RealtimeSessionClient {
 
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
                 throw new RuntimeException(
-                        "unable to create realtime session - http request returned status code: " + response.statusCode()
+                        "unable to create realtime session - http request returned status code: "
+                                + response.statusCode()
                                 + " (\n\t"
                                 + response.body() + "\n\t" + response.toString() + "\n)");
             }

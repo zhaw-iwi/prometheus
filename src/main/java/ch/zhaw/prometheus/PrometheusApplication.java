@@ -8,9 +8,9 @@ import ch.zhaw.prometheus.spi.OpenAIProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties(OpenAIProperties.class)
-public class StatefulconversationApplication {
+public class PrometheusApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(StatefulconversationApplication.class, args);
+		SpringApplication.run(PrometheusApplication.class, args);
 	}
 }

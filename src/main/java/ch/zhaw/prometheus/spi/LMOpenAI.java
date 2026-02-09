@@ -20,6 +20,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
@@ -44,9 +45,10 @@ public class LMOpenAI {
         return result;
     }
 
-    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend, String stateName) {
+    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend,
+            String stateName) {
         List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, systemAppend, stateName); // Corrected
-                                                                                                                  // call
+                                                                                                                // call
         LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt);
         return result;
@@ -166,7 +168,7 @@ public class LMOpenAI {
             JsonObject payload = OpenAIProperties.instance().payload();
             payload.addProperty("temperature", temperature);
             payload.addProperty("top_p", topP);
-            payload.add("messages", LMOpenAI.GSON.toJsonTree(message));
+            payload.add("messages", LMOpenAI.toOpenAIMessages(message));
 
             // @TODO seems to be available in azure.openai
             // payload.addProperty("max_tokens", 800);
@@ -237,5 +239,65 @@ public class LMOpenAI {
         }
 
         return jsonMessage.get("content").getAsString();
+    }
+
+    static JsonArray toOpenAIMessages(List<Event> events) {
+        JsonArray messages = new JsonArray();
+        if (events == null) {
+            return messages;
+        }
+        for (Event event : events) {
+            JsonObject message = new JsonObject();
+            message.addProperty("role", mapRole(event));
+            message.addProperty("content", mapContent(event));
+            messages.add(message);
+        }
+        return messages;
+    }
+
+    static String mapRole(Event event) {
+        if (event == null) {
+            return "user";
+        }
+        if (Event.TYPE_SYSTEM_PROMPT.equals(event.getType())
+                || Event.KIND_SYSTEM.equals(event.getKind())
+                || Event.ACTOR_SYSTEM.equals(event.getActor())) {
+            return "system";
+        }
+        if (Event.ACTOR_ASSISTANT.equals(event.getActor()) || Event.KIND_RESPONSE.equals(event.getKind())) {
+            return "assistant";
+        }
+        if (Event.ACTOR_USER.equals(event.getActor()) || Event.KIND_OBSERVATION.equals(event.getKind())) {
+            return "user";
+        }
+        return "user";
+    }
+
+    static String mapContent(Event event) {
+        if (event == null) {
+            return "";
+        }
+        if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())
+                && event.getPayload() != null
+                && !event.getPayload().isBlank()) {
+            try {
+                JsonObject payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+                if (payload.has("speech") && !payload.get("speech").isJsonNull()) {
+                    String speech = payload.get("speech").getAsString();
+                    if (speech != null && !speech.isBlank()) {
+                        return speech;
+                    }
+                }
+            } catch (Exception e) {
+                // Fallback to regular content mapping below.
+            }
+        }
+        if (event.getContent() != null) {
+            return event.getContent();
+        }
+        if (event.getPayload() != null) {
+            return event.getPayload();
+        }
+        return "";
     }
 }

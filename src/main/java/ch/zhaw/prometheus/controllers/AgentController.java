@@ -20,6 +20,7 @@ import ch.zhaw.prometheus.controllers.views.AgentStateInfoView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
+import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.State;
@@ -30,6 +31,8 @@ public class AgentController {
 
     @Autowired
     private AgentRepository repository;
+    @Autowired
+    private AgentMonitorBroadcaster monitorBroadcaster;
 
     @GetMapping("{agentID}/info")
     public ResponseEntity<AgentInfoView> info(@PathVariable @NonNull UUID agentID) {
@@ -116,6 +119,7 @@ public class AgentController {
         Agent agent = agentMaybe.get();
         Event starter = agent.start();
         this.repository.save(agent);
+        this.monitorBroadcaster.publish(agent);
 
         return new ResponseEntity<ResponseView>(new ResponseView(starter, agent.isActive()),
                 HttpStatus.OK);
@@ -148,6 +152,7 @@ public class AgentController {
                 request.getPayload(), agent.getCurrentState().getName());
         Event response = agent.respond(event);
         this.repository.save(agent);
+        this.monitorBroadcaster.publish(agent);
 
         return new ResponseEntity<ResponseView>(new ResponseView(response, agent.isActive()),
                 HttpStatus.OK);
@@ -164,10 +169,10 @@ public class AgentController {
         agent.reset();
         Event response = agent.start();
         this.repository.save(agent);
+        this.monitorBroadcaster.publish(agent);
 
         return new ResponseEntity<ResponseView>(new ResponseView(response, agent.isActive()),
                 HttpStatus.OK);
     }
 
 }
-

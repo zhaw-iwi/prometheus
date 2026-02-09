@@ -12,12 +12,12 @@ let session = {
 let logSource = null;
 let logSettings = {
   level: "INFO",
-  loggers: new Set(["ch.zhaw.statefulconversation.model.State"]),
+  loggers: new Set(["ch.zhaw.prometheus.model.State"]),
   maxChars: 600,
   showTimestamps: false,
 };
 let logBuffer = [];
-let statePoller = null;
+let monitorSource = null;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -28,11 +28,7 @@ window.addEventListener("load", () => {
   }
   wireUi();
   connectLogs();
-  loadAgentInfo();
-  loadStates();
-  loadStorage();
-  refreshCurrentState();
-  startPolling();
+  connectMonitor();
 });
 
 function wireUi() {
@@ -283,15 +279,39 @@ function connectLogs() {
   };
 }
 
-async function loadAgentInfo() {
-  const response = await fetch(`/${session.agentId}/info`);
-  if (!response.ok) {
-    appendLog("app", "Unable to load agent info.");
+function connectMonitor() {
+  if (monitorSource) {
+    monitorSource.close();
+  }
+  monitorSource = new EventSource(`/${session.agentId}/monitor/stream`);
+  monitorSource.addEventListener("snapshot", (event) => {
+    const data = JSON.parse(event.data);
+    applySnapshot(data);
+  });
+  monitorSource.onerror = () => {
+    appendLog("app", "Monitor stream disconnected.");
+  };
+}
+
+function applySnapshot(data) {
+  if (!data) {
     return;
   }
-  const data = await response.json();
-  document.getElementById("agent_name").textContent = data.name;
+  session.name = data.name || session.name;
+  session.description = data.description || session.description;
+  document.getElementById("agent_name").textContent = session.name || "Agent";
   setActiveStatus(data.active);
+  updateCurrentState(data.stateName, data.innerName, data.innerNames);
+  session.states = Array.isArray(data.states) ? data.states : [];
+  renderStateList();
+
+  const storage = Array.isArray(data.storage) ? data.storage : [];
+  const snapshot = serializeStorage(storage);
+  if (snapshot !== session.storageSnapshot) {
+    session.storageSnapshot = snapshot;
+    session.storage = storage;
+    renderStorageList();
+  }
 }
 
 async function showAgentInfo() {
@@ -302,62 +322,6 @@ async function showAgentInfo() {
   }
   const data = await response.json();
   alert(`Name\n${data.name}\n\nDescription\n${data.description}`);
-}
-
-async function loadStates() {
-  const response = await fetch(`/${session.agentId}/states`);
-  if (!response.ok) {
-    appendLog("app", "Unable to load states.");
-    return;
-  }
-  session.states = await response.json();
-  renderStateList();
-}
-
-async function loadStorage() {
-  const response = await fetch(`/${session.agentId}/storage`);
-  if (!response.ok) {
-    appendLog("app", "Unable to load storage.");
-    return;
-  }
-  const data = await response.json();
-  const snapshot = serializeStorage(data);
-  if (snapshot === session.storageSnapshot) {
-    return;
-  }
-  session.storageSnapshot = snapshot;
-  session.storage = data;
-  renderStorageList();
-}
-
-async function refreshCurrentState() {
-  const response = await fetch(`/${session.agentId}/state`);
-  if (!response.ok) {
-    appendLog("app", "Unable to load current state.");
-    return;
-  }
-  const data = await response.json();
-  updateCurrentState(data.name, data.innerName, data.innerNames);
-}
-
-function startPolling() {
-  if (statePoller) {
-    clearInterval(statePoller);
-  }
-  statePoller = setInterval(async () => {
-    await refreshCurrentState();
-    await refreshActiveStatus();
-    await loadStorage();
-  }, 2000);
-}
-
-async function refreshActiveStatus() {
-  const response = await fetch(`/${session.agentId}/info`);
-  if (!response.ok) {
-    return;
-  }
-  const data = await response.json();
-  setActiveStatus(data.active);
 }
 
 function appendLog(source, message) {

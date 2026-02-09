@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
+import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.repositories.AgentRepository;
@@ -23,6 +24,8 @@ public class AgentControllerRealtime {
 
     @Autowired
     private AgentRepository repository;
+    @Autowired
+    private AgentMonitorBroadcaster monitorBroadcaster;
 
     @GetMapping("{agentID}/prompt")
     public ResponseEntity<PolicyResponseView> prompt(@PathVariable UUID agentID) {
@@ -64,6 +67,7 @@ public class AgentControllerRealtime {
                 request.getPayload(), agent.getCurrentState().getName());
         agent.acknowledge(event);
         this.repository.save(agent);
+        this.monitorBroadcaster.publish(agent);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
