@@ -124,6 +124,7 @@ Implemented Iteration 5 core slice:
   - `RegulationPolicy`
   - `RegulationEffect`
 - `RegulationEffect` is dimension-agnostic (`Map<String, Double>` deltas + confidence/provenance), so applications choose variable count and semantics.
+- `ModulationBundle` is also dimension-agnostic (`Map<String, Double>`), so modulation vocabularies are regulation-specific.
 - Added `NoOpRegulationSystem` default and moved Zurich into commons as reference implementation:
   - `model.commons.regulation.ZurichRegulationSystem`
 - `Agent` now invokes regulation after processed input/tick events.
@@ -164,8 +165,8 @@ Iteration 4 - Continuous Evaluation
 Iteration 5 - Regulation Runtime Integration (done, core slice)
 
 - RegulationSystem interface consumes observations/ticks and emits modulation + control events
-- Tanks with decay
-- Modulation bundles
+- Named regulation variables with decay (model-dependent; Zurich reference implementation in commons)
+- `ModulationBundle` as structured modulation output (dimension-agnostic map)
 - Internal control events
 - Deliverable: Door Assist initiative triggered by regulation
 

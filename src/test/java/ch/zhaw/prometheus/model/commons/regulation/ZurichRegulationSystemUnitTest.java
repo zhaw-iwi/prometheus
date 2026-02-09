@@ -26,7 +26,7 @@ class ZurichRegulationSystemUnitTest {
 
         assertEquals(1, first.internalEvents().size());
         assertEquals(Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY, first.internalEvents().get(0).getType());
-        assertTrue(first.modulation().affiliation() >= 0.5d);
+        assertTrue(first.modulation().get(ZurichRegulationSystem.MOD_AFFILIATION) >= 0.5d);
         assertTrue(second.internalEvents().isEmpty());
     }
 
@@ -40,7 +40,7 @@ class ZurichRegulationSystemUnitTest {
                 Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "S")));
 
         assertTrue(regulation.getVariable(ZurichRegulationSystem.VAR_DEPENDENCY) < 0.8d);
-        assertTrue(result.modulation().affiliation() < 0.8d);
+        assertTrue(result.modulation().get(ZurichRegulationSystem.MOD_AFFILIATION) < 0.8d);
         assertTrue(result.internalEvents().isEmpty());
     }
 

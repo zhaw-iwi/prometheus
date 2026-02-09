@@ -17,6 +17,11 @@ public class ZurichRegulationSystem implements RegulationSystem {
     public static final String VAR_DEPENDENCY = "dependency";
     public static final String VAR_ENTERPRISE = "enterprise";
     public static final String VAR_AUTONOMY = "autonomy";
+    public static final String MOD_AGGRESSION = "aggression";
+    public static final String MOD_SUPPLICATION = "supplication";
+    public static final String MOD_EXPLORATION = "exploration";
+    public static final String MOD_AVOIDANCE = "avoidance";
+    public static final String MOD_AFFILIATION = "affiliation";
 
     private final Map<String, Double> variables;
     private final Map<String, Double> decayByVariable;
@@ -136,7 +141,13 @@ public class ZurichRegulationSystem implements RegulationSystem {
         double exploration = positive(autonomy);
         double supplication = positive(-dependency);
         double avoidance = positive(-autonomy);
-        return new ModulationBundle(aggression, supplication, exploration, avoidance, affiliation);
+        Map<String, Double> values = new LinkedHashMap<>();
+        values.put(MOD_AGGRESSION, aggression);
+        values.put(MOD_SUPPLICATION, supplication);
+        values.put(MOD_EXPLORATION, exploration);
+        values.put(MOD_AVOIDANCE, avoidance);
+        values.put(MOD_AFFILIATION, affiliation);
+        return new ModulationBundle(values);
     }
 
     private double clampFor(String variable, double value) {
