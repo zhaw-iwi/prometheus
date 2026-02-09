@@ -258,6 +258,7 @@ public class Agent {
         }
         RegulationResult result = this.getRegulationSystem()
                 .update(new RegulationContext(triggerEvent,
+                        this.eventHistory,
                         this.getRegulationSnapshotAggregator().aggregate(this.eventHistory), Instant.now()));
         if (result == null) {
             return;

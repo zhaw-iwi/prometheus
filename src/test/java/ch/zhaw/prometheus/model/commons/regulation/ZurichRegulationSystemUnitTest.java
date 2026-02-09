@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.model.regulation;
+package ch.zhaw.prometheus.model.commons.regulation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,6 +8,9 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.regulation.RegulationContext;
+import ch.zhaw.prometheus.model.regulation.RegulationResult;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 
 class ZurichRegulationSystemUnitTest {
@@ -36,12 +39,12 @@ class ZurichRegulationSystemUnitTest {
         RegulationResult result = regulation.update(context(
                 Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "S")));
 
-        assertTrue(regulation.getDependency() < 0.8d);
+        assertTrue(regulation.getVariable(ZurichRegulationSystem.VAR_DEPENDENCY) < 0.8d);
         assertTrue(result.modulation().affiliation() < 0.8d);
         assertTrue(result.internalEvents().isEmpty());
     }
 
     private static RegulationContext context(Event trigger) {
-        return new RegulationContext(trigger, ObservationSnapshot.empty(), Instant.now());
+        return new RegulationContext(trigger, new EventHistory(), ObservationSnapshot.empty(), Instant.now());
     }
 }

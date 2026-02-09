@@ -120,7 +120,12 @@ Implemented Iteration 5 core slice:
   - `RegulationContext`
   - `RegulationResult`
   - `ModulationBundle`
-- Added `NoOpRegulationSystem` default and `ZurichRegulationSystem` reference implementation.
+- Added generic regulation policy/effect contracts:
+  - `RegulationPolicy`
+  - `RegulationEffect`
+- `RegulationEffect` is dimension-agnostic (`Map<String, Double>` deltas + confidence/provenance), so applications choose variable count and semantics.
+- Added `NoOpRegulationSystem` default and moved Zurich into commons as reference implementation:
+  - `model.commons.regulation.ZurichRegulationSystem`
 - `Agent` now invokes regulation after processed input/tick events.
 - Regulation can emit explicit internal events that are fed back through the state-machine acknowledgment path.
 - Added internal event types for regulation opportunities/interrupts:

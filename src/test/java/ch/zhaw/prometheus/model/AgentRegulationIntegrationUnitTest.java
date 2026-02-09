@@ -11,9 +11,9 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.commons.regulation.ZurichRegulationSystem;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.policy.Policy;
-import ch.zhaw.prometheus.model.regulation.ZurichRegulationSystem;
 
 class AgentRegulationIntegrationUnitTest {
 
