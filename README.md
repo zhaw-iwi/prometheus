@@ -12,7 +12,8 @@ Status
 
 - Iteration 1 complete: Events, shared history, policies, and response-as-event workflows
 - Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
-- Iteration 3 next: Observation snapshots
+- Iteration 3 complete (core): Observation snapshots and fact-based transition hooks
+- Next step: Iteration 4 (Continuous Evaluation)
 
 ## Current Runtime Contracts
 
@@ -20,6 +21,8 @@ Status
 - Assistant outputs are `resp.behaviour_plan` events.
 - Assistant speech is represented in BehaviourPlan payload (`payload.speech`), with `content` available as rendered preview/fallback.
 - `BehaviourPlan` is the output abstraction; `SpeechOnlyRenderer` is the default renderer.
+- Snapshot contracts are available via `SnapshotAggregator`, `ObservationSnapshot`, `Fact`, and selector-based `FactExtractor` helpers.
+- `Transition` now builds snapshots from selected events and passes them into decisions/actions.
 - Prompt execution uses OpenAI chat message mapping from events (`role` + `content`) in `LMOpenAI`.
 - Monitor client state/storage/active updates are SSE-driven via `/{agentId}/monitor/stream`.
 - Log monitoring is SSE-driven via `/logs/stream`.
@@ -54,6 +57,8 @@ Status
   - `BehaviourPlan` serialization/emptiness
   - `EventSelector` composition/filtering
   - `State`/`Transition` behaviour-plan emission and selector semantics
+  - Snapshot aggregation facts and selector-based fact extraction
+  - Snapshot-aware transition decisions/actions
   - `LMOpenAI` event-to-chat-message mapping
 - Web MVC compatibility tests:
   - chat endpoints
@@ -63,21 +68,31 @@ Status
   - `src/test/java/ch/zhaw/prometheus/agents`
   - intentionally `@Disabled` and run manually when seeding agents
 
-## Iteration 3 Entry Criteria (next)
+## Iteration 3 Snapshot Design (implemented)
 
-Iteration 3 should introduce snapshot/fact abstractions without breaking current event-first flow:
+Iteration 3 is implemented with an additive design that keeps the event-first flow intact:
 
-- Add snapshot model(s) derived from event history with explicit provenance and confidence.
-- Add snapshot extraction/aggregation service behind interface(s).
-- Keep decisions/actions able to use raw event selectors while enabling snapshot access.
-- Add deterministic unit tests for snapshot construction and decision consumption.
-- Keep current client contracts stable (`resp.behaviour_plan`, monitor SSE).
+- Snapshot model from selected `EventHistory` with explicit `Fact` objects (`key`, `value`, `confidence`, `provenance`).
+- Pluggable `SnapshotAggregator` interface and default implementation (`DefaultObservationSnapshotAggregator`).
+- Reusable selector-first fact helpers (`FactExtractors`) so developers can define snapshot content using `EventSelector` composition.
+- `Decision` and `Action` now support snapshot-aware overloads while keeping existing raw-event methods.
+- `Transition` computes snapshots from the same selected history already used for decisions/actions.
+- Client/runtime contracts remain stable (`resp.behaviour_plan`, monitor SSE).
 
 Non-goals for Iteration 3:
 
 - No scheduler/tick runtime (Iteration 4).
 - No regulation runtime integration (Iteration 5).
 - No policy-gate/interrupt authority model changes (Iteration 6).
+
+## Next Step - Iteration 4 (Continuous Evaluation)
+
+Planned Iteration 4 focus:
+
+- Introduce scheduler- or tick-driven evaluation so agents can deliberate without new external input.
+- Add periodic evaluation hooks at state/transition level.
+- Keep Iteration 3 snapshot path reusable for tick-driven decisions.
+- Add deterministic tests for no-input progression and timing-independent transition checks.
 
 ## Roadmap (Iterative Development)
 
@@ -90,7 +105,7 @@ Iteration 2 - BehaviourPlan Output (done)
 - Add a simple speech-only renderer
 - Deliverable: same conversational agent, BehaviourPlan-driven responses
 
-Iteration 3 - Observation Snapshots (next)
+Iteration 3 - Observation Snapshots (done, core)
 
 - Snapshot aggregation over events into explicit snapshot/fact artifacts
 - Fact extraction helpers and confidence handling

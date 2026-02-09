@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -88,7 +89,8 @@ public class Transition {
         for (Decision current : this.decisions) {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
-            boolean currentDecision = current.decide(selected);
+            ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
+            boolean currentDecision = current.decide(selected, snapshot);
             if (!currentDecision) {
                 return false;
             }
@@ -107,7 +109,8 @@ public class Transition {
         for (Action current : this.actions) {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
-            current.execute(selected);
+            ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
+            current.execute(selected, snapshot);
         }
     }
 

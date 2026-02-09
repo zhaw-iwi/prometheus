@@ -10,6 +10,9 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
 import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
+import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
+import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -33,6 +36,8 @@ public abstract class Action extends PersistedNode {
 
     @Transient
     private EventSelector eventSelector;
+    @Transient
+    private SnapshotAggregator snapshotAggregator;
 
     protected Action() {
         this.storageKeysFrom = List.of();
@@ -127,7 +132,22 @@ public abstract class Action extends PersistedNode {
         this.eventSelector = eventSelector;
     }
 
+    public SnapshotAggregator getSnapshotAggregator() {
+        if (this.snapshotAggregator == null) {
+            this.snapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        }
+        return this.snapshotAggregator;
+    }
+
+    public void setSnapshotAggregator(SnapshotAggregator snapshotAggregator) {
+        this.snapshotAggregator = snapshotAggregator;
+    }
+
     public abstract void execute(EventHistory eventHistory);
+
+    public void execute(EventHistory eventHistory, ObservationSnapshot snapshot) {
+        this.execute(eventHistory);
+    }
 
     @Override
     public String toString() {

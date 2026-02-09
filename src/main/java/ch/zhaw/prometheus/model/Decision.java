@@ -3,6 +3,9 @@ package ch.zhaw.prometheus.model;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
 import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
+import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
+import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -17,6 +20,8 @@ public abstract class Decision extends PersistedNode {
 
     @Transient
     private EventSelector eventSelector;
+    @Transient
+    private SnapshotAggregator snapshotAggregator;
 
     protected Decision() {
 
@@ -50,8 +55,23 @@ public abstract class Decision extends PersistedNode {
         this.eventSelector = eventSelector;
     }
 
+    public SnapshotAggregator getSnapshotAggregator() {
+        if (this.snapshotAggregator == null) {
+            this.snapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        }
+        return this.snapshotAggregator;
+    }
+
+    public void setSnapshotAggregator(SnapshotAggregator snapshotAggregator) {
+        this.snapshotAggregator = snapshotAggregator;
+    }
+
     public boolean decide(EventHistory events) {
         return this.getPolicy().decide(events);
+    }
+
+    public boolean decide(EventHistory events, ObservationSnapshot snapshot) {
+        return this.decide(events);
     }
 
     @Override
