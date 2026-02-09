@@ -14,7 +14,8 @@ Status
 - Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
 - Iteration 3 complete (core): Observation snapshots and fact-based transition hooks
 - Iteration 4 complete (core): Runtime tick-driven continuous evaluation
-- Next step: Iteration 5 (Regulation Runtime Integration)
+- Iteration 5 complete (core slice): Regulation runtime with Zurich-style internal events
+- Next step: Iteration 6 (Interrupts and Policy Gate)
 
 ## Current Runtime Contracts
 
@@ -27,6 +28,8 @@ Status
 - Internal `sys.tick` events are supported for no-input evaluation cycles.
 - Optional runtime scheduler can tick active agents (`prometheus.runtime.tick.enabled`, `prometheus.runtime.tick.delay-ms`).
 - Manual one-cycle no-input evaluation endpoint is available at `POST /{agentId}/tick`.
+- Agents can host a `RegulationSystem`; default is no-op.
+- Iteration 5 core provides `ZurichRegulationSystem` emitting explicit internal control events (for example `int.regulation.opportunity`).
 - Prompt execution uses OpenAI chat message mapping from events (`role` + `content`) in `LMOpenAI`.
 - Monitor client state/storage/active updates are SSE-driven via `/{agentId}/monitor/stream`.
 - Log monitoring is SSE-driven via `/logs/stream`.
@@ -65,6 +68,7 @@ Status
   - Snapshot-aware transition decisions/actions
   - Agent tick/no-input progression and tick-triggered transitions
   - Continuous scheduler cycle processing (active agents only)
+  - Zurich regulation dynamics and regulation-to-transition integration
   - `LMOpenAI` event-to-chat-message mapping
 - Web MVC compatibility tests:
   - chat endpoints
@@ -107,14 +111,26 @@ Authority split for Iteration 4/5:
 - Regulation (Iteration 5) consumes ticks and observations to update motivational dynamics.
 - State machine remains control authority and reacts to explicit internal events emitted by regulation.
 
-## Next Step - Iteration 5 (Regulation Runtime Integration)
+## Iteration 5 Regulation Runtime (implemented core slice)
 
-Planned Iteration 5 focus:
+Implemented Iteration 5 core slice:
 
-- Introduce `RegulationSystem` as runtime component consuming observations/ticks.
-- Integrate Zurich-model-like latent motivation dynamics (deficit/excess over time).
-- Emit explicit internal control events and modulation bundles for state-machine consumption.
-- Keep authority boundaries explicit: regulation suggests, state machine decides.
+- Added runtime regulation contracts:
+  - `RegulationSystem`
+  - `RegulationContext`
+  - `RegulationResult`
+  - `ModulationBundle`
+- Added `NoOpRegulationSystem` default and `ZurichRegulationSystem` reference implementation.
+- `Agent` now invokes regulation after processed input/tick events.
+- Regulation can emit explicit internal events that are fed back through the state-machine acknowledgment path.
+- Added internal event types for regulation opportunities/interrupts:
+  - `int.regulation.opportunity`
+  - `int.regulation.interrupt.soft`
+  - `int.regulation.interrupt.hard`
+
+Current scope note:
+- This slice establishes runtime integration and explicit event flow.
+- Policy-gate authority and interrupt arbitration remain Iteration 6 concerns.
 
 ## Roadmap (Iterative Development)
 
@@ -140,7 +156,7 @@ Iteration 4 - Continuous Evaluation
 - Periodic evaluation hooks via explicit internal events
 - Deliverable: agents react even without new input
 
-Iteration 5 - Regulation Runtime Integration
+Iteration 5 - Regulation Runtime Integration (done, core slice)
 
 - RegulationSystem interface consumes observations/ticks and emits modulation + control events
 - Tanks with decay

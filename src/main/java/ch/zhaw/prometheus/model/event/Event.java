@@ -20,6 +20,9 @@ public class Event {
     public static final String TYPE_ASSISTANT_BEHAVIOUR_PLAN = "resp.behaviour_plan";
     public static final String TYPE_SYSTEM_PROMPT = "sys.prompt";
     public static final String TYPE_SYSTEM_TICK = "sys.tick";
+    public static final String TYPE_INTERNAL_REGULATION_OPPORTUNITY = "int.regulation.opportunity";
+    public static final String TYPE_INTERNAL_REGULATION_INTERRUPT_SOFT = "int.regulation.interrupt.soft";
+    public static final String TYPE_INTERNAL_REGULATION_INTERRUPT_HARD = "int.regulation.interrupt.hard";
     public static final String KIND_OBSERVATION = "observation";
     public static final String KIND_RESPONSE = "response";
     public static final String KIND_SYSTEM = "system";
