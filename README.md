@@ -14,7 +14,23 @@ Status
 - Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
 - Iteration 3 next: Observation snapshots
 
-## Iteration 1 — Event-Based Interaction (done)
+## Current Runtime Contracts
+
+- Inputs are `Event` objects (`type`, `actor`, `kind`, `content`, `payload`, `stateName`).
+- Assistant outputs are `resp.behaviour_plan` events.
+- Assistant speech is represented in BehaviourPlan payload (`payload.speech`), with `content` available as rendered preview/fallback.
+- `BehaviourPlan` is the output abstraction; `SpeechOnlyRenderer` is the default renderer.
+- Prompt execution uses OpenAI chat message mapping from events (`role` + `content`) in `LMOpenAI`.
+- Monitor client state/storage/active updates are SSE-driven via `/{agentId}/monitor/stream`.
+- Log monitoring is SSE-driven via `/logs/stream`.
+
+## Naming And Identity
+
+- Spring Boot entry point is `PrometheusApplication`.
+- Maven artifact/name is `prometheus`.
+- `spring.application.name=prometheus` is configured in template/prod properties.
+
+## Iteration 1 - Event-Based Interaction (done)
 
 - Unified `Event` model (type/actor/kind/content/payload/stateName).
 - Single per-agent event history with state-scoped filtering.
@@ -23,6 +39,45 @@ Status
 - Responses are modeled as events and appended to the shared event history.
 - Event selectors introduced for history selection (state/actor/kind).
 - Prompt-facing APIs and views use policy terminology (`PolicyResult`, `PolicyResponseView`, `getTotalPolicy`).
+
+## Iteration 2 - BehaviourPlan Output (done)
+
+- Added `BehaviourPlan` abstraction and default `SpeechOnlyRenderer`.
+- `Policy.onStart(...)` and `Policy.onRespond(...)` return `BehaviourPlan`.
+- `State` emits assistant `resp.behaviour_plan` events with serialized plan payload.
+- Frontend rendering uses payload-first speech extraction.
+- LM adapter maps events to OpenAI chat messages with explicit role/content mapping.
+
+## Testing Status
+
+- Unit tests:
+  - `BehaviourPlan` serialization/emptiness
+  - `EventSelector` composition/filtering
+  - `State`/`Transition` behaviour-plan emission and selector semantics
+  - `LMOpenAI` event-to-chat-message mapping
+- Web MVC compatibility tests:
+  - chat endpoints
+  - realtime acknowledge/prompt flow
+  - monitor endpoints including SSE monitor stream
+- Manual seed tests:
+  - `src/test/java/ch/zhaw/prometheus/agents`
+  - intentionally `@Disabled` and run manually when seeding agents
+
+## Iteration 3 Entry Criteria (next)
+
+Iteration 3 should introduce snapshot/fact abstractions without breaking current event-first flow:
+
+- Add snapshot model(s) derived from event history with explicit provenance and confidence.
+- Add snapshot extraction/aggregation service behind interface(s).
+- Keep decisions/actions able to use raw event selectors while enabling snapshot access.
+- Add deterministic unit tests for snapshot construction and decision consumption.
+- Keep current client contracts stable (`resp.behaviour_plan`, monitor SSE).
+
+Non-goals for Iteration 3:
+
+- No scheduler/tick runtime (Iteration 4).
+- No regulation runtime integration (Iteration 5).
+- No policy-gate/interrupt authority model changes (Iteration 6).
 
 ## Roadmap (Iterative Development)
 
