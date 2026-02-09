@@ -125,6 +125,21 @@ public class AgentController {
                 HttpStatus.OK);
     }
 
+    @PostMapping("{agentID}/tick")
+    public ResponseEntity<ResponseView> tick(@PathVariable @NonNull UUID agentID) {
+        Optional<Agent> agentMaybe = this.repository.findById(agentID);
+        if (agentMaybe.isEmpty()) {
+            return new ResponseEntity<ResponseView>(HttpStatus.NOT_FOUND);
+        }
+
+        Agent agent = agentMaybe.get();
+        Event response = agent.tick();
+        this.repository.save(agent);
+        this.monitorBroadcaster.publish(agent);
+
+        return new ResponseEntity<ResponseView>(new ResponseView(response, agent.isActive()), HttpStatus.OK);
+    }
+
     @PostMapping("{agentID}/respond")
     public ResponseEntity<ResponseView> respond(@PathVariable @NonNull UUID agentID,
             @RequestBody EventRequest request) {

@@ -78,6 +78,11 @@ class AgentClientCompatibilityWebMvcTest {
                                 .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
                                 .andExpect(jsonPath("$.responseEvent.payload", containsString("\"speech\"")));
 
+                this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/tick"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.active").value(true))
+                                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN));
+
                 this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/respond")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
@@ -96,8 +101,10 @@ class AgentClientCompatibilityWebMvcTest {
                 this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/eventhistory"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$[0].actor").value("assistant"))
-                                .andExpect(jsonPath("$[1].actor").value("user"))
-                                .andExpect(jsonPath("$[2].actor").value("assistant"));
+                                .andExpect(jsonPath("$[1].type").value(Event.TYPE_SYSTEM_TICK))
+                                .andExpect(jsonPath("$[2].actor").value("assistant"))
+                                .andExpect(jsonPath("$[3].actor").value("user"))
+                                .andExpect(jsonPath("$[4].actor").value("assistant"));
 
                 this.mockMvc.perform(delete("/" + TEST_AGENT_ID + "/reset"))
                                 .andExpect(status().isOk())

@@ -122,6 +122,14 @@ public class Agent {
         }
     }
 
+    public Event tick() {
+        if (!this.isActive() || this.currentState == null) {
+            return null;
+        }
+        Event tickEvent = Event.systemTick(this.currentState.getName());
+        return this.respond(tickEvent);
+    }
+
     public void acknowledge(Event event) {
         try {
             this.currentState.acknowledge(event);

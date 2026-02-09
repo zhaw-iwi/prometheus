@@ -14,3 +14,7 @@ logging.level.com=ERROR
 
 # tomcat server port
 server.port = 8080
+
+# continuous evaluation (Iteration 4)
+prometheus.runtime.tick.enabled=false
+prometheus.runtime.tick.delay-ms=1000

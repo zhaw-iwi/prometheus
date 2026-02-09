@@ -13,7 +13,8 @@ Status
 - Iteration 1 complete: Events, shared history, policies, and response-as-event workflows
 - Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
 - Iteration 3 complete (core): Observation snapshots and fact-based transition hooks
-- Next step: Iteration 4 (Continuous Evaluation)
+- Iteration 4 complete (core): Runtime tick-driven continuous evaluation
+- Next step: Iteration 5 (Regulation Runtime Integration)
 
 ## Current Runtime Contracts
 
@@ -23,6 +24,9 @@ Status
 - `BehaviourPlan` is the output abstraction; `SpeechOnlyRenderer` is the default renderer.
 - Snapshot contracts are available via `SnapshotAggregator`, `ObservationSnapshot`, `Fact`, and selector-based `FactExtractor` helpers.
 - `Transition` now builds snapshots from selected events and passes them into decisions/actions.
+- Internal `sys.tick` events are supported for no-input evaluation cycles.
+- Optional runtime scheduler can tick active agents (`prometheus.runtime.tick.enabled`, `prometheus.runtime.tick.delay-ms`).
+- Manual one-cycle no-input evaluation endpoint is available at `POST /{agentId}/tick`.
 - Prompt execution uses OpenAI chat message mapping from events (`role` + `content`) in `LMOpenAI`.
 - Monitor client state/storage/active updates are SSE-driven via `/{agentId}/monitor/stream`.
 - Log monitoring is SSE-driven via `/logs/stream`.
@@ -59,6 +63,8 @@ Status
   - `State`/`Transition` behaviour-plan emission and selector semantics
   - Snapshot aggregation facts and selector-based fact extraction
   - Snapshot-aware transition decisions/actions
+  - Agent tick/no-input progression and tick-triggered transitions
+  - Continuous scheduler cycle processing (active agents only)
   - `LMOpenAI` event-to-chat-message mapping
 - Web MVC compatibility tests:
   - chat endpoints
@@ -85,14 +91,30 @@ Non-goals for Iteration 3:
 - No regulation runtime integration (Iteration 5).
 - No policy-gate/interrupt authority model changes (Iteration 6).
 
-## Next Step - Iteration 4 (Continuous Evaluation)
+## Iteration 4 Continuous Evaluation (implemented core)
 
-Planned Iteration 4 focus:
+Implemented Iteration 4 core:
 
-- Introduce scheduler- or tick-driven evaluation so agents can deliberate without new external input.
-- Add periodic evaluation hooks at state/transition level.
-- Keep Iteration 3 snapshot path reusable for tick-driven decisions.
-- Add deterministic tests for no-input progression and timing-independent transition checks.
+- Runtime-level scheduler/tick source outside state machine and regulation.
+- `Agent.tick()` API to run one no-input evaluation cycle through the existing event pipeline.
+- `POST /{agentId}/tick` endpoint for deterministic/manual triggering.
+- Tick-driven transitions and behaviours are supported via normal decisions/actions and snapshot hooks.
+- Deterministic tests cover no-input progression and scheduler processing.
+
+Authority split for Iteration 4/5:
+
+- Runtime provides time (`tick` events).
+- Regulation (Iteration 5) consumes ticks and observations to update motivational dynamics.
+- State machine remains control authority and reacts to explicit internal events emitted by regulation.
+
+## Next Step - Iteration 5 (Regulation Runtime Integration)
+
+Planned Iteration 5 focus:
+
+- Introduce `RegulationSystem` as runtime component consuming observations/ticks.
+- Integrate Zurich-model-like latent motivation dynamics (deficit/excess over time).
+- Emit explicit internal control events and modulation bundles for state-machine consumption.
+- Keep authority boundaries explicit: regulation suggests, state machine decides.
 
 ## Roadmap (Iterative Development)
 
@@ -114,13 +136,13 @@ Iteration 3 - Observation Snapshots (done, core)
 
 Iteration 4 - Continuous Evaluation
 
-- Scheduler or tick events
-- Periodic evaluation hooks
+- Runtime scheduler/tick events (framework-level, not state-machine-specific)
+- Periodic evaluation hooks via explicit internal events
 - Deliverable: agents react even without new input
 
 Iteration 5 - Regulation Runtime Integration
 
-- RegulationSystem interface consumes events and emits modulation + control events
+- RegulationSystem interface consumes observations/ticks and emits modulation + control events
 - Tanks with decay
 - Modulation bundles
 - Internal control events

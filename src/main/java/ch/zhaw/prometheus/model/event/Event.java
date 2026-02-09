@@ -19,6 +19,7 @@ public class Event {
     public static final String TYPE_ASSISTANT_UTTERANCE = "resp.assistant_utterance";
     public static final String TYPE_ASSISTANT_BEHAVIOUR_PLAN = "resp.behaviour_plan";
     public static final String TYPE_SYSTEM_PROMPT = "sys.prompt";
+    public static final String TYPE_SYSTEM_TICK = "sys.tick";
     public static final String KIND_OBSERVATION = "observation";
     public static final String KIND_RESPONSE = "response";
     public static final String KIND_SYSTEM = "system";
@@ -73,6 +74,14 @@ public class Event {
 
     public static Event systemPrompt(String content, String stateName) {
         return new Event(TYPE_SYSTEM_PROMPT, ACTOR_SYSTEM, KIND_SYSTEM, content, null, stateName);
+    }
+
+    public static Event system(String type, String content, String payload, String stateName) {
+        return new Event(type, ACTOR_SYSTEM, KIND_SYSTEM, content, payload, stateName);
+    }
+
+    public static Event systemTick(String stateName) {
+        return system(TYPE_SYSTEM_TICK, "tick", null, stateName);
     }
 
     public String getType() {
