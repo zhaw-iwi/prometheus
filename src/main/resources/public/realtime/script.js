@@ -152,7 +152,7 @@ function buildEventHistoryContext(eventHistory) {
         return null;
       }
       const actor = event.actor || "unknown";
-      const content = event.content || "";
+      const content = getEventSpeech(event) || event.content || "";
       return `${actor}: ${content}`;
     })
     .filter((line) => line && line.trim().length > 0);
@@ -442,10 +442,10 @@ async function appendAssistantTranscript(transcript) {
       "Content-Type": "application/json; charset=utf-8",
     },
     body: JSON.stringify({
-      type: "resp.assistant_utterance",
+      type: "resp.behaviour_plan",
       actor: "assistant",
       kind: "response",
-      content: transcript,
+      payload: JSON.stringify({ speech: transcript }),
     }),
   });
   if (!response.ok) {
@@ -478,8 +478,9 @@ async function resetAgent() {
   } catch (error) {
     appendLog("app", "Unable to refresh prompt after reset.");
   }
-  if (data.responseEvent && data.responseEvent.content) {
-    speakStoredAssistantResponse(data.responseEvent.content);
+  const responseText = getEventSpeech(data.responseEvent);
+  if (responseText) {
+    speakStoredAssistantResponse(responseText);
   }
 }
 
@@ -726,7 +727,24 @@ function getLastAssistantResponse(eventHistory) {
   if (!last || last.actor !== "assistant") {
     return null;
   }
-  return last.content || null;
+  return getEventSpeech(last);
+}
+
+function getEventSpeech(event) {
+  if (!event) {
+    return null;
+  }
+  if (!event.payload) {
+    return event.content && event.content.trim() ? event.content : null;
+  }
+  try {
+    const plan = JSON.parse(event.payload);
+    if (plan && typeof plan.speech === "string" && plan.speech.trim()) {
+      return plan.speech;
+    }
+  } catch (_) {
+  }
+  return event.content && event.content.trim() ? event.content : null;
 }
 
 function speakStoredAssistantResponse(text) {

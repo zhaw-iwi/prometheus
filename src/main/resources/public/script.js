@@ -164,10 +164,11 @@ function show_eventhistory(eventhistory) {
     $("#messages").empty();
     $.each(eventhistory, function (index, current) {
         let current_message = null;
+        const text = get_event_text(current);
         if (current.actor == "assistant") {
-            current_message = get_assistant_message(current.content);
+            current_message = get_assistant_message(text);
         } else if (current.actor == "user") {
-            current_message = get_user_message(current.content);
+            current_message = get_user_message(text);
         }
         if (current_message) {
             $("#messages").append(current_message);
@@ -176,6 +177,24 @@ function show_eventhistory(eventhistory) {
     $("#user_says_input").prop('disabled', false);
     $("#send_message").prop("disabled", false);
     scroll_down();
+}
+
+function get_event_text(event) {
+    if (!event) {
+        return "";
+    }
+    if (!event.payload) {
+        return event.content || "";
+    }
+    try {
+        const plan = JSON.parse(event.payload);
+        if (plan && plan.speech) {
+            return plan.speech;
+        }
+        return event.content || "";
+    } catch (_) {
+        return event.content || "";
+    }
 }
 
 function scroll_down() {
@@ -280,8 +299,9 @@ function user_says() {
         dataType: "json",
         success: function (data) {
             set_is_active(data.active);
-            if (data.responseEvent && data.responseEvent.content) {
-                show_assistant_says_incremental_recursively([data.responseEvent.content], 0);
+            const responseText = get_event_text(data.responseEvent);
+            if (responseText) {
+                show_assistant_says_incremental_recursively([responseText], 0);
             } else {
                 stop_assistant_istyping_temp();
                 $("#user_says_input").prop('disabled', false);
@@ -310,8 +330,9 @@ function reset(event) {
             dataType: "json",
             success: function (data) {
                 set_is_active(data.active);
-                if (data.responseEvent && data.responseEvent.content) {
-                    show_assistant_says_incremental_recursively([data.responseEvent.content], 0);
+                const responseText = get_event_text(data.responseEvent);
+                if (responseText) {
+                    show_assistant_says_incremental_recursively([responseText], 0);
                 } else {
                     stop_assistant_istyping_temp();
                     $("#user_says_input").prop('disabled', false);

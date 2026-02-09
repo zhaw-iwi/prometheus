@@ -8,6 +8,7 @@ import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LMOpenAI;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
@@ -86,21 +87,29 @@ public class PromptPolicy extends Policy {
     }
 
     @Override
-    public String onStart(State state, EventHistory events) {
+    public BehaviourPlan onStart(State state, EventHistory events) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        return LMOpenAI.complete(events, prompt, this.starterPrompt, state.getName());
+        String speech = LMOpenAI.complete(events, prompt, this.starterPrompt, state.getName());
+        if (speech == null || speech.isBlank()) {
+            return null;
+        }
+        return BehaviourPlan.speechOnly(speech);
     }
 
     @Override
-    public String onRespond(State state, EventHistory events) {
+    public BehaviourPlan onRespond(State state, EventHistory events) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        return LMOpenAI.complete(events, prompt, state.getName());
+        String speech = LMOpenAI.complete(events, prompt, state.getName());
+        if (speech == null || speech.isBlank()) {
+            return null;
+        }
+        return BehaviourPlan.speechOnly(speech);
     }
 
     @Override

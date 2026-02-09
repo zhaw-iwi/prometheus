@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.model.PersistedNode;
 import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
@@ -18,9 +19,9 @@ public abstract class Policy extends PersistedNode {
         return this;
     }
 
-    public abstract String onStart(State state, EventHistory events);
+    public abstract BehaviourPlan onStart(State state, EventHistory events);
 
-    public abstract String onRespond(State state, EventHistory events);
+    public abstract BehaviourPlan onRespond(State state, EventHistory events);
 
     public abstract String summarise(State state, EventHistory events);
 

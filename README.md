@@ -9,7 +9,8 @@ Current focus:
 
 Status
 - Iteration 1 complete: Events, shared history, policies, and response-as-event workflows
-- Iteration 2 next: BehaviourPlan output abstraction
+- Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
+- Iteration 3 next: Observation snapshots
 
 ## Iteration 1 — Event-Based Interaction (done)
 
@@ -25,13 +26,13 @@ Status
 
 Each iteration ends with something runnable and testable.
 
-Iteration 2 - BehaviourPlan Output (next)
+Iteration 2 - BehaviourPlan Output (done)
 - Introduce BehaviourPlan as the output abstraction (as event payload)
 - Replace text response events with BehaviourPlan events (speech + optional non-verbal)
 - Add a simple speech-only renderer
 - Deliverable: same conversational agent, BehaviourPlan-driven responses
 
-Iteration 3 - Observation Snapshots
+Iteration 3 - Observation Snapshots (next)
 - Snapshot aggregation over events into explicit snapshot/fact artifacts
 - Fact extraction helpers and confidence handling
 - Decisions/actions use snapshots in addition to raw events

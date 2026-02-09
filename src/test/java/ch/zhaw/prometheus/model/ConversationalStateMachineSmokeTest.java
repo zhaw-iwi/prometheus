@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
@@ -45,7 +46,7 @@ class ConversationalStateMachineSmokeTest {
         List<Event> sharedEvents = agent.getEventHistory().toList();
         assertEquals(2, sharedEvents.size());
         assertEquals(Event.TYPE_USER_UTTERANCE, sharedEvents.get(0).getType());
-        assertEquals(Event.TYPE_ASSISTANT_UTTERANCE, sharedEvents.get(1).getType());
+        assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, sharedEvents.get(1).getType());
 
         assertTrue(((RecordingAction) action).wasExecuted());
     }
@@ -60,13 +61,13 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public String onStart(State state, EventHistory events) {
-            return startResponse;
+        public BehaviourPlan onStart(State state, EventHistory events) {
+            return startResponse == null ? null : BehaviourPlan.speechOnly(startResponse);
         }
 
         @Override
-        public String onRespond(State state, EventHistory events) {
-            return response;
+        public BehaviourPlan onRespond(State state, EventHistory events) {
+            return response == null ? null : BehaviourPlan.speechOnly(response);
         }
 
         @Override

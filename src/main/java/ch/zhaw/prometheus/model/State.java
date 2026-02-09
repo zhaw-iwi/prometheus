@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.behaviour.BehaviourRenderer;
+import ch.zhaw.prometheus.model.behaviour.SpeechOnlyRenderer;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -35,6 +38,8 @@ public class State extends PersistedNode {
     private boolean isOblivious;
     @Transient
     private EventSelector eventSelector;
+    @Transient
+    private BehaviourRenderer behaviourRenderer;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @OrderColumn(name = "transition_index")
@@ -51,6 +56,7 @@ public class State extends PersistedNode {
         this.isOblivious = false;
         this.policy = policy;
         this.eventSelector = EventSelector.stateName(name);
+        this.behaviourRenderer = new SpeechOnlyRenderer();
     }
 
     public State(String name, Policy policy, List<Transition> transitions, boolean isStarting,
@@ -104,6 +110,17 @@ public class State extends PersistedNode {
 
     public void setEventSelector(EventSelector eventSelector) {
         this.eventSelector = eventSelector;
+    }
+
+    public BehaviourRenderer getBehaviourRenderer() {
+        if (this.behaviourRenderer == null) {
+            this.behaviourRenderer = new SpeechOnlyRenderer();
+        }
+        return this.behaviourRenderer;
+    }
+
+    public void setBehaviourRenderer(BehaviourRenderer behaviourRenderer) {
+        this.behaviourRenderer = behaviourRenderer;
     }
 
     public boolean isActive() {
@@ -246,24 +263,26 @@ public class State extends PersistedNode {
 
     private Event executeStart(Policy outerPolicy) {
         Policy policy = this.resolvePolicy(outerPolicy);
-        String assistantSays = policy.onStart(this, this.getEventHistory());
-        if (assistantSays == null || assistantSays.isEmpty()) {
+        BehaviourPlan behaviourPlan = policy.onStart(this, this.getEventHistory());
+        if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
-        Event responseEvent = Event.response(Event.TYPE_ASSISTANT_UTTERANCE, Event.ACTOR_ASSISTANT, assistantSays,
-                null, this.getName());
+        String renderedContent = this.getBehaviourRenderer().render(behaviourPlan);
+        Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                renderedContent, behaviourPlan.toJson(), this.getName());
         this.appendEvent(responseEvent);
         return responseEvent;
     }
 
     private Event executeResponse(Policy outerPolicy) {
         Policy policy = this.resolvePolicy(outerPolicy);
-        String assistantSays = policy.onRespond(this, this.getEventHistory());
-        if (assistantSays == null || assistantSays.isEmpty()) {
+        BehaviourPlan behaviourPlan = policy.onRespond(this, this.getEventHistory());
+        if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
-        Event responseEvent = Event.response(Event.TYPE_ASSISTANT_UTTERANCE, Event.ACTOR_ASSISTANT, assistantSays,
-                null, this.getName());
+        String renderedContent = this.getBehaviourRenderer().render(behaviourPlan);
+        Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                renderedContent, behaviourPlan.toJson(), this.getName());
         this.appendEvent(responseEvent);
         return responseEvent;
     }

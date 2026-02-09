@@ -1,4 +1,4 @@
-﻿package ch.zhaw.prometheus.controllers;
+package ch.zhaw.prometheus.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
