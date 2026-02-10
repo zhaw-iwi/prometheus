@@ -81,8 +81,18 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 
 - `Policy.onStart(...)` and `Policy.onRespond(...)` return `BehaviourPlan`.
 - `State` executes policy and returns response events; runtime persists them.
-- Prompt execution uses OpenAI chat mapping from event stream (`role` + `content`) in `LMOpenAI`.
-- Prompt content mapping is centralized via `EventPromptSerializer`:
+- Prompt assembly now happens in the policy layer:
+  - `PromptMessage` is the provider-agnostic prompt DTO (`role`, `content`),
+  - `PromptMessageAssembler` builds prompt message lists from selected event histories,
+  - `EventPromptSerializer` (policy package) maps events to prompt-safe content.
+- `LMOpenAI` is now transport-focused:
+  - receives assembled `List<PromptMessage>`,
+  - maps them to OpenAI payload messages,
+  - performs API request/response handling.
+- Realtime and `/respond` now share the same prompt semantics:
+  - `/prompt` returns assembled `promptMessages` (not raw `systemPolicy` + `eventHistory`),
+  - realtime client uses `promptMessages` directly as instruction context.
+- Prompt content mapping via policy-layer `EventPromptSerializer`:
   - assistant behaviour plans map to `payload.speech` (if present),
   - facial-emotion observations map to concise text (emotion + confidence),
   - raw telemetry payloads are not forwarded verbatim for this modality.
@@ -90,11 +100,18 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 ## Emotion Abstraction Layer (Current)
 
 - Raw facial telemetry remains in event history for traceability/debugging.
-- Snapshot extraction now adds emotion facts in `DefaultObservationSnapshotAggregator`:
-  - `face_emotion_observation_count`
-  - `last_face_emotion`
-  - `last_face_emotion_confidence`
-- This supports transition/regulation logic on compact emotion facts while keeping raw events available.
+- Snapshot extraction now performs temporal emotion aggregation in `DefaultObservationSnapshotAggregator`:
+  - `face_emotion_total_count`
+  - `face_emotion_current`
+  - `face_emotion_current_confidence`
+  - `face_emotion_majority_last_window`
+  - `face_emotion_negative_streak`
+  - `face_emotion_valence_trend` (`improving` / `worsening` / `stable`)
+  - `face_emotion_valence_volatility`
+  - `face_emotion_events_since_change`
+- This supports transition/regulation logic on time-aware emotion facts while keeping raw events available.
+- Prompt assembly injects a compact nonverbal summary message derived from these temporal facts, for example:
+  - `current`, `majority_recent`, `trend`, `negative_streak`, `events_since_change`
 - Current backend does not auto-trigger an LLM call per `acknowledge`; response generation is still controlled by client flow and/or tick/respond paths.
 
 ## Event Model Notes
@@ -116,7 +133,9 @@ Automated coverage currently includes:
 - continuous scheduler processing (active agents only)
 - Zurich regulation dynamics and regulation-to-transition integration
 - OpenAI message mapping from events
-- facial emotion prompt mapping abstraction (`EventPromptSerializer`)
+- policy-layer prompt assembly (`PromptMessageAssembler`)
+- facial emotion prompt mapping abstraction (`EventPromptSerializer` in policy package)
+- prompt policy composition checks (`PromptPolicyUnitTest`)
 - facial emotion snapshot fact extraction in default aggregator
 - outer/inner path-based event routing + single-write behavior
 
@@ -154,7 +173,8 @@ LLM-facing interpretation for this event (current default):
 
 Manual seed tests:
 
-- `src/test/java/ch/zhaw/prometheus/agents/OpenHealthCoaching.java`
+- `src/test/java/ch/zhaw/prometheus/agents/VerbalAgent.java`
+- `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
 - intentionally `@Disabled` and run manually for seeding
 
 ## Iteration Summary

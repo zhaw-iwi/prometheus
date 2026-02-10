@@ -133,8 +133,9 @@ class AgentClientCompatibilityWebMvcTest {
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.active").value(true))
                                 .andExpect(jsonPath("$.stateName").value("conversation"))
-                                .andExpect(jsonPath("$.eventHistory[0].actor").value("assistant"))
-                                .andExpect(jsonPath("$.eventHistory[1].actor").value("user"));
+                                .andExpect(jsonPath("$.promptMessages[0].role").value("system"))
+                                .andExpect(jsonPath("$.promptMessages[1].role").value("assistant"))
+                                .andExpect(jsonPath("$.promptMessages[2].role").value("user"));
 
                 this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/acknowledge")
                                 .contentType(MediaType.APPLICATION_JSON)

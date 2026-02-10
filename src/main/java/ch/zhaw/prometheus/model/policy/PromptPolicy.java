@@ -92,7 +92,8 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        String speech = LMOpenAI.complete(events, prompt, this.starterPrompt);
+        List<PromptMessage> messages = PromptMessageAssembler.compose(events, prompt, this.starterPrompt);
+        String speech = LMOpenAI.complete(messages);
         if (speech == null || speech.isBlank()) {
             return null;
         }
@@ -105,7 +106,8 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        String speech = LMOpenAI.complete(events, prompt);
+        List<PromptMessage> messages = PromptMessageAssembler.compose(events, prompt);
+        String speech = LMOpenAI.complete(messages);
         if (speech == null || speech.isBlank()) {
             return null;
         }
@@ -117,7 +119,8 @@ public class PromptPolicy extends Policy {
         if (this.summarisePrompt == null || this.summarisePrompt.isBlank()) {
             return null;
         }
-        return LMOpenAI.summariseOffline(events, this.summarisePrompt);
+        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, this.summarisePrompt);
+        return LMOpenAI.summariseOffline(messages);
     }
 
     @Override
@@ -131,7 +134,9 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return false;
         }
-        return LMOpenAI.decide(events, prompt);
+        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
+                LMOpenAI.REMINDER_DECISION);
+        return LMOpenAI.decide(messages);
     }
 
     @Override
@@ -140,7 +145,9 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        return LMOpenAI.extract(events, prompt);
+        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
+                LMOpenAI.REMINDER_EXTRACTION);
+        return LMOpenAI.extract(messages);
     }
 
     @Override
@@ -149,7 +156,9 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        return LMOpenAI.summarise(events, prompt);
+        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
+                LMOpenAI.REMINDER_SUMMARISATION);
+        return LMOpenAI.summarise(messages);
     }
 
     private String resolvePrompt() {

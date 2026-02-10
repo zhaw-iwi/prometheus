@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.spi;
+package ch.zhaw.prometheus.model.policy;
 
 import java.util.Locale;
 
@@ -7,11 +7,11 @@ import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.model.event.Event;
 
-final class EventPromptSerializer {
+public final class EventPromptSerializer {
     private EventPromptSerializer() {
     }
 
-    static String toPromptContent(Event event) {
+    public static String toPromptContent(Event event) {
         if (event == null) {
             return "";
         }

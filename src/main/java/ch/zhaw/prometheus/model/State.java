@@ -14,6 +14,8 @@ import ch.zhaw.prometheus.model.event.EventSelector;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -214,8 +216,8 @@ public class State extends PersistedNode {
 
     public PolicyResult getPolicyBundle(Policy outerPolicy) {
         String totalPrompt = this.getTotalPolicy(outerPolicy);
-        List<Event> eventHistory = this.getEventHistory().toList();
-        return new PolicyResult(this, totalPrompt, eventHistory);
+        List<PromptMessage> promptMessages = PromptMessageAssembler.compose(this.getEventHistory(), totalPrompt);
+        return new PolicyResult(this, promptMessages);
     }
 
     public void reset() {

@@ -3,18 +3,14 @@ package ch.zhaw.prometheus.model.policy;
 import java.util.List;
 
 import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.event.Event;
-
 public class PolicyResult {
     private final String stateName;
-    private final String systemPolicy;
-    private final List<Event> eventHistory;
+    private final List<PromptMessage> promptMessages;
     private final boolean starting;
 
-    public PolicyResult(State state, String systemPolicy, List<Event> eventHistory) {
+    public PolicyResult(State state, List<PromptMessage> promptMessages) {
         this.stateName = state.getName();
-        this.systemPolicy = systemPolicy;
-        this.eventHistory = eventHistory;
+        this.promptMessages = promptMessages == null ? List.of() : List.copyOf(promptMessages);
         this.starting = state.isStarting();
     }
 
@@ -22,12 +18,8 @@ public class PolicyResult {
         return stateName;
     }
 
-    public String getSystemPolicy() {
-        return systemPolicy;
-    }
-
-    public List<Event> getEventHistory() {
-        return eventHistory;
+    public List<PromptMessage> getPromptMessages() {
+        return promptMessages;
     }
 
     public boolean isStarting() {

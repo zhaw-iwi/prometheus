@@ -9,40 +9,15 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
-import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 class LMOpenAIMessageMappingUnitTest {
 
     @Test
-    void mapsRolesForSystemUserAndAssistantEvents() {
-        Event system = Event.systemPrompt("system prompt");
-        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello");
-        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"hi\"}");
-
-        assertEquals("system", LMOpenAI.mapRole(system));
-        assertEquals("user", LMOpenAI.mapRole(user));
-        assertEquals("assistant", LMOpenAI.mapRole(assistant));
-    }
-
-    @Test
-    void mapsBehaviourPlanContentFromPayloadSpeechFirst() {
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"payload-speech\"}");
-
-        assertEquals("payload-speech", LMOpenAI.mapContent(assistantPlan));
-    }
-
-    @Test
-    void fallsBackToContentWhenPayloadCannotBeParsed() {
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{invalid-json");
-
-        assertEquals("{invalid-json", LMOpenAI.mapContent(assistantPlan));
-    }
-
-    @Test
     void buildsOpenAIMessagesWithRoleAndContentFields() {
-        Event system = Event.systemPrompt("be helpful");
-        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello");
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"payload-speech\"}");
+        PromptMessage system = PromptMessage.system("be helpful");
+        PromptMessage user = PromptMessage.user("hello");
+        PromptMessage assistantPlan = PromptMessage.assistant("payload-speech");
 
         JsonArray messages = LMOpenAI.toOpenAIMessages(List.of(system, user, assistantPlan));
 
@@ -58,10 +33,8 @@ class LMOpenAIMessageMappingUnitTest {
     }
 
     @Test
-    void mapsFaceEmotionObservationToConcisePromptContent() {
-        Event faceEmotion = Event.observation(Event.TYPE_FACE_EMOTION, Event.ACTOR_USER,
-                "{\"emotion\":\"happy\",\"confidence\":0.83,\"valence\":0.7,\"arousal\":0.4,\"ts\":\"2026-02-10T16:00:00Z\"}");
-
-        assertEquals("User facial emotion: happy (confidence 0.83)", LMOpenAI.mapContent(faceEmotion));
+    void returnsEmptyArrayForNullOrEmptyMessages() {
+        assertEquals(0, LMOpenAI.toOpenAIMessages(null).size());
+        assertEquals(0, LMOpenAI.toOpenAIMessages(List.of()).size());
     }
 }

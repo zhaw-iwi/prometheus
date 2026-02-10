@@ -131,46 +131,31 @@ function buildSystemPrompt(promptBundle) {
   if (!promptBundle) {
     return "";
   }
-  const basePrompt = promptBundle.systemPolicy || "";
-  const eventHistoryBlock = buildEventHistoryContext(promptBundle.eventHistory || []);
-  if (!eventHistoryBlock) {
-    return basePrompt;
-  }
-  if (!basePrompt) {
-    return eventHistoryBlock;
-  }
-  return `${basePrompt}\n\n${eventHistoryBlock}`;
-}
-
-function buildEventHistoryContext(eventHistory) {
-  if (!Array.isArray(eventHistory) || eventHistory.length === 0) {
+  const promptMessages = promptBundle.promptMessages || [];
+  if (!Array.isArray(promptMessages) || promptMessages.length === 0) {
     return "";
   }
-  const lines = eventHistory
-    .map((event) => {
-      if (!event) {
+  const lines = promptMessages
+    .map((message) => {
+      if (!message) {
         return null;
       }
-      const actor = event.actor || "unknown";
-      const content = getEventSpeech(event) || "";
-      return `${actor}: ${content}`;
+      const role = message.role || "user";
+      const content = message.content || "";
+      return `${role}: ${content}`;
     })
     .filter((line) => line && line.trim().length > 0);
-  if (lines.length === 0) {
-    return "";
-  }
-  return `Event history so far:\n${lines.join("\n")}`;
+  return lines.join("\n");
 }
 
 function buildResponseInstruction(promptBundle) {
   if (promptBundle && promptBundle.active === false) {
-    // return "The interaction has ended. Briefly acknowledge the user's message, state that the session is complete, and do not ask questions or introduce new topics.";
-    return promptBundle.systemPolicy;
+    return "The interaction has ended. Briefly acknowledge and do not continue with new topics.";
   }
   if (promptBundle && typeof promptBundle.starting === "boolean") {
     return promptBundle.starting ? "Begin the interaction now." : "Respond to the user's latest message.";
   }
-  if (promptBundle && Array.isArray(promptBundle.eventHistory) && promptBundle.eventHistory.length === 0) {
+  if (promptBundle && Array.isArray(promptBundle.promptMessages) && promptBundle.promptMessages.length <= 1) {
     return "Begin the interaction now.";
   }
   return "Respond to the user's latest message.";
@@ -277,7 +262,7 @@ async function fetchPromptBundle() {
     throw new Error("Prompt fetch failed.");
   }
   const data = await response.json();
-  console.log(`[policy] state=${data.stateName || "unknown"} active=${data.active} systemPolicy=${(data.systemPolicy || "").slice(0, 160)}`);
+  console.log(`[policy] state=${data.stateName || "unknown"} active=${data.active} promptMessages=${Array.isArray(data.promptMessages) ? data.promptMessages.length : 0}`);
   appendLog("policy", "Prompt bundle received.");
   return data;
 }

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,10 +23,10 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 
 @SpringBootTest
 // @Disabled("Manual seed test")
-class OpenHealthCoaching {
+class MultiModalAgent {
 
-        private static final String AGENT_NAME = "Wellness Navigator Realtime";
-        private static final String AGENT_DESCRIPTION = "Wellness Navigator Realtime helps patients uncover what matters for their health and transform those insights into actionable self-care steps for everyday well-being.";
+        private static final String AGENT_NAME = "Wellness Navigator Multimodal";
+        private static final String AGENT_DESCRIPTION = "Wellness Navigator Multimodal combines verbal and facial-emotion observations to deliver emotionally attuned coaching.";
 
         private static final String PROMPT_OUTERSTATE = """
                         You are a supportive health coach.
@@ -35,13 +34,22 @@ class OpenHealthCoaching {
                         Ask only one question at a time.
                         Keep responses brief, one or two sentences.
                         Use plain text only.
+
+                        The history may include nonverbal observations in this form:
+                        "User facial emotion: <emotion> (confidence <0-1>)".
+                        Treat these as context clues, not facts.
+                        If confidence is low (< 0.60), do not over-interpret the emotion.
+                        If emotion cues and verbal content conflict, prioritize what the patient explicitly says.
                         """;
         private static final String PROMPT_OUTERSTATE_TRIGGER = """
                         Review the user's latest messages in the following conversation.
-                        Decide if there are any statements or cues suggesting they wish to pause or stop the conversation, such as explicit requests for a break, indications of needing time, or other phrases implying a desire to end the chat.
+                        Decide if there are statements or cues suggesting they wish to pause or stop:
+                        explicit requests for a break, indications of needing time, or phrases implying a desire to end the chat.
+                        You may also use repeated high-confidence negative facial-emotion cues as supporting evidence.
                         """;
         private static final String PROMPT_OUTERSTATE_GUARD = """
-                        Examine the following conversation and confirm that the patient has not reported any issues like physical or mental discomfort that need addressing.
+                        Examine the following conversation and confirm that the patient has not reported issues like physical or mental discomfort that need addressing first.
+                        Consider repeated high-confidence emotions such as fear, anger, or sadness as potential discomfort signals.
                         """;
 
         private static final String PROMPT_RAPPORTBUILDING = """
@@ -52,19 +60,29 @@ class OpenHealthCoaching {
                         As the patient relaxes, gently shift toward slightly deeper topics without explicitly assessing health goals.
                         Look for clues about what matters to them regarding health or well being.
                         Let this emerge naturally.
+
+                        When facial-emotion observations are present:
+                        - mirror empathy briefly ("That seems frustrating" / "Glad to hear that feels good"),
+                        - avoid clinical labeling,
+                        - ask one gentle follow-up question tied to their verbal content.
                         """;
         private static final String PROMPT_RAPPORTBUILDING_STARTER = """
-                        Generate a friendly first message to greet the patient and invite light small talk, without mentioning health goals or deeper topics yet.
+                        Generate a friendly first message to greet the patient and invite light small talk.
+                        Do not mention health goals or deeper topics yet.
                         """;
         private static final String PROMPT_RAPPORTBUILDING_TRIGGER = """
                         Decide whether to transition from rapport building to coaching.
-                        Return "true" only if a coaching-relevant clue exists and rapport grounding exists.
+                        Return "true" only if:
+                        - a coaching-relevant clue exists, and
+                        - rapport grounding exists.
+                        Facial-emotion cues can support but must not be the only reason to transition.
                         Otherwise return "false".
                         """;
         private static final String PROMPT_RAPPORTBUILDING_ACTION = """
-                        Identify statements that reveal deeper motivations or health related priorities.
+                        Identify statements that reveal deeper motivations or health-related priorities.
+                        Optionally include facial-emotion cues if they are high-confidence and consistent with verbal content.
                         Summarize them as JSON in the format:
-                        {"clues":[{"aspect":"...","quote":"...","interpretation":"..."}],"dominant_theme":"..."}
+                        {"clues":[{"aspect":"...","quote":"...","interpretation":"...","emotion_support":"optional"}],"dominant_theme":"..."}
                         """;
 
         private static final String PROMPT_FINAL = """

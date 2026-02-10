@@ -7,7 +7,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -21,124 +20,51 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-import ch.zhaw.prometheus.model.event.Event;
-import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 public class LMOpenAI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LMOpenAI.class);
 
-    private static final String REMINDER_DECISION = "Remember to reply with either true or false only so that it can be parsed with the Java programming language. Your answer needs to work with Boolean.parseBoolean() method, which only accepts English true or false.";
-    private static final String REMINDER_EXTRACTION = """
+    public static final String REMINDER_DECISION = "Remember to reply with either true or false only so that it can be parsed with the Java programming language. Your answer needs to work with Boolean.parseBoolean() method, which only accepts English true or false.";
+    public static final String REMINDER_EXTRACTION = """
             Return valid JSON data that can be parsed with the GSON library for Java.
             If the value extracted is of type string, ensure it is enclosed in double quotes.
             If your response is a JSON object, ensure it starts and ends with curly brackets.
             If your response is a JSON list, ensure it starts and ends with square brackets.
             Return only the raw JSON text without any markdown formatting (do not include triple backticks), explanations, or additional text.
             """;
-    private static final String REMINDER_SUMMARISATION = "Remember to reply with the summary in JSON format only so that it can be parsed with a Java program using the GSON library.";
+    public static final String REMINDER_SUMMARISATION = "Remember to reply with the summary in JSON format only so that it can be parsed with a Java program using the GSON library.";
 
-    public static String complete(EventHistory eventHistory, String systemPrepend) {
-        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend);
-        LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
-        String result = LMOpenAI.openai(totalPrompt);
-        return result;
+    public static String complete(List<PromptMessage> messages) {
+        LOGGER.info("LMOpenAI.complete() with " + messages);
+        return openai(messages);
     }
 
-    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend) {
-        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, systemAppend);
-        LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
-        String result = LMOpenAI.openai(totalPrompt);
-        return result;
-    }
-
-    public static boolean decide(EventHistory eventHistory, String systemPrepend) {
-        if (eventHistory.isEmpty()) {
-            throw new RuntimeException("cannot decide about empty events");
-        }
-        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
-                LMOpenAI.REMINDER_DECISION);
-        LMOpenAI.LOGGER.info("LMOpenAI.decide() with " + totalPrompt);
-        String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
+    public static boolean decide(List<PromptMessage> messages) {
+        LOGGER.info("LMOpenAI.decide() with " + messages);
+        String response = openai(messages, 0.0f, 0.0f);
         return Boolean.parseBoolean(response);
     }
 
-    public static JsonElement extract(EventHistory eventHistory, String systemPrepend) {
-        if (eventHistory.isEmpty()) {
-            throw new RuntimeException("cannot extract from empty events");
-        }
-        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
-                LMOpenAI.REMINDER_EXTRACTION);
-        LMOpenAI.LOGGER.info("LMOpenAI.extract() with " + totalPrompt);
-        String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
+    public static JsonElement extract(List<PromptMessage> messages) {
+        LOGGER.info("LMOpenAI.extract() with " + messages);
+        String response = openai(messages, 0.0f, 0.0f);
         return new Gson().fromJson(response, JsonElement.class);
     }
 
-    public static JsonElement summarise(EventHistory eventHistory, String systemPrepend) {
-        if (eventHistory.isEmpty()) {
-            throw new RuntimeException("cannot summarise from empty event");
-        }
-        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend,
-                LMOpenAI.REMINDER_SUMMARISATION);
-        LMOpenAI.LOGGER.info("LMOpenAI.summarise() with " + totalPrompt);
-        String response = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
+    public static JsonElement summarise(List<PromptMessage> messages) {
+        LOGGER.info("LMOpenAI.summarise() with " + messages);
+        String response = openai(messages, 0.0f, 0.0f);
         return new Gson().fromJson(response, JsonElement.class);
     }
 
-    public static String summariseOffline(EventHistory eventHistory, String systemPrepend) {
-        if (eventHistory.isEmpty()) {
-            throw new RuntimeException("cannot summarise offline from empty event");
-        }
-        List<Event> totalPrompt = LMOpenAI.composePromptCondensed(eventHistory, systemPrepend);
-        LMOpenAI.LOGGER.info("LMOpenAI.summariseOffline() with " + totalPrompt);
-        String result = LMOpenAI.openai(totalPrompt, 0.0f, 0.0f);
-        return result;
+    public static String summariseOffline(List<PromptMessage> messages) {
+        LOGGER.info("LMOpenAI.summariseOffline() with " + messages);
+        return openai(messages, 0.0f, 0.0f);
     }
 
-    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend) {
-        List<Event> result = new ArrayList<Event>();
-        if (systemPrepend == null) {
-            throw new NullPointerException(systemPrepend + " systemPrepend (Decision prompt) cannot be null.");
-        }
-        result.add(Event.systemPrompt(systemPrepend));
-        result.addAll(eventHistory.toList());
-        return result;
-    }
-
-    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String systemAppend) {
-        List<Event> result = new ArrayList<>();
-        if (systemPrepend == null) {
-            throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
-        }
-        result.add(Event.systemPrompt(systemPrepend));
-        result.addAll(eventHistory.toList());
-        if (systemAppend != null) {
-            result.add(Event.systemPrompt(systemAppend));
-        }
-        return result;
-    }
-
-    private static List<Event> composePromptCondensed(EventHistory eventHistory, String systemPrepend) {
-        List<Event> result = new ArrayList<>();
-        if (systemPrepend == null) {
-            throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
-        }
-        result.add(Event.systemPrompt(systemPrepend));
-        result.add(Event.systemPrompt("<eventhistory>" + eventHistory.toString() + "</eventhistory>"));
-        return result;
-    }
-
-    private static List<Event> composePromptCondensed(EventHistory eventHistory, String systemPrepend,
-            String systemAppend) {
-        List<Event> result = composePromptCondensed(eventHistory, systemPrepend);
-        if (systemAppend == null) {
-            throw new NullPointerException("systemAppend cannot be null.");
-        }
-        result.add(Event.systemPrompt(systemAppend));
-        return result;
-    }
-
-    private static String openai(List<Event> messages) {
-        return LMOpenAI.openai(messages, 1, 1);
+    private static String openai(List<PromptMessage> messages) {
+        return openai(messages, 1, 1);
     }
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
@@ -156,7 +82,7 @@ public class LMOpenAI {
 
     }).create();
 
-    public static String openai(List<Event> message, float temperature, float topP) {
+    private static String openai(List<PromptMessage> message, float temperature, float topP) {
         try {
 
             Instant start = Instant.now();
@@ -237,39 +163,17 @@ public class LMOpenAI {
         return jsonMessage.get("content").getAsString();
     }
 
-    static JsonArray toOpenAIMessages(List<Event> events) {
+    static JsonArray toOpenAIMessages(List<PromptMessage> events) {
         JsonArray messages = new JsonArray();
         if (events == null) {
             return messages;
         }
-        for (Event event : events) {
+        for (PromptMessage event : events) {
             JsonObject message = new JsonObject();
-            message.addProperty("role", mapRole(event));
-            message.addProperty("content", mapContent(event));
+            message.addProperty("role", event.getRole());
+            message.addProperty("content", event.getContent());
             messages.add(message);
         }
         return messages;
-    }
-
-    static String mapRole(Event event) {
-        if (event == null) {
-            return "user";
-        }
-        if (Event.TYPE_SYSTEM_PROMPT.equals(event.getType())
-                || Event.KIND_SYSTEM.equals(event.getKind())
-                || Event.ACTOR_SYSTEM.equals(event.getActor())) {
-            return "system";
-        }
-        if (Event.ACTOR_ASSISTANT.equals(event.getActor()) || Event.KIND_RESPONSE.equals(event.getKind())) {
-            return "assistant";
-        }
-        if (Event.ACTOR_USER.equals(event.getActor()) || Event.KIND_OBSERVATION.equals(event.getKind())) {
-            return "user";
-        }
-        return "user";
-    }
-
-    static String mapContent(Event event) {
-        return EventPromptSerializer.toPromptContent(event);
     }
 }
