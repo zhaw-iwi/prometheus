@@ -12,8 +12,6 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.behaviour.BehaviourRenderer;
-import ch.zhaw.prometheus.model.behaviour.SpeechOnlyRenderer;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -38,8 +36,6 @@ public class State extends PersistedNode {
     private boolean isOblivious;
     @Transient
     private EventSelector eventSelector;
-    @Transient
-    private BehaviourRenderer behaviourRenderer;
 
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @OrderColumn(name = "transition_index")
@@ -56,7 +52,6 @@ public class State extends PersistedNode {
         this.isOblivious = false;
         this.policy = policy;
         this.eventSelector = EventSelector.stateName(name);
-        this.behaviourRenderer = new SpeechOnlyRenderer();
     }
 
     public State(String name, Policy policy, List<Transition> transitions, boolean isStarting,
@@ -110,17 +105,6 @@ public class State extends PersistedNode {
 
     public void setEventSelector(EventSelector eventSelector) {
         this.eventSelector = eventSelector;
-    }
-
-    public BehaviourRenderer getBehaviourRenderer() {
-        if (this.behaviourRenderer == null) {
-            this.behaviourRenderer = new SpeechOnlyRenderer();
-        }
-        return this.behaviourRenderer;
-    }
-
-    public void setBehaviourRenderer(BehaviourRenderer behaviourRenderer) {
-        this.behaviourRenderer = behaviourRenderer;
     }
 
     public boolean isActive() {
@@ -201,7 +185,7 @@ public class State extends PersistedNode {
                 .info(this.getName() + " Starting");
         if (this.isOblivious) {
             State.LOGGER
-                    .info(this.getName() + " Oblivious");
+                    .info(this.getName() + " (Oblivious)");
             this.requireSharedEventHistory().clearStateEvents(this.name);
         }
     }
@@ -212,8 +196,7 @@ public class State extends PersistedNode {
 
     public void acknowledge(Event event, Policy outerPolicy) throws TransitionException {
         State.LOGGER
-                .info(this.getName() + " ACK Event: \"" + event.getContent() + "\"");
-        this.appendEvent(event);
+                .info(this.getName() + " ACK Event payload: \"" + event.getPayload() + "\"");
         this.raiseIfTransit();
     }
 
@@ -250,10 +233,6 @@ public class State extends PersistedNode {
         }
     }
 
-    private void appendEvent(Event event) {
-        this.requireSharedEventHistory().appendEvent(event, this);
-    }
-
     protected EventHistory requireSharedEventHistory() {
         if (this.eventHistory == null) {
             throw new IllegalStateException("event history not attached to state " + this.name);
@@ -267,10 +246,8 @@ public class State extends PersistedNode {
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
-        String renderedContent = this.getBehaviourRenderer().render(behaviourPlan);
         Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                renderedContent, behaviourPlan.toJson(), this.getName());
-        this.appendEvent(responseEvent);
+                behaviourPlan.toJson());
         return responseEvent;
     }
 
@@ -280,11 +257,13 @@ public class State extends PersistedNode {
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
-        String renderedContent = this.getBehaviourRenderer().render(behaviourPlan);
         Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                renderedContent, behaviourPlan.toJson(), this.getName());
-        this.appendEvent(responseEvent);
+                behaviourPlan.toJson());
         return responseEvent;
+    }
+
+    public List<String> getActiveStatePath() {
+        return List.of(this.name);
     }
 
     protected Policy resolvePolicy(Policy outerPolicy) {

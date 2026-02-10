@@ -38,6 +38,23 @@ class AgentRegulationIntegrationUnitTest {
                 .anyMatch(event -> Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY.equals(event.getType())));
     }
 
+    @Test
+    void regulationInternalOpportunityEventIsRecordedWithCurrentStatePath() {
+        State start = new State("start", new NoOpPolicy(), List.of());
+        Agent agent = new Agent("regulated", "test", start);
+        agent.setRegulationSystem(new ZurichRegulationSystem(
+                0.0d, 0.0d, 0.0d,
+                0.0d, 0.6d, 0.2d, 0.5d));
+
+        agent.tick();
+
+        Event internal = agent.getEventHistory().toList().stream()
+                .filter(event -> Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY.equals(event.getType()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of("start"), internal.getStatePath());
+    }
+
     private static class HasEventsDecision extends Decision {
         HasEventsDecision() {
             super(new NoOpPolicy());

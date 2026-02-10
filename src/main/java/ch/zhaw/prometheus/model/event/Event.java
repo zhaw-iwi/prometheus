@@ -1,17 +1,24 @@
 package ch.zhaw.prometheus.model.event;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
 import ch.zhaw.prometheus.spi.GsonExclude;
 import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
 
 @Entity
 public class Event {
@@ -44,47 +51,48 @@ public class Event {
     private String actor;
     private String kind;
     @Column(length = 4096)
-    private String content;
-    @Column(length = 4096)
     private String payload;
 
     @CreationTimestamp
     @Column(name = "createdDate", nullable = false, updatable = false)
     private Instant createdDate;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "event_state_path", joinColumns = @JoinColumn(name = "event_id"))
+    @OrderColumn(name = "path_index")
+    @Column(name = "state_name")
     @GsonExclude
-    private String stateName;
+    private List<String> statePath;
     @ManyToOne
     @JoinColumn(name = "event_history_id")
     @GsonExclude
     private EventHistory eventHistory;
 
-    public Event(String type, String actor, String kind, String content, String payload, String stateName) {
+    public Event(String type, String actor, String kind, String payload) {
         this.type = type;
         this.actor = actor;
         this.kind = kind;
-        this.content = content;
         this.payload = payload;
-        this.stateName = stateName;
+        this.statePath = new ArrayList<>();
     }
 
-    public static Event observation(String type, String actor, String content, String payload, String stateName) {
-        return new Event(type, actor, KIND_OBSERVATION, content, payload, stateName);
+    public static Event observation(String type, String actor, String payload) {
+        return new Event(type, actor, KIND_OBSERVATION, payload);
     }
 
-    public static Event response(String type, String actor, String content, String payload, String stateName) {
-        return new Event(type, actor, KIND_RESPONSE, content, payload, stateName);
+    public static Event response(String type, String actor, String payload) {
+        return new Event(type, actor, KIND_RESPONSE, payload);
     }
 
-    public static Event systemPrompt(String content, String stateName) {
-        return new Event(TYPE_SYSTEM_PROMPT, ACTOR_SYSTEM, KIND_SYSTEM, content, null, stateName);
+    public static Event systemPrompt(String payload) {
+        return new Event(TYPE_SYSTEM_PROMPT, ACTOR_SYSTEM, KIND_SYSTEM, payload);
     }
 
-    public static Event system(String type, String content, String payload, String stateName) {
-        return new Event(type, ACTOR_SYSTEM, KIND_SYSTEM, content, payload, stateName);
+    public static Event system(String type, String payload) {
+        return new Event(type, ACTOR_SYSTEM, KIND_SYSTEM, payload);
     }
 
-    public static Event systemTick(String stateName) {
-        return system(TYPE_SYSTEM_TICK, "tick", null, stateName);
+    public static Event systemTick() {
+        return system(TYPE_SYSTEM_TICK, "tick");
     }
 
     public String getType() {
@@ -99,10 +107,6 @@ public class Event {
         return this.kind;
     }
 
-    public String getContent() {
-        return this.content;
-    }
-
     public String getPayload() {
         return this.payload;
     }
@@ -112,7 +116,34 @@ public class Event {
     }
 
     public String getStateName() {
-        return this.stateName;
+        if (this.statePath == null || this.statePath.isEmpty()) {
+            return null;
+        }
+        return this.statePath.get(this.statePath.size() - 1);
+    }
+
+    public List<String> getStatePath() {
+        if (this.statePath == null) {
+            this.statePath = new ArrayList<>();
+        }
+        return List.copyOf(this.statePath);
+    }
+
+    public void setStatePath(List<String> statePath) {
+        if (statePath == null) {
+            this.statePath = new ArrayList<>();
+            return;
+        }
+        this.statePath = new ArrayList<>(statePath);
+    }
+
+    public Event withStatePath(String... stateNames) {
+        if (stateNames == null) {
+            this.statePath = new ArrayList<>();
+            return this;
+        }
+        this.statePath = new ArrayList<>(Arrays.asList(stateNames));
+        return this;
     }
 
     public void setEventHistory(EventHistory eventHistory) {
@@ -122,7 +153,7 @@ public class Event {
     @Override
     public String toString() {
         return "{type=\"" + type + "\", actor=\"" + actor + "\", kind=\"" + kind
-                + "\", content=\"" + content + "\", payload=\"" + payload + "\", stateName=\""
-                + stateName + "\"}";
+                + "\", payload=\"" + payload + "\", statePath=\""
+                + statePath + "\"}";
     }
 }

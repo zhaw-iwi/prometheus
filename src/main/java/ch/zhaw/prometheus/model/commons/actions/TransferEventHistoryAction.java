@@ -26,7 +26,8 @@ public class TransferEventHistoryAction extends Action {
 
     @Override
     public void execute(EventHistory eventHistory) {
-        this.to.getSharedEventHistory().append(eventHistory, this.to);
+        // Shared event history is attached to all states by the agent runtime.
+        // Keeping this action as an explicit no-op preserves transition wiring.
     }
 
     @Override

@@ -92,7 +92,7 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        String speech = LMOpenAI.complete(events, prompt, this.starterPrompt, state.getName());
+        String speech = LMOpenAI.complete(events, prompt, this.starterPrompt);
         if (speech == null || speech.isBlank()) {
             return null;
         }
@@ -105,7 +105,7 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return null;
         }
-        String speech = LMOpenAI.complete(events, prompt, state.getName());
+        String speech = LMOpenAI.complete(events, prompt);
         if (speech == null || speech.isBlank()) {
             return null;
         }

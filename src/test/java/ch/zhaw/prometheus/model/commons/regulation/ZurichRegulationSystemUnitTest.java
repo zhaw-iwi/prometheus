@@ -21,8 +21,8 @@ class ZurichRegulationSystemUnitTest {
                 0.0d, 0.0d, 0.0d,
                 0.0d, 0.6d, 0.2d, 0.5d);
 
-        RegulationResult first = regulation.update(context(Event.systemTick("S")));
-        RegulationResult second = regulation.update(context(Event.systemTick("S")));
+        RegulationResult first = regulation.update(context(Event.systemTick()));
+        RegulationResult second = regulation.update(context(Event.systemTick()));
 
         assertEquals(1, first.internalEvents().size());
         assertEquals(Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY, first.internalEvents().get(0).getType());
@@ -37,7 +37,7 @@ class ZurichRegulationSystemUnitTest {
                 0.0d, 0.0d, 0.3d, 0.7d);
 
         RegulationResult result = regulation.update(context(
-                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "S")));
+                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello")));
 
         assertTrue(regulation.getVariable(ZurichRegulationSystem.VAR_DEPENDENCY) < 0.8d);
         assertTrue(result.modulation().get(ZurichRegulationSystem.MOD_AFFILIATION) < 0.8d);

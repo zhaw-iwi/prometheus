@@ -35,12 +35,11 @@ class ConversationalStateMachineSmokeTest {
         State startState = new State("start", statePolicy, List.of(transition));
         Agent agent = new Agent("Test Agent", "Conversation smoke test", startState);
 
-        Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi there", null,
-                startState.getName());
+        Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi there");
         Event response = agent.respond(userEvent);
 
         assertNotNull(response);
-        assertEquals("Final response", response.getContent());
+        assertTrue(response.getPayload().contains("\"speech\":\"Final response\""));
         assertFalse(agent.isActive());
 
         List<Event> sharedEvents = agent.getEventHistory().toList();

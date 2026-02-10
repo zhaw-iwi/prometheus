@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import ch.zhaw.prometheus.model.State;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -37,8 +36,8 @@ public class EventHistory {
         EventHistory selected = new EventHistory();
         for (Event current : this.eventList) {
             if (selector.test(current)) {
-                Event copy = new Event(current.getType(), current.getActor(), current.getKind(), current.getContent(),
-                        current.getPayload(), current.getStateName());
+                Event copy = new Event(current.getType(), current.getActor(), current.getKind(), current.getPayload());
+                copy.setStatePath(current.getStatePath());
                 copy.setEventHistory(selected);
                 selected.eventList.add(copy);
             }
@@ -46,18 +45,9 @@ public class EventHistory {
         return selected;
     }
 
-    public void append(EventHistory source, State state) {
-        for (Event current : source.toList()) {
-            Event event = new Event(current.getType(), current.getActor(), current.getKind(), current.getContent(),
-                    current.getPayload(), state.getName());
-            event.setEventHistory(this);
-            this.eventList.add(event);
-        }
-    }
-
-    public void appendEvent(Event event, State state) {
-        Event copy = new Event(event.getType(), event.getActor(), event.getKind(), event.getContent(),
-                event.getPayload(), state.getName());
+    public void appendEvent(Event event) {
+        Event copy = new Event(event.getType(), event.getActor(), event.getKind(), event.getPayload());
+        copy.setStatePath(event.getStatePath());
         copy.setEventHistory(this);
         this.eventList.add(copy);
     }
@@ -93,7 +83,7 @@ public class EventHistory {
     }
 
     public void clearStateEvents(String stateName) {
-        this.eventList.removeIf(event -> stateName.equals(event.getStateName()));
+        this.eventList.removeIf(event -> event.getStatePath().contains(stateName));
     }
 
     public List<Event> toList() {
@@ -116,7 +106,7 @@ public class EventHistory {
         StringBuilder result = new StringBuilder("");
         for (Event current : this.eventList) {
             String label = current.getActor() != null ? current.getActor() : current.getType();
-            result.append(label + ": " + current.getContent() + "\n");
+            result.append(label + ": " + current.getPayload() + "\n");
         }
         return result.toString();
     }

@@ -4,17 +4,15 @@ public class EventRequest {
     private String type;
     private String actor;
     private String kind;
-    private String content;
     private String payload;
 
     public EventRequest() {
     }
 
-    public EventRequest(String type, String actor, String kind, String content, String payload) {
+    public EventRequest(String type, String actor, String kind, String payload) {
         this.type = type;
         this.actor = actor;
         this.kind = kind;
-        this.content = content;
         this.payload = payload;
     }
 
@@ -40,14 +38,6 @@ public class EventRequest {
 
     public void setKind(String kind) {
         this.kind = kind;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
     }
 
     public String getPayload() {

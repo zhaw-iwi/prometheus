@@ -28,7 +28,7 @@ class AgentContinuousEvaluationUnitTest {
 
         assertNotNull(response);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());
-        assertEquals("Proactive check-in", response.getContent());
+        assertTrue(response.getPayload().contains("\"speech\":\"Proactive check-in\""));
 
         List<Event> history = agent.getEventHistory().toList();
         assertEquals(2, history.size());
@@ -47,7 +47,7 @@ class AgentContinuousEvaluationUnitTest {
         Event response = agent.tick();
 
         assertNotNull(response);
-        assertEquals("Final reached", response.getContent());
+        assertTrue(response.getPayload().contains("\"speech\":\"Final reached\""));
         assertTrue(!agent.isActive());
         assertEquals("final", agent.getCurrentState().getName());
     }

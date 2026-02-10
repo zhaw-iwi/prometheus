@@ -17,7 +17,7 @@ public final class FactExtractors {
     }
 
     public static FactExtractor lastContent(String factKey, EventSelector selector) {
-        return last(factKey, selector, Event::getContent);
+        return last(factKey, selector, Event::getPayload);
     }
 
     public static FactExtractor last(String factKey, EventSelector selector, Function<Event, Object> valueMapper) {
@@ -26,7 +26,7 @@ public final class FactExtractors {
             if (last == null) {
                 return Optional.empty();
             }
-            Object value = valueMapper == null ? last.getContent() : valueMapper.apply(last);
+            Object value = valueMapper == null ? last.getPayload() : valueMapper.apply(last);
             return Optional.of(Fact.of(factKey, value, 1.0d, List.of(provenance(last))));
         };
     }
@@ -42,6 +42,6 @@ public final class FactExtractors {
     }
 
     private static String provenance(Event event) {
-        return event.getType() + "|" + event.getActor() + "|" + event.getStateName();
+        return event.getType() + "|" + event.getActor() + "|" + String.join("/", event.getStatePath());
     }
 }

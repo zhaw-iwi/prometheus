@@ -59,11 +59,7 @@ public class OuterState extends State {
 
     public Event start(Policy outerPolicy) {
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        Event responseEvent = this.innerCurrent.start(totalPolicy);
-        if (responseEvent != null) {
-            this.requireSharedEventHistory().appendEvent(responseEvent, this);
-        }
-        return responseEvent;
+        return this.innerCurrent.start(totalPolicy);
     }
 
     public Event respond(Event event) throws TransitionException {
@@ -71,15 +67,11 @@ public class OuterState extends State {
     }
 
     public Event respond(Event event, Policy outerPolicy) throws TransitionException {
-        this.requireSharedEventHistory().appendEvent(event, this);
         this.raiseIfTransit();
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
         Event responseEvent = null;
         try {
             responseEvent = this.innerCurrent.respond(event, totalPolicy);
-            if (responseEvent != null) {
-                this.requireSharedEventHistory().appendEvent(responseEvent, this);
-            }
             return responseEvent;
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
@@ -88,16 +80,12 @@ public class OuterState extends State {
             } else {
                 responseEvent = this.innerCurrent.respond(event, totalPolicy);
             }
-            if (responseEvent != null) {
-                this.requireSharedEventHistory().appendEvent(responseEvent, this);
-            }
             return responseEvent;
         }
     }
 
     @Override
     public void acknowledge(Event event, Policy outerPolicy) throws TransitionException {
-        this.requireSharedEventHistory().appendEvent(event, this);
         this.raiseIfTransit();
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
         try {
@@ -162,6 +150,16 @@ public class OuterState extends State {
             }
         }
         return chain;
+    }
+
+    @Override
+    public List<String> getActiveStatePath() {
+        List<String> path = new java.util.ArrayList<>();
+        path.add(this.getName());
+        if (this.innerCurrent != null) {
+            path.addAll(this.innerCurrent.getActiveStatePath());
+        }
+        return path;
     }
 
 }

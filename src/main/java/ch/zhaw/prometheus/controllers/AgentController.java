@@ -153,9 +153,8 @@ public class AgentController {
                 || request.getKind() == null || request.getKind().isBlank()) {
             return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
         }
-        boolean hasContent = request.getContent() != null && !request.getContent().isBlank();
         boolean hasPayload = request.getPayload() != null && !request.getPayload().isBlank();
-        if (!hasContent && !hasPayload) {
+        if (!hasPayload) {
             return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
         }
 
@@ -163,8 +162,7 @@ public class AgentController {
         if (agent == null) {
             return new ResponseEntity<ResponseView>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getContent(),
-                request.getPayload(), agent.getCurrentState().getName());
+        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
         Event response = agent.respond(event);
         this.repository.save(agent);
         this.monitorBroadcaster.publish(agent);
@@ -191,3 +189,4 @@ public class AgentController {
     }
 
 }
+

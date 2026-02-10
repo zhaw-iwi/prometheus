@@ -121,21 +121,28 @@ public class Agent {
 
     public Event start() {
         try {
-            return this.currentState.start();
+            Event response = this.currentState.start();
+            this.recordEvent(response);
+            return response;
         } catch (ContenFilterException e) {
             throw e;
         }
     }
 
     public Event respond(Event event) {
-        Event response = this.respondWithoutRegulation(event);
+        Event response = this.respondWithoutRegulation(event, true);
         this.applyRegulation(event);
         return response;
     }
 
-    private Event respondWithoutRegulation(Event event) {
+    private Event respondWithoutRegulation(Event event, boolean recordInput) {
         try {
-            return this.currentState.respond(event);
+            if (recordInput) {
+                this.recordEvent(event);
+            }
+            Event response = this.currentState.respond(event);
+            this.recordEvent(response);
+            return response;
         } catch (ContenFilterException e) {
             throw e;
         } catch (TransitionException e) {
@@ -143,7 +150,7 @@ public class Agent {
             if (this.currentState.isStarting()) {
                 return this.start();
             }
-            return this.respondWithoutRegulation(event);
+            return this.respondWithoutRegulation(event, false);
         }
     }
 
@@ -151,24 +158,27 @@ public class Agent {
         if (!this.isActive() || this.currentState == null) {
             return null;
         }
-        Event tickEvent = Event.systemTick(this.currentState.getName());
+        Event tickEvent = Event.systemTick();
         return this.respond(tickEvent);
     }
 
     public void acknowledge(Event event) {
-        this.acknowledgeWithoutRegulation(event);
+        this.acknowledgeWithoutRegulation(event, true);
         this.applyRegulation(event);
     }
 
-    private void acknowledgeWithoutRegulation(Event event) {
+    private void acknowledgeWithoutRegulation(Event event, boolean recordInput) {
         try {
+            if (recordInput) {
+                this.recordEvent(event);
+            }
             this.currentState.acknowledge(event);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 this.currentState.enter();
             } else {
-                this.acknowledgeWithoutRegulation(event);
+                this.acknowledgeWithoutRegulation(event, false);
             }
         }
     }
@@ -275,10 +285,8 @@ public class Agent {
                     internal.getType(),
                     internal.getActor(),
                     internal.getKind(),
-                    internal.getContent(),
-                    internal.getPayload(),
-                    this.currentState.getName());
-            this.acknowledgeWithoutRegulation(normalized);
+                    internal.getPayload());
+            this.acknowledgeWithoutRegulation(normalized, true);
         }
     }
 
@@ -292,5 +300,13 @@ public class Agent {
     private static boolean isInternalRegulationEvent(Event event) {
         String type = event.getType();
         return type != null && type.startsWith("int.");
+    }
+
+    private void recordEvent(Event event) {
+        if (event == null || this.eventHistory == null || this.currentState == null) {
+            return;
+        }
+        event.setStatePath(this.currentState.getActiveStatePath());
+        this.eventHistory.appendEvent(event);
     }
 }

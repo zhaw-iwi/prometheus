@@ -73,7 +73,7 @@ public class ZurichRegulationSystem implements RegulationSystem {
         boolean aboveThreshold = this.getVariable(VAR_DEPENDENCY) >= this.opportunityThreshold;
         if (aboveThreshold && !this.opportunityArmed) {
             internal.add(Event.system(Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY,
-                    "regulation opportunity: affiliation support", null, context.triggerEvent().getStateName()));
+                    "regulation opportunity: affiliation support"));
             this.opportunityArmed = true;
         } else if (!aboveThreshold) {
             this.opportunityArmed = false;

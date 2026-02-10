@@ -38,17 +38,15 @@ public class LMOpenAI {
             """;
     private static final String REMINDER_SUMMARISATION = "Remember to reply with the summary in JSON format only so that it can be parsed with a Java program using the GSON library.";
 
-    public static String complete(EventHistory eventHistory, String systemPrepend, String stateName) {
-        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, stateName);
+    public static String complete(EventHistory eventHistory, String systemPrepend) {
+        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend);
         LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt);
         return result;
     }
 
-    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend,
-            String stateName) {
-        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, systemAppend, stateName); // Corrected
-                                                                                                                // call
+    public static String complete(EventHistory eventHistory, String systemPrepend, String systemAppend) {
+        List<Event> totalPrompt = LMOpenAI.composePrompt(eventHistory, systemPrepend, systemAppend);
         LMOpenAI.LOGGER.info("LMOpenAI.complete() with " + totalPrompt);
         String result = LMOpenAI.openai(totalPrompt);
         return result;
@@ -97,26 +95,25 @@ public class LMOpenAI {
         return result;
     }
 
-    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String stateName) {
+    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend) {
         List<Event> result = new ArrayList<Event>();
         if (systemPrepend == null) {
             throw new NullPointerException(systemPrepend + " systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(Event.systemPrompt(systemPrepend, stateName));
+        result.add(Event.systemPrompt(systemPrepend));
         result.addAll(eventHistory.toList());
         return result;
     }
 
-    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String systemAppend,
-            String stateName) {
+    private static List<Event> composePrompt(EventHistory eventHistory, String systemPrepend, String systemAppend) {
         List<Event> result = new ArrayList<>();
         if (systemPrepend == null) {
             throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(Event.systemPrompt(systemPrepend, stateName));
+        result.add(Event.systemPrompt(systemPrepend));
         result.addAll(eventHistory.toList());
         if (systemAppend != null) {
-            result.add(Event.systemPrompt(systemAppend, stateName));
+            result.add(Event.systemPrompt(systemAppend));
         }
         return result;
     }
@@ -126,8 +123,8 @@ public class LMOpenAI {
         if (systemPrepend == null) {
             throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
         }
-        result.add(Event.systemPrompt(systemPrepend, null));
-        result.add(Event.systemPrompt("<eventhistory>" + eventHistory.toString() + "</eventhistory>", null));
+        result.add(Event.systemPrompt(systemPrepend));
+        result.add(Event.systemPrompt("<eventhistory>" + eventHistory.toString() + "</eventhistory>"));
         return result;
     }
 
@@ -137,7 +134,7 @@ public class LMOpenAI {
         if (systemAppend == null) {
             throw new NullPointerException("systemAppend cannot be null.");
         }
-        result.add(Event.systemPrompt(systemAppend, null));
+        result.add(Event.systemPrompt(systemAppend));
         return result;
     }
 
@@ -289,11 +286,8 @@ public class LMOpenAI {
                     }
                 }
             } catch (Exception e) {
-                // Fallback to regular content mapping below.
+                // Fallback to payload mapping below.
             }
-        }
-        if (event.getContent() != null) {
-            return event.getContent();
         }
         if (event.getPayload() != null) {
             return event.getPayload();

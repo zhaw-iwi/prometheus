@@ -23,8 +23,8 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 
 @SpringBootTest
-@Disabled("Manual seed test")
-class SeedOpenHealthCoachingRealtimeManualTest {
+// @Disabled("Manual seed test")
+class OpenHealthCoaching {
 
         private static final String AGENT_NAME = "Wellness Navigator Realtime";
         private static final String AGENT_DESCRIPTION = "Wellness Navigator Realtime helps patients uncover what matters for their health and transform those insights into actionable self-care steps for everyday well-being.";

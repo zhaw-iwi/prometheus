@@ -152,7 +152,7 @@ function buildEventHistoryContext(eventHistory) {
         return null;
       }
       const actor = event.actor || "unknown";
-      const content = getEventSpeech(event) || event.content || "";
+      const content = getEventSpeech(event) || "";
       return `${actor}: ${content}`;
     })
     .filter((line) => line && line.trim().length > 0);
@@ -418,7 +418,7 @@ async function handleUserTranscript(transcript) {
         type: "obs.user_utterance",
         actor: "user",
         kind: "observation",
-        content: transcript,
+        payload: transcript,
       }),
     });
     if (!ackResponse.ok) {
@@ -735,16 +735,22 @@ function getEventSpeech(event) {
     return null;
   }
   if (!event.payload) {
-    return event.content && event.content.trim() ? event.content : null;
+    return null;
   }
   try {
     const plan = JSON.parse(event.payload);
     if (plan && typeof plan.speech === "string" && plan.speech.trim()) {
       return plan.speech;
     }
+    if (typeof event.payload === "string" && event.payload.trim()) {
+      return event.payload;
+    }
   } catch (_) {
+    if (typeof event.payload === "string" && event.payload.trim()) {
+      return event.payload;
+    }
   }
-  return event.content && event.content.trim() ? event.content : null;
+  return null;
 }
 
 function speakStoredAssistantResponse(text) {

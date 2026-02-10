@@ -7,22 +7,19 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 
 class DefaultObservationSnapshotAggregatorUnitTest {
 
     @Test
     void aggregatesStableFactsFromSelectedEvents() {
-        State state = new State("S", new NoOpPolicy(), List.of());
         EventHistory events = new EventHistory();
-        events.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "S"), state);
-        events.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "hi",
-                "{\"speech\":\"hi\"}", "S"), state);
-        events.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "need help", null, "S"),
-                state);
+        events.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello")
+                .withStatePath("S"));
+        events.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"hi\"}").withStatePath("S"));
+        events.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "need help")
+                .withStatePath("S"));
 
         ObservationSnapshot snapshot = DefaultObservationSnapshotAggregator.INSTANCE.aggregate(events);
 

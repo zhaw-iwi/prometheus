@@ -15,10 +15,9 @@ class LMOpenAIMessageMappingUnitTest {
 
     @Test
     void mapsRolesForSystemUserAndAssistantEvents() {
-        Event system = Event.systemPrompt("system prompt", "s");
-        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "s");
-        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "hi",
-                "{\"speech\":\"hi\"}", "s");
+        Event system = Event.systemPrompt("system prompt");
+        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello");
+        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"hi\"}");
 
         assertEquals("system", LMOpenAI.mapRole(system));
         assertEquals("user", LMOpenAI.mapRole(user));
@@ -27,26 +26,23 @@ class LMOpenAIMessageMappingUnitTest {
 
     @Test
     void mapsBehaviourPlanContentFromPayloadSpeechFirst() {
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                "fallback-content", "{\"speech\":\"payload-speech\"}", "s");
+        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"payload-speech\"}");
 
         assertEquals("payload-speech", LMOpenAI.mapContent(assistantPlan));
     }
 
     @Test
     void fallsBackToContentWhenPayloadCannotBeParsed() {
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                "fallback-content", "{invalid-json", "s");
+        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{invalid-json");
 
-        assertEquals("fallback-content", LMOpenAI.mapContent(assistantPlan));
+        assertEquals("{invalid-json", LMOpenAI.mapContent(assistantPlan));
     }
 
     @Test
     void buildsOpenAIMessagesWithRoleAndContentFields() {
-        Event system = Event.systemPrompt("be helpful", "s");
-        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello", null, "s");
-        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                null, "{\"speech\":\"payload-speech\"}", "s");
+        Event system = Event.systemPrompt("be helpful");
+        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello");
+        Event assistantPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"payload-speech\"}");
 
         JsonArray messages = LMOpenAI.toOpenAIMessages(List.of(system, user, assistantPlan));
 

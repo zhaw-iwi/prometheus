@@ -184,16 +184,16 @@ function get_event_text(event) {
         return "";
     }
     if (!event.payload) {
-        return event.content || "";
+        return "";
     }
     try {
         const plan = JSON.parse(event.payload);
         if (plan && plan.speech) {
             return plan.speech;
         }
-        return event.content || "";
+        return event.payload || "";
     } catch (_) {
-        return event.content || "";
+        return event.payload || "";
     }
 }
 
@@ -293,7 +293,7 @@ function user_says() {
             type: "obs.user_utterance",
             actor: "user",
             kind: "observation",
-            content: user_says_what
+            payload: user_says_what
         }),
         contentType: "application/json; charset=utf-8",
         dataType: "json",

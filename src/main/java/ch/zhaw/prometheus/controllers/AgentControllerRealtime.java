@@ -56,15 +56,13 @@ public class AgentControllerRealtime {
                 || request.getKind() == null || request.getKind().isBlank()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        boolean hasContent = request.getContent() != null && !request.getContent().isBlank();
         boolean hasPayload = request.getPayload() != null && !request.getPayload().isBlank();
-        if (!hasContent && !hasPayload) {
+        if (!hasPayload) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
         Agent agent = agentMaybe.get();
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getContent(),
-                request.getPayload(), agent.getCurrentState().getName());
+        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
         agent.acknowledge(event);
         this.repository.save(agent);
         this.monitorBroadcaster.publish(agent);
@@ -72,3 +70,4 @@ public class AgentControllerRealtime {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 }
+

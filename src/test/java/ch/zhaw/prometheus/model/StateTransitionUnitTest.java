@@ -25,13 +25,12 @@ class StateTransitionUnitTest {
         State state = new State("conversation", new FixedSpeechPolicy("hello", "response"), List.of());
         Agent agent = new Agent("a", "d", state);
 
-        Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi", null, state.getName());
+        Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi");
         Event response = agent.respond(userEvent);
 
         assertNotNull(response);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());
         assertEquals(Event.ACTOR_ASSISTANT, response.getActor());
-        assertEquals("response", response.getContent());
         assertTrue(response.getPayload().contains("\"speech\":\"response\""));
     }
 
@@ -41,9 +40,11 @@ class StateTransitionUnitTest {
         EventHistory sharedHistory = new EventHistory();
         state.setEventHistory(sharedHistory);
 
-        sharedHistory.appendEvent(Event.observation("obs.user_utterance", "user", "from-focus", null, "focus"), state);
+        sharedHistory.appendEvent(
+                Event.observation("obs.user_utterance", "user", "from-focus").withStatePath("focus"));
         State other = new State("other", new NoOpPolicy(), List.of());
-        sharedHistory.appendEvent(Event.observation("obs.user_utterance", "user", "from-other", null, "other"), other);
+        sharedHistory.appendEvent(
+                Event.observation("obs.user_utterance", "user", "from-other").withStatePath("other"));
 
         CapturingDecisionPolicy decisionPolicy = new CapturingDecisionPolicy(true);
         Decision decision = new TestDecision(decisionPolicy);
@@ -62,10 +63,9 @@ class StateTransitionUnitTest {
         EventHistory sharedHistory = new EventHistory();
         state.setEventHistory(sharedHistory);
 
-        sharedHistory.appendEvent(Event.observation("obs.user_utterance", "user", "u1", null, "focus"), state);
+        sharedHistory.appendEvent(Event.observation("obs.user_utterance", "user", "u1").withStatePath("focus"));
         sharedHistory.appendEvent(
-                Event.response("resp.behaviour_plan", "assistant", "a1", "{\"speech\":\"a1\"}", "focus"),
-                state);
+                Event.response("resp.behaviour_plan", "assistant", "{\"speech\":\"a1\"}").withStatePath("focus"));
 
         RecordingAction action = new RecordingAction(new NoOpPolicy(), EventSelector.actor("assistant"));
         Transition transition = new Transition(List.of(), List.of(action),
@@ -74,7 +74,7 @@ class StateTransitionUnitTest {
         transition.action(state);
 
         assertEquals(1, action.lastSeenCount);
-        assertEquals("a1", action.lastSeenLastContent);
+        assertEquals("{\"speech\":\"a1\"}", action.lastSeenLastContent);
     }
 
     private static class FixedSpeechPolicy extends Policy {
@@ -140,7 +140,7 @@ class StateTransitionUnitTest {
         public boolean decide(EventHistory events) {
             List<Event> list = events.toList();
             this.lastSeenCount = list.size();
-            this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getContent();
+            this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();
             return this.answer;
         }
 
@@ -168,7 +168,7 @@ class StateTransitionUnitTest {
         public void execute(EventHistory eventHistory) {
             List<Event> list = eventHistory.toList();
             this.lastSeenCount = list.size();
-            this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getContent();
+            this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();
         }
     }
 }

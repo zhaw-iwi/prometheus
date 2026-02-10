@@ -234,7 +234,12 @@ async function acknowledgeTranscript(transcript) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
     },
-    body: JSON.stringify({ content: transcript }),
+    body: JSON.stringify({
+      type: "obs.user_utterance",
+      actor: "user",
+      kind: "observation",
+      payload: transcript,
+    }),
   });
   if (!response.ok) {
     appendLog("promise", "acknowledge failed.");

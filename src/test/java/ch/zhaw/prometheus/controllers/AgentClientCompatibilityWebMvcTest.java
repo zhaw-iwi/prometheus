@@ -90,7 +90,7 @@ class AgentClientCompatibilityWebMvcTest {
                                                   "type":"obs.user_utterance",
                                                   "actor":"user",
                                                   "kind":"observation",
-                                                  "content":"Hello there"
+                                                  "payload":"Hello there"
                                                 }
                                                 """))
                                 .andExpect(status().isOk())
@@ -124,7 +124,7 @@ class AgentClientCompatibilityWebMvcTest {
                                                   "type":"obs.user_utterance",
                                                   "actor":"user",
                                                   "kind":"observation",
-                                                  "content":"I feel good today"
+                                                  "payload":"I feel good today"
                                                 }
                                                 """))
                                 .andExpect(status().isOk());
@@ -211,9 +211,9 @@ class AgentClientCompatibilityWebMvcTest {
                 List<Event> eventList = events.toList();
                 for (int i = eventList.size() - 1; i >= 0; i--) {
                         Event event = eventList.get(i);
-                        if (Event.ACTOR_USER.equals(event.getActor())
-                                        && Event.KIND_OBSERVATION.equals(event.getKind())) {
-                                return event.getContent();
+                                if (Event.ACTOR_USER.equals(event.getActor())
+                                                && Event.KIND_OBSERVATION.equals(event.getKind())) {
+                                return event.getPayload();
                         }
                 }
                 return null;

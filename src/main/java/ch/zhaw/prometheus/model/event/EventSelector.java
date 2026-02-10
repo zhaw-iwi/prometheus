@@ -35,7 +35,8 @@ public final class EventSelector {
 
     public static EventSelector stateName(String... stateNames) {
         Set<String> stateSet = Set.of(stateNames);
-        return new EventSelector(event -> event != null && stateSet.contains(event.getStateName()));
+        return new EventSelector(event -> event != null
+                && event.getStatePath().stream().anyMatch(stateSet::contains));
     }
 
     public EventSelector and(EventSelector other) {

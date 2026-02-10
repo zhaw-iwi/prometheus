@@ -23,12 +23,12 @@ class StateTransitionSnapshotUnitTest {
         EventHistory sharedHistory = new EventHistory();
         focus.setEventHistory(sharedHistory);
 
-        sharedHistory.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "f1", null, "focus"),
-                focus);
-        sharedHistory.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "o1", null, "other"),
-                other);
-        sharedHistory.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "f2", null, "focus"),
-                focus);
+        sharedHistory.appendEvent(
+                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "f1").withStatePath("focus"));
+        sharedHistory.appendEvent(
+                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "o1").withStatePath("other"));
+        sharedHistory.appendEvent(
+                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "f2").withStatePath("focus"));
 
         SnapshotThresholdDecision decision = new SnapshotThresholdDecision(2);
         Transition transition = new Transition(List.of(decision), List.of(), other);
@@ -44,12 +44,10 @@ class StateTransitionSnapshotUnitTest {
         EventHistory sharedHistory = new EventHistory();
         state.setEventHistory(sharedHistory);
 
-        sharedHistory.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1", null, "focus"),
-                state);
         sharedHistory.appendEvent(
-                Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "a1",
-                        "{\"speech\":\"a1\"}", "focus"),
-                state);
+                Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1").withStatePath("focus"));
+        sharedHistory.appendEvent(
+                Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"a1\"}").withStatePath("focus"));
 
         SnapshotRecordingAction action = new SnapshotRecordingAction();
         action.setEventSelector(EventSelector.actor(Event.ACTOR_ASSISTANT));

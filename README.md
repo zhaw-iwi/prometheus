@@ -4,209 +4,202 @@ Prometheus is an event-driven, regulation-aware agent framework evolving from PR
 
 Current focus:
 
-- Event-based inputs and event history
-- Explicit state-machine task control
-- Testable, incremental roadmap toward multimodal BehaviourPlans and regulation
+- Event-first runtime semantics with explicit state-machine control
+- BehaviourPlan-based outputs with capability-aware rendering path
+- Deterministic, testable iteration toward interrupts/policy-gate authority
 
-Status
+## Status
 
-- Iteration 1 complete: Events, shared history, policies, and response-as-event workflows
-- Iteration 2 complete: BehaviourPlan output abstraction with speech-only rendering
-- Iteration 3 complete (core): Observation snapshots and fact-based transition hooks
-- Iteration 4 complete (core): Runtime tick-driven continuous evaluation
-- Iteration 5 complete (core slice): Regulation runtime with Zurich-style internal events
-- Next step: Iteration 6 (Interrupts and Policy Gate)
+- Iteration 1 complete: event-based inputs/history, shared history model, policy externalization
+- Iteration 2 complete: `BehaviourPlan` output abstraction
+- Iteration 3 complete (core): snapshot/fact pipeline for transition decisions/actions
+- Iteration 4 complete (core): runtime tick-based continuous evaluation
+- Iteration 5 complete (core slice): regulation runtime + explicit internal regulation events
+- Post-Iteration-5 refactor complete: centralized event recording in `Agent` runtime with path-based state routing
+- Next step: Iteration 6 (interrupt arbitration + policy gate)
+
+## What Changed Most Recently (Important)
+
+A significant cleanup/refactor was completed after Iteration 5 to remove duplicated event writes and make event ownership explicit.
+
+### 1. Single Writer For Event History
+
+- `Agent` runtime is now the only component that appends to `EventHistory`.
+- `State` and `OuterState` no longer append events.
+- This removed duplicate opener/response/user events that occurred in nested state flows.
+
+### 2. Event Routing Metadata Is Path-Based
+
+- Events now carry `statePath` (ordered active chain at record time), for example:
+  - `["OuterState", "RapportBuilding"]`
+- Selection by state uses containment on `statePath`:
+  - Inner leaf state sees events from when that leaf was active.
+  - Outer state sees all events from its full active subtree.
+
+### 3. Selector Semantics Simplified
+
+- `EventSelector.stateName(...)` now matches by path containment, not single label equality.
+- This enables consistent retrieval for nested outer-state hierarchies without special-case selector logic.
+
+### 4. Runtime Path Derivation
+
+- Active path is derived from current machine position:
+  - `State#getActiveStatePath()` returns leaf/self path.
+  - `OuterState#getActiveStatePath()` prepends itself and recursively appends inner path.
+
+### 5. Cleanup Of Legacy Transfer Pattern
+
+- `TransferEventHistoryAction` remains as an explicit no-op for transition compatibility.
+- With shared runtime-owned history, explicit history transfer is no longer required.
 
 ## Current Runtime Contracts
 
-- Inputs are `Event` objects (`type`, `actor`, `kind`, `content`, `payload`, `stateName`).
+- Inputs are `Event` objects with core fields: `type`, `actor`, `kind`, `payload`.
+- Runtime stamps routing metadata (`statePath`) when recording events.
 - Assistant outputs are `resp.behaviour_plan` events.
-- Assistant speech is represented in BehaviourPlan payload (`payload.speech`), with `content` available as rendered preview/fallback.
-- `BehaviourPlan` is the output abstraction; `SpeechOnlyRenderer` is the default renderer.
-- Snapshot contracts are available via `SnapshotAggregator`, `ObservationSnapshot`, `Fact`, and selector-based `FactExtractor` helpers.
-- `Transition` now builds snapshots from selected events and passes them into decisions/actions.
-- Internal `sys.tick` events are supported for no-input evaluation cycles.
-- Optional runtime scheduler can tick active agents (`prometheus.runtime.tick.enabled`, `prometheus.runtime.tick.delay-ms`).
-- Manual one-cycle no-input evaluation endpoint is available at `POST /{agentId}/tick`.
-- Agents can host a `RegulationSystem`; default is no-op.
-- Iteration 5 core provides `ZurichRegulationSystem` emitting explicit internal control events (for example `int.regulation.opportunity`).
-- Prompt execution uses OpenAI chat message mapping from events (`role` + `content`) in `LMOpenAI`.
-- Monitor client state/storage/active updates are SSE-driven via `/{agentId}/monitor/stream`.
-- Log monitoring is SSE-driven via `/logs/stream`.
+- Speech content is represented in plan payload (`payload.speech`).
+- `BehaviourPlan` is the output abstraction; runtime emits full plans and does not reduce channels server-side.
+- Snapshot contracts are available via:
+  - `SnapshotAggregator`
+  - `ObservationSnapshot`
+  - `Fact`
+  - selector-based `FactExtractor` helpers
+- `Transition` computes snapshots from selected events and passes them into decisions/actions.
+- Internal `sys.tick` events support no-input evaluation cycles.
+- Optional runtime scheduler can tick active agents:
+  - `prometheus.runtime.tick.enabled`
+  - `prometheus.runtime.tick.delay-ms`
+- Manual one-cycle no-input endpoint:
+  - `POST /{agentId}/tick`
+- Agents can host a `RegulationSystem` (default is no-op).
+- `ZurichRegulationSystem` emits explicit internal events (e.g. `int.regulation.opportunity`).
+- Monitor stream is SSE via `/{agentId}/monitor/stream`.
+- Log stream is SSE via `/logs/stream`.
 
-## Naming And Identity
+## Behaviour + Prompt Pipeline
 
-- Spring Boot entry point is `PrometheusApplication`.
-- Maven artifact/name is `prometheus`.
-- `spring.application.name=prometheus` is configured in template/prod properties.
-
-## Iteration 1 - Event-Based Interaction (done)
-
-- Unified `Event` model (type/actor/kind/content/payload/stateName).
-- Single per-agent event history with state-scoped filtering.
-- States read/write shared history; per-state histories removed.
-- Policies externalized (`Policy` / `PromptPolicy`); decisions/actions/states use policies.
-- Responses are modeled as events and appended to the shared event history.
-- Event selectors introduced for history selection (state/actor/kind).
-- Prompt-facing APIs and views use policy terminology (`PolicyResult`, `PolicyResponseView`, `getTotalPolicy`).
-
-## Iteration 2 - BehaviourPlan Output (done)
-
-- Added `BehaviourPlan` abstraction and default `SpeechOnlyRenderer`.
 - `Policy.onStart(...)` and `Policy.onRespond(...)` return `BehaviourPlan`.
-- `State` emits assistant `resp.behaviour_plan` events with serialized plan payload.
-- Frontend rendering uses payload-first speech extraction.
-- LM adapter maps events to OpenAI chat messages with explicit role/content mapping.
+- `State` executes policy and returns response events; runtime persists them.
+- Prompt execution uses OpenAI chat mapping from event stream (`role` + `content`) in `LMOpenAI`.
+
+## Event Model Notes
+
+- Historical single-state labeling (`stateName`) was replaced by `statePath` semantics.
+- `Event#getStateName()` still resolves to the leaf item of `statePath` for compatibility in call sites still using leaf semantics.
+- New code should prefer path semantics for retrieval/routing decisions.
 
 ## Testing Status
 
-- Unit tests:
-  - `BehaviourPlan` serialization/emptiness
-  - `EventSelector` composition/filtering
-  - `State`/`Transition` behaviour-plan emission and selector semantics
-  - Snapshot aggregation facts and selector-based fact extraction
-  - Snapshot-aware transition decisions/actions
-  - Agent tick/no-input progression and tick-triggered transitions
-  - Continuous scheduler cycle processing (active agents only)
-  - Zurich regulation dynamics and regulation-to-transition integration
-  - `LMOpenAI` event-to-chat-message mapping
-- Web MVC compatibility tests:
-  - chat endpoints
-  - realtime acknowledge/prompt flow
-  - monitor endpoints including SSE monitor stream
-- Manual seed tests:
-  - `src/test/java/ch/zhaw/prometheus/agents`
-  - intentionally `@Disabled` and run manually when seeding agents
+Automated coverage currently includes:
 
-## Iteration 3 Snapshot Design (implemented)
+- `BehaviourPlan` serialization and emptiness
+- `EventSelector` composition/filtering
+- state/transition behavior-plan emission and selector behavior
+- snapshot aggregation and selector-based fact extraction
+- snapshot-aware transition decisions/actions
+- agent tick/no-input progression
+- continuous scheduler processing (active agents only)
+- Zurich regulation dynamics and regulation-to-transition integration
+- OpenAI message mapping from events
+- outer/inner path-based event routing + single-write behavior
 
-Iteration 3 is implemented with an additive design that keeps the event-first flow intact:
+Web MVC compatibility tests include:
 
-- Snapshot model from selected `EventHistory` with explicit `Fact` objects (`key`, `value`, `confidence`, `provenance`).
-- Pluggable `SnapshotAggregator` interface and default implementation (`DefaultObservationSnapshotAggregator`).
-- Reusable selector-first fact helpers (`FactExtractors`) so developers can define snapshot content using `EventSelector` composition.
-- `Decision` and `Action` now support snapshot-aware overloads while keeping existing raw-event methods.
-- `Transition` computes snapshots from the same selected history already used for decisions/actions.
-- Client/runtime contracts remain stable (`resp.behaviour_plan`, monitor SSE).
+- text chat endpoints
+- realtime acknowledge/prompt flow
+- monitor endpoints including SSE monitor stream
 
-Non-goals for Iteration 3:
+Manual seed tests:
 
-- No scheduler/tick runtime (Iteration 4).
-- No regulation runtime integration (Iteration 5).
-- No policy-gate/interrupt authority model changes (Iteration 6).
+- `src/test/java/ch/zhaw/prometheus/agents/OpenHealthCoaching.java`
+- intentionally `@Disabled` and run manually for seeding
 
-## Iteration 4 Continuous Evaluation (implemented core)
+## Iteration Summary
 
-Implemented Iteration 4 core:
+### Iteration 1 - Event-Based Interaction (done)
 
-- Runtime-level scheduler/tick source outside state machine and regulation.
-- `Agent.tick()` API to run one no-input evaluation cycle through the existing event pipeline.
-- `POST /{agentId}/tick` endpoint for deterministic/manual triggering.
-- Tick-driven transitions and behaviours are supported via normal decisions/actions and snapshot hooks.
-- Deterministic tests cover no-input progression and scheduler processing.
+- unified `Event` model
+- single per-agent shared event history
+- policy externalization (`Policy` / `PromptPolicy`)
+- responses represented as events
+- selector-based history access
 
-Authority split for Iteration 4/5:
+### Iteration 2 - BehaviourPlan Output (done)
 
-- Runtime provides time (`tick` events).
-- Regulation (Iteration 5) consumes ticks and observations to update motivational dynamics.
-- State machine remains control authority and reacts to explicit internal events emitted by regulation.
+- added `BehaviourPlan`
+- full-plan response payloads without server-side channel reduction
+- response events use `resp.behaviour_plan`
 
-## Iteration 5 Regulation Runtime (implemented core slice)
+### Iteration 3 - Observation Snapshots (done, core)
 
-Implemented Iteration 5 core slice:
+- snapshot/fact model over selected event histories
+- pluggable `SnapshotAggregator` + default implementation
+- `Decision` / `Action` snapshot-aware overloads
 
-- Added runtime regulation contracts:
-  - `RegulationSystem`
-  - `RegulationContext`
-  - `RegulationResult`
-  - `ModulationBundle`
-- Added generic regulation policy/effect contracts:
-  - `RegulationPolicy`
-  - `RegulationEffect`
-- `RegulationEffect` is dimension-agnostic (`Map<String, Double>` deltas + confidence/provenance), so applications choose variable count and semantics.
-- `ModulationBundle` is also dimension-agnostic (`Map<String, Double>`), so modulation vocabularies are regulation-specific.
-- Added `NoOpRegulationSystem` default and moved Zurich into commons as reference implementation:
-  - `model.commons.regulation.ZurichRegulationSystem`
-- `Agent` now invokes regulation after processed input/tick events.
-- Regulation can emit explicit internal events that are fed back through the state-machine acknowledgment path.
-- Added internal event types for regulation opportunities/interrupts:
+### Iteration 4 - Continuous Evaluation (done, core)
+
+- scheduler/tick runtime source
+- `Agent.tick()` API
+- `POST /{agentId}/tick` endpoint
+
+### Iteration 5 - Regulation Runtime Integration (done, core slice)
+
+- `RegulationSystem`, `RegulationContext`, `RegulationResult`, `ModulationBundle`
+- `RegulationPolicy` + `RegulationEffect`
+- `NoOpRegulationSystem` default
+- Zurich reference implementation in commons
+- explicit internal regulation events:
   - `int.regulation.opportunity`
   - `int.regulation.interrupt.soft`
   - `int.regulation.interrupt.hard`
 
-Current scope note:
-- This slice establishes runtime integration and explicit event flow.
-- Policy-gate authority and interrupt arbitration remain Iteration 6 concerns.
+### Post-Iteration-5 Runtime Cleanup (done)
 
-## Roadmap (Iterative Development)
+- centralized event recording in `Agent`
+- path-based event routing (`statePath`)
+- removal of state/outer-state append side effects
+- de-duplication of nested conversation events
 
-Each iteration ends with something runnable and testable.
+## Roadmap (Next)
 
-Iteration 2 - BehaviourPlan Output (done)
+### Iteration 6 - Interrupts and Policy Gate
 
-- Introduce BehaviourPlan as the output abstraction (as event payload)
-- Replace text response events with BehaviourPlan events (speech + optional non-verbal)
-- Add a simple speech-only renderer
-- Deliverable: same conversational agent, BehaviourPlan-driven responses
+- interrupt severity handling
+- policy gate for initiative/interrupt arbitration
+- cooldown and hysteresis
+- deliverable: no spurious offers, safe preemption
 
-Iteration 3 - Observation Snapshots (done, core)
+### Iteration 7 - SupportProvisioning Modules
 
-- Snapshot aggregation over events into explicit snapshot/fact artifacts
-- Fact extraction helpers and confidence handling
-- Decisions/actions use snapshots in addition to raw events
-- Deliverable: guards/decisions based on facts, not raw events
+- provisioning module abstraction
+- execution monitoring
+- abort semantics
 
-Iteration 4 - Continuous Evaluation
+### Iteration 8 - Multi-Actor and Group Support
 
-- Runtime scheduler/tick events (framework-level, not state-machine-specific)
-- Periodic evaluation hooks via explicit internal events
-- Deliverable: agents react even without new input
+- actor/group-scoped events
+- group-level selectors and permissions
+- display-oriented behaviour plans
 
-Iteration 5 - Regulation Runtime Integration (done, core slice)
+### Iteration 9 - Warehouse Safe Passage Agent
 
-- RegulationSystem interface consumes observations/ticks and emits modulation + control events
-- Named regulation variables with decay (model-dependent; Zurich reference implementation in commons)
-- `ModulationBundle` as structured modulation output (dimension-agnostic map)
-- Internal control events
-- Deliverable: Door Assist initiative triggered by regulation
+- motion regimes as task states
+- safety-driven regulation
 
-Iteration 6 - Interrupts and Policy Gate
+### Iteration 10 - Capability Negotiation and Realizers
 
-- Interrupt severity handling
-- PolicyGate for initiative and interrupts
-- Cooldown and hysteresis
-- Deliverable: no spurious offers, safe preemption
+- capability discovery
+- channel-specific realizers
+- graceful degradation
 
-Iteration 7 - SupportProvisioning Modules
+### Iteration 11 - Monitoring and Replay Tooling
 
-- ProvisioningModule abstraction
-- Execution monitoring
-- Abort semantics
-- Deliverable: phone retrieval with graceful abort
+- rich monitoring UI
+- event trace replay
+- deterministic regression support
 
-Iteration 8 - Multi-Actor and Group Support
+## Naming And Identity
 
-- Actor- and group-scoped events (beyond single-actor)
-- Group-level selectors and permissions
-- Display-oriented BehaviourPlans
-- Deliverable: meeting monitor agent with dashboards
-
-Iteration 9 - Warehouse Safe Passage Agent
-
-- Motion regimes as task states
-- Safety-driven regulation
-- Deliverable: warehouse navigation controller in simulation
-
-Iteration 10 - Capability Negotiation and Realizers
-
-- Capability discovery
-- Channel-specific realizers
-- Graceful degradation
-- Deliverable: same agent runs as chat, robot, or display system
-
-Iteration 11 - Monitoring and Replay Tooling
-
-- Rich monitoring UI
-- Event trace replay (enabled by event-first design)
-- Deterministic testing
-- Deliverable: full observability and regression testing
+- Spring Boot entry point: `PrometheusApplication`
+- Maven artifact/name: `prometheus`
+- `spring.application.name=prometheus` configured in template/prod properties
