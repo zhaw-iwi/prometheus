@@ -1,11 +1,9 @@
 package ch.zhaw.prometheus.controllers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,51 +12,43 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.repositories.AgentRepository;
 
 @RestController
 public class AgentMetaController {
+    private final AgentApplicationService agentService;
 
-    @Autowired
-    private AgentRepository repository;
+    public AgentMetaController(AgentApplicationService agentService) {
+        this.agentService = agentService;
+    }
 
     @GetMapping("agent")
     public ResponseEntity<List<AgentInfoView>> findAll() {
-        List<Agent> agents = this.repository.findAll();
-        List<AgentInfoView> result = new ArrayList<AgentInfoView>();
-        for (Agent current : agents) {
-            result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
-                    current.isActive()));
-        }
-        return new ResponseEntity<List<AgentInfoView>>(result, HttpStatus.OK);
+        return new ResponseEntity<List<AgentInfoView>>(this.agentService.listAgents(), HttpStatus.OK);
     }
 
     @GetMapping("agent/eventhistory")
     public ResponseEntity<List<Agent>> findAllEventHistory() {
-        List<Agent> agents = this.repository.findAll();
-        return new ResponseEntity<List<Agent>>(agents, HttpStatus.OK);
+        return new ResponseEntity<List<Agent>>(this.agentService.listAgentAggregates(), HttpStatus.OK);
     }
 
     @GetMapping("agent/{id}")
     public ResponseEntity<AgentInfoView> findById(
             @PathVariable(required = true) @org.springframework.lang.NonNull UUID id) {
-        Optional<Agent> agentMaybe = this.repository.findById(id);
+        Optional<AgentInfoView> agentMaybe = this.agentService.getAgentInfo(id);
         if (agentMaybe.isEmpty()) {
             return new ResponseEntity<AgentInfoView>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<AgentInfoView>(
-                new AgentInfoView(agentMaybe.get().getId(), agentMaybe.get().getName(),
-                        agentMaybe.get().getDescription(), agentMaybe.get().isActive()),
-                HttpStatus.OK);
+        return new ResponseEntity<AgentInfoView>(agentMaybe.get(), HttpStatus.OK);
     }
 
     @GetMapping("agent/{id}/eventhistory")
     public ResponseEntity<Agent> findByIdEventHistory(
             @PathVariable(required = true) @org.springframework.lang.NonNull UUID id) {
-        Optional<Agent> agentMaybe = this.repository.findById(id);
+        Optional<Agent> agentMaybe = this.agentService.getAgentById(id);
         if (agentMaybe.isEmpty()) {
             return new ResponseEntity<Agent>(HttpStatus.NOT_FOUND);
         }
@@ -67,23 +57,11 @@ public class AgentMetaController {
 
     @PostMapping("agent/singlestate")
     public ResponseEntity<AgentInfoView> create(@RequestBody SingleStateAgentCreateDTO data) {
-        if (data == null) {
+        Optional<AgentInfoView> created = this.agentService.createSingleStateAgent(data);
+        if (created.isEmpty()) {
             return new ResponseEntity<AgentInfoView>(HttpStatus.BAD_REQUEST);
         }
-        Agent agent;
-        if (AgentMetaType.singleState.getValue() == data.getType()) {
-            agent = AgentMetaUtility.createSingleStateAgent(data);
-        } else { // have as many 'else if (...getValue() == data.getType())' as needed here
-            System.err.println("unknown agent type " + data.getType());
-            return new ResponseEntity<AgentInfoView>(HttpStatus.BAD_REQUEST);
-        }
-
-        if (agent == null) {
-            return new ResponseEntity<AgentInfoView>(HttpStatus.BAD_REQUEST);
-        }
-        this.repository.save(agent);
-
-        var result = new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive());
-        return new ResponseEntity<>(result, HttpStatus.OK);
+        return new ResponseEntity<>(created.get(), HttpStatus.OK);
     }
 }
+

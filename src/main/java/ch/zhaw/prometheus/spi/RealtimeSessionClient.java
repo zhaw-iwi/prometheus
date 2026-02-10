@@ -8,18 +8,25 @@ import java.net.http.HttpResponse;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import org.springframework.stereotype.Component;
 
+@Component
 public class RealtimeSessionClient {
 
     private static final String DEFAULT_REALTIME_SESSION_URL = "https://api.openai.com/v1/realtime/sessions";
     private static final String DEFAULT_REALTIME_URL = "https://api.openai.com/v1/realtime";
     private static final String DEFAULT_REALTIME_MODEL = "gpt-4o-realtime-preview-2024-12-17";
 
-    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newHttpClient();
     private static final Gson GSON = new Gson();
+    private final OpenAIProperties properties;
 
-    public static RealtimeSessionInfo createSession() {
-        OpenAIProperties props = OpenAIProperties.instance();
+    public RealtimeSessionClient(OpenAIProperties properties) {
+        this.properties = properties;
+    }
+
+    public RealtimeSessionInfo createSession() {
+        OpenAIProperties props = this.properties;
         if (!"openai".equals(props.getOpenaivsazureopenai())) {
             throw new RuntimeException("realtime session creation is only supported for openai at the moment");
         }
@@ -43,7 +50,7 @@ public class RealtimeSessionClient {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(payload)))
                     .build();
-            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
                 throw new RuntimeException(
@@ -65,3 +72,4 @@ public class RealtimeSessionClient {
         }
     }
 }
+

@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.repositories.AgentRepository;
@@ -19,10 +20,13 @@ public class ContinuousEvaluationScheduler {
 
     private final AgentRepository repository;
     private final AgentMonitorBroadcaster monitorBroadcaster;
+    private final AgentApplicationService agentService;
 
-    public ContinuousEvaluationScheduler(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster) {
+    public ContinuousEvaluationScheduler(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
+            AgentApplicationService agentService) {
         this.repository = repository;
         this.monitorBroadcaster = monitorBroadcaster;
+        this.agentService = agentService;
     }
 
     @Scheduled(fixedDelayString = "${prometheus.runtime.tick.delay-ms:1000}")
@@ -38,6 +42,7 @@ public class ContinuousEvaluationScheduler {
                 continue;
             }
             try {
+                this.agentService.attachRuntime(agent);
                 agent.tick();
                 this.repository.save(agent);
                 this.monitorBroadcaster.publish(agent);
@@ -49,3 +54,4 @@ public class ContinuousEvaluationScheduler {
         return processed;
     }
 }
+

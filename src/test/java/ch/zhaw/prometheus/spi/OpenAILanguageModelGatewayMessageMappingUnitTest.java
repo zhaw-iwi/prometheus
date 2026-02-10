@@ -11,7 +11,9 @@ import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
-class LMOpenAIMessageMappingUnitTest {
+class OpenAILanguageModelGatewayMessageMappingUnitTest {
+
+    private final OpenAILanguageModelGateway gateway = new OpenAILanguageModelGateway(new OpenAIProperties());
 
     @Test
     void buildsOpenAIMessagesWithRoleAndContentFields() {
@@ -19,7 +21,7 @@ class LMOpenAIMessageMappingUnitTest {
         PromptMessage user = PromptMessage.user("hello");
         PromptMessage assistantPlan = PromptMessage.assistant("payload-speech");
 
-        JsonArray messages = LMOpenAI.toOpenAIMessages(List.of(system, user, assistantPlan));
+        JsonArray messages = gateway.toOpenAIMessages(List.of(system, user, assistantPlan));
 
         assertEquals(3, messages.size());
 
@@ -34,7 +36,9 @@ class LMOpenAIMessageMappingUnitTest {
 
     @Test
     void returnsEmptyArrayForNullOrEmptyMessages() {
-        assertEquals(0, LMOpenAI.toOpenAIMessages(null).size());
-        assertEquals(0, LMOpenAI.toOpenAIMessages(List.of()).size());
+        assertEquals(0, gateway.toOpenAIMessages(null).size());
+        assertEquals(0, gateway.toOpenAIMessages(List.of()).size());
     }
 }
+
+

@@ -13,6 +13,7 @@ import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
@@ -143,10 +144,13 @@ public abstract class Action extends PersistedNode {
         this.snapshotAggregator = snapshotAggregator;
     }
 
-    public abstract void execute(EventHistory eventHistory);
+    public abstract void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway);
 
-    public void execute(EventHistory eventHistory, ObservationSnapshot snapshot) {
-        this.execute(eventHistory);
+    public void execute(EventHistory eventHistory, ObservationSnapshot snapshot,
+            ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
+        this.execute(eventHistory, assembler, languageModelGateway);
     }
 
     @Override
@@ -154,3 +158,4 @@ public abstract class Action extends PersistedNode {
         return "Action with policy " + this.policy;
     }
 }
+

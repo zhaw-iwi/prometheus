@@ -71,12 +71,12 @@ class StateTransitionSnapshotUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return false;
         }
 
         @Override
-        public boolean decide(EventHistory events, ObservationSnapshot snapshot) {
+        public boolean decide(EventHistory events, ObservationSnapshot snapshot, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             Integer count = snapshot.getInteger(DefaultObservationSnapshotAggregator.FACT_USER_UTTERANCE_COUNT);
             this.lastSeenUserUtteranceCount = count == null ? 0 : count;
             this.lastSeenLastUtterance = snapshot.getString(DefaultObservationSnapshotAggregator.FACT_LAST_USER_UTTERANCE);
@@ -94,12 +94,14 @@ class StateTransitionSnapshotUnitTest {
         }
 
         @Override
-        public void execute(EventHistory eventHistory) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             throw new UnsupportedOperationException("snapshot overload should be used");
         }
 
         @Override
-        public void execute(EventHistory eventHistory, ObservationSnapshot snapshot) {
+        public void execute(EventHistory eventHistory, ObservationSnapshot snapshot,
+                ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             Integer eventCount = snapshot.getInteger(DefaultObservationSnapshotAggregator.FACT_EVENT_COUNT);
             Integer assistantCount = snapshot
                     .getInteger(DefaultObservationSnapshotAggregator.FACT_ASSISTANT_BEHAVIOUR_COUNT);
@@ -109,3 +111,4 @@ class StateTransitionSnapshotUnitTest {
         }
     }
 }
+

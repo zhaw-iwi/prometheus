@@ -7,33 +7,24 @@ import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.model.event.Event;
 
-public final class EventPromptSerializer {
-    private EventPromptSerializer() {
+public class FaceEmotionPromptEventContentAdapter implements PromptEventContentAdapter {
+    @Override
+    public boolean supports(Event event) {
+        return event != null && Event.TYPE_FACE_EMOTION.equals(event.getType());
     }
 
-    public static String toPromptContent(Event event) {
-        if (event == null) {
-            return "";
+    @Override
+    public String toPromptContent(Event event) {
+        String emotion = extractJsonString(event.getPayload(), "emotion");
+        if (emotion == null || emotion.isBlank()) {
+            return "User facial emotion observed.";
         }
-        if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
-            String speech = extractJsonString(event.getPayload(), "speech");
-            if (speech != null && !speech.isBlank()) {
-                return speech;
-            }
+        Double confidence = extractJsonDouble(event.getPayload(), "confidence");
+        if (confidence == null) {
+            return "User facial emotion: " + emotion;
         }
-        if (Event.TYPE_FACE_EMOTION.equals(event.getType())) {
-            String emotion = extractJsonString(event.getPayload(), "emotion");
-            if (emotion == null || emotion.isBlank()) {
-                return "User facial emotion observed.";
-            }
-            Double confidence = extractJsonDouble(event.getPayload(), "confidence");
-            if (confidence == null) {
-                return "User facial emotion: " + emotion;
-            }
-            return "User facial emotion: " + emotion + " (confidence "
-                    + String.format(Locale.ROOT, "%.2f", confidence) + ")";
-        }
-        return event.getPayload() == null ? "" : event.getPayload();
+        return "User facial emotion: " + emotion + " (confidence "
+                + String.format(Locale.ROOT, "%.2f", confidence) + ")";
     }
 
     private static String extractJsonString(String payload, String field) {
@@ -71,3 +62,4 @@ public final class EventPromptSerializer {
         }
     }
 }
+

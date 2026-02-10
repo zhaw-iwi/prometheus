@@ -49,8 +49,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 
 ### 5. Cleanup Of Legacy Transfer Pattern
 
-- `TransferEventHistoryAction` remains as an explicit no-op for transition compatibility.
-- With shared runtime-owned history, explicit history transfer is no longer required.
+- With shared runtime-owned history, explicit history transfer actions were removed.
 
 ## Current Runtime Contracts
 
@@ -84,15 +83,16 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 - Prompt assembly now happens in the policy layer:
   - `PromptMessage` is the provider-agnostic prompt DTO (`role`, `content`),
   - `PromptMessageAssembler` builds prompt message lists from selected event histories,
-  - `EventPromptSerializer` (policy package) maps events to prompt-safe content.
-- `LMOpenAI` is now transport-focused:
+  - modality adapters map events to prompt-safe content (`BehaviourPlanPromptEventContentAdapter`, `FaceEmotionPromptEventContentAdapter`, `DefaultPayloadPromptEventContentAdapter`),
+  - prompt context augmenters inject derived context (`NonverbalSummaryPromptContextAugmenter`).
+- `OpenAILanguageModelGateway` is transport-focused:
   - receives assembled `List<PromptMessage>`,
   - maps them to OpenAI payload messages,
   - performs API request/response handling.
 - Realtime and `/respond` now share the same prompt semantics:
   - `/prompt` returns assembled `promptMessages` (not raw `systemPolicy` + `eventHistory`),
   - realtime client uses `promptMessages` directly as instruction context.
-- Prompt content mapping via policy-layer `EventPromptSerializer`:
+- Prompt content mapping via policy-layer modality adapters:
   - assistant behaviour plans map to `payload.speech` (if present),
   - facial-emotion observations map to concise text (emotion + confidence),
   - raw telemetry payloads are not forwarded verbatim for this modality.
@@ -117,8 +117,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 ## Event Model Notes
 
 - Historical single-state labeling (`stateName`) was replaced by `statePath` semantics.
-- `Event#getStateName()` still resolves to the leaf item of `statePath` for compatibility in call sites still using leaf semantics.
-- New code should prefer path semantics for retrieval/routing decisions.
+- Event routing and retrieval now use `statePath` semantics directly.
 
 ## Testing Status
 
@@ -134,7 +133,7 @@ Automated coverage currently includes:
 - Zurich regulation dynamics and regulation-to-transition integration
 - OpenAI message mapping from events
 - policy-layer prompt assembly (`PromptMessageAssembler`)
-- facial emotion prompt mapping abstraction (`EventPromptSerializer` in policy package)
+- facial emotion prompt mapping abstraction (`FaceEmotionPromptEventContentAdapter`)
 - prompt policy composition checks (`PromptPolicyUnitTest`)
 - facial emotion snapshot fact extraction in default aggregator
 - outer/inner path-based event routing + single-write behavior
@@ -169,7 +168,7 @@ Event emitted by this client:
 
 LLM-facing interpretation for this event (current default):
 
-- mapped to concise text such as `User facial emotion: happy (confidence 0.83)` via `EventPromptSerializer`
+- mapped to concise text such as `User facial emotion: happy (confidence 0.83)` via `FaceEmotionPromptEventContentAdapter`
 
 Manual seed tests:
 

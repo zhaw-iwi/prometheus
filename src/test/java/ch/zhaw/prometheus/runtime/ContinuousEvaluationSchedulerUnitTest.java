@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.repositories.AgentRepository;
@@ -25,6 +26,8 @@ class ContinuousEvaluationSchedulerUnitTest {
 
     @Mock
     private AgentMonitorBroadcaster monitorBroadcaster;
+    @Mock
+    private AgentApplicationService agentService;
 
     @InjectMocks
     private ContinuousEvaluationScheduler scheduler;
@@ -47,3 +50,4 @@ class ContinuousEvaluationSchedulerUnitTest {
         verify(this.repository, never()).save(inactive);
     }
 }
+

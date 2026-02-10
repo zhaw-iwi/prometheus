@@ -87,17 +87,17 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return BehaviourPlan.speechOnly(this.startSpeech);
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return BehaviourPlan.speechOnly(this.respondSpeech);
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -117,17 +117,17 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return null;
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return null;
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -137,7 +137,7 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             List<Event> list = events.toList();
             this.lastSeenCount = list.size();
             this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();
@@ -145,7 +145,8 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public JsonElement extract(EventHistory events) {
+        public JsonElement extract(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return new JsonPrimitive("unused");
         }
     }
@@ -165,10 +166,11 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public void execute(EventHistory eventHistory) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             List<Event> list = eventHistory.toList();
             this.lastSeenCount = list.size();
             this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();
         }
     }
 }
+

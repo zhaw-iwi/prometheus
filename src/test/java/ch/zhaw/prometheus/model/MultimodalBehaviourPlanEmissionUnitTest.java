@@ -37,7 +37,7 @@ class MultimodalBehaviourPlanEmissionUnitTest {
 
     private static class MultimodalPolicy extends Policy {
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             JsonObject nonVerbal = new JsonObject();
             nonVerbal.addProperty("gesture", "wave");
             JsonObject motion = new JsonObject();
@@ -48,12 +48,12 @@ class MultimodalBehaviourPlanEmissionUnitTest {
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return null;
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -63,4 +63,5 @@ class MultimodalBehaviourPlanEmissionUnitTest {
         }
     }
 }
+
 

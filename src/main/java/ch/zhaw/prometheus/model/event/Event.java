@@ -116,13 +116,6 @@ public class Event {
         return createdDate;
     }
 
-    public String getStateName() {
-        if (this.statePath == null || this.statePath.isEmpty()) {
-            return null;
-        }
-        return this.statePath.get(this.statePath.size() - 1);
-    }
-
     public List<String> getStatePath() {
         if (this.statePath == null) {
             this.statePath = new ArrayList<>();
@@ -158,3 +151,4 @@ public class Event {
                 + statePath + "\"}";
     }
 }
+

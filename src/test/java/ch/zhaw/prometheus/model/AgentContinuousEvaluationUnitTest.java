@@ -64,12 +64,12 @@ class AgentContinuousEvaluationUnitTest {
 
     private static class TickResponsivePolicy extends Policy {
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return null;
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             List<Event> list = events.toList();
             if (!list.isEmpty() && Event.TYPE_SYSTEM_TICK.equals(list.get(list.size() - 1).getType())) {
                 return BehaviourPlan.speechOnly("Proactive check-in");
@@ -78,7 +78,7 @@ class AgentContinuousEvaluationUnitTest {
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -94,7 +94,7 @@ class AgentContinuousEvaluationUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ObservationSnapshot snapshot) {
+        public boolean decide(EventHistory events, ObservationSnapshot snapshot, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             String lastType = snapshot.getString(DefaultObservationSnapshotAggregator.FACT_LAST_EVENT_TYPE);
             return Event.TYPE_SYSTEM_TICK.equals(lastType);
         }
@@ -108,17 +108,17 @@ class AgentContinuousEvaluationUnitTest {
         }
 
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return BehaviourPlan.speechOnly(this.speech);
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return null;
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -139,3 +139,4 @@ class AgentContinuousEvaluationUnitTest {
         }
     }
 }
+

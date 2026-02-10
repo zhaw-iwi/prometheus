@@ -10,7 +10,7 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.spi.LMOpenAI;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -87,13 +87,14 @@ public class PromptPolicy extends Policy {
     }
 
     @Override
-    public BehaviourPlan onStart(State state, EventHistory events) {
+    public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.compose(events, prompt, this.starterPrompt);
-        String speech = LMOpenAI.complete(messages);
+        List<PromptMessage> messages = assembler.compose(events, prompt, this.starterPrompt);
+        String speech = languageModelGateway.complete(messages);
         if (speech == null || speech.isBlank()) {
             return null;
         }
@@ -101,13 +102,14 @@ public class PromptPolicy extends Policy {
     }
 
     @Override
-    public BehaviourPlan onRespond(State state, EventHistory events) {
+    public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.compose(events, prompt);
-        String speech = LMOpenAI.complete(messages);
+        List<PromptMessage> messages = assembler.compose(events, prompt);
+        String speech = languageModelGateway.complete(messages);
         if (speech == null || speech.isBlank()) {
             return null;
         }
@@ -115,12 +117,13 @@ public class PromptPolicy extends Policy {
     }
 
     @Override
-    public String summarise(State state, EventHistory events) {
+    public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
         if (this.summarisePrompt == null || this.summarisePrompt.isBlank()) {
             return null;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, this.summarisePrompt);
-        return LMOpenAI.summariseOffline(messages);
+        List<PromptMessage> messages = assembler.composeCondensed(events, this.summarisePrompt);
+        return languageModelGateway.summariseOffline(messages);
     }
 
     @Override
@@ -129,36 +132,38 @@ public class PromptPolicy extends Policy {
     }
 
     @Override
-    public boolean decide(EventHistory events) {
+    public boolean decide(EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return false;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
-                LMOpenAI.REMINDER_DECISION);
-        return LMOpenAI.decide(messages);
+        List<PromptMessage> messages = assembler.composeCondensed(events, prompt,
+                LanguageModelGateway.REMINDER_DECISION);
+        return languageModelGateway.decide(messages);
     }
 
     @Override
-    public JsonElement extract(EventHistory events) {
+    public JsonElement extract(EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
-                LMOpenAI.REMINDER_EXTRACTION);
-        return LMOpenAI.extract(messages);
+        List<PromptMessage> messages = assembler.composeCondensed(events, prompt,
+                LanguageModelGateway.REMINDER_EXTRACTION);
+        return languageModelGateway.extract(messages);
     }
 
     @Override
-    public JsonElement summarise(EventHistory events) {
+    public JsonElement summarise(EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
-        List<PromptMessage> messages = PromptMessageAssembler.composeCondensed(events, prompt,
-                LMOpenAI.REMINDER_SUMMARISATION);
-        return LMOpenAI.summarise(messages);
+        List<PromptMessage> messages = assembler.composeCondensed(events, prompt,
+                LanguageModelGateway.REMINDER_SUMMARISATION);
+        return languageModelGateway.summarise(messages);
     }
 
     private String resolvePrompt() {
@@ -223,3 +228,4 @@ public class PromptPolicy extends Policy {
         }
     }
 }
+

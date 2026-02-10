@@ -10,7 +10,6 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.actions.TransferEventHistoryAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import jakarta.persistence.Entity;
 
@@ -74,8 +73,7 @@ public class DynamicActionableCoachingState extends State {
                                 DynamicActionableCoachingState.ACTION,
                                 storage,
                                 storageKeyTo);
-                Transition transition = new Transition(List.of(trigger),
-                                List.of(action, new TransferEventHistoryAction(subsequentState)), subsequentState);
+                Transition transition = new Transition(List.of(trigger), List.of(action), subsequentState);
                 this.addTransition(transition);
         }
 
@@ -84,3 +82,4 @@ public class DynamicActionableCoachingState extends State {
                 return "DynamicActionableCoachingState IS-A " + super.toString();
         }
 }
+

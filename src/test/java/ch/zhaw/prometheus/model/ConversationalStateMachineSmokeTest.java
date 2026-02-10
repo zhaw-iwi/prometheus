@@ -60,17 +60,17 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return startResponse == null ? null : BehaviourPlan.speechOnly(startResponse);
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return response == null ? null : BehaviourPlan.speechOnly(response);
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -80,12 +80,13 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return true;
         }
 
         @Override
-        public JsonElement extract(EventHistory events) {
+        public JsonElement extract(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return new JsonPrimitive("value");
         }
     }
@@ -99,9 +100,10 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             assertTrue(events.toList().stream()
-                    .allMatch(event -> expectedStateName.equals(event.getStateName())));
+                    .allMatch(event -> !event.getStatePath().isEmpty()
+                            && expectedStateName.equals(event.getStatePath().get(event.getStatePath().size() - 1))));
             return true;
         }
     }
@@ -121,7 +123,7 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public void execute(EventHistory eventHistory) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             this.executed = true;
         }
 
@@ -141,3 +143,4 @@ class ConversationalStateMachineSmokeTest {
         }
     }
 }
+

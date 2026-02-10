@@ -11,10 +11,15 @@ import ch.zhaw.prometheus.spi.RealtimeSessionInfo;
 
 @RestController
 public class RealtimeController {
+    private final RealtimeSessionClient realtimeSessionClient;
+
+    public RealtimeController(RealtimeSessionClient realtimeSessionClient) {
+        this.realtimeSessionClient = realtimeSessionClient;
+    }
 
     @PostMapping("realtime/session")
     public ResponseEntity<RealtimeSessionView> createSession() {
-        RealtimeSessionInfo session = RealtimeSessionClient.createSession();
+        RealtimeSessionInfo session = this.realtimeSessionClient.createSession();
         RealtimeSessionView view = new RealtimeSessionView(
                 session.getClientSecret(),
                 session.getModel(),
@@ -22,3 +27,4 @@ public class RealtimeController {
         return new ResponseEntity<>(view, HttpStatus.OK);
     }
 }
+

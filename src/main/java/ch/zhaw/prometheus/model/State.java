@@ -17,6 +17,8 @@ import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -46,6 +48,10 @@ public class State extends PersistedNode {
     protected EventHistory eventHistory;
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Policy policy;
+    @Transient
+    private PromptMessageAssembler promptMessageAssembler;
+    @Transient
+    private LanguageModelGateway languageModelGateway;
 
     public State(String name, Policy policy, List<Transition> transitions) {
         this.name = name;
@@ -96,6 +102,14 @@ public class State extends PersistedNode {
 
     public void setEventHistory(EventHistory eventHistory) {
         this.eventHistory = eventHistory;
+    }
+
+    public void setPromptMessageAssembler(PromptMessageAssembler promptMessageAssembler) {
+        this.promptMessageAssembler = promptMessageAssembler;
+    }
+
+    public void setLanguageModelGateway(LanguageModelGateway languageModelGateway) {
+        this.languageModelGateway = languageModelGateway;
     }
 
     public EventSelector getEventSelector() {
@@ -216,7 +230,8 @@ public class State extends PersistedNode {
 
     public PolicyResult getPolicyBundle(Policy outerPolicy) {
         String totalPrompt = this.getTotalPolicy(outerPolicy);
-        List<PromptMessage> promptMessages = PromptMessageAssembler.compose(this.getEventHistory(), totalPrompt);
+        List<PromptMessage> promptMessages = this.requirePromptMessageAssembler().compose(this.getEventHistory(),
+                totalPrompt);
         return new PolicyResult(this, promptMessages);
     }
 
@@ -244,7 +259,8 @@ public class State extends PersistedNode {
 
     private Event executeStart(Policy outerPolicy) {
         Policy policy = this.resolvePolicy(outerPolicy);
-        BehaviourPlan behaviourPlan = policy.onStart(this, this.getEventHistory());
+        BehaviourPlan behaviourPlan = policy.onStart(this, this.getEventHistory(), this.requirePromptMessageAssembler(),
+                this.requireLanguageModelGateway());
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
@@ -255,7 +271,8 @@ public class State extends PersistedNode {
 
     private Event executeResponse(Policy outerPolicy) {
         Policy policy = this.resolvePolicy(outerPolicy);
-        BehaviourPlan behaviourPlan = policy.onRespond(this, this.getEventHistory());
+        BehaviourPlan behaviourPlan = policy.onRespond(this, this.getEventHistory(),
+                this.requirePromptMessageAssembler(), this.requireLanguageModelGateway());
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
@@ -278,9 +295,24 @@ public class State extends PersistedNode {
         return this.policy.withOuterPolicy(outerPolicy);
     }
 
+    protected PromptMessageAssembler requirePromptMessageAssembler() {
+        if (this.promptMessageAssembler == null) {
+            this.promptMessageAssembler = new PromptMessageAssembler();
+        }
+        return this.promptMessageAssembler;
+    }
+
+    protected LanguageModelGateway requireLanguageModelGateway() {
+        if (this.languageModelGateway == null) {
+            this.languageModelGateway = new NoOpLanguageModelGateway();
+        }
+        return this.languageModelGateway;
+    }
+
     @Override
     public String toString() {
         return "State with name " + this.getName();
     }
 
 }
+

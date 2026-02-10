@@ -61,7 +61,7 @@ class AgentRegulationIntegrationUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return !events.isEmpty();
         }
     }
@@ -87,3 +87,4 @@ class AgentRegulationIntegrationUnitTest {
         }
     }
 }
+

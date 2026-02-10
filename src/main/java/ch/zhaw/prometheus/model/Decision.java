@@ -6,6 +6,7 @@ import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -66,12 +67,15 @@ public abstract class Decision extends PersistedNode {
         this.snapshotAggregator = snapshotAggregator;
     }
 
-    public boolean decide(EventHistory events) {
-        return this.getPolicy().decide(events);
+    public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
+        return this.getPolicy().decide(events, assembler, languageModelGateway);
     }
 
-    public boolean decide(EventHistory events, ObservationSnapshot snapshot) {
-        return this.decide(events);
+    public boolean decide(EventHistory events, ObservationSnapshot snapshot,
+            ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
+        return this.decide(events, assembler, languageModelGateway);
     }
 
     @Override
@@ -79,3 +83,4 @@ public abstract class Decision extends PersistedNode {
         return "Decision with policy " + this.policy;
     }
 }
+

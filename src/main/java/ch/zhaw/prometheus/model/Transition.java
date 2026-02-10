@@ -90,7 +90,8 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            boolean currentDecision = current.decide(selected, snapshot);
+            boolean currentDecision = current.decide(selected, snapshot, state.requirePromptMessageAssembler(),
+                    state.requireLanguageModelGateway());
             if (!currentDecision) {
                 return false;
             }
@@ -110,7 +111,7 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            current.execute(selected, snapshot);
+            current.execute(selected, snapshot, state.requirePromptMessageAssembler(), state.requireLanguageModelGateway());
         }
     }
 
@@ -120,3 +121,4 @@ public class Transition {
                 + this.actions;
     }
 }
+

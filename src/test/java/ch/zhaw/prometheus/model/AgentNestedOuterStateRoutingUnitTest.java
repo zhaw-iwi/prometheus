@@ -54,7 +54,7 @@ class AgentNestedOuterStateRoutingUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return true;
         }
     }
@@ -69,17 +69,17 @@ class AgentNestedOuterStateRoutingUnitTest {
         }
 
         @Override
-        public BehaviourPlan onStart(State state, EventHistory events) {
+        public BehaviourPlan onStart(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return BehaviourPlan.speechOnly(this.onStartSpeech);
         }
 
         @Override
-        public BehaviourPlan onRespond(State state, EventHistory events) {
+        public BehaviourPlan onRespond(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return BehaviourPlan.speechOnly(this.onRespondSpeech);
         }
 
         @Override
-        public String summarise(State state, EventHistory events) {
+        public String summarise(State state, EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return "";
         }
 
@@ -89,4 +89,5 @@ class AgentNestedOuterStateRoutingUnitTest {
         }
     }
 }
+
 

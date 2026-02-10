@@ -15,12 +15,6 @@ import com.google.gson.JsonObject;
 @ConfigurationProperties(prefix = "openai")
 public class OpenAIProperties {
 
-    private static OpenAIProperties INSTANCE;
-
-    public static OpenAIProperties instance() {
-        return OpenAIProperties.INSTANCE;
-    }
-
     private static final String OPENAI = "openai";
     private static final String AZUREOPENAI = "azureopenai";
 
@@ -31,10 +25,6 @@ public class OpenAIProperties {
     private String realtimeModel;
     private String realtimeSessionUrl;
     private String realtimeUrl;
-
-    public OpenAIProperties() {
-        OpenAIProperties.INSTANCE = this;
-    }
 
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
@@ -114,3 +104,4 @@ public class OpenAIProperties {
         return result;
     }
 }
+

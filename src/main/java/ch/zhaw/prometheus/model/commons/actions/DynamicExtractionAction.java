@@ -5,8 +5,10 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptValueShape;
 import ch.zhaw.prometheus.model.Storage;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import jakarta.persistence.Entity;
 
 @Entity
@@ -23,8 +25,9 @@ public class DynamicExtractionAction extends Action {
     }
 
     @Override
-    public void execute(EventHistory eventHistory) {
-        JsonElement result = this.getPolicy().extract(eventHistory);
+    public void execute(EventHistory eventHistory, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway) {
+        JsonElement result = this.getPolicy().extract(eventHistory, assembler, languageModelGateway);
         this.getStorage().put(this.getStorageKeyTo(), result);
     }
 
@@ -33,3 +36,4 @@ public class DynamicExtractionAction extends Action {
         return "DynamicExtractionAction IS-A " + super.toString();
     }
 }
+

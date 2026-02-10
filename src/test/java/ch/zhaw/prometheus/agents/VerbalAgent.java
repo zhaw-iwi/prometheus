@@ -16,7 +16,6 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.actions.TransferEventHistoryAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.commons.states.DynamicActionableCoachingState;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -100,8 +99,7 @@ class VerbalAgent {
                                 List.of(new StaticDecision(PROMPT_RAPPORTBUILDING_TRIGGER)),
                                 List.of(
                                                 new StaticExtractionAction(PROMPT_RAPPORTBUILDING_ACTION, storage,
-                                                                storageKeyToGoalDetected),
-                                                new TransferEventHistoryAction(coachingState)),
+                                                                storageKeyToGoalDetected)),
                                 coachingState);
 
                 State rapportBuildingState = new State(
@@ -115,7 +113,7 @@ class VerbalAgent {
                                 List.of(
                                                 new StaticDecision(PROMPT_OUTERSTATE_TRIGGER),
                                                 new StaticDecision(PROMPT_OUTERSTATE_GUARD)),
-                                List.of(new TransferEventHistoryAction(finalFromOuter)),
+                                List.of(),
                                 finalFromOuter);
 
                 State outerState = new OuterState(
@@ -131,3 +129,4 @@ class VerbalAgent {
                 assertNotNull(saved.getId());
         }
 }
+

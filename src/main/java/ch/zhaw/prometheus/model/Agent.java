@@ -23,6 +23,9 @@ import ch.zhaw.prometheus.model.regulation.RegulationSystem;
 import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
 import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
 import ch.zhaw.prometheus.spi.ContenFilterException;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -66,6 +69,10 @@ public class Agent {
     private SnapshotAggregator regulationSnapshotAggregator;
     @Transient
     private ModulationBundle latestModulation;
+    @Transient
+    private PromptMessageAssembler promptMessageAssembler;
+    @Transient
+    private LanguageModelGateway languageModelGateway;
 
     public Agent(String name, String description, State initialState) {
         this(name, description, initialState, null);
@@ -81,6 +88,8 @@ public class Agent {
         this.regulationSystem = new NoOpRegulationSystem();
         this.regulationSnapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
         this.latestModulation = ModulationBundle.neutral();
+        this.promptMessageAssembler = new PromptMessageAssembler();
+        this.languageModelGateway = new NoOpLanguageModelGateway();
         this.attachEventHistory();
     }
 
@@ -244,6 +253,12 @@ public class Agent {
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
         }
+        if (this.promptMessageAssembler == null) {
+            this.promptMessageAssembler = new PromptMessageAssembler();
+        }
+        if (this.languageModelGateway == null) {
+            this.languageModelGateway = new NoOpLanguageModelGateway();
+        }
         this.attachEventHistory();
     }
 
@@ -256,7 +271,19 @@ public class Agent {
         this.initialState.collectStates(visited, states);
         for (State state : states) {
             state.setEventHistory(this.eventHistory);
+            if (this.promptMessageAssembler != null) {
+                state.setPromptMessageAssembler(this.promptMessageAssembler);
+            }
+            if (this.languageModelGateway != null) {
+                state.setLanguageModelGateway(this.languageModelGateway);
+            }
         }
+    }
+
+    public void attachRuntime(PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
+        this.promptMessageAssembler = promptMessageAssembler;
+        this.languageModelGateway = languageModelGateway;
+        this.attachEventHistory();
     }
 
     private void applyRegulation(Event triggerEvent) {
@@ -310,3 +337,4 @@ public class Agent {
         this.eventHistory.appendEvent(event);
     }
 }
+
