@@ -17,6 +17,11 @@ public class StaticRedirectController {
         return redirectWithQuery("/realtime/index.html", request);
     }
 
+    @GetMapping({ "/visual/facial", "/visual/facial/" })
+    public String visualFacial(HttpServletRequest request) {
+        return redirectWithQuery("/visual/facial/index.html", request);
+    }
+
     private String redirectWithQuery(String target, HttpServletRequest request) {
         String query = request.getQueryString();
         if (query == null || query.isBlank()) {

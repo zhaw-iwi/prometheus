@@ -55,6 +55,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 ## Current Runtime Contracts
 
 - Inputs are `Event` objects with core fields: `type`, `actor`, `kind`, `payload`.
+- Canonical facial-emotion observation type: `obs.emotion.face` (`Event.TYPE_FACE_EMOTION`).
 - Runtime stamps routing metadata (`statePath`) when recording events.
 - Assistant outputs are `resp.behaviour_plan` events.
 - Speech content is represented in plan payload (`payload.speech`).
@@ -81,6 +82,20 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 - `Policy.onStart(...)` and `Policy.onRespond(...)` return `BehaviourPlan`.
 - `State` executes policy and returns response events; runtime persists them.
 - Prompt execution uses OpenAI chat mapping from event stream (`role` + `content`) in `LMOpenAI`.
+- Prompt content mapping is centralized via `EventPromptSerializer`:
+  - assistant behaviour plans map to `payload.speech` (if present),
+  - facial-emotion observations map to concise text (emotion + confidence),
+  - raw telemetry payloads are not forwarded verbatim for this modality.
+
+## Emotion Abstraction Layer (Current)
+
+- Raw facial telemetry remains in event history for traceability/debugging.
+- Snapshot extraction now adds emotion facts in `DefaultObservationSnapshotAggregator`:
+  - `face_emotion_observation_count`
+  - `last_face_emotion`
+  - `last_face_emotion_confidence`
+- This supports transition/regulation logic on compact emotion facts while keeping raw events available.
+- Current backend does not auto-trigger an LLM call per `acknowledge`; response generation is still controlled by client flow and/or tick/respond paths.
 
 ## Event Model Notes
 
@@ -101,6 +116,8 @@ Automated coverage currently includes:
 - continuous scheduler processing (active agents only)
 - Zurich regulation dynamics and regulation-to-transition integration
 - OpenAI message mapping from events
+- facial emotion prompt mapping abstraction (`EventPromptSerializer`)
+- facial emotion snapshot fact extraction in default aggregator
 - outer/inner path-based event routing + single-write behavior
 
 Web MVC compatibility tests include:
@@ -108,6 +125,32 @@ Web MVC compatibility tests include:
 - text chat endpoints
 - realtime acknowledge/prompt flow
 - monitor endpoints including SSE monitor stream
+- static redirect coverage for `/monitor`, `/realtime`, and `/visual/facial`
+
+## Multimodal MVP: Visual Facial Client
+
+An initial browser-based visual client is available at:
+
+- `/visual/facial?agentId={UUID}`
+
+Capabilities in this MVP:
+
+- webcam capture on the client side
+- browser-side face + expression inference via `face-api.js`
+- derived emotion signal with simple valence/arousal estimation
+- throttled/hysteresis-based emission of observation events to avoid flooding
+- manual tick trigger for no-utterance evaluation testing
+
+Event emitted by this client:
+
+- `type = obs.emotion.face`
+- `actor = user`
+- `kind = observation`
+- `payload = JSON string` with emotion, confidence, valence, arousal, expression distribution, and timestamp
+
+LLM-facing interpretation for this event (current default):
+
+- mapped to concise text such as `User facial emotion: happy (confidence 0.83)` via `EventPromptSerializer`
 
 Manual seed tests:
 

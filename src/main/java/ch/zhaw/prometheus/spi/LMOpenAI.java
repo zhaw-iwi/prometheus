@@ -20,7 +20,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
@@ -271,27 +270,6 @@ public class LMOpenAI {
     }
 
     static String mapContent(Event event) {
-        if (event == null) {
-            return "";
-        }
-        if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())
-                && event.getPayload() != null
-                && !event.getPayload().isBlank()) {
-            try {
-                JsonObject payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
-                if (payload.has("speech") && !payload.get("speech").isJsonNull()) {
-                    String speech = payload.get("speech").getAsString();
-                    if (speech != null && !speech.isBlank()) {
-                        return speech;
-                    }
-                }
-            } catch (Exception e) {
-                // Fallback to payload mapping below.
-            }
-        }
-        if (event.getPayload() != null) {
-            return event.getPayload();
-        }
-        return "";
+        return EventPromptSerializer.toPromptContent(event);
     }
 }

@@ -56,4 +56,12 @@ class LMOpenAIMessageMappingUnitTest {
         assertEquals("assistant", third.get("role").getAsString());
         assertEquals("payload-speech", third.get("content").getAsString());
     }
+
+    @Test
+    void mapsFaceEmotionObservationToConcisePromptContent() {
+        Event faceEmotion = Event.observation(Event.TYPE_FACE_EMOTION, Event.ACTOR_USER,
+                "{\"emotion\":\"happy\",\"confidence\":0.83,\"valence\":0.7,\"arousal\":0.4,\"ts\":\"2026-02-10T16:00:00Z\"}");
+
+        assertEquals("User facial emotion: happy (confidence 0.83)", LMOpenAI.mapContent(faceEmotion));
+    }
 }

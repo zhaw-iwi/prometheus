@@ -14,6 +14,9 @@ public class DefaultObservationSnapshotAggregator implements SnapshotAggregator 
     public static final String FACT_LAST_USER_UTTERANCE = "last_user_utterance";
     public static final String FACT_USER_UTTERANCE_COUNT = "user_utterance_count";
     public static final String FACT_ASSISTANT_BEHAVIOUR_COUNT = "assistant_behaviour_count";
+    public static final String FACT_FACE_EMOTION_OBSERVATION_COUNT = "face_emotion_observation_count";
+    public static final String FACT_LAST_FACE_EMOTION = "last_face_emotion";
+    public static final String FACT_LAST_FACE_EMOTION_CONFIDENCE = "last_face_emotion_confidence";
 
     public static final DefaultObservationSnapshotAggregator INSTANCE = new DefaultObservationSnapshotAggregator();
 
@@ -24,7 +27,12 @@ public class DefaultObservationSnapshotAggregator implements SnapshotAggregator 
                 FactExtractors.count(FACT_USER_UTTERANCE_COUNT, EventSelector.type(Event.TYPE_USER_UTTERANCE)),
                 FactExtractors.count(FACT_ASSISTANT_BEHAVIOUR_COUNT,
                         EventSelector.type(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN)),
+                FactExtractors.count(FACT_FACE_EMOTION_OBSERVATION_COUNT, EventSelector.type(Event.TYPE_FACE_EMOTION)),
                 FactExtractors.lastContent(FACT_LAST_USER_UTTERANCE, EventSelector.type(Event.TYPE_USER_UTTERANCE)),
+                FactExtractors.lastJsonString(FACT_LAST_FACE_EMOTION, EventSelector.type(Event.TYPE_FACE_EMOTION),
+                        "emotion"),
+                FactExtractors.lastJsonDouble(FACT_LAST_FACE_EMOTION_CONFIDENCE,
+                        EventSelector.type(Event.TYPE_FACE_EMOTION), "confidence"),
                 FactExtractors.last(FACT_LAST_EVENT_TYPE, EventSelector.any(), Event::getType),
                 FactExtractors.last(FACT_LAST_EVENT_ACTOR, EventSelector.any(), Event::getActor)));
     }
