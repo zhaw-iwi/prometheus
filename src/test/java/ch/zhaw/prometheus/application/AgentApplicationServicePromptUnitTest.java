@@ -1,0 +1,61 @@
+package ch.zhaw.prometheus.application;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+
+import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
+import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.policy.PromptContextAugmenter;
+import ch.zhaw.prometheus.model.policy.PromptEventContentAdapter;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.repositories.AgentRepository;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
+
+class AgentApplicationServicePromptUnitTest {
+
+    @Test
+    void promptUsesInjectedAssemblerForPolicyBundleComposition() {
+        UUID agentId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        State state = new State("s", new PromptPolicy("system-policy", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of());
+        Agent agent = new Agent("a", "d", state);
+
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+
+        PromptEventContentAdapter passthroughAdapter = new PromptEventContentAdapter() {
+            @Override
+            public boolean supports(ch.zhaw.prometheus.model.event.Event event) {
+                return true;
+            }
+
+            @Override
+            public String toPromptContent(ch.zhaw.prometheus.model.event.Event event) {
+                return event == null || event.getPayload() == null ? "" : event.getPayload();
+            }
+        };
+        PromptContextAugmenter markerAugmenter = events -> List.of(PromptMessage.system("ASSEMBLER_MARKER"));
+        PromptMessageAssembler assembler = new PromptMessageAssembler(List.of(passthroughAdapter),
+                List.of(markerAugmenter));
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, assembler,
+                languageModelGateway);
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+
+        var result = service.prompt(agentId).orElseThrow();
+
+        assertTrue(result.getPromptMessages().stream()
+                .anyMatch(message -> "ASSEMBLER_MARKER".equals(message.getContent())));
+    }
+}

@@ -8,6 +8,11 @@ public class NoOpRegulationSystem implements PersistableRegulationSystem {
     }
 
     @Override
+    public void reset() {
+        // no-op
+    }
+
+    @Override
     public RegulationSystemSpec toSpec() {
         return RegulationSystemSpec.noOp();
     }

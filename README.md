@@ -69,6 +69,21 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 - Runtime dependencies are passed explicitly per execution cycle via `PolicyRuntime` from the application layer.
 - Legacy runtime attachment wiring in entities was removed.
 
+### 9. Prompt Assembly Consistency Across Runtime And `/prompt`
+
+- `/prompt` now uses the same injected `PromptMessageAssembler` instance used by runtime execution paths.
+- This guarantees that custom prompt adapters/augmenters are applied consistently in:
+  - `start/respond/tick` policy execution, and
+  - realtime `/prompt` retrieval.
+
+### 10. Regulation Lifecycle Reset Semantics
+
+- `Agent.reset()` now resets regulation internals in addition to state and event history.
+- Built-in regulation systems expose explicit reset behavior:
+  - `NoOpRegulationSystem`: no-op reset
+  - `ZurichRegulationSystem`: restores initial latent variables and re-arms threshold gating baseline
+- Reset now also refreshes persisted regulation spec from the reset runtime state.
+
 ## Current Runtime Contracts
 
 - Inputs are `Event` objects with core fields: `type`, `actor`, `kind`, `payload`.
@@ -92,6 +107,11 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - `POST /{agentId}/tick`
 - Agents can host a `RegulationSystem` (default is no-op).
 - `ZurichRegulationSystem` emits explicit internal events (e.g. `int.regulation.opportunity`).
+- `Agent.reset()` clears:
+  - active state position (to initial),
+  - event history,
+  - regulation internal runtime state (if stateful),
+  - latest modulation (back to neutral).
 - Monitor stream is SSE via `/{agentId}/monitor/stream`.
 - Log stream is SSE via `/logs/stream`.
 
@@ -153,8 +173,10 @@ Automated coverage currently includes:
 - agent tick/no-input progression
 - continuous scheduler processing (active agents only)
 - Zurich regulation dynamics and regulation-to-transition integration
+- regulation reset behavior on agent reset
 - OpenAI message mapping from events
 - policy-layer prompt assembly (`PromptMessageAssembler`)
+- `/prompt` parity with runtime prompt assembly configuration
 - facial emotion prompt mapping abstraction (`FaceEmotionPromptEventContentAdapter`)
 - prompt policy composition checks (`PromptPolicyUnitTest`)
 - facial emotion snapshot fact extraction in default aggregator

@@ -172,7 +172,7 @@ public class AgentApplicationService {
             return Optional.empty();
         }
         Agent agent = agentMaybe.get();
-        return Optional.of(new PolicyResponseView(agent.getTotalPolicy(), agent.isActive()));
+        return Optional.of(new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler), agent.isActive()));
     }
 
     public Optional<SseEmitter> subscribeMonitor(UUID agentID) {

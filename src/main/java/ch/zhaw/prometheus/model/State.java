@@ -230,8 +230,14 @@ public class State extends PersistedNode {
     }
 
     public PolicyResult getPolicyBundle(Policy outerPolicy) {
+        return this.getPolicyBundle(outerPolicy, null);
+    }
+
+    public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler) {
         String totalPrompt = this.getTotalPolicy(outerPolicy);
-        List<PromptMessage> promptMessages = new PromptMessageAssembler().compose(this.getEventHistory(),
+        PromptMessageAssembler assembler = promptMessageAssembler == null ? new PromptMessageAssembler()
+                : promptMessageAssembler;
+        List<PromptMessage> promptMessages = assembler.compose(this.getEventHistory(),
                 totalPrompt);
         return new PolicyResult(this, promptMessages);
     }

@@ -26,11 +26,13 @@ public class ZurichRegulationSystem implements PersistableRegulationSystem {
     public static final String MOD_AFFILIATION = "affiliation";
 
     private final Map<String, Double> variables;
+    private final Map<String, Double> initialVariables;
     private final Map<String, Double> decayByVariable;
     private final Map<String, Double> minimumByVariable;
     private final Map<String, Double> maximumByVariable;
     private final double opportunityThreshold;
     private boolean opportunityArmed;
+    private final boolean initialOpportunityArmed;
     private final double dependencyDeltaPerTick;
     private final double dependencyReliefOnUserUtterance;
     private final List<RegulationPolicy> policies;
@@ -43,6 +45,7 @@ public class ZurichRegulationSystem implements PersistableRegulationSystem {
             double decayPerTick, double dependencyDeltaPerTick, double dependencyReliefOnUserUtterance,
             double opportunityThreshold) {
         this.variables = new LinkedHashMap<>();
+        this.initialVariables = new LinkedHashMap<>();
         this.decayByVariable = new LinkedHashMap<>();
         this.minimumByVariable = new LinkedHashMap<>();
         this.maximumByVariable = new LinkedHashMap<>();
@@ -53,16 +56,19 @@ public class ZurichRegulationSystem implements PersistableRegulationSystem {
 
         this.opportunityThreshold = Math.max(0.0d, opportunityThreshold);
         this.opportunityArmed = false;
+        this.initialOpportunityArmed = false;
         this.dependencyDeltaPerTick = dependencyDeltaPerTick;
         this.dependencyReliefOnUserUtterance = dependencyReliefOnUserUtterance;
         this.policies = List.of(
                 new TickRegulationPolicy(this.dependencyDeltaPerTick),
                 new UserUtteranceRegulationPolicy(this.dependencyReliefOnUserUtterance));
+        this.initialVariables.putAll(this.variables);
     }
 
     private ZurichRegulationSystem(ZurichRegulationConfig config) {
         ZurichRegulationConfig resolved = config == null ? ZurichRegulationConfig.defaults() : config;
         this.variables = new LinkedHashMap<>();
+        this.initialVariables = new LinkedHashMap<>();
         this.decayByVariable = new LinkedHashMap<>();
         this.minimumByVariable = new LinkedHashMap<>();
         this.maximumByVariable = new LinkedHashMap<>();
@@ -85,11 +91,13 @@ public class ZurichRegulationSystem implements PersistableRegulationSystem {
 
         this.opportunityThreshold = Math.max(0.0d, resolved.getOpportunityThreshold());
         this.opportunityArmed = resolved.isOpportunityArmed();
+        this.initialOpportunityArmed = resolved.isOpportunityArmed();
         this.dependencyDeltaPerTick = resolved.getDependencyDeltaPerTick();
         this.dependencyReliefOnUserUtterance = resolved.getDependencyReliefOnUserUtterance();
         this.policies = List.of(
                 new TickRegulationPolicy(this.dependencyDeltaPerTick),
                 new UserUtteranceRegulationPolicy(this.dependencyReliefOnUserUtterance));
+        this.initialVariables.putAll(this.variables);
     }
 
     public static ZurichRegulationSystem fromConfig(ZurichRegulationConfig config) {
@@ -144,6 +152,13 @@ public class ZurichRegulationSystem implements PersistableRegulationSystem {
     @Override
     public RegulationSystemSpec toSpec() {
         return RegulationSystemSpec.zurich(this.toConfig());
+    }
+
+    @Override
+    public void reset() {
+        this.variables.clear();
+        this.variables.putAll(this.initialVariables);
+        this.opportunityArmed = this.initialOpportunityArmed;
     }
 
     private void defineVariable(String variable, double initial, double decay, double min, double max) {

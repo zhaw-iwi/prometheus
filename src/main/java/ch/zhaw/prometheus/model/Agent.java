@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.regulation.ModulationBundle;
 import ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem;
 import ch.zhaw.prometheus.model.regulation.PersistableRegulationSystem;
@@ -237,7 +238,11 @@ public class Agent {
     }
 
     public PolicyResult getTotalPolicy() {
-        return this.currentState.getPolicyBundle();
+        return this.getTotalPolicy(null);
+    }
+
+    public PolicyResult getTotalPolicy(PromptMessageAssembler promptMessageAssembler) {
+        return this.currentState.getPolicyBundle(null, promptMessageAssembler);
     }
 
     public List<String> listStates() {
@@ -254,6 +259,9 @@ public class Agent {
         if (this.eventHistory != null) {
             this.eventHistory.reset();
         }
+        this.getRegulationSystem().reset();
+        this.latestModulation = ModulationBundle.neutral();
+        this.syncRegulationSystemSpecFromRuntime();
     }
 
     public void resetCurrentState() {

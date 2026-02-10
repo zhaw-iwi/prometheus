@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -110,8 +111,13 @@ public class OuterState extends State {
 
     @Override
     public PolicyResult getPolicyBundle(Policy outerPolicy) {
+        return this.getPolicyBundle(outerPolicy, null);
+    }
+
+    @Override
+    public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler) {
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        return this.innerCurrent.getPolicyBundle(totalPolicy);
+        return this.innerCurrent.getPolicyBundle(totalPolicy, promptMessageAssembler);
     }
 
     @Override
