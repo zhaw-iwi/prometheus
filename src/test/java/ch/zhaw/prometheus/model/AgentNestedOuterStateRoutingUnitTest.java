@@ -25,10 +25,11 @@ class AgentNestedOuterStateRoutingUnitTest {
         OuterState outerB = new OuterState("outer-b", "OuterB", List.of(), leaf1);
         OuterState outerA = new OuterState("outer-a", "OuterA", List.of(), outerB);
         Agent agent = new Agent("a", "d", outerA);
+        var runtime = TestPolicyRuntime.runtime();
 
-        agent.start();
-        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1"));
-        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u2"));
+        agent.start(runtime);
+        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1"), runtime);
+        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u2"), runtime);
 
         List<Event> all = agent.getEventHistory().toList();
         assertEquals(5, all.size());
@@ -54,7 +55,7 @@ class AgentNestedOuterStateRoutingUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             return true;
         }
     }

@@ -14,20 +14,23 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.regulation.ModulationBundle;
 import ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem;
+import ch.zhaw.prometheus.model.regulation.PersistableRegulationSystem;
 import ch.zhaw.prometheus.model.regulation.RegulationContext;
 import ch.zhaw.prometheus.model.regulation.RegulationResult;
 import ch.zhaw.prometheus.model.regulation.RegulationSystem;
-import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
+import ch.zhaw.prometheus.model.regulation.RegulationSystemSpec;
 import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
+import ch.zhaw.prometheus.model.snapshot.SnapshotAggregatorType;
 import ch.zhaw.prometheus.spi.ContenFilterException;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
-import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -62,17 +65,15 @@ public class Agent {
     private Storage storage;
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EventHistory eventHistory;
+    @Column(length = 10000)
+    private String regulationSystemSpecJson;
+    @Enumerated(EnumType.STRING)
+    private SnapshotAggregatorType regulationSnapshotAggregatorType;
 
     @Transient
     private RegulationSystem regulationSystem;
     @Transient
-    private SnapshotAggregator regulationSnapshotAggregator;
-    @Transient
     private ModulationBundle latestModulation;
-    @Transient
-    private PromptMessageAssembler promptMessageAssembler;
-    @Transient
-    private LanguageModelGateway languageModelGateway;
 
     public Agent(String name, String description, State initialState) {
         this(name, description, initialState, null);
@@ -86,10 +87,9 @@ public class Agent {
         this.currentState = this.initialState;
         this.eventHistory = new EventHistory();
         this.regulationSystem = new NoOpRegulationSystem();
-        this.regulationSnapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
+        this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         this.latestModulation = ModulationBundle.neutral();
-        this.promptMessageAssembler = new PromptMessageAssembler();
-        this.languageModelGateway = new NoOpLanguageModelGateway();
         this.attachEventHistory();
     }
 
@@ -128,9 +128,9 @@ public class Agent {
         return this.currentState.isActive();
     }
 
-    public Event start() {
+    public Event start(PolicyRuntime runtime) {
         try {
-            Event response = this.currentState.start();
+            Event response = this.currentState.start(runtime);
             this.recordEvent(response);
             return response;
         } catch (ContenFilterException e) {
@@ -138,18 +138,18 @@ public class Agent {
         }
     }
 
-    public Event respond(Event event) {
-        Event response = this.respondWithoutRegulation(event, true);
-        this.applyRegulation(event);
+    public Event respond(Event event, PolicyRuntime runtime) {
+        Event response = this.respondWithoutRegulation(event, true, runtime);
+        this.applyRegulation(event, runtime);
         return response;
     }
 
-    private Event respondWithoutRegulation(Event event, boolean recordInput) {
+    private Event respondWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
         try {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            Event response = this.currentState.respond(event);
+            Event response = this.currentState.respond(event, runtime);
             this.recordEvent(response);
             return response;
         } catch (ContenFilterException e) {
@@ -157,50 +157,61 @@ public class Agent {
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
-                return this.start();
+                return this.start(runtime);
             }
-            return this.respondWithoutRegulation(event, false);
+            return this.respondWithoutRegulation(event, false, runtime);
         }
     }
 
-    public Event tick() {
+    public Event tick(PolicyRuntime runtime) {
         if (!this.isActive() || this.currentState == null) {
             return null;
         }
         Event tickEvent = Event.systemTick();
-        return this.respond(tickEvent);
+        return this.respond(tickEvent, runtime);
     }
 
-    public void acknowledge(Event event) {
-        this.acknowledgeWithoutRegulation(event, true);
-        this.applyRegulation(event);
+    public void acknowledge(Event event, PolicyRuntime runtime) {
+        this.acknowledgeWithoutRegulation(event, true, runtime);
+        this.applyRegulation(event, runtime);
     }
 
-    private void acknowledgeWithoutRegulation(Event event, boolean recordInput) {
+    private void acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
         try {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            this.currentState.acknowledge(event);
+            this.currentState.acknowledge(event, runtime);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 this.currentState.enter();
             } else {
-                this.acknowledgeWithoutRegulation(event, false);
+                this.acknowledgeWithoutRegulation(event, false, runtime);
             }
         }
     }
 
     public RegulationSystem getRegulationSystem() {
         if (this.regulationSystem == null) {
-            this.regulationSystem = new NoOpRegulationSystem();
+            this.regulationSystem = this.resolveRegulationSystemFromSpec();
         }
         return this.regulationSystem;
     }
 
     public void setRegulationSystem(RegulationSystem regulationSystem) {
-        this.regulationSystem = regulationSystem == null ? new NoOpRegulationSystem() : regulationSystem;
+        if (regulationSystem == null) {
+            this.regulationSystem = new NoOpRegulationSystem();
+            this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
+            return;
+        }
+        if (!(regulationSystem instanceof PersistableRegulationSystem persistable)) {
+            throw new IllegalArgumentException(
+                    "regulation system must implement PersistableRegulationSystem: "
+                            + regulationSystem.getClass().getName());
+        }
+        this.regulationSystem = regulationSystem;
+        this.regulationSystemSpecJson = persistable.toSpec().toJson();
     }
 
     public ModulationBundle getLatestModulation() {
@@ -208,6 +219,21 @@ public class Agent {
             this.latestModulation = ModulationBundle.neutral();
         }
         return this.latestModulation;
+    }
+
+    public SnapshotAggregatorType getRegulationSnapshotAggregatorType() {
+        if (this.regulationSnapshotAggregatorType == null) {
+            this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
+        }
+        return this.regulationSnapshotAggregatorType;
+    }
+
+    public void setRegulationSnapshotAggregatorType(SnapshotAggregatorType regulationSnapshotAggregatorType) {
+        if (regulationSnapshotAggregatorType == null) {
+            this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
+            return;
+        }
+        this.regulationSnapshotAggregatorType = regulationSnapshotAggregatorType;
     }
 
     public PolicyResult getTotalPolicy() {
@@ -245,19 +271,16 @@ public class Agent {
             this.eventHistory = new EventHistory();
         }
         if (this.regulationSystem == null) {
-            this.regulationSystem = new NoOpRegulationSystem();
+            this.regulationSystem = this.resolveRegulationSystemFromSpec();
         }
-        if (this.regulationSnapshotAggregator == null) {
-            this.regulationSnapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        if (this.regulationSystemSpecJson == null || this.regulationSystemSpecJson.isBlank()) {
+            this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
+        }
+        if (this.regulationSnapshotAggregatorType == null) {
+            this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         }
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
-        }
-        if (this.promptMessageAssembler == null) {
-            this.promptMessageAssembler = new PromptMessageAssembler();
-        }
-        if (this.languageModelGateway == null) {
-            this.languageModelGateway = new NoOpLanguageModelGateway();
         }
         this.attachEventHistory();
     }
@@ -271,22 +294,10 @@ public class Agent {
         this.initialState.collectStates(visited, states);
         for (State state : states) {
             state.setEventHistory(this.eventHistory);
-            if (this.promptMessageAssembler != null) {
-                state.setPromptMessageAssembler(this.promptMessageAssembler);
-            }
-            if (this.languageModelGateway != null) {
-                state.setLanguageModelGateway(this.languageModelGateway);
-            }
         }
     }
 
-    public void attachRuntime(PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
-        this.promptMessageAssembler = promptMessageAssembler;
-        this.languageModelGateway = languageModelGateway;
-        this.attachEventHistory();
-    }
-
-    private void applyRegulation(Event triggerEvent) {
+    private void applyRegulation(Event triggerEvent, PolicyRuntime runtime) {
         if (triggerEvent == null || this.currentState == null) {
             return;
         }
@@ -302,6 +313,7 @@ public class Agent {
         }
         this.latestModulation = result.modulation() == null ? ModulationBundle.neutral() : result.modulation();
         if (result.internalEvents() == null || result.internalEvents().isEmpty()) {
+            this.syncRegulationSystemSpecFromRuntime();
             return;
         }
         for (Event internal : result.internalEvents()) {
@@ -313,15 +325,16 @@ public class Agent {
                     internal.getActor(),
                     internal.getKind(),
                     internal.getPayload());
-            this.acknowledgeWithoutRegulation(normalized, true);
+            this.acknowledgeWithoutRegulation(normalized, true, runtime);
         }
+        this.syncRegulationSystemSpecFromRuntime();
     }
 
     private SnapshotAggregator getRegulationSnapshotAggregator() {
-        if (this.regulationSnapshotAggregator == null) {
-            this.regulationSnapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        if (this.regulationSnapshotAggregatorType == null) {
+            this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         }
-        return this.regulationSnapshotAggregator;
+        return this.regulationSnapshotAggregatorType.create();
     }
 
     private static boolean isInternalRegulationEvent(Event event) {
@@ -335,6 +348,24 @@ public class Agent {
         }
         event.setStatePath(this.currentState.getActiveStatePath());
         this.eventHistory.appendEvent(event);
+    }
+
+    private RegulationSystem resolveRegulationSystemFromSpec() {
+        if (this.regulationSystemSpecJson == null || this.regulationSystemSpecJson.isBlank()) {
+            return new NoOpRegulationSystem();
+        }
+        RegulationSystemSpec spec = RegulationSystemSpec.fromJson(this.regulationSystemSpecJson);
+        if (spec == null) {
+            return new NoOpRegulationSystem();
+        }
+        return spec.toRegulationSystem();
+    }
+
+    private void syncRegulationSystemSpecFromRuntime() {
+        if (!(this.regulationSystem instanceof PersistableRegulationSystem persistable)) {
+            return;
+        }
+        this.regulationSystemSpecJson = persistable.toSpec().toJson();
     }
 }
 

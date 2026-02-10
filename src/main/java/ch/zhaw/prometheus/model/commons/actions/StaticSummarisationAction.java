@@ -4,10 +4,9 @@ import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.Storage;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import jakarta.persistence.Entity;
 
 @Entity
@@ -22,9 +21,9 @@ public class StaticSummarisationAction extends Action {
     }
 
     @Override
-    public void execute(EventHistory eventHistory, PromptMessageAssembler assembler,
-            LanguageModelGateway languageModelGateway) {
-        JsonElement result = this.getPolicy().summarise(eventHistory, assembler, languageModelGateway);
+    public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
+        JsonElement result = this.getPolicy().summarise(eventHistory, runtime.promptMessageAssembler(),
+                runtime.languageModelGateway());
         this.getStorage().put(this.getStorageKeyTo(), result);
     }
 

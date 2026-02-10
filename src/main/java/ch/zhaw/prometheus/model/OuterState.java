@@ -6,6 +6,7 @@ import java.util.Set;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
@@ -53,50 +54,50 @@ public class OuterState extends State {
         this.innerInitial.collectStates(visited, result);
     }
 
-    public Event start() {
-        return this.start(null);
+    public Event start(PolicyRuntime runtime) {
+        return this.start(null, runtime);
     }
 
-    public Event start(Policy outerPolicy) {
+    public Event start(Policy outerPolicy, PolicyRuntime runtime) {
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        return this.innerCurrent.start(totalPolicy);
+        return this.innerCurrent.start(totalPolicy, runtime);
     }
 
-    public Event respond(Event event) throws TransitionException {
-        return this.respond(event, null);
+    public Event respond(Event event, PolicyRuntime runtime) throws TransitionException {
+        return this.respond(event, null, runtime);
     }
 
-    public Event respond(Event event, Policy outerPolicy) throws TransitionException {
-        this.raiseIfTransit();
+    public Event respond(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
+        this.raiseIfTransit(runtime);
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
         Event responseEvent = null;
         try {
-            responseEvent = this.innerCurrent.respond(event, totalPolicy);
+            responseEvent = this.innerCurrent.respond(event, totalPolicy, runtime);
             return responseEvent;
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
-                responseEvent = this.innerCurrent.start(totalPolicy);
+                responseEvent = this.innerCurrent.start(totalPolicy, runtime);
             } else {
-                responseEvent = this.innerCurrent.respond(event, totalPolicy);
+                responseEvent = this.innerCurrent.respond(event, totalPolicy, runtime);
             }
             return responseEvent;
         }
     }
 
     @Override
-    public void acknowledge(Event event, Policy outerPolicy) throws TransitionException {
-        this.raiseIfTransit();
+    public void acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
+        this.raiseIfTransit(runtime);
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
         try {
-            this.innerCurrent.acknowledge(event, totalPolicy);
+            this.innerCurrent.acknowledge(event, totalPolicy, runtime);
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
                 // do not append userSays to new state (cf. respond(..))
                 this.innerCurrent.enter();
             } else {
-                this.innerCurrent.acknowledge(event, totalPolicy);
+                this.innerCurrent.acknowledge(event, totalPolicy, runtime);
             }
         }
     }

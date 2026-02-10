@@ -18,7 +18,10 @@ import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.commons.states.DynamicActionableCoachingState;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.repositories.AgentRepository;
+import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
 
 @SpringBootTest
 // @Disabled("Manual seed test")
@@ -141,7 +144,7 @@ class MultiModalAgent {
                                 rapportBuildingState);
 
                 Agent agent = new Agent(AGENT_NAME, AGENT_DESCRIPTION, outerState, storage);
-                agent.start();
+                agent.start(new PolicyRuntime(new PromptMessageAssembler(), new NoOpLanguageModelGateway()));
 
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());

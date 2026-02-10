@@ -23,8 +23,9 @@ class AgentContinuousEvaluationUnitTest {
     void tickCanDriveAssistantResponseWithoutExternalInput() {
         State state = new State("conversation", new TickResponsivePolicy(), List.of());
         Agent agent = new Agent("a", "d", state);
+        var runtime = TestPolicyRuntime.runtime();
 
-        Event response = agent.tick();
+        Event response = agent.tick(runtime);
 
         assertNotNull(response);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());
@@ -43,8 +44,9 @@ class AgentContinuousEvaluationUnitTest {
         Transition transition = new Transition(List.of(onTickDecision), List.of(), finalState);
         State initial = new State("start", new NoOpPolicy(), List.of(transition));
         Agent agent = new Agent("a", "d", initial);
+        var runtime = TestPolicyRuntime.runtime();
 
-        Event response = agent.tick();
+        Event response = agent.tick(runtime);
 
         assertNotNull(response);
         assertTrue(response.getPayload().contains("\"speech\":\"Final reached\""));
@@ -55,8 +57,9 @@ class AgentContinuousEvaluationUnitTest {
     @Test
     void tickDoesNothingForInactiveAgent() {
         Agent agent = new Agent("a", "d", new InactiveState("final", new NoOpPolicy()));
+        var runtime = TestPolicyRuntime.runtime();
 
-        Event response = agent.tick();
+        Event response = agent.tick(runtime);
 
         assertNull(response);
         assertTrue(agent.getEventHistory().isEmpty());
@@ -94,7 +97,7 @@ class AgentContinuousEvaluationUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ObservationSnapshot snapshot, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ObservationSnapshot snapshot, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             String lastType = snapshot.getString(DefaultObservationSnapshotAggregator.FACT_LAST_EVENT_TYPE);
             return Event.TYPE_SYSTEM_TICK.equals(lastType);
         }

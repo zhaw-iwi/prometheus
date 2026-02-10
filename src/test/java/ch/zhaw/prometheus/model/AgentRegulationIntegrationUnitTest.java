@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.commons.regulation.ZurichRegulationSystem;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.policy.Policy;
@@ -21,7 +21,7 @@ class AgentRegulationIntegrationUnitTest {
     void regulationInternalOpportunityCanTriggerTransitionOnTick() {
         State finalState = new InactiveState("final", new NoOpPolicy());
         Decision decision = new HasEventsDecision();
-        decision.setEventSelector(EventSelector.type(Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY));
+        decision.setEventSelectorSpec(EventSelectorSpec.type(Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY));
         Transition toFinal = new Transition(List.of(decision), List.of(), finalState);
         State start = new State("start", new NoOpPolicy(), List.of(toFinal));
 
@@ -29,8 +29,9 @@ class AgentRegulationIntegrationUnitTest {
         agent.setRegulationSystem(new ZurichRegulationSystem(
                 0.0d, 0.0d, 0.0d,
                 0.0d, 0.6d, 0.2d, 0.5d));
+        var runtime = TestPolicyRuntime.runtime();
 
-        agent.tick();
+        agent.tick(runtime);
 
         assertEquals("final", agent.getCurrentState().getName());
         assertTrue(!agent.isActive());
@@ -45,8 +46,9 @@ class AgentRegulationIntegrationUnitTest {
         agent.setRegulationSystem(new ZurichRegulationSystem(
                 0.0d, 0.0d, 0.0d,
                 0.0d, 0.6d, 0.2d, 0.5d));
+        var runtime = TestPolicyRuntime.runtime();
 
-        agent.tick();
+        agent.tick(runtime);
 
         Event internal = agent.getEventHistory().toList().stream()
                 .filter(event -> Event.TYPE_INTERNAL_REGULATION_OPPORTUNITY.equals(event.getType()))
@@ -61,7 +63,7 @@ class AgentRegulationIntegrationUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             return !events.isEmpty();
         }
     }
@@ -77,12 +79,12 @@ class AgentRegulationIntegrationUnitTest {
         }
 
         @Override
-        public Event start() {
+        public Event start(ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             return null;
         }
 
         @Override
-        public Event start(Policy outerPolicy) {
+        public Event start(Policy outerPolicy, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             return null;
         }
     }

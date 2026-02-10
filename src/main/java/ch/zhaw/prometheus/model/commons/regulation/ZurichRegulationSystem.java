@@ -7,13 +7,15 @@ import java.util.Map;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.regulation.ModulationBundle;
+import ch.zhaw.prometheus.model.regulation.PersistableRegulationSystem;
 import ch.zhaw.prometheus.model.regulation.RegulationContext;
 import ch.zhaw.prometheus.model.regulation.RegulationEffect;
 import ch.zhaw.prometheus.model.regulation.RegulationPolicy;
 import ch.zhaw.prometheus.model.regulation.RegulationResult;
-import ch.zhaw.prometheus.model.regulation.RegulationSystem;
+import ch.zhaw.prometheus.model.regulation.RegulationSystemSpec;
+import ch.zhaw.prometheus.model.regulation.ZurichRegulationConfig;
 
-public class ZurichRegulationSystem implements RegulationSystem {
+public class ZurichRegulationSystem implements PersistableRegulationSystem {
     public static final String VAR_DEPENDENCY = "dependency";
     public static final String VAR_ENTERPRISE = "enterprise";
     public static final String VAR_AUTONOMY = "autonomy";
@@ -29,6 +31,8 @@ public class ZurichRegulationSystem implements RegulationSystem {
     private final Map<String, Double> maximumByVariable;
     private final double opportunityThreshold;
     private boolean opportunityArmed;
+    private final double dependencyDeltaPerTick;
+    private final double dependencyReliefOnUserUtterance;
     private final List<RegulationPolicy> policies;
 
     public ZurichRegulationSystem() {
@@ -49,9 +53,47 @@ public class ZurichRegulationSystem implements RegulationSystem {
 
         this.opportunityThreshold = Math.max(0.0d, opportunityThreshold);
         this.opportunityArmed = false;
+        this.dependencyDeltaPerTick = dependencyDeltaPerTick;
+        this.dependencyReliefOnUserUtterance = dependencyReliefOnUserUtterance;
         this.policies = List.of(
-                new TickRegulationPolicy(dependencyDeltaPerTick),
-                new UserUtteranceRegulationPolicy(dependencyReliefOnUserUtterance));
+                new TickRegulationPolicy(this.dependencyDeltaPerTick),
+                new UserUtteranceRegulationPolicy(this.dependencyReliefOnUserUtterance));
+    }
+
+    private ZurichRegulationSystem(ZurichRegulationConfig config) {
+        ZurichRegulationConfig resolved = config == null ? ZurichRegulationConfig.defaults() : config;
+        this.variables = new LinkedHashMap<>();
+        this.decayByVariable = new LinkedHashMap<>();
+        this.minimumByVariable = new LinkedHashMap<>();
+        this.maximumByVariable = new LinkedHashMap<>();
+
+        copyWithFallback(VAR_DEPENDENCY, resolved.getVariables(), 0.0d, this.variables);
+        copyWithFallback(VAR_ENTERPRISE, resolved.getVariables(), 0.0d, this.variables);
+        copyWithFallback(VAR_AUTONOMY, resolved.getVariables(), 0.0d, this.variables);
+
+        copyWithFallback(VAR_DEPENDENCY, resolved.getDecayByVariable(), 0.0d, this.decayByVariable);
+        copyWithFallback(VAR_ENTERPRISE, resolved.getDecayByVariable(), 0.05d, this.decayByVariable);
+        copyWithFallback(VAR_AUTONOMY, resolved.getDecayByVariable(), 0.05d, this.decayByVariable);
+
+        copyWithFallback(VAR_DEPENDENCY, resolved.getMinimumByVariable(), -1.0d, this.minimumByVariable);
+        copyWithFallback(VAR_ENTERPRISE, resolved.getMinimumByVariable(), -1.0d, this.minimumByVariable);
+        copyWithFallback(VAR_AUTONOMY, resolved.getMinimumByVariable(), -1.0d, this.minimumByVariable);
+
+        copyWithFallback(VAR_DEPENDENCY, resolved.getMaximumByVariable(), 1.0d, this.maximumByVariable);
+        copyWithFallback(VAR_ENTERPRISE, resolved.getMaximumByVariable(), 1.0d, this.maximumByVariable);
+        copyWithFallback(VAR_AUTONOMY, resolved.getMaximumByVariable(), 1.0d, this.maximumByVariable);
+
+        this.opportunityThreshold = Math.max(0.0d, resolved.getOpportunityThreshold());
+        this.opportunityArmed = resolved.isOpportunityArmed();
+        this.dependencyDeltaPerTick = resolved.getDependencyDeltaPerTick();
+        this.dependencyReliefOnUserUtterance = resolved.getDependencyReliefOnUserUtterance();
+        this.policies = List.of(
+                new TickRegulationPolicy(this.dependencyDeltaPerTick),
+                new UserUtteranceRegulationPolicy(this.dependencyReliefOnUserUtterance));
+    }
+
+    public static ZurichRegulationSystem fromConfig(ZurichRegulationConfig config) {
+        return new ZurichRegulationSystem(config);
     }
 
     @Override
@@ -91,6 +133,17 @@ public class ZurichRegulationSystem implements RegulationSystem {
 
     public Map<String, Double> getVariables() {
         return Map.copyOf(this.variables);
+    }
+
+    public ZurichRegulationConfig toConfig() {
+        return new ZurichRegulationConfig(this.variables, this.decayByVariable, this.minimumByVariable,
+                this.maximumByVariable, this.opportunityThreshold, this.opportunityArmed, this.dependencyDeltaPerTick,
+                this.dependencyReliefOnUserUtterance);
+    }
+
+    @Override
+    public RegulationSystemSpec toSpec() {
+        return RegulationSystemSpec.zurich(this.toConfig());
     }
 
     private void defineVariable(String variable, double initial, double decay, double min, double max) {
@@ -174,6 +227,12 @@ public class ZurichRegulationSystem implements RegulationSystem {
 
     private static double positive(double value) {
         return Math.max(0.0d, value);
+    }
+
+    private static void copyWithFallback(String key, Map<String, Double> source, double fallback,
+            Map<String, Double> target) {
+        Double value = source.get(key);
+        target.put(key, value == null ? fallback : value);
     }
 
     private static final class TickRegulationPolicy implements RegulationPolicy {

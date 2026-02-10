@@ -14,7 +14,7 @@ import com.google.gson.JsonPrimitive;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.policy.Policy;
 
@@ -24,9 +24,10 @@ class StateTransitionUnitTest {
     void stateRespondEmitsBehaviourPlanEventWithSpeechPayload() {
         State state = new State("conversation", new FixedSpeechPolicy("hello", "response"), List.of());
         Agent agent = new Agent("a", "d", state);
+        var runtime = TestPolicyRuntime.runtime();
 
         Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi");
-        Event response = agent.respond(userEvent);
+        Event response = agent.respond(userEvent, runtime);
 
         assertNotNull(response);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());
@@ -50,7 +51,7 @@ class StateTransitionUnitTest {
         Decision decision = new TestDecision(decisionPolicy);
         Transition transition = new Transition(List.of(decision), List.of(), other);
 
-        boolean decided = transition.decide(state);
+        boolean decided = transition.decide(state, TestPolicyRuntime.runtime());
 
         assertTrue(decided);
         assertEquals(1, decisionPolicy.lastSeenCount);
@@ -67,11 +68,11 @@ class StateTransitionUnitTest {
         sharedHistory.appendEvent(
                 Event.response("resp.behaviour_plan", "assistant", "{\"speech\":\"a1\"}").withStatePath("focus"));
 
-        RecordingAction action = new RecordingAction(new NoOpPolicy(), EventSelector.actor("assistant"));
+        RecordingAction action = new RecordingAction(new NoOpPolicy(), EventSelectorSpec.actor("assistant"));
         Transition transition = new Transition(List.of(), List.of(action),
                 new State("next", new NoOpPolicy(), List.of()));
 
-        transition.action(state);
+        transition.action(state, TestPolicyRuntime.runtime());
 
         assertEquals(1, action.lastSeenCount);
         assertEquals("{\"speech\":\"a1\"}", action.lastSeenLastContent);
@@ -137,7 +138,8 @@ class StateTransitionUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             List<Event> list = events.toList();
             this.lastSeenCount = list.size();
             this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();
@@ -161,12 +163,12 @@ class StateTransitionUnitTest {
         private int lastSeenCount;
         private String lastSeenLastContent;
 
-        RecordingAction(Policy policy, EventSelector selector) {
+        RecordingAction(Policy policy, EventSelectorSpec selector) {
             super(policy, selector);
         }
 
         @Override
-        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             List<Event> list = eventHistory.toList();
             this.lastSeenCount = list.size();
             this.lastSeenLastContent = list.isEmpty() ? null : list.get(list.size() - 1).getPayload();

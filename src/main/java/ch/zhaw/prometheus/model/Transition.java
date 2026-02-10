@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
@@ -66,6 +67,14 @@ public class Transition {
         return this.subsequentState;
     }
 
+    public List<Decision> getDecisions() {
+        return List.copyOf(this.decisions);
+    }
+
+    public List<Action> getActions() {
+        return List.copyOf(this.actions);
+    }
+
     public void addDecision(Decision decision) {
         this.decisions.add(decision);
     }
@@ -78,7 +87,7 @@ public class Transition {
         this.subsequentState = subsequentState;
     }
 
-    public boolean decide(State state) {
+    public boolean decide(State state, PolicyRuntime runtime) {
         Transition.LOGGER.info("Checking decisions if transition to " + this.subsequentState.getName());
         if (this.decisions.isEmpty()) {
             Transition.LOGGER.info("No decisions present");
@@ -90,8 +99,7 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            boolean currentDecision = current.decide(selected, snapshot, state.requirePromptMessageAssembler(),
-                    state.requireLanguageModelGateway());
+            boolean currentDecision = current.decide(selected, snapshot, runtime);
             if (!currentDecision) {
                 return false;
             }
@@ -99,7 +107,7 @@ public class Transition {
         return true;
     }
 
-    public void action(State state) {
+    public void action(State state, PolicyRuntime runtime) {
         Transition.LOGGER.info("Executing actions while transitioning to " + this.subsequentState.getName());
         if (this.actions.isEmpty()) {
             Transition.LOGGER.info("No actions present");
@@ -111,7 +119,7 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            current.execute(selected, snapshot, state.requirePromptMessageAssembler(), state.requireLanguageModelGateway());
+            current.execute(selected, snapshot, runtime);
         }
     }
 

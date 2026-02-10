@@ -42,8 +42,7 @@ public class ContinuousEvaluationScheduler {
                 continue;
             }
             try {
-                this.agentService.attachRuntime(agent);
-                agent.tick();
+                agent.tick(this.agentService.runtime());
                 this.repository.save(agent);
                 this.monitorBroadcaster.publish(agent);
                 processed++;

@@ -30,6 +30,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -58,11 +59,7 @@ public class AgentApplicationService {
     }
 
     public List<Agent> listAgentAggregates() {
-        List<Agent> agents = this.repository.findAll();
-        for (Agent agent : agents) {
-            this.attachRuntime(agent);
-        }
-        return agents;
+        return this.repository.findAll();
     }
 
     public Optional<Agent> getAgentById(UUID agentID) {
@@ -117,7 +114,7 @@ public class AgentApplicationService {
             return Optional.empty();
         }
         Agent agent = agentMaybe.get();
-        Event starter = agent.start();
+        Event starter = agent.start(this.runtime());
         this.persistAndPublish(agent);
         return Optional.of(new ResponseView(starter, agent.isActive()));
     }
@@ -128,7 +125,7 @@ public class AgentApplicationService {
             return Optional.empty();
         }
         Agent agent = agentMaybe.get();
-        Event response = agent.tick();
+        Event response = agent.tick(this.runtime());
         this.persistAndPublish(agent);
         return Optional.of(new ResponseView(response, agent.isActive()));
     }
@@ -140,7 +137,7 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        Event response = agent.respond(event);
+        Event response = agent.respond(event, this.runtime());
         this.persistAndPublish(agent);
         return Optional.of(new ResponseView(response, agent.isActive()));
     }
@@ -152,7 +149,7 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        agent.acknowledge(event);
+        agent.acknowledge(event, this.runtime());
         this.persistAndPublish(agent);
         return true;
     }
@@ -164,7 +161,7 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         agent.reset();
-        Event response = agent.start();
+        Event response = agent.start(this.runtime());
         this.persistAndPublish(agent);
         return Optional.of(new ResponseView(response, agent.isActive()));
     }
@@ -203,28 +200,23 @@ public class AgentApplicationService {
         State state = new State(data.getStateName(), policy, List.of(transition));
 
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
-        agent.attachRuntime(this.promptMessageAssembler, this.languageModelGateway);
-        agent.start();
+        agent.start(this.runtime());
         Agent saved = this.repository.save(agent);
         this.monitorBroadcaster.publish(saved);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive()));
     }
 
     private Optional<Agent> findAgent(UUID agentID) {
-        Optional<Agent> agentMaybe = this.repository.findById(agentID);
-        agentMaybe.ifPresent(agent -> agent.attachRuntime(this.promptMessageAssembler, this.languageModelGateway));
-        return agentMaybe;
-    }
-
-    public void attachRuntime(Agent agent) {
-        if (agent != null) {
-            agent.attachRuntime(this.promptMessageAssembler, this.languageModelGateway);
-        }
+        return this.repository.findById(agentID);
     }
 
     private void persistAndPublish(Agent agent) {
         this.repository.save(agent);
         this.monitorBroadcaster.publish(agent);
+    }
+
+    public PolicyRuntime runtime() {
+        return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway);
     }
 }
 

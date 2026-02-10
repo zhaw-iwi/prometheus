@@ -20,9 +20,10 @@ class AgentOuterStateRoutingUnitTest {
         State inner = new State("Inner", new FixedSpeechPolicy("inner-start", "inner-respond"), List.of());
         OuterState outer = new OuterState("outer policy", "Outer", List.of(), inner);
         Agent agent = new Agent("a", "d", outer);
+        var runtime = TestPolicyRuntime.runtime();
 
-        Event starter = agent.start();
-        Event response = agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello"));
+        Event starter = agent.start(runtime);
+        Event response = agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello"), runtime);
 
         List<Event> history = agent.getEventHistory().toList();
         assertEquals(3, history.size());

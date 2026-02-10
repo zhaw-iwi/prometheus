@@ -9,17 +9,20 @@ import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.policy.Policy;
-import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
 import ch.zhaw.prometheus.model.snapshot.SnapshotAggregator;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.model.snapshot.SnapshotAggregatorType;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Transient;
 
 @Entity
 public abstract class Action extends PersistedNode {
@@ -34,11 +37,10 @@ public abstract class Action extends PersistedNode {
     private List<String> storageKeysFrom;
 
     private String storageKeyTo;
-
-    @Transient
-    private EventSelector eventSelector;
-    @Transient
-    private SnapshotAggregator snapshotAggregator;
+    @Column(length = 3000)
+    private String eventSelectorSpecJson;
+    @Enumerated(EnumType.STRING)
+    private SnapshotAggregatorType snapshotAggregatorType;
 
     protected Action() {
         this.storageKeysFrom = List.of();
@@ -50,11 +52,12 @@ public abstract class Action extends PersistedNode {
         this.storage = null;
         this.storageKeysFrom = List.of();
         this.storageKeyTo = null;
+        this.snapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
     }
 
-    public Action(Policy policy, EventSelector eventSelector) {
+    public Action(Policy policy, EventSelectorSpec eventSelectorSpec) {
         this(policy);
-        this.eventSelector = eventSelector;
+        this.setEventSelectorSpec(eventSelectorSpec);
     }
 
     public Action(Policy policy, Storage storage, String storageKeyTo) {
@@ -126,31 +129,54 @@ public abstract class Action extends PersistedNode {
     }
 
     public EventSelector getEventSelector() {
-        return this.eventSelector;
+        EventSelectorSpec spec = this.getEventSelectorSpec();
+        if (spec == null) {
+            return null;
+        }
+        return spec.toEventSelector();
     }
 
-    public void setEventSelector(EventSelector eventSelector) {
-        this.eventSelector = eventSelector;
+    public EventSelectorSpec getEventSelectorSpec() {
+        if (this.eventSelectorSpecJson == null || this.eventSelectorSpecJson.isBlank()) {
+            return null;
+        }
+        return EventSelectorSpec.fromJson(this.eventSelectorSpecJson);
+    }
+
+    public void setEventSelectorSpec(EventSelectorSpec eventSelectorSpec) {
+        if (eventSelectorSpec == null) {
+            this.eventSelectorSpecJson = null;
+            return;
+        }
+        this.eventSelectorSpecJson = eventSelectorSpec.toJson();
     }
 
     public SnapshotAggregator getSnapshotAggregator() {
-        if (this.snapshotAggregator == null) {
-            this.snapshotAggregator = DefaultObservationSnapshotAggregator.INSTANCE;
+        SnapshotAggregatorType type = this.snapshotAggregatorType == null
+                ? SnapshotAggregatorType.DEFAULT_OBSERVATION
+                : this.snapshotAggregatorType;
+        return type.create();
+    }
+
+    public SnapshotAggregatorType getSnapshotAggregatorType() {
+        if (this.snapshotAggregatorType == null) {
+            this.snapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         }
-        return this.snapshotAggregator;
+        return this.snapshotAggregatorType;
     }
 
-    public void setSnapshotAggregator(SnapshotAggregator snapshotAggregator) {
-        this.snapshotAggregator = snapshotAggregator;
+    public void setSnapshotAggregatorType(SnapshotAggregatorType snapshotAggregatorType) {
+        if (snapshotAggregatorType == null) {
+            this.snapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
+            return;
+        }
+        this.snapshotAggregatorType = snapshotAggregatorType;
     }
 
-    public abstract void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
-            LanguageModelGateway languageModelGateway);
+    public abstract void execute(EventHistory eventHistory, PolicyRuntime runtime);
 
-    public void execute(EventHistory eventHistory, ObservationSnapshot snapshot,
-            ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
-            LanguageModelGateway languageModelGateway) {
-        this.execute(eventHistory, assembler, languageModelGateway);
+    public void execute(EventHistory eventHistory, ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        this.execute(eventHistory, runtime);
     }
 
     @Override

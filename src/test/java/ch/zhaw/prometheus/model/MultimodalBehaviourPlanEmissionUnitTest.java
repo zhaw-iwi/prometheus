@@ -23,7 +23,7 @@ class MultimodalBehaviourPlanEmissionUnitTest {
         State state = new State("conversation", new MultimodalPolicy(), List.of());
         Agent agent = new Agent("a", "d", state);
 
-        Event start = agent.start();
+        Event start = agent.start(TestPolicyRuntime.runtime());
 
         assertNotNull(start);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, start.getType());

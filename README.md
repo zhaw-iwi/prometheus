@@ -51,6 +51,24 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 
 - With shared runtime-owned history, explicit history transfer actions were removed.
 
+### 6. Persisted Selector Configuration
+
+- State/decision/action selectors are now stored as persisted selector specifications (`EventSelectorSpec`) instead of transient runtime-only selector objects.
+- Decision/action snapshot aggregator choice is now persisted as `SnapshotAggregatorType`.
+- This removes selector/aggregator drift across save/reload cycles.
+
+### 7. Persisted Regulation Runtime
+
+- Agent regulation system is now persisted as a regulation system spec (`RegulationSystemSpec`).
+- Built-in systems implement `PersistableRegulationSystem`, allowing runtime state (for example Zurich latent variables) to survive save/reload cycles.
+- Agent-level regulation snapshot aggregator choice is persisted as `SnapshotAggregatorType`.
+
+### 8. Runtime Dependency Boundary Cleanup
+
+- `Agent` and `State` no longer store runtime prompt/gateway collaborators.
+- Runtime dependencies are passed explicitly per execution cycle via `PolicyRuntime` from the application layer.
+- Legacy runtime attachment wiring in entities was removed.
+
 ## Current Runtime Contracts
 
 - Inputs are `Event` objects with core fields: `type`, `actor`, `kind`, `payload`.
@@ -65,6 +83,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - `Fact`
   - selector-based `FactExtractor` helpers
 - `Transition` computes snapshots from selected events and passes them into decisions/actions.
+- Selector contracts for state/decision/action are persisted as specs and rebuilt deterministically at runtime.
 - Internal `sys.tick` events support no-input evaluation cycles.
 - Optional runtime scheduler can tick active agents:
   - `prometheus.runtime.tick.enabled`
@@ -125,9 +144,12 @@ Automated coverage currently includes:
 
 - `BehaviourPlan` serialization and emptiness
 - `EventSelector` composition/filtering
+- `EventSelectorSpec` JSON/spec round-trip and selector rebuilding
 - state/transition behavior-plan emission and selector behavior
 - snapshot aggregation and selector-based fact extraction
 - snapshot-aware transition decisions/actions
+- selector spec persistence across agent save/reload
+- regulation system state persistence across agent save/reload
 - agent tick/no-input progression
 - continuous scheduler processing (active agents only)
 - Zurich regulation dynamics and regulation-to-transition integration

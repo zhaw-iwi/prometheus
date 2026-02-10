@@ -34,9 +34,10 @@ class ConversationalStateMachineSmokeTest {
         Transition transition = new Transition(List.of(decision), List.of(action), finalState);
         State startState = new State("start", statePolicy, List.of(transition));
         Agent agent = new Agent("Test Agent", "Conversation smoke test", startState);
+        var runtime = TestPolicyRuntime.runtime();
 
         Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi there");
-        Event response = agent.respond(userEvent);
+        Event response = agent.respond(userEvent, runtime);
 
         assertNotNull(response);
         assertTrue(response.getPayload().contains("\"speech\":\"Final response\""));
@@ -80,7 +81,8 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             return true;
         }
 
@@ -100,7 +102,8 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
+                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
             assertTrue(events.toList().stream()
                     .allMatch(event -> !event.getStatePath().isEmpty()
                             && expectedStateName.equals(event.getStatePath().get(event.getStatePath().size() - 1))));
@@ -123,7 +126,7 @@ class ConversationalStateMachineSmokeTest {
         }
 
         @Override
-        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             this.executed = true;
         }
 

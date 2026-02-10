@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.snapshot.DefaultObservationSnapshotAggregator;
 import ch.zhaw.prometheus.model.snapshot.ObservationSnapshot;
@@ -33,7 +33,7 @@ class StateTransitionSnapshotUnitTest {
         SnapshotThresholdDecision decision = new SnapshotThresholdDecision(2);
         Transition transition = new Transition(List.of(decision), List.of(), other);
 
-        assertTrue(transition.decide(focus));
+        assertTrue(transition.decide(focus, TestPolicyRuntime.runtime()));
         assertEquals(2, decision.lastSeenUserUtteranceCount);
         assertEquals("f2", decision.lastSeenLastUtterance);
     }
@@ -50,10 +50,10 @@ class StateTransitionSnapshotUnitTest {
                 Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"a1\"}").withStatePath("focus"));
 
         SnapshotRecordingAction action = new SnapshotRecordingAction();
-        action.setEventSelector(EventSelector.actor(Event.ACTOR_ASSISTANT));
+        action.setEventSelectorSpec(EventSelectorSpec.actor(Event.ACTOR_ASSISTANT));
         Transition transition = new Transition(List.of(), List.of(action), new State("next", new NoOpPolicy(), List.of()));
 
-        transition.action(state);
+        transition.action(state, TestPolicyRuntime.runtime());
 
         assertEquals(1, action.lastSnapshotEventCount);
         assertEquals(1, action.lastAssistantBehaviourCount);
@@ -71,12 +71,13 @@ class StateTransitionSnapshotUnitTest {
         }
 
         @Override
-        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             return false;
         }
 
         @Override
-        public boolean decide(EventHistory events, ObservationSnapshot snapshot, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public boolean decide(EventHistory events, ObservationSnapshot snapshot,
+                ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             Integer count = snapshot.getInteger(DefaultObservationSnapshotAggregator.FACT_USER_UTTERANCE_COUNT);
             this.lastSeenUserUtteranceCount = count == null ? 0 : count;
             this.lastSeenLastUtterance = snapshot.getString(DefaultObservationSnapshotAggregator.FACT_LAST_USER_UTTERANCE);
@@ -94,14 +95,13 @@ class StateTransitionSnapshotUnitTest {
         }
 
         @Override
-        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler, ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+        public void execute(EventHistory eventHistory, ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             throw new UnsupportedOperationException("snapshot overload should be used");
         }
 
         @Override
         public void execute(EventHistory eventHistory, ObservationSnapshot snapshot,
-                ch.zhaw.prometheus.model.policy.PromptMessageAssembler assembler,
-                ch.zhaw.prometheus.spi.LanguageModelGateway languageModelGateway) {
+                ch.zhaw.prometheus.model.policy.PolicyRuntime runtime) {
             Integer eventCount = snapshot.getInteger(DefaultObservationSnapshotAggregator.FACT_EVENT_COUNT);
             Integer assistantCount = snapshot
                     .getInteger(DefaultObservationSnapshotAggregator.FACT_ASSISTANT_BEHAVIOUR_COUNT);
