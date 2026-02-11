@@ -168,12 +168,15 @@ function show_eventhistory(eventhistory) {
     $.each(eventhistory, function (index, current) {
         let current_message = null;
         const text = get_event_text(current);
-        if (current.actor == "assistant") {
+        if (!text) {
+            return;
+        }
+        if (is_assistant_chat_event(current)) {
             current_message = get_assistant_message(text);
             if (current.createdDate) {
                 last_behaviour_created_date = current.createdDate;
             }
-        } else if (current.actor == "user") {
+        } else if (is_user_utterance_event(current)) {
             current_message = get_user_message(text);
         }
         if (current_message) {
@@ -231,6 +234,12 @@ function get_event_text(event) {
     if (!event) {
         return "";
     }
+    if (is_user_utterance_event(event)) {
+        return event.payload || "";
+    }
+    if (!is_assistant_chat_event(event)) {
+        return "";
+    }
     if (!event.payload) {
         return "";
     }
@@ -239,10 +248,22 @@ function get_event_text(event) {
         if (plan && plan.speech) {
             return plan.speech;
         }
-        return event.payload || "";
+        return "";
     } catch (_) {
-        return event.payload || "";
+        return "";
     }
+}
+
+function is_user_utterance_event(event) {
+    return !!event
+        && event.type === "obs.user_utterance"
+        && event.actor === "user";
+}
+
+function is_assistant_chat_event(event) {
+    return !!event
+        && event.type === "resp.behaviour_plan"
+        && event.actor === "assistant";
 }
 
 function scroll_down() {
