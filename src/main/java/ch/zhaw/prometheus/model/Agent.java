@@ -75,6 +75,7 @@ public class Agent {
     private RegulationSystem regulationSystem;
     @Transient
     private ModulationBundle latestModulation;
+    private boolean startResponsePending;
 
     public Agent(String name, String description, State initialState) {
         this(name, description, initialState, null);
@@ -91,6 +92,7 @@ public class Agent {
         this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
         this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         this.latestModulation = ModulationBundle.neutral();
+        this.startResponsePending = true;
         this.attachEventHistory();
     }
 
@@ -133,6 +135,7 @@ public class Agent {
         try {
             Event response = this.currentState.start(runtime);
             this.recordEvent(response);
+            this.startResponsePending = false;
             return response;
         } catch (ContenFilterException e) {
             throw e;
@@ -172,6 +175,18 @@ public class Agent {
         return this.respond(tickEvent, runtime);
     }
 
+    public Event generate(PolicyRuntime runtime) {
+        if (!this.isActive() || this.currentState == null) {
+            return null;
+        }
+        if (this.currentState.isStarting() && this.startResponsePending) {
+            return this.start(runtime);
+        }
+        Event response = this.currentState.generate(runtime);
+        this.recordEvent(response);
+        return response;
+    }
+
     public void acknowledge(Event event, PolicyRuntime runtime) {
         this.acknowledgeWithoutRegulation(event, true, runtime);
         this.applyRegulation(event, runtime);
@@ -187,6 +202,7 @@ public class Agent {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 this.currentState.enter();
+                this.startResponsePending = true;
             } else {
                 this.acknowledgeWithoutRegulation(event, false, runtime);
             }
@@ -259,6 +275,7 @@ public class Agent {
         if (this.eventHistory != null) {
             this.eventHistory.reset();
         }
+        this.startResponsePending = true;
         this.getRegulationSystem().reset();
         this.latestModulation = ModulationBundle.neutral();
         this.syncRegulationSystemSpecFromRuntime();
@@ -289,6 +306,9 @@ public class Agent {
         }
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
+        }
+        if (this.eventHistory != null && this.eventHistory.isEmpty()) {
+            this.startResponsePending = true;
         }
         this.attachEventHistory();
     }

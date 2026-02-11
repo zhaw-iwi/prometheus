@@ -33,13 +33,16 @@ class PromptEventContentAdapterUnitTest {
     }
 
     @Test
-    void mapsBehaviourPlanSpeechFirstAndFallsBackToPayload() {
+    void mapsBehaviourPlanSpeechOnlyAndSuppressesNonSpeechPayload() {
         Event validPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 "{\"speech\":\"payload-speech\"}");
+        Event omittedSpeechPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":null,\"nonVerbal\":{\"gesture\":\"EXPLAIN\"}}");
         Event invalidPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{invalid-json");
 
         assertEquals("payload-speech", behaviourPlanAdapter.toPromptContent(validPlan));
-        assertEquals("{invalid-json", behaviourPlanAdapter.toPromptContent(invalidPlan));
+        assertEquals("", behaviourPlanAdapter.toPromptContent(omittedSpeechPlan));
+        assertEquals("", behaviourPlanAdapter.toPromptContent(invalidPlan));
     }
 }
 

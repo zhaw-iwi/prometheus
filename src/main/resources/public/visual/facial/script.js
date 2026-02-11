@@ -39,7 +39,6 @@ function wireUi() {
   document.getElementById("start_camera").addEventListener("click", startCamera);
   document.getElementById("stop_camera").addEventListener("click", stopCamera);
   document.getElementById("show_agent_info").addEventListener("click", showAgentInfo);
-  document.getElementById("send_tick").addEventListener("click", triggerTick);
 }
 
 async function loadAgentInfo() {
@@ -323,24 +322,6 @@ async function acknowledgeEvent(request) {
   } catch (err) {
     appendLog("ack failed: " + err.message);
     return false;
-  }
-}
-
-async function triggerTick() {
-  if (!session.agentId) {
-    return;
-  }
-  try {
-    const response = await fetch(`/${session.agentId}/tick`, { method: "POST" });
-    if (!response.ok) {
-      appendLog(`tick failed: ${response.status}`);
-      return;
-    }
-    const data = await response.json();
-    setActiveStatus(data.active);
-    appendLog("tick triggered.");
-  } catch (err) {
-    appendLog("tick failed: " + err.message);
   }
 }
 

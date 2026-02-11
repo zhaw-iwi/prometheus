@@ -18,6 +18,8 @@ let logSettings = {
 };
 let logBuffer = [];
 let monitorSource = null;
+let behaviourSource = null;
+let behaviourBuffer = [];
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -29,6 +31,7 @@ window.addEventListener("load", () => {
   wireUi();
   connectLogs();
   connectMonitor();
+  connectBehaviour();
 });
 
 function wireUi() {
@@ -293,6 +296,32 @@ function connectMonitor() {
   };
 }
 
+function connectBehaviour() {
+  if (behaviourSource) {
+    behaviourSource.close();
+  }
+  behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource.addEventListener("behaviour", (event) => {
+    let data = null;
+    try {
+      data = JSON.parse(event.data);
+    } catch (_) {
+      addBehaviourEntry({
+        timestamp: new Date().toLocaleTimeString(),
+        content: event.data || "",
+      });
+      return;
+    }
+    addBehaviourEntry({
+      timestamp: formatEventTimestamp(data),
+      content: formatBehaviourSummary(data),
+    });
+  });
+  behaviourSource.onerror = () => {
+    appendLog("app", "Behaviour stream disconnected.");
+  };
+}
+
 function applySnapshot(data) {
   if (!data) {
     return;
@@ -338,6 +367,11 @@ function addLogEntry(entry) {
   renderLogBuffer();
 }
 
+function addBehaviourEntry(entry) {
+  behaviourBuffer.push(entry);
+  renderBehaviourBuffer();
+}
+
 function renderLogBuffer() {
   const output = document.getElementById("log_output");
   output.textContent = "";
@@ -375,6 +409,63 @@ function truncateLogMessage(message, maxChars) {
     return message;
   }
   return message.slice(0, maxChars) + "...";
+}
+
+function renderBehaviourBuffer() {
+  const output = document.getElementById("behaviour_output");
+  if (!output) {
+    return;
+  }
+  output.textContent = behaviourBuffer
+    .map((entry) => `[${entry.timestamp}] ${entry.content}`)
+    .join("\n");
+  output.scrollTop = output.scrollHeight;
+}
+
+function formatEventTimestamp(event) {
+  if (!event || !event.createdDate) {
+    return new Date().toLocaleTimeString();
+  }
+  const ts = new Date(event.createdDate);
+  if (Number.isNaN(ts.getTime())) {
+    return new Date().toLocaleTimeString();
+  }
+  return ts.toLocaleTimeString();
+}
+
+function formatBehaviourSummary(event) {
+  if (!event || !event.payload) {
+    return "(empty behaviour event)";
+  }
+  try {
+    const plan = JSON.parse(event.payload);
+    const parts = [];
+    if (plan && typeof plan.speech === "string" && plan.speech.trim()) {
+      parts.push(`speech="${plan.speech}"`);
+    }
+    if (plan && plan.nonVerbal != null) {
+      const gesture = plan.nonVerbal && typeof plan.nonVerbal === "object"
+        ? plan.nonVerbal.gesture
+        : null;
+      if (typeof gesture === "string" && gesture.trim()) {
+        parts.push(`nonVerbal=${gesture}`);
+      } else {
+        parts.push(`nonVerbal=${JSON.stringify(plan.nonVerbal)}`);
+      }
+    }
+    if (plan && plan.motion != null) {
+      parts.push("motion=present");
+    }
+    if (plan && plan.display != null) {
+      parts.push("display=present");
+    }
+    if (!parts.length) {
+      return "(behaviour plan with no populated modalities)";
+    }
+    return parts.join(" | ");
+  } catch (_) {
+    return String(event.payload);
+  }
 }
 
 function getAgentId() {

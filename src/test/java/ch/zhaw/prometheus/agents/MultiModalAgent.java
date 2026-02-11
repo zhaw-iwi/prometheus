@@ -123,10 +123,15 @@ class MultiModalAgent {
                                                                 storageKeyToGoalDetected)),
                                 coachingState);
 
+                PromptPolicy rapportPolicy = new PromptPolicy(
+                                PROMPT_RAPPORTBUILDING,
+                                PROMPT_RAPPORTBUILDING_STARTER,
+                                PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+                rapportPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+
                 State rapportBuildingState = new State(
                                 "RapportBuilding",
-                                new PromptPolicy(PROMPT_RAPPORTBUILDING, PROMPT_RAPPORTBUILDING_STARTER,
-                                                PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
+                                rapportPolicy,
                                 List.of(fromRapportBuildingToCoaching));
 
                 State finalFromOuter = new Final("User Exit Final");

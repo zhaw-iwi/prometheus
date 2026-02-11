@@ -9,8 +9,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import ch.zhaw.prometheus.application.AgentApplicationService;
+import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 
 @Component
@@ -20,12 +22,15 @@ public class ContinuousEvaluationScheduler {
 
     private final AgentRepository repository;
     private final AgentMonitorBroadcaster monitorBroadcaster;
+    private final AgentBehaviourBroadcaster behaviourBroadcaster;
     private final AgentApplicationService agentService;
 
     public ContinuousEvaluationScheduler(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
+            AgentBehaviourBroadcaster behaviourBroadcaster,
             AgentApplicationService agentService) {
         this.repository = repository;
         this.monitorBroadcaster = monitorBroadcaster;
+        this.behaviourBroadcaster = behaviourBroadcaster;
         this.agentService = agentService;
     }
 
@@ -42,9 +47,10 @@ public class ContinuousEvaluationScheduler {
                 continue;
             }
             try {
-                agent.tick(this.agentService.runtime());
+                Event response = agent.tick(this.agentService.runtime());
                 this.repository.save(agent);
                 this.monitorBroadcaster.publish(agent);
+                this.behaviourBroadcaster.publish(agent.getId(), response);
                 processed++;
             } catch (RuntimeException exception) {
                 LOGGER.warn("continuous tick failed for agent {}", agent.getId(), exception);

@@ -1,8 +1,10 @@
 package ch.zhaw.prometheus.application;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
+import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Agent;
@@ -27,6 +30,7 @@ import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -38,13 +42,16 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 public class AgentApplicationService {
     private final AgentRepository repository;
     private final AgentMonitorBroadcaster monitorBroadcaster;
+    private final AgentBehaviourBroadcaster behaviourBroadcaster;
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
 
     public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
+            AgentBehaviourBroadcaster behaviourBroadcaster,
             PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
         this.repository = repository;
         this.monitorBroadcaster = monitorBroadcaster;
+        this.behaviourBroadcaster = behaviourBroadcaster;
         this.promptMessageAssembler = promptMessageAssembler;
         this.languageModelGateway = languageModelGateway;
     }
@@ -115,31 +122,25 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         Event starter = agent.start(this.runtime());
-        this.persistAndPublish(agent);
+        Agent saved = this.persistAndPublishMonitor(agent);
+        this.publishBehaviour(saved, starter);
         return Optional.of(new ResponseView(starter, agent.isActive()));
     }
 
-    public Optional<ResponseView> tick(UUID agentID) {
+    public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
-            return Optional.empty();
+            return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
         }
         Agent agent = agentMaybe.get();
-        Event response = agent.tick(this.runtime());
-        this.persistAndPublish(agent);
-        return Optional.of(new ResponseView(response, agent.isActive()));
-    }
-
-    public Optional<ResponseView> respond(UUID agentID, EventRequest request) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
+        Event response = agent.generate(this.runtime());
+        if (response == null) {
+            return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
         }
-        Agent agent = agentMaybe.get();
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        Event response = agent.respond(event, this.runtime());
-        this.persistAndPublish(agent);
-        return Optional.of(new ResponseView(response, agent.isActive()));
+        this.applyOmittedModalities(response, omitModalities);
+        Agent saved = this.persistAndPublishMonitor(agent);
+        this.publishBehaviour(saved, response);
+        return BehaviourGenerationOutcome.GENERATED;
     }
 
     public boolean acknowledge(UUID agentID, EventRequest request) {
@@ -150,7 +151,7 @@ public class AgentApplicationService {
         Agent agent = agentMaybe.get();
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
         agent.acknowledge(event, this.runtime());
-        this.persistAndPublish(agent);
+        this.persistAndPublishMonitor(agent);
         return true;
     }
 
@@ -162,7 +163,8 @@ public class AgentApplicationService {
         Agent agent = agentMaybe.get();
         agent.reset();
         Event response = agent.start(this.runtime());
-        this.persistAndPublish(agent);
+        Agent saved = this.persistAndPublishMonitor(agent);
+        this.publishBehaviour(saved, response);
         return Optional.of(new ResponseView(response, agent.isActive()));
     }
 
@@ -184,6 +186,15 @@ public class AgentApplicationService {
         return Optional.of(emitter);
     }
 
+    public Optional<SseEmitter> subscribeBehaviour(UUID agentID) {
+        Optional<Agent> agentMaybe = this.findAgent(agentID);
+        if (agentMaybe.isEmpty()) {
+            return Optional.empty();
+        }
+        SseEmitter emitter = this.behaviourBroadcaster.subscribe(agentID, () -> this.findAgent(agentID));
+        return Optional.of(emitter);
+    }
+
     public Optional<AgentInfoView> createSingleStateAgent(SingleStateAgentCreateDTO data) {
         if (data == null || AgentMetaType.singleState.getValue() != data.getType()) {
             return Optional.empty();
@@ -195,14 +206,16 @@ public class AgentApplicationService {
         Action action = new StaticExtractionAction(data.getActionToFinalPrompt(), storage, "summary");
         Transition transition = new Transition(List.of(trigger, guard), List.of(action),
                 new Final("User Exit Final"));
-        Policy policy = new PromptPolicy(data.getStatePrompt(),
+        PromptPolicy policy = new PromptPolicy(data.getStatePrompt(),
                 data.getStateStarterPrompt(), PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalGesturePrompt(data.getStateNonVerbalGesturePrompt());
         State state = new State(data.getStateName(), policy, List.of(transition));
 
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
-        agent.start(this.runtime());
+        Event starter = agent.start(this.runtime());
         Agent saved = this.repository.save(agent);
         this.monitorBroadcaster.publish(saved);
+        this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive()));
     }
 
@@ -210,9 +223,77 @@ public class AgentApplicationService {
         return this.repository.findById(agentID);
     }
 
-    private void persistAndPublish(Agent agent) {
-        this.repository.save(agent);
-        this.monitorBroadcaster.publish(agent);
+    private Agent persistAndPublishMonitor(Agent agent) {
+        Agent saved = this.repository.save(agent);
+        this.monitorBroadcaster.publish(saved);
+        return saved;
+    }
+
+    private void publishBehaviour(Agent agent, Event responseEvent) {
+        if (agent == null || responseEvent == null) {
+            return;
+        }
+        Event eventToPublish = responseEvent;
+        List<Event> events = agent.getEventHistory().toList();
+        for (int i = events.size() - 1; i >= 0; i--) {
+            Event candidate = events.get(i);
+            if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(candidate.getType())) {
+                continue;
+            }
+            if (!java.util.Objects.equals(candidate.getPayload(), responseEvent.getPayload())) {
+                continue;
+            }
+            eventToPublish = candidate;
+            break;
+        }
+        this.behaviourBroadcaster.publish(agent.getId(), eventToPublish);
+    }
+
+    private void applyOmittedModalities(Event responseEvent, List<String> omitModalities) {
+        if (responseEvent == null || omitModalities == null || omitModalities.isEmpty()) {
+            return;
+        }
+        if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(responseEvent.getType())) {
+            return;
+        }
+        BehaviourPlan plan = BehaviourPlan.fromJson(responseEvent.getPayload());
+        if (plan == null) {
+            return;
+        }
+        Set<String> normalized = new HashSet<>();
+        for (String modality : omitModalities) {
+            String key = normalizeModality(modality);
+            if (key != null) {
+                normalized.add(key);
+            }
+        }
+        if (normalized.contains("speech")) {
+            plan.setSpeech(null);
+        }
+        if (normalized.contains("nonverbal")) {
+            plan.setNonVerbal(null);
+        }
+        if (normalized.contains("motion")) {
+            plan.setMotion(null);
+        }
+        if (normalized.contains("display")) {
+            plan.setDisplay(null);
+        }
+        responseEvent.setPayload(plan.toJson());
+    }
+
+    private static String normalizeModality(String modality) {
+        if (modality == null || modality.isBlank()) {
+            return null;
+        }
+        String value = modality.trim().toLowerCase().replace("-", "").replace("_", "");
+        return switch (value) {
+            case "speech" -> "speech";
+            case "nonverbal" -> "nonverbal";
+            case "motion" -> "motion";
+            case "display" -> "display";
+            default -> null;
+        };
     }
 
     public PolicyRuntime runtime() {

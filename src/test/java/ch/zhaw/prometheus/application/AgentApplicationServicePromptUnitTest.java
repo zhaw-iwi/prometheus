@@ -11,6 +11,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
+import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.policy.PromptContextAugmenter;
@@ -32,6 +33,7 @@ class AgentApplicationServicePromptUnitTest {
 
         AgentRepository repository = mock(AgentRepository.class);
         AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
         LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
 
         PromptEventContentAdapter passthroughAdapter = new PromptEventContentAdapter() {
@@ -49,7 +51,7 @@ class AgentApplicationServicePromptUnitTest {
         PromptMessageAssembler assembler = new PromptMessageAssembler(List.of(passthroughAdapter),
                 List.of(markerAugmenter));
 
-        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, assembler,
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster, assembler,
                 languageModelGateway);
         when(repository.findById(agentId)).thenReturn(Optional.of(agent));
 

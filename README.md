@@ -136,6 +136,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - realtime client uses `promptMessages` directly as instruction context.
 - Prompt content mapping via policy-layer modality adapters:
   - assistant behaviour plans map to `payload.speech` (if present),
+  - assistant behaviour plans with missing/null `speech` contribute empty prompt content (no JSON payload fallback),
   - facial-emotion observations map to concise text (emotion + confidence),
   - raw telemetry payloads are not forwarded verbatim for this modality.
 
@@ -160,6 +161,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - `200 OK`: behaviour generated and emitted
   - `409 Conflict`: no behaviour produced (for example inactive/final agent)
   - `404 Not Found`: agent id unknown
+- realtime client can trigger side-behaviour generation after user transcript acknowledgement while omitting `speech` to avoid mismatch with realtime pipeline utterances.
 - Generated behaviour events are emitted as full `BehaviourPlan` payloads according to the active agent policy.
 - For `POST /agent/singlestate`, optional DTO field `stateNonVerbalGesturePrompt` enables gesture labeling for that created state policy.
 

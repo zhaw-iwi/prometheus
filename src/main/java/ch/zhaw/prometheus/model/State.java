@@ -197,6 +197,14 @@ public class State extends PersistedNode {
         return this.executeResponse(outerPolicy, runtime);
     }
 
+    public Event generate(PolicyRuntime runtime) {
+        return this.generate(null, runtime);
+    }
+
+    public Event generate(Policy outerPolicy, PolicyRuntime runtime) {
+        return this.executeResponse(outerPolicy, runtime);
+    }
+
     public void enter() {
         State.LOGGER
                 .info(this.getName() + " Starting");

@@ -103,6 +103,8 @@ var istyping_icons = [
 
 var session = null;
 var animate_istyping_interval = null;
+var behaviour_stream = null;
+var last_behaviour_created_date = null;
 
 function Session(agent_id) {
     this.agent_id = agent_id;
@@ -118,6 +120,7 @@ $(document).ready(function () {
     }
     get_info();
     get_eventhistory();
+    connect_behaviour_stream();
     $("#send_message").on("click", function () {
         user_says();
     });
@@ -167,6 +170,9 @@ function show_eventhistory(eventhistory) {
         const text = get_event_text(current);
         if (current.actor == "assistant") {
             current_message = get_assistant_message(text);
+            if (current.createdDate) {
+                last_behaviour_created_date = current.createdDate;
+            }
         } else if (current.actor == "user") {
             current_message = get_user_message(text);
         }
@@ -177,6 +183,48 @@ function show_eventhistory(eventhistory) {
     $("#user_says_input").prop('disabled', false);
     $("#send_message").prop("disabled", false);
     scroll_down();
+}
+
+function connect_behaviour_stream() {
+    if (!session || !session.agent_id || behaviour_stream) {
+        return;
+    }
+    behaviour_stream = new EventSource("/" + session.agent_id + "/behaviour/stream");
+    behaviour_stream.addEventListener("behaviour", function (event) {
+        handle_behaviour_event(event.data);
+    });
+    behaviour_stream.onerror = function () {
+        if (behaviour_stream) {
+            behaviour_stream.close();
+            behaviour_stream = null;
+        }
+    };
+}
+
+function handle_behaviour_event(raw_event) {
+    let event = null;
+    try {
+        event = JSON.parse(raw_event);
+    } catch (_) {
+        return;
+    }
+    if (!event || !event.payload) {
+        return;
+    }
+    if (event.createdDate && last_behaviour_created_date === event.createdDate) {
+        return;
+    }
+    if (event.createdDate) {
+        last_behaviour_created_date = event.createdDate;
+    }
+    const responseText = get_event_text(event);
+    if (!responseText) {
+        stop_assistant_istyping_temp();
+        $("#user_says_input").prop('disabled', false);
+        $("#send_message").prop("disabled", false);
+        return;
+    }
+    show_assistant_says_incremental_recursively([responseText], 0);
 }
 
 function get_event_text(event) {
@@ -288,7 +336,7 @@ function user_says() {
     start_assistant_istyping_temp();
     $.ajax({
         type: "POST",
-        url: session.agent_id + "/respond",
+        url: session.agent_id + "/acknowledge",
         data: JSON.stringify({
             type: "obs.user_utterance",
             actor: "user",
@@ -296,19 +344,25 @@ function user_says() {
             payload: user_says_what
         }),
         contentType: "application/json; charset=utf-8",
-        dataType: "json",
-        success: function (data) {
-            set_is_active(data.active);
-            const responseText = get_event_text(data.responseEvent);
-            if (responseText) {
-                show_assistant_says_incremental_recursively([responseText], 0);
-            } else {
-                stop_assistant_istyping_temp();
-                $("#user_says_input").prop('disabled', false);
-                $("#send_message").prop("disabled", false);
-            }
+        success: function () {
+            $.ajax({
+                type: "POST",
+                url: session.agent_id + "/behaviour/generate",
+                contentType: "application/json; charset=utf-8",
+                success: function () {
+                },
+                error: function (errMsg) {
+                    stop_assistant_istyping_temp();
+                    $("#user_says_input").prop('disabled', false);
+                    $("#send_message").prop("disabled", false);
+                    alert(errMsg);
+                }
+            });
         },
-        failure: function (errMsg) {
+        error: function (errMsg) {
+            stop_assistant_istyping_temp();
+            $("#user_says_input").prop('disabled', false);
+            $("#send_message").prop("disabled", false);
             alert(errMsg);
         }
     });
@@ -330,16 +384,14 @@ function reset(event) {
             dataType: "json",
             success: function (data) {
                 set_is_active(data.active);
-                const responseText = get_event_text(data.responseEvent);
-                if (responseText) {
-                    show_assistant_says_incremental_recursively([responseText], 0);
-                } else {
+                const hasResponse = !!(data && data.responseEvent && data.responseEvent.payload);
+                if (!hasResponse) {
                     stop_assistant_istyping_temp();
                     $("#user_says_input").prop('disabled', false);
                     $("#send_message").prop("disabled", false);
                 }
             },
-            failure: function (errMsg) {
+            error: function (errMsg) {
                 alert(errMsg);
             }
         });

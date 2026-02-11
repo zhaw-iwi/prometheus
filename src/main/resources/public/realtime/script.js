@@ -410,6 +410,22 @@ async function handleUserTranscript(transcript) {
       appendLog("policy", "acknowledge failed.");
       return;
     }
+    if (shouldGenerateSideBehaviour()) {
+      const generateResponse = await fetch(`/${session.agentId}/behaviour/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify({
+          omitModalities: ["speech"],
+        }),
+      });
+      if (!generateResponse.ok) {
+        appendLog("policy", `side behaviour generate failed (${generateResponse.status}).`);
+      } else {
+        appendLog("policy", "Side behaviour generated.");
+      }
+    }
     const data = await fetchPromptBundle();
     setActiveStatus(data.active);
     applyPromptBundle(data, true);
@@ -418,6 +434,14 @@ async function handleUserTranscript(transcript) {
       setGifState("idle");
     }
   }
+}
+
+function shouldGenerateSideBehaviour() {
+  const checkbox = document.getElementById("generate_side_behaviour");
+  if (!checkbox) {
+    return true;
+  }
+  return checkbox.checked;
 }
 
 async function appendAssistantTranscript(transcript) {

@@ -21,6 +21,7 @@ public class SingleStateAgentCreateDTO {
     private String stateName;
     private String statePrompt;
     private String stateStarterPrompt;
+    private String stateNonVerbalGesturePrompt;
     private String triggerToFinalPrompt;
     private String guardToFinalPrompt;
     private String actionToFinalPrompt;
@@ -71,6 +72,14 @@ public class SingleStateAgentCreateDTO {
 
     public void setStateStarterPrompt(String stateStarterPrompt) {
         this.stateStarterPrompt = stateStarterPrompt;
+    }
+
+    public String getStateNonVerbalGesturePrompt() {
+        return this.stateNonVerbalGesturePrompt;
+    }
+
+    public void setStateNonVerbalGesturePrompt(String stateNonVerbalGesturePrompt) {
+        this.stateNonVerbalGesturePrompt = stateNonVerbalGesturePrompt;
     }
 
     public String getTriggerToFinalPrompt() {

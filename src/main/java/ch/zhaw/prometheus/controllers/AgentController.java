@@ -10,13 +10,11 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.AgentStateInfoView;
-import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.event.Event;
@@ -80,35 +78,6 @@ public class AgentController {
         if (response.isEmpty()) {
             return new ResponseEntity<ResponseView>(HttpStatus.NOT_FOUND);
         }
-        return new ResponseEntity<ResponseView>(response.get(), HttpStatus.OK);
-    }
-
-    @PostMapping("{agentID}/tick")
-    public ResponseEntity<ResponseView> tick(@PathVariable @NonNull UUID agentID) {
-        var response = this.agentService.tick(agentID);
-        if (response.isEmpty()) {
-            return new ResponseEntity<ResponseView>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<ResponseView>(response.get(), HttpStatus.OK);
-    }
-
-    @PostMapping("{agentID}/respond")
-    public ResponseEntity<ResponseView> respond(@PathVariable @NonNull UUID agentID,
-            @RequestBody EventRequest request) {
-        if (request == null || request.getType() == null || request.getType().isBlank()
-                || request.getActor() == null || request.getActor().isBlank()
-                || request.getKind() == null || request.getKind().isBlank()) {
-            return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
-        }
-        boolean hasPayload = request.getPayload() != null && !request.getPayload().isBlank();
-        if (!hasPayload) {
-            return new ResponseEntity<ResponseView>(HttpStatus.BAD_REQUEST);
-        }
-        var response = this.agentService.respond(agentID, request);
-        if (response.isEmpty()) {
-            return new ResponseEntity<ResponseView>(HttpStatus.NOT_FOUND);
-        }
-
         return new ResponseEntity<ResponseView>(response.get(), HttpStatus.OK);
     }
 

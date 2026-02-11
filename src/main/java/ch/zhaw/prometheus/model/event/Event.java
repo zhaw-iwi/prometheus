@@ -26,7 +26,6 @@ public class Event {
     public static final String TYPE_FACE_EMOTION = "obs.emotion.face";
     public static final String TYPE_HUMAN_PRESENCE = "obs.human.presence";
     public static final String TYPE_SOCIAL_GROUPING = "obs.social.grouping";
-    public static final String TYPE_ASSISTANT_UTTERANCE = "resp.assistant_utterance";
     public static final String TYPE_ASSISTANT_BEHAVIOUR_PLAN = "resp.behaviour_plan";
     public static final String TYPE_SYSTEM_PROMPT = "sys.prompt";
     public static final String TYPE_SYSTEM_TICK = "sys.tick";

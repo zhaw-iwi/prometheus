@@ -17,7 +17,7 @@ public class BehaviourPlanPromptEventContentAdapter implements PromptEventConten
         if (speech != null && !speech.isBlank()) {
             return speech;
         }
-        return event.getPayload() == null ? "" : event.getPayload();
+        return "";
     }
 
     private static String extractJsonString(String payload, String field) {
