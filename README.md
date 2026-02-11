@@ -206,7 +206,7 @@ Web MVC compatibility tests include:
 An initial browser-based visual client is available at:
 
 - `/visual/facial?agentId={UUID}`
-- `/visual/nonverbal?agentId={UUID}`
+- `/nonverbal?agentId={UUID}`
 - `/visual/social?agentId={UUID}`
 
 Capabilities in this MVP:
@@ -272,7 +272,7 @@ What is implemented so far:
 
 An initial browser-based nonverbal behaviour renderer is available at:
 
-- `/visual/nonverbal?agentId={UUID}`
+- `/nonverbal?agentId={UUID}`
 
 Capabilities in this MVP:
 

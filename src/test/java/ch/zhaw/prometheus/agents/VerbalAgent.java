@@ -22,10 +22,10 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.repositories.AgentRepository;
-import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
-@Disabled("Manual seed test")
+// @Disabled("Manual seed test")
 class VerbalAgent {
 
         private static final String AGENT_NAME = "Wellness Navigator Verbal";
@@ -83,6 +83,10 @@ class VerbalAgent {
 
         @Autowired
         private AgentRepository repository;
+        @Autowired
+        private PromptMessageAssembler promptMessageAssembler;
+        @Autowired
+        private LanguageModelGateway languageModelGateway;
 
         @Test
         void seedAgent() {
@@ -126,7 +130,7 @@ class VerbalAgent {
                                 rapportBuildingState);
 
                 Agent agent = new Agent(AGENT_NAME, AGENT_DESCRIPTION, outerState, storage);
-                agent.start(new PolicyRuntime(new PromptMessageAssembler(), new NoOpLanguageModelGateway()));
+                agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
 
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());

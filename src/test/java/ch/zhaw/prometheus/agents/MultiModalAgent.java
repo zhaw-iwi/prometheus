@@ -21,7 +21,7 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.repositories.AgentRepository;
-import ch.zhaw.prometheus.spi.NoOpLanguageModelGateway;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
 // @Disabled("Manual seed test")
@@ -42,6 +42,10 @@ class MultiModalAgent {
                         Treat these as context clues, not facts.
                         If confidence is low (< 0.60), do not over-interpret the emotion.
                         If emotion cues and verbal content conflict, prioritize what the patient explicitly says.
+
+                        Assistant behaviour-plan events in history may sometimes have speech set to null.
+                        Treat those as intentional side-behaviour updates (for example nonverbal gesture cues), not as missing assistant replies.
+                        Use such side-behaviour entries only as context metadata.
                         """;
         private static final String PROMPT_OUTERSTATE_TRIGGER = """
                         Review the user's latest messages in the following conversation.
@@ -101,6 +105,10 @@ class MultiModalAgent {
 
         @Autowired
         private AgentRepository repository;
+        @Autowired
+        private PromptMessageAssembler promptMessageAssembler;
+        @Autowired
+        private LanguageModelGateway languageModelGateway;
 
         @Test
         void seedAgent() {
@@ -149,7 +157,7 @@ class MultiModalAgent {
                                 rapportBuildingState);
 
                 Agent agent = new Agent(AGENT_NAME, AGENT_DESCRIPTION, outerState, storage);
-                agent.start(new PolicyRuntime(new PromptMessageAssembler(), new NoOpLanguageModelGateway()));
+                agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
 
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());
