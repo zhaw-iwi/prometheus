@@ -22,6 +22,16 @@ public class StaticRedirectController {
         return redirectWithQuery("/visual/facial/index.html", request);
     }
 
+    @GetMapping({ "/visual/nonverbal", "/visual/nonverbal/" })
+    public String visualNonverbal(HttpServletRequest request) {
+        return redirectWithQuery("/visual/nonverbal/index.html", request);
+    }
+
+    @GetMapping({ "/visual/social", "/visual/social/" })
+    public String visualSocial(HttpServletRequest request) {
+        return redirectWithQuery("/visual/social/index.html", request);
+    }
+
     private String redirectWithQuery(String target, HttpServletRequest request) {
         String query = request.getQueryString();
         if (query == null || query.isBlank()) {

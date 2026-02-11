@@ -73,7 +73,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 
 - `/prompt` now uses the same injected `PromptMessageAssembler` instance used by runtime execution paths.
 - This guarantees that custom prompt adapters/augmenters are applied consistently in:
-  - `start/respond/tick` policy execution, and
+  - `start/generate` policy execution, and
   - realtime `/prompt` retrieval.
 
 ### 10. Regulation Lifecycle Reset Semantics
@@ -103,8 +103,6 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 - Optional runtime scheduler can tick active agents:
   - `prometheus.runtime.tick.enabled`
   - `prometheus.runtime.tick.delay-ms`
-- Manual one-cycle no-input endpoint:
-  - `POST /{agentId}/tick`
 - Agents can host a `RegulationSystem` (default is no-op).
 - `ZurichRegulationSystem` emits explicit internal events (e.g. `int.regulation.opportunity`).
 - `Agent.reset()` clears:
@@ -113,12 +111,17 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - regulation internal runtime state (if stateful),
   - latest modulation (back to neutral).
 - Monitor stream is SSE via `/{agentId}/monitor/stream`.
+- Behaviour stream is SSE via `/{agentId}/behaviour/stream`.
 - Log stream is SSE via `/logs/stream`.
 
 ## Behaviour + Prompt Pipeline
 
 - `Policy.onStart(...)` and `Policy.onRespond(...)` return `BehaviourPlan`.
 - `State` executes policy and returns response events; runtime persists them.
+- `PromptPolicy` now supports optional nonverbal gesture labeling via `nonVerbalGesturePrompt`:
+  - when configured, policy keeps normal speech generation and performs one additional label-selection call,
+  - selected label is stored in `BehaviourPlan.nonVerbal.gesture`,
+  - allowed labels: `OPEN_QUESTION`, `EXPLAIN`, `UNCERTAIN`, `ACKNOWLEDGE`, `POLITE`, `NONE`.
 - Prompt assembly now happens in the policy layer:
   - `PromptMessage` is the provider-agnostic prompt DTO (`role`, `content`),
   - `PromptMessageAssembler` builds prompt message lists from selected event histories,
@@ -128,7 +131,7 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
   - receives assembled `List<PromptMessage>`,
   - maps them to OpenAI payload messages,
   - performs API request/response handling.
-- Realtime and `/respond` now share the same prompt semantics:
+- Realtime and backend generation now share the same prompt semantics:
   - `/prompt` returns assembled `promptMessages` (not raw `systemPolicy` + `eventHistory`),
   - realtime client uses `promptMessages` directly as instruction context.
 - Prompt content mapping via policy-layer modality adapters:
@@ -151,7 +154,14 @@ A significant cleanup/refactor was completed after Iteration 5 to remove duplica
 - This supports transition/regulation logic on time-aware emotion facts while keeping raw events available.
 - Prompt assembly injects a compact nonverbal summary message derived from these temporal facts, for example:
   - `current`, `majority_recent`, `trend`, `negative_streak`, `events_since_change`
-- Current backend does not auto-trigger an LLM call per `acknowledge`; response generation is still controlled by client flow and/or tick/respond paths.
+- Current backend does not auto-trigger an LLM call per `acknowledge`; response generation is controlled by explicit generation paths such as `POST /{agentId}/behaviour/generate` plus backend-owned scheduler ticks.
+- `POST /{agentId}/behaviour/generate` accepts an optional JSON body with `omitModalities` (for example `["speech"]`) to blank selected channels in the generated `BehaviourPlan` before persistence and SSE publishing.
+- `POST /{agentId}/behaviour/generate` response semantics:
+  - `200 OK`: behaviour generated and emitted
+  - `409 Conflict`: no behaviour produced (for example inactive/final agent)
+  - `404 Not Found`: agent id unknown
+- Generated behaviour events are emitted as full `BehaviourPlan` payloads according to the active agent policy.
+- For `POST /agent/singlestate`, optional DTO field `stateNonVerbalGesturePrompt` enables gesture labeling for that created state policy.
 
 ## Event Model Notes
 
@@ -187,13 +197,15 @@ Web MVC compatibility tests include:
 - text chat endpoints
 - realtime acknowledge/prompt flow
 - monitor endpoints including SSE monitor stream
-- static redirect coverage for `/monitor`, `/realtime`, and `/visual/facial`
+- static redirect coverage for `/monitor`, `/realtime`, `/visual/facial`, and `/visual/social`
 
 ## Multimodal MVP: Visual Facial Client
 
 An initial browser-based visual client is available at:
 
 - `/visual/facial?agentId={UUID}`
+- `/visual/nonverbal?agentId={UUID}`
+- `/visual/social?agentId={UUID}`
 
 Capabilities in this MVP:
 
@@ -201,7 +213,7 @@ Capabilities in this MVP:
 - browser-side face + expression inference via `face-api.js`
 - derived emotion signal with simple valence/arousal estimation
 - throttled/hysteresis-based emission of observation events to avoid flooding
-- manual tick trigger for no-utterance evaluation testing
+- observation emission only (no behaviour generation trigger)
 
 Event emitted by this client:
 
@@ -210,9 +222,118 @@ Event emitted by this client:
 - `kind = observation`
 - `payload = JSON string` with emotion, confidence, valence, arousal, expression distribution, and timestamp
 
+## Multimodal MVP: Visual Social Client
+
+An initial browser-based social situation client is available at:
+
+- `/visual/social?agentId={UUID}`
+
+Capabilities in this MVP:
+
+- wide-scene webcam capture
+- browser-side person detection
+- lightweight ID tracking across frames
+- rule-based nearby group inference from person proximity
+- throttled/hysteresis-based observation emission to avoid flooding
+
+Events emitted by this client:
+
+- `type = obs.human.presence`
+- `type = obs.social.grouping`
+- `actor = user`
+- `kind = observation`
+- `payload = JSON string` with counts such as `humanCount`, `groupCount`, `singletonCount`, `largestGroupSize`, plus timestamp and tracking metadata
+
+What is implemented so far:
+
+- static route and redirect support: `/visual/social` -> `/visual/social/index.html`
+- browser-based person detection (`coco-ssd`) in the social visual client
+- lightweight frame-to-frame person tracking with stable short-lived IDs
+- proximity-based grouping heuristic (group and singleton derivation)
+- throttled change-based event emission to avoid flooding
+- backend event constants:
+  - `Event.TYPE_HUMAN_PRESENCE` (`obs.human.presence`)
+  - `Event.TYPE_SOCIAL_GROUPING` (`obs.social.grouping`)
+- snapshot aggregation support in `DefaultObservationSnapshotAggregator` for:
+  - `human_presence_total_count`
+  - `social_grouping_total_count`
+  - `social_current_human_count`
+  - `social_current_group_count`
+  - `social_current_singleton_count`
+  - `social_current_largest_group_size`
+  - `social_group_count_trend`
+- focused automated coverage:
+  - redirect coverage for `/visual/social`
+  - snapshot fact extraction assertions for social observations
+
+## Multimodal MVP: Visual Nonverbal Client
+
+An initial browser-based nonverbal behaviour renderer is available at:
+
+- `/visual/nonverbal?agentId={UUID}`
+
+Capabilities in this MVP:
+
+- subscribes to `/{agentId}/behaviour/stream` via SSE
+- reads `resp.behaviour_plan` events and parses `payload.nonVerbal`
+- maps gesture labels to emoji renderer output:
+  - `OPEN_QUESTION` -> open-question gesture emoji
+  - `EXPLAIN` -> explanatory-sweep gesture emoji
+  - `UNCERTAIN` -> uncertainty-shrug gesture emoji
+  - `ACKNOWLEDGE` -> acknowledgement-close-hands gesture emoji
+  - `POLITE` -> polite-apology gesture emoji
+- acts as a passive behaviour renderer (connect/disconnect stream only)
+
 LLM-facing interpretation for this event (current default):
 
 - mapped to concise text such as `User facial emotion: happy (confidence 0.83)` via `FaceEmotionPromptEventContentAdapter`
+
+## Future Work Priorities (Near-Term)
+
+This section tracks practical next steps that build directly on the current multimodal MVP baseline.
+
+### 1. Social Sensing Maturation
+
+- add camera-profile support for wide-angle/fisheye devices (for example Insta360) with configurable dewarp/crop regions
+- stabilize multi-person tracking across occlusions and rapid motion (ID persistence + confidence decay)
+- refine group inference beyond proximity only (orientation, dwell time, movement coherence)
+- introduce optional zone awareness (near/mid/far, left/center/right) in social observation payloads
+
+### 2. Event And Snapshot Contracts For Social Context
+
+- standardize payload schemas for:
+  - `obs.human.presence`
+  - `obs.social.grouping`
+  - future `obs.social.interaction`
+- extend snapshot facts for temporal social dynamics, for example:
+  - sustained crowding
+  - group split/merge frequency
+  - interaction persistence windows
+- define confidence and hysteresis conventions for social observations similar to facial emotion abstraction
+
+### 3. Prompt And Policy Integration
+
+- add social-event prompt content adapters so LLM prompts consume compact, stable social summaries instead of raw payloads
+- add context augmenters for social situation summaries (current counts + trends + recent changes)
+- provide policy examples where state transitions respond to social context (for example group-present vs. one-on-one modes)
+
+### 4. Multi-Actor Runtime Preparation
+
+- align social observation events with Iteration 8 goals (actor/group-scoped event semantics)
+- add selector patterns and tests for group-level retrieval in nested state paths
+- define authority boundaries for social interrupts versus task flow (to align with Iteration 6 policy gate work)
+
+### 5. Validation, Monitoring, And Replay
+
+- add deterministic test traces for social observation sequences (enter/leave, group formation, group split)
+- extend monitor UI to visualize social facts and event-rate diagnostics
+- add replay fixtures that include multimodal social + facial observations for regression checking
+
+### 6. Safety, Privacy, And Operational Guardrails
+
+- document data-minimization defaults (no raw image persistence in core runtime)
+- add configurable rate limits for high-density scenes to avoid event floods
+- add runtime toggles for social sensing modules to support graceful degradation on low-resource deployments
 
 Manual seed tests:
 
@@ -246,7 +367,6 @@ Manual seed tests:
 
 - scheduler/tick runtime source
 - `Agent.tick()` API
-- `POST /{agentId}/tick` endpoint
 
 ### Iteration 5 - Regulation Runtime Integration (done, core slice)
 
@@ -309,3 +429,4 @@ Manual seed tests:
 - Spring Boot entry point: `PrometheusApplication`
 - Maven artifact/name: `prometheus`
 - `spring.application.name=prometheus` configured in template/prod properties
+

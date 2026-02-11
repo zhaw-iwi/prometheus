@@ -29,6 +29,13 @@ public class DefaultObservationSnapshotAggregator implements SnapshotAggregator 
     public static final String FACT_FACE_EMOTION_VALENCE_TREND = "face_emotion_valence_trend";
     public static final String FACT_FACE_EMOTION_VALENCE_VOLATILITY = "face_emotion_valence_volatility";
     public static final String FACT_FACE_EMOTION_EVENTS_SINCE_CHANGE = "face_emotion_events_since_change";
+    public static final String FACT_HUMAN_PRESENCE_TOTAL_COUNT = "human_presence_total_count";
+    public static final String FACT_SOCIAL_GROUPING_TOTAL_COUNT = "social_grouping_total_count";
+    public static final String FACT_SOCIAL_CURRENT_HUMAN_COUNT = "social_current_human_count";
+    public static final String FACT_SOCIAL_CURRENT_GROUP_COUNT = "social_current_group_count";
+    public static final String FACT_SOCIAL_CURRENT_SINGLETON_COUNT = "social_current_singleton_count";
+    public static final String FACT_SOCIAL_CURRENT_LARGEST_GROUP_SIZE = "social_current_largest_group_size";
+    public static final String FACT_SOCIAL_GROUP_COUNT_TREND = "social_group_count_trend";
 
     public static final DefaultObservationSnapshotAggregator INSTANCE = new DefaultObservationSnapshotAggregator();
 
@@ -68,6 +75,7 @@ public class DefaultObservationSnapshotAggregator implements SnapshotAggregator 
             extractor.extract(events).ifPresent(facts::add);
         }
         this.addTemporalFaceEmotionFacts(source, facts);
+        this.addSocialSituationFacts(source, facts);
         return new ObservationSnapshot(source.size(), facts);
     }
 
@@ -205,6 +213,106 @@ public class DefaultObservationSnapshotAggregator implements SnapshotAggregator 
         return sum / samples.size();
     }
 
+    private void addSocialSituationFacts(List<Event> source, List<Fact> facts) {
+        List<SocialPresenceSample> presence = source.stream()
+                .filter(event -> event != null && Event.TYPE_HUMAN_PRESENCE.equals(event.getType()))
+                .map(this::toSocialPresenceSample)
+                .filter(sample -> sample != null)
+                .toList();
+        List<SocialGroupingSample> grouping = source.stream()
+                .filter(event -> event != null && Event.TYPE_SOCIAL_GROUPING.equals(event.getType()))
+                .map(this::toSocialGroupingSample)
+                .filter(sample -> sample != null)
+                .toList();
+
+        facts.add(Fact.of(FACT_HUMAN_PRESENCE_TOTAL_COUNT, presence.size(), 1.0d, List.of()));
+        facts.add(Fact.of(FACT_SOCIAL_GROUPING_TOTAL_COUNT, grouping.size(), 1.0d, List.of()));
+        if (grouping.isEmpty()) {
+            return;
+        }
+
+        SocialGroupingSample current = grouping.get(grouping.size() - 1);
+        facts.add(Fact.of(FACT_SOCIAL_CURRENT_HUMAN_COUNT, current.humanCount, 1.0d, List.of()));
+        facts.add(Fact.of(FACT_SOCIAL_CURRENT_GROUP_COUNT, current.groupCount, 1.0d, List.of()));
+        facts.add(Fact.of(FACT_SOCIAL_CURRENT_SINGLETON_COUNT, current.singletonCount, 1.0d, List.of()));
+        facts.add(Fact.of(FACT_SOCIAL_CURRENT_LARGEST_GROUP_SIZE, current.largestGroupSize, 1.0d, List.of()));
+        facts.add(Fact.of(FACT_SOCIAL_GROUP_COUNT_TREND, groupCountTrend(grouping), 1.0d, List.of()));
+    }
+
+    private SocialPresenceSample toSocialPresenceSample(Event event) {
+        if (event.getPayload() == null || event.getPayload().isBlank()) {
+            return null;
+        }
+        try {
+            JsonObject payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+            int humanCount = readInt(payload, "humanCount", 0);
+            int trackedCount = readInt(payload, "trackedCount", humanCount);
+            return new SocialPresenceSample(humanCount, trackedCount);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private SocialGroupingSample toSocialGroupingSample(Event event) {
+        if (event.getPayload() == null || event.getPayload().isBlank()) {
+            return null;
+        }
+        try {
+            JsonObject payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+            int humanCount = readInt(payload, "humanCount", 0);
+            int groupCount = readInt(payload, "groupCount", 0);
+            int singletonCount = readInt(payload, "singletonCount", 0);
+            int largestGroupSize = readInt(payload, "largestGroupSize", 0);
+            return new SocialGroupingSample(humanCount, groupCount, singletonCount, largestGroupSize);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private static int readInt(JsonObject payload, String key, int fallback) {
+        if (payload == null || key == null || !payload.has(key) || payload.get(key).isJsonNull()) {
+            return fallback;
+        }
+        try {
+            return payload.get(key).getAsInt();
+        } catch (Exception exception) {
+            return fallback;
+        }
+    }
+
+    private static String groupCountTrend(List<SocialGroupingSample> grouping) {
+        if (grouping.size() < 2) {
+            return "stable";
+        }
+        int mid = grouping.size() / 2;
+        double early = averageGroupCount(grouping.subList(0, mid));
+        double late = averageGroupCount(grouping.subList(mid, grouping.size()));
+        if (late > early) {
+            return "increasing";
+        }
+        if (late < early) {
+            return "decreasing";
+        }
+        return "stable";
+    }
+
+    private static double averageGroupCount(List<SocialGroupingSample> grouping) {
+        if (grouping == null || grouping.isEmpty()) {
+            return 0.0d;
+        }
+        double sum = 0.0d;
+        for (SocialGroupingSample sample : grouping) {
+            sum += sample.groupCount;
+        }
+        return sum / grouping.size();
+    }
+
     private record FaceEmotionSample(String emotion, double confidence, double valence) {
+    }
+
+    private record SocialPresenceSample(int humanCount, int trackedCount) {
+    }
+
+    private record SocialGroupingSample(int humanCount, int groupCount, int singletonCount, int largestGroupSize) {
     }
 }
