@@ -25,7 +25,7 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
-// @Disabled("Manual seed test")
+@Disabled("Manual seed test")
 class VerbalAgent {
 
         private static final String AGENT_NAME = "Wellness Navigator Verbal";
