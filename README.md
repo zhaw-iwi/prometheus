@@ -2,20 +2,20 @@
 
 PROMETHEUS is an event-driven Java framework for building digital agents with explicit state-machine control and a first-class regulation layer.
 
-It evolves the PROMISE approach from turn-based text interaction into multimodal, behaviour-plan based orchestration while keeping transitions, guards, and actions explicit and testable.
+It evolves the PROMISE approach from turn-based text interaction into multimodal sensing and multimodal behaviour while keeping transitions, guards, and actions explicit and testable.
 
 ## What You Can Build
 
 - Text-first conversational agents with explicit states and transitions.
 - Multimodal agents that combine user utterances with nonverbal observations.
 - Realtime voice agents where PROMETHEUS orchestrates prompts and state while OpenAI Realtime handles low-latency audio I/O.
-- Monitorable agents with live SSE streams for state snapshots, behaviour events, and logs.
+- Monitorable agents with live SSE streams for state snapshots, muultimodal behaviour events, and logs.
 
 ## Core Concepts
 
 - `Event`: unified input and internal signal model (observations, responses, control events).
 - `State` and `Transition`: explicit control with prompt-based decisions and actions.
-- `BehaviourPlan`: structured output across modalities (`speech`, `nonVerbal`, `motion`, `display`).
+- `BehaviourPlan`: structured output across behaviour modalities (`speech`, `nonVerbal`, `motion`, `display`).
 - `Storage`: per-agent key-value memory shared across states.
 - `OuterState`: hierarchical control across nested state machines.
 - Regulation and policy runtime: modulation is explicit and bounded by control semantics.
@@ -90,12 +90,12 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 
 All clients take `?agentId=<uuid>`.
 
-- Chat: `http://localhost:8080/?agentId=<uuid>`
-- Monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
-- Realtime voice: `http://localhost:8080/realtime/?agentId=<uuid>`
-- Nonverbal stream view: `http://localhost:8080/nonverbal/?agentId=<uuid>`
-- Visual facial view: `http://localhost:8080/visual/facial/?agentId=<uuid>`
-- Visual social view: `http://localhost:8080/visual/social/?agentId=<uuid>`
+- Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
+- Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
+- Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
+- Visual facial detector: `http://localhost:8080/visual/facial/?agentId=<uuid>`
+- Visual social detector: `http://localhost:8080/visual/social/?agentId=<uuid>`
+- Nonverbal behaviour renderer: `http://localhost:8080/nonverbal/?agentId=<uuid>`
 - Multilateral listen: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/?agentId=<uuid>`
 
