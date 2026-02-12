@@ -343,6 +343,35 @@ Manual seed tests:
 - `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
 - intentionally `@Disabled` and run manually for seeding
 
+## Deterministic Multimodal Replay (Scripted Gateway)
+
+To support deterministic multimodal regression testing (without manual speaking/facial/social setup), a scripted gateway mode is now available.
+
+### Script fixture
+
+- `src/main/resources/scripts/multimodal-replay-script.json`
+- `src/main/resources/scripts/transition-decision-action-replay-script.json`
+- single source of truth for:
+  - replay input steps (`start`, `acknowledge`, `generate`)
+  - expected behaviour plans (speech + nonverbal)
+  - deterministic `LanguageModelGateway` call responses
+
+### Gateway selection
+
+- `prometheus.gateway.mode=openai` (default if missing): `OpenAILanguageModelGateway`
+- `prometheus.gateway.mode=scripted`: `ScriptedLanguageModelGateway`
+- scripted gateway script location:
+  - `prometheus.gateway.script=classpath:scripts/multimodal-replay-script.json`
+
+### Integration replay test
+
+- `src/test/java/ch/zhaw/prometheus/integration/MultimodalScriptReplayIntegrationTest.java`
+- `src/test/java/ch/zhaw/prometheus/integration/TransitionDecisionActionReplayIntegrationTest.java`
+- boots Spring with scripted gateway test properties
+- replays script through HTTP endpoints (`/{agentId}/start`, `/{agentId}/acknowledge`, `/{agentId}/behaviour/generate`)
+- verifies expected assistant behaviours via `/{agentId}/behaviour/stream` SSE output
+- transition replay also verifies deterministic state progression (`/{agentId}/state`) and extraction-action storage effects (`/{agentId}/storage`)
+
 ## Iteration Summary
 
 ### Iteration 1 - Event-Based Interaction (done)

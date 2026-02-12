@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.ExclusionStrategy;
@@ -24,6 +25,7 @@ import com.google.gson.JsonObject;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 @Component
+@ConditionalOnProperty(name = "prometheus.gateway.mode", havingValue = "openai", matchIfMissing = true)
 public class OpenAILanguageModelGateway implements LanguageModelGateway {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenAILanguageModelGateway.class);
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();

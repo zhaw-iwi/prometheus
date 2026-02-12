@@ -1,0 +1,158 @@
+{
+  "name": "transition_decision_action_replay_v1",
+  "steps": [
+    {
+      "id": "start-rapport",
+      "action": "start",
+      "expectedBehaviour": {
+        "speech": "Hi, what is one thing you want support with today?",
+        "nonVerbal": {
+          "gesture": "OPEN_QUESTION"
+        }
+      }
+    },
+    {
+      "id": "ack-smalltalk-no-transition",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "I just wanted to say hello first."
+      }
+    },
+    {
+      "id": "assert-still-rapport",
+      "action": "assertState",
+      "expectedState": "Rapport"
+    },
+    {
+      "id": "generate-rapport-followup",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Good to hear from you. If you want, tell me one concrete challenge for today.",
+        "nonVerbal": {
+          "gesture": "ACKNOWLEDGE"
+        }
+      }
+    },
+    {
+      "id": "ack-goal-transition-to-planning",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "My challenge is stress from two deadlines, and I need a concrete plan."
+      }
+    },
+    {
+      "id": "assert-planning-state",
+      "action": "assertState",
+      "expectedState": "Planning"
+    },
+    {
+      "id": "assert-goal-storage",
+      "action": "assertStorage",
+      "expectedStorage": [
+        {
+          "key": "GoalDetected",
+          "contains": "\"goal\":\"manage deadline stress\""
+        },
+        {
+          "key": "GoalDetected",
+          "contains": "\"urgency\":\"high\""
+        }
+      ]
+    },
+    {
+      "id": "generate-planning-starter",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately.",
+        "nonVerbal": {
+          "gesture": "EXPLAIN"
+        }
+      }
+    },
+    {
+      "id": "ack-ready-finish",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Thanks, I have my plan and I am ready to end."
+      }
+    },
+    {
+      "id": "assert-final-state",
+      "action": "assertState",
+      "expectedState": "FinalWrapUp"
+    },
+    {
+      "id": "generate-final-starter",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Excellent work today. Run your first 15-minute task now, and we can review progress in the next session.",
+        "nonVerbal": {
+          "gesture": "POLITE"
+        }
+      }
+    }
+  ],
+  "gatewayCalls": [
+    {
+      "method": "complete",
+      "value": "Hi, what is one thing you want support with today?"
+    },
+    {
+      "method": "complete",
+      "value": "OPEN_QUESTION"
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Good to hear from you. If you want, tell me one concrete challenge for today."
+    },
+    {
+      "method": "complete",
+      "value": "ACKNOWLEDGE"
+    },
+    {
+      "method": "decide",
+      "value": true
+    },
+    {
+      "method": "extract",
+      "value": {
+        "goal": "manage deadline stress",
+        "urgency": "high",
+        "next_step": "start earliest deadline with 15-minute focus block"
+      }
+    },
+    {
+      "method": "complete",
+      "value": "Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately."
+    },
+    {
+      "method": "complete",
+      "value": "EXPLAIN"
+    },
+    {
+      "method": "decide",
+      "value": true
+    },
+    {
+      "method": "complete",
+      "value": "Excellent work today. Run your first 15-minute task now, and we can review progress in the next session."
+    },
+    {
+      "method": "complete",
+      "value": "POLITE"
+    }
+  ]
+}
