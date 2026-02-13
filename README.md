@@ -9,7 +9,54 @@ It evolves the PROMISE approach from turn-based text interaction into multimodal
 - Text-first conversational agents with explicit states and transitions.
 - Multimodal agents that combine user utterances with nonverbal observations.
 - Realtime voice agents where PROMETHEUS orchestrates prompts and state while OpenAI Realtime handles low-latency audio I/O.
-- Monitorable agents with live SSE streams for state snapshots, muultimodal behaviour events, and logs.
+- Monitorable agents with live SSE streams for state snapshots, multimodal behaviour events, and logs.
+
+## Clients (Quick Tour)
+
+All clients take `?agentId=<uuid>`.
+For the complete list including multilateral endpoints, see `All Client Endpoints` below.
+
+### Text Client
+
+- URL: `http://localhost:8080/?agentId=<uuid>`
+- Purpose: text-first conversational interaction with the agent.
+
+![Text client screenshot](.readme/client-text.png)
+
+### Realtime Client
+
+- URL: `http://localhost:8080/realtime/?agentId=<uuid>`
+- Purpose: low-latency voice interaction via OpenAI Realtime.
+
+![Realtime client screenshot](.readme/client-realtime.png)
+
+### Monitor Client
+
+- URL: `http://localhost:8080/monitor/?agentId=<uuid>`
+- Purpose: live runtime visibility (state snapshots, behaviour events, logs).
+
+![Monitor client screenshot](.readme/client-monitor.png)
+
+### Visual Facial Client
+
+- URL: `http://localhost:8080/visual/facial/?agentId=<uuid>`
+- Purpose: visual/facial rendering channel for multimodal output.
+
+![Visual facial client screenshot](.readme/client-visual-facial.png)
+
+### Visual Social Client
+
+- URL: `http://localhost:8080/visual/social/?agentId=<uuid>`
+- Purpose: social visual presentation channel for multimodal output.
+
+![Visual social client screenshot](.readme/client-visual-social.png)
+
+### Nonverbal Behaviour Renderer
+
+- URL: `http://localhost:8080/nonverbal/?agentId=<uuid>`
+- Purpose: dedicated nonverbal behaviour stream rendering.
+
+![Nonverbal behaviour renderer screenshot](.readme/client-nonverbal-renderer.png)
 
 ## Core Concepts
 
@@ -86,7 +133,7 @@ These are marked `@Disabled("Manual seed test")`. To use them:
 
 Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/main/java/ch/zhaw/prometheus/controllers/dto/SingleStateAgentCreateDTO.java`).
 
-## Built-in Clients
+## All Client Endpoints
 
 All clients take `?agentId=<uuid>`.
 
