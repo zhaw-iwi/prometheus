@@ -4,6 +4,20 @@ PROMETHEUS is an event-driven Java framework for building digital agents with ex
 
 It evolves the PROMISE approach from turn-based text interaction into multimodal sensing and multimodal behaviour while keeping transitions, guards, and actions explicit and testable.
 
+## Why, What, How
+
+### Why
+
+Many agent systems still assume turn-based chat: user says something, agent replies. That model breaks in real environments where agents must interpret voice, visual, social, and system signals continuously, decide when to act proactively, and sometimes stay silent, yield, or disengage safely.
+
+### What
+
+PROMETHEUS is an event-driven, regulation-aware framework for engineering multimodal agents with explicit control. It combines inspectable state-machine task logic with first-class regulation, so behaviour can adapt to context without becoming opaque or unpredictable.
+
+### How
+
+PROMETHEUS models all inputs as `Event` objects and all outputs as structured `BehaviourPlan` objects (`speech`, `nonVerbal`, `motion`, `display`). State transitions, guards, and actions remain explicit and testable, while regulation modules modulate expression and emit bounded control signals (for example opportunities and interrupts). This unified model supports use cases from conversational check-ins to embodied assistance and ambient monitoring.
+
 ## What You Can Build
 
 - Digital agents with two-layer behaviour control: state-machine interaction flow plus regulation inspired by motivational models for adaptive behavior.
