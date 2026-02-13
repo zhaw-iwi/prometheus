@@ -6,10 +6,9 @@ It evolves the PROMISE approach from turn-based text interaction into multimodal
 
 ## What You Can Build
 
-- Text-first conversational agents with explicit states and transitions.
-- Multimodal agents that combine user utterances with nonverbal observations.
-- Realtime voice agents where PROMETHEUS orchestrates prompts and state while OpenAI Realtime handles low-latency audio I/O.
-- Monitorable agents with live SSE streams for state snapshots, multimodal behaviour events, and logs.
+- Digital agents with two-layer behaviour control: state-machine interaction flow plus regulation inspired by motivational models for adaptive behavior.
+- Multimodal agents that combine user utterances with nonverbal observations (e.g., facial expressions, heart rate variability, gaze, social context) and nonverbal agent behaviours (e.g., gestures, position, orientation, gaze).
+- Embodied AI scenarios such as virtual avatars and robotic systems.
 
 ## Clients (Quick Tour)
 
