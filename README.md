@@ -4,8 +4,6 @@ PROMETHEUS is an event-driven Java framework for building digital agents with ex
 
 It evolves the PROMISE approach from turn-based text interaction into multimodal sensing and multimodal behaviour while keeping transitions, guards, and actions explicit and testable.
 
-## Why, What, How
-
 ### Why
 
 Many agent systems still assume turn-based chat: user says something, agent replies. That model breaks in real environments where agents must interpret voice, visual, social, and system signals continuously, decide when to act proactively, and sometimes stay silent, yield, or disengage safely.
@@ -91,7 +89,7 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 
 ### 1. Prerequisites
 
-- JDK 21 (`java -version`)
+- JDK (`java -version`)
 - MySQL running locally
 
 ### 2. Configure properties
