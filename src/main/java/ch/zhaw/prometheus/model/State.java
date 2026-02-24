@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
@@ -230,7 +231,12 @@ public class State extends PersistedNode {
     }
 
     public String getTotalPolicy(Policy outerPolicy) {
-        return this.resolvePolicy(outerPolicy).describe();
+        return this.getTotalPolicy(outerPolicy, OutputProfile.FULL_PLAN);
+    }
+
+    public String getTotalPolicy(Policy outerPolicy, OutputProfile outputProfile) {
+        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        return this.resolvePolicy(outerPolicy).describe(resolved);
     }
 
     public PolicyResult getPolicyBundle() {
@@ -242,7 +248,12 @@ public class State extends PersistedNode {
     }
 
     public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler) {
-        String totalPrompt = this.getTotalPolicy(outerPolicy);
+        return this.getPolicyBundle(outerPolicy, promptMessageAssembler, OutputProfile.FULL_PLAN);
+    }
+
+    public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler,
+            OutputProfile outputProfile) {
+        String totalPrompt = this.getTotalPolicy(outerPolicy, outputProfile);
         PromptMessageAssembler assembler = promptMessageAssembler == null ? new PromptMessageAssembler()
                 : promptMessageAssembler;
         List<PromptMessage> promptMessages = assembler.compose(this.getEventHistory(),
@@ -275,7 +286,7 @@ public class State extends PersistedNode {
     private Event executeStart(Policy outerPolicy, PolicyRuntime runtime) {
         Policy policy = this.resolvePolicy(outerPolicy);
         BehaviourPlan behaviourPlan = policy.onStart(this, this.getEventHistory(), runtime.promptMessageAssembler(),
-                runtime.languageModelGateway());
+                runtime.languageModelGateway(), runtime.outputProfile());
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
@@ -287,7 +298,7 @@ public class State extends PersistedNode {
     private Event executeResponse(Policy outerPolicy, PolicyRuntime runtime) {
         Policy policy = this.resolvePolicy(outerPolicy);
         BehaviourPlan behaviourPlan = policy.onRespond(this, this.getEventHistory(),
-                runtime.promptMessageAssembler(), runtime.languageModelGateway());
+                runtime.promptMessageAssembler(), runtime.languageModelGateway(), runtime.outputProfile());
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }

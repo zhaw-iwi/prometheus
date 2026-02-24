@@ -12,6 +12,7 @@ import com.google.gson.JsonParser;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
@@ -115,35 +116,35 @@ public class PromptPolicy extends Policy {
     @Override
     public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {
+        return this.onStart(state, events, assembler, languageModelGateway, OutputProfile.FULL_PLAN);
+    }
+
+    @Override
+    public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway, OutputProfile outputProfile) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
         List<PromptMessage> messages = assembler.compose(events, prompt, this.starterPrompt);
-        String speech = languageModelGateway.complete(messages);
-        if (speech == null || speech.isBlank()) {
-            return null;
-        }
-        BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
-        plan.setNonVerbal(resolveNonVerbalGesture(speech, languageModelGateway));
-        return plan;
+        return this.producePlan(messages, languageModelGateway, events, outputProfile);
     }
 
     @Override
     public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {
+        return this.onRespond(state, events, assembler, languageModelGateway, OutputProfile.FULL_PLAN);
+    }
+
+    @Override
+    public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway, OutputProfile outputProfile) {
         String prompt = resolvePrompt();
         if (prompt.isEmpty()) {
             return null;
         }
         List<PromptMessage> messages = assembler.compose(events, prompt);
-        String speech = languageModelGateway.complete(messages);
-        if (speech == null || speech.isBlank()) {
-            return null;
-        }
-        BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
-        plan.setNonVerbal(resolveNonVerbalGesture(speech, languageModelGateway));
-        return plan;
+        return this.producePlan(messages, languageModelGateway, events, outputProfile);
     }
 
     @Override
@@ -158,7 +159,88 @@ public class PromptPolicy extends Policy {
 
     @Override
     public String describe() {
-        return resolvePrompt();
+        return this.describe(OutputProfile.FULL_PLAN);
+    }
+
+    @Override
+    public String describe(OutputProfile outputProfile) {
+        String basePrompt = resolvePrompt();
+        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        String contract = switch (resolved) {
+            case REALTIME_SPEECH ->
+                "Output contract: respond with natural spoken assistant text only. Do not output JSON, code blocks, or schema wrappers.";
+            case BACKEND_COMPLEMENT ->
+                "Output contract: produce non-speech behaviour only as compact JSON with keys from {nonVerbal,motion,display}. Never include speech.";
+            case FULL_PLAN -> "";
+        };
+        if (contract.isBlank()) {
+            return basePrompt;
+        }
+        if (basePrompt == null || basePrompt.isBlank()) {
+            return contract;
+        }
+        return (basePrompt + " " + contract).trim();
+    }
+
+    private BehaviourPlan producePlan(List<PromptMessage> messages, LanguageModelGateway languageModelGateway,
+            EventHistory events, OutputProfile outputProfile) {
+        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        return switch (resolved) {
+            case REALTIME_SPEECH -> buildRealtimeSpeechPlan(messages, languageModelGateway);
+            case BACKEND_COMPLEMENT -> buildBackendComplementPlan(events, languageModelGateway);
+            case FULL_PLAN -> buildFullPlan(messages, languageModelGateway);
+        };
+    }
+
+    private BehaviourPlan buildRealtimeSpeechPlan(List<PromptMessage> messages, LanguageModelGateway languageModelGateway) {
+        String speech = languageModelGateway.complete(messages);
+        if (speech == null || speech.isBlank()) {
+            return null;
+        }
+        return BehaviourPlan.speechOnly(speech);
+    }
+
+    private BehaviourPlan buildFullPlan(List<PromptMessage> messages, LanguageModelGateway languageModelGateway) {
+        String speech = languageModelGateway.complete(messages);
+        if (speech == null || speech.isBlank()) {
+            return null;
+        }
+        BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
+        plan.setNonVerbal(resolveNonVerbalGesture(speech, languageModelGateway));
+        return plan;
+    }
+
+    private BehaviourPlan buildBackendComplementPlan(EventHistory events, LanguageModelGateway languageModelGateway) {
+        String assistantSpeech = latestAssistantSpeech(events);
+        if (assistantSpeech == null || assistantSpeech.isBlank()) {
+            return null;
+        }
+        BehaviourPlan plan = new BehaviourPlan();
+        plan.setNonVerbal(resolveNonVerbalGesture(assistantSpeech, languageModelGateway));
+        return plan.isEmpty() ? null : plan;
+    }
+
+    private static String latestAssistantSpeech(EventHistory events) {
+        if (events == null || events.isEmpty()) {
+            return null;
+        }
+        List<Event> history = events.toList();
+        for (int i = history.size() - 1; i >= 0; i--) {
+            Event event = history.get(i);
+            if (event == null || !Event.ACTOR_ASSISTANT.equals(event.getActor())) {
+                continue;
+            }
+            if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
+                BehaviourPlan plan = BehaviourPlan.fromJson(event.getPayload());
+                if (plan != null && plan.getSpeech() != null && !plan.getSpeech().isBlank()) {
+                    return plan.getSpeech();
+                }
+            }
+            if (event.getPayload() != null && !event.getPayload().isBlank()) {
+                return event.getPayload();
+            }
+        }
+        return null;
     }
 
     @Override

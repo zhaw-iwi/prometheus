@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import jakarta.persistence.CascadeType;
@@ -105,8 +106,13 @@ public class OuterState extends State {
 
     @Override
     public String getTotalPolicy(Policy outerPolicy) {
+        return this.getTotalPolicy(outerPolicy, OutputProfile.FULL_PLAN);
+    }
+
+    @Override
+    public String getTotalPolicy(Policy outerPolicy, OutputProfile outputProfile) {
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        return this.innerCurrent.getTotalPolicy(totalPolicy);
+        return this.innerCurrent.getTotalPolicy(totalPolicy, outputProfile);
     }
 
     @Override
@@ -116,8 +122,14 @@ public class OuterState extends State {
 
     @Override
     public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler) {
+        return this.getPolicyBundle(outerPolicy, promptMessageAssembler, OutputProfile.FULL_PLAN);
+    }
+
+    @Override
+    public PolicyResult getPolicyBundle(Policy outerPolicy, PromptMessageAssembler promptMessageAssembler,
+            OutputProfile outputProfile) {
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        return this.innerCurrent.getPolicyBundle(totalPolicy, promptMessageAssembler);
+        return this.innerCurrent.getPolicyBundle(totalPolicy, promptMessageAssembler, outputProfile);
     }
 
     @Override

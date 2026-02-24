@@ -26,10 +26,24 @@ public abstract class Policy extends PersistedNode {
     public abstract BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway);
 
+    public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway, OutputProfile outputProfile) {
+        return this.onStart(state, events, assembler, languageModelGateway);
+    }
+
+    public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
+            LanguageModelGateway languageModelGateway, OutputProfile outputProfile) {
+        return this.onRespond(state, events, assembler, languageModelGateway);
+    }
+
     public abstract String summarise(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway);
 
     public abstract String describe();
+
+    public String describe(OutputProfile outputProfile) {
+        return this.describe();
+    }
 
     public boolean decide(EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway languageModelGateway) {
         throw new UnsupportedOperationException("Policy does not support decisions.");

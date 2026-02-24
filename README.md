@@ -132,6 +132,7 @@ Templates:
 
 - `src/test/java/ch/zhaw/prometheus/agents/VerbalAgent.java`
 - `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
+- `src/test/java/ch/zhaw/prometheus/agents/RealtimeMultimodalAgent.java`
 
 These are marked `@Disabled("Manual seed test")`. To use them:
 
@@ -179,7 +180,7 @@ All clients take `?agentId=<uuid>`.
 
 ### Realtime and event ingress
 
-- `GET /{agentID}/prompt`
+- `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
 - `POST /{agentID}/acknowledge`
 - `POST /realtime/session`
 
@@ -187,6 +188,7 @@ All clients take `?agentId=<uuid>`.
 
 - `GET /{agentID}/monitor/stream`
 - `GET /{agentID}/behaviour/stream`
+- `POST /{agentID}/behaviour/generate` (optional body: `omitModalities`, `outputProfile`)
 - `GET /logs/stream`
 
 ## Developer Workflow for New Agents
@@ -221,7 +223,11 @@ Assistant behaviour plan events use:
 - Browser obtains an ephemeral secret from `POST /realtime/session`.
 - Realtime client sends transcript-derived events to `/{agentID}/acknowledge`.
 - PROMETHEUS returns orchestration prompt bundles via `/{agentID}/prompt`.
+  - Use `/{agentID}/prompt?profile=REALTIME_SPEECH` for OpenAI Realtime instruction setup to avoid JSON-style behaviour-plan output.
 - Assistant outputs are stored as behaviour-plan events.
+- To complement realtime speech with nonverbal backend output, call:
+  - `POST /{agentID}/behaviour/generate`
+  - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`
 
 For Python exploration, see `PROMISE_Realtime.ipynb`.
 

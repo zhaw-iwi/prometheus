@@ -36,6 +36,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @SuppressWarnings("null")
 @WebMvcTest(controllers = { AgentController.class, AgentControllerRealtime.class, AgentMonitorController.class,
@@ -62,8 +63,10 @@ class AgentClientCompatibilityWebMvcTest {
         when(this.agentService.start(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
         when(this.agentService.reset(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
         when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any())).thenReturn(true);
-        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull())).thenReturn(BehaviourGenerationOutcome.GENERATED);
-        when(this.agentService.generate(eq(TEST_AGENT_ID), any())).thenReturn(BehaviourGenerationOutcome.GENERATED);
+        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
+                .thenReturn(BehaviourGenerationOutcome.GENERATED);
+        when(this.agentService.generate(eq(TEST_AGENT_ID), any(), any()))
+                .thenReturn(BehaviourGenerationOutcome.GENERATED);
 
         when(this.agentService.getAgentEventHistory(TEST_AGENT_ID)).thenReturn(Optional.of(List.of(
                 startEvent,
@@ -78,7 +81,10 @@ class AgentClientCompatibilityWebMvcTest {
                 PromptMessage.system("system prompt"),
                 PromptMessage.assistant("Hello, I am ready when you are."),
                 PromptMessage.user("I feel good today")));
-        when(this.agentService.prompt(TEST_AGENT_ID)).thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
+        when(this.agentService.prompt(TEST_AGENT_ID, OutputProfile.FULL_PLAN))
+                .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
+        when(this.agentService.prompt(TEST_AGENT_ID, OutputProfile.REALTIME_SPEECH))
+                .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
         when(this.agentService.getAgentInfo(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentInfoView(TEST_AGENT_ID, "Example Conversational Agent",
                         "Test fixture agent for chat, realtime, and monitor compatibility checks.", true)));
@@ -214,7 +220,7 @@ class AgentClientCompatibilityWebMvcTest {
 
     @Test
     void behaviourGenerateReturnsConflictWhenNoBehaviourProduced() throws Exception {
-        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull()))
+        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
                 .thenReturn(BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED);
 
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate"))
@@ -223,10 +229,28 @@ class AgentClientCompatibilityWebMvcTest {
 
     @Test
     void behaviourGenerateReturnsNotFoundWhenAgentMissing() throws Exception {
-        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull()))
+        when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
                 .thenReturn(BehaviourGenerationOutcome.AGENT_NOT_FOUND);
 
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void promptReturnsBadRequestForUnknownProfile() throws Exception {
+        this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/prompt?profile=unknown_profile"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void behaviourGenerateReturnsBadRequestForUnknownOutputProfile() throws Exception {
+        this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "outputProfile":"no_such_profile"
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
     }
 }

@@ -35,6 +35,7 @@ import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -128,12 +129,17 @@ public class AgentApplicationService {
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities) {
+        return this.generate(agentID, omitModalities, OutputProfile.FULL_PLAN);
+    }
+
+    public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
             return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
         }
         Agent agent = agentMaybe.get();
-        Event response = agent.generate(this.runtime());
+        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        Event response = agent.generate(this.runtime(resolvedProfile));
         if (response == null) {
             return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
         }
@@ -169,12 +175,18 @@ public class AgentApplicationService {
     }
 
     public Optional<PolicyResponseView> prompt(UUID agentID) {
+        return this.prompt(agentID, OutputProfile.FULL_PLAN);
+    }
+
+    public Optional<PolicyResponseView> prompt(UUID agentID, OutputProfile outputProfile) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
             return Optional.empty();
         }
         Agent agent = agentMaybe.get();
-        return Optional.of(new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler), agent.isActive()));
+        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        return Optional.of(
+                new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler, resolvedProfile), agent.isActive()));
     }
 
     public Optional<SseEmitter> subscribeMonitor(UUID agentID) {
@@ -297,7 +309,12 @@ public class AgentApplicationService {
     }
 
     public PolicyRuntime runtime() {
-        return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway);
+        return this.runtime(OutputProfile.FULL_PLAN);
+    }
+
+    public PolicyRuntime runtime(OutputProfile outputProfile) {
+        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway, resolved);
     }
 }
 

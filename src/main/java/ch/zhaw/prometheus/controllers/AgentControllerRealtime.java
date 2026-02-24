@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @RestController
 public class AgentControllerRealtime {
@@ -23,11 +25,16 @@ public class AgentControllerRealtime {
     }
 
     @GetMapping("{agentID}/prompt")
-    public ResponseEntity<PolicyResponseView> prompt(@PathVariable UUID agentID) {
+    public ResponseEntity<PolicyResponseView> prompt(@PathVariable UUID agentID,
+            @RequestParam(required = false) String profile) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        var prompt = this.agentService.prompt(agentID);
+        OutputProfile outputProfile = OutputProfile.fromNullable(profile);
+        if (outputProfile == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        var prompt = this.agentService.prompt(agentID, outputProfile);
         if (prompt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }

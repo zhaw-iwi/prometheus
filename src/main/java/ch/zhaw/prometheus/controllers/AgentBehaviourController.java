@@ -15,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.application.BehaviourGenerationOutcome;
 import ch.zhaw.prometheus.controllers.views.BehaviourGenerateRequest;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @RestController
 public class AgentBehaviourController {
@@ -36,8 +37,13 @@ public class AgentBehaviourController {
     @PostMapping(path = "{agentID}/behaviour/generate")
     public ResponseEntity<Void> generate(@PathVariable UUID agentID,
             @RequestBody(required = false) BehaviourGenerateRequest request) {
+        OutputProfile outputProfile = OutputProfile.fromNullable(request == null ? null : request.getOutputProfile());
+        if (outputProfile == null) {
+            return new ResponseEntity<>(org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
         BehaviourGenerationOutcome outcome = this.agentService.generate(agentID,
-                request == null ? null : request.getOmitModalities());
+                request == null ? null : request.getOmitModalities(),
+                outputProfile);
         return switch (outcome) {
             case GENERATED -> new ResponseEntity<>(org.springframework.http.HttpStatus.OK);
             case NO_BEHAVIOUR_GENERATED -> new ResponseEntity<>(org.springframework.http.HttpStatus.CONFLICT);
