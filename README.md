@@ -138,6 +138,7 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/VerbalAgent.java`
 - `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
 - `src/test/java/ch/zhaw/prometheus/agents/RealtimeMultimodalAgent.java`
+- `src/test/java/ch/zhaw/prometheus/agents/SocialInitiativeMvpAgent.java`
 
 These are marked `@Disabled("Manual seed test")`. To use them:
 

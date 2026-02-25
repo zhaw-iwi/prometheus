@@ -7,6 +7,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
 - [x] Milestone 3: Multifacial client with per-user face-emotion attribution
+- [x] Milestone 4: Two-state social-initiative MVP seed agent template
+- [x] Milestone 5: Scripted integration replay for social-initiative MVP flow
 
 ## Milestone 1
 ### Date
@@ -123,3 +125,82 @@ Add a multi-user variant of the visual facial client that captures a user-provid
 1. Extend the visual pipeline to track multiple faces in-frame and auto-assign stable identities.
 2. Add per-user face-emotion facts in snapshot aggregation.
 3. Add an integration replay script with alternating `userName` observations.
+
+## Milestone 4
+### Date
+2026-02-25
+
+### Goal
+Add a concrete seed-agent template for a two-state MVP that alternates between direct conversation handling and proactive social-situation assessment for room scenarios with changing participants.
+
+### What changed
+- Added new manual seed agent template:
+  - `src/test/java/ch/zhaw/prometheus/agents/SocialInitiativeMvpAgent.java`
+- The template introduces a two-state structure:
+  - `ConversationHandling` for direct user-request responses.
+  - `SocialSituationAssessment` for proactive social-context-based utterances.
+- Added prompt-based transitions:
+  - conversation -> social assessment on room social-signal change.
+  - social assessment -> conversation on explicit user request.
+- Added extraction action that maintains a cumulative `SocialContext` JSON object in storage for use by social-assessment prompts.
+- Updated README template list to include `SocialInitiativeMvpAgent`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - PowerShell: `.\mvnw.cmd spring-boot:run`
+3. Seed this agent by running:
+   - `src/test/java/ch/zhaw/prometheus/agents/SocialInitiativeMvpAgent.java`
+   - remove `@Disabled("Manual seed test")` before running.
+
+### How to test
+- Targeted compatibility tests run:
+  - `.\mvnw.cmd "-Dtest=PromptPolicyUnitTest,PromptPolicyGestureUnitTest,AgentApplicationServicePromptUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,AgentClientCompatibilityWebMvcTest" test`
+
+### Known issues and decisions
+- This milestone adds a seed template only; no new runtime endpoint or scheduler behavior was changed.
+- Immediate proactive speech after `/acknowledge` still depends on a subsequent generation trigger (`/behaviour/generate` or enabled runtime tick).
+- Cooldown and anti-repeat greeting logic are currently prompt/policy-level expectations and are not yet enforced by deterministic storage guards.
+
+### Next steps
+1. Add deterministic cooldown guard decisions/actions driven by storage timestamps and user-level greeting memory.
+2. Add replay integration tests for entry/exit room scenarios with named and unnamed users.
+3. Decide whether proactive generation should be event-triggered at acknowledge-time or scheduler-tick-driven for this agent profile.
+
+## Milestone 5
+### Date
+2026-02-25
+
+### Goal
+Add deterministic scripted integration coverage for the new two-state social-initiative MVP agent behavior across endpoint flow, state transitions, storage updates, and behaviour SSE emission.
+
+### What changed
+- Added new scripted gateway fixture:
+  - `src/main/resources/scripts/social-initiative-mvp-replay-script.json`
+- Added new end-to-end replay integration test:
+  - `src/test/java/ch/zhaw/prometheus/integration/SocialInitiativeMvpReplayIntegrationTest.java`
+- Replay scenario validates:
+  - startup behaviour emission in `ConversationHandling`
+  - transition to `SocialSituationAssessment` after visual face-emotion observation
+  - `SocialContext` storage update containing named user data
+  - proactive social greeting generation
+  - transition back to `ConversationHandling` on direct user request
+  - subsequent conversation response generation
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run targeted replay test:
+   - `.\mvnw.cmd "-Dtest=SocialInitiativeMvpReplayIntegrationTest" test`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd "-Dtest=SocialInitiativeMvpReplayIntegrationTest" test`
+
+### Known issues and decisions
+- Scripted backend already supports per-test script selection through `prometheus.gateway.script`; no backend refactor was required.
+- Test coverage currently focuses on state/storage/behaviour flow, not yet on deterministic cooldown timing semantics.
+
+### Next steps
+1. Add a second replay script for repeated observations to validate anti-repeat greeting cooldown behavior.
+2. Extract shared replay test harness utilities to reduce duplication across replay integration tests.
+3. Add optional replay assertions for prompt endpoint profile usage in social-initiative scenarios.
