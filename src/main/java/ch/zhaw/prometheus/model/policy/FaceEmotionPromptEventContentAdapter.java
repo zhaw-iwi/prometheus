@@ -15,15 +15,17 @@ public class FaceEmotionPromptEventContentAdapter implements PromptEventContentA
 
     @Override
     public String toPromptContent(Event event) {
+        String userName = extractJsonString(event.getPayload(), "userName");
+        String subject = (userName == null || userName.isBlank()) ? "User" : "User " + userName;
         String emotion = extractJsonString(event.getPayload(), "emotion");
         if (emotion == null || emotion.isBlank()) {
-            return "User facial emotion observed.";
+            return subject + " facial emotion observed.";
         }
         Double confidence = extractJsonDouble(event.getPayload(), "confidence");
         if (confidence == null) {
-            return "User facial emotion: " + emotion;
+            return subject + " facial emotion: " + emotion;
         }
-        return "User facial emotion: " + emotion + " (confidence "
+        return subject + " facial emotion: " + emotion + " (confidence "
                 + String.format(Locale.ROOT, "%.2f", confidence) + ")";
     }
 

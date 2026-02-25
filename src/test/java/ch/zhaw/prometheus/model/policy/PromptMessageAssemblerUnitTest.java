@@ -28,7 +28,7 @@ class PromptMessageAssemblerUnitTest {
         history.appendEvent(
                 Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, "{\"speech\":\"hi there\"}"));
         history.appendEvent(Event.observation(Event.TYPE_FACE_EMOTION, Event.ACTOR_USER,
-                "{\"emotion\":\"happy\",\"confidence\":0.83,\"valence\":0.7,\"arousal\":0.4,\"ts\":\"2026-02-10T16:00:00Z\"}"));
+                "{\"userName\":\"Alice\",\"emotion\":\"happy\",\"confidence\":0.83,\"valence\":0.7,\"arousal\":0.4,\"ts\":\"2026-02-10T16:00:00Z\"}"));
 
         List<PromptMessage> messages = assembler.compose(history, "be helpful");
 
@@ -38,7 +38,7 @@ class PromptMessageAssemblerUnitTest {
         assertEquals("assistant", messages.get(1).getRole());
         assertEquals("hi there", messages.get(1).getContent());
         assertEquals("user", messages.get(2).getRole());
-        assertEquals("User facial emotion: happy (confidence 0.83)", messages.get(2).getContent());
+        assertEquals("User Alice facial emotion: happy (confidence 0.83)", messages.get(2).getContent());
         assertEquals("system", messages.get(3).getRole());
         org.junit.jupiter.api.Assertions.assertTrue(messages.get(3).getContent().contains("Nonverbal summary"));
     }

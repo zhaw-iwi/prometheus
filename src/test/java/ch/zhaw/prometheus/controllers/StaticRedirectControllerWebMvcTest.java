@@ -37,6 +37,13 @@ class StaticRedirectControllerWebMvcTest {
     }
 
     @Test
+    void redirectsVisualMultifacialToStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/visual/multifacial?agentId=uuid"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/visual/multifacial/index.html?agentId=uuid"));
+    }
+
+    @Test
     void redirectsNonverbalToStaticIndexPreservingQuery() throws Exception {
         this.mockMvc.perform(get("/nonverbal?agentId=uuid"))
                 .andExpect(status().is3xxRedirection())

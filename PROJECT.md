@@ -6,6 +6,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 ## Milestones checklist
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
+- [x] Milestone 3: Multifacial client with per-user face-emotion attribution
 
 ## Milestone 1
 ### Date
@@ -82,3 +83,43 @@ Add a concrete agent template and deterministic integration replay that demonstr
 1. Introduce explicit assistant speech event type for realtime acknowledgements.
 2. Expand complement generation coverage for `motion`/`display`.
 3. Add scripted assertions for mixed-profile behaviour generation in longer conversations.
+
+## Milestone 3
+### Date
+2026-02-25
+
+### Goal
+Add a multi-user variant of the visual facial client that captures a user-provided name and sends it with each face-emotion observation so the agent can distinguish users.
+
+### What changed
+- Added new static client endpoint and assets:
+  - Route: `GET /visual/multifacial` redirects to `public/visual/multifacial/index.html`
+  - Files:
+    - `src/main/resources/public/visual/multifacial/index.html`
+    - `src/main/resources/public/visual/multifacial/script.js`
+- New client UI includes a `User Name` field with local persistence (`localStorage`) and includes `userName` in emitted `obs.emotion.face` payloads.
+- Updated face-emotion prompt adapter to include user identity when present (e.g., `User Alice facial emotion: happy ...`) so the LLM prompt context carries per-user attribution.
+- Updated and added tests:
+  - redirect coverage for `/visual/multifacial`
+  - adapter and assembler coverage for `userName`-aware face-emotion prompt content.
+- Updated README with the new multifacial client endpoint.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - PowerShell: `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd "-Dtest=StaticRedirectControllerWebMvcTest,PromptEventContentAdapterUnitTest,PromptMessageAssemblerUnitTest" test`
+
+### Known issues and decisions
+- The multifacial client is a single-camera source; multiple simultaneous users are represented by the entered `userName`, not by automatic multi-face tracking.
+- Snapshot aggregation for face-emotion facts remains global and is not yet split by user identity.
+
+### Next steps
+1. Extend the visual pipeline to track multiple faces in-frame and auto-assign stable identities.
+2. Add per-user face-emotion facts in snapshot aggregation.
+3. Add an integration replay script with alternating `userName` observations.

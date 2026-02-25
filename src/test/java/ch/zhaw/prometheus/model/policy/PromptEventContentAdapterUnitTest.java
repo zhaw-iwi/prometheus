@@ -33,6 +33,14 @@ class PromptEventContentAdapterUnitTest {
     }
 
     @Test
+    void mapsFaceEmotionWithExplicitUserName() {
+        Event faceEmotion = Event.observation(Event.TYPE_FACE_EMOTION, Event.ACTOR_USER,
+                "{\"userName\":\"Alice\",\"emotion\":\"happy\",\"confidence\":0.83}");
+
+        assertEquals("User Alice facial emotion: happy (confidence 0.83)", faceEmotionAdapter.toPromptContent(faceEmotion));
+    }
+
+    @Test
     void mapsBehaviourPlanSpeechOnlyAndSuppressesNonSpeechPayload() {
         Event validPlan = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 "{\"speech\":\"payload-speech\"}");

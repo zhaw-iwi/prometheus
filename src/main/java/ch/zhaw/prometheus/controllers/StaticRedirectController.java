@@ -22,6 +22,11 @@ public class StaticRedirectController {
         return redirectWithQuery("/visual/facial/index.html", request);
     }
 
+    @GetMapping({ "/visual/multifacial", "/visual/multifacial/" })
+    public String visualMultifacial(HttpServletRequest request) {
+        return redirectWithQuery("/visual/multifacial/index.html", request);
+    }
+
     @GetMapping({ "/nonverbal", "/nonverbal/", "/visual/nonverbal", "/visual/nonverbal/" })
     public String nonverbal(HttpServletRequest request) {
         return redirectWithQuery("/nonverbal/index.html", request);

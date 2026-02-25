@@ -55,6 +55,11 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 
 ![Visual facial client screenshot](.readme/client-visual-facial.png)
 
+### Visual Multifacial Client
+
+- URL: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
+- Purpose: facial-emotion capture with per-user naming for multi-user interactions.
+
 ### Visual Social Client
 
 - URL: `http://localhost:8080/visual/social/?agentId=<uuid>`
@@ -153,6 +158,7 @@ All clients take `?agentId=<uuid>`.
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
 - Visual facial detector: `http://localhost:8080/visual/facial/?agentId=<uuid>`
+- Visual multifacial detector: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
 - Visual social detector: `http://localhost:8080/visual/social/?agentId=<uuid>`
 - Nonverbal behaviour renderer: `http://localhost:8080/nonverbal/?agentId=<uuid>`
 - Multilateral listen: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
