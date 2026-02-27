@@ -1,172 +1,308 @@
 # CODEX.md
+
 Project execution rules for Codex sessions
 
 ## 1. Role of this file
+
 This file defines how Codex should work in this repository.
 
-Priority order when information conflicts
+Priority order when information conflicts:
+
 1. Running code and tests
 2. Schema and configuration in the repository
 3. README.md
 4. PROJECT.md
-5. Other docs
+5. Other documentation
 
-If docs disagree with code, treat code as correct and update the docs as part of the current milestone.
+If documentation disagrees with code, treat the code as correct and update the documentation within the same milestone.
 
-## Response style guidelines
+This file governs execution discipline, not product architecture.
+
+---
+
+## 2. Response Style Guidelines
+
 When responding in chat:
 
-- Default to short paragraphs with clear headings.
-- Use bullet lists sparingly for sets of items.
+- Use short paragraphs with clear section headings.
+- Use bullet lists sparingly and only for compact sets.
 - Use numbered lists only for strictly ordered procedures.
 - Avoid nested numbering.
-- Prefer at most one list per response unless the user explicitly asks for a checklist.
+- Prefer at most one list per response unless explicitly asked for a checklist.
+- Prefer clarity and structure over verbosity.
 
-## 2. Engineering principles
-### 2.1 Design constraints
+---
+
+## 3. Engineering Principles
+
+### 3.1 Design Constraints
+
 1. Modularity  
-   Keep components small and focused. Prefer clear boundaries over cleverness.
+   Keep components small and focused. Prefer clear boundaries over clever abstractions.
 
 2. Separation of concerns  
-   UI, API, domain logic, persistence, and infrastructure should not be tangled. Routes or controllers should validate and delegate, not contain core logic.
+   UI, API, domain logic, persistence, and infrastructure must remain separated. Controllers validate and delegate; they do not contain core logic.
 
 3. Encapsulation  
-   Hide internal details behind interfaces. Expose the smallest surface needed.
+   Hide internal implementation details. Expose the smallest stable surface necessary.
 
 4. Orthogonality  
-   Features should compose without hidden coupling. New capabilities should be addable with minimal refactors.
+   Features should compose without hidden coupling. New functionality should require minimal refactoring.
 
 5. Determinism and reproducibility  
-   Any randomness must be controlled by explicit seeds and policies. Persist specs or recipes for any generated artifact.
+   Any randomness must be controlled by explicit seeds or policies. Generated artifacts must be reproducible or clearly marked as non-deterministic.
 
 6. Observability  
-   Provide structured logs, clear errors, and enough tracing to debug failures quickly.
+   Provide structured logs, actionable error messages, and enough tracing to diagnose failures quickly.
 
-### 2.2 Correctness and safety
+---
+
+### 3.2 Correctness and Safety
+
 1. Validate inputs at boundaries  
-   Prefer explicit validation with actionable errors.
+   All public entry points must validate inputs and fail with actionable errors.
 
 2. Fail loudly and clearly  
-   Use consistent error shapes and codes where applicable. Avoid silent fallback except when explicitly designed.
+   Avoid silent fallbacks unless explicitly designed. Use consistent error structures.
 
 3. Security basics by default  
-   No secret material in git. No path traversal. No arbitrary code execution hooks. Least privilege.
+   No secrets in git. No arbitrary code execution. No path traversal. Apply least privilege principles.
 
-## 3. Repository documentation contract
-### 3.1 PROJECT.md is mandatory
-Maintain a `PROJECT.md` at repository root as the running engineering audit trail.
+---
 
-Required contents
+## 4. Prototype Bias and Clean Slate Rule
+
+This repository is considered prototype-oriented unless explicitly stated otherwise.
+
+The default rule is:
+
+Prefer clarity and minimalism over backward compatibility.
+
+Therefore:
+
+- Remove obsolete code instead of deprecating it.
+- Refactor cleanly rather than layering compatibility adapters.
+- Delete unused endpoints, classes, and helpers.
+- Do not preserve legacy behavior unless explicitly required.
+- Do not accumulate alternative implementations of the same concept.
+- Prefer schema reset over complex migrations during early-stage development unless persistence stability is explicitly required.
+
+If a change invalidates an old design and there is no explicit instruction to maintain compatibility, remove the old design entirely.
+
+Dead code must not remain in the repository.
+
+---
+
+## 5. Repository Documentation Contract
+
+### 5.1 PROJECT.md is mandatory
+
+Maintain a `PROJECT.md` at repository root as the engineering audit trail.
+
+Required contents:
+
 1. Short project summary
 2. Milestones checklist
-3. For each milestone
-   1. Date
-   2. Goal
-   3. What changed
-   4. How to run
-   5. How to test
-   6. Known issues and decisions
-   7. Next steps
+3. For each milestone:
+   - Date
+   - Goal
+   - What changed
+   - How to run
+   - How to test
+   - Known issues and decisions
+   - Next steps
 
-Update `PROJECT.md` at the end of every milestone before asking to commit.
+Update `PROJECT.md` at the end of every milestone before requesting a commit.
 
-### 3.2 README.md is the entry point
-Update `README.md` whenever a milestone changes any of the following
+---
+
+### 5.2 README.md is the entry point
+
+Update `README.md` whenever a milestone changes:
+
 1. How to run
 2. How to test
-3. Configuration and environment variables
-4. Public API, CLI, or user facing behavior
+3. Configuration or environment variables
+4. Public API, CLI, or user-facing behavior
 5. Project structure or key concepts
 
-README should stay concise and practical.
+README must remain concise and practical.
 
-### 3.3 Keep docs in sync
-If a milestone changes behavior, update the docs in the same milestone. Avoid doc drift.
+---
 
-## 4. Milestone based workflow
-All work must be executed as one or more explicit milestones.
+### 5.3 Keep Documentation in Sync
 
-For each milestone
+Behavior changes and documentation updates must occur in the same milestone.
+
+Documentation drift is not allowed.
+
+---
+
+## 6. Milestone-Based Workflow
+
+All work must be executed as explicit milestones.
+
+For each milestone:
+
 1. Define milestone scope  
-   State the goal and concrete deliverables.
+   Clearly state the goal and concrete deliverables.
 
 2. Implement the change  
-   Keep changes minimal and coherent.
+   Keep changes minimal, coherent, and aligned with engineering principles.
 
 3. Add or update tests  
-   Every milestone that changes behavior must include tests or a documented reason why tests are not applicable.
+   Provide a minimal, high-value set of tests that cover the intended behavior.
 
 4. Run tests  
-   Run the full suite or the affected subset. Fix failures before finishing.
+   Run the full suite or the affected subset. Fix failures before proceeding.
 
 5. Update documentation  
-   Update README.md and any relevant docs. Update PROJECT.md with the milestone audit entry.
+   Update README.md and other relevant documentation. Update PROJECT.md with a milestone entry.
 
 6. Stop and request commit  
-   Only after steps 1 to 5 are complete, ask for confirmation to commit.
+   Only after steps 1 to 5 are complete.
 
-## 5. Testing rules
-1. New public behavior requires tests  
-   Each new endpoint, command, or public function needs at least one success test and one failure test.
+---
 
-2. Deterministic tests  
-   Tests must be reproducible and must not depend on network access unless explicitly allowed.
+## 7. Testing Rules
 
-3. Use temporary resources  
-   Tests must not write outside temporary folders. Use fixtures for temp paths and temp databases.
+### 7.1 Minimal High-Value Test Sets
 
-4. Prefer fast feedback  
-   Unit tests for pure logic. Integration tests for boundary flows. End to end tests only for critical smoke coverage.
+When creating tests:
 
-## 6. Change management rules
-### 6.1 Backward compatibility
-If you change an API contract, file format, or schema, document it in README.md and PROJECT.md and provide a migration note when relevant.
+Create a minimal, sound set of high-value tests covering:
 
-### 6.2 Versioning and migrations
-If the project has persisted state
-1. Introduce a schema version
-2. Provide a minimal migration or a clear reset instruction for early prototypes
-3. Add tests for version handling where feasible
+- The primary success path.
+- One representative failure path.
+- Any non-trivial branching logic.
 
-### 6.3 Error handling
-Use consistent error shapes.
-Include a stable error_code, a human readable message, and optional fields for details.
+Do not generate exhaustive or combinatorial test matrices unless explicitly requested.
 
-## 7. Code quality rules
-1. Prefer clarity over cleverness
-2. Keep functions short and named by intent
-3. Avoid duplication, then extract shared helpers
-4. Use type hints where the language supports it
-5. Keep dependencies minimal and justified
-6. Keep configuration centralized and explicit
+Avoid redundant tests that restate the same logic in multiple forms.
 
-## 8. Deliverables checklist per milestone
-A milestone is done when
-1. Functionality works as specified
-2. Tests cover the new behavior
-3. Tests pass
-4. README.md updated if needed
-5. PROJECT.md updated with the milestone entry
-6. Any new scripts or commands are documented
+Prefer meaningful coverage over volume.
 
-## 9. Default file conventions
-Expected files at repository root
+---
+
+### 7.2 Deterministic Tests
+
+- Tests must be reproducible.
+- Avoid network access unless explicitly allowed.
+- Use mocks or fixtures where appropriate.
+- Control randomness explicitly.
+
+---
+
+### 7.3 Isolation
+
+- Tests must not write outside temporary directories.
+- Use temporary databases or fixtures for state.
+- Do not rely on global environment side effects.
+
+---
+
+### 7.4 Test Scope Discipline
+
+Prefer:
+
+- Unit tests for pure logic.
+- Integration tests for boundary flows.
+- End-to-end tests only for critical smoke coverage.
+
+Do not escalate to higher-level tests unless necessary.
+
+---
+
+## 8. Change Management Rules
+
+### 8.1 Backward Compatibility
+
+Backward compatibility is not required by default.
+
+If compatibility must be preserved, it must be explicitly stated in the milestone scope.
+
+Otherwise:
+
+- Refactor cleanly.
+- Remove outdated APIs.
+- Update documentation accordingly.
+
+---
+
+### 8.2 Versioning and Migrations
+
+If persisted state exists:
+
+1. Introduce a schema version when stabilization begins.
+2. During early prototype stages, prefer clear reset instructions over complex migration layers.
+3. Add tests for version handling when stabilization is required.
+
+---
+
+### 8.3 Error Handling
+
+Use consistent error shapes:
+
+- Stable `error_code`
+- Human-readable `message`
+- Optional `details` field
+
+Avoid ad-hoc error formats.
+
+---
+
+## 9. Code Quality Rules
+
+1. Prefer clarity over cleverness.
+2. Keep functions short and named by intent.
+3. Remove duplication by extracting helpers.
+4. Use type hints where supported.
+5. Keep dependencies minimal and justified.
+6. Centralize configuration.
+7. Remove unused imports, classes, and functions immediately.
+8. Do not leave commented-out code blocks.
+
+---
+
+## 10. Deliverables Checklist per Milestone
+
+A milestone is complete when:
+
+1. Functionality works as specified.
+2. A minimal high-value test set covers the behavior.
+3. Tests pass.
+4. README.md updated if required.
+5. PROJECT.md updated with the milestone entry.
+6. Dead or obsolete code has been removed.
+
+---
+
+## 11. Default File Conventions
+
+Expected files at repository root:
+
 1. README.md
 2. CODEX.md
 3. PROJECT.md
 4. LICENSE optional
 5. .gitignore
 
-If the project grows, keep a clear structure such as
-1. src or app for code
-2. tests for tests
-3. docs for additional documentation
-4. scripts for tooling
-5. examples for runnable examples
+If the project grows, maintain clear structure:
 
-## 10. Session startup routine
-At the start of a session
-1. Read CODEX.md and PROJECT.md
-2. Identify the next milestone or propose one
-3. Confirm current state by inspecting existing code and tests
-4. Implement using the milestone workflow rules above
+1. `src` or `app` for code
+2. `tests` for tests
+3. `docs` for additional documentation
+4. `scripts` for tooling
+5. `examples` for runnable examples
+
+---
+
+## 12. Session Startup Routine
+
+At the start of a session:
+
+1. Read CODEX.md and PROJECT.md.
+2. Identify the next milestone or propose one.
+3. Inspect existing code and tests to confirm the current state.
+4. Execute work strictly using the milestone workflow.
+5. Apply the clean slate rule unless explicitly instructed otherwise.

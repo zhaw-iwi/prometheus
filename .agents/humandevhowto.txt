@@ -1,0 +1,20 @@
+@Humans: Here are two example opening lines for a new Codex session:
+
+<opening line>
+Read CONTEXT.md and CODEX.md at repository root.
+
+Confirm you understand:
+- The architectural constraints defined in CONTEXT.md.
+- The milestone-based workflow and clean-slate rule defined in CODEX.md.
+</opening line>
+
+<opening line>
+Read CONTEXT.md and CODEX.md.
+
+We are working under prototype mode with the clean-slate rule.
+
+Milestone goal:
+<describe clearly>
+
+Propose a minimal milestone plan before implementing.
+</opening line>
