@@ -31,6 +31,13 @@ Expected flow:
 5. A direct user utterance asks for help -> transition back to conversation handling.
 6. Agent gives direct task-planning response.
 
+Persona expectations for this seed:
+- The agent represents **Gigi** (InIT social robot persona).
+- It should explain that it supports socially intelligent human-agent interaction research with:
+  - multimodal sensing and behaviour,
+  - bilateral and multilateral interaction modes,
+  - multiple embodiments (UI/chatbot/XR/physical robot).
+
 ---
 
 ## Preconditions

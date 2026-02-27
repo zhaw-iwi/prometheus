@@ -159,13 +159,12 @@ Add a concrete seed-agent template for a two-state MVP that alternates between d
 
 ### Known issues and decisions
 - This milestone adds a seed template only; no new runtime endpoint or scheduler behavior was changed.
-- Immediate proactive speech after `/acknowledge` still depends on a subsequent generation trigger (`/behaviour/generate` or enabled runtime tick).
 - Cooldown and anti-repeat greeting logic are currently prompt/policy-level expectations and are not yet enforced by deterministic storage guards.
 
 ### Next steps
 1. Add deterministic cooldown guard decisions/actions driven by storage timestamps and user-level greeting memory.
 2. Add replay integration tests for entry/exit room scenarios with named and unnamed users.
-3. Decide whether proactive generation should be event-triggered at acknowledge-time or scheduler-tick-driven for this agent profile.
+3. Improve transition guards for noisy visual-event streams to avoid unnecessary bouncing.
 
 ## Milestone 5
 ### Date
@@ -204,3 +203,47 @@ Add deterministic scripted integration coverage for the new two-state social-ini
 1. Add a second replay script for repeated observations to validate anti-repeat greeting cooldown behavior.
 2. Extract shared replay test harness utilities to reduce duplication across replay integration tests.
 3. Add optional replay assertions for prompt endpoint profile usage in social-initiative scenarios.
+
+## Milestone 6
+### Date
+2026-02-27
+
+### Goal
+Unify runtime semantics around asynchronous `acknowledge` + `generate`, remove legacy `respond(...)` flow, and ensure starting-state transitions can immediately emit behaviour (including speech) without a manual generate call.
+
+### What changed
+- Removed `respond(...)` API from model flow (`Agent`, `State`, `OuterState`) and aligned behavior on:
+  - `acknowledge(...)` for event ingestion and transition handling
+  - `generate(...)` for explicit behaviour generation
+- Updated transition-entry semantics:
+  - when `acknowledge(...)` causes a transition into a `starting` state, `start(...)` is invoked immediately
+  - for non-starting transitions, `enter()` is called and transition chaining continues on the same event
+- Updated tick semantics to use `acknowledge(systemTick)` so transition/start behavior is consistent.
+- Removed obsolete `startResponsePending` behavior.
+- Updated acknowledge service flow to publish any acknowledge-triggered behaviour to behaviour SSE.
+- Updated replay scripts and tests to reflect acknowledge-time starting responses.
+- Refined `SocialInitiativeMvpAgent` seed template with explicit Gigi persona and capability framing:
+  - socially intelligent InIT robot context
+  - multimodal sensing/behaviour capabilities
+  - bilateral and multilateral interaction framing
+  - explicit handling guidance for identity/capability questions.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - PowerShell: `.\mvnw.cmd spring-boot:run`
+
+### How to test
+- Full regression:
+  - `.\mvnw.cmd test`
+- Social initiative replay:
+  - `.\mvnw.cmd "-Dtest=SocialInitiativeMvpReplayIntegrationTest" test`
+
+### Known issues and decisions
+- Cooldown/anti-repeat initiative logic is still policy-driven and not yet enforced by a deterministic runtime guard.
+- Visual event quality and confidence thresholds still strongly affect transition decisions.
+
+### Next steps
+1. Add deterministic, semantic anti-repeat guards for proactive social utterances.
+2. Add replay coverage for repeated noisy visual events and expected stable-state behavior.
+3. Expand seed-agent documentation with concrete end-user test scripts per client combination.
