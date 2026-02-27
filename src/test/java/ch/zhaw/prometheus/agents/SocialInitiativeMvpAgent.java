@@ -29,8 +29,8 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 // @Disabled("Manual seed test")
 class SocialInitiativeMvpAgent {
 
-        private static final String AGENT_NAME = "Room Assistant Social Initiative MVP";
-        private static final String AGENT_DESCRIPTION = "Two-state MVP agent that alternates between social-situation assessment and regular conversation handling in multi-user room settings.";
+        private static final String AGENT_NAME = "Gigi";
+        private static final String AGENT_DESCRIPTION = "Multi-modal & multi-lateral interactions";
 
         private static final String STORAGE_KEY_SOCIAL_CONTEXT = "SocialContext";
 
