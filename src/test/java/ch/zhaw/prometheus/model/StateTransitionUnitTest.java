@@ -21,13 +21,14 @@ import ch.zhaw.prometheus.model.policy.Policy;
 class StateTransitionUnitTest {
 
     @Test
-    void stateRespondEmitsBehaviourPlanEventWithSpeechPayload() {
+    void stateAcknowledgeThenGenerateEmitsBehaviourPlanEventWithSpeechPayload() {
         State state = new State("conversation", new FixedSpeechPolicy("hello", "response"), List.of());
         Agent agent = new Agent("a", "d", state);
         var runtime = TestPolicyRuntime.runtime();
 
         Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi");
-        Event response = agent.respond(userEvent, runtime);
+        agent.acknowledge(userEvent, runtime);
+        Event response = agent.generate(runtime);
 
         assertNotNull(response);
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());

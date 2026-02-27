@@ -156,8 +156,9 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        agent.acknowledge(event, this.runtime());
-        this.persistAndPublishMonitor(agent);
+        Event response = agent.acknowledge(event, this.runtime());
+        Agent saved = this.persistAndPublishMonitor(agent);
+        this.publishBehaviour(saved, response);
         return true;
     }
 

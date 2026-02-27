@@ -19,6 +19,12 @@
         "actor": "user",
         "kind": "observation",
         "payload": "{\"source\":\"visual.multifacial\",\"userName\":\"Alice\",\"emotion\":\"happy\",\"confidence\":0.91,\"valence\":0.72,\"arousal\":0.33}"
+      },
+      "expectedBehaviour": {
+        "speech": "Hello Alice, nice to see you. If you want, tell me how I can help.",
+        "nonVerbal": {
+          "gesture": "ACKNOWLEDGE"
+        }
       }
     },
     {
@@ -39,16 +45,6 @@
           "contains": "\"estimatedUserCount\":1"
         }
       ]
-    },
-    {
-      "id": "generate-social-proactive-greeting",
-      "action": "generate",
-      "expectedBehaviour": {
-        "speech": "Hello Alice, nice to see you. If you want, tell me how I can help.",
-        "nonVerbal": {
-          "gesture": "ACKNOWLEDGE"
-        }
-      }
     },
     {
       "id": "ack-social-grouping-stay-social",
@@ -73,6 +69,12 @@
         "actor": "user",
         "kind": "observation",
         "payload": "Can you help me plan my next tasks?"
+      },
+      "expectedBehaviour": {
+        "speech": "Sure. Tell me your top priority and deadline, and we will make a short plan.",
+        "nonVerbal": {
+          "gesture": "OPEN_QUESTION"
+        }
       }
     },
     {
@@ -93,16 +95,6 @@
           "contains": "plan my next tasks"
         }
       ]
-    },
-    {
-      "id": "generate-conversation-response",
-      "action": "generate",
-      "expectedBehaviour": {
-        "speech": "Sure. Tell me your top priority and deadline, and we will make a short plan.",
-        "nonVerbal": {
-          "gesture": "OPEN_QUESTION"
-        }
-      }
     }
   ],
   "gatewayCalls": [
@@ -185,4 +177,3 @@
     }
   ]
 }
-

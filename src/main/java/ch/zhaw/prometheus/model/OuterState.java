@@ -65,42 +65,30 @@ public class OuterState extends State {
         return this.innerCurrent.start(totalPolicy, runtime);
     }
 
-    public Event respond(Event event, PolicyRuntime runtime) throws TransitionException {
-        return this.respond(event, null, runtime);
-    }
-
-    public Event respond(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
-        this.raiseIfTransit(runtime);
-        Policy totalPolicy = this.resolvePolicy(outerPolicy);
-        Event responseEvent = null;
-        try {
-            responseEvent = this.innerCurrent.respond(event, totalPolicy, runtime);
-            return responseEvent;
-        } catch (TransitionException e) {
-            this.innerCurrent = e.getSubsequentState();
-            if (this.innerCurrent.isStarting()) {
-                responseEvent = this.innerCurrent.start(totalPolicy, runtime);
-            } else {
-                responseEvent = this.innerCurrent.respond(event, totalPolicy, runtime);
-            }
-            return responseEvent;
-        }
+    @Override
+    public Event generate(PolicyRuntime runtime) {
+        return this.generate(null, runtime);
     }
 
     @Override
-    public void acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
+    public Event generate(Policy outerPolicy, PolicyRuntime runtime) {
+        Policy totalPolicy = this.resolvePolicy(outerPolicy);
+        return this.innerCurrent.generate(totalPolicy, runtime);
+    }
+
+    @Override
+    public Event acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
         this.raiseIfTransit(runtime);
         Policy totalPolicy = this.resolvePolicy(outerPolicy);
         try {
-            this.innerCurrent.acknowledge(event, totalPolicy, runtime);
+            return this.innerCurrent.acknowledge(event, totalPolicy, runtime);
         } catch (TransitionException e) {
             this.innerCurrent = e.getSubsequentState();
             if (this.innerCurrent.isStarting()) {
-                // do not append userSays to new state (cf. respond(..))
-                this.innerCurrent.enter();
-            } else {
-                this.innerCurrent.acknowledge(event, totalPolicy, runtime);
+                return this.innerCurrent.start(totalPolicy, runtime);
             }
+            this.innerCurrent.enter();
+            return this.innerCurrent.acknowledge(event, totalPolicy, runtime);
         }
     }
 

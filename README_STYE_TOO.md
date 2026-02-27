@@ -96,15 +96,12 @@ Use at least 2 people:
 1. In multifacial client, set `User Name = Alice`.
 2. Start camera and emit face observations (smile/happy expression).
 3. Confirm monitor transitions to `SocialSituationAssessment`.
+4. With current semantics, transition to a `starting` state auto-generates behaviour.
+   You should receive a proactive social utterance automatically.
+5. This auto-generated behaviour is emitted on `/{agentId}/behaviour/stream`.
+   If your realtime client speaks that SSE speech, do not acknowledge it again as a new assistant event.
 
-### Step 3: Trigger proactive social greeting
-
-The current MVP does not auto-speak immediately on every acknowledge.  
-Trigger generation manually:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:8080/$agentId/behaviour/generate"
-```
+### Step 3: Verify proactive social greeting
 
 Expected style:
 
@@ -120,14 +117,9 @@ Expected style:
 1. Alice speaks in realtime client (or microphone to robot pipeline):
    - "Can you help me plan my next tasks?"
 2. Confirm transition to `ConversationHandling`.
+3. Because `ConversationHandling` is also `starting`, a direct response should be generated automatically.
 
-### Step 6: Generate direct response
-
-If needed, trigger generate manually again:
-
-```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:8080/$agentId/behaviour/generate"
-```
+### Step 6: Verify direct response
 
 Expected style:
 
@@ -169,5 +161,6 @@ This uses scripted gateway responses from:
 
 1. Exact wording in live OpenAI mode can differ; verify intent and transitions, not exact phrasing.
 2. Current MVP has no strict deterministic greeting cooldown yet.
-3. If proactive speech does not appear after visual events, call `/behaviour/generate` manually as shown above.
-
+3. `POST /{agentId}/behaviour/generate` remains useful for manual forcing or side behaviours, but it is not required for normal starting-state transitions.
+4. Realtime client checkbox `generate side behaviours (omit speech)` controls optional non-speech `/behaviour/generate` calls after user utterances.
+   Keep it enabled if you want extra gestures; disable it if you only want state-driven behaviour.

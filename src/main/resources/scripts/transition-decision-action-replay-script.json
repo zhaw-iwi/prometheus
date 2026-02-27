@@ -44,6 +44,12 @@
         "actor": "user",
         "kind": "observation",
         "payload": "My challenge is stress from two deadlines, and I need a concrete plan."
+      },
+      "expectedBehaviour": {
+        "speech": "Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately.",
+        "nonVerbal": {
+          "gesture": "EXPLAIN"
+        }
       }
     },
     {
@@ -66,16 +72,6 @@
       ]
     },
     {
-      "id": "generate-planning-starter",
-      "action": "generate",
-      "expectedBehaviour": {
-        "speech": "Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately.",
-        "nonVerbal": {
-          "gesture": "EXPLAIN"
-        }
-      }
-    },
-    {
       "id": "ack-ready-finish",
       "action": "acknowledge",
       "event": {
@@ -83,22 +79,18 @@
         "actor": "user",
         "kind": "observation",
         "payload": "Thanks, I have my plan and I am ready to end."
-      }
-    },
-    {
-      "id": "assert-final-state",
-      "action": "assertState",
-      "expectedState": "FinalWrapUp"
-    },
-    {
-      "id": "generate-final-starter",
-      "action": "generate",
+      },
       "expectedBehaviour": {
         "speech": "Excellent work today. Run your first 15-minute task now, and we can review progress in the next session.",
         "nonVerbal": {
           "gesture": "POLITE"
         }
       }
+    },
+    {
+      "id": "assert-final-state",
+      "action": "assertState",
+      "expectedState": "FinalWrapUp"
     }
   ],
   "gatewayCalls": [

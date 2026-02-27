@@ -53,15 +53,20 @@ Assume `base_url = "http://localhost:8080"` and known `agentId`.
 5. Immediately acknowledge spoken assistant utterance back to PROMETHEUS:
 - `POST /{agentId}/acknowledge` with assistant `resp.behaviour_plan` payload `{"speech":"..."}`
 
-6. Ask PROMETHEUS for complementary non-speech behaviour:
+6. If state transitions on `acknowledge` enter a `starting` state, PROMETHEUS may auto-generate assistant behaviour and publish it on SSE:
+- `GET /{agentId}/behaviour/stream`
+- if that behaviour contains `speech`, your realtime client can speak it out
+- do not re-acknowledge that same SSE-originated behaviour as a new assistant event
+
+7. Optionally ask PROMETHEUS for complementary non-speech behaviour:
 - `POST /{agentId}/behaviour/generate`
 - body: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`
 
-7. Read latest emitted behaviour event from behaviour SSE:
+8. Read latest emitted behaviour event from behaviour SSE:
 - parse `payload` as `BehaviourPlan`
 - use `nonVerbal` / `motion` fields to drive robot arm gestures
 
-8. Repeat steps 3-7 continuously.
+9. Repeat steps 3-8 continuously.
 
 ## 4. Request examples (Python-friendly JSON)
 
@@ -175,7 +180,7 @@ post(f"/{agent_id}/acknowledge", {
     "payload": f"{{\"speech\":\"{spoken}\"}}"
 })
 
-# 5) Ask PROMETHEUS for complementary non-speech behaviour
+# 5) Optionally ask PROMETHEUS for complementary non-speech behaviour
 post(f"/{agent_id}/behaviour/generate", {
     "outputProfile": "BACKEND_COMPLEMENT",
     "omitModalities": ["speech"]
@@ -190,6 +195,7 @@ post(f"/{agent_id}/behaviour/generate", {
   - speech timing from realtime client,
   - gesture timing from PROMETHEUS behaviour stream.
 - If no prior assistant speech exists, `BACKEND_COMPLEMENT` may produce no event (expected).
+- Entering a `starting` state during `acknowledge` can emit behaviour immediately on SSE (including speech).
 - Start with deterministic gesture mapping table:
   - `OPEN_QUESTION`, `ACKNOWLEDGE`, `EXPLAIN`, `POLITE`, `UNCERTAIN`, `NONE`
 - Use monitor stream (`/{agentId}/monitor/stream`) for debugging state and transitions.

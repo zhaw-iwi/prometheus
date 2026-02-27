@@ -37,7 +37,7 @@ class ConversationalStateMachineSmokeTest {
         var runtime = TestPolicyRuntime.runtime();
 
         Event userEvent = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hi there");
-        Event response = agent.respond(userEvent, runtime);
+        Event response = agent.acknowledge(userEvent, runtime);
 
         assertNotNull(response);
         assertTrue(response.getPayload().contains("\"speech\":\"Final response\""));

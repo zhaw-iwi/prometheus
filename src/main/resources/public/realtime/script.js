@@ -6,6 +6,7 @@ let session = {
 let peerConnection = null;
 let dataChannel = null;
 let micStream = null;
+let behaviourSource = null;
 let assistantTranscriptBuffer = "";
 let suppressAssistantAppend = false;
 let lastSystemPrompt = "";
@@ -25,6 +26,9 @@ let sessionSettings = {
 };
 let pushToTalkActive = false;
 let spaceKeyBindingActive = false;
+let lastBackendBehaviourCreatedDate = null;
+let lastBackendSpeech = "";
+let pendingBackendSpeech = null;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -177,10 +181,13 @@ async function startListening() {
       fetchPromptBundle(),
       fetchEventHistory(),
     ]);
+    primeBehaviourCursor(eventHistory || []);
     setActiveStatus(promptBundle.active);
     const sessionInfo = await createRealtimeSession();
     await setupRealtimeConnection(sessionInfo);
     await waitForDataChannelOpen();
+    connectBehaviourStream();
+    flushPendingBackendSpeech();
     applySessionSettings();
     updatePushToTalkUi();
     const lastAssistantFromHistory = getLastAssistantResponse(eventHistory || []);
@@ -215,6 +222,10 @@ async function stopListening() {
     dataChannel.close();
     dataChannel = null;
   }
+  if (behaviourSource) {
+    behaviourSource.close();
+    behaviourSource = null;
+  }
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
@@ -224,6 +235,7 @@ async function stopListening() {
     micStream = null;
   }
   pushToTalkActive = false;
+  pendingBackendSpeech = null;
 }
 
 async function loadAgentInfo() {
@@ -442,6 +454,74 @@ function shouldGenerateSideBehaviour() {
     return true;
   }
   return checkbox.checked;
+}
+
+function connectBehaviourStream() {
+  if (behaviourSource) {
+    behaviourSource.close();
+  }
+  behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource.addEventListener("behaviour", (event) => {
+    if (!session.isListening) {
+      return;
+    }
+    let data = null;
+    try {
+      data = JSON.parse(event.data);
+    } catch (_) {
+      return;
+    }
+    if (!data) {
+      return;
+    }
+    if (data.createdDate && data.createdDate === lastBackendBehaviourCreatedDate) {
+      return;
+    }
+    const speech = getEventSpeech(data);
+    if (!speech || !speech.trim()) {
+      return;
+    }
+    if (speech === lastBackendSpeech) {
+      return;
+    }
+    lastBackendBehaviourCreatedDate = data.createdDate || null;
+    lastBackendSpeech = speech;
+    speakBackendBehaviourSpeech(speech);
+    appendLog("policy", "Spoke backend behaviour from stream.");
+  });
+  behaviourSource.onerror = () => {
+    appendLog("policy", "Behaviour stream disconnected.");
+  };
+}
+
+function primeBehaviourCursor(eventHistory) {
+  if (!Array.isArray(eventHistory) || eventHistory.length === 0) {
+    return;
+  }
+  for (let i = eventHistory.length - 1; i >= 0; i--) {
+    const event = eventHistory[i];
+    if (!event || event.type !== "resp.behaviour_plan" || event.actor !== "assistant") {
+      continue;
+    }
+    lastBackendBehaviourCreatedDate = event.createdDate || null;
+    const speech = getEventSpeech(event);
+    if (speech && speech.trim()) {
+      lastBackendSpeech = speech;
+    }
+    return;
+  }
+}
+
+function speakBackendBehaviourSpeech(speech) {
+  if (!speech || !speech.trim()) {
+    return;
+  }
+  if (!dataChannel || dataChannel.readyState !== "open") {
+    pendingBackendSpeech = speech;
+    return;
+  }
+  pendingBackendSpeech = null;
+  speakStoredAssistantResponse(speech);
 }
 
 async function appendAssistantTranscript(transcript) {
@@ -686,6 +766,15 @@ function sendResponseCreate(instructions) {
   appendLog("realtime", "Initial response triggered.");
 }
 
+function flushPendingBackendSpeech() {
+  if (!pendingBackendSpeech) {
+    return;
+  }
+  const speech = pendingBackendSpeech;
+  pendingBackendSpeech = null;
+  speakStoredAssistantResponse(speech);
+}
+
 function setGifState(state) {
   gifState = state;
   const gif = document.getElementById("realtime_gif");
@@ -751,13 +840,8 @@ function getEventSpeech(event) {
     if (plan && typeof plan.speech === "string" && plan.speech.trim()) {
       return plan.speech;
     }
-    if (typeof event.payload === "string" && event.payload.trim()) {
-      return event.payload;
-    }
   } catch (_) {
-    if (typeof event.payload === "string" && event.payload.trim()) {
-      return event.payload;
-    }
+    return null;
   }
   return null;
 }
@@ -767,7 +851,9 @@ function speakStoredAssistantResponse(text) {
     return;
   }
   suppressAssistantAppend = true;
-  sendResponseCreate(`Read the following message verbatim: ${text}`);
+  sendResponseCreate(
+    `Say exactly the following text and nothing else. Do not add, remove, paraphrase, or explain.\n${text}`
+  );
 }
 
 function getAgentId() {

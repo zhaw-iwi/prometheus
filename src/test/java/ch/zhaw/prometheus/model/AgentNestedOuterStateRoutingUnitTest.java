@@ -28,8 +28,9 @@ class AgentNestedOuterStateRoutingUnitTest {
         var runtime = TestPolicyRuntime.runtime();
 
         agent.start(runtime);
-        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1"), runtime);
-        agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u2"), runtime);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u1"), runtime);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "u2"), runtime);
+        agent.generate(runtime);
 
         List<Event> all = agent.getEventHistory().toList();
         assertEquals(5, all.size());

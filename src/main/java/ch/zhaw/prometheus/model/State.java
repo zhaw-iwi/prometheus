@@ -189,23 +189,6 @@ public class State extends PersistedNode {
         return this.executeStart(outerPolicy, runtime);
     }
 
-    public Event respond(Event event, PolicyRuntime runtime) throws TransitionException {
-        return this.respond(event, null, runtime);
-    }
-
-    public Event respond(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
-        this.acknowledge(event, outerPolicy, runtime);
-        return this.executeResponse(outerPolicy, runtime);
-    }
-
-    public Event generate(PolicyRuntime runtime) {
-        return this.generate(null, runtime);
-    }
-
-    public Event generate(Policy outerPolicy, PolicyRuntime runtime) {
-        return this.executeResponse(outerPolicy, runtime);
-    }
-
     public void enter() {
         State.LOGGER
                 .info(this.getName() + " Starting");
@@ -216,14 +199,23 @@ public class State extends PersistedNode {
         }
     }
 
-    public void acknowledge(Event event, PolicyRuntime runtime) throws TransitionException {
-        this.acknowledge(event, null, runtime);
+    public Event generate(PolicyRuntime runtime) {
+        return this.generate(null, runtime);
     }
 
-    public void acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
+    public Event generate(Policy outerPolicy, PolicyRuntime runtime) {
+        return this.executeResponse(outerPolicy, runtime);
+    }
+
+    public Event acknowledge(Event event, PolicyRuntime runtime) throws TransitionException {
+        return this.acknowledge(event, null, runtime);
+    }
+
+    public Event acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
         State.LOGGER
                 .info(this.getName() + " ACK Event payload: \"" + event.getPayload() + "\"");
         this.raiseIfTransit(runtime);
+        return null;
     }
 
     public String getTotalPolicy() {
@@ -327,4 +319,3 @@ public class State extends PersistedNode {
     }
 
 }
-

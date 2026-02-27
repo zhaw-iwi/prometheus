@@ -27,12 +27,10 @@ class AgentContinuousEvaluationUnitTest {
 
         Event response = agent.tick(runtime);
 
-        assertNotNull(response);
-        assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, response.getType());
-        assertTrue(response.getPayload().contains("\"speech\":\"Proactive check-in\""));
+        assertNull(response);
 
         List<Event> history = agent.getEventHistory().toList();
-        assertEquals(2, history.size());
+        assertEquals(1, history.size());
         assertEquals(Event.TYPE_SYSTEM_TICK, history.get(0).getType());
         assertEquals(Event.ACTOR_SYSTEM, history.get(0).getActor());
     }

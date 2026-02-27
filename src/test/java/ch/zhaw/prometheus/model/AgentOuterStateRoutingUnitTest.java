@@ -23,7 +23,8 @@ class AgentOuterStateRoutingUnitTest {
         var runtime = TestPolicyRuntime.runtime();
 
         Event starter = agent.start(runtime);
-        Event response = agent.respond(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello"), runtime);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "hello"), runtime);
+        Event response = agent.generate(runtime);
 
         List<Event> history = agent.getEventHistory().toList();
         assertEquals(3, history.size());

@@ -76,7 +76,6 @@ public class Agent {
     private RegulationSystem regulationSystem;
     @Transient
     private ModulationBundle latestModulation;
-    private boolean startResponsePending;
 
     public Agent(String name, String description, State initialState) {
         this(name, description, initialState, null);
@@ -93,7 +92,6 @@ public class Agent {
         this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
         this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         this.latestModulation = ModulationBundle.neutral();
-        this.startResponsePending = true;
         this.attachEventHistory();
     }
 
@@ -136,35 +134,9 @@ public class Agent {
         try {
             Event response = this.currentState.start(runtime);
             this.recordEvent(response);
-            this.startResponsePending = false;
             return response;
         } catch (ContenFilterException e) {
             throw e;
-        }
-    }
-
-    public Event respond(Event event, PolicyRuntime runtime) {
-        Event response = this.respondWithoutRegulation(event, true, runtime);
-        this.applyRegulation(event, runtime);
-        return response;
-    }
-
-    private Event respondWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
-        try {
-            if (recordInput) {
-                this.recordEvent(event);
-            }
-            Event response = this.currentState.respond(event, runtime);
-            this.recordEvent(response);
-            return response;
-        } catch (ContenFilterException e) {
-            throw e;
-        } catch (TransitionException e) {
-            this.currentState = e.getSubsequentState();
-            if (this.currentState.isStarting()) {
-                return this.start(runtime);
-            }
-            return this.respondWithoutRegulation(event, false, runtime);
         }
     }
 
@@ -173,40 +145,41 @@ public class Agent {
             return null;
         }
         Event tickEvent = Event.systemTick();
-        return this.respond(tickEvent, runtime);
+        return this.acknowledge(tickEvent, runtime);
     }
 
     public Event generate(PolicyRuntime runtime) {
         if (!this.isActive() || this.currentState == null) {
             return null;
         }
-        if (this.currentState.isStarting() && this.startResponsePending) {
-            return this.start(runtime);
-        }
         Event response = this.currentState.generate(runtime);
         this.recordEvent(response);
         return response;
     }
 
-    public void acknowledge(Event event, PolicyRuntime runtime) {
-        this.acknowledgeWithoutRegulation(event, true, runtime);
-        this.applyRegulation(event, runtime);
+    public Event acknowledge(Event event, PolicyRuntime runtime) {
+        Event response = this.acknowledgeWithoutRegulation(event, true, runtime);
+        Event responseFromRegulation = this.applyRegulation(event, runtime);
+        return responseFromRegulation != null ? responseFromRegulation : response;
     }
 
-    private void acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
+    private Event acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
         try {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            this.currentState.acknowledge(event, runtime);
+            Event response = this.currentState.acknowledge(event, runtime);
+            this.recordEvent(response);
+            return response;
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
-                this.currentState.enter();
-                this.startResponsePending = true;
-            } else {
-                this.acknowledgeWithoutRegulation(event, false, runtime);
+                Event response = this.currentState.start(runtime);
+                this.recordEvent(response);
+                return response;
             }
+            this.currentState.enter();
+            return this.acknowledgeWithoutRegulation(event, false, runtime);
         }
     }
 
@@ -274,13 +247,11 @@ public class Agent {
     }
 
     public void reset() {
-        // @TODO: if is starting = True, consider sending starting message again.
         this.currentState = this.initialState;
         this.currentState.reset();
         if (this.eventHistory != null) {
             this.eventHistory.reset();
         }
-        this.startResponsePending = true;
         this.getRegulationSystem().reset();
         this.latestModulation = ModulationBundle.neutral();
         this.syncRegulationSystemSpecFromRuntime();
@@ -312,9 +283,6 @@ public class Agent {
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
         }
-        if (this.eventHistory != null && this.eventHistory.isEmpty()) {
-            this.startResponsePending = true;
-        }
         this.attachEventHistory();
     }
 
@@ -330,25 +298,26 @@ public class Agent {
         }
     }
 
-    private void applyRegulation(Event triggerEvent, PolicyRuntime runtime) {
+    private Event applyRegulation(Event triggerEvent, PolicyRuntime runtime) {
         if (triggerEvent == null || this.currentState == null) {
-            return;
+            return null;
         }
         if (isInternalRegulationEvent(triggerEvent)) {
-            return;
+            return null;
         }
         RegulationResult result = this.getRegulationSystem()
                 .update(new RegulationContext(triggerEvent,
                         this.eventHistory,
                         this.getRegulationSnapshotAggregator().aggregate(this.eventHistory), Instant.now()));
         if (result == null) {
-            return;
+            return null;
         }
         this.latestModulation = result.modulation() == null ? ModulationBundle.neutral() : result.modulation();
         if (result.internalEvents() == null || result.internalEvents().isEmpty()) {
             this.syncRegulationSystemSpecFromRuntime();
-            return;
+            return null;
         }
+        Event latestResponse = null;
         for (Event internal : result.internalEvents()) {
             if (internal == null) {
                 continue;
@@ -358,9 +327,13 @@ public class Agent {
                     internal.getActor(),
                     internal.getKind(),
                     internal.getPayload());
-            this.acknowledgeWithoutRegulation(normalized, true, runtime);
+            Event response = this.acknowledgeWithoutRegulation(normalized, true, runtime);
+            if (response != null) {
+                latestResponse = response;
+            }
         }
         this.syncRegulationSystemSpecFromRuntime();
+        return latestResponse;
     }
 
     private SnapshotAggregator getRegulationSnapshotAggregator() {

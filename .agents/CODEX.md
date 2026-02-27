@@ -13,6 +13,15 @@ Priority order when information conflicts
 
 If docs disagree with code, treat code as correct and update the docs as part of the current milestone.
 
+## Response style guidelines
+When responding in chat:
+
+- Default to short paragraphs with clear headings.
+- Use bullet lists sparingly for sets of items.
+- Use numbered lists only for strictly ordered procedures.
+- Avoid nested numbering.
+- Prefer at most one list per response unless the user explicitly asks for a checklist.
+
 ## 2. Engineering principles
 ### 2.1 Design constraints
 1. Modularity  
