@@ -10,6 +10,7 @@ let session = {
 };
 
 let logSource = null;
+let logReconnectAttempt = 0;
 let logSettings = {
   level: "INFO",
   loggers: new Set(["ch.zhaw.prometheus.model.State"]),
@@ -18,8 +19,21 @@ let logSettings = {
 };
 let logBuffer = [];
 let monitorSource = null;
+let monitorReconnectAttempt = 0;
 let behaviourSource = null;
 let behaviourBuffer = [];
+let logReconnectTimer = null;
+let monitorReconnectTimer = null;
+let behaviourReconnectTimer = null;
+let behaviourReconnectAttempt = 0;
+let isPageUnloading = false;
+const SSE_RECONNECT_MIN_MS = 1000;
+const SSE_RECONNECT_MAX_MS = 30000;
+const SSE_RECONNECT_JITTER = 0.2;
+const LOG_BUFFER_MAX = 1000;
+const BEHAVIOUR_BUFFER_MAX = 500;
+const APP_MESSAGE_DEDUPE_WINDOW_MS = 3000;
+let lastAppMessage = null;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -29,6 +43,8 @@ window.addEventListener("load", () => {
     return;
   }
   wireUi();
+  window.addEventListener("beforeunload", cleanupStreams);
+  window.addEventListener("pagehide", cleanupStreams);
   connectLogs();
   connectMonitor();
   connectBehaviour();
@@ -262,12 +278,28 @@ function copyToClipboard(value) {
 }
 
 function connectLogs() {
+  if (isPageUnloading) {
+    return;
+  }
+  if (logReconnectTimer) {
+    clearTimeout(logReconnectTimer);
+    logReconnectTimer = null;
+  }
   if (logSource) {
     logSource.close();
   }
   logSource = new EventSource("/logs/stream");
+  logSource.addEventListener("open", () => {
+    logReconnectAttempt = 0;
+  });
   logSource.addEventListener("log", (event) => {
-    const data = JSON.parse(event.data);
+    let data = null;
+    try {
+      data = JSON.parse(event.data);
+    } catch (_) {
+      appendLog("app", "Log stream payload parse failed.");
+      return;
+    }
     addLogEntry({
       timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString(),
       source: "",
@@ -278,29 +310,65 @@ function connectLogs() {
     });
   });
   logSource.onerror = () => {
+    if (logSource) {
+      logSource.close();
+      logSource = null;
+    }
     appendLog("app", "Log stream disconnected.");
+    scheduleLogReconnect();
   };
 }
 
 function connectMonitor() {
+  if (isPageUnloading) {
+    return;
+  }
+  if (monitorReconnectTimer) {
+    clearTimeout(monitorReconnectTimer);
+    monitorReconnectTimer = null;
+  }
   if (monitorSource) {
     monitorSource.close();
   }
   monitorSource = new EventSource(`/${session.agentId}/monitor/stream`);
+  monitorSource.addEventListener("open", () => {
+    monitorReconnectAttempt = 0;
+  });
   monitorSource.addEventListener("snapshot", (event) => {
-    const data = JSON.parse(event.data);
+    let data = null;
+    try {
+      data = JSON.parse(event.data);
+    } catch (_) {
+      appendLog("app", "Monitor stream payload parse failed.");
+      return;
+    }
     applySnapshot(data);
   });
   monitorSource.onerror = () => {
+    if (monitorSource) {
+      monitorSource.close();
+      monitorSource = null;
+    }
     appendLog("app", "Monitor stream disconnected.");
+    scheduleMonitorReconnect();
   };
 }
 
 function connectBehaviour() {
+  if (isPageUnloading) {
+    return;
+  }
+  if (behaviourReconnectTimer) {
+    clearTimeout(behaviourReconnectTimer);
+    behaviourReconnectTimer = null;
+  }
   if (behaviourSource) {
     behaviourSource.close();
   }
   behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource.addEventListener("open", () => {
+    behaviourReconnectAttempt = 0;
+  });
   behaviourSource.addEventListener("behaviour", (event) => {
     let data = null;
     try {
@@ -318,8 +386,86 @@ function connectBehaviour() {
     });
   });
   behaviourSource.onerror = () => {
+    if (behaviourSource) {
+      behaviourSource.close();
+      behaviourSource = null;
+    }
     appendLog("app", "Behaviour stream disconnected.");
+    scheduleBehaviourReconnect();
   };
+}
+
+function scheduleLogReconnect() {
+  if (isPageUnloading || logReconnectTimer) {
+    return;
+  }
+  const delay = nextReconnectDelayMs(logReconnectAttempt);
+  logReconnectAttempt += 1;
+  logReconnectTimer = setTimeout(() => {
+    logReconnectTimer = null;
+    connectLogs();
+  }, delay);
+}
+
+function scheduleMonitorReconnect() {
+  if (isPageUnloading || monitorReconnectTimer) {
+    return;
+  }
+  const delay = nextReconnectDelayMs(monitorReconnectAttempt);
+  monitorReconnectAttempt += 1;
+  monitorReconnectTimer = setTimeout(() => {
+    monitorReconnectTimer = null;
+    connectMonitor();
+  }, delay);
+}
+
+function scheduleBehaviourReconnect() {
+  if (isPageUnloading || behaviourReconnectTimer) {
+    return;
+  }
+  const delay = nextReconnectDelayMs(behaviourReconnectAttempt);
+  behaviourReconnectAttempt += 1;
+  behaviourReconnectTimer = setTimeout(() => {
+    behaviourReconnectTimer = null;
+    connectBehaviour();
+  }, delay);
+}
+
+function nextReconnectDelayMs(attempt) {
+  const base = Math.min(SSE_RECONNECT_MAX_MS, SSE_RECONNECT_MIN_MS * Math.pow(2, attempt));
+  const jitterFactor = 1 + ((Math.random() * 2 - 1) * SSE_RECONNECT_JITTER);
+  return Math.max(SSE_RECONNECT_MIN_MS, Math.floor(base * jitterFactor));
+}
+
+function cleanupStreams() {
+  isPageUnloading = true;
+  if (logReconnectTimer) {
+    clearTimeout(logReconnectTimer);
+    logReconnectTimer = null;
+  }
+  if (monitorReconnectTimer) {
+    clearTimeout(monitorReconnectTimer);
+    monitorReconnectTimer = null;
+  }
+  if (behaviourReconnectTimer) {
+    clearTimeout(behaviourReconnectTimer);
+    behaviourReconnectTimer = null;
+  }
+  if (logSource) {
+    logSource.close();
+    logSource = null;
+  }
+  if (monitorSource) {
+    monitorSource.close();
+    monitorSource = null;
+  }
+  if (behaviourSource) {
+    behaviourSource.close();
+    behaviourSource = null;
+  }
+  logReconnectAttempt = 0;
+  monitorReconnectAttempt = 0;
+  behaviourReconnectAttempt = 0;
 }
 
 function applySnapshot(data) {
@@ -354,6 +500,9 @@ async function showAgentInfo() {
 }
 
 function appendLog(source, message) {
+  if (shouldSuppressAppMessage(source, message)) {
+    return;
+  }
   addLogEntry({
     timestamp: new Date().toLocaleTimeString(),
     source,
@@ -364,12 +513,37 @@ function appendLog(source, message) {
 
 function addLogEntry(entry) {
   logBuffer.push(entry);
+  if (logBuffer.length > LOG_BUFFER_MAX) {
+    logBuffer.shift();
+  }
   renderLogBuffer();
 }
 
 function addBehaviourEntry(entry) {
   behaviourBuffer.push(entry);
+  if (behaviourBuffer.length > BEHAVIOUR_BUFFER_MAX) {
+    behaviourBuffer.shift();
+  }
   renderBehaviourBuffer();
+}
+
+function shouldSuppressAppMessage(source, message) {
+  if (source !== "app") {
+    return false;
+  }
+  const now = Date.now();
+  if (lastAppMessage
+    && lastAppMessage.source === source
+    && lastAppMessage.message === message
+    && now - lastAppMessage.timestamp < APP_MESSAGE_DEDUPE_WINDOW_MS) {
+    return true;
+  }
+  lastAppMessage = {
+    source,
+    message,
+    timestamp: now,
+  };
+  return false;
 }
 
 function renderLogBuffer() {

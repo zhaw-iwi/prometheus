@@ -7,6 +7,12 @@ let peerConnection = null;
 let dataChannel = null;
 let micStream = null;
 let behaviourSource = null;
+let behaviourReconnectTimer = null;
+let behaviourReconnectAttempt = 0;
+let isPageUnloading = false;
+const BEHAVIOUR_RECONNECT_MIN_MS = 1000;
+const BEHAVIOUR_RECONNECT_MAX_MS = 30000;
+const BEHAVIOUR_RECONNECT_JITTER = 0.2;
 let assistantTranscriptBuffer = "";
 let suppressAssistantAppend = false;
 let lastSystemPrompt = "";
@@ -32,6 +38,8 @@ let pendingBackendSpeech = null;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
+  window.addEventListener("beforeunload", cleanupBehaviourStream);
+  window.addEventListener("pagehide", cleanupBehaviourStream);
   if (!session.agentId) {
     appendLog("app", "Missing agent id in URL. Use ?{UUID} or ?agentId=UUID.");
     disableToggle();
@@ -226,6 +234,11 @@ async function stopListening() {
     behaviourSource.close();
     behaviourSource = null;
   }
+  if (behaviourReconnectTimer) {
+    clearTimeout(behaviourReconnectTimer);
+    behaviourReconnectTimer = null;
+  }
+  behaviourReconnectAttempt = 0;
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
@@ -457,10 +470,20 @@ function shouldGenerateSideBehaviour() {
 }
 
 function connectBehaviourStream() {
+  if (isPageUnloading) {
+    return;
+  }
+  if (behaviourReconnectTimer) {
+    clearTimeout(behaviourReconnectTimer);
+    behaviourReconnectTimer = null;
+  }
   if (behaviourSource) {
     behaviourSource.close();
   }
   behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource.addEventListener("open", () => {
+    behaviourReconnectAttempt = 0;
+  });
   behaviourSource.addEventListener("behaviour", (event) => {
     if (!session.isListening) {
       return;
@@ -490,8 +513,44 @@ function connectBehaviourStream() {
     appendLog("policy", "Spoke backend behaviour from stream.");
   });
   behaviourSource.onerror = () => {
+    if (behaviourSource) {
+      behaviourSource.close();
+      behaviourSource = null;
+    }
     appendLog("policy", "Behaviour stream disconnected.");
+    scheduleBehaviourReconnect();
   };
+}
+
+function scheduleBehaviourReconnect() {
+  if (isPageUnloading || !session.isListening || behaviourReconnectTimer) {
+    return;
+  }
+  const delay = nextBehaviourReconnectDelayMs();
+  behaviourReconnectTimer = setTimeout(() => {
+    behaviourReconnectTimer = null;
+    connectBehaviourStream();
+  }, delay);
+}
+
+function nextBehaviourReconnectDelayMs() {
+  const base = Math.min(BEHAVIOUR_RECONNECT_MAX_MS, BEHAVIOUR_RECONNECT_MIN_MS * Math.pow(2, behaviourReconnectAttempt));
+  behaviourReconnectAttempt += 1;
+  const jitterFactor = 1 + ((Math.random() * 2 - 1) * BEHAVIOUR_RECONNECT_JITTER);
+  return Math.max(BEHAVIOUR_RECONNECT_MIN_MS, Math.floor(base * jitterFactor));
+}
+
+function cleanupBehaviourStream() {
+  isPageUnloading = true;
+  if (behaviourReconnectTimer) {
+    clearTimeout(behaviourReconnectTimer);
+    behaviourReconnectTimer = null;
+  }
+  if (behaviourSource) {
+    behaviourSource.close();
+    behaviourSource = null;
+  }
+  behaviourReconnectAttempt = 0;
 }
 
 function primeBehaviourCursor(eventHistory) {

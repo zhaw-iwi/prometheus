@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -41,6 +43,8 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @Service
 public class AgentApplicationService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentApplicationService.class);
+
     private final AgentRepository repository;
     private final AgentMonitorBroadcaster monitorBroadcaster;
     private final AgentBehaviourBroadcaster behaviourBroadcaster;
@@ -227,7 +231,7 @@ public class AgentApplicationService {
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
         Event starter = agent.start(this.runtime());
         Agent saved = this.repository.save(agent);
-        this.monitorBroadcaster.publish(saved);
+        safePublishMonitor(saved);
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive()));
     }
@@ -238,7 +242,7 @@ public class AgentApplicationService {
 
     private Agent persistAndPublishMonitor(Agent agent) {
         Agent saved = this.repository.save(agent);
-        this.monitorBroadcaster.publish(saved);
+        safePublishMonitor(saved);
         return saved;
     }
 
@@ -259,7 +263,24 @@ public class AgentApplicationService {
             eventToPublish = candidate;
             break;
         }
-        this.behaviourBroadcaster.publish(agent.getId(), eventToPublish);
+        safePublishBehaviour(agent.getId(), eventToPublish);
+    }
+
+    private void safePublishMonitor(Agent agent) {
+        try {
+            this.monitorBroadcaster.publish(agent);
+        } catch (Throwable failure) {
+            LOGGER.debug("SSE monitor publish failed in service boundary; agentId={}",
+                    agent == null ? null : agent.getId(), failure);
+        }
+    }
+
+    private void safePublishBehaviour(UUID agentId, Event event) {
+        try {
+            this.behaviourBroadcaster.publish(agentId, event);
+        } catch (Throwable failure) {
+            LOGGER.debug("SSE behaviour publish failed in service boundary; agentId={}", agentId, failure);
+        }
     }
 
     private void applyOmittedModalities(Event responseEvent, List<String> omitModalities) {

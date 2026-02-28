@@ -5,8 +5,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -18,7 +21,10 @@ import ch.zhaw.prometheus.model.State;
 
 @Component
 public class AgentMonitorBroadcaster {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AgentMonitorBroadcaster.class);
+
     private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emittersByAgent = new ConcurrentHashMap<>();
+    private final AtomicLong sendFailureCount = new AtomicLong(0L);
 
     public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup) {
         SseEmitter emitter = new SseEmitter(0L);
@@ -26,13 +32,13 @@ public class AgentMonitorBroadcaster {
                 id -> new CopyOnWriteArrayList<>());
         emitters.add(emitter);
 
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError(e -> emitters.remove(emitter));
+        emitter.onCompletion(() -> unsubscribe(agentId, emitters, emitter));
+        emitter.onTimeout(() -> unsubscribe(agentId, emitters, emitter));
+        emitter.onError(e -> unsubscribe(agentId, emitters, emitter));
 
         Optional<Agent> initial = lookup.get();
         if (initial.isPresent()) {
-            sendSnapshot(emitter, initial.get());
+            sendInitialSnapshot(agentId, emitters, emitter, initial.get());
         }
         return emitter;
     }
@@ -46,15 +52,39 @@ public class AgentMonitorBroadcaster {
             return;
         }
         for (SseEmitter emitter : emitters) {
-            sendSnapshot(emitter, agent);
+            sendSnapshot(agent.getId(), emitters, emitter, agent);
         }
     }
 
-    private void sendSnapshot(SseEmitter emitter, Agent agent) {
+    private void sendInitialSnapshot(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Agent agent) {
         try {
             emitter.send(SseEmitter.event().name("snapshot").data(toSnapshot(agent)));
-        } catch (Exception e) {
-            emitter.completeWithError(e);
+        } catch (Throwable failure) {
+            this.recordSendFailure(agentId, failure);
+            unsubscribe(agentId, emitters, emitter);
+        }
+    }
+
+    private void sendSnapshot(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Agent agent) {
+        try {
+            emitter.send(SseEmitter.event().name("snapshot").data(toSnapshot(agent)));
+        } catch (Throwable failure) {
+            this.recordSendFailure(agentId, failure);
+            unsubscribe(agentId, emitters, emitter);
+        }
+    }
+
+    private void unsubscribe(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter) {
+        emitters.remove(emitter);
+        if (emitters.isEmpty()) {
+            this.emittersByAgent.remove(agentId, emitters);
+        }
+    }
+
+    private void recordSendFailure(UUID agentId, Throwable failure) {
+        long failures = this.sendFailureCount.incrementAndGet();
+        if (failures == 1 || failures % 100 == 0) {
+            LOGGER.debug("SSE monitor send failed; agentId={}, failures={}", agentId, failures, failure);
         }
     }
 

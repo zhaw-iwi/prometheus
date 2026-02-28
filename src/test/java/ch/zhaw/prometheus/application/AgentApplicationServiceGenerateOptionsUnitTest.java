@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -133,5 +134,35 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
 
         assertSame(BehaviourGenerationOutcome.GENERATED, outcome);
         verify(agent).generate(eq(new PolicyRuntime(assembler, languageModelGateway, OutputProfile.BACKEND_COMPLEMENT)));
+    }
+
+    @Test
+    void generateStillSucceedsWhenSsePublishThrowsThrowable() {
+        UUID agentId = UUID.fromString("88888888-8888-8888-8888-888888888888");
+        Event response = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"hello\"}");
+        Agent agent = mock(Agent.class);
+        EventHistory history = mock(EventHistory.class);
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+        when(agent.generate(any())).thenReturn(response);
+        when(repository.save(agent)).thenReturn(agent);
+        when(agent.getEventHistory()).thenReturn(history);
+        when(history.toList()).thenReturn(List.of(response));
+        when(agent.getId()).thenReturn(agentId);
+        doThrow(new AssertionError("sse monitor failure")).when(monitorBroadcaster).publish(agent);
+        doThrow(new AssertionError("sse behaviour failure")).when(behaviourBroadcaster).publish(agentId, response);
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster,
+                assembler, languageModelGateway);
+
+        BehaviourGenerationOutcome outcome = service.generate(agentId, null, OutputProfile.FULL_PLAN);
+
+        assertSame(BehaviourGenerationOutcome.GENERATED, outcome);
     }
 }

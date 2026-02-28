@@ -49,8 +49,16 @@ public class ContinuousEvaluationScheduler {
             try {
                 Event response = agent.tick(this.agentService.runtime());
                 this.repository.save(agent);
-                this.monitorBroadcaster.publish(agent);
-                this.behaviourBroadcaster.publish(agent.getId(), response);
+                try {
+                    this.monitorBroadcaster.publish(agent);
+                } catch (Throwable failure) {
+                    LOGGER.debug("SSE monitor publish failed in scheduler boundary; agentId={}", agent.getId(), failure);
+                }
+                try {
+                    this.behaviourBroadcaster.publish(agent.getId(), response);
+                } catch (Throwable failure) {
+                    LOGGER.debug("SSE behaviour publish failed in scheduler boundary; agentId={}", agent.getId(), failure);
+                }
                 processed++;
             } catch (RuntimeException exception) {
                 LOGGER.warn("continuous tick failed for agent {}", agent.getId(), exception);

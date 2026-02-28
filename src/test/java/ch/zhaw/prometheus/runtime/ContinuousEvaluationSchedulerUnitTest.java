@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,6 +65,29 @@ class ContinuousEvaluationSchedulerUnitTest {
         verify(this.behaviourBroadcaster).publish(activeId, generated);
         verify(inactive, never()).tick(runtime);
         verify(this.repository, never()).save(inactive);
+    }
+
+    @Test
+    void runCycleContinuesWhenSsePublishThrowsThrowable() {
+        Agent active = org.mockito.Mockito.mock(Agent.class);
+        UUID activeId = UUID.fromString("12121212-1212-1212-1212-121212121212");
+        when(active.isActive()).thenReturn(true);
+        when(active.getId()).thenReturn(activeId);
+        when(this.repository.findAll()).thenReturn(List.of(active));
+        PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), new NoOpLanguageModelGateway());
+        when(this.agentService.runtime()).thenReturn(runtime);
+        Event generated = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"hi\"}");
+        when(active.tick(runtime)).thenReturn(generated);
+        doThrow(new AssertionError("monitor publish failed")).when(this.monitorBroadcaster).publish(active);
+        doThrow(new AssertionError("behaviour publish failed")).when(this.behaviourBroadcaster).publish(activeId, generated);
+
+        int processed = this.scheduler.runCycle();
+
+        assertEquals(1, processed);
+        verify(this.repository).save(active);
+        verify(this.monitorBroadcaster).publish(active);
+        verify(this.behaviourBroadcaster).publish(activeId, generated);
     }
 }
 

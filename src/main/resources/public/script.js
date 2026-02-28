@@ -104,7 +104,13 @@ var istyping_icons = [
 var session = null;
 var animate_istyping_interval = null;
 var behaviour_stream = null;
+var behaviour_reconnect_timer = null;
+var behaviour_reconnect_attempt = 0;
 var last_behaviour_created_date = null;
+var is_page_unloading = false;
+var BEHAVIOUR_RECONNECT_MIN_MS = 1000;
+var BEHAVIOUR_RECONNECT_MAX_MS = 30000;
+var BEHAVIOUR_RECONNECT_JITTER = 0.2;
 
 function Session(agent_id) {
     this.agent_id = agent_id;
@@ -121,6 +127,8 @@ $(document).ready(function () {
     get_info();
     get_eventhistory();
     connect_behaviour_stream();
+    window.addEventListener("beforeunload", cleanup_behaviour_stream);
+    window.addEventListener("pagehide", cleanup_behaviour_stream);
     $("#send_message").on("click", function () {
         user_says();
     });
@@ -189,10 +197,17 @@ function show_eventhistory(eventhistory) {
 }
 
 function connect_behaviour_stream() {
-    if (!session || !session.agent_id || behaviour_stream) {
+    if (!session || !session.agent_id || behaviour_stream || is_page_unloading) {
         return;
     }
+    if (behaviour_reconnect_timer) {
+        clearTimeout(behaviour_reconnect_timer);
+        behaviour_reconnect_timer = null;
+    }
     behaviour_stream = new EventSource("/" + session.agent_id + "/behaviour/stream");
+    behaviour_stream.addEventListener("open", function () {
+        behaviour_reconnect_attempt = 0;
+    });
     behaviour_stream.addEventListener("behaviour", function (event) {
         handle_behaviour_event(event.data);
     });
@@ -201,7 +216,40 @@ function connect_behaviour_stream() {
             behaviour_stream.close();
             behaviour_stream = null;
         }
+        schedule_behaviour_reconnect();
     };
+}
+
+function schedule_behaviour_reconnect() {
+    if (is_page_unloading || behaviour_reconnect_timer) {
+        return;
+    }
+    var delay = next_behaviour_reconnect_delay_ms();
+    behaviour_reconnect_timer = setTimeout(function () {
+        behaviour_reconnect_timer = null;
+        connect_behaviour_stream();
+    }, delay);
+}
+
+function next_behaviour_reconnect_delay_ms() {
+    var base = Math.min(BEHAVIOUR_RECONNECT_MAX_MS,
+        BEHAVIOUR_RECONNECT_MIN_MS * Math.pow(2, behaviour_reconnect_attempt));
+    behaviour_reconnect_attempt += 1;
+    var jitterFactor = 1 + ((Math.random() * 2 - 1) * BEHAVIOUR_RECONNECT_JITTER);
+    return Math.max(BEHAVIOUR_RECONNECT_MIN_MS, Math.floor(base * jitterFactor));
+}
+
+function cleanup_behaviour_stream() {
+    is_page_unloading = true;
+    if (behaviour_reconnect_timer) {
+        clearTimeout(behaviour_reconnect_timer);
+        behaviour_reconnect_timer = null;
+    }
+    if (behaviour_stream) {
+        behaviour_stream.close();
+        behaviour_stream = null;
+    }
+    behaviour_reconnect_attempt = 0;
 }
 
 function handle_behaviour_event(raw_event) {

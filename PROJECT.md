@@ -9,6 +9,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 3: Multifacial client with per-user face-emotion attribution
 - [x] Milestone 4: Two-state social-initiative MVP seed agent template
 - [x] Milestone 5: Scripted integration replay for social-initiative MVP flow
+- [x] Milestone 6: Remove legacy respond flow and align runtime on acknowledge + generate semantics
+- [x] Milestone 7: SSE hardening for broadcaster boundaries and browser stream lifecycle
+- [x] Milestone 8: SSE resilience follow-up with backoff, bounded client buffers, and broadcaster diagnostics
 
 ## Milestone 1
 ### Date
@@ -247,3 +250,102 @@ Unify runtime semantics around asynchronous `acknowledge` + `generate`, remove l
 1. Add deterministic, semantic anti-repeat guards for proactive social utterances.
 2. Add replay coverage for repeated noisy visual events and expected stable-state behavior.
 3. Expand seed-agent documentation with concrete end-user test scripts per client combination.
+
+## Milestone 7
+### Date
+2026-02-27
+
+### Goal
+Harden all current SSE client-server interactions so disconnects and transport abort races do not break main HTTP flows, scheduler ticks, or logging side effects.
+
+### What changed
+- Hardened SSE broadcaster send boundaries:
+  - `AgentBehaviourBroadcaster`, `AgentMonitorBroadcaster`, and `LogStreamBroadcaster` now catch `Throwable` on emitter sends and remove failed emitters without rethrowing.
+  - Initial stream handshake sends no longer call `completeWithError(...)` on first-send failure; failed emitters are only unsubscribed.
+  - Agent-scoped broadcaster maps now remove empty emitter lists during unsubscribe.
+- Hardened business/runtime publish call sites:
+  - `AgentApplicationService` now wraps monitor/behaviour broadcaster publishes in defensive `try/catch (Throwable)` boundaries.
+  - `ContinuousEvaluationScheduler` now isolates broadcaster failures from tick-cycle success paths.
+  - `SseLogAppender` now wraps `broadcaster.publish(...)` in `try/catch (Throwable)` to prevent logging-path SSE failures from leaking into request execution.
+- Hardened frontend SSE lifecycle for all current EventSource clients under `src/main/resources/public`:
+  - Added `beforeunload` and `pagehide` cleanup handlers.
+  - Cleanup closes each EventSource and clears reconnect timers.
+  - Added one bounded reconnect timer per stream on `onerror` in:
+    - `public/script.js`
+    - `public/monitor/script.js` (logs/monitor/behaviour streams)
+    - `public/nonverbal/script.js`
+    - `public/realtime/script.js` (behaviour stream)
+- Added targeted regression tests for resilience against broadcaster-thrown `Throwable`:
+  - `AgentApplicationServiceGenerateOptionsUnitTest`
+  - `ContinuousEvaluationSchedulerUnitTest`
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - PowerShell: `.\mvnw.cmd spring-boot:run`
+
+### How to test
+- Targeted resilience tests run:
+  - `.\mvnw.cmd "-Dtest=AgentApplicationServiceGenerateOptionsUnitTest,ContinuousEvaluationSchedulerUnitTest,AgentClientCompatibilityWebMvcTest" test`
+
+### Known issues and decisions
+- SSE broadcasters intentionally swallow send-path failures at boundary level to preserve primary business and scheduler behavior.
+- Reconnect cadence is bounded to one timer per stream with fixed delay; exponential backoff is not introduced in this milestone.
+
+### Next steps
+1. Add broadcaster-focused unit tests for first-send handshake failure removal semantics per broadcaster implementation.
+2. Add structured metrics counters for SSE subscribe/disconnect/send-failure events for observability.
+3. Consider configurable reconnect backoff parameters for frontend streams if deployment conditions require it.
+
+## Milestone 8
+### Date
+2026-02-28
+
+### Goal
+Reduce SSE failure amplification and improve operational diagnosability by adding client reconnect backoff, bounded monitor buffers, defensive parse handling, and broadcaster-level failure diagnostics.
+
+### What changed
+- Frontend reconnect policy hardening for all active SSE clients:
+  - Replaced fixed-delay reconnect with bounded exponential backoff + jitter while keeping one reconnect timer per stream.
+  - Backoff is reset when stream `open` succeeds.
+  - Updated files:
+    - `src/main/resources/public/script.js`
+    - `src/main/resources/public/monitor/script.js`
+    - `src/main/resources/public/nonverbal/script.js`
+    - `src/main/resources/public/realtime/script.js`
+- Monitor client resilience hardening:
+  - Added defensive JSON parse handling for log and snapshot stream events.
+  - Added bounded in-memory buffers for logs and behaviour entries to avoid unbounded growth.
+  - Added short-window dedupe for repeated app-level disconnect messages.
+  - Updated file:
+    - `src/main/resources/public/monitor/script.js`
+- Backend SSE observability at swallow boundaries:
+  - Added debug diagnostics (first failure and periodic counts) for broadcaster send failures while preserving non-throwing semantics.
+  - Added debug logs for service/scheduler publish catch boundaries to trace suppressed SSE failures without breaking primary flows.
+  - Updated files:
+    - `src/main/java/ch/zhaw/prometheus/logging/AgentBehaviourBroadcaster.java`
+    - `src/main/java/ch/zhaw/prometheus/logging/AgentMonitorBroadcaster.java`
+    - `src/main/java/ch/zhaw/prometheus/logging/LogStreamBroadcaster.java`
+    - `src/main/java/ch/zhaw/prometheus/application/AgentApplicationService.java`
+    - `src/main/java/ch/zhaw/prometheus/runtime/ContinuousEvaluationScheduler.java`
+- Added broadcaster-focused hardening tests:
+  - New test file verifies failed emitter send paths unsubscribe emitters and do not rethrow across behaviour, monitor, and log broadcasters.
+  - `src/test/java/ch/zhaw/prometheus/logging/SseBroadcasterHardeningUnitTest.java`
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - PowerShell: `.\mvnw.cmd spring-boot:run`
+
+### How to test
+- Targeted SSE hardening tests run:
+  - `.\mvnw.cmd "-Dtest=SseBroadcasterHardeningUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,ContinuousEvaluationSchedulerUnitTest,AgentClientCompatibilityWebMvcTest" test`
+
+### Known issues and decisions
+- Backoff parameters are currently static constants in frontend scripts and are not yet centrally configurable.
+- Broadcaster diagnostics are debug-level logs and periodic counters; no external metrics export was introduced in this milestone.
+
+### Next steps
+1. Add explicit handshake-failure-path tests for `subscribe(...)` initial-send failures per broadcaster.
+2. Consider exporting SSE failure and disconnect counters via metrics endpoint for dashboarding.
+3. Evaluate optional per-client reconnect policy tuning from server-provided config.

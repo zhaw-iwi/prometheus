@@ -197,6 +197,9 @@ All clients take `?agentId=<uuid>`.
 - `GET /{agentID}/behaviour/stream`
 - `POST /{agentID}/behaviour/generate` (optional body: `omitModalities`, `outputProfile`)
 - `GET /logs/stream`
+- SSE publish failures are isolated from main HTTP endpoint handling and scheduler tick processing.
+- Browser clients close EventSource streams on page unload and use one reconnect timer per stream with bounded exponential backoff and jitter on disconnect.
+- Monitor client log and behaviour panes use bounded in-memory buffers to avoid unbounded growth during long sessions or repeated stream failures.
 
 ## Developer Workflow for New Agents
 

@@ -2,6 +2,13 @@ let session = {
   agentId: null,
   stream: null,
 };
+let streamReconnectTimer = null;
+let streamReconnectAttempt = 0;
+let isPageUnloading = false;
+let autoReconnectEnabled = true;
+const STREAM_RECONNECT_MIN_MS = 1000;
+const STREAM_RECONNECT_MAX_MS = 30000;
+const STREAM_RECONNECT_JITTER = 0.2;
 
 const GESTURE_UI = {
   OPEN_QUESTION: { emoji: "\uD83E\uDD32", label: "Open Question" },
@@ -21,6 +28,8 @@ window.addEventListener("load", async () => {
     disableControls();
     return;
   }
+  window.addEventListener("beforeunload", cleanupStream);
+  window.addEventListener("pagehide", cleanupStream);
   await loadAgentInfo();
   connectStream();
 });
@@ -58,8 +67,13 @@ async function showAgentInfo() {
 }
 
 function connectStream() {
-  if (!session.agentId || session.stream) {
+  if (!session.agentId || session.stream || isPageUnloading) {
     return;
+  }
+  autoReconnectEnabled = true;
+  if (streamReconnectTimer) {
+    clearTimeout(streamReconnectTimer);
+    streamReconnectTimer = null;
   }
   const stream = new EventSource(`/${session.agentId}/behaviour/stream`);
   session.stream = stream;
@@ -68,6 +82,7 @@ function connectStream() {
   document.getElementById("disconnect_stream").disabled = false;
 
   stream.addEventListener("open", () => {
+    streamReconnectAttempt = 0;
     setStreamStatus("Stream Live");
     appendLog("behaviour stream connected.");
   });
@@ -80,10 +95,14 @@ function connectStream() {
     setStreamStatus("Stream Error");
     appendLog("behaviour stream disconnected.");
     disconnectStream(false);
+    scheduleReconnect();
   };
 }
 
 function disconnectStream(manual = true) {
+  if (manual) {
+    autoReconnectEnabled = false;
+  }
   if (session.stream) {
     session.stream.close();
     session.stream = null;
@@ -94,6 +113,38 @@ function disconnectStream(manual = true) {
   if (manual) {
     appendLog("behaviour stream closed.");
   }
+}
+
+function scheduleReconnect() {
+  if (isPageUnloading || !autoReconnectEnabled || streamReconnectTimer) {
+    return;
+  }
+  const delay = nextReconnectDelayMs();
+  streamReconnectTimer = setTimeout(() => {
+    streamReconnectTimer = null;
+    connectStream();
+  }, delay);
+}
+
+function nextReconnectDelayMs() {
+  const base = Math.min(STREAM_RECONNECT_MAX_MS, STREAM_RECONNECT_MIN_MS * Math.pow(2, streamReconnectAttempt));
+  streamReconnectAttempt += 1;
+  const jitterFactor = 1 + ((Math.random() * 2 - 1) * STREAM_RECONNECT_JITTER);
+  return Math.max(STREAM_RECONNECT_MIN_MS, Math.floor(base * jitterFactor));
+}
+
+function cleanupStream() {
+  isPageUnloading = true;
+  autoReconnectEnabled = false;
+  if (streamReconnectTimer) {
+    clearTimeout(streamReconnectTimer);
+    streamReconnectTimer = null;
+  }
+  if (session.stream) {
+    session.stream.close();
+    session.stream = null;
+  }
+  streamReconnectAttempt = 0;
 }
 
 function handleBehaviourEvent(raw) {
