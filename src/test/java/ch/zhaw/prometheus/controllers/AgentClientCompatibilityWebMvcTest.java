@@ -62,7 +62,7 @@ class AgentClientCompatibilityWebMvcTest {
 
         when(this.agentService.start(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
         when(this.agentService.reset(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
-        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any()))
+        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any(), any()))
                 .thenReturn(Optional.of(new ResponseView(null, true)));
         when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
                 .thenReturn(BehaviourGenerationOutcome.GENERATED);
@@ -248,7 +248,7 @@ class AgentClientCompatibilityWebMvcTest {
 
     @Test
     void acknowledgeReturnsNotFoundWhenAgentMissing() throws Exception {
-        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any())).thenReturn(Optional.empty());
+        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any(), any())).thenReturn(Optional.empty());
 
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/acknowledge")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -270,6 +270,21 @@ class AgentClientCompatibilityWebMvcTest {
                 .content("""
                         {
                           "outputProfile":"no_such_profile"
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void acknowledgeReturnsBadRequestForUnknownProfile() throws Exception {
+        this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/acknowledge?profile=no_such_profile")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type":"obs.user_utterance",
+                          "actor":"user",
+                          "kind":"observation",
+                          "payload":"Hello there"
                         }
                         """))
                 .andExpect(status().isBadRequest());

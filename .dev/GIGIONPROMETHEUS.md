@@ -57,6 +57,9 @@ Across agents, Gigi is modeled as:
   - Session Goodbye Final
 - Circular flow:
   - `Base -> Specialized -> Base` (repeatable), and `Outer -> Final` on global end intent.
+- Base Menu lifecycle:
+  - `Base Menu` is configured as oblivious (`isOblivious=true`) so re-entry clears menu-local event history.
+  - This prevents stale specialized-context carryover after returning from a completed activity.
 
 ### Example Interaction
 
@@ -223,3 +226,15 @@ Across all five agents, current hardening goals are:
 - deterministic transition intent checks with explicit false-cases for ambiguity
 - strict outcome extraction JSON contracts with concrete enum values
 - concise final-state behavior that closes the session and asks for a new session if user continues
+
+## Realtime Client Notes
+
+For realtime usage, current intended operation is hybrid:
+
+- realtime generates the spoken assistant response for low latency
+- backend remains authoritative for state transitions, event history, and regulation context
+- user transcript acknowledge uses backend-complement profile, avoiding backend speech duplication
+- assistant speech is appended back to backend after realtime response completion
+- prompt retrieval for realtime uses `profile=realtime_speech`
+
+This avoids dual-generation race conditions while preserving fast voice response.

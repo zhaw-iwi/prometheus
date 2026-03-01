@@ -154,13 +154,21 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
+        return this.acknowledge(agentID, request, OutputProfile.FULL_PLAN);
+    }
+
+    public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
             return Optional.empty();
         }
         Agent agent = agentMaybe.get();
+        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        Event response = agent.acknowledge(event, this.runtime());
+        Event response = agent.acknowledge(event, this.runtime(resolvedProfile));
+        if (resolvedProfile == OutputProfile.BACKEND_COMPLEMENT) {
+            this.applyOmittedModalities(response, List.of("speech"));
+        }
         Agent saved = this.persistAndPublishMonitor(agent);
         this.publishBehaviour(saved, response);
         return Optional.of(new ResponseView(response, agent.isActive()));

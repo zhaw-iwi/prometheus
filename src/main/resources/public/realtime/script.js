@@ -1,6 +1,7 @@
 let session = {
   agentId: null,
   isListening: false,
+  agentActive: null,
 };
 
 let peerConnection = null;
@@ -117,6 +118,7 @@ function setListeningState(isListening) {
 }
 
 function setActiveStatus(isActive) {
+  session.agentActive = typeof isActive === "boolean" ? isActive : null;
   const status = document.getElementById("active_status");
   if (isActive === true) {
     status.textContent = "Active";
@@ -161,16 +163,23 @@ function buildSystemPrompt(promptBundle) {
 }
 
 function buildResponseInstruction(promptBundle) {
+  const telemetryInstruction =
+    "Perception telemetry is provided in the prompt context (for example 'User facial emotion ...' and 'Nonverbal summary ...'). Treat it as available sensor input. Do not claim you cannot see or assess the user if telemetry is present. If asked about appearance or emotion, answer from the provided telemetry with appropriate uncertainty.";
   if (promptBundle && promptBundle.active === false) {
-    return "The interaction has ended. Briefly acknowledge and do not continue with new topics.";
-  }
-  if (promptBundle && typeof promptBundle.starting === "boolean") {
-    return promptBundle.starting ? "Begin the interaction now." : "Respond to the user's latest message.";
+    return `The interaction has ended. Briefly acknowledge and do not continue with new topics. ${telemetryInstruction}`;
   }
   if (promptBundle && Array.isArray(promptBundle.promptMessages) && promptBundle.promptMessages.length <= 1) {
-    return "Begin the interaction now.";
+    return `Begin the interaction now. ${telemetryInstruction}`;
   }
-  return "Respond to the user's latest message.";
+  if (promptBundle && Array.isArray(promptBundle.promptMessages)) {
+    const hasUserMessage = promptBundle.promptMessages.some(
+      (message) => message && String(message.role || "").toLowerCase() === "user"
+    );
+    if (hasUserMessage) {
+      return `Respond to the user's latest message while strictly following the system instructions. ${telemetryInstruction}`;
+    }
+  }
+  return `Respond to the user's latest message. ${telemetryInstruction}`;
 }
 
 async function toggleListening() {
@@ -282,7 +291,7 @@ async function fetchEventHistory() {
 }
 
 async function fetchPromptBundle() {
-  const response = await fetch(`/${session.agentId}/prompt`);
+  const response = await fetch(`/${session.agentId}/prompt?profile=realtime_speech`);
   if (!response.ok) {
     throw new Error("Prompt fetch failed.");
   }
@@ -419,7 +428,7 @@ function handleRealtimeEvent(event) {
 async function handleUserTranscript(transcript) {
   setGifState("thinking");
   try {
-    const ackResponse = await fetch(`/${session.agentId}/acknowledge`, {
+    const ackResponse = await fetch(`/${session.agentId}/acknowledge?profile=backend_complement`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json; charset=utf-8",
@@ -439,17 +448,18 @@ async function handleUserTranscript(transcript) {
     if (ackData && typeof ackData.active === "boolean") {
       setActiveStatus(ackData.active);
     }
-    if (ackData && ackData.active === false) {
-      return;
+    const isInactive = !!(ackData && ackData.active === false);
+    if (isInactive) {
+      appendLog("policy", "Agent is inactive; generating final-state acknowledgement only.");
     }
-    if (shouldGenerateSideBehaviour()) {
+    if (!isInactive && shouldGenerateSideBehaviour()) {
       const generateResponse = await fetch(`/${session.agentId}/behaviour/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json; charset=utf-8",
         },
         body: JSON.stringify({
-          omitModalities: ["speech"],
+          outputProfile: "backend_complement",
         }),
       });
       if (!generateResponse.ok) {

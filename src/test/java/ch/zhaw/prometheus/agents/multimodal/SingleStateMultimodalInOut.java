@@ -121,6 +121,13 @@ class SingleStateMultimodalInOut {
                               "user_confirmation": "string|null"
                             }
                           ],
+                          "visual_assessment": {
+                            "summary": "string",
+                            "events_considered": 0,
+                            "majority_emotion": "string|null",
+                            "latest_emotion": "string|null",
+                            "latest_confidence": 0.0
+                          },
                           "overall_summary": "string"
                         }
 
@@ -130,6 +137,11 @@ class SingleStateMultimodalInOut {
                         - Set "completed" to true only when the specialized guessing-game completion condition was reached.
                         - Set "completed" to false when the transition happened due to global quit/end intent.
                         - "user_confirmation" should contain the key confirmation utterance when available; otherwise null.
+                        - Include "visual_assessment" based only on visual observation events in the conversation
+                          (for example face emotion events). Keep it short, factual, and uncertainty-aware.
+                        - "events_considered" is the number of visual events used; use 0 if none were present.
+                        - If no visual events are available, set "majority_emotion" and "latest_emotion" to null,
+                          set "latest_confidence" to 0.0, and set "summary" to a short no-data note.
                         - Keep summaries concise and evidence-based from the conversation only.
                         - Keep "flow_type" exactly "single_state".
                         """;

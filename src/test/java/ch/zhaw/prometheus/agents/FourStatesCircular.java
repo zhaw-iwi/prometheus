@@ -337,7 +337,9 @@ class FourStatesCircular {
                                                 FourStatesCircular.PROMPT_BASE,
                                                 FourStatesCircular.PROMPT_BASE_STARTER,
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                                List.of());
+                                List.of(),
+                                true,
+                                true);
 
                 State guesserState = new State(
                                 "Questions Based Guesser",
