@@ -10,7 +10,7 @@ Provide demonstrator agents for controlled, state-machine-driven verbal interact
 - `SingleStateGuessingGame`
 - `SingleStateCoCreation`
 
-All are German-first conversational demos and are configured as test agents under `src/test/java/ch/zhaw/prometheus/agents/gigi`.
+All are German-first conversational demos and are configured as test agents under `src/test/java/ch/zhaw/prometheus/agents`.
 
 ## Shared Persona Baseline
 

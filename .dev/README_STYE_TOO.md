@@ -11,7 +11,7 @@ This guide helps Marc run and evaluate the new **Social Initiative MVP** agent i
 
 The target behavior follows the scripted scenario in:
 
-- `src/main/resources/scripts/social-initiative-mvp-replay-script.json`
+- `src/test/resources/scripts/social-initiative-mvp-replay-script.json`
 
 ---
 
@@ -160,7 +160,7 @@ For exact scripted behavior (test mode), run:
 
 This uses scripted gateway responses from:
 
-- `src/main/resources/scripts/social-initiative-mvp-replay-script.json`
+- `src/test/resources/scripts/social-initiative-mvp-replay-script.json`
 
 ---
 

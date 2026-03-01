@@ -133,7 +133,7 @@ For robot execution:
 
 See:
 - `src/test/java/ch/zhaw/prometheus/integration/RealtimeSpeechBackendComplementReplayIntegrationTest.java`
-- `src/main/resources/scripts/realtime-speech-backend-complement-replay-script.json`
+- `src/test/resources/scripts/realtime-speech-backend-complement-replay-script.json`
 
 What that test proves:
 - `REALTIME_SPEECH` prompt contract is returned,

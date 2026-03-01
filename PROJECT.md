@@ -1,4 +1,4 @@
-# PROJECT.md
+﻿# PROJECT.md
 
 ## Short project summary
 PROMETHEUS is an event-driven Java framework for explicit state-machine agent control with first-class regulation and multimodal behaviour plans.
@@ -17,6 +17,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 11: Reduce SSE disconnect exception amplification during client refresh/reconnect
 - [x] Milestone 12: Align final-state generation semantics and acknowledge response contract
 - [x] Milestone 13: Keep client active badges synchronized on terminal transitions
+- [x] Milestone 14: Add Gigi single-state multimodal In/Out/InOut guessing-game seed agents
+- [x] Milestone 15: Add FourStatesCircular scripted REST+SSE integration replay (all options, quit last)
+- [x] Milestone 16: Add FourStatesLinear scripted REST+SSE integration replay (all options with resets, quit last)
+- [x] Milestone 17: Add scripted REST+SSE integration replays for all three single-state Gigi agents
 
 ## Milestone 1
 ### Date
@@ -67,7 +71,7 @@ Add a concrete agent template and deterministic integration replay that demonstr
 - Added manual seed agent template:
   - `src/test/java/ch/zhaw/prometheus/agents/RealtimeMultimodalAgent.java`
 - Added deterministic scripted gateway fixture:
-  - `src/main/resources/scripts/realtime-speech-backend-complement-replay-script.json`
+  - `src/test/resources/scripts/realtime-speech-backend-complement-replay-script.json`
 - Added integration replay test that validates:
   - realtime prompt fetched with `profile=REALTIME_SPEECH` includes speech-only contract
   - prompt context includes both verbal and facial-emotion observations
@@ -183,7 +187,7 @@ Add deterministic scripted integration coverage for the new two-state social-ini
 
 ### What changed
 - Added new scripted gateway fixture:
-  - `src/main/resources/scripts/social-initiative-mvp-replay-script.json`
+  - `src/test/resources/scripts/social-initiative-mvp-replay-script.json`
 - Added new end-to-end replay integration test:
   - `src/test/java/ch/zhaw/prometheus/integration/SocialInitiativeMvpReplayIntegrationTest.java`
 - Replay scenario validates:
@@ -374,7 +378,7 @@ Adapt the five new `gigi` seed tests to compile and run on PROMETHEUS while keep
 
 ### How to run
 1. Configure properties as in `README.md`.
-2. Run a selected `gigi` seed test class from `src/test/java/ch/zhaw/prometheus/agents/gigi`.
+2. Run a selected `gigi` seed test class from `src/test/java/ch/zhaw/prometheus/agents`.
 
 ### How to test
 - Compile validation executed:
@@ -414,7 +418,7 @@ Allow the three single-state Gigi agents to transition to final state on either 
 ### How to run
 1. Configure properties as in `README.md`.
 2. Run selected seed test classes under:
-   - `src/test/java/ch/zhaw/prometheus/agents/gigi`
+   - `src/test/java/ch/zhaw/prometheus/agents`
 
 ### How to test
 - Compile validation executed:
@@ -548,3 +552,155 @@ Ensure client active-status badges switch to inactive immediately when an agent 
 1. Add browser-level integration checks for badge transitions in text/realtime/nonverbal clients.
 2. Consider sharing a small common SSE utility for status synchronization across clients.
 3. Optionally surface final-state transitions as a dedicated lightweight SSE signal.
+
+## Milestone 14
+### Date
+2026-03-01
+
+### Goal
+Add three new Gigi single-state guessing-game seed agents under `gigi.multimodal` that preserve the exact existing verbal flow while introducing multimodal input instructions, built-in nonverbal output, and a combined variant.
+
+### What changed
+- Added new seed agent classes:
+  - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
+  - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`
+  - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
+- Preserved the inner single-state guessing-game prompts and transition/extraction/final flow from `SingleStateGuessingGame` in all three variants.
+- Wrapped each variant with an `OuterState` that adds multimodality-specific instructions without changing inner game logic.
+- Implemented variant behavior:
+  - `MultimodalIn`: multimodal visual input grounding for `obs.emotion.face`, `obs.human.presence`, and `obs.social.grouping` with uncertainty-aware handling.
+  - `MultimodalOut`: built-in nonverbal gesture output enabled via `PromptPolicy#setNonVerbalGesturePrompt(...)`.
+  - `MultimodalInOut`: combined multimodal input grounding and built-in nonverbal gesture output.
+- Updated `README.md` seed template list to include the three new multimodal Gigi variants.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run one of the seed tests:
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+
+### Known issues and decisions
+- `MultimodalOut` and `MultimodalInOut` currently use the existing built-in gesture label schema only (`nonVerbal.gesture`); no custom motion/display schema was introduced.
+- Multimodal input handling is prompt-guided and depends on incoming visual events being acknowledged to the agent.
+
+### Next steps
+1. Add scripted integration replay tests that exercise each variant with combinations of visual client event streams.
+2. Add assertion coverage for emitted `nonVerbal.gesture` values in Out and InOut variants.
+3. Consider extracting shared guessing-game prompt constants into a reusable helper to reduce duplication across Gigi variants.
+
+## Milestone 15
+### Date
+2026-03-01
+
+### Goal
+Add deterministic REST endpoint + SSE replay coverage for the `FourStatesCircular` agent flow where the user executes base menu options 1, 2, and 3, then ends via option 4 as the last step.
+
+### What changed
+- Added scripted Mock-LLM replay fixture:
+  - `src/test/resources/scripts/four-states-circular-all-options-replay-script.json`
+- Added integration replay test:
+  - `src/test/java/ch/zhaw/prometheus/integration/FourStatesCircularReplayIntegrationTest.java`
+- The replay test validates:
+  - start and acknowledge flows through REST endpoints
+  - behaviour plan publication via behaviour SSE
+  - state progression through outer/inner state reporting
+  - final storage extraction under key `outcome`
+
+### How to run
+1. Run:
+   - `.\mvnw.cmd "-Dtest=FourStatesCircularReplayIntegrationTest" test`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd "-Dtest=FourStatesCircularReplayIntegrationTest" test`
+
+### Known issues and decisions
+- State assertions in outer-state scenarios intentionally accept both top-level `name` and `innerName` because `/state` reports outer + inner state metadata.
+
+### Next steps
+1. Add three additional circular scripts for early global-quit from each specialized state (guesser/coach/story).
+2. Add analogous scripted replay coverage for `FourStatesLinear`.
+3. Consider extracting a shared script-replay test harness to reduce duplication across integration replay tests.
+
+## Milestone 16
+### Date
+2026-03-01
+
+### Goal
+Add deterministic REST endpoint + SSE replay coverage for the `FourStatesLinear` agent across all four base options, with option 4 tested last.
+
+### What changed
+- Added scripted Mock-LLM replay fixture:
+  - `src/test/resources/scripts/four-states-linear-all-options-replay-script.json`
+- Added integration replay test:
+  - `src/test/java/ch/zhaw/prometheus/integration/FourStatesLinearReplayIntegrationTest.java`
+- Replay design decision:
+  - Because linear flow ends after one specialized interaction, the script uses `reset` between runs to cover options 1, 2, 3 and then 4 (quit last) in one deterministic replay.
+- The test validates:
+  - start/acknowledge/reset via REST endpoints
+  - behaviour plan publication via behaviour SSE
+  - state progression (outer + inner state reporting)
+  - storage extraction under key `outcome` for specialized completion and global quit paths
+
+### How to run
+1. Run:
+   - `.\mvnw.cmd "-Dtest=FourStatesLinearReplayIntegrationTest" test`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd "-Dtest=FourStatesLinearReplayIntegrationTest" test`
+
+### Known issues and decisions
+- State assertions accept both outer `name` and `innerName` from `/state` because linear agent routing is wrapped in an outer state.
+
+### Next steps
+1. Add additional linear scripts for early global-quit while inside each specialized state.
+2. Add a combined replay-suite command/test grouping for circular + linear scripts.
+3. Extract shared replay helper utilities to reduce duplicate endpoint/SSE assertion code.
+
+## Milestone 17
+### Date
+2026-03-01
+
+### Goal
+Add deterministic REST endpoint + SSE replay coverage for all three single-state Gigi variants (`guessing_game`, `micro_coaching`, `story_co_creation`) with one script and one integration test per agent.
+
+### What changed
+- Added scripts:
+  - `src/test/resources/scripts/single-state-guessing-game-replay-script.json`
+  - `src/test/resources/scripts/single-state-micro-coaching-replay-script.json`
+  - `src/test/resources/scripts/single-state-co-creation-replay-script.json`
+- Added integration tests:
+  - `src/test/java/ch/zhaw/prometheus/integration/SingleStateGuessingGameReplayIntegrationTest.java`
+  - `src/test/java/ch/zhaw/prometheus/integration/SingleStateMicroCoachingReplayIntegrationTest.java`
+  - `src/test/java/ch/zhaw/prometheus/integration/SingleStateCoCreationReplayIntegrationTest.java`
+- Replay coverage design:
+  - each script validates two paths in one run via `reset`:
+    - specialized completion path (`completed=true`)
+    - explicit global quit path (`completed=false`)
+- Each integration test validates:
+  - REST `start`, `acknowledge`, and `reset` endpoint flow
+  - behaviour SSE emissions and payload matching
+  - state endpoint expectations
+  - storage `outcome` extraction content
+
+### How to run
+1. Run:
+   - `.\mvnw.cmd "-Dtest=SingleStateGuessingGameReplayIntegrationTest,SingleStateMicroCoachingReplayIntegrationTest,SingleStateCoCreationReplayIntegrationTest" test`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd "-Dtest=SingleStateGuessingGameReplayIntegrationTest,SingleStateMicroCoachingReplayIntegrationTest,SingleStateCoCreationReplayIntegrationTest" test`
+
+### Known issues and decisions
+- These replays use deterministic scripted gateway outputs and focus on endpoint/SSE/state/storage contract behavior rather than natural-language robustness.
+
+### Next steps
+1. Add additional scripts that stress ambiguous user utterances and ensure no premature transitions.
+2. Consider extracting a shared single-state replay harness to reduce test duplication.
+3. Add combined CI target that runs all new gigi replay tests (single-state + linear + circular).

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigi;
+package ch.zhaw.prometheus.agents;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -22,69 +22,65 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
-class SingleStateGuessingGame {
+class SingleStateMicroCoaching {
 
-        private static final String PROMPT_STATE = """
-                        Du verörperst Gigi, die soziale Roboter-Persona des Instituts für Wirtschaftsinformatik (IWI).
-                        Verkörperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients können deine Sensoren und Aktoren repräsentieren.
-                        Du bist mit dem PROMETHEUS-Framework für sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
+        private static final String PROMPT_COACH = """
+                        Du verÃ¶rperst Gigi, die soziale Roboter-Persona des Instituts fÃ¼r Wirtschaftsinformatik (IWI).
+                        VerkÃ¶rperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients kÃ¶nnen deine Sensoren und Aktoren reprÃ¤sentieren.
+                        Du bist mit dem PROMETHEUS-Framework fÃ¼r sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
 
                         Sprachrichtlinie:
                         - Antworte immer auf Deutsch.
-                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrücklich verlangt.
-                        - Wechsle die Sprache nicht implizit während oder nach Transitionen.
+                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrÃ¼cklich verlangt.
+                        - Wechsle die Sprache nicht implizit wÃ¤hrend oder nach Transitionen.
 
                         Stil:
-                        - prägnant, warm, konkret, kurz
+                        - prÃ¤gnant, warm, konkret, kurz
                         - stelle jeweils nur eine Frage pro Schritt
-                        - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
+                        - erklÃ¤re interne Mechanik nicht ausfÃ¼hrlich, auÃŸer der Nutzer fragt explizit danach
 
-                        Führe ein Ja/Nein-Ratespiel durch.
-                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
-                        Die Rollenverteilung ist strikt:
-                        - Der Nutzer denkt an einen konkreten Gegenstand oder Begriff.
-                        - Du stellst die Ja/Nein-Fragen.
-                        - Du machst den finalen Tipp.
-                        - Der Nutzer stellt in diesem Modus keine Fragen.
-                        Vertausche diese Rollen niemals.
-                        Frage den Nutzer niemals, welche Rolle er einnehmen möchte.
-                        Wenn der Nutzer Rollen tauschen will, lehne kurz und freundlich ab und fahre mit der nächsten Ja/Nein-Frage fort.
+                        FÃ¼hre eine Persuasions-Mikro-Coaching-Session in hÃ¶chstens 6 Assistant-ZÃ¼gen durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein MenÃ¼ an.
+                        Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nÃ¤chsten 24 Stunden umsetzt.
+                        Stelle kurze diagnostische Fragen zu Motivation, Barriere und AuslÃ¶ser.
+                        Schlage danach eine konkrete Mikro-Aktion vor und bitte um explizites Commitment.
 
-                        Starte damit, den Nutzer anzuweisen, an eine Sache zu denken und "Bereit" zu schreiben, wenn er bereit ist.
-                        Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.
-                        Halte jeden Zug kurz.
+                        Die Coaching-Session ist beendet, wenn folgendes zutrifft:
+                        - eine konkrete Mikro-Aktion ist benannt, und
+                        - der Nutzer bekennt sich explizit dazu.
 
-                        Das Spiel ist beendet, wenn folgendes zutrifft:
-                        - Du hast einen direkten finalen Tipp abgegeben, und
-                        - der Nutzer hat explizit bestätigt, dass er korrekt ist.
-
-                        Um das Spielende klar erkennbar zu machen, bitte nach deinem finalen Tipp um diese Bestätigung:
-                        "Du hast es erraten"
-                        Sobald die Bestätigung eingeht, gib eine kurze positive Abschlusszeile und stelle keine weiteren Spiel-Fragen.
+                        Um das Ende der Coaching-Session klar erkennbar zu machen, bitte den Nutzer, das Commitment so zu bestÃ¤tigen:
+                        "Ich committe mich dazu"
+                        Wenn der Nutzer das Commitment eingeht, gib eine kurze Ermutigung und stelle keine weiteren Coaching-Fragen.
                         """;
 
-        private static final String PROMPT_STATE_STARTER = """
-                        Begrüße den Nutzer kurz auf Deutsch und sage:
-                        "Denke an eine Sache. Ich stelle Ja/Nein-Fragen und mache dann einen finalen Tipp. Antworte mit 'Bereit', sobald du etwas hast."
+        private static final String PROMPT_COACH_STARTER = """
+                        BegrÃ¼ÃŸe den Nutzer kurz auf Deutsch und frage nach einer VerÃ¤nderung, die er will, und warum sie jetzt bedeutsam ist.
                         """;
 
-        private static final String PROMPT_TO_FINAL = """
-                        Detect exit condition X for a guessing-game interaction where the assistant must guess what the user thought of.
+        private static final String PROMPT_COACH_TO_FINAL = """
+                        Detect exit condition X for a micro-coaching session where a concrete micro action is elaborated.
                         Evaluate intent from the latest user message in context (not exact wording).
                         X is true if either:
-                        - the assistant already made a direct final guess, and
-                        - the latest user message clearly confirms that the guess is correct (including paraphrases),
+                        - a concrete micro action is present, and
+                        - the latest user message clearly expresses commitment to doing that step (including paraphrases),
                         OR
                         - the latest user message clearly expresses global quit/end intent for the whole interaction.
                         Examples for true:
-                        - "Ja, genau."
-                        - "Richtig geraten."
-                        - "Du hast es erraten."
+                        - "Ja, ich mache das."
+                        - "Einverstanden, ich setze das um."
+                        - "Ich committe mich dazu."
                         - "Ich moechte die Interaktion beenden."
                         - "Lass uns hier aufhoeren."
                         - "Das war's, ich bin raus."
                         - "Bye, ich moechte nicht weitermachen."
-                        Return false for ambiguous replies and for ambiguous/non-committal messages.
+                        Return false for vague agreement without commitment, for ambiguous/non-committal messages,
+                        and for mode-switch/meta/capability utterances.
+                        Examples for false:
+                        - "ok"
+                        - "vielleicht"
+                        - "Was kannst du alles?"
+                        - "Gehen wir in einen anderen Modus?"
                         """;
 
         private static final String PROMPT_OUTCOME_EXTRACTION = """
@@ -96,7 +92,7 @@ class SingleStateGuessingGame {
                           "flow_type": "single_state",
                           "outcomes": [
                             {
-                              "interaction_type": "guessing_game",
+                              "interaction_type": "micro_coaching",
                               "completed": true|false,
                               "result_summary": "string",
                               "user_confirmation": "string|null"
@@ -107,8 +103,8 @@ class SingleStateGuessingGame {
 
                         Rules:
                         - Include exactly one entry in "outcomes".
-                        - "interaction_type" must be exactly "guessing_game".
-                        - Set "completed" to true only when the specialized guessing-game completion condition was reached.
+                        - "interaction_type" must be exactly "micro_coaching".
+                        - Set "completed" to true only when the specialized micro-coaching completion condition was reached.
                         - Set "completed" to false when the transition happened due to global quit/end intent.
                         - "user_confirmation" should contain the key confirmation utterance when available; otherwise null.
                         - Keep summaries concise and evidence-based from the conversation only.
@@ -119,8 +115,8 @@ class SingleStateGuessingGame {
                         Dies ist der finale Zustand und die Sitzung ist abgeschlossen.
                         Gib die Ausgabe auf Deutsch aus, ausser der Nutzer hat explizit eine andere Sprache verlangt.
                         Beruecksichtige beide Pfade:
-                        - Bei abgeschlossenem Ratespiel: gib eine kurze, sinnvolle Zusammenfassung
-                          (finaler Tipp und bestaetigte Korrektheit).
+                        - Bei abgeschlossenem Coaching: gib eine kurze, sinnvolle Zusammenfassung des Coaching-Ergebnisses
+                          (konkrete Mikro-Aktion und Commitment).
                         - Bei fruehem globalem Beenden: gib eine kurze, neutrale Early-Exit-Zusammenfassung ohne neue Inhalte.
                         Gib danach eine warme, knappe Verabschiedung.
                         Wenn der Nutzer weitere Nachrichten sendet, bestaetige kurz und sage, dass eine neue Sitzung noetig ist.
@@ -136,29 +132,29 @@ class SingleStateGuessingGame {
         @Test
         void setUp() {
                 Storage storage = new Storage();
-                State sessionFinal = new Final("Session Goodbye Final", SingleStateGuessingGame.PROMPT_FINAL);
+                State sessionFinal = new Final("Session Goodbye Final", SingleStateMicroCoaching.PROMPT_FINAL);
 
                 Transition toFinal = new Transition(
-                                List.of(new StaticDecision(SingleStateGuessingGame.PROMPT_TO_FINAL)),
+                                List.of(new StaticDecision(SingleStateMicroCoaching.PROMPT_COACH_TO_FINAL)),
                                 List.of(
                                                 new StaticExtractionAction(
-                                                                SingleStateGuessingGame.PROMPT_OUTCOME_EXTRACTION,
+                                                                SingleStateMicroCoaching.PROMPT_OUTCOME_EXTRACTION,
                                                                 storage,
                                                                 "outcome")),
                                 sessionFinal);
 
-                State interactionState = new State(
-                                "Questions Based Guesser",
+                State coachState = new State(
+                                "Persuasion Micro Coach",
                                 new PromptPolicy(
-                                                SingleStateGuessingGame.PROMPT_STATE,
-                                                SingleStateGuessingGame.PROMPT_STATE_STARTER,
+                                                SingleStateMicroCoaching.PROMPT_COACH,
+                                                SingleStateMicroCoaching.PROMPT_COACH_STARTER,
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                                 List.of(toFinal));
 
                 Agent agent = new Agent(
-                                "Gigi on Prometheus (Single State Guessing Game)",
-                                "Single-state guessing game demo with outcome extraction and final summary.",
-                                interactionState,
+                                "Gigi on Prometheus (Single State Micro Coach)",
+                                "Single-state micro-coaching demo with outcome extraction and final summary.",
+                                coachState,
                                 storage);
                 agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
                 Agent saved = this.repository.save(agent);

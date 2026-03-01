@@ -22,7 +22,7 @@ public class ScriptedLanguageModelGateway implements LanguageModelGateway {
     private final AtomicInteger cursor;
 
     public ScriptedLanguageModelGateway(
-            @Value("${prometheus.gateway.script:classpath:scripts/multimodal-replay-script.json}") String scriptLocation) {
+            @Value("${prometheus.gateway.script:classpath:scripts/transition-decision-action-replay-script.json}") String scriptLocation) {
         this.script = InteractionScriptLoader.load(scriptLocation);
         this.cursor = new AtomicInteger(0);
     }

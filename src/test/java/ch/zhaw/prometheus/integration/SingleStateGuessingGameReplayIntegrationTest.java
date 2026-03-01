@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Objects;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +27,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
@@ -34,7 +35,6 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
-import ch.zhaw.prometheus.model.policy.PromptValueShape;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;
@@ -45,63 +45,11 @@ import ch.zhaw.prometheus.spi.script.InteractionScriptLoader;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "prometheus.gateway.mode=scripted",
-        "prometheus.gateway.script=classpath:scripts/social-initiative-mvp-replay-script.json"
+        "prometheus.gateway.script=classpath:scripts/single-state-guessing-game-replay-script.json"
 })
-class SocialInitiativeMvpReplayIntegrationTest {
+class SingleStateGuessingGameReplayIntegrationTest {
     private static final Gson GSON = new Gson();
-    private static final String SCRIPT_PATH = "classpath:scripts/social-initiative-mvp-replay-script.json";
-
-    private static final String STORAGE_KEY_SOCIAL_CONTEXT = "SocialContext";
-
-    private static final String PROMPT_CONVERSATION = """
-            You are a room assistant handling direct requests from one or more users.
-            Prioritize explicit user utterances over inferred nonverbal cues.
-            Keep responses concise and practical.
-            If no user directly asks for help, stay brief and avoid starting long new topics.
-            """;
-    private static final String PROMPT_CONVERSATION_STARTER = """
-            Generate one short opening line inviting users to ask for help.
-            """;
-    private static final String PROMPT_SOCIAL_ASSESSMENT = """
-            You are observing room dynamics to proactively offer socially appropriate support.
-            Current social context JSON:
-            ${SocialContext}
-
-            Goals:
-            - Identify if one or more users are present.
-            - If a user name is known, greet them naturally.
-            - If multiple users are present, greet inclusively.
-            - If a user appears unnamed, politely ask for a name.
-            Keep initiative light; avoid repeating the same greeting if the situation has not changed.
-            """;
-    private static final String PROMPT_SOCIAL_ASSESSMENT_STARTER = """
-            Generate one concise proactive utterance based on the current social context.
-            """;
-    private static final String PROMPT_TO_SOCIAL_TRIGGER = """
-            Decide true only if recent events indicate a changed social situation in the room:
-            - visual/social observation events (obs.emotion.face, obs.human.presence, obs.social.grouping), and
-            - there is no fresh direct user request that should be handled immediately.
-            Otherwise decide false.
-            """;
-    private static final String PROMPT_TO_CONVERSATION_TRIGGER = """
-            Decide true only if a recent user utterance clearly addresses the assistant with a request,
-            question, or task that requires direct conversational handling now.
-            Otherwise decide false.
-            """;
-    private static final String PROMPT_UPDATE_SOCIAL_CONTEXT = """
-            Build a cumulative JSON object from the full event history for room-level social context.
-            Return JSON only with this schema:
-            {
-              "lastUpdateEventType":"...",
-              "estimatedUserCount":0,
-              "users":[{"name":"known-or-unknown","latestEmotion":"...","confidence":0.0}],
-              "latestDirectRequest":{"present":true,"summary":"..."}
-            }
-            Rules:
-            - Infer estimatedUserCount from available observations.
-            - Use "unknown" when no user name is available.
-            - If no direct user request exists, set latestDirectRequest.present=false and summary="".
-            """;
+    private static final String SCRIPT_PATH = "classpath:scripts/single-state-guessing-game-replay-script.json";
 
     @Autowired
     private AgentRepository agentRepository;
@@ -115,9 +63,9 @@ class SocialInitiativeMvpReplayIntegrationTest {
     }
 
     @Test
-    void replaySocialInitiativeMvpScriptAndVerifyStateStorageAndBehaviour() throws Exception {
+    void replayScriptThroughEndpointsAndVerifyStateStorageAndBehaviourSse() throws Exception {
         InteractionScript script = InteractionScriptLoader.load(SCRIPT_PATH);
-        Agent agent = this.agentRepository.save(buildReplayAgent());
+        Agent agent = this.agentRepository.save(buildAgent());
 
         for (Step step : script.getSteps()) {
             execute(step, agent.getId().toString());
@@ -135,47 +83,24 @@ class SocialInitiativeMvpReplayIntegrationTest {
         }
     }
 
-    private Agent buildReplayAgent() {
+    private Agent buildAgent() {
         Storage storage = new Storage();
-        storage.put(STORAGE_KEY_SOCIAL_CONTEXT, Storage.toJsonElement(Map.of(
-                "lastUpdateEventType", "none",
-                "estimatedUserCount", 0,
-                "users", List.of(),
-                "latestDirectRequest", Map.of("present", false, "summary", ""))));
+        State sessionFinal = new Final("Session Goodbye Final", "Final state summary.");
 
-        PromptPolicy conversationPolicy = new PromptPolicy(
-                PROMPT_CONVERSATION,
-                PROMPT_CONVERSATION_STARTER,
-                PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        conversationPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+        Transition toFinal = new Transition(
+                List.of(new StaticDecision("Return true for completion or global quit intent.")),
+                List.of(new StaticExtractionAction("Extract strict outcome JSON.", storage, "outcome")),
+                sessionFinal);
 
-        PromptPolicy socialAssessmentPolicy = new PromptPolicy(
-                PROMPT_SOCIAL_ASSESSMENT,
-                PROMPT_SOCIAL_ASSESSMENT_STARTER,
-                PromptPolicy.DEFAULT_SUMMARISE_PROMPT,
-                storage,
-                List.of(STORAGE_KEY_SOCIAL_CONTEXT),
-                PromptValueShape.OBJECT);
-        socialAssessmentPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+        State interactionState = new State(
+                "Questions Based Guesser",
+                new PromptPolicy("Guessing-game interaction.", "Starter guessing prompt.", PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of(toFinal));
 
-        State conversationState = new State("ConversationHandling", conversationPolicy, List.of());
-        State socialAssessmentState = new State("SocialSituationAssessment", socialAssessmentPolicy, List.of());
-
-        Transition conversationToSocial = new Transition(
-                List.of(new StaticDecision(PROMPT_TO_SOCIAL_TRIGGER)),
-                List.of(new StaticExtractionAction(PROMPT_UPDATE_SOCIAL_CONTEXT, storage, STORAGE_KEY_SOCIAL_CONTEXT)),
-                socialAssessmentState);
-        Transition socialToConversation = new Transition(
-                List.of(new StaticDecision(PROMPT_TO_CONVERSATION_TRIGGER)),
-                List.of(new StaticExtractionAction(PROMPT_UPDATE_SOCIAL_CONTEXT, storage, STORAGE_KEY_SOCIAL_CONTEXT)),
-                conversationState);
-
-        conversationState.addTransition(conversationToSocial);
-        socialAssessmentState.addTransition(socialToConversation);
-
-        return new Agent("Scripted Social Initiative MVP Replay Agent",
-                "Agent used for deterministic social-initiative MVP replay through HTTP endpoints.",
-                conversationState,
+        return new Agent(
+                "Single State Guessing Replay",
+                "Script replay agent for single-state guessing game.",
+                interactionState,
                 storage);
     }
 
@@ -198,9 +123,9 @@ class SocialInitiativeMvpReplayIntegrationTest {
                 assertEquals(200, connection.getResponseCode(), "acknowledge failed at step " + step.getId());
                 connection.disconnect();
             }
-            case "generate" -> {
-                HttpURLConnection connection = post("/" + agentId + "/behaviour/generate", null);
-                assertEquals(200, connection.getResponseCode(), "generate failed at step " + step.getId());
+            case "reset" -> {
+                HttpURLConnection connection = delete("/" + agentId + "/reset");
+                assertEquals(200, connection.getResponseCode(), "reset failed at step " + step.getId());
                 connection.disconnect();
             }
             case "assertstate" -> assertState(agentId, step.getExpectedState(), step.getId());
@@ -214,7 +139,8 @@ class SocialInitiativeMvpReplayIntegrationTest {
         assertEquals(200, connection.getResponseCode(), "state endpoint failed at step " + stepId);
         JsonObject state = readJsonObject(connection);
         connection.disconnect();
-        assertEquals(expectedState, state.get("name").getAsString(), "state mismatch at step " + stepId);
+        String name = state.has("name") && !state.get("name").isJsonNull() ? state.get("name").getAsString() : null;
+        assertEquals(expectedState, name, "state mismatch at step " + stepId);
     }
 
     private void assertStorage(String agentId, List<StorageExpectation> expectedStorage, String stepId)
@@ -231,7 +157,7 @@ class SocialInitiativeMvpReplayIntegrationTest {
                 String key = entry.has("key") && !entry.get("key").isJsonNull() ? entry.get("key").getAsString() : null;
                 String value = entry.has("value") && !entry.get("value").isJsonNull() ? entry.get("value").getAsString()
                         : null;
-                if (!java.util.Objects.equals(expectation.getKey(), key)) {
+                if (!Objects.equals(expectation.getKey(), key)) {
                     continue;
                 }
                 if (value != null && expectation.getContains() != null && value.contains(expectation.getContains())) {
@@ -254,6 +180,14 @@ class SocialInitiativeMvpReplayIntegrationTest {
             byte[] body = jsonBody.getBytes(StandardCharsets.UTF_8);
             connection.getOutputStream().write(body);
         }
+        return connection;
+    }
+
+    private HttpURLConnection delete(String path) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        connection.setRequestMethod("DELETE");
+        connection.setConnectTimeout(3000);
+        connection.setReadTimeout(3000);
         return connection;
     }
 
@@ -320,4 +254,3 @@ class SocialInitiativeMvpReplayIntegrationTest {
         return URI.create("http://localhost:" + this.port + path).toString();
     }
 }
-
