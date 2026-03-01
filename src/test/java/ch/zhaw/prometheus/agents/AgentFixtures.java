@@ -1,0 +1,29 @@
+package ch.zhaw.prometheus.agents;
+
+import ch.zhaw.prometheus.model.Agent;
+
+public final class AgentFixtures {
+    private AgentFixtures() {
+    }
+
+    public static Agent fourStatesCircular() {
+        return FourStatesCircular.createAgentDefinition();
+    }
+
+    public static Agent fourStatesLinear() {
+        return FourStatesLinear.createAgentDefinition();
+    }
+
+    public static Agent singleStateGuessingGame() {
+        return SingleStateGuessingGame.createAgentDefinition();
+    }
+
+    public static Agent singleStateCoCreation() {
+        return SingleStateCoCreation.createAgentDefinition();
+    }
+
+    public static Agent singleStateMicroCoaching() {
+        return SingleStateMicroCoaching.createAgentDefinition();
+    }
+}
+

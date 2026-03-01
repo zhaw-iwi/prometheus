@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
@@ -183,7 +182,7 @@ class TransitionDecisionActionReplayIntegrationTest {
     }
 
     private HttpURLConnection post(String path, String jsonBody) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -197,7 +196,7 @@ class TransitionDecisionActionReplayIntegrationTest {
     }
 
     private HttpURLConnection get(String path) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("GET");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -205,7 +204,7 @@ class TransitionDecisionActionReplayIntegrationTest {
     }
 
     private JsonObject fetchLatestBehaviourSse(String agentId, Duration timeout) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url("/" + agentId + "/behaviour/stream"))
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url("/" + agentId + "/behaviour/stream")).toURL()
                 .openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Accept", "text/event-stream");
@@ -259,3 +258,5 @@ class TransitionDecisionActionReplayIntegrationTest {
         return URI.create("http://localhost:" + this.port + path).toString();
     }
 }
+
+

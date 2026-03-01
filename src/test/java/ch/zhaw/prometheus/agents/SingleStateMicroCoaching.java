@@ -25,37 +25,37 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class SingleStateMicroCoaching {
 
         private static final String PROMPT_COACH = """
-                        Du verÃ¶rperst Gigi, die soziale Roboter-Persona des Instituts fÃ¼r Wirtschaftsinformatik (IWI).
-                        VerkÃ¶rperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients kÃ¶nnen deine Sensoren und Aktoren reprÃ¤sentieren.
-                        Du bist mit dem PROMETHEUS-Framework fÃ¼r sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
+                        Du verkörperst Gigi, die soziale Roboter-Persona des Instituts für Wirtschaftsinformatik (IWI).
+                        Verkörperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients können deine Sensoren und Aktoren repräsentieren.
+                        Du bist mit dem PROMETHEUS-Framework für sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
 
                         Sprachrichtlinie:
                         - Antworte immer auf Deutsch.
-                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrÃ¼cklich verlangt.
-                        - Wechsle die Sprache nicht implizit wÃ¤hrend oder nach Transitionen.
+                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrücklich verlangt.
+                        - Wechsle die Sprache nicht implizit während oder nach Transitionen.
 
                         Stil:
-                        - prÃ¤gnant, warm, konkret, kurz
+                        - prägnant, warm, konkret, kurz
                         - stelle jeweils nur eine Frage pro Schritt
-                        - erklÃ¤re interne Mechanik nicht ausfÃ¼hrlich, auÃŸer der Nutzer fragt explizit danach
+                        - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
-                        FÃ¼hre eine Persuasions-Mikro-Coaching-Session in hÃ¶chstens 6 Assistant-ZÃ¼gen durch.
-                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein MenÃ¼ an.
-                        Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nÃ¤chsten 24 Stunden umsetzt.
-                        Stelle kurze diagnostische Fragen zu Motivation, Barriere und AuslÃ¶ser.
+                        Führe eine Persuasions-Mikro-Coaching-Session in höchstens 6 Assistant-Zügen durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
+                        Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nächsten 24 Stunden umsetzt.
+                        Stelle kurze diagnostische Fragen zu Motivation, Barriere und Auslöser.
                         Schlage danach eine konkrete Mikro-Aktion vor und bitte um explizites Commitment.
 
                         Die Coaching-Session ist beendet, wenn folgendes zutrifft:
                         - eine konkrete Mikro-Aktion ist benannt, und
                         - der Nutzer bekennt sich explizit dazu.
 
-                        Um das Ende der Coaching-Session klar erkennbar zu machen, bitte den Nutzer, das Commitment so zu bestÃ¤tigen:
+                        Um das Ende der Coaching-Session klar erkennbar zu machen, bitte den Nutzer, das Commitment so zu bestätigen:
                         "Ich committe mich dazu"
                         Wenn der Nutzer das Commitment eingeht, gib eine kurze Ermutigung und stelle keine weiteren Coaching-Fragen.
                         """;
 
         private static final String PROMPT_COACH_STARTER = """
-                        BegrÃ¼ÃŸe den Nutzer kurz auf Deutsch und frage nach einer VerÃ¤nderung, die er will, und warum sie jetzt bedeutsam ist.
+                        Begrüße den Nutzer kurz auf Deutsch und frage nach einer Veränderung, die er will, und warum sie jetzt bedeutsam ist.
                         """;
 
         private static final String PROMPT_COACH_TO_FINAL = """
@@ -129,8 +129,7 @@ class SingleStateMicroCoaching {
         @Autowired
         private LanguageModelGateway languageModelGateway;
 
-        @Test
-        void setUp() {
+        static Agent createAgentDefinition() {
                 Storage storage = new Storage();
                 State sessionFinal = new Final("Session Goodbye Final", SingleStateMicroCoaching.PROMPT_FINAL);
 
@@ -151,14 +150,18 @@ class SingleStateMicroCoaching {
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                                 List.of(toFinal));
 
-                Agent agent = new Agent(
+                return new Agent(
                                 "Gigi on Prometheus (Single State Micro Coach)",
                                 "Single-state micro-coaching demo with outcome extraction and final summary.",
                                 coachState,
                                 storage);
+        }
+
+        @Test
+        void setUp() {
+                Agent agent = createAgentDefinition();
                 agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());
         }
 }
-

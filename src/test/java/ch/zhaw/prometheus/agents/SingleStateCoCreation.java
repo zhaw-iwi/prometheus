@@ -25,37 +25,37 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class SingleStateCoCreation {
 
         private static final String PROMPT_STATE = """
-                        Du verÃ¶rperst Gigi, die soziale Roboter-Persona des Instituts fÃ¼r Wirtschaftsinformatik (IWI).
-                        VerkÃ¶rperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients kÃ¶nnen deine Sensoren und Aktoren reprÃ¤sentieren.
-                        Du bist mit dem PROMETHEUS-Framework fÃ¼r sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
+                        Du verkörperst Gigi, die soziale Roboter-Persona des Instituts für Wirtschaftsinformatik (IWI).
+                        Verkörperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients können deine Sensoren und Aktoren repräsentieren.
+                        Du bist mit dem PROMETHEUS-Framework für sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
 
                         Sprachrichtlinie:
                         - Antworte immer auf Deutsch.
-                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrÃ¼cklich verlangt.
-                        - Wechsle die Sprache nicht implizit wÃ¤hrend oder nach Transitionen.
+                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrücklich verlangt.
+                        - Wechsle die Sprache nicht implizit während oder nach Transitionen.
 
                         Stil:
-                        - prÃ¤gnant, warm, konkret, kurz
+                        - prägnant, warm, konkret, kurz
                         - stelle jeweils nur eine Frage pro Schritt
-                        - erklÃ¤re interne Mechanik nicht ausfÃ¼hrlich, auÃŸer der Nutzer fragt explizit danach
+                        - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
-                        FÃ¼hre ein Story-Co-Creation-Spiel durch.
-                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein MenÃ¼ an.
+                        Führe ein Story-Co-Creation-Spiel durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Frage zuerst nach Genre und einer Figur.
-                        Erstelle dann gemeinsam eine kurze Geschichte Zug fÃ¼r Zug, insgesamt hÃ¶chstens 8 Assistant-ZÃ¼ge.
-                        Halte jeden Assistant-Zug bei maximal zwei SÃ¤tzen.
+                        Erstelle dann gemeinsam eine kurze Geschichte Zug für Zug, insgesamt höchstens 8 Assistant-Züge.
+                        Halte jeden Assistant-Zug bei maximal zwei Sätzen.
 
                         Das Co-Creation-Spiel ist beendet, wenn folgendes zutrifft:
-                        - ein vollstÃ¤ndiges Ende wurde erzeugt, und
-                        - der Nutzer bestÃ¤tigt den Abschluss explizit.
+                        - ein vollständiges Ende wurde erzeugt, und
+                        - der Nutzer bestätigt den Abschluss explizit.
 
                         Um das Ende klar erkennbar zu machen, bitte den Nutzer nach dem Ende mit folgender Antwort:
                         "Die Geschichte ist zu Ende"
-                        Sobald der Nutzer diese BestÃ¤tigung eingeht, antworte mit einer kurzen Abschlusszeile und erweitere die Geschichte nicht weiter.
+                        Sobald der Nutzer diese Bestätigung eingeht, antworte mit einer kurzen Abschlusszeile und erweitere die Geschichte nicht weiter.
                         """;
 
         private static final String PROMPT_STATE_STARTER = """
-                        BegrÃ¼ÃŸe den Nutzer kurz auf Deutsch und frage ihn, ein Genre und eine Figur fÃ¼r den Start zu wÃ¤hlen.
+                        Begrüße den Nutzer kurz auf Deutsch und frage ihn, ein Genre und eine Figur für den Start zu wählen.
                         """;
 
         private static final String PROMPT_TO_FINAL = """
@@ -129,8 +129,7 @@ class SingleStateCoCreation {
         @Autowired
         private LanguageModelGateway languageModelGateway;
 
-        @Test
-        void setUp() {
+        static Agent createAgentDefinition() {
                 Storage storage = new Storage();
                 State sessionFinal = new Final("Session Goodbye Final", SingleStateCoCreation.PROMPT_FINAL);
 
@@ -151,14 +150,18 @@ class SingleStateCoCreation {
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                                 List.of(toFinal));
 
-                Agent agent = new Agent(
+                return new Agent(
                                 "Gigi on Prometheus (Single State Co-Creation)",
                                 "Single-state story co-creation demo with outcome extraction and final summary.",
                                 interactionState,
                                 storage);
+        }
+
+        @Test
+        void setUp() {
+                Agent agent = createAgentDefinition();
                 agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());
         }
 }
-

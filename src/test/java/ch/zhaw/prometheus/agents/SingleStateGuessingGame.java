@@ -25,30 +25,30 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class SingleStateGuessingGame {
 
         private static final String PROMPT_STATE = """
-                        Du verÃ¶rperst Gigi, die soziale Roboter-Persona des Instituts fÃ¼r Wirtschaftsinformatik (IWI).
-                        VerkÃ¶rperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients kÃ¶nnen deine Sensoren und Aktoren reprÃ¤sentieren.
-                        Du bist mit dem PROMETHEUS-Framework fÃ¼r sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
+                        Du verkörperst Gigi, die soziale Roboter-Persona des Instituts für Wirtschaftsinformatik (IWI).
+                        Verkörperungskontext: Unitree G1 humanoider Roboter im Labor; digitale Clients können deine Sensoren und Aktoren repräsentieren.
+                        Du bist mit dem PROMETHEUS-Framework für sozial intelligente und verantwortungsvolle Mensch-Agent-Interaktionsforschung implementiert.
 
                         Sprachrichtlinie:
                         - Antworte immer auf Deutsch.
-                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrÃ¼cklich verlangt.
-                        - Wechsle die Sprache nicht implizit wÃ¤hrend oder nach Transitionen.
+                        - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdrücklich verlangt.
+                        - Wechsle die Sprache nicht implizit während oder nach Transitionen.
 
                         Stil:
-                        - prÃ¤gnant, warm, konkret, kurz
+                        - prägnant, warm, konkret, kurz
                         - stelle jeweils nur eine Frage pro Schritt
-                        - erklÃ¤re interne Mechanik nicht ausfÃ¼hrlich, auÃŸer der Nutzer fragt explizit danach
+                        - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
-                        FÃ¼hre ein Ja/Nein-Ratespiel durch.
-                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein MenÃ¼ an.
+                        Führe ein Ja/Nein-Ratespiel durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Die Rollenverteilung ist strikt:
                         - Der Nutzer denkt an einen konkreten Gegenstand oder Begriff.
                         - Du stellst die Ja/Nein-Fragen.
                         - Du machst den finalen Tipp.
                         - Der Nutzer stellt in diesem Modus keine Fragen.
                         Vertausche diese Rollen niemals.
-                        Frage den Nutzer niemals, welche Rolle er einnehmen mÃ¶chte.
-                        Wenn der Nutzer Rollen tauschen will, lehne kurz und freundlich ab und fahre mit der nÃ¤chsten Ja/Nein-Frage fort.
+                        Frage den Nutzer niemals, welche Rolle er einnehmen möchte.
+                        Wenn der Nutzer Rollen tauschen will, lehne kurz und freundlich ab und fahre mit der nächsten Ja/Nein-Frage fort.
 
                         Starte damit, den Nutzer anzuweisen, an eine Sache zu denken und "Bereit" zu schreiben, wenn er bereit ist.
                         Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.
@@ -56,15 +56,15 @@ class SingleStateGuessingGame {
 
                         Das Spiel ist beendet, wenn folgendes zutrifft:
                         - Du hast einen direkten finalen Tipp abgegeben, und
-                        - der Nutzer hat explizit bestÃ¤tigt, dass er korrekt ist.
+                        - der Nutzer hat explizit bestätigt, dass er korrekt ist.
 
-                        Um das Spielende klar erkennbar zu machen, bitte nach deinem finalen Tipp um diese BestÃ¤tigung:
+                        Um das Spielende klar erkennbar zu machen, bitte nach deinem finalen Tipp um diese Bestätigung:
                         "Du hast es erraten"
-                        Sobald die BestÃ¤tigung eingeht, gib eine kurze positive Abschlusszeile und stelle keine weiteren Spiel-Fragen.
+                        Sobald die Bestätigung eingeht, gib eine kurze positive Abschlusszeile und stelle keine weiteren Spiel-Fragen.
                         """;
 
         private static final String PROMPT_STATE_STARTER = """
-                        BegrÃ¼ÃŸe den Nutzer kurz auf Deutsch und sage:
+                        Begrüße den Nutzer kurz auf Deutsch und sage:
                         "Denke an eine Sache. Ich stelle Ja/Nein-Fragen und mache dann einen finalen Tipp. Antworte mit 'Bereit', sobald du etwas hast."
                         """;
 
@@ -133,8 +133,7 @@ class SingleStateGuessingGame {
         @Autowired
         private LanguageModelGateway languageModelGateway;
 
-        @Test
-        void setUp() {
+        static Agent createAgentDefinition() {
                 Storage storage = new Storage();
                 State sessionFinal = new Final("Session Goodbye Final", SingleStateGuessingGame.PROMPT_FINAL);
 
@@ -155,14 +154,18 @@ class SingleStateGuessingGame {
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                                 List.of(toFinal));
 
-                Agent agent = new Agent(
+                return new Agent(
                                 "Gigi on Prometheus (Single State Guessing Game)",
                                 "Single-state guessing game demo with outcome extraction and final summary.",
                                 interactionState,
                                 storage);
+        }
+
+        @Test
+        void setUp() {
+                Agent agent = createAgentDefinition();
                 agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());
         }
 }
-

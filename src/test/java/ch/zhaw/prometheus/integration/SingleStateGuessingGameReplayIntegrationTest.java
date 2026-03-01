@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -26,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -84,24 +84,7 @@ class SingleStateGuessingGameReplayIntegrationTest {
     }
 
     private Agent buildAgent() {
-        Storage storage = new Storage();
-        State sessionFinal = new Final("Session Goodbye Final", "Final state summary.");
-
-        Transition toFinal = new Transition(
-                List.of(new StaticDecision("Return true for completion or global quit intent.")),
-                List.of(new StaticExtractionAction("Extract strict outcome JSON.", storage, "outcome")),
-                sessionFinal);
-
-        State interactionState = new State(
-                "Questions Based Guesser",
-                new PromptPolicy("Guessing-game interaction.", "Starter guessing prompt.", PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of(toFinal));
-
-        return new Agent(
-                "Single State Guessing Replay",
-                "Script replay agent for single-state guessing game.",
-                interactionState,
-                storage);
+        return AgentFixtures.singleStateGuessingGame();
     }
 
     private void execute(Step step, String agentId) throws Exception {
@@ -170,7 +153,7 @@ class SingleStateGuessingGameReplayIntegrationTest {
     }
 
     private HttpURLConnection post(String path, String jsonBody) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -184,7 +167,7 @@ class SingleStateGuessingGameReplayIntegrationTest {
     }
 
     private HttpURLConnection delete(String path) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("DELETE");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -192,7 +175,7 @@ class SingleStateGuessingGameReplayIntegrationTest {
     }
 
     private HttpURLConnection get(String path) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("GET");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -200,7 +183,7 @@ class SingleStateGuessingGameReplayIntegrationTest {
     }
 
     private JsonObject fetchLatestBehaviourSse(String agentId, Duration timeout) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url("/" + agentId + "/behaviour/stream"))
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url("/" + agentId + "/behaviour/stream")).toURL()
                 .openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Accept", "text/event-stream");
@@ -254,3 +237,5 @@ class SingleStateGuessingGameReplayIntegrationTest {
         return URI.create("http://localhost:" + this.port + path).toString();
     }
 }
+
+

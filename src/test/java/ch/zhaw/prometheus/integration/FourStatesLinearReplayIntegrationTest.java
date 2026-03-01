@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -26,6 +25,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.OuterState;
@@ -140,62 +140,7 @@ class FourStatesLinearReplayIntegrationTest {
     }
 
     private Agent buildFourStatesLinearAgent() {
-        Storage storage = new Storage();
-        State sessionFinal = new Final("Session Goodbye Final", PROMPT_SESSION_FINAL);
-        State activityFinal = new Final("Activity Summary Final", PROMPT_ACTIVITY_FINAL);
-
-        State baseMenuState = new State(
-                "Base Menu",
-                new PromptPolicy(PROMPT_BASE, PROMPT_BASE_STARTER, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
-
-        State guesserState = new State(
-                "Questions Based Guesser",
-                new PromptPolicy(PROMPT_GUESSER, PROMPT_GUESSER_STARTER, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
-
-        State coachState = new State(
-                "Persuasion Micro Coach",
-                new PromptPolicy(PROMPT_COACH, PROMPT_COACH_STARTER, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
-
-        State storyState = new State(
-                "Story Co Creation",
-                new PromptPolicy(PROMPT_STORY, PROMPT_STORY_STARTER, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
-
-        baseMenuState.addTransition(new Transition(new StaticDecision(PROMPT_BASE_TO_GUESSER), guesserState));
-        baseMenuState.addTransition(new Transition(new StaticDecision(PROMPT_BASE_TO_COACH), coachState));
-        baseMenuState.addTransition(new Transition(new StaticDecision(PROMPT_BASE_TO_STORY), storyState));
-
-        guesserState.addTransition(new Transition(
-                List.of(new StaticDecision(PROMPT_GUESSER_TO_FINAL)),
-                List.of(new StaticExtractionAction(PROMPT_OUTCOME_EXTRACTION, storage, "outcome")),
-                activityFinal));
-        coachState.addTransition(new Transition(
-                List.of(new StaticDecision(PROMPT_COACH_TO_FINAL)),
-                List.of(new StaticExtractionAction(PROMPT_OUTCOME_EXTRACTION, storage, "outcome")),
-                activityFinal));
-        storyState.addTransition(new Transition(
-                List.of(new StaticDecision(PROMPT_STORY_TO_FINAL)),
-                List.of(new StaticExtractionAction(PROMPT_OUTCOME_EXTRACTION, storage, "outcome")),
-                activityFinal));
-
-        Transition outerToFinal = new Transition(
-                List.of(new StaticDecision(PROMPT_OUTER_DONE)),
-                List.of(new StaticExtractionAction(PROMPT_OUTCOME_EXTRACTION_ON_GLOBAL_QUIT, storage, "outcome")),
-                sessionFinal);
-        State outerState = new OuterState(
-                PROMPT_OUTER,
-                "Gigi Demo Supervisor",
-                List.of(outerToFinal),
-                baseMenuState);
-
-        return new Agent(
-                "Gigi on Prometheus (4 States Linear Replay)",
-                "Script-replay test agent for linear base menu with one specialized path or global quit.",
-                outerState,
-                storage);
+        return AgentFixtures.fourStatesLinear();
     }
 
     private void execute(Step step, String agentId) throws Exception {
@@ -285,7 +230,7 @@ class FourStatesLinearReplayIntegrationTest {
     }
 
     private HttpURLConnection post(String path, String jsonBody) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -299,7 +244,7 @@ class FourStatesLinearReplayIntegrationTest {
     }
 
     private HttpURLConnection delete(String path) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("DELETE");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -307,7 +252,7 @@ class FourStatesLinearReplayIntegrationTest {
     }
 
     private HttpURLConnection get(String path) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url(path)).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url(path)).toURL().openConnection();
         connection.setRequestMethod("GET");
         connection.setConnectTimeout(3000);
         connection.setReadTimeout(3000);
@@ -315,7 +260,7 @@ class FourStatesLinearReplayIntegrationTest {
     }
 
     private JsonObject fetchLatestBehaviourSse(String agentId, Duration timeout) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url("/" + agentId + "/behaviour/stream"))
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url("/" + agentId + "/behaviour/stream")).toURL()
                 .openConnection();
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Accept", "text/event-stream");
@@ -369,3 +314,5 @@ class FourStatesLinearReplayIntegrationTest {
         return URI.create("http://localhost:" + this.port + path).toString();
     }
 }
+
+
