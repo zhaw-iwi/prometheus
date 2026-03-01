@@ -139,8 +139,13 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
 - `src/test/java/ch/zhaw/prometheus/agents/RealtimeMultimodalAgent.java`
 - `src/test/java/ch/zhaw/prometheus/agents/SocialInitiativeMvpAgent.java`
+- `src/test/java/ch/zhaw/prometheus/agents/gigi/SingleStateGuessingGame.java`
+- `src/test/java/ch/zhaw/prometheus/agents/gigi/SingleStateMicroCoaching.java`
+- `src/test/java/ch/zhaw/prometheus/agents/gigi/SingleStateCoCreation.java`
+- `src/test/java/ch/zhaw/prometheus/agents/gigi/FourStatesLinear.java`
+- `src/test/java/ch/zhaw/prometheus/agents/gigi/FourStatesCircular.java`
 
-These are marked `@Disabled("Manual seed test")`. To use them:
+Some templates are marked `@Disabled("Manual seed test")` and some are directly runnable. To use them:
 
 1. Copy one class and remove `@Disabled`, or create your own seed test from it.
 2. Run the test once.

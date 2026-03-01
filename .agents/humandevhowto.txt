@@ -1,9 +1,9 @@
 @Humans: Here are two example opening lines for a new Codex session:
 
 <opening line>
-Read CONTEXT.md and CODEX.md at repository root.
+Read .agents/CONTEXT.md and .agents/CODEX.md at repository root.
 
-Confirm you understand:
+Respond with yes if you understand:
 - The architectural constraints defined in CONTEXT.md.
 - The milestone-based workflow and clean-slate rule defined in CODEX.md.
 </opening line>

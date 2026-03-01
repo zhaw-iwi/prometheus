@@ -46,7 +46,18 @@ public class LogStreamBroadcaster {
                     LOGGER.debug("SSE log send failed; failures={}", failures, failure);
                 }
                 this.emitters.remove(emitter);
+                safeComplete(emitter);
             }
+        }
+    }
+
+    private static void safeComplete(SseEmitter emitter) {
+        if (emitter == null) {
+            return;
+        }
+        try {
+            emitter.complete();
+        } catch (Throwable ignored) {
         }
     }
 }

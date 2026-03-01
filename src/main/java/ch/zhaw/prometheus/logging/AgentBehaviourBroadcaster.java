@@ -75,7 +75,7 @@ public class AgentBehaviourBroadcaster {
             emitter.send(SseEmitter.event().name("behaviour").data(event));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
-            unsubscribe(agentId, emitters, emitter);
+            unsubscribeAndComplete(agentId, emitters, emitter);
         }
     }
 
@@ -84,7 +84,7 @@ public class AgentBehaviourBroadcaster {
             emitter.send(SseEmitter.event().name("behaviour").data(event));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
-            unsubscribe(agentId, emitters, emitter);
+            unsubscribeAndComplete(agentId, emitters, emitter);
         }
     }
 
@@ -92,6 +92,17 @@ public class AgentBehaviourBroadcaster {
         emitters.remove(emitter);
         if (emitters.isEmpty()) {
             this.emittersByAgent.remove(agentId, emitters);
+        }
+    }
+
+    private void unsubscribeAndComplete(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter) {
+        unsubscribe(agentId, emitters, emitter);
+        if (emitter == null) {
+            return;
+        }
+        try {
+            emitter.complete();
+        } catch (Throwable ignored) {
         }
     }
 

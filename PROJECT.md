@@ -12,6 +12,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 6: Remove legacy respond flow and align runtime on acknowledge + generate semantics
 - [x] Milestone 7: SSE hardening for broadcaster boundaries and browser stream lifecycle
 - [x] Milestone 8: SSE resilience follow-up with backoff, bounded client buffers, and broadcaster diagnostics
+- [x] Milestone 9: Migrate Gigi verbal seed agents from PROMISE package shape to PROMETHEUS API
+- [x] Milestone 10: Extend single-state Gigi transitions with global quit intent handling
+- [x] Milestone 11: Reduce SSE disconnect exception amplification during client refresh/reconnect
 
 ## Milestone 1
 ### Date
@@ -349,3 +352,117 @@ Reduce SSE failure amplification and improve operational diagnosability by addin
 1. Add explicit handshake-failure-path tests for `subscribe(...)` initial-send failures per broadcaster.
 2. Consider exporting SSE failure and disconnect counters via metrics endpoint for dashboarding.
 3. Evaluate optional per-client reconnect policy tuning from server-provided config.
+
+## Milestone 9
+### Date
+2026-03-01
+
+### Goal
+Adapt the five new `gigi` seed tests to compile and run on PROMETHEUS while keeping their original verbal-only interaction design and behavior patterns.
+
+### What changed
+- Migrated package/import usage in all `gigi` seed classes from legacy `statefulconversation` namespaces to `ch.zhaw.prometheus`.
+- Replaced deprecated `TransferUtterancesAction` usage with explicit PROMETHEUS transitions that preserve the same state-machine flows.
+- Updated state construction to current `State(name, Policy, transitions)` API using `PromptPolicy` with the original prompts/starter prompts.
+- Updated agent startup to current runtime contract:
+  - inject `PromptMessageAssembler` and `LanguageModelGateway`
+  - call `agent.start(new PolicyRuntime(...))`
+- Added persisted-agent assertions (`assertNotNull(saved.getId())`) in the five tests.
+- Updated `README.md` seed-template list to include the five new `gigi` templates.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run a selected `gigi` seed test class from `src/test/java/ch/zhaw/prometheus/agents/gigi`.
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+
+### Known issues and decisions
+- The migration intentionally keeps these agents verbal in/out only at prompt-policy level; no multimodal behaviour prompts were added.
+- Seed tests still depend on repository runtime configuration (database + gateway mode) when fully executed; this milestone validated API compatibility via test compile.
+
+### Next steps
+1. Add deterministic scripted replay integration tests for each `gigi` flow (single-state, linear, circular).
+2. If needed, mark all seed-only tests consistently with `@Disabled("Manual seed test")` and document execution expectations.
+3. Add one REST-based creation path for the same flows if reusable provisioning beyond seed tests is required.
+
+## Milestone 10
+### Date
+2026-03-01
+
+### Goal
+Allow the three single-state Gigi agents to transition to final state on either specialized completion or explicit global quit intent, while preserving topology and strict outcome JSON shape.
+
+### What changed
+- Updated decision prompts in:
+  - `SingleStateMicroCoaching` (`PROMPT_COACH_TO_FINAL`)
+  - `SingleStateGuessingGame` (`PROMPT_TO_FINAL`)
+  - `SingleStateCoCreation` (`PROMPT_TO_FINAL`)
+- Added explicit global quit intent detection examples (German), while keeping false for ambiguous/non-committal messages.
+- Updated extraction prompts to keep the same JSON structure and field names while changing:
+  - `completed` from fixed `true` to `true|false`
+  - rules for mapping `completed=true` (specialized completion) vs `completed=false` (global quit).
+- Updated final prompts in all three agents to handle both paths:
+  - regular completed specialized interaction summary
+  - neutral early-exit summary on global quit
+  - concise goodbye and reminder that a new session is needed for further messages.
+- No state-machine topology changes were made (`specialized -> final` remains unchanged).
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run selected seed test classes under:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigi`
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+
+### Known issues and decisions
+- This milestone updates prompt contracts only; runtime transition/action wiring was intentionally left unchanged.
+- Existing encoding artifacts in legacy prompt text were left as-is outside changed prompt blocks.
+
+### Next steps
+1. Add replay/integration tests that assert `completed=false` for global-quit transitions.
+2. Add replay/integration tests that assert `completed=true` for specialized completion transitions.
+3. Optionally centralize reusable global quit-intent prompt fragments across Gigi agents.
+
+## Milestone 11
+### Date
+2026-03-01
+
+### Goal
+Reduce backend exception noise and request-path impact when SSE clients disconnect abruptly (for example during hard refresh loops), especially for log/monitor/behaviour streams.
+
+### What changed
+- Scoped SSE log broadcasting away from the global root logger:
+  - `SseLogAppender` now applies to `ch.zhaw.prometheus` logger only.
+  - Root logger remains console-only.
+  - File: `src/main/resources/logback-spring.xml`
+- Hardened broadcaster cleanup on failed sends:
+  - On send failure, failed emitters are now unsubscribed and explicitly completed.
+  - Updated files:
+    - `src/main/java/ch/zhaw/prometheus/logging/LogStreamBroadcaster.java`
+    - `src/main/java/ch/zhaw/prometheus/logging/AgentMonitorBroadcaster.java`
+    - `src/main/java/ch/zhaw/prometheus/logging/AgentBehaviourBroadcaster.java`
+- Existing service/scheduler catch boundaries remained unchanged and continue isolating SSE failures from business flow.
+
+### How to run
+1. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open monitor/realtime clients and reproduce refresh/reconnect patterns.
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+- SSE hardening unit test executed:
+  - `mvn "-Dtest=SseBroadcasterHardeningUnitTest" test`
+
+### Known issues and decisions
+- A one-off connection-aborted IOException can still occur during abrupt browser disconnect races, but this milestone reduces repeated amplification and broad logger fan-out.
+- Log stream now intentionally carries application logger events (`ch.zhaw.prometheus`) rather than every framework/container logger.
+
+### Next steps
+1. Add integration test that simulates abrupt SSE disconnect during active acknowledge/generate requests.
+2. Optionally classify and suppress expected broken-pipe style disconnect exceptions at container logging level.
+3. Consider bounded emitter count instrumentation per stream for operational visibility.
