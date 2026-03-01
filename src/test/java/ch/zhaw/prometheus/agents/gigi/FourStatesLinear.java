@@ -33,9 +33,9 @@ class FourStatesLinear {
                         Kurzüberblick zum Interaktionsfluss:
                         - Der Nutzer wählt im Basis-Menü eine von drei Aktivitäten: Ratespiel, Mikro-Coaching oder Story-Co-Creation.
                         - Danach führst du genau die gewählte Aktivität im zugehörigen Zustand durch.
-                        - Nach Abschluss der gewählten Aktivität wechselst du in einen finalen Abschlusszustand mit kurzer Ergebnis-Zusammenfassung und Verabschiedung.
+                        - Nach normalem Abschluss der gewählten Aktivität wechselst du in einen inneren finalen Abschlusszustand mit kurzer Ergebnis-Zusammenfassung und Verabschiedung.
                         - Es gibt in dieser Variante keinen Rücksprung ins Basis-Menü.
-                        - Die gesamte Sitzung endet nur bei klar geäußerter globaler Beenden-Absicht des Nutzers.
+                        - Eine klar geäußerte globale Beenden-Absicht beendet die Sitzung sofort über den Outer-Transition-Pfad.
 
                         Sprachrichtlinie:
                         - Antworte immer auf Deutsch.
@@ -81,6 +81,10 @@ class FourStatesLinear {
                         - "Lass uns hier aufhören."
                         - "Das war's, wir sind fertig."
                         - "Bitte die Sitzung jetzt beenden."
+                        - "4"
+                        - "Option 4"
+                        - "Nummer 4"
+                        - "Ich waehle Option 4"
 
                         Return false for activity-level completion intents that mean normal activity completion (handled by inner transitions), including paraphrases of:
                         - confirmation that the assistant guessed correctly
@@ -115,18 +119,42 @@ class FourStatesLinear {
                         Accept both explicit labels (for example "Ratespiel", "Option 1") and clear paraphrases
                         (for example "lass uns raten spielen", "ich waehle das spiel mit ja/nein-fragen").
                         Return false for generic acknowledgements (for example "ja", "ok", "weiter") without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "Was kannst du alles?"
+                        - "Wie funktioniert das?"
+                        - "Welche Rolle soll ich nehmen?"
+                        - "Sollen wir die Rollen tauschen?"
                         Otherwise return false.
                         """;
 
         private static final String PROMPT_BASE_TO_COACH = """
                         Decide whether the user clearly selected the Persuasion Micro-Coach mode.
                         Return true only if the user chooses coaching mode or clearly equivalent wording.
+                        Accept both explicit labels (for example "Persuasions-Mikro-Coach", "Option 2")
+                        and clear paraphrases (for example "ich will coaching", "hilf mir mit einem mikro-schritt").
+                        Return false for generic acknowledgements without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "ja"
+                        - "ok, weiter"
+                        - "Was kannst du alles?"
+                        - "Welche Rolle soll ich nehmen?"
                         Otherwise return false.
                         """;
 
         private static final String PROMPT_BASE_TO_STORY = """
                         Decide whether the user clearly selected the Story Co-Creation mode.
                         Return true only if the user chooses story mode or clearly equivalent wording.
+                        Accept both explicit labels (for example "Story-Co-Creation", "Option 3")
+                        and clear paraphrases (for example "lass uns eine geschichte erfinden", "ich waehle den story-modus").
+                        Return false for generic acknowledgements without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "ja"
+                        - "ok, weiter"
+                        - "Wie funktioniert das?"
+                        - "Sollen wir die Rollen tauschen?"
                         Otherwise return false.
                         """;
 
@@ -147,7 +175,7 @@ class FourStatesLinear {
                         Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.
                         Halte jeden Zug kurz.
 
-                        Das Spiel is beendet, wenn folgendes zutrifft:
+                        Das Spiel ist beendet, wenn folgendes zutrifft:
                         - Du hast einen direkten finalen Tipp abgegeben, und
                         - der Nutzer hat explizit bestätigt, dass er korrekt ist.
 
@@ -177,11 +205,12 @@ class FourStatesLinear {
         private static final String PROMPT_COACH = """
                         Führe eine Persuasions-Mikro-Coaching-Session in höchstens 6 Assistant-Zügen durch.
                         Gib alle Ausgaben auf Deutsch aus, außer der Nutzer verlangt explizit eine andere Sprache.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nächsten 24 Stunden umsetzt.
                         Stelle kurze diagnostische Fragen zu Motivation, Barriere und Auslöser.
                         Schlage danach eine konkrete Mikro-Aktion vor und bitte um explizites Commitment.
 
-                        Die Coaching-Session is beendet, wenn folgendes zutrifft:
+                        Die Coaching-Session ist beendet, wenn folgendes zutrifft:
                         - eine konkrete Mikro-Aktion ist benannt, und
                         - der Nutzer bekennt sich explizit dazu.
 
@@ -204,12 +233,19 @@ class FourStatesLinear {
                         - "Ja, ich mache das."
                         - "Einverstanden, ich setze das um."
                         - "Ich committe mich dazu."
-                        Return false for vague agreement without commitment or if the user instead expresses global session-ending intent.
+                        Return false for vague agreement without commitment, for ambiguous/non-committal messages,
+                        for mode-switch/meta/capability utterances, or if the user instead expresses global session-ending intent.
+                        Examples for false:
+                        - "ok"
+                        - "vielleicht"
+                        - "Was kannst du alles?"
+                        - "Gehen wir zurück ins Menü"
                         """;
 
         private static final String PROMPT_STORY = """
                         Führe ein Story-Co-Creation-Spiel durch.
                         Gib alle Ausgaben auf Deutsch aus, außer der Nutzer verlangt explizit eine andere Sprache.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Frage zuerst nach Genre und einer Figur.
                         Erstelle dann gemeinsam eine kurze Geschichte Zug für Zug, insgesamt höchstens 8 Assistant-Züge.
                         Halte jeden Assistant-Zug bei maximal zwei Sätzen.
@@ -237,7 +273,13 @@ class FourStatesLinear {
                         - "Ja, die Geschichte ist fertig."
                         - "Das Ende passt, wir sind durch."
                         - "Die Geschichte ist zu Ende."
-                        Return false if the message asks to continue/modify the story, or if the user instead expresses global session-ending intent.
+                        Return false if the message asks to continue/modify the story, for ambiguous/non-committal messages,
+                        for mode-switch/meta/capability utterances, or if the user instead expresses global session-ending intent.
+                        Examples for false:
+                        - "lass uns weiterschreiben"
+                        - "ok"
+                        - "Was kannst du alles?"
+                        - "Gehen wir zurück ins Menü"
                         """;
 
         private static final String PROMPT_FINAL = """
@@ -253,6 +295,8 @@ class FourStatesLinear {
         private static final String PROMPT_ACTIVITY_FINAL = """
                         Dies ist der finale Abschlusszustand nach einer gewählten Aktivität.
                         Gib die Ausgabe auf Deutsch aus, außer der Nutzer hat explizit eine andere Sprache verlangt.
+                        Dieser Zustand repräsentiert den normalen Aktivitätsabschluss im linearen Fluss.
+                        Der separate globale Beenden-Pfad wird im Outer-State behandelt.
                         Erstelle eine kurze, sinnvolle Ergebnis-Zusammenfassung basierend auf der zuletzt abgeschlossenen Aktivität:
                         - Ratespiel: benenne den finalen Tipp und ob er bestätigt wurde.
                         - Mikro-Coaching: benenne die konkrete Mikro-Aktion und das Commitment.
@@ -270,7 +314,7 @@ class FourStatesLinear {
                           "flow_type": "linear",
                           "outcomes": [
                             {
-                              "interaction_type": "guessing_game|micro_coaching|story_co_creation",
+                              "interaction_type": "guessing_game",
                               "completed": true,
                               "result_summary": "string",
                               "user_confirmation": "string|null"
@@ -281,9 +325,43 @@ class FourStatesLinear {
 
                         Rules:
                         - Include exactly one entry in "outcomes" for the completed specialized interaction.
+                        - "interaction_type" for this one entry must be exactly one concrete value from:
+                          "guessing_game", "micro_coaching", or "story_co_creation".
+                        - Do NOT output the pipe-delimited placeholder value
+                          "guessing_game|micro_coaching|story_co_creation".
                         - "user_confirmation" should contain the key confirmation utterance when available; otherwise null.
                         - Keep summaries concise and evidence-based from the conversation only.
                         - Keep "flow_type" exactly "linear".
+                        """;
+
+        private static final String PROMPT_OUTCOME_EXTRACTION_ON_GLOBAL_QUIT = """
+                        Extract interaction outcomes for a linear-flow session that ended via global quit intent and return STRICT JSON only.
+                        Do not return markdown, code fences, or explanatory text.
+
+                        The JSON object must have exactly this top-level structure and field names:
+                        {
+                          "flow_type": "linear",
+                          "outcomes": [
+                            {
+                              "interaction_type": "guessing_game",
+                              "completed": true|false,
+                              "result_summary": "string",
+                              "user_confirmation": "string|null"
+                            }
+                          ],
+                          "overall_summary": "string"
+                        }
+
+                        Rules:
+                        - Keep "flow_type" exactly "linear".
+                        - If no specialized interaction was started before quit, set "outcomes" to an empty array.
+                        - If a specialized interaction was started but quit before specialized completion, include exactly one entry with:
+                          - "interaction_type" as exactly one concrete value from "guessing_game", "micro_coaching", "story_co_creation"
+                          - "completed" = false
+                        - Do NOT output the pipe-delimited placeholder value
+                          "guessing_game|micro_coaching|story_co_creation".
+                        - "user_confirmation" should contain the key confirmation utterance when available; otherwise null.
+                        - Keep summaries concise and evidence-based from the conversation only.
                         """;
 
         @Autowired
@@ -367,7 +445,12 @@ class FourStatesLinear {
                                 activityFinal));
 
                 Transition outerToFinal = new Transition(
-                                new StaticDecision(FourStatesLinear.PROMPT_OUTERSTATE_TRIGGER_DONE),
+                                List.of(new StaticDecision(FourStatesLinear.PROMPT_OUTERSTATE_TRIGGER_DONE)),
+                                List.of(
+                                                new StaticExtractionAction(
+                                                                FourStatesLinear.PROMPT_OUTCOME_EXTRACTION_ON_GLOBAL_QUIT,
+                                                                storage,
+                                                                "outcome")),
                                 sessionFinal);
                 State outerState = new OuterState(
                                 FourStatesLinear.PROMPT_OUTERSTATE,

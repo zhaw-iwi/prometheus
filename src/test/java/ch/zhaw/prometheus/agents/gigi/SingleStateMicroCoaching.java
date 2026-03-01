@@ -40,6 +40,7 @@ class SingleStateMicroCoaching {
                         - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
                         Führe eine Persuasions-Mikro-Coaching-Session in höchstens 6 Assistant-Zügen durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nächsten 24 Stunden umsetzt.
                         Stelle kurze diagnostische Fragen zu Motivation, Barriere und Auslöser.
                         Schlage danach eine konkrete Mikro-Aktion vor und bitte um explizites Commitment.
@@ -73,7 +74,13 @@ class SingleStateMicroCoaching {
                         - "Lass uns hier aufhoeren."
                         - "Das war's, ich bin raus."
                         - "Bye, ich moechte nicht weitermachen."
-                        Return false for vague agreement without commitment and for ambiguous/non-committal messages.
+                        Return false for vague agreement without commitment, for ambiguous/non-committal messages,
+                        and for mode-switch/meta/capability utterances.
+                        Examples for false:
+                        - "ok"
+                        - "vielleicht"
+                        - "Was kannst du alles?"
+                        - "Gehen wir in einen anderen Modus?"
                         """;
 
         private static final String PROMPT_OUTCOME_EXTRACTION = """

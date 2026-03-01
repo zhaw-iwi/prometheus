@@ -40,12 +40,15 @@ class SingleStateGuessingGame {
                         - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
                         Führe ein Ja/Nein-Ratespiel durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Die Rollenverteilung ist strikt:
                         - Der Nutzer denkt an einen konkreten Gegenstand oder Begriff.
                         - Du stellst die Ja/Nein-Fragen.
                         - Du machst den finalen Tipp.
                         - Der Nutzer stellt in diesem Modus keine Fragen.
                         Vertausche diese Rollen niemals.
+                        Frage den Nutzer niemals, welche Rolle er einnehmen möchte.
+                        Wenn der Nutzer Rollen tauschen will, lehne kurz und freundlich ab und fahre mit der nächsten Ja/Nein-Frage fort.
 
                         Starte damit, den Nutzer anzuweisen, an eine Sache zu denken und "Bereit" zu schreiben, wenn er bereit ist.
                         Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.

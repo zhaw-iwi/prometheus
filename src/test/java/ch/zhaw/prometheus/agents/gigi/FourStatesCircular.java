@@ -80,6 +80,10 @@ class FourStatesCircular {
                         - "Lass uns hier aufhören."
                         - "Das war's, wir sind fertig."
                         - "Bitte die Sitzung jetzt beenden."
+                        - "4"
+                        - "Option 4"
+                        - "Nummer 4"
+                        - "Ich waehle Option 4"
 
                         Return false for activity-level completion intents that mean returning to menu, including paraphrases of:
                         - confirmation that the assistant guessed correctly
@@ -113,18 +117,42 @@ class FourStatesCircular {
                         Accept both explicit labels (for example "Ratespiel", "Option 1") and clear paraphrases
                         (for example "lass uns raten spielen", "ich waehle das spiel mit ja/nein-fragen").
                         Return false for generic acknowledgements (for example "ja", "ok", "weiter") without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "Was kannst du alles?"
+                        - "Wie funktioniert das?"
+                        - "Welche Rolle soll ich nehmen?"
+                        - "Sollen wir die Rollen tauschen?"
                         Otherwise return false.
                         """;
 
         private static final String PROMPT_BASE_TO_COACH = """
                         Decide whether the user clearly selected the Persuasion Micro-Coach mode.
                         Return true only if the user chooses coaching mode or clearly equivalent wording.
+                        Accept both explicit labels (for example "Persuasions-Mikro-Coach", "Option 2")
+                        and clear paraphrases (for example "ich will coaching", "hilf mir mit einem mikro-schritt").
+                        Return false for generic acknowledgements without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "ja"
+                        - "ok, weiter"
+                        - "Was kannst du alles?"
+                        - "Welche Rolle soll ich nehmen?"
                         Otherwise return false.
                         """;
 
         private static final String PROMPT_BASE_TO_STORY = """
                         Decide whether the user clearly selected the Story Co-Creation mode.
                         Return true only if the user chooses story mode or clearly equivalent wording.
+                        Accept both explicit labels (for example "Story-Co-Creation", "Option 3")
+                        and clear paraphrases (for example "lass uns eine geschichte erfinden", "ich waehle den story-modus").
+                        Return false for generic acknowledgements without a clear mode choice.
+                        Return false for meta discussion, capability questions, or role-negotiation utterances.
+                        Examples for false:
+                        - "ja"
+                        - "ok, weiter"
+                        - "Wie funktioniert das?"
+                        - "Sollen wir die Rollen tauschen?"
                         Otherwise return false.
                         """;
 
@@ -145,7 +173,7 @@ class FourStatesCircular {
                         Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.
                         Halte jeden Zug kurz.
 
-                        Das Spiel is beendet, wenn folgendes zutrifft:
+                        Das Spiel ist beendet, wenn folgendes zutrifft:
                         - Du hast einen direkten finalen Tipp abgegeben, und
                         - der Nutzer hat explizit bestätigt, dass er korrekt ist.
 
@@ -175,11 +203,12 @@ class FourStatesCircular {
         private static final String PROMPT_COACH = """
                         Führe eine Persuasions-Mikro-Coaching-Session in höchstens 6 Assistant-Zügen durch.
                         Gib alle Ausgaben auf Deutsch aus, außer der Nutzer verlangt explizit eine andere Sprache.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Ziel: dem Nutzer helfen, ein winziges Verhalten zu definieren, das er in den nächsten 24 Stunden umsetzt.
                         Stelle kurze diagnostische Fragen zu Motivation, Barriere und Auslöser.
                         Schlage danach eine konkrete Mikro-Aktion vor und bitte um explizites Commitment.
 
-                        Die Coaching-Session is beendet, wenn folgendes zutrifft:
+                        Die Coaching-Session ist beendet, wenn folgendes zutrifft:
                         - eine konkrete Mikro-Aktion ist benannt, und
                         - der Nutzer bekennt sich explizit dazu.
 
@@ -202,12 +231,19 @@ class FourStatesCircular {
                         - "Ja, ich mache das."
                         - "Einverstanden, ich setze das um."
                         - "Ich committe mich dazu."
-                        Return false for vague agreement without commitment or if the user instead expresses global session-ending intent.
+                        Return false for vague agreement without commitment, for ambiguous/non-committal messages,
+                        for mode-switch/meta/capability utterances, or if the user instead expresses global session-ending intent.
+                        Examples for false:
+                        - "ok"
+                        - "vielleicht"
+                        - "Was kannst du alles?"
+                        - "Gehen wir zurück ins Menü"
                         """;
 
         private static final String PROMPT_STORY = """
                         Führe ein Story-Co-Creation-Spiel durch.
                         Gib alle Ausgaben auf Deutsch aus, außer der Nutzer verlangt explizit eine andere Sprache.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Frage zuerst nach Genre und einer Figur.
                         Erstelle dann gemeinsam eine kurze Geschichte Zug für Zug, insgesamt höchstens 8 Assistant-Züge.
                         Halte jeden Assistant-Zug bei maximal zwei Sätzen.
@@ -235,7 +271,13 @@ class FourStatesCircular {
                         - "Ja, die Geschichte ist fertig."
                         - "Das Ende passt, wir sind durch."
                         - "Die Geschichte ist zu Ende."
-                        Return false if the message asks to continue/modify the story, or if the user instead expresses global session-ending intent.
+                        Return false if the message asks to continue/modify the story, for ambiguous/non-committal messages,
+                        for mode-switch/meta/capability utterances, or if the user instead expresses global session-ending intent.
+                        Examples for false:
+                        - "lass uns weiterschreiben"
+                        - "ok"
+                        - "Was kannst du alles?"
+                        - "Gehen wir zurück ins Menü"
                         """;
 
         private static final String PROMPT_FINAL = """
@@ -257,7 +299,7 @@ class FourStatesCircular {
                           "flow_type": "circular",
                           "outcomes": [
                             {
-                              "interaction_type": "guessing_game|micro_coaching|story_co_creation",
+                              "interaction_type": "guessing_game",
                               "completed": true,
                               "result_summary": "string",
                               "user_confirmation": "string|null"
@@ -269,6 +311,10 @@ class FourStatesCircular {
                         Rules:
                         - Include one outcomes entry per completed specialized interaction, in chronological order.
                         - If no specialized interaction was completed, set "outcomes" to an empty array.
+                        - For each "outcomes" entry, "interaction_type" must be exactly one concrete value from:
+                          "guessing_game", "micro_coaching", or "story_co_creation".
+                        - Do NOT output the pipe-delimited placeholder value
+                          "guessing_game|micro_coaching|story_co_creation".
                         - Use concise, evidence-based summaries derived only from the conversation.
                         - "user_confirmation" should contain the key confirmation utterance when available; otherwise null.
                         - Keep "flow_type" exactly "circular".

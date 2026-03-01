@@ -40,6 +40,7 @@ class SingleStateCoCreation {
                         - erkläre interne Mechanik nicht ausführlich, außer der Nutzer fragt explizit danach
 
                         Führe ein Story-Co-Creation-Spiel durch.
+                        Dieser Modus ist fest vorgegeben. Verhandle keinen Moduswechsel und biete kein Menü an.
                         Frage zuerst nach Genre und einer Figur.
                         Erstelle dann gemeinsam eine kurze Geschichte Zug für Zug, insgesamt höchstens 8 Assistant-Züge.
                         Halte jeden Assistant-Zug bei maximal zwei Sätzen.
@@ -73,7 +74,13 @@ class SingleStateCoCreation {
                         - "Lass uns hier aufhoeren."
                         - "Das war's, ich bin raus."
                         - "Bye, ich moechte nicht weitermachen."
-                        Return false if the message asks to continue/modify the story and for ambiguous/non-committal messages.
+                        Return false if the message asks to continue/modify the story, for ambiguous/non-committal messages,
+                        and for mode-switch/meta/capability utterances.
+                        Examples for false:
+                        - "lass uns weiterschreiben"
+                        - "ok"
+                        - "Was kannst du alles?"
+                        - "Gehen wir in einen anderen Modus?"
                         """;
 
         private static final String PROMPT_OUTCOME_EXTRACTION = """
