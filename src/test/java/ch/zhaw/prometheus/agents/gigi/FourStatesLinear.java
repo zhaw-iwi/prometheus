@@ -58,6 +58,11 @@ class FourStatesLinear {
                         - gib Unsicherheit mit Konfidenz an
                         - erfinde niemals Sensorbeobachtungen
 
+                        Priorisierung bei kombiniertem Prompt (Outer + Inner):
+                        - Wenn ein spezialisierter Inner-State aktiv ist, hat dessen Moduslogik Vorrang.
+                        - Frage dann NICHT nach Aktivitätswahl, Rollenwahl oder Moduswechsel.
+                        - Frage nur im Basis-Menü nach der Auswahl der vier Optionen.
+
                         Wenn gefragt wird "Wer bin ich", nutze den SocialContext-Nutzernamen, falls verfügbar; sonst frage nach dem Namen.
                         """;
 
@@ -77,7 +82,7 @@ class FourStatesLinear {
                         - "Das war's, wir sind fertig."
                         - "Bitte die Sitzung jetzt beenden."
 
-                        Return false for activity-level completion intents that mean returning to menu, including paraphrases of:
+                        Return false for activity-level completion intents that mean normal activity completion (handled by inner transitions), including paraphrases of:
                         - confirmation that the assistant guessed correctly
                         - commitment to the proposed micro action
                         - confirmation that the story is complete
@@ -97,6 +102,7 @@ class FourStatesLinear {
                         Erkläre bei Option 4 kurz: Der Nutzer kann das Sitzungsende in eigenen Worten sagen
                         (z. B. "Ich möchte die Interaktion beenden.").
                         Halte es kurz und klar. Wenn der Nutzer eine Option wählt, bestätige das in einem kurzen Satz.
+                        Wenn Option 1 gewählt wurde, starte direkt das Ratespiel und frage NICHT nach Rollenpräferenzen.
                         """;
 
         private static final String PROMPT_BASE_STARTER = """
@@ -106,6 +112,9 @@ class FourStatesLinear {
         private static final String PROMPT_BASE_TO_GUESSER = """
                         Decide whether the user clearly selected the Guessing Game mode.
                         Return true only if the user chooses guessing game or clearly equivalent wording.
+                        Accept both explicit labels (for example "Ratespiel", "Option 1") and clear paraphrases
+                        (for example "lass uns raten spielen", "ich waehle das spiel mit ja/nein-fragen").
+                        Return false for generic acknowledgements (for example "ja", "ok", "weiter") without a clear mode choice.
                         Otherwise return false.
                         """;
 
@@ -124,12 +133,15 @@ class FourStatesLinear {
         private static final String PROMPT_GUESSER = """
                         Führe ein Ja/Nein-Ratespiel durch.
                         Gib alle Ausgaben auf Deutsch aus, außer der Nutzer verlangt explizit eine andere Sprache.
+                        Dieser Modus ist fest vorgegeben. Verhandle keine Rollen neu.
                         Die Rollenverteilung ist strikt:
                         - Der Nutzer denkt an einen konkreten Gegenstand oder Begriff.
                         - Du stellst die Ja/Nein-Fragen.
                         - Du machst den finalen Tipp.
                         - Der Nutzer stellt in diesem Modus keine Fragen.
                         Vertausche diese Rollen niemals.
+                        Frage den Nutzer niemals, welche Rolle er einnehmen möchte.
+                        Wenn der Nutzer Rollen tauschen will, lehne kurz und freundlich ab und fahre mit der nächsten Ja/Nein-Frage fort.
 
                         Starte damit, den Nutzer anzuweisen, an eine Sache zu denken und "Bereit" zu schreiben, wenn er bereit ist.
                         Stelle dann jeweils nur eine trennscharfe Ja/Nein-Frage pro Zug.
