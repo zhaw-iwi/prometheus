@@ -27,15 +27,7 @@ import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Final;
-import ch.zhaw.prometheus.model.OuterState;
-import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.Storage;
-import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
-import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;
@@ -51,61 +43,6 @@ import ch.zhaw.prometheus.spi.script.InteractionScriptLoader;
 class FourStatesLinearReplayIntegrationTest {
     private static final Gson GSON = new Gson();
     private static final String SCRIPT_PATH = "classpath:scripts/four-states-linear-all-options-replay-script.json";
-
-    private static final String PROMPT_OUTER = "Du bist Gigi. Halte den Ablauf linear und klar.";
-    private static final String PROMPT_OUTER_DONE = "Return true only when latest user message is clear global quit (e.g., Option 4).";
-
-    private static final String PROMPT_BASE = """
-            Basis-Menue:
-            1) Ratespiel
-            2) Persuasions-Mikro-Coach
-            3) Story-Co-Creation
-            4) Gesamte Interaktion beenden
-            """;
-    private static final String PROMPT_BASE_STARTER = "Begruesse kurz und bitte um Auswahl 1-4.";
-    private static final String PROMPT_BASE_TO_GUESSER = "Return true only when user selects option 1 / Ratespiel.";
-    private static final String PROMPT_BASE_TO_COACH = "Return true only when user selects option 2 / Mikro-Coach.";
-    private static final String PROMPT_BASE_TO_STORY = "Return true only when user selects option 3 / Story.";
-
-    private static final String PROMPT_GUESSER = "Ratespiel-Modus mit Ja/Nein-Fragen bis finaler Tipp.";
-    private static final String PROMPT_GUESSER_STARTER = "Fordere den Nutzer auf, an eine Sache zu denken und 'Bereit' zu schreiben.";
-    private static final String PROMPT_GUESSER_TO_FINAL = "Return true only when guessing game completion is clearly confirmed.";
-
-    private static final String PROMPT_COACH = "Mikro-Coaching-Modus bis klares Commitment.";
-    private static final String PROMPT_COACH_STARTER = "Frage nach einer wichtigen Veraenderung.";
-    private static final String PROMPT_COACH_TO_FINAL = "Return true only when concrete micro action and commitment are clear.";
-
-    private static final String PROMPT_STORY = "Story-Co-Creation-Modus bis klares Story-Ende.";
-    private static final String PROMPT_STORY_STARTER = "Frage nach Genre und Figur.";
-    private static final String PROMPT_STORY_TO_FINAL = "Return true only when story completion is clearly confirmed.";
-
-    private static final String PROMPT_ACTIVITY_FINAL = "Aktivitaet ist abgeschlossen. Gib eine kurze Ergebnis-Zeile und verabschiede knapp.";
-    private static final String PROMPT_SESSION_FINAL = "Sitzung global beendet. Gib eine kurze freundliche Verabschiedung.";
-
-    private static final String PROMPT_OUTCOME_EXTRACTION = """
-            Return STRICT JSON:
-            {
-              "flow_type": "linear",
-              "outcomes": [
-                {
-                  "interaction_type": "guessing_game",
-                  "completed": true,
-                  "result_summary": "string",
-                  "user_confirmation": "string|null"
-                }
-              ],
-              "overall_summary": "string"
-            }
-            """;
-
-    private static final String PROMPT_OUTCOME_EXTRACTION_ON_GLOBAL_QUIT = """
-            Return STRICT JSON:
-            {
-              "flow_type": "linear",
-              "outcomes": [],
-              "overall_summary": "string"
-            }
-            """;
 
     @Autowired
     private AgentRepository agentRepository;

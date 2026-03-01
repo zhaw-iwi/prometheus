@@ -29,15 +29,14 @@ import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
-import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.policy.Policy;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
-import ch.zhaw.prometheus.model.policy.PolicyRuntime;
-import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -65,7 +64,8 @@ public class AgentApplicationService {
         List<Agent> agents = this.repository.findAll();
         List<AgentInfoView> result = new ArrayList<>();
         for (Agent current : agents) {
-            result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(), current.isActive()));
+            result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
+                    current.isActive()));
         }
         return result;
     }
@@ -191,7 +191,8 @@ public class AgentApplicationService {
         Agent agent = agentMaybe.get();
         OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         return Optional.of(
-                new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler, resolvedProfile), agent.isActive()));
+                new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler, resolvedProfile),
+                        agent.isActive()));
     }
 
     public Optional<SseEmitter> subscribeMonitor(UUID agentID) {
@@ -339,4 +340,3 @@ public class AgentApplicationService {
         return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway, resolved);
     }
 }
-

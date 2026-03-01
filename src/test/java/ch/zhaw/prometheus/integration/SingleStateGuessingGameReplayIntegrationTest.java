@@ -27,14 +27,7 @@ import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Final;
-import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.Storage;
-import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
-import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;

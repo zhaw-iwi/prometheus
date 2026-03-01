@@ -27,15 +27,7 @@ import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Final;
-import ch.zhaw.prometheus.model.OuterState;
-import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.Storage;
-import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
-import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;
@@ -51,57 +43,6 @@ import ch.zhaw.prometheus.spi.script.InteractionScriptLoader;
 class FourStatesCircularReplayIntegrationTest {
     private static final Gson GSON = new Gson();
     private static final String SCRIPT_PATH = "classpath:scripts/four-states-circular-all-options-replay-script.json";
-
-    private static final String PROMPT_OUTER = """
-            Du bist Gigi. Halte den Modus stabil und fuehre die Interaktion strukturiert.
-            """;
-    private static final String PROMPT_OUTER_DONE = """
-            Return true only if the latest user message clearly ends the whole session (e.g. Option 4).
-            Otherwise return false.
-            """;
-    private static final String PROMPT_BASE = """
-            Basis-Menue:
-            1) Ratespiel
-            2) Persuasions-Mikro-Coach
-            3) Story-Co-Creation
-            4) Gesamte Interaktion beenden
-            """;
-    private static final String PROMPT_BASE_STARTER = "Begruesse kurz und bitte um Auswahl 1-4.";
-    private static final String PROMPT_BASE_TO_GUESSER = "Return true only when the user selects option 1 / Ratespiel.";
-    private static final String PROMPT_BASE_TO_COACH = "Return true only when the user selects option 2 / Mikro-Coach.";
-    private static final String PROMPT_BASE_TO_STORY = "Return true only when the user selects option 3 / Story.";
-
-    private static final String PROMPT_GUESSER = "Ratespiel-Modus mit Ja/Nein-Fragen bis finaler Tipp.";
-    private static final String PROMPT_GUESSER_STARTER = "Fordere den Nutzer auf, an eine Sache zu denken und 'Bereit' zu schreiben.";
-    private static final String PROMPT_GUESSER_TO_BASE = "Return true only when the guessing game is clearly completed.";
-
-    private static final String PROMPT_COACH = "Mikro-Coaching-Modus bis klares Commitment.";
-    private static final String PROMPT_COACH_STARTER = "Frage nach einer wichtigen Veraenderung.";
-    private static final String PROMPT_COACH_TO_BASE = "Return true only when a concrete micro action and commitment are clear.";
-
-    private static final String PROMPT_STORY = "Story-Co-Creation-Modus bis klares Story-Ende.";
-    private static final String PROMPT_STORY_STARTER = "Frage nach Genre und Figur.";
-    private static final String PROMPT_STORY_TO_BASE = "Return true only when story completion is clearly confirmed.";
-
-    private static final String PROMPT_FINAL = """
-            Sitzung beendet. Gib eine kurze freundliche Verabschiedung.
-            """;
-
-    private static final String PROMPT_OUTCOME_EXTRACTION = """
-            Return STRICT JSON:
-            {
-              "flow_type": "circular",
-              "outcomes": [
-                {
-                  "interaction_type": "guessing_game",
-                  "completed": true,
-                  "result_summary": "string",
-                  "user_confirmation": "string|null"
-                }
-              ],
-              "overall_summary": "string"
-            }
-            """;
 
     @Autowired
     private AgentRepository agentRepository;

@@ -7,11 +7,10 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.commons.regulation.ZurichRegulationSystem;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
-import ch.zhaw.prometheus.model.commons.regulation.ZurichRegulationSystem;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.model.policy.Policy;
 
@@ -89,4 +88,3 @@ class AgentRegulationIntegrationUnitTest {
         }
     }
 }
-
