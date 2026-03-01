@@ -14,6 +14,28 @@
       "expectedState": "Story Co Creation"
     },
     {
+      "id": "ack-instate-before-complete",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Lass uns noch einen Twist einbauen."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Story Co Creation"
+    },
+    {
+      "id": "generate-instate-before-complete",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Gern. Soll der Twist eher lustig oder spannend sein?"
+      }
+    },
+    {
       "id": "ack-complete-story",
       "action": "acknowledge",
       "event": {
@@ -58,6 +80,28 @@
       "expectedState": "Story Co Creation"
     },
     {
+      "id": "ack-instate-before-quit",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Noch nicht beenden, ich habe noch eine Idee."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-quit",
+      "action": "assertState",
+      "expectedState": "Story Co Creation"
+    },
+    {
+      "id": "generate-instate-before-quit",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Okay. Willst du, dass die Figur jetzt ein Risiko eingeht?"
+      }
+    },
+    {
       "id": "ack-global-quit",
       "action": "acknowledge",
       "event": {
@@ -97,6 +141,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Gern. Soll der Twist eher lustig oder spannend sein?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -124,6 +176,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Okay. Willst du, dass die Figur jetzt ein Risiko eingeht?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -144,6 +204,10 @@
     {
       "method": "complete",
       "value": "Sitzung frueh beendet. Danke und bis bald."
+    },
+    {
+      "method": "complete",
+      "value": "Die Sitzung ist abgeschlossen. Fuer weitere Nachrichten starte bitte eine neue Sitzung."
     }
   ]
 }

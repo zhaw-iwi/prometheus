@@ -14,6 +14,28 @@
       "expectedState": "Questions Based Guesser"
     },
     {
+      "id": "ack-instate-before-complete",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Noch nicht, ich denke weiter."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Questions Based Guesser"
+    },
+    {
+      "id": "generate-instate-before-complete",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Alles gut. Ich mache weiter mit einer Ja/Nein-Frage: Ist es etwas, das man taeglich nutzt?"
+      }
+    },
+    {
       "id": "ack-complete-guessing",
       "action": "acknowledge",
       "event": {
@@ -58,6 +80,28 @@
       "expectedState": "Questions Based Guesser"
     },
     {
+      "id": "ack-instate-before-quit",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Warte kurz, ich brauche noch einen Moment."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-quit",
+      "action": "assertState",
+      "expectedState": "Questions Based Guesser"
+    },
+    {
+      "id": "generate-instate-before-quit",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Verstanden. Dann noch eine Frage: Ist es groesser als ein Toaster?"
+      }
+    },
+    {
       "id": "ack-global-quit",
       "action": "acknowledge",
       "event": {
@@ -97,6 +141,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Alles gut. Ich mache weiter mit einer Ja/Nein-Frage: Ist es etwas, das man taeglich nutzt?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -124,6 +176,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Verstanden. Dann noch eine Frage: Ist es groesser als ein Toaster?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -144,6 +204,10 @@
     {
       "method": "complete",
       "value": "Sitzung frueh beendet. Danke und bis bald."
+    },
+    {
+      "method": "complete",
+      "value": "Die Sitzung ist abgeschlossen. Fuer weitere Nachrichten starte bitte eine neue Sitzung."
     }
   ]
 }

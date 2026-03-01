@@ -74,6 +74,8 @@ class SingleStateMicroCoachingReplayIntegrationTest {
             assertEquals(expectedBehaviour.getSpeech(), plan.getSpeech(), "speech mismatch at " + step.getId());
             assertEquals(expectedBehaviour.getNonVerbal(), plan.getNonVerbal(), "nonverbal mismatch at " + step.getId());
         }
+
+        assertGenerateInFinalKeepsAgentInactive(agent.getId().toString(), "Session Goodbye Final");
     }
 
     private Agent buildAgent() {
@@ -97,6 +99,11 @@ class SingleStateMicroCoachingReplayIntegrationTest {
                 body.addProperty("payload", event.getPayload());
                 HttpURLConnection connection = post("/" + agentId + "/acknowledge", GSON.toJson(body));
                 assertEquals(200, connection.getResponseCode(), "acknowledge failed at step " + step.getId());
+                connection.disconnect();
+            }
+            case "generate" -> {
+                HttpURLConnection connection = post("/" + agentId + "/behaviour/generate", null);
+                assertEquals(200, connection.getResponseCode(), "generate failed at step " + step.getId());
                 connection.disconnect();
             }
             case "reset" -> {
@@ -143,6 +150,31 @@ class SingleStateMicroCoachingReplayIntegrationTest {
             }
             assertTrue(matched, "storage expectation failed at step " + stepId + " for key " + expectation.getKey());
         }
+    }
+
+    private void assertGenerateInFinalKeepsAgentInactive(String agentId, String finalState) throws Exception {
+        assertState(agentId, finalState, "post-final-precondition");
+
+        HttpURLConnection generate = post("/" + agentId + "/behaviour/generate", null);
+        assertEquals(200, generate.getResponseCode(), "post-final generate failed");
+        generate.disconnect();
+
+        JsonObject emitted = fetchLatestBehaviourSse(agentId, Duration.ofSeconds(3));
+        assertNotNull(emitted, "expected behaviour SSE event after post-final generate");
+        assertEquals("resp.behaviour_plan", emitted.get("type").getAsString());
+        BehaviourPlan plan = BehaviourPlan.fromJson(emitted.get("payload").getAsString());
+        assertNotNull(plan, "expected BehaviourPlan payload after post-final generate");
+        assertTrue(plan.getSpeech() != null && !plan.getSpeech().isBlank(),
+                "expected non-empty speech after post-final generate");
+
+        HttpURLConnection infoConnection = get("/" + agentId + "/info");
+        assertEquals(200, infoConnection.getResponseCode(), "info endpoint failed after post-final generate");
+        JsonObject info = readJsonObject(infoConnection);
+        infoConnection.disconnect();
+        boolean active = info.has("active") && !info.get("active").isJsonNull()
+                ? info.get("active").getAsBoolean()
+                : info.has("isActive") && !info.get("isActive").isJsonNull() && info.get("isActive").getAsBoolean();
+        assertTrue(!active, "agent should remain inactive in final state");
     }
 
     private HttpURLConnection post(String path, String jsonBody) throws IOException {

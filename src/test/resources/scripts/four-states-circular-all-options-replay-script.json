@@ -9,6 +9,28 @@
       }
     },
     {
+      "id": "ack-base-non-transition",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Was kannst du alles?"
+      }
+    },
+    {
+      "id": "assert-base-still-before-choice",
+      "action": "assertState",
+      "expectedState": "Base Menu"
+    },
+    {
+      "id": "generate-base-guidance",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Ich kann dir beim Ratespiel, Mikro-Coaching oder Story-Co-Creation helfen. Waehle bitte 1, 2, 3 oder 4."
+      }
+    },
+    {
       "id": "choose-option-1-guesser",
       "action": "acknowledge",
       "event": {
@@ -25,6 +47,28 @@
       "id": "assert-guesser-state",
       "action": "assertState",
       "expectedState": "Questions Based Guesser"
+    },
+    {
+      "id": "ack-guesser-non-transition",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Noch nicht, ich denke weiter."
+      }
+    },
+    {
+      "id": "assert-guesser-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Questions Based Guesser"
+    },
+    {
+      "id": "generate-guesser-instate",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Gut, dann frage ich weiter: Ist es etwas, das man anfassen kann?"
+      }
     },
     {
       "id": "complete-guesser-return-base",
@@ -63,6 +107,28 @@
       "expectedState": "Persuasion Micro Coach"
     },
     {
+      "id": "ack-coach-non-transition",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Ich bin noch unsicher."
+      }
+    },
+    {
+      "id": "assert-coach-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Persuasion Micro Coach"
+    },
+    {
+      "id": "generate-coach-instate",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Okay. Welcher kleinste Schritt waere heute realistisch?"
+      }
+    },
+    {
       "id": "complete-coach-return-base",
       "action": "acknowledge",
       "event": {
@@ -97,6 +163,28 @@
       "id": "assert-story-state",
       "action": "assertState",
       "expectedState": "Story Co Creation"
+    },
+    {
+      "id": "ack-story-non-transition",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Lass uns noch weitermachen."
+      }
+    },
+    {
+      "id": "assert-story-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Story Co Creation"
+    },
+    {
+      "id": "generate-story-instate",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Klar. Soll die naechste Szene eher ruhig oder dramatisch sein?"
+      }
     },
     {
       "id": "complete-story-return-base",
@@ -168,11 +256,43 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Ich kann dir beim Ratespiel, Mikro-Coaching oder Story-Co-Creation helfen. Waehle bitte 1, 2, 3 oder 4."
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
       "method": "complete",
       "value": "Denke an eine Sache. Ich stelle Ja/Nein-Fragen und mache dann einen finalen Tipp. Antworte mit 'Bereit', sobald du etwas hast."
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Gut, dann frage ich weiter: Ist es etwas, das man anfassen kann?"
     },
     {
       "method": "decide",
@@ -208,6 +328,18 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Okay. Welcher kleinste Schritt waere heute realistisch?"
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -233,6 +365,18 @@
     {
       "method": "complete",
       "value": "Waehle bitte ein Genre und eine Figur fuer den Start."
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Klar. Soll die naechste Szene eher ruhig oder dramatisch sein?"
     },
     {
       "method": "decide",
@@ -280,6 +424,10 @@
     {
       "method": "complete",
       "value": "Danke fuer die Session. Heute hast du Ratespiel, Mikro-Coach und Story gemacht. Bis bald."
+    },
+    {
+      "method": "complete",
+      "value": "Die Sitzung ist abgeschlossen. Fuer weitere Nachrichten starte bitte eine neue Sitzung."
     }
   ]
 }

@@ -14,6 +14,28 @@
       "expectedState": "Persuasion Micro Coach"
     },
     {
+      "id": "ack-instate-before-complete",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Ich bin noch unsicher, wie ich anfangen soll."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-complete",
+      "action": "assertState",
+      "expectedState": "Persuasion Micro Coach"
+    },
+    {
+      "id": "generate-instate-before-complete",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Verstaendlich. Was waere heute der kleinste machbare erste Schritt?"
+      }
+    },
+    {
       "id": "ack-complete-coaching",
       "action": "acknowledge",
       "event": {
@@ -58,6 +80,28 @@
       "expectedState": "Persuasion Micro Coach"
     },
     {
+      "id": "ack-instate-before-quit",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Ich zoegere noch, ob ich das wirklich schaffe."
+      }
+    },
+    {
+      "id": "assert-specialized-still-before-quit",
+      "action": "assertState",
+      "expectedState": "Persuasion Micro Coach"
+    },
+    {
+      "id": "generate-instate-before-quit",
+      "action": "generate",
+      "expectedBehaviour": {
+        "speech": "Danke fuer die Offenheit. Welche mini Version des Schritts waere heute realistisch?"
+      }
+    },
+    {
       "id": "ack-global-quit",
       "action": "acknowledge",
       "event": {
@@ -97,6 +141,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Verstaendlich. Was waere heute der kleinste machbare erste Schritt?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -124,6 +176,14 @@
     },
     {
       "method": "decide",
+      "value": false
+    },
+    {
+      "method": "complete",
+      "value": "Danke fuer die Offenheit. Welche mini Version des Schritts waere heute realistisch?"
+    },
+    {
+      "method": "decide",
       "value": true
     },
     {
@@ -144,6 +204,10 @@
     {
       "method": "complete",
       "value": "Sitzung frueh beendet. Danke und bis bald."
+    },
+    {
+      "method": "complete",
+      "value": "Die Sitzung ist abgeschlossen. Fuer weitere Nachrichten starte bitte eine neue Sitzung."
     }
   ]
 }
