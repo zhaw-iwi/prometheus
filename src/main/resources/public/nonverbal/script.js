@@ -4,6 +4,7 @@ let session = {
 };
 let streamReconnectTimer = null;
 let streamReconnectAttempt = 0;
+let monitorStream = null;
 let isPageUnloading = false;
 let autoReconnectEnabled = true;
 const STREAM_RECONNECT_MIN_MS = 1000;
@@ -31,6 +32,7 @@ window.addEventListener("load", async () => {
   window.addEventListener("beforeunload", cleanupStream);
   window.addEventListener("pagehide", cleanupStream);
   await loadAgentInfo();
+  connectMonitorStream();
   connectStream();
 });
 
@@ -99,6 +101,30 @@ function connectStream() {
   };
 }
 
+function connectMonitorStream() {
+  if (!session.agentId || monitorStream || isPageUnloading) {
+    return;
+  }
+  monitorStream = new EventSource(`/${session.agentId}/monitor/stream`);
+  monitorStream.addEventListener("snapshot", (event) => {
+    let data = null;
+    try {
+      data = JSON.parse(event.data);
+    } catch (_) {
+      return;
+    }
+    if (data && typeof data.active === "boolean") {
+      setActiveStatus(data.active);
+    }
+  });
+  monitorStream.onerror = () => {
+    if (monitorStream) {
+      monitorStream.close();
+      monitorStream = null;
+    }
+  };
+}
+
 function disconnectStream(manual = true) {
   if (manual) {
     autoReconnectEnabled = false;
@@ -143,6 +169,10 @@ function cleanupStream() {
   if (session.stream) {
     session.stream.close();
     session.stream = null;
+  }
+  if (monitorStream) {
+    monitorStream.close();
+    monitorStream = null;
   }
   streamReconnectAttempt = 0;
 }

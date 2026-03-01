@@ -193,7 +193,7 @@ All clients take `?agentId=<uuid>`.
 ### Realtime and event ingress
 
 - `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
-- `POST /{agentID}/acknowledge`
+- `POST /{agentID}/acknowledge` returns `ResponseView` (`responseEvent`, `active`)
 - `POST /realtime/session`
 
 ### Streaming (SSE)
@@ -232,6 +232,10 @@ Assistant behaviour plan events use:
 - `actor`: `assistant`
 - `kind`: `response`
 - `payload`: JSON string of a `BehaviourPlan`
+
+Notes:
+- `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).
+- `/{agentID}/behaviour/generate` can be called in final states; final-state prompts may still produce behaviour while `active=false`.
 
 ## Realtime Notes
 

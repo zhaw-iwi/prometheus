@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
+import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @RestController
@@ -42,7 +43,7 @@ public class AgentControllerRealtime {
     }
 
     @PostMapping("{agentID}/acknowledge")
-    public ResponseEntity<Void> acknowledge(@PathVariable UUID agentID, @RequestBody EventRequest request) {
+    public ResponseEntity<ResponseView> acknowledge(@PathVariable UUID agentID, @RequestBody EventRequest request) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -55,12 +56,12 @@ public class AgentControllerRealtime {
         if (!hasPayload) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        boolean acknowledged = this.agentService.acknowledge(agentID, request);
-        if (!acknowledged) {
+        var acknowledged = this.agentService.acknowledge(agentID, request);
+        if (acknowledged.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(acknowledged.get(), HttpStatus.OK);
     }
 }
 

@@ -413,7 +413,14 @@ function user_says() {
             payload: user_says_what
         }),
         contentType: "application/json; charset=utf-8",
-        success: function () {
+        success: function (data) {
+            if (data && typeof data.active === "boolean") {
+                set_is_active(data.active);
+            }
+            const hasAcknowledgeResponse = !!(data && data.responseEvent && data.responseEvent.payload);
+            if (hasAcknowledgeResponse || (data && data.active === false)) {
+                return;
+            }
             $.ajax({
                 type: "POST",
                 url: session.agent_id + "/behaviour/generate",
@@ -421,10 +428,16 @@ function user_says() {
                 success: function () {
                 },
                 error: function (errMsg) {
+                    if (errMsg && errMsg.status === 409) {
+                        stop_assistant_istyping_temp();
+                        $("#user_says_input").prop('disabled', false);
+                        $("#send_message").prop("disabled", false);
+                        return;
+                    }
                     stop_assistant_istyping_temp();
                     $("#user_says_input").prop('disabled', false);
                     $("#send_message").prop("disabled", false);
-                    alert(errMsg);
+                    alert(format_ajax_error(errMsg));
                 }
             });
         },
@@ -432,7 +445,7 @@ function user_says() {
             stop_assistant_istyping_temp();
             $("#user_says_input").prop('disabled', false);
             $("#send_message").prop("disabled", false);
-            alert(errMsg);
+            alert(format_ajax_error(errMsg));
         }
     });
 }
@@ -461,7 +474,7 @@ function reset(event) {
                 }
             },
             error: function (errMsg) {
-                alert(errMsg);
+                alert(format_ajax_error(errMsg));
             }
         });
     }
@@ -482,6 +495,16 @@ function set_is_active(active) {
 function info(event) {
     event.preventDefault();
     alert("Name\n" + session.name + "\nDescription\n" + session.description);
+}
+
+function format_ajax_error(errMsg) {
+    if (!errMsg) {
+        return "Request failed.";
+    }
+    const status = errMsg.status || 0;
+    const statusText = errMsg.statusText || "Unknown";
+    const responseText = errMsg.responseText ? "\n" + errMsg.responseText : "";
+    return "Request failed (" + status + " " + statusText + ")." + responseText;
 }
 
 function getAgentId() {

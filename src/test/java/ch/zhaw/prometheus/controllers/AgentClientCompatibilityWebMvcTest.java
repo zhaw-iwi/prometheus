@@ -62,7 +62,8 @@ class AgentClientCompatibilityWebMvcTest {
 
         when(this.agentService.start(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
         when(this.agentService.reset(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
-        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any())).thenReturn(true);
+        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any()))
+                .thenReturn(Optional.of(new ResponseView(null, true)));
         when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
                 .thenReturn(BehaviourGenerationOutcome.GENERATED);
         when(this.agentService.generate(eq(TEST_AGENT_ID), any(), any()))
@@ -113,7 +114,8 @@ class AgentClientCompatibilityWebMvcTest {
                           "payload":"Hello there"
                         }
                         """))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
 
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate"))
                 .andExpect(status().isOk());
@@ -147,7 +149,8 @@ class AgentClientCompatibilityWebMvcTest {
                           "payload":"I feel good today"
                         }
                         """))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
 
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/prompt"))
                 .andExpect(status().isOk())
@@ -167,7 +170,8 @@ class AgentClientCompatibilityWebMvcTest {
                           "payload":"{\\"speech\\":\\"Great to hear that.\\"}"
                         }
                         """))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true));
 
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/eventhistory"))
                 .andExpect(status().isOk())
@@ -240,6 +244,23 @@ class AgentClientCompatibilityWebMvcTest {
     void promptReturnsBadRequestForUnknownProfile() throws Exception {
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/prompt?profile=unknown_profile"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void acknowledgeReturnsNotFoundWhenAgentMissing() throws Exception {
+        when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any())).thenReturn(Optional.empty());
+
+        this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/acknowledge")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type":"obs.user_utterance",
+                          "actor":"user",
+                          "kind":"observation",
+                          "payload":"Hello there"
+                        }
+                        """))
+                .andExpect(status().isNotFound());
     }
 
     @Test

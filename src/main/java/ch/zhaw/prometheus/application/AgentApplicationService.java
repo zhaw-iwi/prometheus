@@ -153,17 +153,17 @@ public class AgentApplicationService {
         return BehaviourGenerationOutcome.GENERATED;
     }
 
-    public boolean acknowledge(UUID agentID, EventRequest request) {
+    public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
-            return false;
+            return Optional.empty();
         }
         Agent agent = agentMaybe.get();
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
         Event response = agent.acknowledge(event, this.runtime());
         Agent saved = this.persistAndPublishMonitor(agent);
         this.publishBehaviour(saved, response);
-        return true;
+        return Optional.of(new ResponseView(response, agent.isActive()));
     }
 
     public Optional<ResponseView> reset(UUID agentID) {

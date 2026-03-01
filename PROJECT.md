@@ -15,6 +15,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 9: Migrate Gigi verbal seed agents from PROMISE package shape to PROMETHEUS API
 - [x] Milestone 10: Extend single-state Gigi transitions with global quit intent handling
 - [x] Milestone 11: Reduce SSE disconnect exception amplification during client refresh/reconnect
+- [x] Milestone 12: Align final-state generation semantics and acknowledge response contract
+- [x] Milestone 13: Keep client active badges synchronized on terminal transitions
 
 ## Milestone 1
 ### Date
@@ -466,3 +468,83 @@ Reduce backend exception noise and request-path impact when SSE clients disconne
 1. Add integration test that simulates abrupt SSE disconnect during active acknowledge/generate requests.
 2. Optionally classify and suppress expected broken-pipe style disconnect exceptions at container logging level.
 3. Consider bounded emitter count instrumentation per stream for operational visibility.
+
+## Milestone 12
+### Date
+2026-03-01
+
+### Goal
+Allow behaviour generation in final states and make acknowledge responses explicit for clients, while improving text-client handling of terminal flows and AJAX errors.
+
+### What changed
+- Updated `Agent.generate(...)` to allow generation whenever a current state exists, including final states.
+  - File: `src/main/java/ch/zhaw/prometheus/model/Agent.java`
+- Updated acknowledge application/controller contract:
+  - `AgentApplicationService.acknowledge(...)` now returns `Optional<ResponseView>` instead of `boolean`.
+  - `AgentControllerRealtime.acknowledge(...)` now returns `ResponseEntity<ResponseView>`.
+  - Files:
+    - `src/main/java/ch/zhaw/prometheus/application/AgentApplicationService.java`
+    - `src/main/java/ch/zhaw/prometheus/controllers/AgentControllerRealtime.java`
+- Updated text client flow:
+  - Reads acknowledge response `active` and `responseEvent`.
+  - Skips follow-up `generate` when acknowledge already produced a response or agent is inactive.
+  - Treats `generate` `409` as non-fatal terminal/no-op behavior.
+  - Replaced `alert(errMsg)` with formatted status/text output.
+  - File: `src/main/resources/public/script.js`
+- Updated controller compatibility test fixture and assertions to match new acknowledge response contract.
+  - File: `src/test/java/ch/zhaw/prometheus/controllers/AgentClientCompatibilityWebMvcTest.java`
+- Updated README API notes for acknowledge response and final-state generate semantics.
+
+### How to run
+1. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Use text/realtime clients and test terminal transitions plus post-acknowledge generation behavior.
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+- Controller compatibility tests executed:
+  - `mvn "-Dtest=AgentClientCompatibilityWebMvcTest" test`
+
+### Known issues and decisions
+- `behaviour/generate` can still return `409` when no behaviour is produced by policy (true no-op), but final-state generation is no longer blocked solely by `active=false`.
+
+### Next steps
+1. Add integration test that covers acknowledge-triggered final transition with `responseEvent` returned and no follow-up generate call.
+2. Add API docs/examples for client-side handling of acknowledge `responseEvent` vs explicit generate.
+3. Consider adding an explicit response field indicating whether a state transition occurred during acknowledge.
+
+## Milestone 13
+### Date
+2026-03-01
+
+### Goal
+Ensure client active-status badges switch to inactive immediately when an agent reaches a final state, including clients without direct user input loops.
+
+### What changed
+- Realtime client:
+  - Updated acknowledge handling to parse response JSON and apply `active` immediately.
+  - If acknowledge returns `active=false`, skips follow-up side-behaviour generation.
+  - Updated assistant transcript append acknowledge path to also refresh active badge.
+  - File: `src/main/resources/public/realtime/script.js`
+- Nonverbal client:
+  - Added monitor snapshot SSE subscription (`/{agentId}/monitor/stream`) to update active badge from snapshot `active`.
+  - Added cleanup for monitor stream on page unload.
+  - File: `src/main/resources/public/nonverbal/script.js`
+
+### How to run
+1. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open realtime and nonverbal clients and drive an agent to final state.
+
+### How to test
+- Compile validation executed:
+  - `mvn -DskipTests test-compile`
+
+### Known issues and decisions
+- Active badge updates in nonverbal client are now snapshot-driven and independent of whether a new behaviour event is emitted after a terminal transition.
+
+### Next steps
+1. Add browser-level integration checks for badge transitions in text/realtime/nonverbal clients.
+2. Consider sharing a small common SSE utility for status synchronization across clients.
+3. Optionally surface final-state transitions as a dedicated lightweight SSE signal.

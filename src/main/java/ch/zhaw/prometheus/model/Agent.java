@@ -149,7 +149,7 @@ public class Agent {
     }
 
     public Event generate(PolicyRuntime runtime) {
-        if (!this.isActive() || this.currentState == null) {
+        if (this.currentState == null) {
             return null;
         }
         Event response = this.currentState.generate(runtime);

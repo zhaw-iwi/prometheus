@@ -435,6 +435,13 @@ async function handleUserTranscript(transcript) {
       appendLog("policy", "acknowledge failed.");
       return;
     }
+    const ackData = await ackResponse.json();
+    if (ackData && typeof ackData.active === "boolean") {
+      setActiveStatus(ackData.active);
+    }
+    if (ackData && ackData.active === false) {
+      return;
+    }
     if (shouldGenerateSideBehaviour()) {
       const generateResponse = await fetch(`/${session.agentId}/behaviour/generate`, {
         method: "POST",
@@ -599,6 +606,10 @@ async function appendAssistantTranscript(transcript) {
   if (!response.ok) {
     appendLog("policy", "assistant append failed.");
     return;
+  }
+  const data = await response.json();
+  if (data && typeof data.active === "boolean") {
+    setActiveStatus(data.active);
   }
   appendLog("policy", "Assistant response stored.");
 }
