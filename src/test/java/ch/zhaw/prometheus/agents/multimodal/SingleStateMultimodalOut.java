@@ -30,6 +30,9 @@ class SingleStateMultimodalOut {
                         - Halte die verbale Interaktion wie im inneren Ratespielmodus vorgegeben.
                         - Achte auf stimmige Kopplung von verbalem Inhalt und nonverbalem Ausdruck.
                         - Der nonverbale Ausdruck wird als strukturierter nonVerbal-Wert bereitgestellt und soll den Sprachanteil stuetzen.
+                        - Gib im Sprachanteil ausschliesslich natuerliche, gesprochene Saetze aus.
+                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences oder Schema-Hinweise aus.
+                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonVerbal-Kanal.
                         - Bleibe knapp, klar und konsistent.
 
                         WICHTIG:

@@ -35,6 +35,9 @@ class SingleStateMultimodalInOut {
                           antworte auf Basis der verfuegbaren Ereignisse, nenne Unsicherheit/Konfidenz klar und erfinde keine Wahrnehmungen.
                         - Bei Konflikt haben explizite verbale Nutzeraeusserungen Vorrang.
                         - Halte verbale und nonverbale Ausgabe konsistent; nonverbale Werte sollen die Sprache stimmig unterstuetzen.
+                        - Gib im Sprachanteil ausschliesslich natuerliche, gesprochene Saetze aus.
+                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences oder Schema-Hinweise aus.
+                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonVerbal-Kanal.
 
                         WICHTIG:
                         - Die innere Moduslogik des Ratespiels hat Vorrang.
