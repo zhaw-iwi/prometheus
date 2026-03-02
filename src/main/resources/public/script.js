@@ -418,7 +418,7 @@ function user_says() {
                 set_is_active(data.active);
             }
             const hasAcknowledgeResponse = !!(data && data.responseEvent && data.responseEvent.payload);
-            if (hasAcknowledgeResponse || (data && data.active === false)) {
+            if (hasAcknowledgeResponse) {
                 return;
             }
             $.ajax({

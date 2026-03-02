@@ -29,11 +29,17 @@ class SingleStateMultimodalOut {
                         Multimodale Ausgabevorgaben fuer dieses Ratespiel:
                         - Halte die verbale Interaktion wie im inneren Ratespielmodus vorgegeben.
                         - Achte auf stimmige Kopplung von verbalem Inhalt und nonverbalem Ausdruck.
-                        - Der nonverbale Ausdruck wird als strukturierter nonVerbal-Wert bereitgestellt und soll den Sprachanteil stuetzen.
+                        - Die nonverbale Steuerung erfolgt intern durch das System und soll den Sprachanteil stuetzen.
                         - Gib im Sprachanteil ausschliesslich natuerliche, gesprochene Saetze aus.
-                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences oder Schema-Hinweise aus.
-                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonVerbal-Kanal.
+                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences, Feldnamen, Schluessel-Werte-Listen oder Klammerstrukturen aus.
+                        - Nutze niemals Zeichenfolgen wie "{", "}", "[", "]" oder ":" im Sprachanteil.
+                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonverbalen Systemkanal.
+                        - Formuliere nonverbale Absicht nur indirekt in natuerlicher Sprache (z. B. freundlich, ruhig, zugewandt), nicht technisch.
                         - Bleibe knapp, klar und konsistent.
+
+                        Ausgabebeispiele:
+                        - Falsch: {"nonVerbal":{"gesture":"ACKNOWLEDGE"}}
+                        - Richtig: Hallo, denke an eine Sache. Ich starte gleich mit einer Ja/Nein-Frage.
 
                         WICHTIG:
                         - Die innere Moduslogik des Ratespiels hat Vorrang.
@@ -84,6 +90,7 @@ class SingleStateMultimodalOut {
         private static final String PROMPT_STATE_STARTER = """
                         Begrüße den Nutzer kurz auf Deutsch und sage:
                         "Denke an eine Sache. Ich stelle Ja/Nein-Fragen und mache dann einen finalen Tipp. Antworte mit 'Bereit', sobald du etwas hast."
+                        Gib genau einen kurzen Satz als Klartext aus, ohne JSON, ohne Aufzaehlungen, ohne Klammern, ohne Doppelpunkt-Strukturen.
                         """;
 
         private static final String PROMPT_TO_FINAL = """

@@ -34,10 +34,16 @@ class SingleStateMultimodalInOut {
                         - Wenn der Nutzer explizit nach visuellen Beobachtungen fragt (z. B. "Wie sehe ich aus?" oder "Wie viele Personen sind wir?"),
                           antworte auf Basis der verfuegbaren Ereignisse, nenne Unsicherheit/Konfidenz klar und erfinde keine Wahrnehmungen.
                         - Bei Konflikt haben explizite verbale Nutzeraeusserungen Vorrang.
-                        - Halte verbale und nonverbale Ausgabe konsistent; nonverbale Werte sollen die Sprache stimmig unterstuetzen.
+                        - Halte verbale und nonverbale Ausgabe konsistent; die nonverbale Steuerung erfolgt intern durch das System.
                         - Gib im Sprachanteil ausschliesslich natuerliche, gesprochene Saetze aus.
-                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences oder Schema-Hinweise aus.
-                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonVerbal-Kanal.
+                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences, Feldnamen, Schluessel-Werte-Listen oder Klammerstrukturen aus.
+                        - Nutze niemals Zeichenfolgen wie "{", "}", "[", "]" oder ":" im Sprachanteil.
+                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonverbalen Systemkanal.
+                        - Formuliere nonverbale Absicht nur indirekt in natuerlicher Sprache (z. B. freundlich, ruhig, zugewandt), nicht technisch.
+
+                        Ausgabebeispiele:
+                        - Falsch: {"nonVerbal":{"gesture":"ACKNOWLEDGE"}}
+                        - Richtig: Hallo, denke an eine Sache. Ich starte gleich mit einer Ja/Nein-Frage.
 
                         WICHTIG:
                         - Die innere Moduslogik des Ratespiels hat Vorrang.
@@ -45,6 +51,26 @@ class SingleStateMultimodalInOut {
                         """;
 
         private static final String PROMPT_NONVERBAL_GESTURE = PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT;
+        private static final String PROMPT_NONVERBAL_PLAN = """
+                        Produce STRICT JSON only for nonverbal behaviour.
+                        Return exactly one JSON object with all keys below always present:
+                        {
+                          "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                          "facialExpression": {"type":"string","intensity":0.0},
+                          "gaze": {"direction":"string","focus":"string"},
+                          "posture": {"type":"string","lean":"string","openness":0.0},
+                          "prosody": {"rate":"string","pitch":"string","volume":"string"},
+                          "proxemics": {"distance":"string"},
+                          "motion": {"stillness":0.0,"energy":0.0}
+                        }
+
+                        Rules:
+                        - Output only JSON, no markdown, no code fences, no explanations.
+                        - Include all keys every time, never omit sections.
+                        - Numeric ranges: intensity/openness/stillness/energy must be between 0.0 and 1.0.
+                        - Choose values that support the given assistant speech and current interaction tone.
+                        - Keep labels concise and consistent.
+                        """;
 
         private static final String PROMPT_STATE = """
                         Du verkörperst Gigi, die soziale Roboter-Persona des Instituts für Wirtschaftsinformatik (IWI).
@@ -88,6 +114,7 @@ class SingleStateMultimodalInOut {
         private static final String PROMPT_STATE_STARTER = """
                         Begrüße den Nutzer kurz auf Deutsch und sage:
                         "Denke an eine Sache. Ich stelle Ja/Nein-Fragen und mache dann einen finalen Tipp. Antworte mit 'Bereit', sobald du etwas hast."
+                        Gib genau einen kurzen Satz als Klartext aus, ohne JSON, ohne Aufzaehlungen, ohne Klammern, ohne Doppelpunkt-Strukturen.
                         """;
 
         private static final String PROMPT_TO_FINAL = """
@@ -185,6 +212,7 @@ class SingleStateMultimodalInOut {
                                 SingleStateMultimodalInOut.PROMPT_STATE,
                                 SingleStateMultimodalInOut.PROMPT_STATE_STARTER,
                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+                interactionPolicy.setNonVerbalPlanPrompt(SingleStateMultimodalInOut.PROMPT_NONVERBAL_PLAN);
                 interactionPolicy.setNonVerbalGesturePrompt(SingleStateMultimodalInOut.PROMPT_NONVERBAL_GESTURE);
 
                 State interactionState = new State(

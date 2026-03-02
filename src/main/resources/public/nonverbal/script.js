@@ -10,6 +10,8 @@ let autoReconnectEnabled = true;
 const STREAM_RECONNECT_MIN_MS = 1000;
 const STREAM_RECONNECT_MAX_MS = 30000;
 const STREAM_RECONNECT_JITTER = 0.2;
+const NONVERBAL_TIMELINE_MAX = 8;
+let nonverbalTimeline = [];
 
 const GESTURE_UI = {
   OPEN_QUESTION: { emoji: "\uD83E\uDD32", label: "Open Question" },
@@ -23,6 +25,7 @@ const GESTURE_UI = {
 window.addEventListener("load", async () => {
   session.agentId = getAgentId();
   wireUi();
+  renderTimeline();
   if (!session.agentId) {
     appendLog("Missing agent id in URL. Use ?{UUID} or ?agentId=UUID.");
     setStreamStatus("Stream Error");
@@ -195,29 +198,16 @@ function handleBehaviourEvent(raw) {
     appendLog("behaviour payload is not valid json.");
     return;
   }
-  const gesture = normalizeGestureLabel(plan ? plan.nonVerbal : null);
-  renderGesture(gesture);
+  if (!plan || !plan.nonVerbal || typeof plan.nonVerbal !== "object") {
+    appendLog("behaviour payload missing nonVerbal object.");
+    return;
+  }
+  const nonVerbal = normalizeNonVerbal(plan.nonVerbal);
+  renderNonVerbal(nonVerbal);
   const speech = plan && typeof plan.speech === "string" ? plan.speech : "";
   document.getElementById("speech_preview").textContent = speech && speech.trim() ? speech : "(no speech)";
-  appendLog(`behaviour received: gesture=${gesture}`);
-}
-
-function normalizeGestureLabel(nonVerbal) {
-  if (!nonVerbal) {
-    return "NONE";
-  }
-  if (typeof nonVerbal === "string") {
-    return normalizeToken(nonVerbal);
-  }
-  if (typeof nonVerbal === "object") {
-    if (typeof nonVerbal.gesture === "string") {
-      return normalizeToken(nonVerbal.gesture);
-    }
-    if (typeof nonVerbal.label === "string") {
-      return normalizeToken(nonVerbal.label);
-    }
-  }
-  return "NONE";
+  addTimelineEntry(nonVerbal, event.createdDate);
+  appendLog(`behaviour received: gesture=${nonVerbal.gesture}, face=${nonVerbal.facialExpression.type}, gaze=${nonVerbal.gaze.direction}`);
 }
 
 function normalizeToken(value) {
@@ -236,6 +226,134 @@ function renderGesture(gesture) {
   const ui = GESTURE_UI[gesture] || GESTURE_UI.NONE;
   document.getElementById("gesture_emoji").textContent = ui.emoji;
   document.getElementById("gesture_label").textContent = ui.label;
+}
+
+function normalizeNonVerbal(raw) {
+  return {
+    gesture: normalizeToken(raw.gesture),
+    facialExpression: {
+      type: asText(raw.facialExpression && raw.facialExpression.type),
+      intensity: asUnitNumber(raw.facialExpression && raw.facialExpression.intensity),
+    },
+    gaze: {
+      direction: asText(raw.gaze && raw.gaze.direction),
+      focus: asText(raw.gaze && raw.gaze.focus),
+    },
+    posture: {
+      type: asText(raw.posture && raw.posture.type),
+      lean: asText(raw.posture && raw.posture.lean),
+      openness: asUnitNumber(raw.posture && raw.posture.openness),
+    },
+    prosody: {
+      rate: asText(raw.prosody && raw.prosody.rate),
+      pitch: asText(raw.prosody && raw.prosody.pitch),
+      volume: asText(raw.prosody && raw.prosody.volume),
+    },
+    proxemics: {
+      distance: asText(raw.proxemics && raw.proxemics.distance),
+    },
+    motion: {
+      stillness: asUnitNumber(raw.motion && raw.motion.stillness),
+      energy: asUnitNumber(raw.motion && raw.motion.energy),
+    },
+  };
+}
+
+function asText(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return "N/A";
+  }
+  return value.trim();
+}
+
+function asUnitNumber(value) {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, parsed));
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.textContent = value;
+  }
+}
+
+function setMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.style.width = `${Math.round(unitValue * 100)}%`;
+  }
+}
+
+function renderNonVerbal(nonVerbal) {
+  renderGesture(nonVerbal.gesture);
+  setText("face_type", nonVerbal.facialExpression.type);
+  setText("face_intensity_text", nonVerbal.facialExpression.intensity.toFixed(2));
+  setMeter("face_intensity_meter", nonVerbal.facialExpression.intensity);
+
+  setText("gaze_direction", nonVerbal.gaze.direction);
+  setText("gaze_focus", nonVerbal.gaze.focus);
+
+  setText("posture_type", nonVerbal.posture.type);
+  setText("posture_lean", nonVerbal.posture.lean);
+  setText("posture_openness_text", nonVerbal.posture.openness.toFixed(2));
+  setMeter("posture_openness_meter", nonVerbal.posture.openness);
+
+  setText("prosody_rate", nonVerbal.prosody.rate);
+  setText("prosody_pitch", nonVerbal.prosody.pitch);
+  setText("prosody_volume", nonVerbal.prosody.volume);
+
+  setText("proxemics_distance", nonVerbal.proxemics.distance);
+
+  setText("motion_stillness_text", nonVerbal.motion.stillness.toFixed(2));
+  setMeter("motion_stillness_meter", nonVerbal.motion.stillness);
+  setText("motion_energy_text", nonVerbal.motion.energy.toFixed(2));
+  setMeter("motion_energy_meter", nonVerbal.motion.energy);
+}
+
+function addTimelineEntry(nonVerbal, createdDate) {
+  const timestamp = formatTimestamp(createdDate);
+  const summary = `gesture=${nonVerbal.gesture} | face=${nonVerbal.facialExpression.type} | gaze=${nonVerbal.gaze.direction} | posture=${nonVerbal.posture.type}`;
+  nonverbalTimeline.unshift({ timestamp, summary });
+  if (nonverbalTimeline.length > NONVERBAL_TIMELINE_MAX) {
+    nonverbalTimeline = nonverbalTimeline.slice(0, NONVERBAL_TIMELINE_MAX);
+  }
+  renderTimeline();
+}
+
+function renderTimeline() {
+  const el = document.getElementById("nonverbal_timeline");
+  if (!el) {
+    return;
+  }
+  if (!nonverbalTimeline.length) {
+    el.innerHTML = '<div class="timeline-item"><strong>Now</strong>No nonverbal events yet.</div>';
+    return;
+  }
+  el.innerHTML = nonverbalTimeline
+    .map((item) => `<div class="timeline-item"><strong>${item.timestamp}</strong>${escapeHtml(item.summary)}</div>`)
+    .join("");
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function formatTimestamp(createdDate) {
+  if (!createdDate) {
+    return new Date().toLocaleTimeString();
+  }
+  const date = new Date(createdDate);
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toLocaleTimeString();
+  }
+  return date.toLocaleTimeString();
 }
 
 function setActiveStatus(isActive) {

@@ -79,6 +79,44 @@ class PromptPolicyGestureUnitTest {
         assertEquals(1, gateway.completeCallCount);
     }
 
+    @Test
+    void onRespondUsesStructuredNonverbalWhenPlanPromptConfigured() {
+        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
+
+        SequencedGateway gateway = new SequencedGateway(List.of(
+                "Here is an explanation.",
+                "{\"gesture\":\"POLITE\",\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"facialExpression\":{\"type\":\"friendlyNeutral\",\"intensity\":0.6}}"));
+        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), new EventHistory(),
+                new PromptMessageAssembler(), gateway);
+
+        assertNotNull(plan);
+        assertNotNull(plan.getNonVerbal());
+        assertEquals("POLITE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("forward", plan.getNonVerbal().getAsJsonObject().getAsJsonObject("gaze").get("direction")
+                .getAsString());
+        assertEquals(2, gateway.completeCallCount);
+    }
+
+    @Test
+    void onRespondFallsBackToGestureWhenStructuredPlanInvalid() {
+        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
+        policy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+
+        SequencedGateway gateway = new SequencedGateway(List.of(
+                "Thanks for sharing.",
+                "not-json",
+                "ACKNOWLEDGE"));
+        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), new EventHistory(),
+                new PromptMessageAssembler(), gateway);
+
+        assertNotNull(plan);
+        assertNotNull(plan.getNonVerbal());
+        assertEquals("ACKNOWLEDGE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals(3, gateway.completeCallCount);
+    }
+
     private static final class SequencedGateway implements LanguageModelGateway {
         private final List<String> values;
         private int index = 0;

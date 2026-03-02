@@ -214,7 +214,7 @@ All clients take `?agentId=<uuid>`.
 1. Start from `VerbalAgent` or `MultiModalAgent` test templates.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
-4. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalGesturePrompt`) and ingest nonverbal events via `/acknowledge`.
+4. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
 5. Seed the agent, run app, then iterate using Monitor and behaviour streams.
 6. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
 

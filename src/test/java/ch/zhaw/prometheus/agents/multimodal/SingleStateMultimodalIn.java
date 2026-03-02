@@ -25,6 +25,28 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 @SpringBootTest
 class SingleStateMultimodalIn {
 
+        private static final String PROMPT_NONVERBAL_PLAN = """
+                        Produce STRICT JSON only for nonverbal behaviour.
+                        Return exactly one JSON object with all keys below always present:
+                        {
+                          "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                          "facialExpression": {"type":"string","intensity":0.0},
+                          "gaze": {"direction":"string","focus":"string"},
+                          "posture": {"type":"string","lean":"string","openness":0.0},
+                          "prosody": {"rate":"string","pitch":"string","volume":"string"},
+                          "proxemics": {"distance":"string"},
+                          "motion": {"stillness":0.0,"energy":0.0}
+                        }
+
+                        Rules:
+                        - Output only JSON, no markdown, no code fences, no explanations.
+                        - Include all keys every time, never omit sections.
+                        - Numeric ranges: intensity/openness/stillness/energy must be between 0.0 and 1.0.
+                        - Choose values that support the given assistant speech and current interaction tone.
+                        - Keep labels concise and consistent.
+                        """;
+        private static final String PROMPT_NONVERBAL_GESTURE = PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT;
+
         private static final String PROMPT_OUTERSTATE = """
                         Multimodale Eingabevorgaben fuer dieses Ratespiel:
                         - Beruecksichtige visuelle Beobachtungsereignisse aus /acknowledge, falls vorhanden:
@@ -175,12 +197,16 @@ class SingleStateMultimodalIn {
                                                                 "outcome")),
                                 sessionFinal);
 
+                PromptPolicy interactionPolicy = new PromptPolicy(
+                                SingleStateMultimodalIn.PROMPT_STATE,
+                                SingleStateMultimodalIn.PROMPT_STATE_STARTER,
+                                PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+                interactionPolicy.setNonVerbalPlanPrompt(SingleStateMultimodalIn.PROMPT_NONVERBAL_PLAN);
+                interactionPolicy.setNonVerbalGesturePrompt(SingleStateMultimodalIn.PROMPT_NONVERBAL_GESTURE);
+
                 State interactionState = new State(
                                 "Questions Based Guesser",
-                                new PromptPolicy(
-                                                SingleStateMultimodalIn.PROMPT_STATE,
-                                                SingleStateMultimodalIn.PROMPT_STATE_STARTER,
-                                                PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
+                                interactionPolicy,
                                 List.of(toFinal));
                 State outerState = new OuterState(
                                 SingleStateMultimodalIn.PROMPT_OUTERSTATE,

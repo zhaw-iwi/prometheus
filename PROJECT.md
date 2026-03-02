@@ -21,6 +21,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 15: Add FourStatesCircular scripted REST+SSE integration replay (all options, quit last)
 - [x] Milestone 16: Add FourStatesLinear scripted REST+SSE integration replay (all options with resets, quit last)
 - [x] Milestone 17: Add scripted REST+SSE integration replays for all three single-state Gigi agents
+- [x] Milestone 18: Structured nonverbal plan generation and richer multimodal seed-agent output
 
 ## Milestone 1
 ### Date
@@ -704,3 +705,53 @@ Add deterministic REST endpoint + SSE replay coverage for all three single-state
 1. Add additional scripts that stress ambiguous user utterances and ensure no premature transitions.
 2. Consider extracting a shared single-state replay harness to reduce test duplication.
 3. Add combined CI target that runs all new gigi replay tests (single-state + linear + circular).
+
+## Milestone 18
+### Date
+2026-03-02
+
+### Goal
+Extend nonverbal generation from gesture-only labels to structured nonverbal plans, and enable richer nonverbal output for multimodal single-state seed agents.
+
+### What changed
+- Extended `PromptPolicy` with structured nonverbal-plan support:
+  - added `DEFAULT_NONVERBAL_PLAN_PROMPT`
+  - added `setNonVerbalPlanPrompt(...)` / `getNonVerbalPlanPrompt()`
+  - `FULL_PLAN` and `BACKEND_COMPLEMENT` now resolve nonverbal output through:
+    1. structured plan prompt (when configured)
+    2. gesture-only prompt fallback (existing behavior)
+- Added normalization rule for structured nonverbal outputs:
+  - if `gesture` is missing or invalid, it is normalized to `NONE`
+  - supports both direct nonverbal object output and nested `{ "nonVerbal": { ... } }`
+- Added unit coverage in:
+  - `src/test/java/ch/zhaw/prometheus/model/policy/PromptPolicyGestureUnitTest.java`
+  - verifies structured output usage and fallback-to-gesture behavior on invalid structured JSON
+- Updated multimodal seed agents to emit richer nonverbal outputs:
+  - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
+  - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
+  - both now configure `PromptPolicy#setNonVerbalPlanPrompt(...)` (with gesture fallback)
+- Updated README developer guidance for multimodal nonverbal prompt configuration.
+
+### How to run
+1. Seed one of the updated multimodal agents:
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open nonverbal client:
+   - `http://localhost:8080/nonverbal/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `mvn -DskipTests test-compile`
+- Recommended targeted tests:
+  - `mvn "-Dtest=PromptPolicyGestureUnitTest" test`
+
+### Known issues and decisions
+- Structured nonverbal generation is still prompt-driven and not schema-validated server-side beyond basic JSON object handling and gesture normalization.
+- Rich nonverbal output depends on model compliance; invalid structured output falls back to gesture-only behavior when gesture prompt is configured.
+
+### Next steps
+1. Add explicit server-side JSON-schema validation for structured `nonVerbal` payloads.
+2. Add integration replay coverage that asserts presence of nonverbal subfields beyond `gesture`.
+3. Consider enabling structured nonverbal plan prompts for additional agents beyond multimodal In/InOut.

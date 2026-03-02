@@ -40,6 +40,23 @@ public class PromptPolicy extends Policy {
             NONE
             Return only the label.
             """;
+    public static final String DEFAULT_NONVERBAL_PLAN_PROMPT = """
+            Produce a compact JSON object for assistant nonverbal behaviour that supports the assistant speech.
+            Output STRICT JSON only. No markdown, no code fences.
+
+            Required top-level key:
+            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE, NONE
+
+            Optional keys:
+            - "facialExpression": {"type":"string","intensity":0.0-1.0}
+            - "gaze": {"direction":"string","focus":"string"}
+            - "posture": {"type":"string","lean":"string","openness":0.0-1.0}
+            - "prosody": {"rate":"string","pitch":"string","volume":"string"}
+            - "proxemics": {"distance":"string"}
+            - "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
+
+            Keep values concise and plausible for the provided speech.
+            """;
 
     @Column(length = 3000)
     private String promptTemplate;
@@ -49,6 +66,8 @@ public class PromptPolicy extends Policy {
     private String summarisePrompt;
     @Column(length = 3000)
     private String nonVerbalGesturePrompt;
+    @Column(length = 3000)
+    private String nonVerbalPlanPrompt;
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Storage storage;
@@ -62,38 +81,43 @@ public class PromptPolicy extends Policy {
     private PromptPolicy outerPolicy;
 
     public PromptPolicy() {
-        this("", null, DEFAULT_SUMMARISE_PROMPT, null, null, List.of(), PromptValueShape.NONE, null);
+        this("", null, DEFAULT_SUMMARISE_PROMPT, null, null, null, List.of(), PromptValueShape.NONE, null);
     }
 
     public PromptPolicy(String promptTemplate, String starterPrompt, String summarisePrompt) {
-        this(promptTemplate, starterPrompt, summarisePrompt, null, null, List.of(), PromptValueShape.NONE, null);
+        this(promptTemplate, starterPrompt, summarisePrompt, null, null, null, List.of(), PromptValueShape.NONE,
+                null);
     }
 
     public PromptPolicy(String promptTemplate, String starterPrompt, String summarisePrompt, Storage storage,
             List<String> storageKeysFrom) {
-        this(promptTemplate, starterPrompt, summarisePrompt, null, storage, storageKeysFrom, PromptValueShape.NONE, null);
+        this(promptTemplate, starterPrompt, summarisePrompt, null, null, storage, storageKeysFrom,
+                PromptValueShape.NONE, null);
     }
 
     public PromptPolicy(String promptTemplate, String starterPrompt, String summarisePrompt, Storage storage,
             List<String> storageKeysFrom, PromptValueShape expectedShape) {
-        this(promptTemplate, starterPrompt, summarisePrompt, null, storage, storageKeysFrom, expectedShape, null);
+        this(promptTemplate, starterPrompt, summarisePrompt, null, null, storage, storageKeysFrom, expectedShape,
+                null);
     }
 
     public PromptPolicy(String promptTemplate, String starterPrompt, String summarisePrompt,
             String nonVerbalGesturePrompt, Storage storage,
             List<String> storageKeysFrom, PromptValueShape expectedShape) {
-        this(promptTemplate, starterPrompt, summarisePrompt, nonVerbalGesturePrompt, storage, storageKeysFrom,
+        this(promptTemplate, starterPrompt, summarisePrompt, nonVerbalGesturePrompt, null, storage, storageKeysFrom,
                 expectedShape, null);
     }
 
     private PromptPolicy(String promptTemplate, String starterPrompt, String summarisePrompt,
             String nonVerbalGesturePrompt,
+            String nonVerbalPlanPrompt,
             Storage storage,
             List<String> storageKeysFrom, PromptValueShape expectedShape, PromptPolicy outerPolicy) {
         this.promptTemplate = promptTemplate == null ? "" : promptTemplate;
         this.starterPrompt = starterPrompt;
         this.summarisePrompt = summarisePrompt;
         this.nonVerbalGesturePrompt = nonVerbalGesturePrompt;
+        this.nonVerbalPlanPrompt = nonVerbalPlanPrompt;
         this.storage = storage;
         this.storageKeysFrom = storageKeysFrom == null ? List.of() : List.copyOf(storageKeysFrom);
         this.expectedShape = expectedShape == null ? PromptValueShape.NONE : expectedShape;
@@ -109,7 +133,7 @@ public class PromptPolicy extends Policy {
             throw new IllegalArgumentException("cannot compose prompt policy with " + outerPolicy.getClass().getName());
         }
         return new PromptPolicy(this.promptTemplate, this.starterPrompt, this.summarisePrompt,
-                this.nonVerbalGesturePrompt, this.storage,
+                this.nonVerbalGesturePrompt, this.nonVerbalPlanPrompt, this.storage,
                 this.storageKeysFrom, this.expectedShape, promptOuter);
     }
 
@@ -206,7 +230,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
-        plan.setNonVerbal(resolveNonVerbalGesture(speech, languageModelGateway));
+        plan.setNonVerbal(resolveNonVerbal(speech, languageModelGateway));
         return plan;
     }
 
@@ -216,7 +240,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         BehaviourPlan plan = new BehaviourPlan();
-        plan.setNonVerbal(resolveNonVerbalGesture(assistantSpeech, languageModelGateway));
+        plan.setNonVerbal(resolveNonVerbal(assistantSpeech, languageModelGateway));
         return plan.isEmpty() ? null : plan;
     }
 
@@ -346,6 +370,61 @@ public class PromptPolicy extends Policy {
 
     public void setNonVerbalGesturePrompt(String nonVerbalGesturePrompt) {
         this.nonVerbalGesturePrompt = nonVerbalGesturePrompt;
+    }
+
+    public String getNonVerbalPlanPrompt() {
+        return this.nonVerbalPlanPrompt;
+    }
+
+    public void setNonVerbalPlanPrompt(String nonVerbalPlanPrompt) {
+        this.nonVerbalPlanPrompt = nonVerbalPlanPrompt;
+    }
+
+    private JsonElement resolveNonVerbal(String speech, LanguageModelGateway languageModelGateway) {
+        JsonElement plan = resolveNonVerbalPlan(speech, languageModelGateway);
+        if (plan != null) {
+            return plan;
+        }
+        return resolveNonVerbalGesture(speech, languageModelGateway);
+    }
+
+    private JsonElement resolveNonVerbalPlan(String speech, LanguageModelGateway languageModelGateway) {
+        if (this.nonVerbalPlanPrompt == null || this.nonVerbalPlanPrompt.isBlank()) {
+            return null;
+        }
+        if (speech == null || speech.isBlank()) {
+            return null;
+        }
+        List<PromptMessage> messages = List.of(
+                PromptMessage.system(this.nonVerbalPlanPrompt),
+                PromptMessage.user("Assistant speech: " + speech));
+        String raw = languageModelGateway.complete(messages);
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            JsonElement parsed = JsonParser.parseString(raw);
+            if (!parsed.isJsonObject()) {
+                return null;
+            }
+            JsonObject candidate = parsed.getAsJsonObject();
+            JsonObject nonVerbal = candidate;
+            if (candidate.has("nonVerbal") && candidate.get("nonVerbal").isJsonObject()) {
+                nonVerbal = candidate.getAsJsonObject("nonVerbal");
+            }
+            JsonObject normalized = nonVerbal.deepCopy();
+            String gesture = null;
+            if (normalized.has("gesture") && !normalized.get("gesture").isJsonNull()) {
+                gesture = normalizeGestureLabel(normalized.get("gesture").getAsString());
+            }
+            if (gesture == null) {
+                gesture = "NONE";
+            }
+            normalized.addProperty("gesture", gesture);
+            return normalized;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private JsonElement resolveNonVerbalGesture(String speech, LanguageModelGateway languageModelGateway) {
