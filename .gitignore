@@ -34,4 +34,5 @@ build/
 
 eclipse-formatter.xml
 *.properties
+!.mvn/wrapper/maven-wrapper.properties
 !*-prod.properties
