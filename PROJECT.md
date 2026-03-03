@@ -22,6 +22,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 16: Add FourStatesLinear scripted REST+SSE integration replay (all options with resets, quit last)
 - [x] Milestone 17: Add scripted REST+SSE integration replays for all three single-state Gigi agents
 - [x] Milestone 18: Structured nonverbal plan generation and richer multimodal seed-agent output
+- [x] Milestone 19: Re-scope multimodal In/Out demos (In as micro-coaching, Out with deterministic multi-channel nonverbal policy)
 
 ## Milestone 1
 ### Date
@@ -755,3 +756,46 @@ Extend nonverbal generation from gesture-only labels to structured nonverbal pla
 1. Add explicit server-side JSON-schema validation for structured `nonVerbal` payloads.
 2. Add integration replay coverage that asserts presence of nonverbal subfields beyond `gesture`.
 3. Consider enabling structured nonverbal plan prompts for additional agents beyond multimodal In/InOut.
+
+## Milestone 19
+### Date
+2026-03-03
+
+### Goal
+Adapt the two single-state multimodal demo seed agents to match demo intent: make `SingleStateMultimodalIn` a supportive micro-coaching flow grounded in visual inputs, and make `SingleStateMultimodalOut` produce more balanced, deterministic multi-channel nonverbal output (not gesture-only behavior).
+
+### What changed
+- Updated `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`:
+  - Replaced inner interaction prompt from guessing game to supportive single-state micro-coaching.
+  - Kept single-state topology and existing multimodal input wiring via `OuterState`.
+  - Added explicit visual-cue coaching adaptation guidance (emotion/presence/grouping) with fallback behavior when no visual signals exist.
+  - Updated transition decision prompt to micro-coaching completion semantics.
+  - Updated outcome extraction type from `guessing_game` to `micro_coaching`.
+  - Updated state label and agent description to reflect micro-coaching purpose.
+- Updated `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`:
+  - Added structured `PROMPT_NONVERBAL_PLAN` with deterministic intent-category mapping.
+  - Enabled nonverbal plan generation via `PromptPolicy#setNonVerbalPlanPrompt(...)` (keeping gesture fallback prompt).
+  - Strengthened outer-state instructions to require gesture plus additional nonverbal channels on each turn.
+  - Kept single-state guessing-game flow and transition topology unchanged.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run one of:
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`
+
+### How to test
+- Executed:
+  - `mvn -q "-Dtest=SingleStateMultimodalIn,SingleStateMultimodalOut" test`
+- Result:
+  - Prompt/runtime behavior exercised successfully up to persistence, including nonverbal-plan generation.
+  - Test run failed on local DB schema mismatch unrelated to this milestone (`Field 'start_response_pending' doesn't have a default value` during `agent` insert).
+
+### Known issues and decisions
+- This milestone intentionally limits changes to prompt and seed-test agent definitions only; no runtime/model/schema code changes were made.
+- Gesture rendering remains constrained by existing nonverbal client gesture token UI map.
+
+### Next steps
+1. Decide whether to expand nonverbal client gesture token mapping if additional gesture emojis are required beyond current canonical gesture set.
+2. Add scripted integration replay assertions that verify `SingleStateMultimodalOut` emits populated non-gesture nonverbal fields.
+3. Resolve local DB schema drift before relying on these seed tests for pass/fail gating.

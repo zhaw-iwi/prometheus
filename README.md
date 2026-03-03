@@ -148,6 +148,10 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`
 - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
 
+Current multimodal demo intent:
+- `SingleStateMultimodalIn` is a single-state supportive micro-coaching demo that can ground replies in `obs.emotion.face`, `obs.human.presence`, and `obs.social.grouping`, but still works without visual events.
+- `SingleStateMultimodalOut` keeps the guessing-game flow and uses deterministic multi-channel nonverbal plans (gesture plus facial/gaze/posture/prosody/proxemics/motion).
+
 Some templates are marked `@Disabled("Manual seed test")` and some are directly runnable. To use them:
 
 1. Copy one class and remove `@Disabled`, or create your own seed test from it.
