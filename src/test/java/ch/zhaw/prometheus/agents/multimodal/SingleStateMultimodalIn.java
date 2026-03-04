@@ -55,6 +55,11 @@ class SingleStateMultimodalIn {
                         - Nutze visuelle Hinweise behutsam und nur dann explizit, wenn es den Coaching-Nutzen erhoeht.
                         - Wenn keine visuellen Signale vorhanden sind, fuehre das Coaching normal und vollwertig nur auf Textbasis.
                         - Erfinde niemals Wahrnehmungen. Nenne Unsicherheit und Konfidenz klar, wenn du auf Beobachtungen Bezug nimmst.
+                        - Gib im Sprachanteil ausschliesslich natuerliche, gesprochene Saetze aus.
+                        - Gib im Sprachanteil niemals JSON, Markdown, Code-Fences, Feldnamen, Schluessel-Werte-Listen oder Klammerstrukturen aus.
+                        - Nutze niemals Zeichenfolgen wie "{", "}", "[", "]" oder ":" im Sprachanteil.
+                        - Beschreibe nonverbale Struktur nicht im Sprachanteil; sie gehoert ausschliesslich in den nonverbalen Systemkanal.
+                        - Falls eine Formulierung versehentlich strukturiert waere, schreibe sie vor Ausgabe in reinen Klartext um.
 
                         Leitlinien fuer supportive Anpassung aus den zwei visuellen Clients:
                         - Bei negativem Affekt (z. B. traurig/aengstlich/frustriert) oder niedriger Konfidenz: validieren, Tempo senken, sehr kleine Schritte.
@@ -77,6 +82,10 @@ class SingleStateMultimodalIn {
                         - Antworte immer auf Deutsch.
                         - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdruecklich verlangt.
                         - Wechsle die Sprache nicht implizit waehrend oder nach Transitionen.
+                        - Gib im Sprachkanal nur natuerliche Klartextsaetze aus.
+                        - Gib niemals JSON, Markdown, Code-Fences oder technische Feldnamen im Sprachkanal aus.
+                        - Nutze im Sprachkanal niemals: { } [ ] :
+                        - Wenn eine Antwort strukturiert waere, schreibe sie vor Ausgabe in reinen Klartext um.
 
                         Stil:
                         - praegnant, warm, konkret, kurz
@@ -101,6 +110,7 @@ class SingleStateMultimodalIn {
 
         private static final String PROMPT_STATE_STARTER = """
                         Begruesse den Nutzer kurz auf Deutsch und frage nach einer Veraenderung, die er will, und warum sie jetzt bedeutsam ist.
+                        Gib genau einen kurzen Satz als Klartext aus, ohne JSON, ohne Aufzaehlungen, ohne Klammern, ohne Doppelpunkt-Strukturen.
                         """;
 
         private static final String PROMPT_TO_FINAL = """
@@ -171,6 +181,9 @@ class SingleStateMultimodalIn {
         private static final String PROMPT_FINAL = """
                         Dies ist der finale Zustand und die Sitzung ist abgeschlossen.
                         Gib die Ausgabe auf Deutsch aus, ausser der Nutzer hat explizit eine andere Sprache verlangt.
+                        Gib im Sprachkanal nur natuerliche Klartextsaetze aus.
+                        Gib niemals JSON, Markdown, Code-Fences oder technische Feldnamen im Sprachkanal aus.
+                        Nutze im Sprachkanal niemals: { } [ ] :
                         Beruecksichtige beide Pfade:
                         - Bei abgeschlossenem Coaching: gib eine kurze, sinnvolle Zusammenfassung des Coaching-Ergebnisses
                           (konkrete Mikro-Aktion und Commitment).

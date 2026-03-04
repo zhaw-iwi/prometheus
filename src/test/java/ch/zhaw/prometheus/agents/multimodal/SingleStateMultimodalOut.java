@@ -89,6 +89,10 @@ class SingleStateMultimodalOut {
                         - Antworte immer auf Deutsch.
                         - Wechsle nur dann in eine andere Sprache, wenn der Nutzer dies ausdruecklich verlangt.
                         - Wechsle die Sprache nicht implizit waehrend oder nach Transitionen.
+                        - Gib im Sprachkanal nur natuerliche Klartextsaetze aus.
+                        - Gib niemals JSON, Markdown, Code-Fences oder technische Feldnamen im Sprachkanal aus.
+                        - Nutze im Sprachkanal niemals: { } [ ] :
+                        - Wenn eine Antwort strukturiert waere, schreibe sie vor Ausgabe in reinen Klartext um.
 
                         Stil:
                         - praegnant, warm, konkret, kurz
@@ -175,6 +179,9 @@ class SingleStateMultimodalOut {
         private static final String PROMPT_FINAL = """
                         Dies ist der finale Zustand und die Sitzung ist abgeschlossen.
                         Gib die Ausgabe auf Deutsch aus, ausser der Nutzer hat explizit eine andere Sprache verlangt.
+                        Gib im Sprachkanal nur natuerliche Klartextsaetze aus.
+                        Gib niemals JSON, Markdown, Code-Fences oder technische Feldnamen im Sprachkanal aus.
+                        Nutze im Sprachkanal niemals: { } [ ] :
                         Beruecksichtige beide Pfade:
                         - Bei abgeschlossenem Ratespiel: gib eine kurze, sinnvolle Zusammenfassung
                           (finaler Tipp und bestaetigte Korrektheit).
