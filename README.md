@@ -19,7 +19,8 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 ## What You Can Build
 
 - Digital agents with two-layer behaviour control: state-machine interaction flow plus regulation inspired by motivational models for adaptive behavior.
-- Multimodal agents that combine user utterances with nonverbal observations (e.g., facial expressions, heart rate variability, gaze, social context) and nonverbal agent behaviours (e.g., gestures, position, orientation, gaze).
+- Multimodal agents that combine user utterances with multimodal sensing (e.g., facial expressions, heart rate variability, gaze, social context).
+- Multimodal behaviour generation across channels (e.g., gestures, facial expressions, gaze, proxemics, prosody).
 - Embodied AI scenarios such as virtual avatars and robotic systems.
 
 ## Clients (Quick Tour)
@@ -135,22 +136,14 @@ App default URL: `http://localhost:8080`
 
 Templates:
 
-- `src/test/java/ch/zhaw/prometheus/agents/VerbalAgent.java`
-- `src/test/java/ch/zhaw/prometheus/agents/MultiModalAgent.java`
-- `src/test/java/ch/zhaw/prometheus/agents/RealtimeMultimodalAgent.java`
-- `src/test/java/ch/zhaw/prometheus/agents/SocialInitiativeMvpAgent.java`
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateGuessingGame.java`
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateMicroCoaching.java`
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateCoCreation.java`
-- `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java`
-- `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java`
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java`
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java`
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java`
-
-Current multimodal demo intent:
-- `SingleStateMultimodalIn` is a single-state supportive micro-coaching demo that can ground replies in `obs.emotion.face`, `obs.human.presence`, and `obs.social.grouping`, but still works without visual events.
-- `SingleStateMultimodalOut` keeps the guessing-game flow and uses deterministic multi-channel nonverbal plans (gesture plus facial/gaze/posture/prosody/proxemics/motion).
+- `src/test/java/ch/zhaw/prometheus/agents/SingleStateGuessingGame.java` - Single-state guessing game with guided prompt flow.
+- `src/test/java/ch/zhaw/prometheus/agents/SingleStateMicroCoaching.java` - Single-state supportive micro-coaching agent.
+- `src/test/java/ch/zhaw/prometheus/agents/SingleStateCoCreation.java` - Single-state collaborative co-creation conversation.
+- `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java` - Four-state linear progression with explicit stage transitions.
+- `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java` - Four-state circular loop for iterative dialogue cycles.
+- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java` - Single-state micro-coaching with multimodal sensing inputs.
+- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java` - Single-state interaction with deterministic multimodal behaviour output.
+- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
 
 Some templates are marked `@Disabled("Manual seed test")` and some are directly runnable. To use them:
 
@@ -215,7 +208,7 @@ All clients take `?agentId=<uuid>`.
 
 ## Developer Workflow for New Agents
 
-1. Start from `VerbalAgent` or `MultiModalAgent` test templates.
+1. Start from `SingleStateMicroCoaching` or `SingleStateMultimodalInOut` test templates.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
 4. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
@@ -302,5 +295,6 @@ Container command uses:
 
 ## Repository Notes
 
-- `CODEX.md` is the architecture and engineering guide for the PROMETHEUS direction.
-- `.agents/WIP.md` contains the previous in-progress README content.
+- `.agents/CONTEXT.MD` defines the PROMETHEUS framework context for agentic development: purpose, canonical use cases, requirements, and architectural specifications.
+- `.agents/CODEX.md` defines the engineering workflow and execution discipline coding agents must follow in this repository.
+- `.agents/humandevhowto.txt` provides example prompts for starting a coding-agent session.
