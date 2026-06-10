@@ -78,7 +78,7 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 ### RPS Manual Client
 
 - URL: `http://localhost:8080/rps/?agentId=<uuid>`
-- Purpose: Schere-Stein-Papier demo surface that renders GIGI's `motion.handSign` and emits manual `obs.hand.sign` events.
+- Purpose: Schere-Stein-Papier demo surface that renders GIGI's `motion.handSign` and emits manual or camera-detected `obs.hand.sign` events.
 
 ## Core Concepts
 
@@ -150,7 +150,7 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateSmartGoalCoaching.java` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
 - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
 - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
-- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual `obs.hand.sign` input via the `/rps` client.
+- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java` - Four-state linear progression with explicit stage transitions.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java` - Four-state circular loop for iterative dialogue cycles.
 - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java` - Single-state micro-coaching with multimodal sensing inputs.
@@ -271,7 +271,11 @@ Schere-Stein-Papier hand-sign observations use:
 - optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
 
 The RPS client at `/rps/?agentId=<uuid>` emits this event shape from its manual
-sign buttons with `source=rps.web` and `detectionMode=manual`.
+sign buttons with `source=rps.web` and `detectionMode=manual`. Its optional
+camera mode uses MediaPipe Gesture Recognizer in the browser and maps canned
+gestures as follows: `Closed_Fist -> rock`, `Victory -> scissor`,
+`Open_Palm -> paper`. Camera events use `source=rps.web.camera` and
+`detectionMode=client_camera`.
 
 Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
 

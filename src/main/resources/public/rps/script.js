@@ -16,6 +16,39 @@ const STREAM_RECONNECT_MAX_MS = 30000;
 const STREAM_RECONNECT_JITTER = 0.2;
 const seenBehaviourKeys = new Set();
 
+let video = null;
+let gestureCanvas = null;
+let gestureCtx = null;
+let cameraStream = null;
+let gestureRecognizer = null;
+let gestureDetectorReady = false;
+let gestureLoopTimer = null;
+let lastGestureVideoTime = -1;
+let stableGestureKey = null;
+let stableGestureCount = 0;
+let lastCameraEmitKey = null;
+let lastCameraEmitAt = 0;
+
+const MEDIAPIPE_TASKS_VERSION = "0.10.35";
+const MEDIAPIPE_TASKS_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}`;
+const MEDIAPIPE_WASM_ROOT = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}/wasm`;
+const GESTURE_MODEL_URL = "https://storage.googleapis.com/mediapipe-tasks/gesture_recognizer/gesture_recognizer.task";
+const GESTURE_DETECT_PERIOD_MS = 250;
+const REQUIRED_STABLE_GESTURE_FRAMES = 3;
+const HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12],
+  [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20],
+  [0, 17],
+];
+const CANNED_GESTURE_TO_SIGN = {
+  Closed_Fist: "rock",
+  Open_Palm: "paper",
+  Victory: "scissor",
+};
+
 const SIGNS = {
   rock: { label: "Stein", symbol: "\u270A" },
   scissor: { label: "Schere", symbol: "\u270C" },
@@ -23,20 +56,26 @@ const SIGNS = {
 };
 
 window.addEventListener("load", async () => {
+  video = document.getElementById("camera_video");
+  gestureCanvas = document.getElementById("gesture_overlay_canvas");
+  gestureCtx = gestureCanvas.getContext("2d");
   session.agentId = getAgentId();
   wireUi();
+  renderCameraThreshold();
   window.addEventListener("beforeunload", cleanupStreams);
   window.addEventListener("pagehide", cleanupStreams);
 
   if (!session.agentId) {
     appendLog("Missing agent id in URL. Use ?{UUID} or ?agentId=UUID.");
     setStreamStatus("Stream Error");
+    setCameraStatus("Kamera Idle", "idle");
     setControlsEnabled(false);
     return;
   }
 
   await loadAgentInfo();
   await loadEventHistory();
+  await loadGestureRecognizer();
   connectMonitorStream();
   connectBehaviourStream();
 });
@@ -47,8 +86,15 @@ function wireUi() {
   document.getElementById("ready_round").addEventListener("click", () => acknowledgeUserUtterance("Bereit."));
   document.getElementById("play_again").addEventListener("click", () => acknowledgeUserUtterance("Ja, noch eine Runde."));
   document.getElementById("stop_game").addEventListener("click", () => acknowledgeUserUtterance("Nein, bitte beende das Spiel."));
+  document.getElementById("start_camera").addEventListener("click", startCamera);
+  document.getElementById("stop_camera").addEventListener("click", () => stopCamera());
+  document.getElementById("camera_confidence_threshold").addEventListener("input", renderCameraThreshold);
   document.querySelectorAll("[data-sign]").forEach((button) => {
-    button.addEventListener("click", () => submitHandSign(button.dataset.sign));
+    button.addEventListener("click", () => submitHandSign(button.dataset.sign, {
+      source: "rps.web",
+      detectionMode: "manual",
+      confidence: 1.0,
+    }));
   });
 }
 
@@ -87,6 +133,283 @@ async function showAgentInfo() {
   } catch (error) {
     appendLog("agent info failed: " + error.message);
   }
+}
+
+async function loadGestureRecognizer() {
+  const startButton = document.getElementById("start_camera");
+  startButton.disabled = true;
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setCameraStatus("Kamera Fehler", "error");
+    appendLog("camera API unavailable.");
+    return;
+  }
+
+  try {
+    setCameraStatus("Modell laden", "idle");
+    const visionTasks = await import(MEDIAPIPE_TASKS_URL);
+    const vision = await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
+    gestureRecognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: GESTURE_MODEL_URL,
+      },
+      runningMode: "VIDEO",
+      numHands: 1,
+    });
+    gestureDetectorReady = true;
+    startButton.disabled = false;
+    setCameraStatus("Kamera Idle", "idle");
+    appendLog("gesture recognizer ready.");
+  } catch (error) {
+    gestureDetectorReady = false;
+    setCameraStatus("Kamera Fehler", "error");
+    appendLog("gesture recognizer failed: " + error.message);
+  }
+}
+
+async function startCamera() {
+  if (!gestureDetectorReady || cameraStream || isPageUnloading) {
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 960 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+    video.srcObject = cameraStream;
+    await video.play();
+
+    document.getElementById("start_camera").disabled = true;
+    document.getElementById("stop_camera").disabled = false;
+    setCameraStatus("Kamera Live", "live");
+    appendLog("camera started.");
+    runGestureLoop();
+  } catch (error) {
+    setCameraStatus("Kamera Fehler", "error");
+    appendLog("camera start failed: " + error.message);
+    stopCamera({ silent: true });
+  }
+}
+
+function stopCamera(options = {}) {
+  if (gestureLoopTimer) {
+    clearTimeout(gestureLoopTimer);
+    gestureLoopTimer = null;
+  }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+  }
+  if (video) {
+    video.srcObject = null;
+  }
+  lastGestureVideoTime = -1;
+  stableGestureKey = null;
+  stableGestureCount = 0;
+  clearGestureOverlay();
+  renderCameraDetection(null);
+  if (gestureDetectorReady && !isPageUnloading) {
+    document.getElementById("start_camera").disabled = false;
+  }
+  document.getElementById("stop_camera").disabled = true;
+  setCameraStatus("Kamera Idle", "idle");
+  if (!options.silent) {
+    appendLog("camera stopped.");
+  }
+}
+
+async function runGestureLoop() {
+  if (!cameraStream || !gestureRecognizer || isPageUnloading) {
+    return;
+  }
+
+  try {
+    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.currentTime !== lastGestureVideoTime) {
+      const result = gestureRecognizer.recognizeForVideo(video, performance.now());
+      const candidate = selectCameraGesture(result);
+      updateCameraStability(candidate);
+      drawGestureOverlay(candidate);
+      await maybeEmitCameraSign(candidate);
+      lastGestureVideoTime = video.currentTime;
+    }
+  } catch (error) {
+    appendLog("gesture detection failed: " + error.message);
+  }
+
+  gestureLoopTimer = setTimeout(runGestureLoop, GESTURE_DETECT_PERIOD_MS);
+}
+
+function selectCameraGesture(result) {
+  const gestures = result && Array.isArray(result.gestures) ? result.gestures : [];
+  let best = null;
+
+  for (let i = 0; i < gestures.length; i++) {
+    const top = Array.isArray(gestures[i]) ? gestures[i][0] : null;
+    if (!top) {
+      continue;
+    }
+    const cannedGesture = top.categoryName || top.displayName || "";
+    const sign = CANNED_GESTURE_TO_SIGN[cannedGesture];
+    if (!sign) {
+      continue;
+    }
+    const confidence = Number(top.score || 0);
+    if (!best || confidence > best.confidence) {
+      const handedness = result.handedness && result.handedness[i] && result.handedness[i][0]
+        ? result.handedness[i][0].categoryName
+        : null;
+      best = {
+        sign,
+        confidence,
+        cannedGesture,
+        hand: normalizeHandedness(handedness),
+        landmarks: result.landmarks && result.landmarks[i] ? result.landmarks[i] : [],
+      };
+    }
+  }
+
+  return best;
+}
+
+function updateCameraStability(candidate) {
+  const threshold = cameraConfidenceThreshold();
+  if (!candidate || candidate.confidence < threshold) {
+    stableGestureKey = null;
+    stableGestureCount = 0;
+    renderCameraDetection(candidate);
+    return;
+  }
+
+  const key = `${candidate.sign}|${candidate.cannedGesture}`;
+  if (key === stableGestureKey) {
+    stableGestureCount += 1;
+  } else {
+    stableGestureKey = key;
+    stableGestureCount = 1;
+  }
+  renderCameraDetection(candidate);
+}
+
+async function maybeEmitCameraSign(candidate) {
+  if (!document.getElementById("camera_emit_enabled").checked) {
+    return;
+  }
+  if (!candidate || candidate.confidence < cameraConfidenceThreshold()) {
+    return;
+  }
+  if (stableGestureCount < REQUIRED_STABLE_GESTURE_FRAMES) {
+    return;
+  }
+
+  const emitKey = `${candidate.sign}|${candidate.cannedGesture}`;
+  if (emitKey === lastCameraEmitKey) {
+    return;
+  }
+
+  const now = Date.now();
+  const intervalMs = Math.max(500, Number(document.getElementById("camera_emit_interval_ms").value || 1800));
+  if (now - lastCameraEmitAt < intervalMs) {
+    return;
+  }
+  lastCameraEmitAt = now;
+
+  const ok = await submitHandSign(candidate.sign, {
+    source: "rps.web.camera",
+    detectionMode: "client_camera",
+    confidence: candidate.confidence,
+    hand: candidate.hand,
+    cannedGesture: candidate.cannedGesture,
+    stabilityFrames: stableGestureCount,
+  });
+  if (ok) {
+    lastCameraEmitKey = emitKey;
+  }
+}
+
+function resetCameraEmissionGate() {
+  lastCameraEmitKey = null;
+  lastCameraEmitAt = 0;
+}
+
+function renderCameraDetection(candidate) {
+  const accepted = candidate && candidate.confidence >= cameraConfidenceThreshold();
+  setText("camera_sign_value", accepted ? SIGNS[candidate.sign].label : "-");
+  setText("camera_confidence_value", candidate ? round(candidate.confidence, 2).toFixed(2) : "0.00");
+  setText("camera_stability_value", `${stableGestureCount}/${REQUIRED_STABLE_GESTURE_FRAMES}`);
+}
+
+function renderCameraThreshold() {
+  setText("camera_threshold_value", cameraConfidenceThreshold().toFixed(2));
+}
+
+function cameraConfidenceThreshold() {
+  return clamp(Number(document.getElementById("camera_confidence_threshold").value || 0.7), 0, 1);
+}
+
+function drawGestureOverlay(candidate) {
+  if (!gestureCanvas || !gestureCtx) {
+    return;
+  }
+  const rect = gestureCanvas.getBoundingClientRect();
+  gestureCanvas.width = rect.width;
+  gestureCanvas.height = rect.height;
+  gestureCtx.clearRect(0, 0, gestureCanvas.width, gestureCanvas.height);
+
+  const landmarks = candidate && Array.isArray(candidate.landmarks) ? candidate.landmarks : [];
+  if (!landmarks.length) {
+    return;
+  }
+
+  gestureCtx.save();
+  gestureCtx.translate(gestureCanvas.width, 0);
+  gestureCtx.scale(-1, 1);
+  gestureCtx.lineWidth = 3;
+  gestureCtx.strokeStyle = "#ff7a00";
+  gestureCtx.fillStyle = "#00b0a2";
+
+  for (const [from, to] of HAND_CONNECTIONS) {
+    const a = landmarks[from];
+    const b = landmarks[to];
+    if (!a || !b) {
+      continue;
+    }
+    gestureCtx.beginPath();
+    gestureCtx.moveTo(a.x * gestureCanvas.width, a.y * gestureCanvas.height);
+    gestureCtx.lineTo(b.x * gestureCanvas.width, b.y * gestureCanvas.height);
+    gestureCtx.stroke();
+  }
+
+  for (const point of landmarks) {
+    gestureCtx.beginPath();
+    gestureCtx.arc(point.x * gestureCanvas.width, point.y * gestureCanvas.height, 4, 0, Math.PI * 2);
+    gestureCtx.fill();
+  }
+  gestureCtx.restore();
+}
+
+function clearGestureOverlay() {
+  if (!gestureCanvas || !gestureCtx) {
+    return;
+  }
+  const rect = gestureCanvas.getBoundingClientRect();
+  gestureCanvas.width = rect.width;
+  gestureCanvas.height = rect.height;
+  gestureCtx.clearRect(0, 0, gestureCanvas.width, gestureCanvas.height);
+}
+
+function normalizeHandedness(value) {
+  const token = String(value || "").trim().toLowerCase();
+  if (token === "left") {
+    return "left";
+  }
+  if (token === "right") {
+    return "right";
+  }
+  return "unknown";
 }
 
 async function loadEventHistory() {
@@ -231,9 +554,11 @@ function cleanupStreams() {
     session.monitorStream.close();
     session.monitorStream = null;
   }
+  stopCamera({ silent: true });
 }
 
 async function startGame() {
+  resetCameraEmissionGate();
   try {
     const response = await fetch(`/${session.agentId}/start`, { method: "POST" });
     if (!response.ok) {
@@ -250,6 +575,7 @@ async function startGame() {
 }
 
 async function acknowledgeUserUtterance(payload) {
+  resetCameraEmissionGate();
   await acknowledgeEvent({
     type: "obs.user_utterance",
     actor: "user",
@@ -258,27 +584,36 @@ async function acknowledgeUserUtterance(payload) {
   }, `utterance sent: ${payload}`);
 }
 
-async function submitHandSign(sign) {
+async function submitHandSign(sign, options = {}) {
   const normalized = normalizeSign(sign);
   if (!normalized) {
     appendLog("unknown hand sign.");
-    return;
+    return false;
   }
   renderUserSign(normalized);
+  const detectionMode = options.detectionMode || "manual";
+  const confidence = typeof options.confidence === "number" ? round(clamp(options.confidence, 0, 1), 3) : 1.0;
   const payload = {
-    source: "rps.web",
-    hand: "right",
+    source: options.source || "rps.web",
+    hand: options.hand || "right",
     sign: normalized,
-    confidence: 1.0,
-    detectionMode: "manual",
+    confidence,
+    detectionMode,
     ts: new Date().toISOString(),
   };
-  await acknowledgeEvent({
+  if (options.cannedGesture) {
+    payload.cannedGesture = options.cannedGesture;
+  }
+  if (Number.isFinite(options.stabilityFrames)) {
+    payload.stabilityFrames = options.stabilityFrames;
+  }
+  const ok = await acknowledgeEvent({
     type: "obs.hand.sign",
     actor: "user",
     kind: "observation",
     payload: JSON.stringify(payload),
-  }, `manual sign sent: ${SIGNS[normalized].label}`);
+  }, `${detectionMode === "manual" ? "manual" : "camera"} sign sent: ${SIGNS[normalized].label}`);
+  return ok;
 }
 
 async function acknowledgeEvent(request, successMessage) {
@@ -292,14 +627,16 @@ async function acknowledgeEvent(request, successMessage) {
     });
     if (!response.ok) {
       appendLog(`ack failed: ${response.status}`);
-      return;
+      return false;
     }
     const data = await response.json();
     setActiveStatus(data.active);
     handleResponseEvent(data.responseEvent);
     appendLog(successMessage);
+    return true;
   } catch (error) {
     appendLog("ack failed: " + error.message);
+    return false;
   }
 }
 
@@ -349,6 +686,7 @@ function renderMotion(motion) {
   const sign = normalizeSign(motion.handSign);
   if (sign) {
     renderAgentSign(sign);
+    resetCameraEmissionGate();
   }
   setText("effector_value", asText(motion.effector));
   const timing = motion.timing && typeof motion.timing === "object" ? motion.timing : {};
@@ -444,6 +782,15 @@ function winnerLabel(value) {
   return "-";
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function round(value, digits) {
+  const factor = Math.pow(10, digits || 0);
+  return Math.round(Number(value || 0) * factor) / factor;
+}
+
 function asText(value) {
   if (typeof value !== "string" || !value.trim()) {
     return "-";
@@ -481,6 +828,18 @@ function setStreamStatus(text) {
     el.className = "status-pill is-inactive";
   } else {
     el.className = "status-pill is-idle";
+  }
+}
+
+function setCameraStatus(text, state) {
+  const el = document.getElementById("camera_status");
+  el.textContent = text;
+  if (state === "live") {
+    el.className = "status-pill is-listening align-self-center";
+  } else if (state === "error") {
+    el.className = "status-pill is-inactive align-self-center";
+  } else {
+    el.className = "status-pill is-idle align-self-center";
   }
 }
 

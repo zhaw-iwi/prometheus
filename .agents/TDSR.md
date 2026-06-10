@@ -613,6 +613,8 @@ Primary risks:
 
 ### TDSR Milestone 6: RPS Client-Side Hand Detection
 
+Status: Implemented in PROJECT.md Milestone 28.
+
 Goal:
 
 Add camera-based hand-sign detection to the RPS client while preserving manual
@@ -620,11 +622,11 @@ fallback.
 
 Deliverables:
 
-- browser-side detector selection and integration
-- confidence threshold controls
+- browser-side MediaPipe Gesture Recognizer integration
+- confidence threshold controls and stability gating
 - normalized `obs.hand.sign` emission from camera detection
 - manual fallback retained
-- browser/manual verification instructions
+- local HTTP/static smoke verification; browser/manual camera verification when a browser target and camera are available
 - README and PROJECT updates
 
 Primary risks:

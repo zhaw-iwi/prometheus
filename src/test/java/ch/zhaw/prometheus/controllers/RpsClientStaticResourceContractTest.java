@@ -28,6 +28,21 @@ class RpsClientStaticResourceContractTest {
     }
 
     @Test
+    void rpsClientExposesCameraDetectionControls() throws IOException {
+        String index = Files.readString(INDEX);
+
+        assertTrue(index.contains("id=\"camera_video\""));
+        assertTrue(index.contains("id=\"gesture_overlay_canvas\""));
+        assertTrue(index.contains("data-testid=\"start-camera\""));
+        assertTrue(index.contains("data-testid=\"stop-camera\""));
+        assertTrue(index.contains("data-testid=\"camera-confidence-threshold\""));
+        assertTrue(index.contains("data-testid=\"camera-emit-enabled\""));
+        assertTrue(index.contains("data-testid=\"camera-sign-value\""));
+        assertTrue(index.contains("data-testid=\"camera-confidence-value\""));
+        assertTrue(index.contains("data-testid=\"camera-stability-value\""));
+    }
+
+    @Test
     void rpsClientEmitsNormalizedManualHandSignEvents() throws IOException {
         String script = Files.readString(SCRIPT);
 
@@ -49,5 +64,21 @@ class RpsClientStaticResourceContractTest {
         assertTrue(script.contains("motion.handSign"));
         assertTrue(script.contains("renderAgentSign(sign)"));
         assertTrue(script.contains("renderUserSign(sign)"));
+    }
+
+    @Test
+    void rpsClientMapsCameraGesturesToNormalizedHandSignEvents() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("@mediapipe/tasks-vision@"));
+        assertTrue(script.contains("GestureRecognizer.createFromOptions"));
+        assertTrue(script.contains("recognizeForVideo(video, performance.now())"));
+        assertTrue(script.contains("Closed_Fist: \"rock\""));
+        assertTrue(script.contains("Open_Palm: \"paper\""));
+        assertTrue(script.contains("Victory: \"scissor\""));
+        assertTrue(script.contains("source: \"rps.web.camera\""));
+        assertTrue(script.contains("detectionMode: \"client_camera\""));
+        assertTrue(script.contains("stabilityFrames: stableGestureCount"));
+        assertTrue(script.contains("cameraConfidenceThreshold()"));
     }
 }

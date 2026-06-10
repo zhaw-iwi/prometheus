@@ -31,6 +31,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 25: TDSR social context sensitivity seed agent
 - [x] Milestone 26: TDSR Schere-Stein-Papier core game and motion contract
 - [x] Milestone 27: TDSR RPS web behaviour and manual sensing client
+- [x] Milestone 28: TDSR RPS client-side hand detection
 
 ## Milestone 1
 ### Date
@@ -1232,3 +1233,71 @@ Implement TDSR Milestone 5 by adding a browser-only Schere-Stein-Papier client t
 1. Implement TDSR Milestone 6: client-side hand-sign detection with manual fallback retained.
 2. Add browser/manual verification instructions for camera confidence thresholds.
 3. Consider a seeded demo shortcut once the RPS client-side detector is stable.
+
+## Milestone 28
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 6 by adding browser-side camera hand-sign detection to the RPS client while preserving the manual sign buttons.
+
+### What changed
+- Extended the RPS static client:
+  - `src/main/resources/public/rps/index.html`
+  - `src/main/resources/public/rps/script.js`
+- Added a Handkamera panel with:
+  - local camera preview
+  - hand landmark overlay canvas
+  - camera start/stop controls
+  - confidence threshold slider
+  - auto-send toggle
+  - camera detection, confidence, and stability metrics
+- Integrated MediaPipe Gesture Recognizer through dynamic browser import so manual controls still work if the model or camera path is unavailable.
+- Mapped MediaPipe canned gestures to normalized RPS signs:
+  - `Closed_Fist -> rock`
+  - `Victory -> scissor`
+  - `Open_Palm -> paper`
+- Camera-detected signs emit the same `obs.hand.sign` event contract as manual signs, with:
+  - `source`: `rps.web.camera`
+  - `detectionMode`: `client_camera`
+  - `confidence`
+  - `cannedGesture`
+  - `stabilityFrames`
+- Added confidence and stability gates before auto-emitting camera observations.
+- Reset the camera auto-send gate on game start, user readiness/play-again utterances, and each new GIGI `motion.handSign` reveal.
+- Extended `RpsClientStaticResourceContractTest` to cover camera controls, MediaPipe integration hooks, gesture mapping, and camera payload metadata.
+- Updated README and `.agents/TDSR.md`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run the seed class manually:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open the RPS client:
+   - `http://localhost:8080/rps/?agentId=<uuid>`
+5. Use manual buttons as before, or start `Handkamera`, enable `Auto senden`, and show:
+   - closed fist for `rock`
+   - victory sign for `scissor`
+   - open palm for `paper`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/rps/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RpsClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+- Local HTTP smoke against the running Spring Boot app:
+  - `http://localhost:8080/rps/?agentId=11111111-1111-1111-1111-111111111111`
+  - verified `200 OK` after redirect and presence of camera controls, camera confidence slider, camera auto-send toggle, and manual sign controls.
+
+### Known issues and decisions
+- Camera inference is browser-side and depends on camera permission, lighting, pose, MediaPipe model availability, and CDN access.
+- The MediaPipe model recognizes canned gestures, not a custom RPS-trained model. The current mapping uses the closest canned static gestures.
+- The manual buttons remain the reliable fallback path and emit the same normalized event contract.
+- Dynamic import keeps the manual client usable if MediaPipe loading fails.
+- The in-app browser target was unavailable in this session, so interactive camera verification was not executed. Local HTTP smoke and static client contract tests covered the non-camera hardware surface.
+- The targeted Maven run passed, but Surefire printed its existing fork-shutdown warning after the Spring SSE replay test closed; surefire reports show zero failures and zero errors.
+
+### Next steps
+1. Manually verify camera classification on the target demo machine with real lighting and camera angle.
+2. Tune the confidence threshold and stability frame count if live demos produce false positives.
+3. Consider a custom gesture model or server-side image interpretation only if MediaPipe canned gestures are not reliable enough.
