@@ -106,6 +106,7 @@ var animate_istyping_interval = null;
 var behaviour_stream = null;
 var behaviour_reconnect_timer = null;
 var behaviour_reconnect_attempt = 0;
+var last_behaviour_event_id = null;
 var last_behaviour_created_date = null;
 var is_page_unloading = false;
 var BEHAVIOUR_RECONNECT_MIN_MS = 1000;
@@ -204,11 +205,14 @@ function connect_behaviour_stream() {
         clearTimeout(behaviour_reconnect_timer);
         behaviour_reconnect_timer = null;
     }
-    behaviour_stream = new EventSource("/" + session.agent_id + "/behaviour/stream");
+    behaviour_stream = new EventSource(behaviour_stream_url());
     behaviour_stream.addEventListener("open", function () {
         behaviour_reconnect_attempt = 0;
     });
     behaviour_stream.addEventListener("behaviour", function (event) {
+        if (event.lastEventId) {
+            last_behaviour_event_id = event.lastEventId;
+        }
         handle_behaviour_event(event.data);
     });
     behaviour_stream.onerror = function () {
@@ -218,6 +222,14 @@ function connect_behaviour_stream() {
         }
         schedule_behaviour_reconnect();
     };
+}
+
+function behaviour_stream_url() {
+    var url = "/" + session.agent_id + "/behaviour/stream";
+    if (last_behaviour_event_id) {
+        url += "?lastEventId=" + encodeURIComponent(last_behaviour_event_id);
+    }
+    return url;
 }
 
 function schedule_behaviour_reconnect() {

@@ -34,6 +34,7 @@ let sessionSettings = {
 let pushToTalkActive = false;
 let spaceKeyBindingActive = false;
 let lastBackendBehaviourCreatedDate = null;
+let lastBackendBehaviourEventId = null;
 let lastBackendSpeech = "";
 let pendingBackendSpeech = null;
 
@@ -497,13 +498,16 @@ function connectBehaviourStream() {
   if (behaviourSource) {
     behaviourSource.close();
   }
-  behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource = new EventSource(behaviourStreamUrl());
   behaviourSource.addEventListener("open", () => {
     behaviourReconnectAttempt = 0;
   });
   behaviourSource.addEventListener("behaviour", (event) => {
     if (!session.isListening) {
       return;
+    }
+    if (event.lastEventId) {
+      lastBackendBehaviourEventId = event.lastEventId;
     }
     let data = null;
     try {
@@ -537,6 +541,14 @@ function connectBehaviourStream() {
     appendLog("policy", "Behaviour stream disconnected.");
     scheduleBehaviourReconnect();
   };
+}
+
+function behaviourStreamUrl() {
+  let url = `/${session.agentId}/behaviour/stream`;
+  if (lastBackendBehaviourEventId) {
+    url += `?lastEventId=${encodeURIComponent(lastBackendBehaviourEventId)}`;
+  }
+  return url;
 }
 
 function scheduleBehaviourReconnect() {

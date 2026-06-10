@@ -5,6 +5,9 @@ let session = {
 let streamReconnectTimer = null;
 let streamReconnectAttempt = 0;
 let monitorStream = null;
+let monitorReconnectTimer = null;
+let monitorReconnectAttempt = 0;
+let lastBehaviourEventId = null;
 let isPageUnloading = false;
 let autoReconnectEnabled = true;
 const STREAM_RECONNECT_MIN_MS = 1000;
@@ -80,7 +83,7 @@ function connectStream() {
     clearTimeout(streamReconnectTimer);
     streamReconnectTimer = null;
   }
-  const stream = new EventSource(`/${session.agentId}/behaviour/stream`);
+  const stream = new EventSource(behaviourStreamUrl());
   session.stream = stream;
   setStreamStatus("Stream Connecting");
   document.getElementById("connect_stream").disabled = true;
@@ -93,6 +96,9 @@ function connectStream() {
   });
 
   stream.addEventListener("behaviour", (event) => {
+    if (event.lastEventId) {
+      lastBehaviourEventId = event.lastEventId;
+    }
     handleBehaviourEvent(event.data);
   });
 
@@ -109,6 +115,9 @@ function connectMonitorStream() {
     return;
   }
   monitorStream = new EventSource(`/${session.agentId}/monitor/stream`);
+  monitorStream.addEventListener("open", () => {
+    monitorReconnectAttempt = 0;
+  });
   monitorStream.addEventListener("snapshot", (event) => {
     let data = null;
     try {
@@ -125,7 +134,16 @@ function connectMonitorStream() {
       monitorStream.close();
       monitorStream = null;
     }
+    scheduleMonitorReconnect();
   };
+}
+
+function behaviourStreamUrl() {
+  let url = `/${session.agentId}/behaviour/stream`;
+  if (lastBehaviourEventId) {
+    url += `?lastEventId=${encodeURIComponent(lastBehaviourEventId)}`;
+  }
+  return url;
 }
 
 function disconnectStream(manual = true) {
@@ -142,6 +160,24 @@ function disconnectStream(manual = true) {
   if (manual) {
     appendLog("behaviour stream closed.");
   }
+}
+
+function scheduleMonitorReconnect() {
+  if (isPageUnloading || monitorReconnectTimer) {
+    return;
+  }
+  const delay = nextMonitorReconnectDelayMs();
+  monitorReconnectTimer = setTimeout(() => {
+    monitorReconnectTimer = null;
+    connectMonitorStream();
+  }, delay);
+}
+
+function nextMonitorReconnectDelayMs() {
+  const base = Math.min(STREAM_RECONNECT_MAX_MS, STREAM_RECONNECT_MIN_MS * Math.pow(2, monitorReconnectAttempt));
+  monitorReconnectAttempt += 1;
+  const jitterFactor = 1 + ((Math.random() * 2 - 1) * STREAM_RECONNECT_JITTER);
+  return Math.max(STREAM_RECONNECT_MIN_MS, Math.floor(base * jitterFactor));
 }
 
 function scheduleReconnect() {
@@ -169,6 +205,10 @@ function cleanupStream() {
     clearTimeout(streamReconnectTimer);
     streamReconnectTimer = null;
   }
+  if (monitorReconnectTimer) {
+    clearTimeout(monitorReconnectTimer);
+    monitorReconnectTimer = null;
+  }
   if (session.stream) {
     session.stream.close();
     session.stream = null;
@@ -178,6 +218,7 @@ function cleanupStream() {
     monitorStream = null;
   }
   streamReconnectAttempt = 0;
+  monitorReconnectAttempt = 0;
 }
 
 function handleBehaviourEvent(raw) {

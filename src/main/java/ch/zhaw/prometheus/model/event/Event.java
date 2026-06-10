@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import ch.zhaw.prometheus.spi.GsonExclude;
 import jakarta.persistence.Column;
 import jakarta.persistence.CollectionTable;
@@ -99,6 +101,11 @@ public class Event {
 
     public String getType() {
         return this.type;
+    }
+
+    @JsonIgnore
+    public UUID getId() {
+        return this.id;
     }
 
     public String getActor() {

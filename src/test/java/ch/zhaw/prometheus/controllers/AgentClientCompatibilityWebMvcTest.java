@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -94,6 +95,8 @@ class AgentClientCompatibilityWebMvcTest {
         when(this.agentService.getAgentStorage(TEST_AGENT_ID)).thenReturn(Optional.of(List.of()));
         when(this.agentService.subscribeMonitor(TEST_AGENT_ID)).thenReturn(Optional.of(new SseEmitter(0L)));
         when(this.agentService.subscribeBehaviour(TEST_AGENT_ID)).thenReturn(Optional.of(new SseEmitter(0L)));
+        when(this.agentService.subscribeBehaviour(eq(TEST_AGENT_ID), any()))
+                .thenReturn(Optional.of(new SseEmitter(0L)));
     }
 
     @Test
@@ -220,6 +223,16 @@ class AgentClientCompatibilityWebMvcTest {
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/eventhistory"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN));
+    }
+
+    @Test
+    void behaviourStreamForwardsReconnectCursor() throws Exception {
+        this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/behaviour/stream")
+                .param("lastEventId", "cursor-123"))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted());
+
+        verify(this.agentService).subscribeBehaviour(TEST_AGENT_ID, "cursor-123");
     }
 
     @Test

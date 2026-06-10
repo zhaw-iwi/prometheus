@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -22,12 +23,13 @@ import ch.zhaw.prometheus.model.State;
 @Component
 public class AgentMonitorBroadcaster {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentMonitorBroadcaster.class);
+    private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
 
     private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emittersByAgent = new ConcurrentHashMap<>();
     private final AtomicLong sendFailureCount = new AtomicLong(0L);
 
     public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = this.createEmitter();
         CopyOnWriteArrayList<SseEmitter> emitters = this.emittersByAgent.computeIfAbsent(agentId,
                 id -> new CopyOnWriteArrayList<>());
         emitters.add(emitter);
@@ -56,9 +58,24 @@ public class AgentMonitorBroadcaster {
         }
     }
 
+    @Scheduled(fixedDelayString = "${prometheus.sse.heartbeat.delay-ms:25000}")
+    public void heartbeat() {
+        for (var entry : this.emittersByAgent.entrySet()) {
+            UUID agentId = entry.getKey();
+            CopyOnWriteArrayList<SseEmitter> emitters = entry.getValue();
+            for (SseEmitter emitter : emitters) {
+                sendHeartbeat(agentId, emitters, emitter);
+            }
+        }
+    }
+
+    protected SseEmitter createEmitter() {
+        return new SseEmitter(EMITTER_TIMEOUT_MS);
+    }
+
     private void sendInitialSnapshot(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Agent agent) {
         try {
-            emitter.send(SseEmitter.event().name("snapshot").data(toSnapshot(agent)));
+            emitter.send(snapshotEvent(agent));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -67,7 +84,16 @@ public class AgentMonitorBroadcaster {
 
     private void sendSnapshot(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Agent agent) {
         try {
-            emitter.send(SseEmitter.event().name("snapshot").data(toSnapshot(agent)));
+            emitter.send(snapshotEvent(agent));
+        } catch (Throwable failure) {
+            this.recordSendFailure(agentId, failure);
+            unsubscribeAndComplete(agentId, emitters, emitter);
+        }
+    }
+
+    private void sendHeartbeat(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter) {
+        try {
+            emitter.send(SseEmitter.event().comment("heartbeat"));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -97,6 +123,14 @@ public class AgentMonitorBroadcaster {
         if (failures == 1 || failures % 100 == 0) {
             LOGGER.debug("SSE monitor send failed; agentId={}, failures={}", agentId, failures, failure);
         }
+    }
+
+    private SseEmitter.SseEventBuilder snapshotEvent(Agent agent) {
+        SseEmitter.SseEventBuilder builder = SseEmitter.event().name("snapshot").data(toSnapshot(agent));
+        if (agent != null && agent.getId() != null) {
+            builder.id("snapshot:" + agent.getId() + ":" + System.currentTimeMillis());
+        }
+        return builder;
     }
 
     private AgentMonitorSnapshotView toSnapshot(Agent agent) {

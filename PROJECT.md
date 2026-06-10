@@ -24,6 +24,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 18: Structured nonverbal plan generation and richer multimodal seed-agent output
 - [x] Milestone 19: Re-scope multimodal In/Out demos (In as micro-coaching, Out with deterministic multi-channel nonverbal policy)
 - [x] Milestone 20: Stabilize elderly-care seed agents and align omitted-modality history/SSE semantics
+- [x] Milestone 21: Production-grade SSE lifecycle foundation with heartbeats, cursors, and replay
 
 ## Milestone 1
 ### Date
@@ -844,3 +845,59 @@ Stabilize the current implementation before expanding the framework by adopting 
 1. Add deterministic REST+SSE replay scripts for the four elderly-care seed agents.
 2. Clean up prompt source encoding once there is replay coverage to protect behavior.
 3. Consider extracting shared GIGI elderly-care prompt fragments after the adopted agents have stabilized in PROMETHEUS.
+
+## Milestone 21
+### Date
+2026-06-10
+
+### Goal
+Harden the current SSE mechanism toward production-grade lifecycle behavior without replacing the existing Spring MVC SSE architecture or introducing a distributed broker.
+
+### What changed
+- Added finite emitter lifetimes and scheduled heartbeat comments to all SSE broadcasters:
+  - `AgentBehaviourBroadcaster`
+  - `AgentMonitorBroadcaster`
+  - `LogStreamBroadcaster`
+- Behaviour SSE events now carry an SSE frame id derived from the persisted event id when available.
+- Behaviour stream subscriptions accept reconnect cursors through either:
+  - `Last-Event-ID`
+  - `?lastEventId=<id>`
+- Behaviour stream replay now selects missed `resp.behaviour_plan` events from event history after the provided cursor; missing or unknown cursors fall back to the latest behaviour event.
+- Browser clients that rebuild `EventSource` now remember behaviour `lastEventId` and pass it as a reconnect query parameter:
+  - text client
+  - monitor client
+  - realtime client
+  - nonverbal renderer
+- Nonverbal renderer now reconnects its monitor-status stream instead of allowing active-state badges to go stale after a monitor stream failure.
+- Event ids remain hidden from normal JSON API/event-history responses while still being usable as SSE frame cursors.
+- Added focused regression coverage for:
+  - heartbeat send failure cleanup across behaviour, monitor, and log broadcasters
+  - behaviour replay selection after known, missing, and unknown cursors
+  - behaviour stream cursor forwarding through the web controller
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Use any SSE-backed client:
+   - `http://localhost:8080/?agentId=<uuid>`
+   - `http://localhost:8080/monitor/?agentId=<uuid>`
+   - `http://localhost:8080/realtime/?agentId=<uuid>`
+   - `http://localhost:8080/nonverbal/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q test-compile`
+  - `.\mvnw.cmd -q "-Dtest=SseBroadcasterHardeningUnitTest,AgentClientCompatibilityWebMvcTest,AgentApplicationServiceGenerateOptionsUnitTest,ContinuousEvaluationSchedulerUnitTest" test`
+
+### Known issues and decisions
+- This milestone keeps emitters in memory and remains single-JVM/sticky-session oriented; horizontal fan-out still needs a broker/outbox strategy.
+- Sends are still performed inline at broadcaster boundaries, though protected by catch boundaries; a queued async fan-out layer remains future work for slow-client isolation.
+- Monitor and log streams use heartbeats and cleanup but do not implement historical replay.
+- `/logs/stream` remains a development/admin-oriented endpoint and still needs explicit authorization before production exposure.
+
+### Next steps
+1. Add an async bounded fan-out layer with slow-client drop policy.
+2. Add metrics for emitter counts, send failures, heartbeats, replay counts, and dropped events.
+3. Decide on sticky sessions versus broker/outbox semantics for horizontal deployment.
+4. Add browser-level reconnect tests for cursor replay and nonverbal monitor status recovery.

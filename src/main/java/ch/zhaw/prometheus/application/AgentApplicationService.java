@@ -213,11 +213,15 @@ public class AgentApplicationService {
     }
 
     public Optional<SseEmitter> subscribeBehaviour(UUID agentID) {
+        return this.subscribeBehaviour(agentID, null);
+    }
+
+    public Optional<SseEmitter> subscribeBehaviour(UUID agentID, String lastEventId) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
             return Optional.empty();
         }
-        SseEmitter emitter = this.behaviourBroadcaster.subscribe(agentID, () -> this.findAgent(agentID));
+        SseEmitter emitter = this.behaviourBroadcaster.subscribe(agentID, () -> this.findAgent(agentID), lastEventId);
         return Optional.of(emitter);
     }
 

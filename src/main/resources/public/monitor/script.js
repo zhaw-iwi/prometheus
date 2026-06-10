@@ -26,6 +26,7 @@ let logReconnectTimer = null;
 let monitorReconnectTimer = null;
 let behaviourReconnectTimer = null;
 let behaviourReconnectAttempt = 0;
+let behaviourLastEventId = null;
 let isPageUnloading = false;
 const SSE_RECONNECT_MIN_MS = 1000;
 const SSE_RECONNECT_MAX_MS = 30000;
@@ -365,11 +366,14 @@ function connectBehaviour() {
   if (behaviourSource) {
     behaviourSource.close();
   }
-  behaviourSource = new EventSource(`/${session.agentId}/behaviour/stream`);
+  behaviourSource = new EventSource(behaviourStreamUrl());
   behaviourSource.addEventListener("open", () => {
     behaviourReconnectAttempt = 0;
   });
   behaviourSource.addEventListener("behaviour", (event) => {
+    if (event.lastEventId) {
+      behaviourLastEventId = event.lastEventId;
+    }
     let data = null;
     try {
       data = JSON.parse(event.data);
@@ -393,6 +397,14 @@ function connectBehaviour() {
     appendLog("app", "Behaviour stream disconnected.");
     scheduleBehaviourReconnect();
   };
+}
+
+function behaviourStreamUrl() {
+  let url = `/${session.agentId}/behaviour/stream`;
+  if (behaviourLastEventId) {
+    url += `?lastEventId=${encodeURIComponent(behaviourLastEventId)}`;
+  }
+  return url;
 }
 
 function scheduleLogReconnect() {

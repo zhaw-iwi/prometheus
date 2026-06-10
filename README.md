@@ -207,6 +207,8 @@ All clients take `?agentId=<uuid>`.
 - `POST /{agentID}/behaviour/generate` (optional body: `omitModalities`, `outputProfile`)
 - `GET /logs/stream`
 - SSE publish failures are isolated from main HTTP endpoint handling and scheduler tick processing.
+- SSE streams use finite emitter lifetimes plus periodic heartbeat comments (`prometheus.sse.heartbeat.delay-ms`, default `25000`) so dead connections are discovered and cleaned up.
+- Behaviour SSE frames carry persisted event ids. Reconnecting clients may pass `Last-Event-ID` or `?lastEventId=<id>` to replay missed behaviour events from event history.
 - Browser clients close EventSource streams on page unload and use one reconnect timer per stream with bounded exponential backoff and jitter on disconnect.
 - Monitor client log and behaviour panes use bounded in-memory buffers to avoid unbounded growth during long sessions or repeated stream failures.
 

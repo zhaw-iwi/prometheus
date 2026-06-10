@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -26,8 +28,13 @@ public class AgentBehaviourController {
     }
 
     @GetMapping(path = "{agentID}/behaviour/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<SseEmitter> stream(@PathVariable UUID agentID) {
-        Optional<SseEmitter> emitter = this.agentService.subscribeBehaviour(agentID);
+    public ResponseEntity<SseEmitter> stream(@PathVariable UUID agentID,
+            @RequestHeader(value = "Last-Event-ID", required = false) String lastEventIdHeader,
+            @RequestParam(value = "lastEventId", required = false) String lastEventIdParam) {
+        String lastEventId = lastEventIdParam == null || lastEventIdParam.isBlank()
+                ? lastEventIdHeader
+                : lastEventIdParam;
+        Optional<SseEmitter> emitter = this.agentService.subscribeBehaviour(agentID, lastEventId);
         if (emitter.isEmpty()) {
             return new ResponseEntity<>(org.springframework.http.HttpStatus.NOT_FOUND);
         }

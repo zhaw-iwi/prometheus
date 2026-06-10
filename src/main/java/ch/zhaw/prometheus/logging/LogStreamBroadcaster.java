@@ -5,12 +5,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Component
 public class LogStreamBroadcaster {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogStreamBroadcaster.class);
+    private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
 
     private static LogStreamBroadcaster instance;
     private final CopyOnWriteArrayList<SseEmitter> emitters = new CopyOnWriteArrayList<>();
@@ -25,7 +27,7 @@ public class LogStreamBroadcaster {
     }
 
     public SseEmitter subscribe() {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = this.createEmitter();
         this.emitters.add(emitter);
         emitter.onCompletion(() -> this.emitters.remove(emitter));
         emitter.onTimeout(() -> this.emitters.remove(emitter));
@@ -39,7 +41,7 @@ public class LogStreamBroadcaster {
         }
         for (SseEmitter emitter : this.emitters) {
             try {
-                emitter.send(SseEmitter.event().name("log").data(event));
+                emitter.send(SseEmitter.event().id(String.valueOf(event.getTimestamp())).name("log").data(event));
             } catch (Throwable failure) {
                 long failures = this.sendFailureCount.incrementAndGet();
                 if (failures == 1 || failures % 100 == 0) {
@@ -49,6 +51,26 @@ public class LogStreamBroadcaster {
                 safeComplete(emitter);
             }
         }
+    }
+
+    @Scheduled(fixedDelayString = "${prometheus.sse.heartbeat.delay-ms:25000}")
+    public void heartbeat() {
+        for (SseEmitter emitter : this.emitters) {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (Throwable failure) {
+                long failures = this.sendFailureCount.incrementAndGet();
+                if (failures == 1 || failures % 100 == 0) {
+                    LOGGER.debug("SSE log heartbeat failed; failures={}", failures, failure);
+                }
+                this.emitters.remove(emitter);
+                safeComplete(emitter);
+            }
+        }
+    }
+
+    protected SseEmitter createEmitter() {
+        return new SseEmitter(EMITTER_TIMEOUT_MS);
     }
 
     private static void safeComplete(SseEmitter emitter) {
