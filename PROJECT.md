@@ -30,6 +30,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 24: TDSR social situation change events
 - [x] Milestone 25: TDSR social context sensitivity seed agent
 - [x] Milestone 26: TDSR Schere-Stein-Papier core game and motion contract
+- [x] Milestone 27: TDSR RPS web behaviour and manual sensing client
 
 ## Milestone 1
 ### Date
@@ -1177,3 +1178,57 @@ Implement TDSR Milestone 4 by adding deterministic Schere-Stein-Papier game logi
 1. Implement TDSR Milestone 5: RPS web behaviour and manual sensing client.
 2. Add browser rendering for `motion.handSign` and manual buttons that emit normalized `obs.hand.sign`.
 3. Add client-side hand-sign detection after the manual RPS event path is stable.
+
+## Milestone 27
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 5 by adding a browser-only Schere-Stein-Papier client that renders GIGI's motion sign and lets the user submit manual hand-sign observations.
+
+### What changed
+- Added the RPS static client:
+  - `src/main/resources/public/rps/index.html`
+  - `src/main/resources/public/rps/script.js`
+- Added `/rps` and `/rps/` redirects to the static RPS client while preserving query parameters.
+- The RPS client:
+  - loads agent metadata and event history
+  - subscribes to behaviour SSE with cursor-based reconnect
+  - renders `BehaviourPlan.speech`, `display` game state, and top-level `motion.handSign`
+  - submits manual `obs.hand.sign` events for `rock`, `scissor`, and `paper`
+  - handles acknowledge-time `responseEvent` payloads from state transitions
+- Added static client contract coverage:
+  - `RpsClientStaticResourceContractTest`
+- Extended redirect coverage in:
+  - `StaticRedirectControllerWebMvcTest`
+- Updated README client documentation and `.agents/TDSR.md`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run the seed class manually:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open the RPS client:
+   - `http://localhost:8080/rps/?agentId=<uuid>`
+5. Use `Start`, `Bereit`, one of `Schere` / `Stein` / `Papier`, and `Noch einmal` or `Beenden` to drive the game.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=StaticRedirectControllerWebMvcTest,RpsClientStaticResourceContractTest,RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+- Local HTTP smoke against the running Spring Boot app:
+  - `http://localhost:8080/rps/?agentId=11111111-1111-1111-1111-111111111111`
+  - verified `200 OK` after redirect and presence of the RPS script, manual rock button, agent sign label, and user sign label.
+
+### Known issues and decisions
+- The RPS client intentionally uses manual buttons only. Camera-based hand-sign detection remains TDSR Milestone 6.
+- Manual sign observations use the same normalized `obs.hand.sign` contract the later detector must emit.
+- The client renders the existing top-level `motion` modality and does not introduce a new behaviour modality.
+- The in-app browser target was unavailable in this session, so browser interaction was not executed. Local HTTP smoke and static client contract tests covered the client surface that can be verified without a browser.
+- End-to-end game play still requires seeding a real `RockScissorPaper` agent.
+- The targeted Maven run passed, but Surefire printed its existing fork-shutdown warning after the Spring SSE replay test closed; surefire reports show zero failures and zero errors.
+
+### Next steps
+1. Implement TDSR Milestone 6: client-side hand-sign detection with manual fallback retained.
+2. Add browser/manual verification instructions for camera confidence thresholds.
+3. Consider a seeded demo shortcut once the RPS client-side detector is stable.

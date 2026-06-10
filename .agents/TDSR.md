@@ -589,6 +589,8 @@ Primary risks:
 
 ### TDSR Milestone 5: RPS Web Behaviour and Manual Sensing Client
 
+Status: Implemented in PROJECT.md Milestone 27.
+
 Goal:
 
 Add a browser-only demo client for RPS that renders GIGI's motion sign and lets
@@ -599,9 +601,9 @@ Deliverables:
 - static client under `src/main/resources/public/rps`
 - redirect route for `/rps`
 - behaviour SSE rendering for `motion.handSign`
-- manual buttons emitting `obs.hand.sign`
-- route/controller tests
-- browser-level smoke check if practical
+- manual buttons emitting normalized `obs.hand.sign` events
+- route/controller tests and static client contract tests
+- local HTTP/static smoke check; browser-level interaction check when a browser target is available
 - README and PROJECT updates
 
 Primary risks:
