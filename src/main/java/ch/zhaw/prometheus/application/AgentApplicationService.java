@@ -37,6 +37,7 @@ import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.social.SocialSituationChangeDetector;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -49,6 +50,7 @@ public class AgentApplicationService {
     private final AgentBehaviourBroadcaster behaviourBroadcaster;
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
+    private final SocialSituationChangeDetector socialSituationChangeDetector;
 
     public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
             AgentBehaviourBroadcaster behaviourBroadcaster,
@@ -58,6 +60,7 @@ public class AgentApplicationService {
         this.behaviourBroadcaster = behaviourBroadcaster;
         this.promptMessageAssembler = promptMessageAssembler;
         this.languageModelGateway = languageModelGateway;
+        this.socialSituationChangeDetector = SocialSituationChangeDetector.defaultThresholds();
     }
 
     public List<AgentInfoView> listAgents() {
@@ -165,13 +168,16 @@ public class AgentApplicationService {
         Agent agent = agentMaybe.get();
         OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        Event response = agent.acknowledge(event, this.runtime(resolvedProfile));
+        PolicyRuntime runtime = this.runtime(resolvedProfile);
+        Event response = agent.acknowledge(event, runtime);
+        Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
+        Event responseToReturn = computedResponse == null ? response : computedResponse;
         if (resolvedProfile == OutputProfile.BACKEND_COMPLEMENT) {
-            this.applyOmittedModalities(response, List.of("speech"));
+            this.applyOmittedModalities(responseToReturn, List.of("speech"));
         }
         Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return Optional.of(new ResponseView(response, agent.isActive()));
+        this.publishBehaviour(saved, responseToReturn);
+        return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
     }
 
     public Optional<ResponseView> reset(UUID agentID) {
@@ -277,6 +283,18 @@ public class AgentApplicationService {
             break;
         }
         safePublishBehaviour(agent.getId(), eventToPublish);
+    }
+
+    private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {
+        if (agent == null || sourceEvent == null || runtime == null) {
+            return null;
+        }
+        if (!Event.TYPE_SOCIAL_GROUPING.equals(sourceEvent.getType())) {
+            return null;
+        }
+        return this.socialSituationChangeDetector.detect(agent.getEventHistory())
+                .map(change -> agent.acknowledge(change, runtime))
+                .orElse(null);
     }
 
     private void safePublishMonitor(Agent agent) {

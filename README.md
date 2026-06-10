@@ -240,6 +240,20 @@ Assistant behaviour plan events use:
 - `kind`: `response`
 - `payload`: JSON string of a `BehaviourPlan`
 
+Visual social observations use raw event types:
+
+- `obs.human.presence`
+- `obs.social.grouping`
+
+When `obs.social.grouping` is acknowledged, PROMETHEUS may persist a computed
+social event:
+
+- `type`: `obs.social.situation_change`
+- `actor`: `system`
+- `kind`: `observation`
+- `payload.changeType`: `arrival`, `departure`, `crowd_detected`,
+  `now_alone`, `single_person_nearby`, or `group_size_changed`
+
 Notes:
 - `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).
 - `/{agentID}/behaviour/generate` can be called in final states; final-state prompts may still produce behaviour while `active=false`.

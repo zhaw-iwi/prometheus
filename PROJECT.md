@@ -987,3 +987,57 @@ Implement TDSR Milestone 1 by adding a new German GIGI seed agent that demonstra
 1. Implement deterministic `obs.social.situation_change` computation and unit tests.
 2. Add the TDSR social context sensitivity seed agent and replay coverage.
 3. Implement Schere-Stein-Papier core game logic and motion payload contract.
+
+## Milestone 24
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 2 by adding deterministic computed social situation change events from visual social grouping observations.
+
+### What changed
+- Added event constant:
+  - `Event.TYPE_SOCIAL_SITUATION_CHANGE = "obs.social.situation_change"`
+- Added pure detector:
+  - `src/main/java/ch/zhaw/prometheus/model/social/SocialSituationChangeDetector.java`
+- The detector converts raw `obs.social.grouping` history into reusable computed events with change types:
+  - `arrival`
+  - `departure`
+  - `crowd_detected`
+  - `now_alone`
+  - `single_person_nearby`
+  - `group_size_changed`
+- Integrated social situation change detection into `AgentApplicationService.acknowledge(...)`:
+  - raw `obs.social.grouping` is acknowledged first
+  - the computed `obs.social.situation_change` event is then acknowledged through the normal agent path
+  - both raw and computed events are persisted in event history before the service saves/publishes monitor state
+- The detector uses the agreed default crowd threshold of `humanCount >= 3`.
+- The detector suppresses duplicate computed events for repeated unchanged social grouping states.
+- The detector forwards latest `obs.human.presence` confidence when available.
+- Added tests:
+  - `SocialSituationChangeDetectorUnitTest`
+  - `AgentApplicationServiceSocialSituationChangeUnitTest`
+- Updated README event documentation.
+- Updated `.agents/TDSR.md` to mark TDSR Milestone 2 as implemented.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open the visual social client:
+   - `http://localhost:8080/visual/social/?agentId=<uuid>`
+3. Enable event emission. Raw social grouping observations may now produce computed `obs.social.situation_change` events in the agent event history.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=SocialSituationChangeDetectorUnitTest,AgentApplicationServiceSocialSituationChangeUnitTest" test`
+
+### Known issues and decisions
+- Computed social situation changes are triggered from `obs.social.grouping`, not from every `obs.human.presence` event, to avoid duplicate reactions from the social client's paired raw emissions.
+- `crowd_detected` has priority over generic `arrival` when a grouping observation reaches the crowd threshold.
+- This milestone adds backend event computation only. No seed agent reacts to `obs.social.situation_change` yet.
+- Duplicate suppression is state-change based, not wall-clock based; explicit time-based cooldown policy can be added if needed by the social context seed agent.
+
+### Next steps
+1. Add the TDSR social context sensitivity seed agent that reacts to `obs.social.situation_change`.
+2. Add scripted REST+SSE replay coverage for arrival, crowd, departure, conversation, and explicit exit.
+3. Add clearer prompt content adaptation for `obs.social.situation_change` if the replay shows raw JSON is too noisy for prompts.

@@ -485,6 +485,10 @@ Primary risks:
 
 ### TDSR Milestone 2: Social Situation Change Events
 
+Status:
+
+Implemented in PROJECT Milestone 24.
+
 Goal:
 
 Add deterministic computed social situation events from raw visual social
@@ -493,10 +497,15 @@ observations.
 Deliverables:
 
 - event constant for `obs.social.situation_change`
-- pure social situation change detector
-- application/runtime integration that persists computed events
-- unit tests for arrival, departure, crowd, no duplicate cooldown, malformed
-  payloads
+- pure social situation change detector:
+  `src/main/java/ch/zhaw/prometheus/model/social/SocialSituationChangeDetector.java`
+- application/runtime integration that persists computed events from
+  `obs.social.grouping` via the normal acknowledge path
+- unit tests for arrival, departure, crowd, duplicate suppression, malformed
+  payloads, initial alone/single-person states, group-size changes, and
+  confidence forwarding
+- service tests proving computed events are recorded for social grouping input
+  and not recorded for unrelated user utterances
 - README and PROJECT updates
 
 Primary risks:
