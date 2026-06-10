@@ -9,6 +9,8 @@ import ch.zhaw.prometheus.model.event.Event;
 class PromptEventContentAdapterUnitTest {
     private final FaceEmotionPromptEventContentAdapter faceEmotionAdapter = new FaceEmotionPromptEventContentAdapter();
     private final BehaviourPlanPromptEventContentAdapter behaviourPlanAdapter = new BehaviourPlanPromptEventContentAdapter();
+    private final SocialSituationChangePromptEventContentAdapter socialChangeAdapter =
+            new SocialSituationChangePromptEventContentAdapter();
 
     @Test
     void mapsFaceEmotionWithConfidence() {
@@ -51,6 +53,25 @@ class PromptEventContentAdapterUnitTest {
         assertEquals("payload-speech", behaviourPlanAdapter.toPromptContent(validPlan));
         assertEquals("", behaviourPlanAdapter.toPromptContent(omittedSpeechPlan));
         assertEquals("", behaviourPlanAdapter.toPromptContent(invalidPlan));
+    }
+
+    @Test
+    void mapsSocialSituationChangeToReadablePromptContent() {
+        Event change = Event.observation(Event.TYPE_SOCIAL_SITUATION_CHANGE, Event.ACTOR_SYSTEM,
+                "{\"changeType\":\"arrival\",\"previousHumanCount\":0,\"currentHumanCount\":1,"
+                        + "\"currentLargestGroupSize\":1,\"confidence\":0.83,"
+                        + "\"reason\":\"human count increased from 0 to 1\"}");
+
+        assertEquals(
+                "Social situation change: arrival (humans 0 -> 1, largest group 1, confidence 0.83). Reason: human count increased from 0 to 1",
+                this.socialChangeAdapter.toPromptContent(change));
+    }
+
+    @Test
+    void mapsInvalidSocialSituationChangeConservatively() {
+        Event change = Event.observation(Event.TYPE_SOCIAL_SITUATION_CHANGE, Event.ACTOR_SYSTEM, "{invalid-json");
+
+        assertEquals("Social situation changed.", this.socialChangeAdapter.toPromptContent(change));
     }
 }
 

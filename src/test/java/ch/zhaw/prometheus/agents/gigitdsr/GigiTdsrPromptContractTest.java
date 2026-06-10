@@ -64,15 +64,46 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void socialContextAgentDefinesGermanGigiSocialEventContract() {
+        Agent agent = SocialContextSensitivity.createAgentDefinition();
+
+        assertTrue(agent.getName().contains("GIGI TDSR"));
+        assertTrue(agent.getDescription().contains("soziale Kontextwechsel"));
+
+        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("Du bist GIGI"));
+        assertTrue(prompt.contains("Antworte immer auf Deutsch"));
+        assertTrue(prompt.contains("obs.social.situation_change"));
+        assertTrue(prompt.contains("arrival ->"));
+        assertTrue(prompt.contains("crowd_detected ->"));
+        assertTrue(prompt.contains("Normale Unterhaltung"));
+        assertTrue(prompt.contains("Die Interaktion endet nur"));
+    }
+
+    @Test
+    void socialContextExitDecisionRequiresExplicitStopIntent() {
+        String prompt = SocialContextSensitivity.PROMPT_TO_FINAL;
+
+        assertTrue(prompt.contains("hoher Sicherheit"));
+        assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
+        assertTrue(prompt.contains("soziale Beobachtungen"));
+        assertFalse(prompt.contains("arrival"),
+                "Social change events must not be listed as final-state triggers");
+    }
+
+    @Test
     void promptsFitPersistedColumns() throws IllegalAccessException {
-        for (Field field : GuessingGameWithGestures.class.getDeclaredFields()) {
-            if (!field.getName().startsWith("PROMPT_")) {
-                continue;
+        for (Class<?> seedClass : List.of(GuessingGameWithGestures.class, SocialContextSensitivity.class)) {
+            for (Field field : seedClass.getDeclaredFields()) {
+                if (!field.getName().startsWith("PROMPT_")) {
+                    continue;
+                }
+                field.setAccessible(true);
+                String prompt = (String) field.get(null);
+                assertTrue(prompt.length() <= MAX_PERSISTED_PROMPT_LENGTH,
+                        seedClass.getSimpleName() + "." + field.getName()
+                                + " must fit the persisted prompt column");
             }
-            field.setAccessible(true);
-            String prompt = (String) field.get(null);
-            assertTrue(prompt.length() <= MAX_PERSISTED_PROMPT_LENGTH,
-                    field.getName() + " must fit the persisted prompt column");
         }
     }
 

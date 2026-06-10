@@ -17,6 +17,7 @@ public class PromptMessageAssembler {
         this(List.of(
                 new BehaviourPlanPromptEventContentAdapter(),
                 new FaceEmotionPromptEventContentAdapter(),
+                new SocialSituationChangePromptEventContentAdapter(),
                 new DefaultPayloadPromptEventContentAdapter()),
                 List.of(new NonverbalSummaryPromptContextAugmenter()));
     }

@@ -515,6 +515,10 @@ Primary risks:
 
 ### TDSR Milestone 3: Social Context Sensitivity Seed Agent
 
+Status:
+
+Implemented in PROJECT Milestone 25.
+
 Goal:
 
 Create the German GIGI social context agent that reacts to computed social
@@ -522,9 +526,17 @@ events and still supports ordinary conversation.
 
 Deliverables:
 
-- `SocialContextSensitivity` seed agent
-- replay script covering arrival, crowd, departure, conversation, and exit
-- prompt/event adapter updates if computed events need clearer prompt text
+- `SocialContextSensitivity` seed agent:
+  `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java`
+- reusable deterministic latest-event-type transition decision:
+  `src/main/java/ch/zhaw/prometheus/model/commons/decisions/LatestEventTypeDecision.java`
+- readable prompt adapter for computed social events:
+  `src/main/java/ch/zhaw/prometheus/model/policy/SocialSituationChangePromptEventContentAdapter.java`
+- replay script covering no-one, arrival, crowd, departure, conversation, and exit:
+  `src/test/resources/scripts/gigi-tdsr-social-context-sensitivity-replay-script.json`
+- deterministic final-transition guard so only user utterances can trigger the
+  prompt-based stop-intent decision
+- prompt contract, decision, adapter, and REST+SSE replay tests
 - README and PROJECT updates
 
 Primary risks:

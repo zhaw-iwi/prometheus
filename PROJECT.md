@@ -25,6 +25,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 19: Re-scope multimodal In/Out demos (In as micro-coaching, Out with deterministic multi-channel nonverbal policy)
 - [x] Milestone 20: Stabilize elderly-care seed agents and align omitted-modality history/SSE semantics
 - [x] Milestone 21: Production-grade SSE lifecycle foundation with heartbeats, cursors, and replay
+- [x] Milestone 22: GIGI TDSR demonstrator roadmap
+- [x] Milestone 23: TDSR talking-with-gestures seed agent
+- [x] Milestone 24: TDSR social situation change events
+- [x] Milestone 25: TDSR social context sensitivity seed agent
 
 ## Milestone 1
 ### Date
@@ -1041,3 +1045,62 @@ Implement TDSR Milestone 2 by adding deterministic computed social situation cha
 1. Add the TDSR social context sensitivity seed agent that reacts to `obs.social.situation_change`.
 2. Add scripted REST+SSE replay coverage for arrival, crowd, departure, conversation, and explicit exit.
 3. Add clearer prompt content adaptation for `obs.social.situation_change` if the replay shows raw JSON is too noisy for prompts.
+
+## Milestone 25
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 3 by adding a German GIGI seed agent that reacts to computed social situation changes while still supporting ordinary conversation.
+
+### What changed
+- Added TDSR seed agent:
+  - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java`
+- The agent uses a single active state plus a final state:
+  - reacts to `obs.social.situation_change` events through a self-transition
+  - handles normal German conversation in the same state
+  - transitions to final only when the user explicitly wants to end the conversation
+- Added reusable deterministic transition helper:
+  - `src/main/java/ch/zhaw/prometheus/model/commons/decisions/LatestEventTypeDecision.java`
+- Added prompt adapter for readable computed social-event context:
+  - `src/main/java/ch/zhaw/prometheus/model/policy/SocialSituationChangePromptEventContentAdapter.java`
+- Wired the new adapter into `PromptMessageAssembler`.
+- Added fixture wiring:
+  - `AgentFixtures.gigiTdsrSocialContextSensitivity()`
+- Added deterministic replay fixture:
+  - `src/test/resources/scripts/gigi-tdsr-social-context-sensitivity-replay-script.json`
+- Added tests:
+  - `LatestEventTypeDecisionUnitTest`
+  - `PromptEventContentAdapterUnitTest`
+  - `GigiTdsrPromptContractTest`
+  - `GigiTdsrSocialContextSensitivityReplayIntegrationTest`
+- Updated README seed-agent list.
+- Updated `.agents/TDSR.md` to mark TDSR Milestone 3 as implemented.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run the seed class manually:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Use the text client with the visual social client:
+   - `http://localhost:8080/?agentId=<uuid>`
+   - `http://localhost:8080/visual/social/?agentId=<uuid>`
+5. Enable social event emission in the visual social client. Raw social grouping observations may produce computed `obs.social.situation_change` events, which the agent can react to without a user utterance.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=LatestEventTypeDecisionUnitTest,PromptEventContentAdapterUnitTest,GigiTdsrPromptContractTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest" test`
+
+### Known issues and decisions
+- The agent reacts to computed `obs.social.situation_change` events produced from raw `obs.social.grouping`; it does not consume camera frames directly.
+- The active state self-transition keeps the agent available for both proactive social reactions and ordinary user conversation.
+- The prompt-based final transition is guarded by the latest event being `obs.user_utterance`, so visual social events cannot ask the LLM to end the interaction.
+- Duplicate steady-state suppression remains owned by the Milestone 24 detector. This milestone does not add a separate wall-clock cooldown.
+- The visual social client emits perception events only. Use the text, monitor, or nonverbal clients to observe generated agent behaviour.
+- The targeted Maven run passed, but Surefire printed its existing fork-shutdown warning after the Spring SSE replay test closed; surefire reports show zero failures and zero errors.
+
+### Next steps
+1. Implement TDSR Milestone 4: Schere-Stein-Papier core game logic and motion payload contract.
+2. Add the RPS web behaviour/manual sensing client.
+3. Add client-side hand-sign detection for RPS once the manual event path is stable.
