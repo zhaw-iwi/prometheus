@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,12 +22,14 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -65,6 +69,38 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
         assertNull(updated.getSpeech());
         assertNotNull(updated.getNonVerbal());
         assertEquals("EXPLAIN", updated.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+    }
+
+    @Test
+    void generatePersistsOmittedModalitiesInRecordedHistoryAndPublishesThatEvent() {
+        UUID agentId = UUID.fromString("99999999-9999-9999-9999-999999999999");
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        PromptPolicy policy = new PromptPolicy("Respond naturally.", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        State state = new State("conversation", policy, List.of());
+        Agent agent = new Agent("agent", "desc", state);
+
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+        when(repository.save(agent)).thenReturn(agent);
+        when(languageModelGateway.complete(any())).thenReturn("hello");
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster,
+                assembler, languageModelGateway);
+
+        BehaviourGenerationOutcome outcome = service.generate(agentId, List.of("speech"), OutputProfile.FULL_PLAN);
+
+        assertSame(BehaviourGenerationOutcome.GENERATED, outcome);
+        List<Event> recordedEvents = agent.getEventHistory().toList();
+        assertEquals(1, recordedEvents.size());
+        Event recorded = recordedEvents.get(0);
+        BehaviourPlan recordedPlan = BehaviourPlan.fromJson(recorded.getPayload());
+        assertNotNull(recordedPlan);
+        assertNull(recordedPlan.getSpeech());
+        verify(behaviourBroadcaster).publish(isNull(), same(recorded));
     }
 
     @Test

@@ -45,11 +45,12 @@ public class EventHistory {
         return selected;
     }
 
-    public void appendEvent(Event event) {
+    public Event appendEvent(Event event) {
         Event copy = new Event(event.getType(), event.getActor(), event.getKind(), event.getPayload());
         copy.setStatePath(event.getStatePath());
         copy.setEventHistory(this);
         this.eventList.add(copy);
+        return copy;
     }
 
     public Event removeLast(EventSelector selector) {

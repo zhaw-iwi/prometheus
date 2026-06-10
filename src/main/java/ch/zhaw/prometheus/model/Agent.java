@@ -133,8 +133,7 @@ public class Agent {
     public Event start(PolicyRuntime runtime) {
         try {
             Event response = this.currentState.start(runtime);
-            this.recordEvent(response);
-            return response;
+            return this.recordEvent(response);
         } catch (ContenFilterException e) {
             throw e;
         }
@@ -153,8 +152,7 @@ public class Agent {
             return null;
         }
         Event response = this.currentState.generate(runtime);
-        this.recordEvent(response);
-        return response;
+        return this.recordEvent(response);
     }
 
     public Event acknowledge(Event event, PolicyRuntime runtime) {
@@ -169,14 +167,12 @@ public class Agent {
                 this.recordEvent(event);
             }
             Event response = this.currentState.acknowledge(event, runtime);
-            this.recordEvent(response);
-            return response;
+            return this.recordEvent(response);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 Event response = this.currentState.start(runtime);
-                this.recordEvent(response);
-                return response;
+                return this.recordEvent(response);
             }
             this.currentState.enter();
             return this.acknowledgeWithoutRegulation(event, false, runtime);
@@ -348,12 +344,12 @@ public class Agent {
         return type != null && type.startsWith("int.");
     }
 
-    private void recordEvent(Event event) {
+    private Event recordEvent(Event event) {
         if (event == null || this.eventHistory == null || this.currentState == null) {
-            return;
+            return null;
         }
         event.setStatePath(this.currentState.getActiveStatePath());
-        this.eventHistory.appendEvent(event);
+        return this.eventHistory.appendEvent(event);
     }
 
     private RegulationSystem resolveRegulationSystemFromSpec() {

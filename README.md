@@ -139,6 +139,10 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/SingleStateGuessingGame.java` - Single-state guessing game with guided prompt flow.
 - `src/test/java/ch/zhaw/prometheus/agents/SingleStateMicroCoaching.java` - Single-state supportive micro-coaching agent.
 - `src/test/java/ch/zhaw/prometheus/agents/SingleStateCoCreation.java` - Single-state collaborative co-creation conversation.
+- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateTherapyAppointmentReminder.java` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
+- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGame.java` - GIGI elderly-care guessing game where GIGI gives clues.
+- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGameUserGuess.java` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
+- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateSmartGoalCoaching.java` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java` - Four-state linear progression with explicit stage transitions.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java` - Four-state circular loop for iterative dialogue cycles.
 - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java` - Single-state micro-coaching with multimodal sensing inputs.

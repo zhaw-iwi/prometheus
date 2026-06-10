@@ -23,6 +23,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 17: Add scripted REST+SSE integration replays for all three single-state Gigi agents
 - [x] Milestone 18: Structured nonverbal plan generation and richer multimodal seed-agent output
 - [x] Milestone 19: Re-scope multimodal In/Out demos (In as micro-coaching, Out with deterministic multi-channel nonverbal policy)
+- [x] Milestone 20: Stabilize elderly-care seed agents and align omitted-modality history/SSE semantics
 
 ## Milestone 1
 ### Date
@@ -799,3 +800,47 @@ Adapt the two single-state multimodal demo seed agents to match demo intent: mak
 1. Decide whether to expand nonverbal client gesture token mapping if additional gesture emojis are required beyond current canonical gesture set.
 2. Add scripted integration replay assertions that verify `SingleStateMultimodalOut` emits populated non-gesture nonverbal fields.
 3. Resolve local DB schema drift before relying on these seed tests for pass/fail gating.
+
+## Milestone 20
+### Date
+2026-06-10
+
+### Goal
+Stabilize the current implementation before expanding the framework by adopting the new GIGI elderly-care seed agents into PROMETHEUS and removing the event-history/SSE divergence for omitted behaviour modalities.
+
+### What changed
+- Added and migrated the elderly-care seed-agent package under:
+  - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare`
+- Adapted the former PROMISE-shaped seed classes to PROMETHEUS runtime APIs:
+  - prompt text is persisted through `PromptPolicy`
+  - seed startup uses `PolicyRuntime`, `PromptMessageAssembler`, and `LanguageModelGateway`
+  - final states use shared event-history selection instead of predecessor-framework utterance-transfer actions
+  - prompt contract checks now assert PROMETHEUS persistence fields
+- Changed `PromptPolicy` prompt columns to `TEXT` so shared elderly-care role and persuasion prompts fit without oversized `VARCHAR` rows.
+- Fixed omitted-modality consistency:
+  - `EventHistory.appendEvent(...)` now returns the stored event copy
+  - `Agent.start(...)`, `generate(...)`, and acknowledge transition responses return the recorded event instance
+  - service-level modality omission now mutates the same event seen through persisted history and behaviour SSE
+- Added regression coverage proving generated behaviour with omitted speech is stored and published as the same recorded event.
+- Updated README seed-template documentation to list the elderly-care agents.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run one of the elderly-care seed classes manually from:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q test-compile`
+  - `.\mvnw.cmd -q "-Dtest=PflegezentrumDemoPromptContractTest,AgentApplicationServiceGenerateOptionsUnitTest" test`
+  - `.\mvnw.cmd -q clean test`
+
+### Known issues and decisions
+- The elderly-care agents are seed/test templates, not dedicated creation endpoints.
+- The migrated prompt text still contains the existing source encoding artifacts; this milestone kept prompt content behaviorally stable.
+- The `TEXT` column change is compatible with generated test schemas, but persistent local databases may need schema migration or recreation.
+
+### Next steps
+1. Add deterministic REST+SSE replay scripts for the four elderly-care seed agents.
+2. Clean up prompt source encoding once there is replay coverage to protect behavior.
+3. Consider extracting shared GIGI elderly-care prompt fragments after the adopted agents have stabilized in PROMETHEUS.

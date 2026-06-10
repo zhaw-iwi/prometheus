@@ -58,15 +58,15 @@ public class PromptPolicy extends Policy {
             Keep values concise and plausible for the provided speech.
             """;
 
-    @Column(length = 3000)
+    @Column(columnDefinition = "TEXT")
     private String promptTemplate;
-    @Column(length = 3000)
+    @Column(columnDefinition = "TEXT")
     private String starterPrompt;
-    @Column(length = 3000)
+    @Column(columnDefinition = "TEXT")
     private String summarisePrompt;
-    @Column(length = 3000)
+    @Column(columnDefinition = "TEXT")
     private String nonVerbalGesturePrompt;
-    @Column(length = 3000)
+    @Column(columnDefinition = "TEXT")
     private String nonVerbalPlanPrompt;
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
