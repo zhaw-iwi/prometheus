@@ -145,6 +145,7 @@ Templates:
 - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateSmartGoalCoaching.java` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
 - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
 - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
+- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual `obs.hand.sign` input.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java` - Four-state linear progression with explicit stage transitions.
 - `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java` - Four-state circular loop for iterative dialogue cycles.
 - `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java` - Single-state micro-coaching with multimodal sensing inputs.
@@ -254,6 +255,29 @@ social event:
 - `kind`: `observation`
 - `payload.changeType`: `arrival`, `departure`, `crowd_detected`,
   `now_alone`, `single_person_nearby`, or `group_size_changed`
+
+Schere-Stein-Papier hand-sign observations use:
+
+- `type`: `obs.hand.sign`
+- `actor`: `user`
+- `kind`: `observation`
+- `payload.sign`: `rock`, `scissor`, or `paper`
+- optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
+
+Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
+
+```json
+{
+  "effector": "right_hand",
+  "armPose": "present_forward",
+  "handSign": "rock",
+  "timing": {
+    "synchronizeWithSpeech": "Schere, Stein, Papier",
+    "revealAt": "phrase_end"
+  },
+  "confidence": 1.0
+}
+```
 
 Notes:
 - `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).

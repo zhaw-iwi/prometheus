@@ -29,6 +29,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 23: TDSR talking-with-gestures seed agent
 - [x] Milestone 24: TDSR social situation change events
 - [x] Milestone 25: TDSR social context sensitivity seed agent
+- [x] Milestone 26: TDSR Schere-Stein-Papier core game and motion contract
 
 ## Milestone 1
 ### Date
@@ -1104,3 +1105,75 @@ Implement TDSR Milestone 3 by adding a German GIGI seed agent that reacts to com
 1. Implement TDSR Milestone 4: Schere-Stein-Papier core game logic and motion payload contract.
 2. Add the RPS web behaviour/manual sensing client.
 3. Add client-side hand-sign detection for RPS once the manual event path is stable.
+
+## Milestone 26
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 4 by adding deterministic Schere-Stein-Papier game logic and a top-level `motion.handSign` behaviour contract without adding the browser RPS client yet.
+
+### What changed
+- Added event constant:
+  - `Event.TYPE_HAND_SIGN = "obs.hand.sign"`
+- Added RPS core domain helpers under:
+  - `src/main/java/ch/zhaw/prometheus/model/rps`
+- The RPS helpers provide:
+  - canonical signs: `rock`, `scissor`, `paper`
+  - deterministic sign selection cycle: `rock`, `scissor`, `paper`
+  - deterministic winner calculation for all sign combinations
+  - clear invalid-sign errors
+- Added deterministic RPS actions:
+  - `RpsSelectAgentSignAction`
+  - `RpsEvaluateRoundAction`
+- Added deterministic RPS behaviour policies:
+  - `RpsRevealPolicy` emits speech `Schere, Stein, Papier` plus top-level `motion.handSign`
+  - `RpsResultPolicy` emits the round winner and a compact game-status display payload
+- Added TDSR seed agent:
+  - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+- The seed agent uses explicit states:
+  - `GIGI TDSR RPS Spielstart`
+  - `GIGI TDSR RPS Zeichen zeigen`
+  - `GIGI TDSR RPS Rundenergebnis`
+  - `GIGI TDSR RPS Abschluss`
+- Added fixture wiring:
+  - `AgentFixtures.gigiTdsrRockScissorPaper()`
+- Added deterministic replay fixture:
+  - `src/test/resources/scripts/gigi-tdsr-rock-scissor-paper-replay-script.json`
+- Extended the test replay expectation shape to support `motion` and `display` assertions.
+- Added tests:
+  - `RpsRulesUnitTest`
+  - `DeterministicRpsSignSelectorUnitTest`
+  - `GigiTdsrPromptContractTest`
+  - `GigiTdsrRockScissorPaperReplayIntegrationTest`
+- Updated README seed-agent and event/behaviour contract documentation.
+- Updated `.agents/TDSR.md` to mark TDSR Milestone 4 as implemented.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run the seed class manually:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Use the text client for readiness/play-again/exit utterances:
+   - `http://localhost:8080/?agentId=<uuid>`
+5. Until the RPS web client exists, send manual normalized hand-sign observations through `/acknowledge`:
+   - `type`: `obs.hand.sign`
+   - `payload.sign`: `rock`, `scissor`, or `paper`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,GigiTdsrPromptContractTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone intentionally adds no RPS web client. The replay uses manually supplied `obs.hand.sign` events.
+- GIGI's sign selection is deterministic, not random, so scripted replay and regression tests remain stable.
+- Winner calculation and round storage are deterministic actions, not prompt outputs.
+- `RpsRevealPolicy` is the first seed-specific deterministic policy that emits top-level `motion` directly; this preserves the existing `BehaviourPlan` modality model instead of adding a new behaviour modality.
+- `rps_rounds` is stored in the existing `StorageEntry` value column and is suitable for short demo sessions; very long sessions may need a larger or normalized persistence shape later.
+- The targeted Maven run passed, but Surefire printed its existing fork-shutdown warning after the Spring SSE replay test closed; surefire reports show zero failures and zero errors.
+
+### Next steps
+1. Implement TDSR Milestone 5: RPS web behaviour and manual sensing client.
+2. Add browser rendering for `motion.handSign` and manual buttons that emit normalized `obs.hand.sign`.
+3. Add client-side hand-sign detection after the manual RPS event path is stable.

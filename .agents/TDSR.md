@@ -548,6 +548,10 @@ Primary risks:
 
 ### TDSR Milestone 4: RPS Core Game and Motion Contract
 
+Status:
+
+Implemented in PROJECT Milestone 26.
+
 Goal:
 
 Implement Schere-Stein-Papier game logic and behaviour output without camera
@@ -555,13 +559,25 @@ sensing first.
 
 Deliverables:
 
-- `RockScissorPaper` seed agent
-- deterministic sign selection helper
-- winner calculation helper
-- `obs.hand.sign` event contract
-- `motion.handSign` payload contract
+- `RockScissorPaper` seed agent:
+  `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+- deterministic sign selection helper:
+  `src/main/java/ch/zhaw/prometheus/model/rps/DeterministicRpsSignSelector.java`
+- winner calculation helper and sign normalization:
+  `src/main/java/ch/zhaw/prometheus/model/rps/RpsRules.java`
+  `src/main/java/ch/zhaw/prometheus/model/rps/RpsSign.java`
+- event constant for `obs.hand.sign`
+- deterministic RPS transition actions:
+  `RpsSelectAgentSignAction`
+  `RpsEvaluateRoundAction`
+- deterministic behaviour policies:
+  `RpsRevealPolicy` emits speech `Schere, Stein, Papier` plus top-level
+  `motion.handSign`
+  `RpsResultPolicy` reports the deterministic winner
+- scripted replay using manually supplied `obs.hand.sign`:
+  `src/test/resources/scripts/gigi-tdsr-rock-scissor-paper-replay-script.json`
 - unit tests for sign selection and winner logic
-- scripted replay using manually supplied `obs.hand.sign`
+- prompt contract and REST+SSE replay tests
 - README and PROJECT updates
 
 Primary risks:

@@ -92,8 +92,38 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void rockScissorPaperDefinesGermanGigiMotionContract() {
+        Agent agent = RockScissorPaper.createAgentDefinition();
+
+        assertTrue(agent.getName().contains("GIGI TDSR"));
+        assertTrue(agent.getName().contains("Schere, Stein, Papier"));
+        assertTrue(agent.getDescription().contains("motion.handSign"));
+        assertTrue(agent.listStates().contains("GIGI TDSR RPS Zeichen zeigen"));
+        assertTrue(agent.listStates().contains("GIGI TDSR RPS Rundenergebnis"));
+
+        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("Du bist GIGI"));
+        assertTrue(prompt.contains("Antworte immer auf Deutsch"));
+        assertTrue(prompt.contains("BehaviourPlan"));
+        assertTrue(prompt.contains("deterministisch"));
+        assertTrue(prompt.contains("Die Interaktion endet nur"));
+    }
+
+    @Test
+    void rockScissorPaperPromptsKeepReadyPlayAgainAndFinalSeparated() {
+        assertTrue(RockScissorPaper.PROMPT_READY.contains("bereit"));
+        assertTrue(RockScissorPaper.PROMPT_READY.contains("Handzeichen-Events"));
+        assertTrue(RockScissorPaper.PROMPT_PLAY_AGAIN.contains("weitere Runde"));
+        assertTrue(RockScissorPaper.PROMPT_TO_FINAL.contains("das gesamte Schere-Stein-Papier-Spiel"));
+        assertTrue(RockScissorPaper.PROMPT_TO_FINAL.contains("Handzeichen-Events"));
+    }
+
+    @Test
     void promptsFitPersistedColumns() throws IllegalAccessException {
-        for (Class<?> seedClass : List.of(GuessingGameWithGestures.class, SocialContextSensitivity.class)) {
+        for (Class<?> seedClass : List.of(
+                GuessingGameWithGestures.class,
+                SocialContextSensitivity.class,
+                RockScissorPaper.class)) {
             for (Field field : seedClass.getDeclaredFields()) {
                 if (!field.getName().startsWith("PROMPT_")) {
                     continue;

@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.agents;
 
 import ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures;
+import ch.zhaw.prometheus.agents.gigitdsr.RockScissorPaper;
 import ch.zhaw.prometheus.agents.gigitdsr.SocialContextSensitivity;
 import ch.zhaw.prometheus.model.Agent;
 
@@ -35,5 +36,8 @@ public final class AgentFixtures {
     public static Agent gigiTdsrSocialContextSensitivity() {
         return SocialContextSensitivity.createAgentDefinition();
     }
-}
 
+    public static Agent gigiTdsrRockScissorPaper() {
+        return RockScissorPaper.createAgentDefinition();
+    }
+}

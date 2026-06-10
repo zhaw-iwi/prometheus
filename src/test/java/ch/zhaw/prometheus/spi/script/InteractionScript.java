@@ -119,6 +119,8 @@ public class InteractionScript {
     public static class BehaviourExpectation {
         private String speech;
         private JsonElement nonVerbal;
+        private JsonElement motion;
+        private JsonElement display;
 
         public String getSpeech() {
             return this.speech;
@@ -126,6 +128,14 @@ public class InteractionScript {
 
         public JsonElement getNonVerbal() {
             return this.nonVerbal;
+        }
+
+        public JsonElement getMotion() {
+            return this.motion;
+        }
+
+        public JsonElement getDisplay() {
+            return this.display;
         }
     }
 

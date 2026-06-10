@@ -1,0 +1,217 @@
+{
+  "name": "gigi_tdsr_rock_scissor_paper_v1",
+  "steps": [
+    {
+      "id": "start-rps-agent",
+      "action": "start",
+      "expectedBehaviour": {
+        "speech": "Hallo, ich bin GIGI. Lass uns Schere, Stein, Papier spielen. Sag Bereit, wenn du deine Hand vorbereitet hast."
+      }
+    },
+    {
+      "id": "assert-start-state",
+      "action": "assertState",
+      "expectedState": "GIGI TDSR RPS Spielstart"
+    },
+    {
+      "id": "ack-ready-round-one",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Bereit."
+      },
+      "expectedBehaviour": {
+        "speech": "Schere, Stein, Papier",
+        "motion": {
+          "effector": "right_hand",
+          "armPose": "present_forward",
+          "handSign": "rock",
+          "timing": {
+            "synchronizeWithSpeech": "Schere, Stein, Papier",
+            "revealAt": "phrase_end"
+          },
+          "confidence": 1.0
+        },
+        "display": {
+          "mode": "game_status",
+          "title": "Schere, Stein, Papier",
+          "agentSign": "rock",
+          "round": 1
+        }
+      }
+    },
+    {
+      "id": "assert-reveal-state-round-one",
+      "action": "assertState",
+      "expectedState": "GIGI TDSR RPS Zeichen zeigen"
+    },
+    {
+      "id": "ack-user-scissor-round-one",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.hand.sign",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "{\"source\":\"rps.web\",\"hand\":\"right\",\"sign\":\"scissor\",\"confidence\":1.0,\"detectionMode\":\"manual\"}"
+      },
+      "expectedBehaviour": {
+        "speech": "Ich gewinne diese Runde: Stein schlaegt Schere. Moechtest du noch einmal spielen?",
+        "display": {
+          "mode": "game_status",
+          "title": "Schere, Stein, Papier",
+          "round": 1,
+          "agentSign": "rock",
+          "userSign": "scissor",
+          "winner": "agent",
+          "reason": "Stein schlaegt Schere"
+        }
+      }
+    },
+    {
+      "id": "assert-result-state-round-one",
+      "action": "assertState",
+      "expectedState": "GIGI TDSR RPS Rundenergebnis"
+    },
+    {
+      "id": "assert-round-one-storage",
+      "action": "assertStorage",
+      "expectedStorage": [
+        {
+          "key": "rps_rounds",
+          "contains": "\"agentSign\":\"rock\""
+        },
+        {
+          "key": "rps_rounds",
+          "contains": "\"userSign\":\"scissor\""
+        },
+        {
+          "key": "rps_rounds",
+          "contains": "\"winner\":\"agent\""
+        }
+      ]
+    },
+    {
+      "id": "ack-play-again",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Ja, noch eine Runde."
+      },
+      "expectedBehaviour": {
+        "speech": "Schere, Stein, Papier",
+        "motion": {
+          "effector": "right_hand",
+          "armPose": "present_forward",
+          "handSign": "scissor",
+          "timing": {
+            "synchronizeWithSpeech": "Schere, Stein, Papier",
+            "revealAt": "phrase_end"
+          },
+          "confidence": 1.0
+        },
+        "display": {
+          "mode": "game_status",
+          "title": "Schere, Stein, Papier",
+          "agentSign": "scissor",
+          "round": 2
+        }
+      }
+    },
+    {
+      "id": "ack-user-rock-round-two",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.hand.sign",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "{\"source\":\"rps.web\",\"hand\":\"right\",\"sign\":\"rock\",\"confidence\":1.0,\"detectionMode\":\"manual\"}"
+      },
+      "expectedBehaviour": {
+        "speech": "Du gewinnst diese Runde: Stein schlaegt Schere. Moechtest du noch einmal spielen?",
+        "display": {
+          "mode": "game_status",
+          "title": "Schere, Stein, Papier",
+          "round": 2,
+          "agentSign": "scissor",
+          "userSign": "rock",
+          "winner": "user",
+          "reason": "Stein schlaegt Schere"
+        }
+      }
+    },
+    {
+      "id": "assert-round-two-storage",
+      "action": "assertStorage",
+      "expectedStorage": [
+        {
+          "key": "rps_rounds",
+          "contains": "\"round\":2"
+        },
+        {
+          "key": "rps_rounds",
+          "contains": "\"agentSign\":\"scissor\""
+        },
+        {
+          "key": "rps_rounds",
+          "contains": "\"winner\":\"user\""
+        }
+      ]
+    },
+    {
+      "id": "ack-explicit-exit",
+      "action": "acknowledge",
+      "event": {
+        "type": "obs.user_utterance",
+        "actor": "user",
+        "kind": "observation",
+        "payload": "Nein, bitte beende das Spiel."
+      },
+      "expectedBehaviour": {
+        "speech": "Alles klar. Ich beende Schere, Stein, Papier. Danke fuers Mitspielen."
+      }
+    },
+    {
+      "id": "assert-final-after-exit",
+      "action": "assertState",
+      "expectedState": "GIGI TDSR RPS Abschluss"
+    }
+  ],
+  "gatewayCalls": [
+    {
+      "method": "complete",
+      "value": "Hallo, ich bin GIGI. Lass uns Schere, Stein, Papier spielen. Sag Bereit, wenn du deine Hand vorbereitet hast."
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": true
+    },
+    {
+      "method": "decide",
+      "value": false
+    },
+    {
+      "method": "decide",
+      "value": true
+    },
+    {
+      "method": "decide",
+      "value": true
+    },
+    {
+      "method": "complete",
+      "value": "Alles klar. Ich beende Schere, Stein, Papier. Danke fuers Mitspielen."
+    },
+    {
+      "method": "complete",
+      "value": "Das Spiel ist beendet. Auf Wiedersehen."
+    }
+  ]
+}
