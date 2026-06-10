@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.agents;
 
+import ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures;
 import ch.zhaw.prometheus.model.Agent;
 
 public final class AgentFixtures {
@@ -24,6 +25,10 @@ public final class AgentFixtures {
 
     public static Agent singleStateMicroCoaching() {
         return SingleStateMicroCoaching.createAgentDefinition();
+    }
+
+    public static Agent gigiTdsrGuessingGameWithGestures() {
+        return GuessingGameWithGestures.createAgentDefinition();
     }
 }
 

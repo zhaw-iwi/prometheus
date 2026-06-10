@@ -901,3 +901,89 @@ Harden the current SSE mechanism toward production-grade lifecycle behavior with
 2. Add metrics for emitter counts, send failures, heartbeats, replay counts, and dropped events.
 3. Decide on sticky sessions versus broker/outbox semantics for horizontal deployment.
 4. Add browser-level reconnect tests for cursor replay and nonverbal monitor status recovery.
+
+## Milestone 22
+### Date
+2026-06-10
+
+### Goal
+Create a detailed implementation roadmap for the GIGI TDSR demonstrator agents before adding new agents or clients.
+
+### What changed
+- Added `.agents/TDSR.md` with:
+  - locked design decisions for the TDSR demo agents
+  - detailed descriptions for social context sensitivity, talking with gestures, and Schere-Stein-Papier
+  - proposed event and behaviour payload contracts
+  - proposed package and client locations
+  - a staged roadmap with milestone deliverables, tests, and risks
+- Recorded the decision that all new demo seed agents should live under:
+  - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr`
+- Recorded the decision that all new demo agents use GIGI and German language.
+
+### How to run
+- No runtime behavior changed in this planning milestone.
+
+### How to test
+- Documentation-only change; no automated tests required.
+
+### Known issues and decisions
+- The roadmap proposes `obs.social.situation_change`, `obs.hand.sign`, and `motion.handSign` contracts, but they are not implemented yet.
+- The roadmap recommends implementing the gesture guessing-game agent first, then social computed events and social context agent, then Schere-Stein-Papier core/game client/sensing milestones.
+
+### Next steps
+1. Implement the TDSR talking-with-gestures seed agent with prompt contract and scripted replay coverage.
+2. Add deterministic social situation change computation and tests.
+3. Add the social context sensitivity seed agent and replay coverage.
+4. Implement Schere-Stein-Papier core game logic, web client, and client-side hand detection in staged milestones.
+
+## Milestone 23
+### Date
+2026-06-10
+
+### Goal
+Implement TDSR Milestone 1 by adding a new German GIGI seed agent that demonstrates speech plus structured nonverbal gesture output in a yes/no guessing game.
+
+### What changed
+- Added new TDSR seed-agent package:
+  - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr`
+- Added `GuessingGameWithGestures`, a new GIGI TDSR seed agent that:
+  - preserves an explicit single-state yes/no guessing-game flow
+  - speaks German
+  - configures `PromptPolicy#setNonVerbalPlanPrompt(...)`
+  - keeps `PromptPolicy#setNonVerbalGesturePrompt(...)` as fallback
+  - emits structured `nonVerbal` behaviour plans for gesture-oriented demo turns
+  - transitions to final only on explicit user stop intent, not merely on a correct guess confirmation
+- Added fixture wiring:
+  - `AgentFixtures.gigiTdsrGuessingGameWithGestures()`
+- Added deterministic replay fixture:
+  - `src/test/resources/scripts/gigi-tdsr-guessing-game-with-gestures-replay-script.json`
+- Added tests:
+  - `GigiTdsrPromptContractTest`
+  - `GigiTdsrGuessingGameWithGesturesReplayIntegrationTest`
+- Updated README seed-agent list.
+- Updated `.agents/TDSR.md` to mark TDSR Milestone 1 as implemented.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Run the seed class manually:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Use the text client and optional nonverbal renderer:
+   - `http://localhost:8080/?agentId=<uuid>`
+   - `http://localhost:8080/nonverbal/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest" test`
+
+### Known issues and decisions
+- The new seed agent intentionally lives beside, not inside, the existing elderly-care package.
+- The replay proves structured `nonVerbal` payloads are emitted through behaviour SSE; the existing nonverbal renderer may still visualize only part of the richer payload.
+- The interaction finalizes only on explicit stop intent. A correct final guess keeps the interaction state active so GIGI can ask whether to play another round or stop.
+- The targeted Maven run passed, but Surefire printed its existing fork-shutdown warning after the Spring SSE test closed; surefire reports show zero failures and zero errors.
+
+### Next steps
+1. Implement deterministic `obs.social.situation_change` computation and unit tests.
+2. Add the TDSR social context sensitivity seed agent and replay coverage.
+3. Implement Schere-Stein-Papier core game logic and motion payload contract.
