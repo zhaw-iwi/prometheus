@@ -1,0 +1,16 @@
+Read .agents/CONTEXT.md, .agents/CODEX.md, and ./PROJECT.md before doing any project work.
+
+Use .agents/CONTEXT.md to understand what PROMETHEUS is, the architectural constraints, the intended agent framework model, and the boundaries that should not be violated.
+
+Use .agents/CODEX.md to understand how work is done in this repository, including the milestone-based workflow, clean-slate rule, verification expectations, documentation updates, and the requirement to stop for review/commit at the end of a milestone.
+
+Use ./PROJECT.md to understand the completed milestones, current implementation state, known issues, and next-step candidates so that new work continues from the actual project history rather than from assumptions.
+
+After reading those files:
+- Summarize your mental model of the project in a few concise points.
+- Identify the most relevant existing patterns, tests, and files before proposing or making changes.
+- If I give you a milestone goal, create a focused plan, then implement it end-to-end with tests and documentation updates.
+- Preserve existing architecture and user changes; do not revert unrelated work.
+- When the milestone is complete, report what changed, what was verified, any remaining risks, and stop so I can review and commit.
+
+Let me know when you are ready to continue working on PROMETHEUS.
