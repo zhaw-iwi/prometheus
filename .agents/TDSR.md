@@ -647,3 +647,30 @@ Primary risks:
 - Preserve existing seed agents and clients unless a milestone explicitly
   scopes shared reusable helpers.
 - Update `README.md` and `PROJECT.md` in each implementation milestone.
+
+## TODOs
+
+### Assessment
+
+We completed the original TDSR roadmap through Milestone 6. The repository is clean and `main` is aligned with `origin/main`.
+
+What is done:
+
+- **Planning**: `.agents/TDSR.md` created and kept updated.
+- **Talking With Gestures**: `GuessingGameWithGestures` exists under `gigitdsr`, with German GIGI persona, structured `nonVerbal` output, prompt contract tests, and replay coverage.
+- **Social Situation Change Events**: raw `obs.social.grouping` events now produce persisted computed `obs.social.situation_change` events through deterministic backend logic.
+- **Social Context Sensitivity Agent**: `SocialContextSensitivity` reacts to computed social events and still supports ordinary conversation and explicit exit.
+- **RPS Core Game**: `RockScissorPaper` has deterministic sign selection, winner calculation, `obs.hand.sign`, `motion.handSign`, result display, and replay coverage.
+- **RPS Web Client**: `/rps` client renders GIGI’s motion sign, result state, and supports manual hand-sign input.
+- **RPS Camera Detection**: `/rps` now includes browser-side MediaPipe detection with manual fallback, confidence threshold, stability gating, and normalized `obs.hand.sign` emission.
+
+What is left or worth doing:
+
+- **Live demo validation**: camera-based RPS detection still needs real browser/camera testing on the target demo machine. We only verified static/HTTP contracts because no in-app browser target was available.
+- **Tune RPS camera behavior**: threshold, stability frame count, camera angle, lighting, and false positives likely need adjustment after real use.
+- **Social cooldown/rate limiting**: we implemented duplicate suppression based on social state changes, but not a separate wall-clock cooldown policy for spontaneous remarks. If repeated visual transitions are noisy in demos, this is the main backend polish item.
+- **Social final summary**: the original social agent description mentioned storing a compact interaction summary on exit; PROJECT does not record this as implemented.
+- **Renderer completeness**: the nonverbal renderer may still visualize only part of richer `nonVerbal` plans from the gestures agent.
+- **RPS model fidelity**: MediaPipe uses canned gestures, not a custom RPS-trained model. If it is unreliable, next options are a custom model or server-side image interpretation.
+
+Pragmatic next step: run a full end-to-end demo rehearsal with seeded agents and real browser clients, then decide whether the next milestone should be “TDSR Demo Hardening” focused on live usability fixes rather than new architecture.
