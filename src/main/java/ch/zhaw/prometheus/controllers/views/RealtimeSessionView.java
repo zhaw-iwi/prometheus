@@ -3,12 +3,12 @@ package ch.zhaw.prometheus.controllers.views;
 public class RealtimeSessionView {
     private String clientSecret;
     private String model;
-    private String realtimeUrl;
+    private String realtimeCallsUrl;
 
-    public RealtimeSessionView(String clientSecret, String model, String realtimeUrl) {
+    public RealtimeSessionView(String clientSecret, String model, String realtimeCallsUrl) {
         this.clientSecret = clientSecret;
         this.model = model;
-        this.realtimeUrl = realtimeUrl;
+        this.realtimeCallsUrl = realtimeCallsUrl;
     }
 
     public String getClientSecret() {
@@ -19,7 +19,7 @@ public class RealtimeSessionView {
         return model;
     }
 
-    public String getRealtimeUrl() {
-        return realtimeUrl;
+    public String getRealtimeCallsUrl() {
+        return realtimeCallsUrl;
     }
 }

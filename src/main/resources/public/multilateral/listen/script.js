@@ -123,7 +123,7 @@ async function setupRealtimeConnection(sessionInfo) {
   await peerConnection.setLocalDescription(offer);
 
   const answerResponse = await fetch(
-    `${sessionInfo.realtimeUrl}?model=${encodeURIComponent(sessionInfo.model)}`,
+    sessionInfo.realtimeCallsUrl,
     {
       method: "POST",
       headers: {
@@ -169,10 +169,17 @@ function sendSessionUpdate() {
     JSON.stringify({
       type: "session.update",
       session: {
+        type: "realtime",
         instructions: "You are a transcription engine for multi-speaker discussions. Transcribe accurately and do not respond.",
-        turn_detection: {
-          type: "server_vad",
-          create_response: false,
+        output_modalities: ["text"],
+        audio: {
+          input: {
+            turn_detection: {
+              type: "server_vad",
+              create_response: false,
+              interrupt_response: false,
+            },
+          },
         },
       },
     })

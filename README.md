@@ -125,7 +125,7 @@ Minimum local fields:
 
 - DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
 - OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
-- Optional realtime: `openai.realtimeModel`, `openai.realtimeSessionUrl`, `openai.realtimeUrl`
+- Optional realtime: `openai.realtimeModel`, `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
 
 ### 3. Run
 
@@ -310,7 +310,10 @@ Notes:
 
 ## Realtime Notes
 
-- Browser obtains an ephemeral secret from `POST /realtime/session`.
+- Browser obtains an OpenAI Realtime GA ephemeral client secret from `POST /realtime/session`.
+  - Server default: `openai.realtimeModel=gpt-realtime`.
+  - Optional endpoint overrides: `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`.
+- Browser clients establish WebRTC by posting SDP to the returned `realtimeCallsUrl`.
 - Realtime client sends transcript-derived events to `/{agentID}/acknowledge`.
 - PROMETHEUS returns orchestration prompt bundles via `/{agentID}/prompt`.
   - Use `/{agentID}/prompt?profile=REALTIME_SPEECH` for OpenAI Realtime instruction setup to avoid JSON-style behaviour-plan output.

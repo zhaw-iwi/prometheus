@@ -28,7 +28,6 @@ const gifSources = {
 };
 let sessionSettings = {
   voice: "",
-  temperature: 0.7,
   turnDetection: "server_vad",
 };
 let pushToTalkActive = false;
@@ -56,18 +55,11 @@ function wireUi() {
   document.getElementById("reset_agent").addEventListener("click", resetAgent);
   document.getElementById("show_agent_info").addEventListener("click", showAgentInfo);
   const voiceSelect = document.getElementById("voice_select");
-  const temperatureInput = document.getElementById("temperature_input");
   const turnDetectionSelect = document.getElementById("turn_detection_select");
   const pushToTalkButton = document.getElementById("push_to_talk");
   if (voiceSelect) {
     voiceSelect.addEventListener("change", () => {
       sessionSettings.voice = voiceSelect.value;
-      applySessionSettings();
-    });
-  }
-  if (temperatureInput) {
-    temperatureInput.addEventListener("input", () => {
-      sessionSettings.temperature = Number.parseFloat(temperatureInput.value);
       applySessionSettings();
     });
   }
@@ -329,7 +321,7 @@ async function setupRealtimeConnection(sessionInfo) {
   await peerConnection.setLocalDescription(offer);
 
   const answerResponse = await fetch(
-    `${sessionInfo.realtimeUrl}?model=${encodeURIComponent(sessionInfo.model)}`,
+    sessionInfo.realtimeCallsUrl,
     {
       method: "POST",
       headers: {
@@ -391,14 +383,14 @@ function handleRealtimeEvent(event) {
     if (partial.trim()) {
       document.getElementById("user_transcript").textContent = partial;
     }
-  } else if (data.type === "response.audio_transcript.delta") {
+  } else if (data.type === "response.output_audio_transcript.delta") {
     assistantAudioSeen = true;
     assistantTranscriptBuffer += data.delta || "";
     document.getElementById("assistant_transcript").textContent = assistantTranscriptBuffer;
   } else if (data.type === "response.output_text.delta") {
     assistantTranscriptBuffer += data.delta || "";
     document.getElementById("assistant_transcript").textContent = assistantTranscriptBuffer;
-  } else if (data.type === "response.audio_transcript.done") {
+  } else if (data.type === "response.output_audio_transcript.done") {
     assistantAudioSeen = false;
     if (assistantTranscriptBuffer.trim()) {
       document.getElementById("assistant_transcript").textContent = assistantTranscriptBuffer;
@@ -672,20 +664,32 @@ function sendSessionUpdate(systemPrompt, settings = null) {
   }
   lastSystemPrompt = systemPrompt || "";
   const sessionPayload = {
+    type: "realtime",
     instructions: lastSystemPrompt,
+    output_modalities: ["audio"],
   };
   if (settings) {
+    const audio = {};
     if (settings.voice) {
-      sessionPayload.voice = settings.voice;
-    }
-    if (typeof settings.temperature === "number" && !Number.isNaN(settings.temperature)) {
-      sessionPayload.temperature = settings.temperature;
-    }
-    if (settings.turnDetection) {
-      sessionPayload.turn_detection = {
-        type: settings.turnDetection,
-        create_response: false,
+      audio.output = {
+        voice: settings.voice,
       };
+    }
+    if (settings.turnDetection === "none") {
+      audio.input = {
+        turn_detection: null,
+      };
+    } else if (settings.turnDetection) {
+      audio.input = {
+        turn_detection: {
+          type: settings.turnDetection,
+          create_response: false,
+          interrupt_response: false,
+        },
+      };
+    }
+    if (Object.keys(audio).length > 0) {
+      sessionPayload.audio = audio;
     }
   }
   console.log(`[session.update] turnDetection=${settings && settings.turnDetection ? settings.turnDetection : "default"}`);
@@ -851,7 +855,7 @@ function sendResponseCreate(instructions) {
       type: "response.create",
       response: {
         instructions: instructions,
-        modalities: ["audio", "text"],
+        output_modalities: ["audio"],
       },
     })
   );

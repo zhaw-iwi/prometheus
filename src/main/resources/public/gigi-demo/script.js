@@ -129,10 +129,6 @@ function wireUi() {
   document.getElementById("clear_messages").addEventListener("click", clearMessages);
   document.getElementById("toggle_realtime").addEventListener("click", toggleRealtime);
   document.getElementById("voice_select").addEventListener("change", applySessionSettings);
-  document.getElementById("temperature_input").addEventListener("input", () => {
-    renderTemperatureValue();
-    applySessionSettings();
-  });
   document.getElementById("turn_detection_select").addEventListener("change", () => {
     updatePushToTalkUi();
     applySessionSettings();
@@ -703,7 +699,7 @@ async function setupRealtimeConnection(sessionInfo) {
 
   const offer = await realtime.peerConnection.createOffer();
   await realtime.peerConnection.setLocalDescription(offer);
-  const answerResponse = await fetch(`${sessionInfo.realtimeUrl}?model=${encodeURIComponent(sessionInfo.model)}`, {
+  const answerResponse = await fetch(sessionInfo.realtimeCallsUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${sessionInfo.clientSecret}`,
@@ -750,11 +746,11 @@ function handleRealtimeEvent(event) {
     }
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
     setText("latest_event", data.transcript || "");
-  } else if (data.type === "response.audio_transcript.delta" || data.type === "response.output_text.delta") {
+  } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
     realtime.assistantAudioSeen = true;
     realtime.assistantTranscriptBuffer += data.delta || "";
     setText("speech_preview", realtime.assistantTranscriptBuffer);
-  } else if (data.type === "response.audio_transcript.done" || data.type === "response.output_text.done") {
+  } else if (data.type === "response.output_audio_transcript.done" || data.type === "response.output_text.done") {
     const transcript = realtime.assistantTranscriptBuffer.trim();
     if (transcript) {
       setText("speech_preview", transcript);
@@ -835,18 +831,32 @@ function sendSessionUpdate(systemPrompt, settings) {
   }
   realtime.lastSystemPrompt = systemPrompt || "";
   const sessionPayload = {
+    type: "realtime",
     instructions: realtime.lastSystemPrompt,
+    output_modalities: ["audio"],
   };
+  const audio = {};
   if (settings.voice) {
-    sessionPayload.voice = settings.voice;
+    audio.output = {
+      voice: settings.voice,
+    };
   }
-  if (typeof settings.temperature === "number" && !Number.isNaN(settings.temperature)) {
-    sessionPayload.temperature = settings.temperature;
+  if (settings.turnDetection === "none") {
+    audio.input = {
+      turn_detection: null,
+    };
+  } else if (settings.turnDetection) {
+    audio.input = {
+      turn_detection: {
+        type: settings.turnDetection,
+        create_response: false,
+        interrupt_response: false,
+      },
+    };
   }
-  sessionPayload.turn_detection = {
-    type: settings.turnDetection,
-    create_response: false,
-  };
+  if (Object.keys(audio).length > 0) {
+    sessionPayload.audio = audio;
+  }
   console.log(`[session.update] turnDetection=${settings.turnDetection}`);
   realtime.dataChannel.send(JSON.stringify({ type: "session.update", session: sessionPayload }));
   appendLog("realtime", "session updated.");
@@ -864,7 +874,7 @@ function sendResponseCreate(instructions) {
     type: "response.create",
     response: {
       instructions,
-      modalities: ["audio", "text"],
+      output_modalities: ["audio"],
     },
   }));
 }
@@ -879,7 +889,6 @@ function applySessionSettings() {
 function currentRealtimeSettings() {
   return {
     voice: document.getElementById("voice_select").value,
-    temperature: Number.parseFloat(document.getElementById("temperature_input").value || "0.7"),
     turnDetection: document.getElementById("turn_detection_select").value || "server_vad",
   };
 }
@@ -1712,10 +1721,6 @@ function setCameraStatus(text, mode) {
   const el = document.getElementById("camera_status");
   el.textContent = text;
   el.className = `status-pill is-${mode || "idle"}`;
-}
-
-function renderTemperatureValue() {
-  setText("temperature_value", document.getElementById("temperature_input").value);
 }
 
 function cleanupAll() {

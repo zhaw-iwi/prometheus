@@ -23,8 +23,8 @@ public class OpenAIProperties {
     private String model;
     private String key;
     private String realtimeModel;
-    private String realtimeSessionUrl;
-    private String realtimeUrl;
+    private String realtimeClientSecretUrl;
+    private String realtimeCallsUrl;
 
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
@@ -58,20 +58,20 @@ public class OpenAIProperties {
         this.realtimeModel = realtimeModel;
     }
 
-    public String getRealtimeSessionUrl() {
-        return this.realtimeSessionUrl;
+    public String getRealtimeClientSecretUrl() {
+        return this.realtimeClientSecretUrl;
     }
 
-    public void setRealtimeSessionUrl(String realtimeSessionUrl) {
-        this.realtimeSessionUrl = realtimeSessionUrl;
+    public void setRealtimeClientSecretUrl(String realtimeClientSecretUrl) {
+        this.realtimeClientSecretUrl = realtimeClientSecretUrl;
     }
 
-    public String getRealtimeUrl() {
-        return this.realtimeUrl;
+    public String getRealtimeCallsUrl() {
+        return this.realtimeCallsUrl;
     }
 
-    public void setRealtimeUrl(String realtimeUrl) {
-        this.realtimeUrl = realtimeUrl;
+    public void setRealtimeCallsUrl(String realtimeCallsUrl) {
+        this.realtimeCallsUrl = realtimeCallsUrl;
     }
 
     public String headerKeyNameForAPIKey() {

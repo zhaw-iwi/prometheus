@@ -36,11 +36,12 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"voice-select\""));
         assertTrue(index.contains("data-testid=\"turn-detection-select\""));
         assertTrue(index.contains("data-testid=\"push-to-talk\""));
-        assertTrue(index.contains("data-testid=\"temperature-input\""));
         assertTrue(index.contains("data-testid=\"generate-side-behaviour\""));
 
         assertTrue(script.contains("/prompt?profile=realtime_speech"));
         assertTrue(script.contains("/realtime/session"));
+        assertTrue(script.contains("sessionInfo.realtimeCallsUrl"));
+        assertTrue(script.contains("output_modalities"));
         assertTrue(script.contains("turn_detection"));
         assertTrue(script.contains("input_audio_buffer.commit"));
         assertTrue(script.contains("profile: \"backend_complement\""));

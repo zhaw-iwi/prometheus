@@ -23,7 +23,7 @@ public class RealtimeController {
         RealtimeSessionView view = new RealtimeSessionView(
                 session.getClientSecret(),
                 session.getModel(),
-                session.getRealtimeUrl());
+                session.getRealtimeCallsUrl());
         return new ResponseEntity<>(view, HttpStatus.OK);
     }
 }

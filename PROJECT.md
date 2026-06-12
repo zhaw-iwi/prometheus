@@ -33,6 +33,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 27: TDSR RPS web behaviour and manual sensing client
 - [x] Milestone 28: TDSR RPS client-side hand detection
 - [x] Milestone 29: Unified GIGI TDSR demo cockpit
+- [x] Milestone 30: OpenAI Realtime GA migration across PROMETHEUS clients
 
 ## Milestone 1
 ### Date
@@ -1364,3 +1365,65 @@ Add a unified browser client for GIGI TDSR agent testing and demos so users can 
 1. Add a one-click GIGI TDSR demo-agent registry/seed endpoint if browser-driven demo setup becomes a requirement.
 2. Run a live rehearsal with the cockpit on the target demo machine and tune camera thresholds.
 3. Consider extracting shared browser sensing utilities if future clients duplicate the cockpit detector code.
+
+## Milestone 30
+### Date
+2026-06-12
+
+### Goal
+Migrate PROMETHEUS realtime speech-to-speech and listening clients from the retired OpenAI Realtime beta contract to the GA client-secret and WebRTC calls contract.
+
+### What changed
+- Migrated backend Realtime configuration and session creation:
+  - replaced `openai.realtimeSessionUrl` / `openai.realtimeUrl` with `openai.realtimeClientSecretUrl` / `openai.realtimeCallsUrl`
+  - changed the default realtime model to `gpt-realtime`
+  - updated `RealtimeSessionClient` to call `/v1/realtime/client_secrets`
+  - changed the session request payload to the GA nested `session` shape with `type=realtime`, `output_modalities`, and `audio.input.transcription`
+  - changed response parsing to read the top-level client secret `value`
+  - returned `realtimeCallsUrl` through `RealtimeSessionInfo` and `RealtimeSessionView`
+- Migrated browser WebRTC setup to post SDP to `sessionInfo.realtimeCallsUrl` in:
+  - `src/main/resources/public/realtime/script.js`
+  - `src/main/resources/public/gigi-demo/script.js`
+  - `src/main/resources/public/multilateral/listen/script.js`
+- Updated browser Realtime event/config payloads:
+  - speech clients now use `output_modalities: ["audio"]`
+  - assistant transcript handling now listens for `response.output_audio_transcript.delta` and `response.output_audio_transcript.done`
+  - session updates now use nested `audio.input.turn_detection` and `audio.output.voice`
+  - removed the obsolete realtime temperature controls from `/realtime` and `/gigi-demo`
+  - multilateral listening now sends a GA non-responding realtime session update with nested audio turn detection
+- Added regression coverage:
+  - `RealtimeSessionClientTest`
+  - `RealtimeBrowserClientContractTest`
+  - updated `GigiDemoClientStaticResourceContractTest`
+- Updated README and OpenAI property templates for the GA property names.
+
+### How to run
+1. Configure properties as in `README.md`, using:
+   - `openai.realtimeModel=gpt-realtime`
+   - `openai.realtimeClientSecretUrl=https://api.openai.com/v1/realtime/client_secrets`
+   - `openai.realtimeCallsUrl=https://api.openai.com/v1/realtime/calls`
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open one of the realtime-backed clients:
+   - `http://localhost:8080/realtime/?agentId=<uuid>`
+   - `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+   - `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSessionClientTest,RealtimeBrowserClientContractTest,GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Realtime session creation remains OpenAI-only; Azure OpenAI is still rejected by `RealtimeSessionClient`.
+- This milestone intentionally removes the browser temperature controls instead of carrying a stale beta-shaped setting.
+- `/multilateral/listen` still uses a non-responding realtime session. A later milestone can migrate it to a dedicated GA transcription session if that becomes important.
+- Local ignored `src/main/resources/openai.properties` files that still contain old beta property names must be updated manually.
+- Browser microphone/WebRTC validation still requires a live app, an OpenAI key, and browser permissions.
+
+### Next steps
+1. Run a live browser rehearsal for `/realtime`, `/gigi-demo`, and `/multilateral/listen` with real microphone input.
+2. Consider adding `marin` and `cedar` voice options and a server-side `OpenAI-Safety-Identifier`.
+3. Decide whether multilateral listening should use a dedicated Realtime transcription session.

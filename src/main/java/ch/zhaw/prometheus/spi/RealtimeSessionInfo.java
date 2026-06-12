@@ -3,12 +3,12 @@ package ch.zhaw.prometheus.spi;
 public class RealtimeSessionInfo {
     private final String clientSecret;
     private final String model;
-    private final String realtimeUrl;
+    private final String realtimeCallsUrl;
 
-    public RealtimeSessionInfo(String clientSecret, String model, String realtimeUrl) {
+    public RealtimeSessionInfo(String clientSecret, String model, String realtimeCallsUrl) {
         this.clientSecret = clientSecret;
         this.model = model;
-        this.realtimeUrl = realtimeUrl;
+        this.realtimeCallsUrl = realtimeCallsUrl;
     }
 
     public String getClientSecret() {
@@ -19,7 +19,7 @@ public class RealtimeSessionInfo {
         return model;
     }
 
-    public String getRealtimeUrl() {
-        return realtimeUrl;
+    public String getRealtimeCallsUrl() {
+        return realtimeCallsUrl;
     }
 }
