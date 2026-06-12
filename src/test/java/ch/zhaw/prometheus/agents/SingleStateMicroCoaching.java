@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -150,11 +151,13 @@ class SingleStateMicroCoaching {
                                                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                                 List.of(toFinal));
 
-                return new Agent(
+                Agent agent = new Agent(
                                 "Gigi on Prometheus (Single State Micro Coach)",
                                 "Single-state micro-coaching demo with outcome extraction and final summary.",
                                 coachState,
                                 storage);
+                agent.setInteractionProfile(AgentInteractionProfiles.speechOnly());
+                return agent;
         }
 
         @Test

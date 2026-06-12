@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -233,6 +234,7 @@ class SingleStateMultimodalOut {
                                 "Single-state guessing game demo with richer multimodal nonverbal output policy.",
                                 outerState,
                                 storage);
+                agent.setInteractionProfile(AgentInteractionProfiles.multimodalOutput());
                 agent.start(new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway));
                 Agent saved = this.repository.save(agent);
                 assertNotNull(saved.getId());

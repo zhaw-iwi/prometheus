@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -399,11 +400,13 @@ class FourStatesCircular {
                                 List.of(outerToFinal),
                                 baseMenuState);
 
-                return new Agent(
+                Agent agent = new Agent(
                                 "Gigi on Prometheus (4 States Circular)",
                                 "Interactive demo agent with menu based verbal modes: guessing game, persuasion micro coach, and story co creation.",
                                 outerState,
                                 storage);
+                agent.setInteractionProfile(AgentInteractionProfiles.speechOnly());
+                return agent;
         }
 
         @Test

@@ -39,4 +39,26 @@ class AgentInteractionProfileUnitTest {
         assertEquals(profile.getSupportedBehaviourModalities(), loaded.getSupportedBehaviourModalities());
         assertEquals(profile.getProfileTags(), loaded.getProfileTags());
     }
+
+    @Test
+    void commonSpeechOnlyProfileDeclaresOnlyUserUtteranceAndSpeech() {
+        AgentInteractionProfile profile = AgentInteractionProfiles.speechOnly();
+
+        assertEquals(List.of(AgentInteractionProfile.OBS_USER_UTTERANCE), profile.getSupportedObservations());
+        assertEquals(List.of(AgentInteractionProfile.MODALITY_SPEECH), profile.getSupportedBehaviourModalities());
+        assertTrue(profile.getProfileTags().isEmpty());
+    }
+
+    @Test
+    void commonMultimodalInputOutputProfileDeclaresVisualInputAndNonverbalOutput() {
+        AgentInteractionProfile profile = AgentInteractionProfiles.multimodalInputOutput();
+
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
+    }
 }

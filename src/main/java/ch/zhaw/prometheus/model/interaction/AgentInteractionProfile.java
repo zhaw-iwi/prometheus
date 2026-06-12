@@ -22,6 +22,7 @@ public class AgentInteractionProfile {
     public static final String MODALITY_NONVERBAL_GESTURE = "nonVerbal.gesture";
     public static final String MODALITY_NONVERBAL_FACIAL_EXPRESSION = "nonVerbal.facialExpression";
     public static final String MODALITY_NONVERBAL_GAZE = "nonVerbal.gaze";
+    public static final String MODALITY_NONVERBAL_MOTION = "nonVerbal.motion";
     public static final String MODALITY_MOTION_HAND_SIGN = "motion.handSign";
     public static final String MODALITY_DISPLAY = "display";
 

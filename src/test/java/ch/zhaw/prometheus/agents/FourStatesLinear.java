@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -457,11 +458,13 @@ class FourStatesLinear {
                                 List.of(outerToFinal),
                                 baseMenuState);
 
-                return new Agent(
+                Agent agent = new Agent(
                                 "Gigi on Prometheus (4 States Linear)",
                                 "Interactive linear demo agent: base menu choice leads to one specialized interaction and then to a final summary-and-goodbye state.",
                                 outerState,
                                 storage);
+                agent.setInteractionProfile(AgentInteractionProfiles.speechOnly());
+                return agent;
         }
 
         @Test

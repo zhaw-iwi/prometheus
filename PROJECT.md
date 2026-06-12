@@ -41,6 +41,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 35: GIGI demo explicit connect/disconnect lifecycle
 - [x] Milestone 36: Agent interaction profile declaration
 - [x] Milestone 37: GIGI demo consumes interaction profiles
+- [x] Milestone 38: Seed agent interaction profile coverage
 
 ## Milestone 1
 ### Date
@@ -1798,3 +1799,54 @@ Make the GIGI demo consume `AgentInfoView.interactionProfile` so sensing control
 1. Run live rehearsal with seeded GIGI agents and adjust any row mappings that feel too broad or too narrow.
 2. Consider profile-aware defaults for expanded accordion sections after more demo use.
 3. Consider creation/update API support for setting interaction profiles outside seed tests.
+
+## Milestone 38
+### Date
+2026-06-12
+
+### Goal
+Retroactively add interaction profile declarations to existing seed/test agent templates so profile-driven clients do not have to fall back to generic cockpit controls for known agents.
+
+### What changed
+- Added common `AgentInteractionProfiles` factories:
+  - `speechOnly()`
+  - `speechWithNonverbal()`
+  - `multimodalInput()`
+  - `multimodalOutput()`
+  - `multimodalInputOutput()`
+- Added `nonVerbal.motion` as a declared modality because existing nonverbal prompts can emit nested motion intent.
+- Annotated the basic single-state and four-state seed agents as `speechOnly`.
+- Annotated the Pflegezentrum seed agents as `speechOnly`.
+- Annotated multimodal seed agents according to their actual prompt behavior:
+  - `SingleStateMultimodalIn`: visual observations plus speech and nonverbal output
+  - `SingleStateMultimodalOut`: speech and nonverbal output
+  - `SingleStateMultimodalInOut`: visual observations plus speech and nonverbal output
+- Kept specialized TDSR declarations and expanded the gesture guessing-game declaration to include `nonVerbal.motion`.
+- Added seed-profile contract coverage:
+  - reusable fixtures expose expected profiles
+  - all seed-agent source files contain an explicit `setInteractionProfile(...)`
+  - common profile factories expose the expected observation and modality lists
+- Updated README to point developers to the common profile factories.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Rerun seed tests for any agents that should have persisted profiles in the local database.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Inspect profiles through:
+   - `GET http://localhost:8080/agent`
+   - `GET http://localhost:8080/{agentID}/info`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- Already-persisted database rows are not automatically backfilled; reseed or update agents to persist the new profile metadata.
+- The static source contract intentionally covers manual seed classes that do not expose reusable fixture methods.
+- `SingleStateMultimodalIn` is profiled as input plus output because the current code sets nonverbal output prompts despite the class name.
+
+### Next steps
+1. Add profile creation/update API support if profiles need to be edited without reseeding.
+2. Consider reusable fixture methods for the package-local multimodal and Pflegezentrum seed agents if more tests need direct object assertions.
+3. Rehearse the GIGI cockpit against reseeded agents and tune any profile-to-row mapping that feels too broad.

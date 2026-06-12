@@ -214,6 +214,9 @@ agent expects and the behaviour modalities it can emit, for example
 `obs.hand.sign`, `obs.social.grouping`, `speech`, `motion.handSign`, and
 `display`. It is persisted with the `Agent` aggregate and is metadata, not
 runtime `Storage`.
+Seed agent templates declare profiles through `AgentInteractionProfiles`
+factories such as `speechOnly()`, `multimodalOutput()`, and
+`multimodalInputOutput()`.
 
 ### Agent runtime
 
@@ -249,7 +252,7 @@ runtime `Storage`.
 1. Start from `SingleStateMicroCoaching` or `SingleStateMultimodalInOut` test templates.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
-4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities.
+4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
 5. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
 6. Seed the agent, run app, then iterate using the GIGI demo cockpit, Monitor, and behaviour streams.
 7. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
