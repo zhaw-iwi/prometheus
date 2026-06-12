@@ -48,6 +48,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 42: GIGI demo agent profile drawer summary
 - [x] Milestone 43: GIGI demo duplicate behaviour render suppression
 - [x] Milestone 44: GIGI demo diagnostics drawer storage, log, and state polish
+- [x] Milestone 45: GIGI demo mirrored camera overlay alignment
 
 ## Milestone 1
 ### Date
@@ -2118,3 +2119,39 @@ Improve the GIGI demo Diagnostics drawer so storage, activity log, and state inf
 1. Rehearse the drawer against a live RPS agent and confirm the state/storage updates are useful during hand-sign rounds.
 2. Consider adding event IDs or response-source tags to diagnostics if future duplicate-delivery investigations need more detail.
 3. Consider sharing diagnostics rendering helpers with `/monitor` if further code duplication appears.
+
+## Milestone 45
+### Date
+2026-06-12
+
+### Goal
+Align GIGI demo face and social-grouping overlay boxes with the mirrored camera self-view.
+
+### What changed
+- Confirmed the displayed video is mirrored with CSS while detector coordinates are produced in raw camera-frame coordinates.
+- Added `mirroredOverlayBox(...)` to convert detector-frame boxes into display-frame boxes before drawing.
+- Updated face-emotion and social-grouping box drawing to use mirrored display coordinates.
+- Kept hand landmarks unchanged because they were already mirrored manually with `(1 - p.x)`.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard the mirrored overlay helper and prevent raw unmirrored box drawing from returning.
+- Updated README to document that camera overlay boxes align with the mirrored self-view.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect an agent with visual observations, start the camera, enable social grouping or face emotion, and verify boxes align with the person in the mirrored preview.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The fix mirrors overlay geometry at draw time instead of mirroring the entire canvas, so future canvas labels or text would remain readable.
+- The coordinate mapping still assumes the camera feed and preview use the same 4:3 aspect ratio, which matches the current requested camera constraints and preview shell.
+
+### Next steps
+1. Verify with the live camera that social grouping and face boxes align in the mirrored self-view.
+2. If future cameras produce a different aspect ratio, add object-fit crop/offset handling to the overlay transform.

@@ -179,10 +179,16 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("Closed_Fist: \"rock\""));
         assertTrue(script.contains("Open_Palm: \"paper\""));
         assertTrue(script.contains("Victory: \"scissor\""));
+        assertTrue(script.contains("function mirroredOverlayBox"));
+        assertTrue(script.contains("camera.canvas.width - ((x + width) * scale.scaleX)"));
+        assertTrue(script.contains("const displayBox = mirroredOverlayBox(box.x, box.y, box.width, box.height, scale);"));
+        assertTrue(script.contains("const displayBox = mirroredOverlayBox(x, y, w, h, scale);"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
         assertFalse(script.contains("hand_auto_send"));
+        assertFalse(script.contains("box.x * scaleX"));
+        assertFalse(script.contains("x * scaleX, y * scaleY"));
     }
 
     @Test

@@ -2219,14 +2219,15 @@ function drawFaceBox(box) {
   if (!box) {
     return;
   }
-  const { scaleX, scaleY } = overlayScale();
+  const scale = overlayScale();
+  const displayBox = mirroredOverlayBox(box.x, box.y, box.width, box.height, scale);
   camera.ctx.lineWidth = 3;
   camera.ctx.strokeStyle = "#ff7a00";
-  camera.ctx.strokeRect(box.x * scaleX, box.y * scaleY, box.width * scaleX, box.height * scaleY);
+  camera.ctx.strokeRect(displayBox.x, displayBox.y, displayBox.width, displayBox.height);
 }
 
 function drawSocialOverlay(tracked, social) {
-  const { scaleX, scaleY } = overlayScale();
+  const scale = overlayScale();
   const idToGroup = new Map();
   const groups = social && social.groups ? social.groups : [];
   for (let i = 0; i < groups.length; i++) {
@@ -2236,11 +2237,12 @@ function drawSocialOverlay(tracked, social) {
   }
   for (const person of tracked || []) {
     const [x, y, w, h] = person.box;
+    const displayBox = mirroredOverlayBox(x, y, w, h, scale);
     const gid = idToGroup.has(person.id) ? idToGroup.get(person.id) : -1;
     const hue = gid >= 0 ? (gid * 57) % 360 : 180;
     camera.ctx.lineWidth = 2;
     camera.ctx.strokeStyle = `hsl(${hue}, 75%, 42%)`;
-    camera.ctx.strokeRect(x * scaleX, y * scaleY, w * scaleX, h * scaleY);
+    camera.ctx.strokeRect(displayBox.x, displayBox.y, displayBox.width, displayBox.height);
   }
 }
 
@@ -2281,6 +2283,16 @@ function overlayScale() {
   return {
     scaleX: camera.canvas.width / Math.max(1, camera.video.videoWidth || camera.canvas.width),
     scaleY: camera.canvas.height / Math.max(1, camera.video.videoHeight || camera.canvas.height),
+  };
+}
+
+function mirroredOverlayBox(x, y, width, height, scale) {
+  const boxWidth = width * scale.scaleX;
+  return {
+    x: camera.canvas.width - ((x + width) * scale.scaleX),
+    y: y * scale.scaleY,
+    width: boxWidth,
+    height: height * scale.scaleY,
   };
 }
 
