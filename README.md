@@ -32,7 +32,12 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 
 - URL: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
 - Aliases: `http://localhost:8080/gigi/?agentId=<uuid>`, `http://localhost:8080/tdsr/?agentId=<uuid>`
-- Purpose: single-page TDSR demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, scenario shortcuts, behaviour visualization, and diagnostics drawer.
+- Purpose: single-page TDSR demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
+- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the agent runtime start endpoint.
+- Without an explicit `?agentId=` URL or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
+- The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; event emission uses per-mode throttles.
+- The sensing card groups detectors, configuration, manual emotion/social/hand inputs, and sensed signal readouts in one accordion. Behaviour modalities render as full-width rows.
 
 ### Text Client
 

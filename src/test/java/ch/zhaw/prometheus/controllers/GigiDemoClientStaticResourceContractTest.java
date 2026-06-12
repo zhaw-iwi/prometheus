@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -22,9 +23,17 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"connect-agent\""));
         assertTrue(index.contains("data-testid=\"start-agent\""));
         assertTrue(index.contains("data-testid=\"reset-agent\""));
+        assertTrue(index.contains("data-testid=\"agent-drawer-tab\""));
+        assertTrue(index.contains("data-testid=\"diagnostics-drawer-tab\""));
+        assertTrue(index.contains("Agent &amp; Diagnostics"));
+        assertTrue(index.contains("Connect"));
+        assertTrue(index.contains("data-testid=\"agent-connection-state\""));
+        assertTrue(index.contains("Start Agent"));
         assertTrue(index.contains("data-testid=\"text-input\""));
         assertTrue(index.contains("data-testid=\"send-text\""));
         assertTrue(index.contains("data-testid=\"message-list\""));
+        assertTrue(index.contains("data-testid=\"text-interaction-tab\""));
+        assertTrue(index.contains("data-testid=\"speech-interaction-tab\""));
     }
 
     @Test
@@ -32,6 +41,7 @@ class GigiDemoClientStaticResourceContractTest {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
+        assertTrue(index.contains("id=\"speech_interaction_panel\""));
         assertTrue(index.contains("data-testid=\"toggle-realtime\""));
         assertTrue(index.contains("data-testid=\"voice-select\""));
         assertTrue(index.contains("data-testid=\"turn-detection-select\""));
@@ -53,6 +63,33 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
+    void gigiDemoClientRequiresExplicitAgentSelectionBeforeStreaming() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("state.selectedAgentId = getAgentIdFromLocation();"));
+        assertTrue(script.contains("selectedAgentId: null"));
+        assertTrue(script.contains("selectAgent(event.target.value"));
+        assertTrue(script.contains("async function selectAgent"));
+        assertTrue(script.contains("async function disconnectAgent"));
+        assertTrue(script.contains("updateConnectionButton"));
+        assertTrue(script.contains("Disconnect"));
+        assertTrue(script.contains("const infoLoaded = await loadAgentInfo();"));
+        assertTrue(script.contains("if (!infoLoaded)"));
+        assertTrue(script.contains("disconnectAgent({ preserveInput: true"));
+        assertTrue(script.contains("connectMonitorStream();"));
+        assertTrue(script.indexOf("const infoLoaded = await loadAgentInfo();") < script.indexOf("connectMonitorStream();"));
+        assertTrue(script.contains("\"open_diagnostics\""));
+        assertTrue(script.contains("\"agent_drawer_tab\""));
+        assertTrue(script.contains("\"diagnostics_drawer_tab\""));
+        assertTrue(script.contains("el.dataset.bsToggle === \"collapse\""));
+
+        assertFalse(script.contains("localStorage.getItem(\"gigiDemoAgentId\")"));
+        assertFalse(script.contains("localStorage.setItem(\"gigiDemoAgentId\""));
+        assertFalse(script.contains("const firstGigi"));
+        assertFalse(script.contains("connectToAgent(id);"));
+    }
+
+    @Test
     void gigiDemoClientExposesUnifiedVisualSensingControls() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
@@ -66,6 +103,12 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"group-distance-threshold\""));
         assertTrue(index.contains("data-testid=\"hand-confidence-threshold\""));
         assertTrue(index.contains("data-testid=\"hand-auto-send\""));
+        assertTrue(index.contains("Manual Emotion"));
+        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Manual Hand Sign"));
+        assertTrue(index.contains("Signals Sensed"));
+        assertTrue(index.contains("data-testid=\"manual-emotion-happy\""));
+        assertTrue(index.contains("data-testid=\"hand-sign-value\""));
 
         assertTrue(script.contains("faceapi.nets.tinyFaceDetector"));
         assertTrue(script.contains("cocoSsd.load"));
@@ -73,6 +116,26 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("Closed_Fist: \"rock\""));
         assertTrue(script.contains("Open_Palm: \"paper\""));
         assertTrue(script.contains("Victory: \"scissor\""));
+    }
+
+    @Test
+    void gigiDemoClientSupportsIndependentRuntimeSensingModes() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("handleSensorModeChange"));
+        assertTrue(script.contains("resetDisabledSensorState()"));
+        assertTrue(script.contains("isSensorModeEnabled(\"social\") && camera.socialDetectorReady"));
+        assertTrue(script.contains("isSensorModeEnabled(\"emotion\") && camera.faceModelsReady"));
+        assertTrue(script.contains("isSensorModeEnabled(\"hand\") && camera.handDetectorReady"));
+        assertTrue(script.contains("lastEmotionEmitAt"));
+        assertTrue(script.contains("lastSocialEmitAt"));
+        assertTrue(script.contains("passesSensorEmitInterval(\"emotion\")"));
+        assertTrue(script.contains("passesSensorEmitInterval(\"social\")"));
+        assertTrue(script.contains("markSensorEmitted(\"hand\")"));
+        assertTrue(script.contains("setCameraStatus(state.cameraRunning ? \"Camera Live\" : \"Camera Idle\""));
+
+        assertFalse(script.contains("lastEmitAt: 0"));
+        assertFalse(script.contains("passesEmitInterval()"));
     }
 
     @Test
@@ -84,7 +147,10 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("type: \"obs.human.presence\""));
         assertTrue(script.contains("type: \"obs.social.grouping\""));
         assertTrue(script.contains("type: \"obs.hand.sign\""));
-        assertTrue(script.contains("source: \"visual.facial\""));
+        assertTrue(script.contains("\"visual.facial\""));
+        assertTrue(script.contains("\"visual.facial.manual\""));
+        assertTrue(script.contains("submitEmotionSample"));
+        assertTrue(script.contains("manualEmotionExpressions"));
         assertTrue(script.contains("source: \"rps.web.camera\""));
         assertTrue(script.contains("detectionMode: \"client_camera\""));
         assertTrue(script.contains("source: \"rps.web\""));
@@ -92,18 +158,30 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientRendersBehaviourModalitiesAndScenarioCards() throws IOException {
+    void gigiDemoClientRendersBehaviourModalitiesAndManualEventShortcuts() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
+        assertTrue(index.contains("Signals Sensed"));
+        assertTrue(index.contains("Manual Emotion"));
+        assertTrue(index.contains("Manual Hand Sign"));
+        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Conversation Shortcuts"));
         assertTrue(index.contains("data-testid=\"speech-preview\""));
         assertTrue(index.contains("data-testid=\"gesture-value\""));
         assertTrue(index.contains("data-testid=\"face-value\""));
         assertTrue(index.contains("data-testid=\"gaze-value\""));
         assertTrue(index.contains("data-testid=\"motion-value\""));
         assertTrue(index.contains("data-testid=\"display-value\""));
+        assertTrue(index.contains("data-testid=\"latest-behaviour-event\""));
+        assertTrue(index.contains("class=\"metric-row-list\""));
         assertTrue(index.contains("data-testid=\"manual-sign-rock\""));
         assertTrue(index.contains("data-testid=\"social-sample-crowd\""));
+        assertFalse(index.contains("<span><i class=\"bi bi-lightning-charge me-2\"></i>Scenario</span>"));
+        assertFalse(index.contains("Latest Event"));
+        assertFalse(index.contains("Camera Sign"));
+        assertFalse(index.contains("class=\"metric-grid\""));
+        assertFalse(index.contains("behaviour-strip"));
 
         assertTrue(script.contains("new EventSource(behaviourStreamUrl())"));
         assertTrue(script.contains("monitor/stream"));
@@ -113,5 +191,8 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("motion.handSign"));
         assertTrue(script.contains("renderAgentSign(sign)"));
         assertTrue(script.contains("renderUserSign(sign)"));
+        assertTrue(script.contains("latest_behaviour_event"));
+        assertFalse(script.contains("latest_event"));
+        assertFalse(script.contains("camera_sign_value"));
     }
 }

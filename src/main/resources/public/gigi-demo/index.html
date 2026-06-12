@@ -39,7 +39,7 @@
 
     .cockpit-grid {
       display: grid;
-      grid-template-columns: minmax(260px, 0.82fr) minmax(360px, 1.34fr) minmax(280px, 0.94fr);
+      grid-template-columns: minmax(300px, 0.94fr) minmax(390px, 1.28fr) minmax(300px, 0.94fr);
       gap: 1rem;
       align-items: start;
     }
@@ -152,23 +152,48 @@
       align-items: end;
     }
 
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.65rem;
+    .interaction-tabs,
+    .drawer-tabs {
+      gap: 0.4rem;
+      border-bottom: 1px solid var(--demo-line);
     }
 
-    .metric-tile {
+    .interaction-tabs .nav-link,
+    .drawer-tabs .nav-link {
+      border: 0;
+      border-radius: 8px 8px 0 0;
+      color: var(--demo-muted);
+      font-weight: 600;
+      letter-spacing: 0;
+      padding: 0.55rem 0.75rem;
+    }
+
+    .interaction-tabs .nav-link.active,
+    .drawer-tabs .nav-link.active {
+      color: var(--ink);
+      background: rgba(0, 176, 162, 0.09);
+    }
+
+    .metric-row-list {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: minmax(7rem, 0.36fr) minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: start;
       border: 1px solid var(--demo-line);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.76);
       padding: 0.7rem;
-      min-height: 70px;
+      min-height: 50px;
     }
 
-    .metric-tile strong {
-      display: block;
-      font-size: 0.96rem;
+    .metric-row strong,
+    .metric-row div,
+    .metric-row pre {
       overflow-wrap: anywhere;
     }
 
@@ -198,7 +223,7 @@
       pointer-events: none;
     }
 
-    .scenario-buttons {
+    .manual-event-buttons {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.5rem;
@@ -225,20 +250,21 @@
       line-height: 1;
     }
 
-    .behaviour-strip {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.65rem;
-    }
-
     @media (max-width: 991px) {
-      .behaviour-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .metric-row {
+        grid-template-columns: 1fr;
+        gap: 0.3rem;
       }
     }
 
-    .behaviour-strip .metric-tile {
-      min-height: 82px;
+    .drawer-agent-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .drawer-info-panel {
+      min-height: 84px;
     }
 
     .mono-log {
@@ -322,249 +348,7 @@
 
       <main class="cockpit-grid">
         <aside class="left-column">
-          <div class="demo-card card mb-3">
-            <div class="card-header">
-              <span><i class="bi bi-cpu me-2"></i>Agent</span>
-              <button id="show_agent_info" class="btn btn-outline-ink toolbar-button" type="button"
-                data-bs-toggle="modal" data-bs-target="#agent_info_modal" title="Agent info">
-                <i class="bi bi-info-circle"></i>
-              </button>
-            </div>
-            <div class="card-body">
-              <label class="form-label metric-label" for="agent_select">Known Agents</label>
-              <select id="agent_select" class="form-select form-select-sm mb-2" data-testid="agent-select"></select>
-              <label class="form-label metric-label" for="agent_id_input">Agent ID</label>
-              <div class="input-group input-group-sm mb-3">
-                <input id="agent_id_input" class="form-control mono" data-testid="agent-id-input"
-                  placeholder="agentId">
-                <button id="connect_agent" class="btn btn-outline-ink" type="button" data-testid="connect-agent"
-                  title="Connect">
-                  <i class="bi bi-plug"></i>
-                </button>
-              </div>
-              <div class="d-grid gap-2">
-                <button id="start_agent" class="btn btn-primary" type="button" data-testid="start-agent">
-                  <i class="bi bi-play-fill me-2"></i>Start
-                </button>
-                <button id="reset_agent" class="btn btn-outline-ink" type="button" data-testid="reset-agent">
-                  <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="demo-card card mb-3">
-            <div class="card-header">
-              <span><i class="bi bi-mic me-2"></i>Realtime</span>
-              <span id="listen_status" class="status-pill is-idle">Idle</span>
-            </div>
-            <div class="card-body">
-              <div class="row g-2">
-                <div class="col-6">
-                  <label class="form-label metric-label" for="voice_select">Voice</label>
-                  <select id="voice_select" class="form-select form-select-sm" data-testid="voice-select">
-                    <option value="">Default</option>
-                    <option value="alloy">Alloy</option>
-                    <option value="ash">Ash</option>
-                    <option value="ballad">Ballad</option>
-                    <option value="cedar">Cedar</option>
-                    <option value="coral">Coral</option>
-                    <option value="echo">Echo</option>
-                    <option value="marin">Marin</option>
-                    <option value="sage">Sage</option>
-                    <option value="shimmer">Shimmer</option>
-                    <option value="verse">Verse</option>
-                  </select>
-                </div>
-                <div class="col-6">
-                  <label class="form-label metric-label" for="turn_detection_select">Mode</label>
-                  <select id="turn_detection_select" class="form-select form-select-sm"
-                    data-testid="turn-detection-select">
-                    <option value="server_vad" selected>Continuous</option>
-                    <option value="none">Push to Talk</option>
-                  </select>
-                </div>
-                <div class="col-12">
-                  <div class="form-check">
-                    <input id="generate_side_behaviour" class="form-check-input" type="checkbox" checked
-                      data-testid="generate-side-behaviour">
-                    <label class="form-check-label" for="generate_side_behaviour">Backend complement</label>
-                  </div>
-                </div>
-              </div>
-              <div class="d-grid gap-2 mt-3">
-                <button id="toggle_realtime" class="btn btn-primary" type="button" data-testid="toggle-realtime">
-                  <i class="bi bi-mic-fill me-2"></i>Start Realtime
-                </button>
-                <button id="push_to_talk" class="btn btn-outline-ink d-none" type="button"
-                  data-testid="push-to-talk">
-                  <i class="bi bi-broadcast me-2"></i>Hold to Talk
-                </button>
-              </div>
-              <audio id="assistant_audio" class="mt-3" controls autoplay data-testid="assistant-audio"></audio>
-            </div>
-          </div>
-
           <div class="demo-card card">
-            <div class="card-header">
-              <span><i class="bi bi-lightning-charge me-2"></i>Scenario</span>
-            </div>
-            <div class="card-body">
-              <div class="accordion" id="scenario_accordion">
-                <div class="accordion-item">
-                  <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                      data-bs-target="#scenario_conversation" aria-expanded="true">
-                      Conversation
-                    </button>
-                  </h2>
-                  <div id="scenario_conversation" class="accordion-collapse collapse show"
-                    data-bs-parent="#scenario_accordion">
-                    <div class="accordion-body">
-                      <div class="scenario-buttons">
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Bereit."
-                          data-testid="shortcut-ready">Bereit</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Ja."
-                          data-testid="shortcut-yes">Ja</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Nein."
-                          data-testid="shortcut-no">Nein</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button"
-                          data-utterance="Bitte beende die Interaktion."
-                          data-testid="shortcut-stop">Beenden</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="accordion-item">
-                  <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                      data-bs-target="#scenario_rps">
-                      Schere Stein Papier
-                    </button>
-                  </h2>
-                  <div id="scenario_rps" class="accordion-collapse collapse" data-bs-parent="#scenario_accordion">
-                    <div class="accordion-body">
-                      <div class="d-grid gap-2">
-                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="scissor"
-                          data-testid="manual-sign-scissor">
-                          <span class="sign-symbol">&#9996;</span><span>Schere</span>
-                        </button>
-                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="rock"
-                          data-testid="manual-sign-rock">
-                          <span class="sign-symbol">&#9994;</span><span>Stein</span>
-                        </button>
-                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="paper"
-                          data-testid="manual-sign-paper">
-                          <span class="sign-symbol">&#9995;</span><span>Papier</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="accordion-item">
-                  <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                      data-bs-target="#scenario_social">
-                      Social Context
-                    </button>
-                  </h2>
-                  <div id="scenario_social" class="accordion-collapse collapse" data-bs-parent="#scenario_accordion">
-                    <div class="accordion-body">
-                      <div class="scenario-buttons">
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="alone"
-                          data-testid="social-sample-alone">No one</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="single"
-                          data-testid="social-sample-single">One nearby</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="crowd"
-                          data-testid="social-sample-crowd">Group</button>
-                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="pair"
-                          data-testid="social-sample-pair">Pair</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <section class="main-column">
-          <div class="demo-card card mb-3">
-            <div class="card-header">
-              <span><i class="bi bi-chat-dots me-2"></i>Interaction</span>
-              <button id="clear_messages" class="btn btn-outline-ink toolbar-button" type="button"
-                title="Clear messages">
-                <i class="bi bi-eraser"></i>
-              </button>
-            </div>
-            <div class="card-body">
-              <div id="messages" class="message-list" data-testid="message-list"></div>
-              <div class="input-row mt-3">
-                <textarea id="text_input" class="form-control chat-input" rows="2"
-                  placeholder="Text input" data-testid="text-input"></textarea>
-                <button id="send_text" class="btn btn-primary toolbar-button" type="button" data-testid="send-text"
-                  title="Send">
-                  <i class="bi bi-send-fill"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="demo-card card">
-            <div class="card-header">
-              <span><i class="bi bi-eyeglasses me-2"></i>Behaviour</span>
-            </div>
-            <div class="card-body">
-              <div class="surface-panel mb-3">
-                <div class="metric-label">Speech</div>
-                <div id="speech_preview" data-testid="speech-preview">-</div>
-              </div>
-              <div class="behaviour-strip">
-                <div class="metric-tile">
-                  <span class="metric-label">Gesture</span>
-                  <strong id="gesture_value" data-testid="gesture-value">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Face</span>
-                  <strong id="face_value" data-testid="face-value">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Gaze</span>
-                  <strong id="gaze_value" data-testid="gaze-value">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Motion</span>
-                  <strong id="motion_value" data-testid="motion-value">-</strong>
-                </div>
-              </div>
-              <div class="metric-grid mt-3">
-                <div class="metric-tile">
-                  <span class="metric-label">GIGI Sign</span>
-                  <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">User Sign</span>
-                  <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Round</span>
-                  <strong id="round_value" data-testid="round-value">-</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Winner</span>
-                  <strong id="winner_value" data-testid="winner-value">-</strong>
-                </div>
-              </div>
-              <div class="surface-panel mt-3">
-                <div class="metric-label">Display</div>
-                <pre id="display_value" class="compact-json mb-0" data-testid="display-value">-</pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <aside class="right-column">
-          <div class="demo-card card mb-3">
             <div class="card-header">
               <span><i class="bi bi-camera-video me-2"></i>Sensing</span>
             </div>
@@ -658,36 +442,279 @@
                     </div>
                   </div>
                 </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#manual_emotion_events">
+                      Manual Emotion
+                    </button>
+                  </h2>
+                  <div id="manual_emotion_events" class="accordion-collapse collapse"
+                    data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="manual-event-buttons">
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="neutral"
+                          data-testid="manual-emotion-neutral">Neutral</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="happy"
+                          data-testid="manual-emotion-happy">Happy</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="sad"
+                          data-testid="manual-emotion-sad">Sad</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="angry"
+                          data-testid="manual-emotion-angry">Angry</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="fearful"
+                          data-testid="manual-emotion-fearful">Fearful</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="surprised"
+                          data-testid="manual-emotion-surprised">Surprised</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#manual_social_events">
+                      Manual Social
+                    </button>
+                  </h2>
+                  <div id="manual_social_events" class="accordion-collapse collapse"
+                    data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="manual-event-buttons">
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="alone"
+                          data-testid="social-sample-alone">No one</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="single"
+                          data-testid="social-sample-single">One nearby</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="crowd"
+                          data-testid="social-sample-crowd">Group</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="pair"
+                          data-testid="social-sample-pair">Pair</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#manual_hand_events">
+                      Manual Hand Sign
+                    </button>
+                  </h2>
+                  <div id="manual_hand_events" class="accordion-collapse collapse"
+                    data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="d-grid gap-2">
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="scissor"
+                          data-testid="manual-sign-scissor">
+                          <span class="sign-symbol">&#9996;</span><span>Schere</span>
+                        </button>
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="rock"
+                          data-testid="manual-sign-rock">
+                          <span class="sign-symbol">&#9994;</span><span>Stein</span>
+                        </button>
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="paper"
+                          data-testid="manual-sign-paper">
+                          <span class="sign-symbol">&#9995;</span><span>Papier</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#sensed_signals">
+                      Signals Sensed
+                    </button>
+                  </h2>
+                  <div id="sensed_signals" class="accordion-collapse collapse" data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="metric-row-list">
+                        <div class="metric-row">
+                          <span class="metric-label">Emotion</span>
+                          <strong id="emotion_value" data-testid="emotion-value">-</strong>
+                        </div>
+                        <div class="metric-row">
+                          <span class="metric-label">Humans</span>
+                          <strong id="human_count" data-testid="human-count">0</strong>
+                        </div>
+                        <div class="metric-row">
+                          <span class="metric-label">Groups</span>
+                          <strong id="group_count" data-testid="group-count">0</strong>
+                        </div>
+                        <div class="metric-row">
+                          <span class="metric-label">Hand Sign</span>
+                          <strong id="hand_sign_value" data-testid="hand-sign-value">-</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </aside>
 
+        <section class="main-column">
           <div class="demo-card card">
             <div class="card-header">
-              <span><i class="bi bi-graph-up me-2"></i>Signals</span>
+              <span><i class="bi bi-chat-dots me-2"></i>Interaction</span>
+              <button id="clear_messages" class="btn btn-outline-ink toolbar-button" type="button"
+                title="Clear messages">
+                <i class="bi bi-eraser"></i>
+              </button>
             </div>
             <div class="card-body">
-              <div class="metric-grid">
-                <div class="metric-tile">
-                  <span class="metric-label">Emotion</span>
-                  <strong id="emotion_value" data-testid="emotion-value">-</strong>
+              <ul class="nav nav-tabs interaction-tabs mb-3" id="interaction_tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button id="text_interaction_tab" class="nav-link active" type="button" role="tab"
+                    data-bs-toggle="tab" data-bs-target="#text_interaction_panel" aria-controls="text_interaction_panel"
+                    aria-selected="true" data-testid="text-interaction-tab">
+                    <i class="bi bi-keyboard me-2"></i>Text
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button id="speech_interaction_tab" class="nav-link" type="button" role="tab"
+                    data-bs-toggle="tab" data-bs-target="#speech_interaction_panel"
+                    aria-controls="speech_interaction_panel" aria-selected="false"
+                    data-testid="speech-interaction-tab">
+                    <i class="bi bi-mic me-2"></i>Realtime Speech
+                  </button>
+                </li>
+              </ul>
+              <div class="tab-content">
+                <div id="text_interaction_panel" class="tab-pane fade show active" role="tabpanel"
+                  aria-labelledby="text_interaction_tab" tabindex="0">
+                  <div id="messages" class="message-list" data-testid="message-list"></div>
+                  <div class="input-row mt-3">
+                    <textarea id="text_input" class="form-control chat-input" rows="2"
+                      placeholder="Text input" data-testid="text-input"></textarea>
+                    <button id="send_text" class="btn btn-primary toolbar-button" type="button"
+                      data-testid="send-text" title="Send">
+                      <i class="bi bi-send-fill"></i>
+                    </button>
+                  </div>
+                  <div class="surface-panel mt-3">
+                    <div class="metric-label mb-2">Conversation Shortcuts</div>
+                    <div class="manual-event-buttons">
+                      <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Bereit."
+                        data-testid="shortcut-ready">Bereit</button>
+                      <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Ja."
+                        data-testid="shortcut-yes">Ja</button>
+                      <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Nein."
+                        data-testid="shortcut-no">Nein</button>
+                      <button class="btn btn-outline-ink btn-sm" type="button"
+                        data-utterance="Bitte beende die Interaktion."
+                        data-testid="shortcut-stop">Beenden</button>
+                    </div>
+                  </div>
                 </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Humans</span>
-                  <strong id="human_count" data-testid="human-count">0</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Groups</span>
-                  <strong id="group_count" data-testid="group-count">0</strong>
-                </div>
-                <div class="metric-tile">
-                  <span class="metric-label">Camera Sign</span>
-                  <strong id="camera_sign_value" data-testid="camera-sign-value">-</strong>
+                <div id="speech_interaction_panel" class="tab-pane fade" role="tabpanel"
+                  aria-labelledby="speech_interaction_tab" tabindex="0">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="metric-label">Speech Session</span>
+                    <span id="listen_status" class="status-pill is-idle">Idle</span>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <label class="form-label metric-label" for="voice_select">Voice</label>
+                      <select id="voice_select" class="form-select form-select-sm" data-testid="voice-select">
+                        <option value="">Default</option>
+                        <option value="alloy">Alloy</option>
+                        <option value="ash">Ash</option>
+                        <option value="ballad">Ballad</option>
+                        <option value="cedar">Cedar</option>
+                        <option value="coral">Coral</option>
+                        <option value="echo">Echo</option>
+                        <option value="marin">Marin</option>
+                        <option value="sage">Sage</option>
+                        <option value="shimmer">Shimmer</option>
+                        <option value="verse">Verse</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label metric-label" for="turn_detection_select">Mode</label>
+                      <select id="turn_detection_select" class="form-select form-select-sm"
+                        data-testid="turn-detection-select">
+                        <option value="server_vad" selected>Continuous</option>
+                        <option value="none">Push to Talk</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <div class="form-check">
+                        <input id="generate_side_behaviour" class="form-check-input" type="checkbox" checked
+                          data-testid="generate-side-behaviour">
+                        <label class="form-check-label" for="generate_side_behaviour">Backend complement</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-grid gap-2 mt-3">
+                    <button id="toggle_realtime" class="btn btn-primary" type="button" data-testid="toggle-realtime">
+                      <i class="bi bi-mic-fill me-2"></i>Start Realtime
+                    </button>
+                    <button id="push_to_talk" class="btn btn-outline-ink d-none" type="button"
+                      data-testid="push-to-talk">
+                      <i class="bi bi-broadcast me-2"></i>Hold to Talk
+                    </button>
+                  </div>
+                  <audio id="assistant_audio" class="mt-3 w-100" controls autoplay
+                    data-testid="assistant-audio"></audio>
                 </div>
               </div>
-              <div class="surface-panel mt-3">
-                <div class="metric-label">Latest Event</div>
-                <div id="latest_event" data-testid="latest-event">-</div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="right-column">
+          <div class="demo-card card">
+            <div class="card-header">
+              <span><i class="bi bi-eyeglasses me-2"></i>Behaviour</span>
+            </div>
+            <div class="card-body">
+              <div class="metric-row-list">
+                <div class="metric-row">
+                  <span class="metric-label">Speech</span>
+                  <div id="speech_preview" data-testid="speech-preview">-</div>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Gesture</span>
+                  <strong id="gesture_value" data-testid="gesture-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Face</span>
+                  <strong id="face_value" data-testid="face-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Gaze</span>
+                  <strong id="gaze_value" data-testid="gaze-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Motion</span>
+                  <strong id="motion_value" data-testid="motion-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">GIGI Sign</span>
+                  <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">User Sign</span>
+                  <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Round</span>
+                  <strong id="round_value" data-testid="round-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Winner</span>
+                  <strong id="winner_value" data-testid="winner-value">-</strong>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Display</span>
+                  <pre id="display_value" class="compact-json mb-0" data-testid="display-value">-</pre>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-label">Latest Behaviour Event</span>
+                  <div id="latest_behaviour_event" data-testid="latest-behaviour-event">-</div>
+                </div>
               </div>
             </div>
           </div>
@@ -698,33 +725,68 @@
 
   <div class="offcanvas offcanvas-end" tabindex="-1" id="diagnostics_drawer" aria-labelledby="diagnostics_title">
     <div class="offcanvas-header">
-      <h5 id="diagnostics_title" class="offcanvas-title">Diagnostics</h5>
+      <h5 id="diagnostics_title" class="offcanvas-title">Agent &amp; Diagnostics</h5>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-      <div class="mb-3">
-        <div class="metric-label">Activity</div>
-        <div id="activity_log" class="mono-log" data-testid="activity-log"></div>
-      </div>
-      <div>
-        <div class="metric-label">Storage</div>
-        <pre id="storage_view" class="compact-json surface-panel" data-testid="storage-view">-</pre>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="agent_info_modal" tabindex="-1" aria-labelledby="agent_info_title" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 id="agent_info_title" class="modal-title">Agent</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <ul class="nav nav-tabs drawer-tabs mb-3" id="drawer_tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button id="diagnostics_drawer_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
+            data-bs-target="#diagnostics_drawer_panel" aria-controls="diagnostics_drawer_panel"
+            aria-selected="false" data-testid="diagnostics-drawer-tab">
+            <i class="bi bi-activity me-2"></i>Diagnostics
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button id="agent_drawer_tab" class="nav-link active" type="button" role="tab" data-bs-toggle="tab"
+            data-bs-target="#agent_drawer_panel" aria-controls="agent_drawer_panel" aria-selected="true"
+            data-testid="agent-drawer-tab">
+            <i class="bi bi-cpu me-2"></i>Agent
+          </button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
+          aria-labelledby="diagnostics_drawer_tab" tabindex="0">
+          <div class="mb-3">
+            <div class="metric-label">Activity</div>
+            <div id="activity_log" class="mono-log" data-testid="activity-log"></div>
+          </div>
+          <div>
+            <div class="metric-label">Storage</div>
+            <pre id="storage_view" class="compact-json surface-panel" data-testid="storage-view">-</pre>
+          </div>
         </div>
-        <div class="modal-body">
-          <div class="metric-label">Name</div>
-          <div id="agent_info_name" class="mb-3">-</div>
-          <div class="metric-label">Description</div>
-          <div id="agent_info_description">-</div>
+        <div id="agent_drawer_panel" class="tab-pane fade show active" role="tabpanel"
+          aria-labelledby="agent_drawer_tab" tabindex="0">
+          <label class="form-label metric-label" for="agent_select">Known Agents</label>
+          <select id="agent_select" class="form-select form-select-sm mb-3" data-testid="agent-select"></select>
+          <label class="form-label metric-label" for="agent_id_input">Agent ID</label>
+          <input id="agent_id_input" class="form-control form-control-sm mono mb-3" data-testid="agent-id-input"
+            placeholder="Select an agent first">
+          <div class="surface-panel py-2 mb-3">
+            <span class="metric-label">Connection</span>
+            <div id="agent_connection_state" data-testid="agent-connection-state">No agent selected</div>
+          </div>
+          <div class="d-grid mb-2">
+            <button id="connect_agent" class="btn btn-outline-ink" type="button" data-testid="connect-agent">
+              <i class="bi bi-plug me-2"></i>Connect
+            </button>
+          </div>
+          <div class="drawer-agent-actions mb-3">
+            <button id="start_agent" class="btn btn-primary" type="button" data-testid="start-agent">
+              <i class="bi bi-play-fill me-2"></i>Start Agent
+            </button>
+            <button id="reset_agent" class="btn btn-outline-ink" type="button" data-testid="reset-agent">
+              <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+            </button>
+          </div>
+          <div class="surface-panel drawer-info-panel">
+            <div class="metric-label">Name</div>
+            <div id="agent_info_name" class="mb-3">-</div>
+            <div class="metric-label">Description</div>
+            <div id="agent_info_description">-</div>
+          </div>
         </div>
       </div>
     </div>

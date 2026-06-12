@@ -1,5 +1,6 @@
 const state = {
   agentId: null,
+  selectedAgentId: null,
   agents: [],
   agentInfo: null,
   behaviourSource: null,
@@ -42,7 +43,8 @@ const camera = {
   handRecognizer: null,
   tracks: new Map(),
   nextTrackId: 1,
-  lastEmitAt: 0,
+  lastEmotionEmitAt: 0,
+  lastSocialEmitAt: 0,
   lastEmotion: null,
   lastPresenceSignature: null,
   lastGroupingSignature: null,
@@ -79,6 +81,15 @@ const SIGNS = {
   paper: { label: "Papier", symbol: "\u270B" },
 };
 
+const MANUAL_EMOTIONS = {
+  neutral: { valence: 0, arousal: 0.2 },
+  happy: { valence: 0.8, arousal: 0.55 },
+  sad: { valence: -0.7, arousal: 0.35 },
+  angry: { valence: -0.65, arousal: 0.75 },
+  fearful: { valence: -0.75, arousal: 0.7 },
+  surprised: { valence: 0.2, arousal: 0.8 },
+};
+
 const HAND_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],
   [0, 5], [5, 6], [6, 7], [7, 8],
@@ -98,28 +109,34 @@ async function init() {
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
   updatePushToTalkUi();
-  appendSystemMessage("Select or paste an agent ID, then start an interaction.");
+  appendSystemMessage("Select or paste an agent ID, then connect.");
 
-  state.agentId = getAgentIdFromLocation() || localStorage.getItem("gigiDemoAgentId");
+  state.selectedAgentId = getAgentIdFromLocation();
   await loadAgents();
-  if (state.agentId) {
-    document.getElementById("agent_id_input").value = state.agentId;
-    await connectToAgent(state.agentId);
+  if (state.selectedAgentId) {
+    document.getElementById("agent_id_input").value = state.selectedAgentId;
+    document.getElementById("agent_select").value = state.selectedAgentId;
+    updateSelectedAgentStatus();
+    await connectToAgent(state.selectedAgentId);
   } else {
+    updateSelectedAgentStatus();
     setControlsEnabled(false);
   }
 }
 
 function wireUi() {
-  document.getElementById("connect_agent").addEventListener("click", () => {
-    connectToAgent(document.getElementById("agent_id_input").value.trim());
-  });
-  document.getElementById("agent_select").addEventListener("change", (event) => {
-    const id = event.target.value;
-    document.getElementById("agent_id_input").value = id;
-    if (id) {
-      connectToAgent(id);
+  document.getElementById("connect_agent").addEventListener("click", async () => {
+    if (state.agentId) {
+      await disconnectAgent({ preserveInput: true, message: "Disconnected." });
+    } else {
+      await connectToAgent(document.getElementById("agent_id_input").value.trim());
     }
+  });
+  document.getElementById("agent_select").addEventListener("change", async (event) => {
+    await selectAgent(event.target.value, { updateInput: true });
+  });
+  document.getElementById("agent_id_input").addEventListener("input", async (event) => {
+    await selectAgent(event.target.value, { updateInput: false, updateSelect: true });
   });
   document.getElementById("start_agent").addEventListener("click", startAgent);
   document.getElementById("reset_agent").addEventListener("click", resetAgent);
@@ -144,6 +161,9 @@ function wireUi() {
   document.querySelectorAll("[data-utterance]").forEach((button) => {
     button.addEventListener("click", () => sendUserUtterance(button.dataset.utterance, { renderUser: true }));
   });
+  document.querySelectorAll("[data-emotion]").forEach((button) => {
+    button.addEventListener("click", () => submitEmotionSample(button.dataset.emotion));
+  });
   document.querySelectorAll("[data-sign]").forEach((button) => {
     button.addEventListener("click", () => submitHandSign(button.dataset.sign, {
       source: "rps.web",
@@ -155,7 +175,7 @@ function wireUi() {
     button.addEventListener("click", () => submitSocialSample(button.dataset.socialSample));
   });
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
-    input.addEventListener("change", ensureEnabledModels);
+    input.addEventListener("change", handleSensorModeChange);
   });
 }
 
@@ -180,51 +200,77 @@ async function loadAgents() {
       option.textContent = isGigiAgent(agent) ? `${agent.name} *` : agent.name || id;
       select.appendChild(option);
     }
-    if (!state.agentId) {
-      const firstGigi = sorted.find(isGigiAgent);
-      state.agentId = firstGigi ? agentIdOf(firstGigi) : null;
-      if (state.agentId) {
-        document.getElementById("agent_id_input").value = state.agentId;
-        select.value = state.agentId;
-      }
-    } else {
-      select.value = state.agentId;
+    if (state.selectedAgentId) {
+      select.value = state.selectedAgentId;
     }
   } catch (error) {
     appendLog("app", "agent list failed: " + error.message);
   }
 }
 
+async function selectAgent(agentId, options = {}) {
+  const selectedAgentId = typeof agentId === "string" ? agentId.trim() : "";
+  state.selectedAgentId = selectedAgentId || null;
+  if (options.updateInput !== false) {
+    document.getElementById("agent_id_input").value = selectedAgentId;
+  }
+  if (options.updateSelect !== false) {
+    document.getElementById("agent_select").value = selectedAgentId;
+  }
+  if (state.agentId && state.agentId !== selectedAgentId) {
+    await disconnectAgent({ preserveInput: true, silent: true });
+  }
+  updateSelectedAgentStatus();
+}
+
 async function connectToAgent(agentId) {
-  if (!agentId) {
-    setControlsEnabled(false);
+  const selectedAgentId = typeof agentId === "string" ? agentId.trim() : "";
+  if (!selectedAgentId) {
+    await disconnectAgent({ preserveInput: false, silent: true });
     appendSystemMessage("Missing agent ID.");
     return;
   }
+  state.selectedAgentId = selectedAgentId;
+  if (state.realtimeListening) {
+    await stopRealtime();
+  }
+  if (state.cameraRunning) {
+    stopCamera({ silent: true });
+  }
   cleanupStreams();
-  state.agentId = agentId;
-  localStorage.setItem("gigiDemoAgentId", agentId);
-  document.getElementById("agent_id_input").value = agentId;
-  document.getElementById("agent_select").value = agentId;
+  state.agentId = selectedAgentId;
+  document.getElementById("agent_id_input").value = selectedAgentId;
+  document.getElementById("agent_select").value = selectedAgentId;
+  updateSelectedAgentStatus();
   state.lastBehaviourEventId = null;
   state.seenBehaviourKeys.clear();
-  setControlsEnabled(true);
+  setControlsEnabled(false);
+  const infoLoaded = await loadAgentInfo();
+  if (!infoLoaded) {
+    appendSystemMessage("Agent not found or unavailable.");
+    await disconnectAgent({ preserveInput: true, silent: true });
+    return;
+  }
   clearMessages();
   appendSystemMessage("Connected.");
-  await loadAgentInfo();
   await loadEventHistory();
   await loadStorage();
+  setControlsEnabled(true);
+  updateConnectionButton();
   connectBehaviourStream();
   connectMonitorStream();
 }
 
 async function loadAgentInfo() {
+  if (!state.agentId) {
+    return false;
+  }
   try {
     const response = await fetch(`/${state.agentId}/info`);
     if (!response.ok) {
       appendLog("app", `agent info failed: ${response.status}`);
-      setActiveStatus(null);
-      return;
+      resetAgentInfo();
+      return false;
     }
     const data = await response.json();
     state.agentInfo = data;
@@ -232,8 +278,80 @@ async function loadAgentInfo() {
     document.getElementById("agent_info_name").textContent = data.name || "-";
     document.getElementById("agent_info_description").textContent = data.description || "-";
     setActiveStatus(data.active);
+    return true;
   } catch (error) {
     appendLog("app", "agent info failed: " + error.message);
+    resetAgentInfo();
+    return false;
+  }
+}
+
+async function disconnectAgent(options = {}) {
+  if (state.realtimeListening) {
+    await stopRealtime();
+  }
+  if (state.cameraRunning) {
+    stopCamera({ silent: true });
+  }
+  cleanupStreams();
+  state.agentId = null;
+  state.agentInfo = null;
+  state.lastBehaviourEventId = null;
+  state.seenBehaviourKeys.clear();
+  if (!options.preserveInput) {
+    document.getElementById("agent_id_input").value = "";
+    state.selectedAgentId = null;
+  }
+  document.getElementById("agent_select").value = state.selectedAgentId || "";
+  setText("storage_view", "-");
+  setBehaviourStatus("Behaviour Idle", "idle");
+  resetAgentInfo();
+  setControlsEnabled(false);
+  updateSelectedAgentStatus();
+  updateConnectionButton();
+  if (!options.silent && options.message) {
+    appendSystemMessage(options.message);
+  }
+}
+
+function clearAgentConnection(options = {}) {
+  return disconnectAgent(options);
+}
+
+function resetAgentInfo() {
+  state.agentInfo = null;
+  document.getElementById("agent_subtitle").textContent = "PROMETHEUS TDSR test console";
+  document.getElementById("agent_info_name").textContent = "-";
+  document.getElementById("agent_info_description").textContent = "-";
+  setActiveStatus(null);
+}
+
+function updateSelectedAgentStatus() {
+  const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
+  const text = state.agentId
+    ? `Connected to ${state.agentId}`
+    : selected
+      ? `Selected ${selected}`
+      : "No agent selected";
+  setText("agent_connection_state", text);
+  updateConnectionButton();
+}
+
+function updateConnectionButton() {
+  const button = document.getElementById("connect_agent");
+  if (!button) {
+    return;
+  }
+  if (state.agentId) {
+    button.innerHTML = '<i class="bi bi-plug-fill me-2"></i>Disconnect';
+    button.classList.remove("btn-outline-ink");
+    button.classList.add("btn-outline-danger");
+    button.setAttribute("aria-pressed", "true");
+  } else {
+    button.innerHTML = '<i class="bi bi-plug me-2"></i>Connect';
+    button.classList.add("btn-outline-ink");
+    button.classList.remove("btn-outline-danger");
+    button.setAttribute("aria-pressed", "false");
   }
 }
 
@@ -758,8 +876,6 @@ function handleRealtimeEvent(event) {
       appendMessage("user", transcript.trim());
       handleRealtimeUserTranscript(transcript.trim());
     }
-  } else if (data.type === "conversation.item.input_audio_transcription.delta") {
-    setText("latest_event", data.delta || data.transcript || "");
   } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
     realtime.assistantAudioSeen = true;
     realtime.assistantTranscriptBuffer += data.delta || "";
@@ -1081,22 +1197,38 @@ function stopCamera(options = {}) {
 
 async function ensureEnabledModels() {
   const loaders = [];
-  if (document.getElementById("sensor_emotion_enabled").checked && !camera.faceModelsReady) {
+  if (isSensorModeEnabled("emotion") && !camera.faceModelsReady) {
     loaders.push(loadFaceModels());
   }
-  if (document.getElementById("sensor_social_enabled").checked && !camera.socialDetectorReady) {
+  if (isSensorModeEnabled("social") && !camera.socialDetectorReady) {
     loaders.push(loadSocialDetector());
   }
-  if (document.getElementById("sensor_hand_enabled").checked && !camera.handDetectorReady) {
+  if (isSensorModeEnabled("hand") && !camera.handDetectorReady) {
     loaders.push(loadHandRecognizer());
   }
   if (loaders.length > 0) {
     setCameraStatus("Loading Models", "idle");
-    await Promise.allSettled(loaders);
-    if (!state.cameraRunning) {
-      setCameraStatus("Camera Idle", "idle");
-    }
+    const results = await Promise.allSettled(loaders);
+    results
+      .filter((result) => result.status === "rejected")
+      .forEach((result) => appendLog("camera", "model load failed: " + errorMessage(result.reason)));
+    setCameraStatus(state.cameraRunning ? "Camera Live" : "Camera Idle", state.cameraRunning ? "live" : "idle");
   }
+}
+
+async function handleSensorModeChange() {
+  resetDisabledSensorState();
+  await ensureEnabledModels();
+}
+
+function isSensorModeEnabled(mode) {
+  const ids = {
+    emotion: "sensor_emotion_enabled",
+    social: "sensor_social_enabled",
+    hand: "sensor_hand_enabled",
+  };
+  const input = document.getElementById(ids[mode]);
+  return !!(input && input.checked);
 }
 
 async function loadFaceModels() {
@@ -1140,13 +1272,13 @@ async function runCameraLoop() {
   }
   try {
     clearOverlay();
-    if (document.getElementById("sensor_social_enabled").checked && camera.socialDetectorReady) {
+    if (isSensorModeEnabled("social") && camera.socialDetectorReady) {
       await detectSocial();
     }
-    if (document.getElementById("sensor_emotion_enabled").checked && camera.faceModelsReady) {
+    if (isSensorModeEnabled("emotion") && camera.faceModelsReady) {
       await detectEmotion();
     }
-    if (document.getElementById("sensor_hand_enabled").checked && camera.handDetectorReady) {
+    if (isSensorModeEnabled("hand") && camera.handDetectorReady) {
       await detectHandSign();
     }
   } catch (error) {
@@ -1165,7 +1297,7 @@ async function detectEmotion() {
   }
   drawFaceBox(detection.detection.box);
   const emotion = deriveEmotion(detection.expressions);
-  setText("emotion_value", `${emotion.emotion} ${emotion.confidence.toFixed(2)}`);
+  renderEmotionMetrics(emotion);
   await maybeEmitEmotion(emotion, detection.detection.score);
 }
 
@@ -1191,9 +1323,9 @@ async function detectHandSign() {
   updateCameraStability(candidate);
   drawGestureOverlay(candidate);
   if (candidate) {
-    setText("camera_sign_value", `${SIGNS[candidate.sign].label} ${candidate.confidence.toFixed(2)}`);
+    setText("hand_sign_value", `${SIGNS[candidate.sign].label} ${candidate.confidence.toFixed(2)}`);
   } else {
-    setText("camera_sign_value", "-");
+    setText("hand_sign_value", "-");
   }
   await maybeEmitCameraSign(candidate);
   camera.lastGestureVideoTime = camera.video.currentTime;
@@ -1224,7 +1356,7 @@ async function maybeEmitEmotion(emotion, faceScore) {
     return;
   }
   const threshold = Number(document.getElementById("face_confidence_threshold").value || 0.55);
-  if (emotion.confidence < threshold || !passesEmitInterval()) {
+  if (emotion.confidence < threshold || !passesSensorEmitInterval("emotion")) {
     return;
   }
   if (camera.lastEmotion && camera.lastEmotion.emotion === emotion.emotion &&
@@ -1232,8 +1364,57 @@ async function maybeEmitEmotion(emotion, faceScore) {
     Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08) {
     return;
   }
-  const payload = {
-    source: "visual.facial",
+  const ok = await acknowledgeEvent({
+    type: "obs.emotion.face",
+    actor: "user",
+    kind: "observation",
+    payload: JSON.stringify(emotionPayload(emotion, "visual.facial", faceScore)),
+  }, { renderResponse: true });
+  if (ok) {
+    markSensorEmitted("emotion");
+    camera.lastEmotion = emotion;
+  }
+}
+
+async function submitEmotionSample(label) {
+  const spec = MANUAL_EMOTIONS[label];
+  if (!spec) {
+    appendLog("emotion", "unknown manual emotion.");
+    return false;
+  }
+  const emotion = {
+    emotion: label,
+    confidence: 1,
+    valence: spec.valence,
+    arousal: spec.arousal,
+    expressions: manualEmotionExpressions(label),
+    facePresent: true,
+  };
+  renderEmotionMetrics(emotion);
+  const data = await acknowledgeEvent({
+    type: "obs.emotion.face",
+    actor: "user",
+    kind: "observation",
+    payload: JSON.stringify(emotionPayload(emotion, "visual.facial.manual", 1, { detectionMode: "manual" })),
+  }, { renderResponse: true });
+  if (data) {
+    camera.lastEmotion = emotion;
+    markSensorEmitted("emotion");
+  }
+  return !!data;
+}
+
+function renderEmotionMetrics(emotion) {
+  if (!emotion) {
+    setText("emotion_value", "-");
+    return;
+  }
+  setText("emotion_value", `${emotion.emotion} ${Number(emotion.confidence || 0).toFixed(2)}`);
+}
+
+function emotionPayload(emotion, source, faceScore, extra = {}) {
+  return {
+    source,
     emotion: emotion.emotion,
     confidence: round(emotion.confidence, 3),
     valence: round(emotion.valence, 3),
@@ -1242,17 +1423,15 @@ async function maybeEmitEmotion(emotion, faceScore) {
     facePresent: true,
     expressions: compressExpressions(emotion.expressions),
     ts: new Date().toISOString(),
+    ...extra,
   };
-  const ok = await acknowledgeEvent({
-    type: "obs.emotion.face",
-    actor: "user",
-    kind: "observation",
-    payload: JSON.stringify(payload),
-  }, { renderResponse: true });
-  if (ok) {
-    camera.lastEmitAt = Date.now();
-    camera.lastEmotion = emotion;
-  }
+}
+
+function manualEmotionExpressions(label) {
+  return Object.fromEntries(
+    ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"]
+      .map((emotion) => [emotion, emotion === label ? 1 : 0])
+  );
 }
 
 function normalizePersonDetection(detection) {
@@ -1364,7 +1543,7 @@ function renderSocialMetrics(social) {
 }
 
 async function maybeEmitSocial(social, tracked) {
-  if (!document.getElementById("sensor_emit_enabled").checked || !social || !passesEmitInterval()) {
+  if (!document.getElementById("sensor_emit_enabled").checked || !social || !passesSensorEmitInterval("social")) {
     return;
   }
   await submitSocialPayloads(social, tracked, "visual.social");
@@ -1422,7 +1601,7 @@ async function submitSocialPayloads(social, tracked, source) {
     kind: "observation",
     payload: JSON.stringify(groupingPayload),
   }, { renderResponse: true });
-  camera.lastEmitAt = Date.now();
+  markSensorEmitted("social");
   camera.lastPresenceSignature = presenceSignature;
   camera.lastGroupingSignature = groupingSignature;
 }
@@ -1492,7 +1671,7 @@ async function maybeEmitCameraSign(candidate) {
   });
   if (ok) {
     camera.lastCameraEmitKey = emitKey;
-    camera.lastCameraEmitAt = Date.now();
+    markSensorEmitted("hand");
   }
 }
 
@@ -1605,14 +1784,53 @@ function clearOverlay() {
   camera.ctx.clearRect(0, 0, camera.canvas.width, camera.canvas.height);
 }
 
-function passesEmitInterval() {
+function passesSensorEmitInterval(mode) {
   const minInterval = Number(document.getElementById("emit_interval_ms").value || 2500);
-  return Date.now() - camera.lastEmitAt >= minInterval;
+  const lastEmitAtByMode = {
+    emotion: camera.lastEmotionEmitAt,
+    social: camera.lastSocialEmitAt,
+    hand: camera.lastCameraEmitAt,
+  };
+  return Date.now() - (lastEmitAtByMode[mode] || 0) >= minInterval;
+}
+
+function markSensorEmitted(mode) {
+  const now = Date.now();
+  if (mode === "emotion") {
+    camera.lastEmotionEmitAt = now;
+  } else if (mode === "social") {
+    camera.lastSocialEmitAt = now;
+  } else if (mode === "hand") {
+    camera.lastCameraEmitAt = now;
+  }
 }
 
 function resetCameraEmissionGate() {
   camera.lastCameraEmitKey = null;
   camera.lastCameraEmitAt = 0;
+}
+
+function resetDisabledSensorState() {
+  if (!isSensorModeEnabled("emotion")) {
+    setText("emotion_value", "-");
+    camera.lastEmotion = null;
+    camera.lastEmotionEmitAt = 0;
+  }
+  if (!isSensorModeEnabled("social")) {
+    setText("human_count", "0");
+    setText("group_count", "0");
+    camera.tracks.clear();
+    camera.lastPresenceSignature = null;
+    camera.lastGroupingSignature = null;
+    camera.lastSocialEmitAt = 0;
+  }
+  if (!isSensorModeEnabled("hand")) {
+    setText("hand_sign_value", "-");
+    camera.stableGestureKey = null;
+    camera.stableGestureCount = 0;
+    camera.lastCameraEmitKey = null;
+    camera.lastCameraEmitAt = 0;
+  }
 }
 
 function renderUserSignFromPayload(payload) {
@@ -1648,8 +1866,11 @@ function renderLatestEvent(event) {
   if (!event) {
     return;
   }
+  if (event.type !== "resp.behaviour_plan") {
+    return;
+  }
   const payload = event.payload ? shortPayload(event.payload) : "";
-  setText("latest_event", payload ? `${event.type}: ${payload}` : event.type);
+  setText("latest_behaviour_event", payload ? `${event.type}: ${payload}` : event.type);
 }
 
 function appendMessage(role, text) {
@@ -1693,16 +1914,29 @@ function resetBehaviourPanels() {
   setText("round_value", "-");
   setText("winner_value", "-");
   setText("display_value", "-");
+  setText("latest_behaviour_event", "-");
 }
 
 function setControlsEnabled(enabled) {
+  const alwaysEnabled = new Set([
+    "agent_id_input",
+    "agent_select",
+    "connect_agent",
+    "open_diagnostics",
+    "agent_drawer_tab",
+    "diagnostics_drawer_tab",
+    "text_interaction_tab",
+    "speech_interaction_tab",
+  ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (el.id === "agent_id_input" || el.id === "agent_select" || el.id === "connect_agent") {
+    if (alwaysEnabled.has(el.id) || el.classList.contains("btn-close") ||
+      el.dataset.bsDismiss === "offcanvas" || el.dataset.bsToggle === "collapse") {
       return;
     }
     el.disabled = !enabled;
   });
-  document.getElementById("stop_camera").disabled = true;
+  document.getElementById("start_camera").disabled = !enabled || state.cameraRunning;
+  document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning;
   updatePushToTalkUi();
 }
 
@@ -1881,6 +2115,10 @@ function average(values) {
     return 0;
   }
   return values.reduce((sum, value) => sum + Number(value || 0), 0) / values.length;
+}
+
+function errorMessage(error) {
+  return error && error.message ? error.message : String(error || "unknown error");
 }
 
 function clamp(value, min, max) {

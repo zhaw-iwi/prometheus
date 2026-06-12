@@ -35,6 +35,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 29: Unified GIGI TDSR demo cockpit
 - [x] Milestone 30: OpenAI Realtime GA migration across PROMETHEUS clients
 - [x] Milestone 31: Realtime demo hardening
+- [x] Milestone 32: GIGI demo independent sensing modes
+- [x] Milestone 33: GIGI demo UI layout and explicit agent connection
+- [x] Milestone 34: GIGI demo sensing accordion and behaviour rows
+- [x] Milestone 35: GIGI demo explicit connect/disconnect lifecycle
 
 ## Milestone 1
 ### Date
@@ -1491,3 +1495,213 @@ Harden the GA Realtime demos after the migration by moving `/multilateral/listen
 1. Run a live rehearsal with seeded GIGI TDSR agents and real microphone input.
 2. Tune `/multilateral/listen` commit interval and transcription delay against the target demo room.
 3. Consider extracting shared Realtime browser helpers if the three clients continue changing together.
+
+## Milestone 32
+### Date
+2026-06-12
+
+### Goal
+Make GIGI demo visual sensing modes independently toggleable at runtime so face emotion, social grouping, and hand-sign sensing can run in any combination or one at a time.
+
+### What changed
+- Updated `src/main/resources/public/gigi-demo/script.js` so sensing mode checkboxes are handled by a dedicated runtime mode-change path.
+- New mode behavior:
+  - newly enabled modes load their model while the camera is already running
+  - disabled modes are skipped immediately by the camera loop
+  - stale mode-specific metrics and duplicate gates are cleared when a mode is disabled
+  - camera status returns to `Camera Live` after live model loading completes
+- Replaced the shared visual sensing event throttle with per-mode timestamps:
+  - face emotion uses `lastEmotionEmitAt`
+  - social grouping uses `lastSocialEmitAt`
+  - hand sign keeps its existing hand-sign duplicate gate
+- Preserved the single camera loop and overlay composition while making detector enablement explicit through `isSensorModeEnabled(...)`.
+- Extended `GigiDemoClientStaticResourceContractTest` to assert runtime sensing mode handling and independent emit gates.
+- Updated README with the GIGI demo combined-sensing behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed a GIGI TDSR agent.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+5. Start the camera, then turn face emotion, social grouping, and hand-sign sensing on or off in any combination.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This milestone keeps the existing browser-side detector libraries and event contracts; it changes runtime coordination only.
+- Detector execution is still sequential within one camera loop, not parallel worker execution.
+- Live camera quality still depends on browser permission, lighting, model/CDN availability, and local hardware.
+- Hand-sign camera events still require `Auto-send hand sign`; manual hand-sign buttons remain available independently of camera mode.
+
+### Next steps
+1. Rehearse live combined sensing on the target demo machine and tune thresholds if needed.
+2. Consider exposing per-mode emit interval controls if demos need different rates for emotion versus social context.
+3. Consider extracting shared sensing helpers if another client needs the same runtime mode behavior.
+
+## Milestone 33
+### Date
+2026-06-12
+
+### Goal
+Improve the GIGI demo cockpit UI layout and remove implicit stale agent connections by making agent selection explicit.
+
+### What changed
+- Moved agent selection, Agent ID entry, connection, start, reset, and agent metadata controls into a new Agent tab in the existing drawer.
+- Kept diagnostics in the same drawer under a separate Diagnostics tab.
+- Removed implicit page-load agent selection:
+  - no localStorage Agent ID is read or written
+  - no first GIGI agent is auto-selected from `/agent`
+  - only an explicit `?agentId=` URL or drawer selection/paste populates the Agent ID
+- Hardened connection behavior so `/info` must succeed before event history, storage, behaviour SSE, or monitor SSE are opened.
+- Split the center column into Text and Realtime Speech tabs.
+- Moved sensing and sensed input-signal metrics to the left column.
+- Moved rendered `BehaviourPlan` output to the right column.
+- Reframed the old Scenario card as concrete manual event shortcuts:
+  - conversation shortcuts in the Text tab
+  - manual hand-sign and social-sample inputs in the Sensing card
+- Extended `GigiDemoClientStaticResourceContractTest` to cover drawer tabs, interaction tabs, explicit agent selection, validated stream connection, and the manual event shortcut layout.
+- Updated README with the new cockpit layout and connection behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed a GIGI TDSR agent.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/`
+   - or `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+5. Use the Agent drawer tab to select or paste an agent, connect, then start the agent when needed.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- `Connect` and `Start Agent` remain separate because they affect different layers: connecting validates the selected agent and opens browser streams; starting invokes the backend runtime `/{agentID}/start` endpoint.
+- The cockpit still supports explicit URL agent IDs for rehearsals and shared links.
+- Manual event shortcuts remain TDSR-demo-oriented, not generic framework-wide controls.
+- Live browser/camera/microphone verification still depends on a running app, seeded agents, browser permissions, and local hardware.
+
+### Next steps
+1. Rehearse the new layout with seeded GIGI agents and confirm the drawer interaction is ergonomic during demos.
+2. Consider adding lightweight seeded-demo affordances if selecting agents from the drawer remains too manual.
+3. Extract client-side layout or realtime helpers only if additional cockpit variants reuse the same patterns.
+
+## Milestone 34
+### Date
+2026-06-12
+
+### Goal
+Clean up the GIGI demo cockpit sensing and behaviour panels so the left column is shorter, sensed signals are grouped with sensing controls, and behaviour output is easier to scan.
+
+### What changed
+- Reworked the Sensing card into a single accordion with these sections:
+  - Detectors
+  - Configuration
+  - Manual Emotion
+  - Manual Social
+  - Manual Hand Sign
+  - Signals Sensed
+- Added manual facial emotion buttons that emit the existing `obs.emotion.face` contract with `source=visual.facial.manual` and `detectionMode=manual`.
+- Moved sensed signal readouts into the accordion and rendered each signal as a full-width row.
+- Kept accordion headers expandable before agent connection while leaving action controls disabled until a valid agent is connected.
+- Renamed the visible camera hand-sign readout from `Camera Sign` to `Hand Sign`.
+- Removed the generic Latest Event row from the sensing panel.
+- Added a behaviour-scoped `Latest Behaviour Event` row to the Behaviour card.
+- Changed the Behaviour card from compact grids to full-width rows for:
+  - speech
+  - gesture
+  - face
+  - gaze
+  - motion
+  - GIGI sign
+  - user sign
+  - round
+  - winner
+  - display
+  - latest behaviour event
+- Updated `GigiDemoClientStaticResourceContractTest` to cover the new accordion sections, manual emotion emission, renamed hand-sign readout, full-width behaviour rows, and removal of stale generic event/grid hooks.
+- Updated README with the new cockpit panel organization.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed a GIGI TDSR agent.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/`
+   - or `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+5. Use the sensing accordion to configure detectors, trigger manual emotion/social/hand observations, and inspect sensed signals.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This milestone intentionally keeps the cockpit TDSR-demo-oriented and does not introduce agent-declared sensing/behaviour capabilities.
+- Observation events now surface primarily through the Activity log and specific sensed-signal rows; only `resp.behaviour_plan` events update the Behaviour card's latest event row.
+- Manual emotion payload values use deterministic representative valence/arousal defaults, not model-derived affect estimation.
+- Live browser/camera/microphone verification still depends on a running app, seeded agents, browser permissions, and local hardware.
+
+### Next steps
+1. Discuss an optional agent interaction profile or capability declaration for supported sensing signals and behaviour modalities.
+2. Rehearse the accordion layout during a real GIGI demo and adjust default-expanded sections if needed.
+3. Consider making manual event shortcuts profile-driven once agent capability declarations exist.
+
+## Milestone 35
+### Date
+2026-06-12
+
+### Goal
+Remove ambiguity from the GIGI demo Agent drawer by separating agent selection from connection and making the Connect button a visible connect/disconnect control.
+
+### What changed
+- Added a separate selected-agent state in the GIGI demo client.
+- Changed Agent drawer behavior:
+  - choosing an agent in the dropdown only fills/selects the Agent ID
+  - editing the Agent ID field only updates the selected Agent ID
+  - `Connect` validates the selected ID and opens info/history/storage/SSE streams
+  - once connected, the button changes to `Disconnect`
+  - `Disconnect` closes streams, stops realtime/camera if running, resets active agent state, and preserves the selected ID for reconnect
+- Added a visible connection-state row in the Agent drawer.
+- Kept explicit `?agentId=<uuid>` URLs auto-connecting for rehearsal/shared links.
+- Preserved the separation between `Connect` and `Start Agent`: connecting affects browser streams; starting calls the backend runtime start endpoint.
+- Updated `GigiDemoClientStaticResourceContractTest` to assert the selected-vs-connected model and guard against dropdown auto-connect regressions.
+- Updated README with the clarified Agent drawer lifecycle.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed a GIGI TDSR agent.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/`
+5. Open the Agent drawer tab, choose an agent, click `Connect`, then use `Start Agent` only when the backend runtime should start.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright scripted smoke outside the repo verifying:
+    - dropdown selection updates selected ID and does not open behaviour/monitor streams
+    - `Connect` opens behaviour and monitor streams and enables interaction controls
+    - `Disconnect` preserves the selected ID and disables interaction controls again
+    - no page HTTP responses with status `>=400`
+
+### Known issues and decisions
+- The cockpit still auto-connects when an explicit `?agentId=<uuid>` is present because shared rehearsal links should remain one-step.
+- Dropdown browsing no longer opens SSE streams or validates the agent.
+- `Disconnect` is a client-side stream/session disconnect, not a backend agent reset or stop operation.
+- The agent capability declaration milestone remains separate and should build on this clearer connection lifecycle.
+
+### Next steps
+1. Implement the agent interaction profile/capability declaration as a framework-level feature.
+2. Use the declared profile in the GIGI demo to hide irrelevant controls and behaviour rows.
+3. Consider a visual connected badge in the page header if live demos need stronger state signalling.
