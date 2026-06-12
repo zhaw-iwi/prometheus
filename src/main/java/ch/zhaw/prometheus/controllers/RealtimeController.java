@@ -26,5 +26,15 @@ public class RealtimeController {
                 session.getRealtimeCallsUrl());
         return new ResponseEntity<>(view, HttpStatus.OK);
     }
+
+    @PostMapping("realtime/transcription/session")
+    public ResponseEntity<RealtimeSessionView> createTranscriptionSession() {
+        RealtimeSessionInfo session = this.realtimeSessionClient.createTranscriptionSession();
+        RealtimeSessionView view = new RealtimeSessionView(
+                session.getClientSecret(),
+                session.getModel(),
+                session.getRealtimeCallsUrl());
+        return new ResponseEntity<>(view, HttpStatus.OK);
+    }
 }
 

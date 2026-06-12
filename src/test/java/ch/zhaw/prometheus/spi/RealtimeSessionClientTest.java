@@ -34,10 +34,12 @@ class RealtimeSessionClientTest {
     void createSessionUsesGaClientSecretEndpointAndPayload() throws Exception {
         AtomicReference<String> requestMethod = new AtomicReference<>();
         AtomicReference<String> authorizationHeader = new AtomicReference<>();
+        AtomicReference<String> safetyIdentifierHeader = new AtomicReference<>();
         AtomicReference<String> requestBody = new AtomicReference<>();
         startServer(exchange -> {
             requestMethod.set(exchange.getRequestMethod());
             authorizationHeader.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            safetyIdentifierHeader.set(exchange.getRequestHeaders().getFirst("OpenAI-Safety-Identifier"));
             requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             writeResponse(exchange, 200, "{\"value\":\"ek_test_secret\",\"session\":{\"type\":\"realtime\"}}");
         });
@@ -48,6 +50,7 @@ class RealtimeSessionClientTest {
         props.setRealtimeModel("gpt-realtime");
         props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
         props.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+        props.setRealtimeSafetyIdentifier("hashed-demo-user");
 
         RealtimeSessionInfo sessionInfo = new RealtimeSessionClient(props).createSession();
 
@@ -56,6 +59,7 @@ class RealtimeSessionClientTest {
         assertEquals("https://example.test/v1/realtime/calls", sessionInfo.getRealtimeCallsUrl());
         assertEquals("POST", requestMethod.get());
         assertEquals("Bearer test-api-key", authorizationHeader.get());
+        assertEquals("hashed-demo-user", safetyIdentifierHeader.get());
 
         JsonObject payload = JsonParser.parseString(requestBody.get()).getAsJsonObject();
         JsonObject session = payload.getAsJsonObject("session");
@@ -69,6 +73,43 @@ class RealtimeSessionClientTest {
                         .get("model")
                         .getAsString());
         assertFalse(payload.has("modalities"));
+        assertFalse(payload.has("input_audio_transcription"));
+    }
+
+    @Test
+    void createTranscriptionSessionUsesGaTranscriptionPayload() throws Exception {
+        AtomicReference<String> requestBody = new AtomicReference<>();
+        startServer(exchange -> {
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            writeResponse(exchange, 200, "{\"value\":\"ek_transcription_secret\",\"session\":{\"type\":\"transcription\"}}");
+        });
+
+        OpenAIProperties props = new OpenAIProperties();
+        props.setOpenaivsazureopenai("openai");
+        props.setKey("test-api-key");
+        props.setRealtimeTranscriptionModel("gpt-realtime-whisper");
+        props.setRealtimeTranscriptionLanguage("en");
+        props.setRealtimeTranscriptionDelay("low");
+        props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
+        props.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+
+        RealtimeSessionInfo sessionInfo = new RealtimeSessionClient(props).createTranscriptionSession();
+
+        assertEquals("ek_transcription_secret", sessionInfo.getClientSecret());
+        assertEquals("gpt-realtime-whisper", sessionInfo.getModel());
+        assertEquals("https://example.test/v1/realtime/calls", sessionInfo.getRealtimeCallsUrl());
+
+        JsonObject payload = JsonParser.parseString(requestBody.get()).getAsJsonObject();
+        JsonObject session = payload.getAsJsonObject("session");
+        assertEquals("transcription", session.get("type").getAsString());
+        JsonObject audioInput = session.getAsJsonObject("audio").getAsJsonObject("input");
+        assertFalse(audioInput.has("turn_detection"));
+        JsonObject transcription = audioInput.getAsJsonObject("transcription");
+        assertEquals("gpt-realtime-whisper", transcription.get("model").getAsString());
+        assertEquals("en", transcription.get("language").getAsString());
+        assertEquals("low", transcription.get("delay").getAsString());
+        assertFalse(session.has("model"));
+        assertFalse(session.has("output_modalities"));
         assertFalse(payload.has("input_audio_transcription"));
     }
 

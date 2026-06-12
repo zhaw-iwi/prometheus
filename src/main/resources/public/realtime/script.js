@@ -379,7 +379,7 @@ function handleRealtimeEvent(event) {
     assistantAppended = false;
     assistantTranscriptBuffer = "";
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
-    const partial = data.transcript || "";
+    const partial = data.delta || data.transcript || "";
     if (partial.trim()) {
       document.getElementById("user_transcript").textContent = partial;
     }
@@ -441,11 +441,12 @@ async function handleUserTranscript(transcript) {
     if (ackData && typeof ackData.active === "boolean") {
       setActiveStatus(ackData.active);
     }
+    const ackResponseSpeech = getEventSpeech(ackData && ackData.responseEvent);
     const isInactive = !!(ackData && ackData.active === false);
     if (isInactive) {
       appendLog("policy", "Agent is inactive; generating final-state acknowledgement only.");
     }
-    if (!isInactive && shouldGenerateSideBehaviour()) {
+    if (!ackResponseSpeech && !isInactive && shouldGenerateSideBehaviour()) {
       const generateResponse = await fetch(`/${session.agentId}/behaviour/generate`, {
         method: "POST",
         headers: {
@@ -463,7 +464,14 @@ async function handleUserTranscript(transcript) {
     }
     const data = await fetchPromptBundle();
     setActiveStatus(data.active);
-    applyPromptBundle(data, true);
+    if (ackResponseSpeech) {
+      rememberBackendBehaviour(ackData.responseEvent, ackResponseSpeech);
+      sendSessionUpdate(buildSystemPrompt(data), sessionSettings);
+      speakStoredAssistantResponse(ackResponseSpeech);
+      appendLog("policy", "Spoke acknowledge response event.");
+    } else {
+      applyPromptBundle(data, true);
+    }
   } finally {
     if (gifState === "thinking") {
       setGifState("idle");
@@ -602,6 +610,15 @@ function speakBackendBehaviourSpeech(speech) {
   }
   pendingBackendSpeech = null;
   speakStoredAssistantResponse(speech);
+}
+
+function rememberBackendBehaviour(event, speech) {
+  if (event && event.createdDate) {
+    lastBackendBehaviourCreatedDate = event.createdDate;
+  }
+  if (speech && speech.trim()) {
+    lastBackendSpeech = speech;
+  }
 }
 
 async function appendAssistantTranscript(transcript) {

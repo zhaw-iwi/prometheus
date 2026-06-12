@@ -6,5 +6,12 @@ openai.key = openai api key here | azure ai service api key (key 1)
 
 # for realtime only
 openai.realtimeModel = gpt-realtime
+openai.realtimeTranscriptionModel = gpt-realtime-whisper
+# Optional: ISO-639-1 language hint, e.g. en or de
+openai.realtimeTranscriptionLanguage =
+# Optional gpt-realtime-whisper delay: minimal, low, medium, high, xhigh
+openai.realtimeTranscriptionDelay =
+# Optional stable, privacy-preserving user/application identifier
+openai.realtimeSafetyIdentifier =
 openai.realtimeClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets
 openai.realtimeCallsUrl = https://api.openai.com/v1/realtime/calls

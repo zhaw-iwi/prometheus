@@ -125,7 +125,9 @@ Minimum local fields:
 
 - DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
 - OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
-- Optional realtime: `openai.realtimeModel`, `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
+- Optional realtime: `openai.realtimeModel`, `openai.realtimeTranscriptionModel`,
+  `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`,
+  `openai.realtimeSafetyIdentifier`, `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
 
 ### 3. Run
 
@@ -215,6 +217,7 @@ All clients take `?agentId=<uuid>`.
 - `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
 - `POST /{agentID}/acknowledge` returns `ResponseView` (`responseEvent`, `active`)
 - `POST /realtime/session`
+- `POST /realtime/transcription/session`
 
 ### Streaming (SSE)
 
@@ -310,13 +313,24 @@ Notes:
 
 ## Realtime Notes
 
-- Browser obtains an OpenAI Realtime GA ephemeral client secret from `POST /realtime/session`.
+- Speech-to-speech browsers obtain an OpenAI Realtime GA ephemeral client secret from `POST /realtime/session`.
   - Server default: `openai.realtimeModel=gpt-realtime`.
+  - Voice controls include the GA voice options `cedar` and `marin`.
   - Optional endpoint overrides: `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`.
+- The multilateral listening client obtains a transcription-only client secret from
+  `POST /realtime/transcription/session`.
+  - Server default: `openai.realtimeTranscriptionModel=gpt-realtime-whisper`.
+  - Optional transcription hints: `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`.
+  - `gpt-realtime-whisper` omits turn detection, so `/multilateral/listen` sends periodic
+    `input_audio_buffer.commit` events while listening.
+- If `openai.realtimeSafetyIdentifier` is set, the backend sends it as `OpenAI-Safety-Identifier` when creating
+  Realtime client secrets. Use a stable, privacy-preserving identifier.
 - Browser clients establish WebRTC by posting SDP to the returned `realtimeCallsUrl`.
 - Realtime client sends transcript-derived events to `/{agentID}/acknowledge`.
 - PROMETHEUS returns orchestration prompt bundles via `/{agentID}/prompt`.
   - Use `/{agentID}/prompt?profile=REALTIME_SPEECH` for OpenAI Realtime instruction setup to avoid JSON-style behaviour-plan output.
+- When `/acknowledge` returns a speech-bearing `responseEvent`, realtime clients speak that exact event and only
+  update session instructions; they do not request a second model-generated response for the same user transcript.
 - Assistant outputs are stored as behaviour-plan events.
 - To complement realtime speech with nonverbal backend output, call:
   - `POST /{agentID}/behaviour/generate`

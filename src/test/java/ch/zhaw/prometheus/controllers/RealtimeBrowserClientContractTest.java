@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 class RealtimeBrowserClientContractTest {
 
     private static final Path REALTIME_SCRIPT = Path.of("src/main/resources/public/realtime/script.js");
+    private static final Path REALTIME_INDEX = Path.of("src/main/resources/public/realtime/index.html");
     private static final Path GIGI_DEMO_SCRIPT = Path.of("src/main/resources/public/gigi-demo/script.js");
+    private static final Path GIGI_DEMO_INDEX = Path.of("src/main/resources/public/gigi-demo/index.html");
     private static final Path MULTILATERAL_LISTEN_SCRIPT = Path.of(
             "src/main/resources/public/multilateral/listen/script.js");
 
@@ -67,16 +69,40 @@ class RealtimeBrowserClientContractTest {
     }
 
     @Test
-    void multilateralListenerUsesGaNonRespondingSessionShape() throws IOException {
+    void speechRealtimeClientsPreferAcknowledgeResponseEventOverDuplicateGeneration() throws IOException {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, GIGI_DEMO_SCRIPT)) {
+            String script = Files.readString(scriptPath);
+
+            assertContains(script, "ackResponseSpeech");
+            assertContains(script, "speakStoredAssistantResponse(ackResponseSpeech)");
+            assertContains(script, "!ackResponseSpeech");
+        }
+    }
+
+    @Test
+    void speechRealtimeClientsExposeCurrentGaVoiceOptions() throws IOException {
+        for (Path indexPath : List.of(REALTIME_INDEX, GIGI_DEMO_INDEX)) {
+            String index = Files.readString(indexPath);
+
+            assertContains(index, "value=\"cedar\"");
+            assertContains(index, "value=\"marin\"");
+        }
+    }
+
+    @Test
+    void multilateralListenerUsesGaTranscriptionSession() throws IOException {
         String script = Files.readString(MULTILATERAL_LISTEN_SCRIPT);
 
-        assertContains(script, "type: \"session.update\"");
-        assertContains(script, "type: \"realtime\"");
-        assertContains(script, "output_modalities: [\"text\"]");
-        assertContains(script, "audio: {");
-        assertContains(script, "turn_detection: {");
-        assertContains(script, "create_response: false");
-        assertContains(script, "interrupt_response: false");
+        assertContains(script, "/realtime/transcription/session");
+        assertContains(script, "input_audio_buffer.commit");
+        assertContains(script, "gpt-realtime-whisper");
+        assertContains(script, "data.delta || data.transcript");
+
+        assertDoesNotContain(script, "type: \"session.update\"");
+        assertDoesNotContain(script, "type: \"realtime\"");
+        assertDoesNotContain(script, "output_modalities");
+        assertDoesNotContain(script, "create_response");
+        assertDoesNotContain(script, "interrupt_response");
     }
 
     private static List<Path> allRealtimeScripts() {

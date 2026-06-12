@@ -97,7 +97,6 @@ async function init() {
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
-  renderTemperatureValue();
   updatePushToTalkUi();
   appendSystemMessage("Select or paste an agent ID, then start an interaction.");
 
@@ -538,6 +537,21 @@ function handleBehaviourEnvelope(event, options = {}) {
   }
 }
 
+function getEventSpeech(event) {
+  if (!event || !event.payload) {
+    return null;
+  }
+  try {
+    const plan = JSON.parse(event.payload);
+    if (plan && typeof plan.speech === "string" && plan.speech.trim()) {
+      return plan.speech.trim();
+    }
+  } catch (_) {
+    return null;
+  }
+  return null;
+}
+
 function renderBehaviourPlan(plan) {
   if (!plan || typeof plan !== "object") {
     return;
@@ -745,7 +759,7 @@ function handleRealtimeEvent(event) {
       handleRealtimeUserTranscript(transcript.trim());
     }
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
-    setText("latest_event", data.transcript || "");
+    setText("latest_event", data.delta || data.transcript || "");
   } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
     realtime.assistantAudioSeen = true;
     realtime.assistantTranscriptBuffer += data.delta || "";
@@ -777,12 +791,19 @@ async function handleRealtimeUserTranscript(transcript) {
   if (!ackData) {
     return;
   }
-  if (ackData.active !== false && document.getElementById("generate_side_behaviour").checked) {
+  const ackResponseSpeech = getEventSpeech(ackData.responseEvent);
+  if (!ackResponseSpeech && ackData.active !== false && document.getElementById("generate_side_behaviour").checked) {
     await generateBehaviour("backend_complement");
   }
   const promptBundle = await fetchPromptBundle();
   setActiveStatus(promptBundle.active);
-  applyPromptBundle(promptBundle, true);
+  if (ackResponseSpeech) {
+    sendSessionUpdate(buildSystemPrompt(promptBundle), currentRealtimeSettings());
+    speakStoredAssistantResponse(ackResponseSpeech);
+    appendLog("realtime", "spoke acknowledge response event.");
+  } else {
+    applyPromptBundle(promptBundle, true);
+  }
 }
 
 async function appendAssistantTranscript(transcript) {
@@ -877,6 +898,16 @@ function sendResponseCreate(instructions) {
       output_modalities: ["audio"],
     },
   }));
+}
+
+function speakStoredAssistantResponse(text) {
+  if (!text) {
+    return;
+  }
+  realtime.suppressAssistantAppend = true;
+  sendResponseCreate(
+    `Say exactly the following text and nothing else. Do not add, remove, paraphrase, or explain.\n${text}`
+  );
 }
 
 function applySessionSettings() {

@@ -37,6 +37,8 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"turn-detection-select\""));
         assertTrue(index.contains("data-testid=\"push-to-talk\""));
         assertTrue(index.contains("data-testid=\"generate-side-behaviour\""));
+        assertTrue(index.contains("value=\"cedar\""));
+        assertTrue(index.contains("value=\"marin\""));
 
         assertTrue(script.contains("/prompt?profile=realtime_speech"));
         assertTrue(script.contains("/realtime/session"));
@@ -46,6 +48,8 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("input_audio_buffer.commit"));
         assertTrue(script.contains("profile: \"backend_complement\""));
         assertTrue(script.contains("outputProfile"));
+        assertTrue(script.contains("ackResponseSpeech"));
+        assertTrue(script.contains("speakStoredAssistantResponse"));
     }
 
     @Test

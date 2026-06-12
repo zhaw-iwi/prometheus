@@ -34,6 +34,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 28: TDSR RPS client-side hand detection
 - [x] Milestone 29: Unified GIGI TDSR demo cockpit
 - [x] Milestone 30: OpenAI Realtime GA migration across PROMETHEUS clients
+- [x] Milestone 31: Realtime demo hardening
 
 ## Milestone 1
 ### Date
@@ -1427,3 +1428,66 @@ Migrate PROMETHEUS realtime speech-to-speech and listening clients from the reti
 1. Run a live browser rehearsal for `/realtime`, `/gigi-demo`, and `/multilateral/listen` with real microphone input.
 2. Consider adding `marin` and `cedar` voice options and a server-side `OpenAI-Safety-Identifier`.
 3. Decide whether multilateral listening should use a dedicated Realtime transcription session.
+
+## Milestone 31
+### Date
+2026-06-12
+
+### Goal
+Harden the GA Realtime demos after the migration by moving `/multilateral/listen` to a true transcription session, tightening speech response orchestration, and updating demo configuration/options.
+
+### What changed
+- Added backend Realtime transcription-session support:
+  - new endpoint: `POST /realtime/transcription/session`
+  - default transcription model: `openai.realtimeTranscriptionModel=gpt-realtime-whisper`
+  - optional transcription hints: `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`
+  - optional `openai.realtimeSafetyIdentifier`, sent as `OpenAI-Safety-Identifier` when minting client secrets
+- Updated `/multilateral/listen` to request a true GA transcription session instead of a voice-agent session instructed not to respond.
+- Added periodic `input_audio_buffer.commit` events for `/multilateral/listen` when using `gpt-realtime-whisper`, which omits turn detection.
+- Hardened transcript event handling to read GA `conversation.item.input_audio_transcription.delta` deltas correctly.
+- Added `cedar` and `marin` voice options to `/realtime` and `/gigi-demo`.
+- Tuned realtime speech orchestration around `acknowledge.responseEvent`:
+  - if acknowledge returns speech, clients speak that exact stored response and update Realtime instructions
+  - clients skip the extra model-generated response for that same user transcript
+  - `/realtime` also remembers the stored speech to avoid an SSE-triggered duplicate
+- Removed the stale `renderTemperatureValue()` startup call from `/gigi-demo` after Milestone 30 removed temperature controls.
+- Added/updated regression coverage:
+  - `RealtimeSessionClientTest`
+  - `RealtimeControllerWebMvcTest`
+  - `RealtimeBrowserClientContractTest`
+  - `GigiDemoClientStaticResourceContractTest`
+- Updated README and OpenAI property templates for the new transcription and safety properties.
+
+### How to run
+1. Configure properties as in `README.md`, using:
+   - `openai.realtimeModel=gpt-realtime`
+   - `openai.realtimeTranscriptionModel=gpt-realtime-whisper`
+   - `openai.realtimeClientSecretUrl=https://api.openai.com/v1/realtime/client_secrets`
+   - `openai.realtimeCallsUrl=https://api.openai.com/v1/realtime/calls`
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/realtime/?agentId=<uuid>`
+   - `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+   - `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSessionClientTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,GigiDemoClientStaticResourceContractTest" test`
+  - app-backed HTTP smoke against the running Spring Boot app at `http://127.0.0.1:8080`, verifying `200 OK` and key controls/configuration markers for `/realtime`, `/gigi-demo`, and `/multilateral/listen`
+
+### Known issues and decisions
+- Realtime client-secret creation remains OpenAI-only; Azure OpenAI is still rejected by `RealtimeSessionClient`.
+- `gpt-realtime-whisper` does not use VAD in this setup, so `/multilateral/listen` chunks audio with a fixed commit interval. The interval may need live tuning for the demo room.
+- `openai.realtimeSafetyIdentifier` is a configured value because PROMETHEUS does not yet have authenticated per-user identity in these demo endpoints.
+- Shared realtime JS helpers were not extracted in this milestone; the current duplication is tolerable and the helper boundary should be chosen after live rehearsal pressure is clearer.
+- The in-app browser backend was unavailable in this session (`agent.browsers.list()` returned no browsers), so interactive browser automation was not executed.
+- Browser microphone/WebRTC validation still requires a live app, an OpenAI key, seeded agents, and browser permissions.
+
+### Next steps
+1. Run a live rehearsal with seeded GIGI TDSR agents and real microphone input.
+2. Tune `/multilateral/listen` commit interval and transcription delay against the target demo room.
+3. Consider extracting shared Realtime browser helpers if the three clients continue changing together.

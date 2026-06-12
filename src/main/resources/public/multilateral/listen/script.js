@@ -6,7 +6,10 @@
 let peerConnection = null;
 let dataChannel = null;
 let micStream = null;
+let transcriptCommitTimer = null;
 let utteranceCount = 0;
+const partialTranscriptsByItemId = new Map();
+const TRANSCRIPT_COMMIT_INTERVAL_MS = 3000;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -67,7 +70,7 @@ async function startListening() {
     const sessionInfo = await createRealtimeSession();
     await setupRealtimeConnection(sessionInfo);
     await waitForDataChannelOpen();
-    sendSessionUpdate();
+    configureTranscriptionCommit(sessionInfo);
   } catch (error) {
     appendLog("app", "Failed to start: " + error.message);
     await stopListening();
@@ -89,6 +92,8 @@ async function stopListening() {
     micStream.getTracks().forEach((track) => track.stop());
     micStream = null;
   }
+  stopTranscriptCommitTimer();
+  partialTranscriptsByItemId.clear();
 }
 
 async function loadAgentInfo() {
@@ -102,11 +107,11 @@ async function loadAgentInfo() {
 }
 
 async function createRealtimeSession() {
-  const response = await fetch("/realtime/session", {
+  const response = await fetch("/realtime/transcription/session", {
     method: "POST",
   });
   if (!response.ok) {
-    throw new Error("Realtime session creation failed.");
+    throw new Error("Realtime transcription session creation failed.");
   }
   return await response.json();
 }
@@ -160,33 +165,6 @@ function waitForDataChannelOpen(timeoutMs = 5000) {
   });
 }
 
-function sendSessionUpdate() {
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    appendLog("realtime", "Data channel not ready for session update.");
-    return;
-  }
-  dataChannel.send(
-    JSON.stringify({
-      type: "session.update",
-      session: {
-        type: "realtime",
-        instructions: "You are a transcription engine for multi-speaker discussions. Transcribe accurately and do not respond.",
-        output_modalities: ["text"],
-        audio: {
-          input: {
-            turn_detection: {
-              type: "server_vad",
-              create_response: false,
-              interrupt_response: false,
-            },
-          },
-        },
-      },
-    })
-  );
-  appendLog("realtime", "Session update sent.");
-}
-
 function handleRealtimeEvent(event) {
   let data = null;
   try {
@@ -197,12 +175,17 @@ function handleRealtimeEvent(event) {
   }
 
   if (data.type === "conversation.item.input_audio_transcription.delta") {
-    const partial = data.transcript || "";
-    if (partial.trim()) {
+    const delta = data.delta || data.transcript || "";
+    if (delta.trim()) {
+      const key = transcriptItemKey(data);
+      const partial = `${partialTranscriptsByItemId.get(key) || ""}${delta}`;
+      partialTranscriptsByItemId.set(key, partial);
       document.getElementById("live_transcript").textContent = partial;
     }
   } else if (data.type === "conversation.item.input_audio_transcription.completed") {
-    const transcript = data.transcript || "";
+    const key = transcriptItemKey(data);
+    const transcript = data.transcript || partialTranscriptsByItemId.get(key) || "";
+    partialTranscriptsByItemId.delete(key);
     if (transcript.trim()) {
       document.getElementById("live_transcript").textContent = transcript;
       addTranscriptEntry(transcript);
@@ -210,6 +193,37 @@ function handleRealtimeEvent(event) {
       acknowledgeTranscript(transcript);
     }
   }
+}
+
+function configureTranscriptionCommit(sessionInfo) {
+  if (!sessionInfo || String(sessionInfo.model || "").toLowerCase() !== "gpt-realtime-whisper") {
+    return;
+  }
+  startTranscriptCommitTimer();
+  appendLog("realtime", "Manual transcript commits enabled for gpt-realtime-whisper.");
+}
+
+function startTranscriptCommitTimer() {
+  stopTranscriptCommitTimer();
+  transcriptCommitTimer = window.setInterval(commitAudioBuffer, TRANSCRIPT_COMMIT_INTERVAL_MS);
+}
+
+function stopTranscriptCommitTimer() {
+  if (transcriptCommitTimer) {
+    window.clearInterval(transcriptCommitTimer);
+    transcriptCommitTimer = null;
+  }
+}
+
+function commitAudioBuffer() {
+  if (!session.isListening || !dataChannel || dataChannel.readyState !== "open") {
+    return;
+  }
+  dataChannel.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+}
+
+function transcriptItemKey(data) {
+  return data.item_id || data.itemId || "latest";
 }
 
 function addTranscriptEntry(text) {

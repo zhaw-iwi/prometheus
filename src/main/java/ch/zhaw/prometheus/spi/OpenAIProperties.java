@@ -23,8 +23,12 @@ public class OpenAIProperties {
     private String model;
     private String key;
     private String realtimeModel;
+    private String realtimeTranscriptionModel;
+    private String realtimeTranscriptionLanguage;
+    private String realtimeTranscriptionDelay;
     private String realtimeClientSecretUrl;
     private String realtimeCallsUrl;
+    private String realtimeSafetyIdentifier;
 
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
@@ -58,6 +62,30 @@ public class OpenAIProperties {
         this.realtimeModel = realtimeModel;
     }
 
+    public String getRealtimeTranscriptionModel() {
+        return this.realtimeTranscriptionModel;
+    }
+
+    public void setRealtimeTranscriptionModel(String realtimeTranscriptionModel) {
+        this.realtimeTranscriptionModel = realtimeTranscriptionModel;
+    }
+
+    public String getRealtimeTranscriptionLanguage() {
+        return this.realtimeTranscriptionLanguage;
+    }
+
+    public void setRealtimeTranscriptionLanguage(String realtimeTranscriptionLanguage) {
+        this.realtimeTranscriptionLanguage = realtimeTranscriptionLanguage;
+    }
+
+    public String getRealtimeTranscriptionDelay() {
+        return this.realtimeTranscriptionDelay;
+    }
+
+    public void setRealtimeTranscriptionDelay(String realtimeTranscriptionDelay) {
+        this.realtimeTranscriptionDelay = realtimeTranscriptionDelay;
+    }
+
     public String getRealtimeClientSecretUrl() {
         return this.realtimeClientSecretUrl;
     }
@@ -72,6 +100,14 @@ public class OpenAIProperties {
 
     public void setRealtimeCallsUrl(String realtimeCallsUrl) {
         this.realtimeCallsUrl = realtimeCallsUrl;
+    }
+
+    public String getRealtimeSafetyIdentifier() {
+        return this.realtimeSafetyIdentifier;
+    }
+
+    public void setRealtimeSafetyIdentifier(String realtimeSafetyIdentifier) {
+        this.realtimeSafetyIdentifier = realtimeSafetyIdentifier;
     }
 
     public String headerKeyNameForAPIKey() {
