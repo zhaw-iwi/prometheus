@@ -109,6 +109,7 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("data-testid=\"manual-emotion-happy\""));
         assertTrue(index.contains("data-testid=\"hand-sign-value\""));
+        assertTrue(index.contains("data-testid=\"no-visual-sensing-state\""));
 
         assertTrue(script.contains("faceapi.nets.tinyFaceDetector"));
         assertTrue(script.contains("cocoSsd.load"));
@@ -197,6 +198,23 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
+    void gigiDemoClientHydratesTextTranscriptFromEventHistory() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("await loadEventHistory();"));
+        assertTrue(script.contains("handleBehaviourEnvelope(event);"));
+        assertTrue(script.contains("event.type === \"obs.user_utterance\""));
+        assertTrue(script.contains("renderHistoricalUserUtterance(event);"));
+        assertTrue(script.contains("function renderHistoricalUserUtterance"));
+        assertTrue(script.contains("const text = eventPayloadText(event && event.payload);"));
+        assertTrue(script.contains("appendMessage(\"user\", text);"));
+        assertTrue(script.contains("options.renderTranscript !== false"));
+        assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim());"));
+
+        assertFalse(script.contains("fromHistory"));
+    }
+
+    @Test
     void gigiDemoClientConsumesAgentInteractionProfileForUiVisibility() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
@@ -216,8 +234,15 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("supportedObservations"));
         assertTrue(script.contains("supportedBehaviourModalities"));
         assertTrue(script.contains("fallbackAll: supportedObservations.length === 0"));
+        assertTrue(script.contains("setProfileElementVisible(element, visible);"));
         assertTrue(script.contains("element.hidden = !visible;"));
+        assertTrue(script.contains("element.classList.toggle(\"d-none\", !visible);"));
+        assertTrue(script.contains("updateVisualSensingEmptyState(capabilities);"));
+        assertTrue(script.contains("document.getElementById(\"sensing_accordion\")"));
+        assertTrue(script.contains("document.getElementById(\"no_visual_sensing_message\")"));
         assertTrue(script.contains("function profileElementVisible"));
+        assertTrue(script.contains("function setProfileElementVisible"));
+        assertTrue(script.contains("function updateVisualSensingEmptyState"));
         assertTrue(script.contains("function profileTokenMatches"));
         assertTrue(script.contains("function resetUnsupportedSensorModes"));
         assertTrue(script.contains("PROFILE_SENSOR_OBSERVATIONS"));

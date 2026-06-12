@@ -42,6 +42,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 36: Agent interaction profile declaration
 - [x] Milestone 37: GIGI demo consumes interaction profiles
 - [x] Milestone 38: Seed agent interaction profile coverage
+- [x] Milestone 39: GIGI demo empty visual sensing state
+- [x] Milestone 40: GIGI demo text transcript history hydration
 
 ## Milestone 1
 ### Date
@@ -1850,3 +1852,88 @@ Retroactively add interaction profile declarations to existing seed/test agent t
 1. Add profile creation/update API support if profiles need to be edited without reseeding.
 2. Consider reusable fixture methods for the package-local multimodal and Pflegezentrum seed agents if more tests need direct object assertions.
 3. Rehearse the GIGI cockpit against reseeded agents and tune any profile-to-row mapping that feels too broad.
+
+## Milestone 39
+### Date
+2026-06-12
+
+### Goal
+Hide all visual sensing controls in the GIGI demo when the connected agent profile declares no visual observations, and show a clear empty state instead.
+
+### What changed
+- Added a no-visual-sensing empty state to the GIGI demo sensing card.
+- Updated profile-driven visibility to toggle both `hidden` and Bootstrap `d-none`, so flex/grid utility classes cannot keep hidden profile sections visible.
+- Hid the sensing accordion, camera viewer, and Start/Stop camera controls when the profile has no visual observations.
+- Kept the conservative fallback behavior: missing or empty profiles still show the full cockpit for older agents.
+- Stopped an active camera session if a newly applied profile removes visual sensing support.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard the new empty-state hooks and Bootstrap-safe visibility behavior.
+- Updated README with the no-visual-sensing cockpit behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect a speech-only or otherwise nonvisual profiled agent and verify the sensing card shows the no-visual-sensing message instead of camera controls.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright smoke against the running app at `http://127.0.0.1:8080/gigi-demo/`, verifying:
+    - fallback/empty profiles keep camera controls, camera viewer, and sensing accordion visible
+    - speech-only profiles hide Start/Stop, camera viewer, and sensing accordion while showing the no-visual-sensing message
+    - hand-sign visual profiles keep visual sensing visible and hide the empty state
+
+### Known issues and decisions
+- Empty profiles still mean "unknown capabilities" and intentionally keep the full cockpit visible.
+- The empty state appears only for explicit profiles that declare no visual observations.
+- The sensing card remains visible as the container for the empty-state message.
+
+### Next steps
+1. Rehearse with reseeded speech-only and visual GIGI agents to confirm the profile declarations match demo expectations.
+2. Consider making the empty-state text more agent-specific if profile metadata later includes display labels or descriptions.
+3. Add profile creation/update API support if profiles need to be changed without reseeding.
+
+## Milestone 40
+### Date
+2026-06-12
+
+### Goal
+Hydrate the GIGI demo Text interaction transcript from existing agent event history when an agent is connected or reopened.
+
+### What changed
+- Updated `loadEventHistory()` so historical assistant `resp.behaviour_plan` events append their `speech` content to the Text tab transcript.
+- Added historical `obs.user_utterance` rendering so prior user utterances appear as user bubbles.
+- Preserved behaviour panel hydration from the same event history: the latest behaviour event and modality previews still update from historical behaviour plans.
+- Kept behaviour duplicate suppression through `seenBehaviourKeys`, so behaviour stream replay does not duplicate historical assistant speech after connect.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard user and assistant transcript hydration from event history.
+- Updated README with the reopened-agent transcript behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect an agent that already has event history and verify the Text tab shows prior user utterances and assistant speech.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright smoke against the running app at `http://127.0.0.1:8080/gigi-demo/`, with mocked agent info/history verifying:
+    - starter assistant speech from history appears in the Text tab
+    - historical user utterances appear as user bubbles
+    - later assistant behaviour-plan speech appears as assistant bubbles in order
+
+### Known issues and decisions
+- Only `obs.user_utterance` and `resp.behaviour_plan.speech` hydrate the text transcript; visual observations remain in the sensing/behaviour panels.
+- The Text tab still begins with the local `Connected.` system message before the historical conversation.
+- Historical assistant speech is rendered immediately rather than replayed incrementally.
+
+### Next steps
+1. Rehearse against real persisted agents that were started during seeding and against agents reopened after a prior demo session.
+2. Consider adding timestamps to transcript bubbles if event-history review becomes important during demos.
+3. Consider a transcript clear/reload distinction if users need to hide local view state without losing history.

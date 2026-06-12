@@ -346,8 +346,9 @@ function applyInteractionProfile(profile) {
   const capabilities = resolveInteractionCapabilities(profile);
   document.querySelectorAll("[data-profile-observations],[data-profile-behaviours]").forEach((element) => {
     const visible = profileElementVisible(element, capabilities);
-    element.hidden = !visible;
+    setProfileElementVisible(element, visible);
   });
+  updateVisualSensingEmptyState(capabilities);
   resetUnsupportedSensorModes(capabilities);
 }
 
@@ -381,6 +382,24 @@ function profileElementVisible(element, capabilities) {
   }
   return profileListIntersects(capabilities.supportedObservations, requiredObservations)
     || profileListIntersects(capabilities.supportedBehaviourModalities, requiredBehaviourModalities);
+}
+
+function setProfileElementVisible(element, visible) {
+  if (!element) {
+    return;
+  }
+  element.hidden = !visible;
+  element.classList.toggle("d-none", !visible);
+}
+
+function updateVisualSensingEmptyState(capabilities) {
+  const hasVisualSensing = capabilities.fallbackAll
+    || profileListIntersects(capabilities.supportedObservations, PROFILE_VISUAL_OBSERVATIONS);
+  setProfileElementVisible(document.getElementById("sensing_accordion"), hasVisualSensing);
+  setProfileElementVisible(document.getElementById("no_visual_sensing_message"), !hasVisualSensing);
+  if (!hasVisualSensing && state.cameraRunning) {
+    stopCamera({ silent: true });
+  }
 }
 
 function profileTokens(value) {
@@ -469,11 +488,13 @@ async function loadEventHistory() {
     const events = await response.json();
     for (const event of events || []) {
       if (event.type === "resp.behaviour_plan") {
-        handleBehaviourEnvelope(event, { fromHistory: true });
+        handleBehaviourEnvelope(event);
       } else if (event.type === "obs.hand.sign") {
         renderUserSignFromPayload(event.payload);
       } else if (event.type === "obs.social.situation_change") {
         renderLatestEvent(event);
+      } else if (event.type === "obs.user_utterance") {
+        renderHistoricalUserUtterance(event);
       }
     }
     return events || [];
@@ -754,7 +775,7 @@ function handleBehaviourEnvelope(event, options = {}) {
   }
   renderBehaviourPlan(plan);
   renderLatestEvent(event);
-  if (!options.fromHistory && typeof plan.speech === "string" && plan.speech.trim()) {
+  if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
     appendMessage("assistant", plan.speech.trim());
   }
 }
@@ -772,6 +793,26 @@ function getEventSpeech(event) {
     return null;
   }
   return null;
+}
+
+function renderHistoricalUserUtterance(event) {
+  const text = eventPayloadText(event && event.payload);
+  if (text) {
+    appendMessage("user", text);
+  }
+}
+
+function eventPayloadText(payload) {
+  if (typeof payload === "string") {
+    return payload.trim();
+  }
+  if (payload === null || typeof payload === "undefined") {
+    return "";
+  }
+  if (typeof payload === "object") {
+    return JSON.stringify(payload);
+  }
+  return String(payload).trim();
 }
 
 function renderBehaviourPlan(plan) {
