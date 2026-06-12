@@ -267,24 +267,84 @@
       min-height: 84px;
     }
 
+    .profile-summary {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .profile-token-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      min-height: 1.5rem;
+      font-size: 0.82rem;
+    }
+
+    .profile-token {
+      border: 1px solid var(--demo-line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.68);
+      padding: 0.12rem 0.42rem;
+      font-family: "Spline Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+    }
+
     .mono-log {
       background: #0b1316;
       color: #f7f3ea;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 8px;
-      height: 44vh;
-      min-height: 320px;
+      height: 30vh;
+      min-height: 220px;
       overflow: auto;
       padding: 0.85rem;
       font-family: "Spline Sans Mono", "Cascadia Mono", ui-monospace, monospace;
       font-size: 0.82rem;
       line-height: 1.35;
+      white-space: pre;
+    }
+
+    .mono-log.is-wrapped {
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .compact-json {
       max-height: 124px;
       overflow: auto;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .diagnostics-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .diagnostics-current-state {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.65rem 0.75rem;
+      min-height: 2.55rem;
+    }
+
+    .storage-list .list-group-item,
+    .state-list .list-group-item {
+      border-color: var(--demo-line);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .storage-value {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      padding: 0.75rem;
       font-size: 0.8rem;
       line-height: 1.35;
       white-space: pre-wrap;
@@ -390,7 +450,7 @@
                         data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
                         <input id="sensor_emit_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-emit-enabled">
-                        <label class="form-check-label" for="sensor_emit_enabled">Emit events</label>
+                        <label class="form-check-label" for="sensor_emit_enabled">Emit camera observations</label>
                       </div>
                       <div class="form-check form-switch" data-profile-observations="obs.emotion.face">
                         <input id="sensor_emotion_enabled" class="form-check-input" type="checkbox"
@@ -443,13 +503,6 @@
                           <label class="form-label metric-label" for="hand_confidence_threshold">Hand conf</label>
                           <input id="hand_confidence_threshold" class="form-control form-control-sm" type="number"
                             min="0" max="1" step="0.05" value="0.65" data-testid="hand-confidence-threshold">
-                        </div>
-                        <div class="col-12" data-profile-observations="obs.hand.sign">
-                          <div class="form-check mt-1">
-                            <input id="hand_auto_send" class="form-check-input" type="checkbox"
-                              data-testid="hand-auto-send">
-                            <label class="form-check-label" for="hand_auto_send">Auto-send hand sign</label>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -763,12 +816,41 @@
         <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
           aria-labelledby="diagnostics_drawer_tab" tabindex="0">
           <div class="mb-3">
-            <div class="metric-label">Activity</div>
-            <div id="activity_log" class="mono-log" data-testid="activity-log"></div>
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <div class="metric-label">Activity</div>
+              <button id="clear_activity_log" class="btn btn-outline-ink btn-sm toolbar-button" type="button"
+                title="Clear activity log" aria-label="Clear activity log" data-testid="clear-activity-log">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+            <div class="diagnostics-toolbar mb-2">
+              <div class="form-check">
+                <input id="activity_log_wrap" class="form-check-input" type="checkbox" checked
+                  data-testid="activity-log-wrap">
+                <label class="form-check-label" for="activity_log_wrap">Toggle line break</label>
+              </div>
+              <div class="form-check">
+                <input id="activity_log_timestamps" class="form-check-input" type="checkbox" checked
+                  data-testid="activity-log-timestamps">
+                <label class="form-check-label" for="activity_log_timestamps">Show timestamps</label>
+              </div>
+            </div>
+            <div id="activity_log" class="mono-log is-wrapped" data-testid="activity-log"></div>
+          </div>
+          <div class="mb-3">
+            <div class="metric-label">Current State</div>
+            <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
+              data-testid="diagnostics-current-state">Unknown</div>
+          </div>
+          <div class="mb-3">
+            <div class="metric-label">States</div>
+            <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
+              data-testid="diagnostics-state-list"></ul>
           </div>
           <div>
             <div class="metric-label">Storage</div>
-            <pre id="storage_view" class="compact-json surface-panel" data-testid="storage-view">-</pre>
+            <div id="storage_list" class="list-group list-group-flush storage-list"
+              data-testid="storage-list"></div>
           </div>
         </div>
         <div id="agent_drawer_panel" class="tab-pane fade show active" role="tabpanel"
@@ -799,7 +881,25 @@
             <div class="metric-label">Name</div>
             <div id="agent_info_name" class="mb-3">-</div>
             <div class="metric-label">Description</div>
-            <div id="agent_info_description">-</div>
+            <div id="agent_info_description" class="mb-3">-</div>
+            <div class="metric-label">Interaction Profile</div>
+            <div id="agent_interaction_profile" class="profile-summary mt-2"
+              data-testid="agent-interaction-profile">
+              <div>
+                <div class="metric-label">Observations</div>
+                <div id="agent_profile_observations" class="profile-token-list"
+                  data-testid="agent-profile-observations">-</div>
+              </div>
+              <div>
+                <div class="metric-label">Behaviour</div>
+                <div id="agent_profile_behaviours" class="profile-token-list"
+                  data-testid="agent-profile-behaviours">-</div>
+              </div>
+              <div>
+                <div class="metric-label">Tags</div>
+                <div id="agent_profile_tags" class="profile-token-list" data-testid="agent-profile-tags">-</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

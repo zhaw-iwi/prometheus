@@ -7,6 +7,7 @@ const state = {
   monitorSource: null,
   lastBehaviourEventId: null,
   seenBehaviourKeys: new Set(),
+  recentBehaviourPayloads: new Map(),
   streamReconnectTimer: null,
   streamReconnectAttempt: 0,
   monitorReconnectTimer: null,
@@ -14,6 +15,16 @@ const state = {
   isPageUnloading: false,
   realtimeListening: false,
   cameraRunning: false,
+  activityEntries: [],
+  activityWrap: true,
+  activityShowTimestamps: true,
+  currentState: null,
+  innerState: null,
+  innerChain: [],
+  availableStates: [],
+  storage: [],
+  openStorageKeys: new Set(),
+  storageSnapshot: null,
 };
 
 const realtime = {
@@ -58,6 +69,8 @@ const camera = {
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
+const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
+const ACTIVITY_LOG_LIMIT = 300;
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
@@ -122,6 +135,8 @@ async function init() {
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
   applyInteractionProfile(null);
+  resetStateView();
+  resetStorageList();
   updatePushToTalkUi();
   appendSystemMessage("Select or paste an agent ID, then connect.");
 
@@ -157,6 +172,15 @@ function wireUi() {
   document.getElementById("send_text").addEventListener("click", sendTextInput);
   document.getElementById("text_input").addEventListener("keydown", handleTextKeyDown);
   document.getElementById("clear_messages").addEventListener("click", clearMessages);
+  document.getElementById("clear_activity_log").addEventListener("click", clearActivityLog);
+  document.getElementById("activity_log_wrap").addEventListener("change", (event) => {
+    state.activityWrap = event.target.checked;
+    renderActivityLog();
+  });
+  document.getElementById("activity_log_timestamps").addEventListener("change", (event) => {
+    state.activityShowTimestamps = event.target.checked;
+    renderActivityLog();
+  });
   document.getElementById("toggle_realtime").addEventListener("click", toggleRealtime);
   document.getElementById("voice_select").addEventListener("change", applySessionSettings);
   document.getElementById("turn_detection_select").addEventListener("change", () => {
@@ -257,7 +281,7 @@ async function connectToAgent(agentId) {
   document.getElementById("agent_select").value = selectedAgentId;
   updateSelectedAgentStatus();
   state.lastBehaviourEventId = null;
-  state.seenBehaviourKeys.clear();
+  resetBehaviourDeduplication();
   setControlsEnabled(false);
   const infoLoaded = await loadAgentInfo();
   if (!infoLoaded) {
@@ -269,6 +293,7 @@ async function connectToAgent(agentId) {
   appendSystemMessage("Connected.");
   await loadEventHistory();
   await loadStorage();
+  await loadAgentState();
   setControlsEnabled(true);
   updateConnectionButton();
   connectBehaviourStream();
@@ -291,6 +316,7 @@ async function loadAgentInfo() {
     document.getElementById("agent_subtitle").textContent = data.name || "PROMETHEUS TDSR test console";
     document.getElementById("agent_info_name").textContent = data.name || "-";
     document.getElementById("agent_info_description").textContent = data.description || "-";
+    renderAgentInteractionProfile(data.interactionProfile);
     setActiveStatus(data.active);
     applyInteractionProfile(data.interactionProfile);
     return true;
@@ -312,13 +338,14 @@ async function disconnectAgent(options = {}) {
   state.agentId = null;
   state.agentInfo = null;
   state.lastBehaviourEventId = null;
-  state.seenBehaviourKeys.clear();
+  resetBehaviourDeduplication();
   if (!options.preserveInput) {
     document.getElementById("agent_id_input").value = "";
     state.selectedAgentId = null;
   }
   document.getElementById("agent_select").value = state.selectedAgentId || "";
-  setText("storage_view", "-");
+  resetStorageList();
+  resetStateView();
   setBehaviourStatus("Behaviour Idle", "idle");
   resetAgentInfo();
   setControlsEnabled(false);
@@ -338,8 +365,33 @@ function resetAgentInfo() {
   document.getElementById("agent_subtitle").textContent = "PROMETHEUS TDSR test console";
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
+  renderAgentInteractionProfile(null);
   setActiveStatus(null);
   applyInteractionProfile(null);
+}
+
+function renderAgentInteractionProfile(profile) {
+  renderProfileTokenList("agent_profile_observations", normalizeProfileList(profile && profile.supportedObservations));
+  renderProfileTokenList("agent_profile_behaviours", normalizeProfileList(profile && profile.supportedBehaviourModalities));
+  renderProfileTokenList("agent_profile_tags", normalizeProfileList(profile && profile.profileTags));
+}
+
+function renderProfileTokenList(id, values) {
+  const container = document.getElementById(id);
+  if (!container) {
+    return;
+  }
+  container.replaceChildren();
+  if (!Array.isArray(values) || values.length === 0) {
+    container.textContent = "-";
+    return;
+  }
+  for (const value of values) {
+    const token = document.createElement("span");
+    token.className = "profile-token";
+    token.textContent = value;
+    container.appendChild(token);
+  }
 }
 
 function applyInteractionProfile(profile) {
@@ -488,7 +540,7 @@ async function loadEventHistory() {
     const events = await response.json();
     for (const event of events || []) {
       if (event.type === "resp.behaviour_plan") {
-        handleBehaviourEnvelope(event);
+        handleBehaviourEnvelope(event, { fromHistory: true });
       } else if (event.type === "obs.hand.sign") {
         renderUserSignFromPayload(event.payload);
       } else if (event.type === "obs.social.situation_change") {
@@ -505,17 +557,290 @@ async function loadEventHistory() {
 }
 
 async function loadStorage() {
+  if (!state.agentId) {
+    resetStorageList();
+    return;
+  }
   try {
     const response = await fetch(`/${state.agentId}/storage`);
     if (!response.ok) {
-      setText("storage_view", "-");
+      resetStorageList();
       return;
     }
     const storage = await response.json();
-    setText("storage_view", JSON.stringify(storage, null, 2));
+    setStorageEntries(storage);
   } catch (_) {
-    setText("storage_view", "-");
+    resetStorageList();
   }
+}
+
+async function loadAgentState() {
+  if (!state.agentId) {
+    resetStateView();
+    return;
+  }
+  try {
+    const [stateResponse, statesResponse] = await Promise.all([
+      fetch(`/${state.agentId}/state`),
+      fetch(`/${state.agentId}/states`),
+    ]);
+    const stateInfo = stateResponse.ok ? await stateResponse.json() : null;
+    const states = statesResponse.ok ? await statesResponse.json() : [];
+    applyStateSnapshot({
+      stateName: stateInfo && stateInfo.name,
+      innerName: stateInfo && stateInfo.innerName,
+      innerNames: Array.isArray(stateInfo && stateInfo.innerNames) ? stateInfo.innerNames : [],
+      states: Array.isArray(states) ? states : [],
+    });
+  } catch (error) {
+    appendLog("app", "state load failed: " + error.message);
+    resetStateView();
+  }
+}
+
+function applyMonitorSnapshot(data) {
+  if (!data) {
+    return;
+  }
+  if (typeof data.active === "boolean") {
+    setActiveStatus(data.active);
+  }
+  applyStateSnapshot(data);
+  if (Array.isArray(data.storage)) {
+    setStorageEntries(data.storage);
+  }
+}
+
+function applyStateSnapshot(data) {
+  if (!data) {
+    return;
+  }
+  const hasStateInfo = data.stateName || data.name || data.innerName || Array.isArray(data.innerNames);
+  if (hasStateInfo) {
+    updateCurrentState(data.stateName || data.name || null, data.innerName || null, data.innerNames || []);
+  }
+  if (Array.isArray(data.states)) {
+    state.availableStates = data.states;
+    renderStateList();
+  }
+}
+
+function resetStateView() {
+  state.currentState = null;
+  state.innerState = null;
+  state.innerChain = [];
+  state.availableStates = [];
+  setText("diagnostics_current_state", "Unknown");
+  renderStateList();
+}
+
+function updateCurrentState(stateName, innerName, innerChain) {
+  state.currentState = stateName;
+  state.innerState = innerName;
+  state.innerChain = Array.isArray(innerChain) ? innerChain : [];
+  const innermost = state.innerChain.length
+    ? state.innerChain[state.innerChain.length - 1]
+    : innerName || stateName || "Unknown";
+  setText("diagnostics_current_state", innermost);
+  renderStateList();
+}
+
+function renderStateList() {
+  const list = document.getElementById("diagnostics_state_list");
+  if (!list) {
+    return;
+  }
+  list.innerHTML = "";
+  const names = state.availableStates.length
+    ? state.availableStates
+    : (state.currentState ? [state.currentState] : []);
+  if (!names.length) {
+    const item = document.createElement("li");
+    item.className = "list-group-item";
+    item.textContent = "No states available.";
+    list.appendChild(item);
+    return;
+  }
+  names.forEach((stateName) => {
+    const item = document.createElement("li");
+    item.className = "list-group-item d-flex justify-content-between align-items-center gap-2";
+    const label = document.createElement("span");
+    label.textContent = stateName;
+    item.appendChild(label);
+    if (stateName === state.currentState || state.innerChain.includes(stateName)) {
+      const badge = document.createElement("span");
+      badge.className = "badge text-bg-light";
+      badge.textContent = "current";
+      item.appendChild(badge);
+    }
+    list.appendChild(item);
+  });
+}
+
+function setStorageEntries(entries) {
+  const nextEntries = Array.isArray(entries) ? entries : [];
+  const snapshot = serializeStorage(nextEntries);
+  if (snapshot === state.storageSnapshot) {
+    return;
+  }
+  state.storageSnapshot = snapshot;
+  state.storage = nextEntries;
+  renderStorageList();
+}
+
+function resetStorageList() {
+  state.storage = [];
+  state.openStorageKeys = new Set();
+  state.storageSnapshot = null;
+  renderStorageList();
+}
+
+function renderStorageList() {
+  state.openStorageKeys = getOpenStorageKeys();
+  const list = document.getElementById("storage_list");
+  if (!list) {
+    return;
+  }
+  list.innerHTML = "";
+  if (!state.storage.length) {
+    const item = document.createElement("div");
+    item.className = "list-group-item";
+    item.textContent = "No storage entries.";
+    list.appendChild(item);
+    return;
+  }
+  state.storage.forEach((entry, index) => {
+    const keyValue = entry && entry.key ? entry.key : "unknown";
+    const safeKey = toSafeId(keyValue);
+    const item = document.createElement("div");
+    item.className = "list-group-item p-0";
+    const headerId = `storage_header_${safeKey}_${index}`;
+    const collapseId = `storage_collapse_${safeKey}_${index}`;
+
+    const header = document.createElement("div");
+    header.className = "d-flex align-items-center justify-content-between px-3 py-2 gap-2";
+
+    const button = document.createElement("button");
+    button.className = "btn btn-link text-start flex-grow-1 fw-semibold text-decoration-none text-body p-0";
+    button.type = "button";
+    button.id = headerId;
+    button.textContent = keyValue;
+    button.dataset.storageKey = keyValue;
+    button.setAttribute("data-bs-toggle", "collapse");
+    button.setAttribute("data-bs-target", `#${collapseId}`);
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-controls", collapseId);
+
+    const copyButton = document.createElement("button");
+    copyButton.className = "btn btn-outline-ink btn-sm toolbar-button";
+    copyButton.type = "button";
+    copyButton.title = "Copy value";
+    copyButton.setAttribute("aria-label", `Copy ${keyValue} value`);
+    copyButton.setAttribute("data-testid", "storage-copy-button");
+    copyButton.innerHTML = '<i class="bi bi-clipboard"></i>';
+    copyButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      copyToClipboard(formatStorageValue(entry && entry.value));
+    });
+
+    header.appendChild(button);
+    header.appendChild(copyButton);
+
+    const collapse = document.createElement("div");
+    collapse.className = "collapse";
+    collapse.id = collapseId;
+    collapse.setAttribute("aria-labelledby", headerId);
+    collapse.setAttribute("data-bs-parent", "#storage_list");
+    if (state.openStorageKeys.has(keyValue)) {
+      collapse.classList.add("show");
+      button.setAttribute("aria-expanded", "true");
+    }
+
+    const body = document.createElement("div");
+    body.className = "px-3 pb-3";
+
+    const value = document.createElement("pre");
+    value.className = "storage-value mono mb-0";
+    value.textContent = formatStorageValue(entry && entry.value);
+
+    body.appendChild(value);
+    collapse.appendChild(body);
+    item.appendChild(header);
+    item.appendChild(collapse);
+    list.appendChild(item);
+  });
+}
+
+function getOpenStorageKeys() {
+  const openKeys = new Set();
+  document.querySelectorAll("#storage_list .collapse.show").forEach((element) => {
+    const headerId = element.getAttribute("aria-labelledby");
+    if (!headerId) {
+      return;
+    }
+    const button = document.getElementById(headerId);
+    if (button && button.dataset.storageKey) {
+      openKeys.add(button.dataset.storageKey);
+    }
+  });
+  return openKeys;
+}
+
+function toSafeId(value) {
+  return encodeURIComponent(value)
+    .replace(/%/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function formatStorageValue(rawValue) {
+  if (rawValue === null || rawValue === undefined) {
+    return "";
+  }
+  if (typeof rawValue !== "string") {
+    try {
+      return JSON.stringify(rawValue, null, 2);
+    } catch (error) {
+      return String(rawValue);
+    }
+  }
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    return JSON.stringify(parsed, null, 2);
+  } catch (error) {
+    return rawValue;
+  }
+}
+
+function serializeStorage(entries) {
+  try {
+    return JSON.stringify(entries ?? []);
+  } catch (error) {
+    return String(entries);
+  }
+}
+
+function copyToClipboard(value) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(value).catch(() => copyToClipboardFallback(value));
+    return;
+  }
+  copyToClipboardFallback(value);
+}
+
+function copyToClipboardFallback(value) {
+  const fallback = document.createElement("textarea");
+  fallback.value = value;
+  fallback.style.position = "fixed";
+  fallback.style.opacity = "0";
+  document.body.appendChild(fallback);
+  fallback.select();
+  document.execCommand("copy");
+  document.body.removeChild(fallback);
 }
 
 function connectBehaviourStream() {
@@ -561,9 +886,7 @@ function connectMonitorStream() {
   state.monitorSource.addEventListener("snapshot", (event) => {
     try {
       const data = JSON.parse(event.data);
-      if (data && typeof data.active === "boolean") {
-        setActiveStatus(data.active);
-      }
+      applyMonitorSnapshot(data);
     } catch (_) {
       return;
     }
@@ -625,6 +948,8 @@ async function startAgent() {
     const data = await response.json();
     setActiveStatus(data.active);
     handleResponseEvent(data.responseEvent);
+    await loadAgentState();
+    await loadStorage();
     appendLog("app", "agent started.");
   } catch (error) {
     appendLog("app", "start failed: " + error.message);
@@ -644,9 +969,10 @@ async function resetAgent() {
     const data = await response.json();
     setActiveStatus(data.active);
     clearMessages();
-    state.seenBehaviourKeys.clear();
+    resetBehaviourDeduplication();
     resetBehaviourPanels();
     handleResponseEvent(data.responseEvent);
+    await loadAgentState();
     await loadStorage();
     appendLog("app", "agent reset.");
   } catch (error) {
@@ -692,6 +1018,7 @@ async function sendUserUtterance(text, options = {}) {
     await generateBehaviour("full_plan");
   }
   await loadStorage();
+  await loadAgentState();
   return true;
 }
 
@@ -761,11 +1088,17 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!event || event.type !== "resp.behaviour_plan" || !event.payload) {
     return;
   }
-  const key = event.createdDate ? `${event.createdDate}|${event.payload}` : event.payload;
-  if (state.seenBehaviourKeys.has(key)) {
+  const key = behaviourEventKey(event);
+  if ((key && state.seenBehaviourKeys.has(key))
+    || (!options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
     return;
   }
-  state.seenBehaviourKeys.add(key);
+  if (key) {
+    state.seenBehaviourKeys.add(key);
+  }
+  if (!options.fromHistory) {
+    rememberRecentBehaviourPayload(event.payload);
+  }
   let plan = null;
   try {
     plan = JSON.parse(event.payload);
@@ -777,6 +1110,38 @@ function handleBehaviourEnvelope(event, options = {}) {
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
     appendMessage("assistant", plan.speech.trim());
+  }
+}
+
+function resetBehaviourDeduplication() {
+  state.seenBehaviourKeys.clear();
+  state.recentBehaviourPayloads.clear();
+}
+
+function behaviourEventKey(event) {
+  if (!event || !event.createdDate || !event.payload) {
+    return null;
+  }
+  return `${event.createdDate}|${event.payload}`;
+}
+
+function recentBehaviourPayloadSeen(payload) {
+  pruneRecentBehaviourPayloads();
+  const lastSeenAt = state.recentBehaviourPayloads.get(payload);
+  return typeof lastSeenAt === "number" && Date.now() - lastSeenAt < BEHAVIOUR_DUPLICATE_WINDOW_MS;
+}
+
+function rememberRecentBehaviourPayload(payload) {
+  pruneRecentBehaviourPayloads();
+  state.recentBehaviourPayloads.set(payload, Date.now());
+}
+
+function pruneRecentBehaviourPayloads() {
+  const now = Date.now();
+  for (const [payload, seenAt] of state.recentBehaviourPayloads.entries()) {
+    if (now - seenAt > BEHAVIOUR_DUPLICATE_WINDOW_MS) {
+      state.recentBehaviourPayloads.delete(payload);
+    }
   }
 }
 
@@ -1058,6 +1423,7 @@ async function handleRealtimeUserTranscript(transcript) {
   }
   const promptBundle = await fetchPromptBundle();
   setActiveStatus(promptBundle.active);
+  await loadAgentState();
   if (ackResponseSpeech) {
     sendSessionUpdate(buildSystemPrompt(promptBundle), currentRealtimeSettings());
     speakStoredAssistantResponse(ackResponseSpeech);
@@ -1793,8 +2159,7 @@ function updateCameraStability(candidate) {
 }
 
 async function maybeEmitCameraSign(candidate) {
-  if (!candidate || !document.getElementById("sensor_emit_enabled").checked ||
-    !document.getElementById("hand_auto_send").checked) {
+  if (!candidate || !document.getElementById("sensor_emit_enabled").checked) {
     return;
   }
   if (candidate.confidence < Number(document.getElementById("hand_confidence_threshold").value || 0.65)) {
@@ -2039,13 +2404,32 @@ function clearMessages() {
 }
 
 function appendLog(scope, message) {
+  state.activityEntries.unshift({
+    timestamp: new Date().toLocaleTimeString(),
+    scope,
+    message,
+  });
+  if (state.activityEntries.length > ACTIVITY_LOG_LIMIT) {
+    state.activityEntries.length = ACTIVITY_LOG_LIMIT;
+  }
+  renderActivityLog();
+}
+
+function clearActivityLog() {
+  state.activityEntries = [];
+  renderActivityLog();
+}
+
+function renderActivityLog() {
   const log = document.getElementById("activity_log");
   if (!log) {
     return;
   }
-  const stamp = new Date().toLocaleTimeString();
-  const next = `[${stamp}] ${scope}: ${message}`;
-  log.textContent = log.textContent ? `${next}\n${log.textContent}` : next;
+  log.classList.toggle("is-wrapped", state.activityWrap);
+  log.textContent = state.activityEntries.map((entry) => {
+    const timestamp = state.activityShowTimestamps ? `[${entry.timestamp}] ` : "";
+    return `${timestamp}${entry.scope}: ${entry.message}`;
+  }).join("\n");
 }
 
 function resetBehaviourPanels() {
@@ -2070,6 +2454,9 @@ function setControlsEnabled(enabled) {
     "open_diagnostics",
     "agent_drawer_tab",
     "diagnostics_drawer_tab",
+    "clear_activity_log",
+    "activity_log_wrap",
+    "activity_log_timestamps",
     "text_interaction_tab",
     "speech_interaction_tab",
   ]);

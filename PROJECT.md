@@ -44,6 +44,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 38: Seed agent interaction profile coverage
 - [x] Milestone 39: GIGI demo empty visual sensing state
 - [x] Milestone 40: GIGI demo text transcript history hydration
+- [x] Milestone 41: GIGI demo unified camera observation emission gate
+- [x] Milestone 42: GIGI demo agent profile drawer summary
+- [x] Milestone 43: GIGI demo duplicate behaviour render suppression
+- [x] Milestone 44: GIGI demo diagnostics drawer storage, log, and state polish
 
 ## Milestone 1
 ### Date
@@ -1937,3 +1941,180 @@ Hydrate the GIGI demo Text interaction transcript from existing agent event hist
 1. Rehearse against real persisted agents that were started during seeding and against agents reopened after a prior demo session.
 2. Consider adding timestamps to transcript bubbles if event-history review becomes important during demos.
 3. Consider a transcript clear/reload distinction if users need to hide local view state without losing history.
+
+## Milestone 41
+### Date
+2026-06-12
+
+### Goal
+Simplify GIGI demo camera observation emission so hand-sign detections use the same global emit gate as face emotion and social grouping detections.
+
+### What changed
+- Removed the separate `Auto-send hand sign` checkbox from the sensing configuration.
+- Renamed the global sensing switch from `Emit events` to `Emit camera observations`.
+- Updated camera hand-sign emission so a detected hand sign is sent when:
+  - hand-sign detector is enabled
+  - `Emit camera observations` is enabled
+  - confidence threshold passes
+  - stable-frame threshold passes
+  - duplicate cooldown passes
+- Kept manual hand-sign buttons independent of camera observation emission.
+- Extended `GigiDemoClientStaticResourceContractTest` to assert that the auto-send hand-sign gate is gone and camera hand signs use the global emit gate.
+- Updated README with the unified camera observation emission behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect an RPS-profiled agent, start the camera, enable Hand sign and `Emit camera observations`, then hold a stable rock/scissor/paper gesture.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright smoke against the running app at `http://127.0.0.1:8080/gigi-demo/`, verifying the old hand auto-send checkbox is absent and the unified emit label is visible.
+
+### Known issues and decisions
+- This milestone intentionally removes the previous preview-only camera hand-sign mode from the GIGI demo.
+- Confidence, stable-frame, and duplicate cooldown gates still protect against accidental repeated hand-sign submissions.
+- Manual hand-sign buttons still submit immediately because they represent explicit operator input rather than camera observations.
+
+### Next steps
+1. Rehearse the RPS flow with live camera input and adjust confidence/stability thresholds if signs are still too noisy or too hard to send.
+2. Consider per-detector emission toggles only if a real demo need emerges for previewing one enabled detector while emitting another.
+3. Consider surfacing the stable-frame requirement in diagnostics if users struggle to understand why a visible hand sign was not emitted.
+
+## Milestone 42
+### Date
+2026-06-12
+
+### Goal
+Show the selected agent's declared interaction profile in the GIGI demo Agent drawer alongside the existing Agent ID, name, and description.
+
+### What changed
+- Added an Interaction Profile section to the Agent drawer info panel.
+- Rendered three profile lists:
+  - supported observations
+  - supported behaviour modalities
+  - profile tags
+- Kept empty profile lists readable with `-` placeholders.
+- Used DOM text assignment for profile tokens rather than injecting raw HTML.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard the new drawer markup and rendering hooks.
+- Updated README with the expanded Agent drawer metadata.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect a profiled agent and inspect the Agent drawer.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright smoke against the running app at `http://127.0.0.1:8080/gigi-demo/`, with mocked agent info verifying observation, behaviour, and tag tokens render in the drawer.
+
+### Known issues and decisions
+- The drawer renders stable profile identifiers directly, not friendly labels, because these identifiers are the current framework contract.
+- Empty profiles still display `-` rather than hiding the section, so older or unprofiled agents are explicit.
+- Profile editing remains out of scope; the drawer is read-only.
+
+### Next steps
+1. Consider adding human-readable labels only after the profile vocabulary stabilizes.
+2. Consider a copy-to-clipboard affordance if profile identifiers are frequently used during debugging.
+3. Add profile creation/update API support if profiles need to be changed without reseeding.
+
+## Milestone 43
+### Date
+2026-06-12
+
+### Goal
+Prevent the GIGI demo from rendering the same assistant behaviour twice when a response is received once through the HTTP response body and again through the behaviour SSE stream.
+
+### What changed
+- Added short-lived payload-level duplicate suppression for live behaviour events.
+- Kept persisted-event-key suppression for behaviour events with `createdDate`.
+- Kept event-history hydration independent of the live duplicate window so repeated historical utterances still render.
+- Reset behaviour de-duplication state when connecting, disconnecting, or resetting an agent.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard the immediate HTTP/SSE duplicate suppression path.
+- Updated README with the duplicate-render suppression behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect an RPS-profiled agent and play a round; each assistant utterance should appear once in the transcript.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright smoke against the running app at `http://127.0.0.1:8080/gigi-demo/`, simulating an immediate HTTP `responseEvent` followed by the same persisted SSE behaviour event and verifying only one assistant bubble/log entry renders.
+
+### Known issues and decisions
+- This is a UI de-duplication fix. Backend event storage still records behaviour through the normal event-history append path.
+- The duplicate window is intentionally short so a legitimately repeated utterance in a later turn can still render.
+- Without the specific live agent ID, the exact database history from the reported run was not inspected.
+
+### Next steps
+1. Re-test the RPS flow with the same agent and confirm the transcript no longer doubles each assistant utterance.
+2. If duplicate persisted events are ever observed in `/eventhistory`, add backend-level replay assertions for that agent flow.
+3. Consider exposing event IDs in diagnostics if future demo debugging needs to distinguish HTTP responses from SSE delivery.
+
+## Milestone 44
+### Date
+2026-06-12
+
+### Goal
+Improve the GIGI demo Diagnostics drawer so storage, activity log, and state information are easier to inspect during live agent rehearsals.
+
+### What changed
+- Replaced the raw storage JSON dump with a list-group storage accordion:
+  - each storage key is an expandable row
+  - values are rendered with JSON pretty-printing when possible
+  - each row has a clipboard icon button that copies the rendered value
+- Added Activity log controls:
+  - clear local log view
+  - toggle wrapped lines versus one-line horizontal scrolling
+  - toggle timestamp visibility
+- Added a state diagnostics section showing:
+  - current innermost state
+  - available states
+  - a `current` badge for the active outer state and active inner-state chain
+- Reused the existing monitor snapshot contract for live state/storage updates and added initial REST refreshes through `/{agentID}/state`, `/{agentID}/states`, and `/{agentID}/storage`.
+- Extended `GigiDemoClientStaticResourceContractTest` to guard diagnostics drawer markup and render/update hooks.
+- Updated README with the expanded Diagnostics drawer behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/gigi-demo/`
+4. Connect an agent, open the drawer Diagnostics tab, and inspect Activity, Current State, States, and Storage.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Chrome/CDP smoke against a mocked GIGI demo server, verifying:
+    - current state renders as the innermost state
+    - active states receive `current` badges
+    - storage values render as pretty-printed JSON
+    - activity log wrap, timestamp, and clear controls work
+
+### Known issues and decisions
+- Clearing the Activity log only clears the local diagnostics view; it does not clear event history or backend logs.
+- Storage copy buttons copy the formatted value shown in the drawer, not the raw database cell.
+- The state list uses the existing monitor-client convention: the current outer state and active inner-state chain are badged as `current`.
+
+### Next steps
+1. Rehearse the drawer against a live RPS agent and confirm the state/storage updates are useful during hand-sign rounds.
+2. Consider adding event IDs or response-source tags to diagnostics if future duplicate-delivery investigations need more detail.
+3. Consider sharing diagnostics rendering helpers with `/monitor` if further code duplication appears.

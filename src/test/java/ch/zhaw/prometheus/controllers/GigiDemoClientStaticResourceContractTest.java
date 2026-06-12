@@ -25,6 +25,11 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"reset-agent\""));
         assertTrue(index.contains("data-testid=\"agent-drawer-tab\""));
         assertTrue(index.contains("data-testid=\"diagnostics-drawer-tab\""));
+        assertTrue(index.contains("data-testid=\"agent-interaction-profile\""));
+        assertTrue(index.contains("data-testid=\"agent-profile-observations\""));
+        assertTrue(index.contains("data-testid=\"agent-profile-behaviours\""));
+        assertTrue(index.contains("data-testid=\"agent-profile-tags\""));
+        assertTrue(index.contains("Interaction Profile"));
         assertTrue(index.contains("Agent &amp; Diagnostics"));
         assertTrue(index.contains("Connect"));
         assertTrue(index.contains("data-testid=\"agent-connection-state\""));
@@ -63,6 +68,55 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
+    void gigiDemoClientExposesDiagnosticsDrawerControlsAndSnapshots() throws IOException {
+        String index = Files.readString(INDEX);
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(index.contains("data-testid=\"clear-activity-log\""));
+        assertTrue(index.contains("data-testid=\"activity-log-wrap\""));
+        assertTrue(index.contains("data-testid=\"activity-log-timestamps\""));
+        assertTrue(index.contains("Toggle line break"));
+        assertTrue(index.contains("Show timestamps"));
+        assertTrue(index.contains("data-testid=\"diagnostics-current-state\""));
+        assertTrue(index.contains("data-testid=\"diagnostics-state-list\""));
+        assertTrue(index.contains("data-testid=\"storage-list\""));
+        assertTrue(index.contains("Current State"));
+        assertTrue(index.contains("States"));
+        assertTrue(index.contains("Storage"));
+
+        assertTrue(script.contains("activityEntries: []"));
+        assertTrue(script.contains("activityWrap: true"));
+        assertTrue(script.contains("activityShowTimestamps: true"));
+        assertTrue(script.contains("ACTIVITY_LOG_LIMIT"));
+        assertTrue(script.contains("function clearActivityLog()"));
+        assertTrue(script.contains("function renderActivityLog()"));
+        assertTrue(script.contains("log.classList.toggle(\"is-wrapped\", state.activityWrap);"));
+        assertTrue(script.contains("state.activityShowTimestamps ?"));
+        assertTrue(script.contains("\"clear_activity_log\""));
+        assertTrue(script.contains("\"activity_log_wrap\""));
+        assertTrue(script.contains("\"activity_log_timestamps\""));
+
+        assertTrue(script.contains("async function loadAgentState()"));
+        assertTrue(script.contains("fetch(`/${state.agentId}/state`)"));
+        assertTrue(script.contains("fetch(`/${state.agentId}/states`)"));
+        assertTrue(script.contains("function applyMonitorSnapshot(data)"));
+        assertTrue(script.contains("applyStateSnapshot(data);"));
+        assertTrue(script.contains("function updateCurrentState"));
+        assertTrue(script.contains("function renderStateList"));
+        assertTrue(script.contains("badge.textContent = \"current\""));
+
+        assertTrue(script.contains("function renderStorageList()"));
+        assertTrue(script.contains("function formatStorageValue"));
+        assertTrue(script.contains("function copyToClipboard"));
+        assertTrue(script.contains("copyToClipboard(formatStorageValue(entry && entry.value));"));
+        assertTrue(script.contains("collapse.setAttribute(\"data-bs-parent\", \"#storage_list\");"));
+        assertTrue(script.contains("setStorageEntries(data.storage);"));
+
+        assertFalse(index.contains("data-testid=\"storage-view\""));
+        assertFalse(script.contains("\"storage_view\""));
+    }
+
+    @Test
     void gigiDemoClientRequiresExplicitAgentSelectionBeforeStreaming() throws IOException {
         String script = Files.readString(SCRIPT);
 
@@ -75,6 +129,14 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("Disconnect"));
         assertTrue(script.contains("const infoLoaded = await loadAgentInfo();"));
         assertTrue(script.contains("if (!infoLoaded)"));
+        assertTrue(script.contains("renderAgentInteractionProfile(data.interactionProfile);"));
+        assertTrue(script.contains("renderAgentInteractionProfile(null);"));
+        assertTrue(script.contains("function renderAgentInteractionProfile"));
+        assertTrue(script.contains("function renderProfileTokenList"));
+        assertTrue(script.contains("profile.supportedObservations"));
+        assertTrue(script.contains("profile.supportedBehaviourModalities"));
+        assertTrue(script.contains("profile.profileTags"));
+        assertTrue(script.contains("token.textContent = value;"));
         assertTrue(script.contains("disconnectAgent({ preserveInput: true"));
         assertTrue(script.contains("connectMonitorStream();"));
         assertTrue(script.indexOf("const infoLoaded = await loadAgentInfo();") < script.indexOf("connectMonitorStream();"));
@@ -102,7 +164,7 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"face-confidence-threshold\""));
         assertTrue(index.contains("data-testid=\"group-distance-threshold\""));
         assertTrue(index.contains("data-testid=\"hand-confidence-threshold\""));
-        assertTrue(index.contains("data-testid=\"hand-auto-send\""));
+        assertTrue(index.contains("Emit camera observations"));
         assertTrue(index.contains("Manual Emotion"));
         assertTrue(index.contains("Manual Social"));
         assertTrue(index.contains("Manual Hand Sign"));
@@ -117,6 +179,10 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("Closed_Fist: \"rock\""));
         assertTrue(script.contains("Open_Palm: \"paper\""));
         assertTrue(script.contains("Victory: \"scissor\""));
+
+        assertFalse(index.contains("data-testid=\"hand-auto-send\""));
+        assertFalse(index.contains("Auto-send hand sign"));
+        assertFalse(script.contains("hand_auto_send"));
     }
 
     @Test
@@ -133,6 +199,7 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("passesSensorEmitInterval(\"emotion\")"));
         assertTrue(script.contains("passesSensorEmitInterval(\"social\")"));
         assertTrue(script.contains("markSensorEmitted(\"hand\")"));
+        assertTrue(script.contains("!candidate || !document.getElementById(\"sensor_emit_enabled\").checked"));
         assertTrue(script.contains("setCameraStatus(state.cameraRunning ? \"Camera Live\" : \"Camera Idle\""));
 
         assertFalse(script.contains("lastEmitAt: 0"));
@@ -202,7 +269,7 @@ class GigiDemoClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("await loadEventHistory();"));
-        assertTrue(script.contains("handleBehaviourEnvelope(event);"));
+        assertTrue(script.contains("handleBehaviourEnvelope(event, { fromHistory: true });"));
         assertTrue(script.contains("event.type === \"obs.user_utterance\""));
         assertTrue(script.contains("renderHistoricalUserUtterance(event);"));
         assertTrue(script.contains("function renderHistoricalUserUtterance"));
@@ -210,8 +277,25 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("appendMessage(\"user\", text);"));
         assertTrue(script.contains("options.renderTranscript !== false"));
         assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim());"));
+        assertTrue(script.contains("!options.fromHistory && recentBehaviourPayloadSeen(event.payload)"));
+    }
 
-        assertFalse(script.contains("fromHistory"));
+    @Test
+    void gigiDemoClientSuppressesImmediateBehaviourResponseAndStreamDuplicates() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("recentBehaviourPayloads: new Map()"));
+        assertTrue(script.contains("BEHAVIOUR_DUPLICATE_WINDOW_MS"));
+        assertTrue(script.contains("function behaviourEventKey"));
+        assertTrue(script.contains("function recentBehaviourPayloadSeen"));
+        assertTrue(script.contains("function rememberRecentBehaviourPayload"));
+        assertTrue(script.contains("function pruneRecentBehaviourPayloads"));
+        assertTrue(script.contains("function resetBehaviourDeduplication"));
+        assertTrue(script.contains("resetBehaviourDeduplication();"));
+        assertTrue(script.contains("state.recentBehaviourPayloads.set(payload, Date.now());"));
+        assertTrue(script.contains("state.recentBehaviourPayloads.delete(payload);"));
+        assertTrue(script.contains("state.seenBehaviourKeys.has(key)"));
+        assertTrue(script.contains("state.seenBehaviourKeys.add(key)"));
     }
 
     @Test

@@ -33,11 +33,13 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - URL: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
 - Aliases: `http://localhost:8080/gigi/?agentId=<uuid>`, `http://localhost:8080/tdsr/?agentId=<uuid>`
 - Purpose: single-page TDSR demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
-- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the agent runtime start endpoint.
+- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
-- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; event emission uses per-mode throttles.
+- The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
+- The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
+- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
 - The sensing card groups detectors, configuration, manual emotion/social/hand inputs, and sensed signal readouts in one accordion. Behaviour modalities render as full-width rows.
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
