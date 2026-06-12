@@ -102,7 +102,9 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
 
             JsonObject payload = this.properties.payload();
             payload.addProperty("temperature", temperature);
-            payload.addProperty("top_p", topP);
+            if (topP > 0) {
+                payload.addProperty("top_p", topP);
+            }
             payload.add("messages", this.toOpenAIMessages(prompts));
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -168,4 +170,3 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         return jsonMessage.get("content").getAsString();
     }
 }
-
