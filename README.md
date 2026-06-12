@@ -28,6 +28,12 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 All clients take `?agentId=<uuid>`.
 For the complete list including multilateral endpoints, see `All Client Endpoints` below.
 
+### GIGI Demo Cockpit
+
+- URL: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+- Aliases: `http://localhost:8080/gigi/?agentId=<uuid>`, `http://localhost:8080/tdsr/?agentId=<uuid>`
+- Purpose: single-page TDSR demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, scenario shortcuts, behaviour visualization, and diagnostics drawer.
+
 ### Text Client
 
 - URL: `http://localhost:8080/?agentId=<uuid>`
@@ -172,6 +178,7 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 
 All clients take `?agentId=<uuid>`.
 
+- GIGI TDSR demo cockpit: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
 - Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
@@ -227,7 +234,7 @@ All clients take `?agentId=<uuid>`.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
 4. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
-5. Seed the agent, run app, then iterate using Monitor and behaviour streams.
+5. Seed the agent, run app, then iterate using the GIGI demo cockpit, Monitor, and behaviour streams.
 6. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
 
 ### Event example
@@ -253,6 +260,11 @@ Visual social observations use raw event types:
 - `obs.human.presence`
 - `obs.social.grouping`
 
+The visual social client and the GIGI demo cockpit can emit these raw events
+from camera detection. The GIGI demo cockpit also includes manual social
+scenario buttons that emit the same raw event contract for rehearsal without a
+camera.
+
 When `obs.social.grouping` is acknowledged, PROMETHEUS may persist a computed
 social event:
 
@@ -270,12 +282,12 @@ Schere-Stein-Papier hand-sign observations use:
 - `payload.sign`: `rock`, `scissor`, or `paper`
 - optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
 
-The RPS client at `/rps/?agentId=<uuid>` emits this event shape from its manual
-sign buttons with `source=rps.web` and `detectionMode=manual`. Its optional
-camera mode uses MediaPipe Gesture Recognizer in the browser and maps canned
-gestures as follows: `Closed_Fist -> rock`, `Victory -> scissor`,
-`Open_Palm -> paper`. Camera events use `source=rps.web.camera` and
-`detectionMode=client_camera`.
+The RPS client at `/rps/?agentId=<uuid>` and the GIGI demo cockpit at
+`/gigi-demo/?agentId=<uuid>` emit this event shape from manual sign buttons
+with `source=rps.web` and `detectionMode=manual`. Their optional camera mode
+uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
+follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
+Camera events use `source=rps.web.camera` and `detectionMode=client_camera`.
 
 Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
 

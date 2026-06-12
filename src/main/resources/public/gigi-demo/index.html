@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GIGI Demo Cockpit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    @import url("/style.css");
+
+    :root {
+      --demo-bg: #f6f7f4;
+      --demo-panel: rgba(255, 255, 255, 0.92);
+      --demo-panel-soft: rgba(255, 255, 255, 0.74);
+      --demo-muted: rgba(12, 22, 24, 0.62);
+      --demo-line: rgba(12, 22, 24, 0.12);
+      --demo-ok: #047857;
+      --demo-warn: #b45309;
+    }
+
+    body {
+      background: var(--demo-bg);
+    }
+
+    .page-shell::before,
+    .page-shell::after {
+      display: none;
+    }
+
+    .page-title {
+      letter-spacing: 0;
+      font-size: clamp(1.65rem, 2vw + 1rem, 2.6rem);
+    }
+
+    .cockpit-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.82fr) minmax(360px, 1.34fr) minmax(280px, 0.94fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1199px) {
+      .cockpit-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .main-column {
+        grid-column: 1 / -1;
+        order: -1;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .cockpit-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .main-column {
+        order: initial;
+      }
+    }
+
+    .demo-card {
+      border-radius: 8px;
+      background: var(--demo-panel);
+      border: 1px solid var(--demo-line);
+      box-shadow: 0 14px 30px rgba(12, 22, 24, 0.06);
+      overflow: hidden;
+    }
+
+    .demo-card .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.96);
+      letter-spacing: 0;
+    }
+
+    .surface-panel {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: var(--demo-panel-soft);
+      padding: 0.85rem;
+    }
+
+    .toolbar-button {
+      width: 2.35rem;
+      height: 2.35rem;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+    }
+
+    .message-list {
+      height: min(52vh, 520px);
+      min-height: 320px;
+      overflow: auto;
+      padding: 0.85rem;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+    }
+
+    .demo-message {
+      display: flex;
+      margin-bottom: 0.8rem;
+    }
+
+    .demo-message.user {
+      justify-content: flex-end;
+    }
+
+    .demo-message.assistant {
+      justify-content: flex-start;
+    }
+
+    .demo-message.system {
+      justify-content: center;
+    }
+
+    .demo-bubble {
+      max-width: min(78%, 560px);
+      padding: 0.7rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--demo-line);
+      background: white;
+      overflow-wrap: anywhere;
+    }
+
+    .demo-message.user .demo-bubble {
+      background: rgba(255, 122, 0, 0.13);
+      border-color: rgba(255, 122, 0, 0.35);
+    }
+
+    .demo-message.system .demo-bubble {
+      max-width: 90%;
+      color: var(--demo-muted);
+      background: rgba(12, 22, 24, 0.04);
+      font-size: 0.88rem;
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem;
+      align-items: end;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .metric-tile {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.7rem;
+      min-height: 70px;
+    }
+
+    .metric-tile strong {
+      display: block;
+      font-size: 0.96rem;
+      overflow-wrap: anywhere;
+    }
+
+    .video-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid var(--demo-line);
+      background: rgba(12, 22, 24, 0.08);
+      aspect-ratio: 4 / 3;
+    }
+
+    #camera_video,
+    #overlay_canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #camera_video {
+      transform: scaleX(-1);
+    }
+
+    #overlay_canvas {
+      pointer-events: none;
+    }
+
+    .scenario-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .sign-button {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.55rem;
+      align-items: center;
+      text-align: left;
+    }
+
+    .sign-symbol {
+      width: 3.1rem;
+      height: 3.1rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--demo-line);
+      background: white;
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .behaviour-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    @media (max-width: 991px) {
+      .behaviour-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .behaviour-strip .metric-tile {
+      min-height: 82px;
+    }
+
+    .mono-log {
+      background: #0b1316;
+      color: #f7f3ea;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      height: 44vh;
+      min-height: 320px;
+      overflow: auto;
+      padding: 0.85rem;
+      font-family: "Spline Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    .compact-json {
+      max-height: 124px;
+      overflow: auto;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .accordion-button {
+      padding: 0.75rem 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .accordion-button:not(.collapsed) {
+      color: var(--ink);
+      background: rgba(0, 176, 162, 0.09);
+      box-shadow: inset 0 -1px 0 var(--demo-line);
+    }
+
+    .form-label {
+      margin-bottom: 0.25rem;
+    }
+
+    .range-value {
+      color: var(--demo-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .status-pill.is-live {
+      background: rgba(4, 120, 87, 0.14);
+      border-color: rgba(4, 120, 87, 0.34);
+    }
+
+    .status-pill.is-error {
+      background: rgba(180, 83, 9, 0.14);
+      border-color: rgba(180, 83, 9, 0.34);
+    }
+  </style>
+</head>
+
+<body>
+  <section class="page-shell py-3">
+    <div class="container-fluid content-layer px-3 px-xl-4">
+      <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
+        <div>
+          <div class="page-title">GIGI Demo Cockpit</div>
+          <div id="agent_subtitle" class="page-subtitle">PROMETHEUS TDSR test console</div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span id="active_status" class="status-pill is-unknown">Unknown</span>
+          <span id="behaviour_status" class="status-pill is-idle">Behaviour Idle</span>
+          <span id="realtime_status" class="status-pill is-idle">Realtime Idle</span>
+          <span id="camera_status" class="status-pill is-idle">Camera Idle</span>
+          <button id="open_diagnostics" class="btn btn-outline-ink toolbar-button" type="button"
+            data-bs-toggle="offcanvas" data-bs-target="#diagnostics_drawer" aria-controls="diagnostics_drawer"
+            title="Diagnostics">
+            <i class="bi bi-activity"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="cockpit-grid">
+        <aside class="left-column">
+          <div class="demo-card card mb-3">
+            <div class="card-header">
+              <span><i class="bi bi-cpu me-2"></i>Agent</span>
+              <button id="show_agent_info" class="btn btn-outline-ink toolbar-button" type="button"
+                data-bs-toggle="modal" data-bs-target="#agent_info_modal" title="Agent info">
+                <i class="bi bi-info-circle"></i>
+              </button>
+            </div>
+            <div class="card-body">
+              <label class="form-label metric-label" for="agent_select">Known Agents</label>
+              <select id="agent_select" class="form-select form-select-sm mb-2" data-testid="agent-select"></select>
+              <label class="form-label metric-label" for="agent_id_input">Agent ID</label>
+              <div class="input-group input-group-sm mb-3">
+                <input id="agent_id_input" class="form-control mono" data-testid="agent-id-input"
+                  placeholder="agentId">
+                <button id="connect_agent" class="btn btn-outline-ink" type="button" data-testid="connect-agent"
+                  title="Connect">
+                  <i class="bi bi-plug"></i>
+                </button>
+              </div>
+              <div class="d-grid gap-2">
+                <button id="start_agent" class="btn btn-primary" type="button" data-testid="start-agent">
+                  <i class="bi bi-play-fill me-2"></i>Start
+                </button>
+                <button id="reset_agent" class="btn btn-outline-ink" type="button" data-testid="reset-agent">
+                  <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card card mb-3">
+            <div class="card-header">
+              <span><i class="bi bi-mic me-2"></i>Realtime</span>
+              <span id="listen_status" class="status-pill is-idle">Idle</span>
+            </div>
+            <div class="card-body">
+              <div class="row g-2">
+                <div class="col-6">
+                  <label class="form-label metric-label" for="voice_select">Voice</label>
+                  <select id="voice_select" class="form-select form-select-sm" data-testid="voice-select">
+                    <option value="">Default</option>
+                    <option value="alloy">Alloy</option>
+                    <option value="ash">Ash</option>
+                    <option value="ballad">Ballad</option>
+                    <option value="coral">Coral</option>
+                    <option value="echo">Echo</option>
+                    <option value="sage">Sage</option>
+                    <option value="shimmer">Shimmer</option>
+                    <option value="verse">Verse</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label metric-label" for="turn_detection_select">Mode</label>
+                  <select id="turn_detection_select" class="form-select form-select-sm"
+                    data-testid="turn-detection-select">
+                    <option value="server_vad" selected>Continuous</option>
+                    <option value="none">Push to Talk</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label metric-label" for="temperature_input">Temperature</label>
+                    <span id="temperature_value" class="range-value">0.7</span>
+                  </div>
+                  <input id="temperature_input" class="form-range" type="range" min="0" max="1" step="0.1"
+                    value="0.7" data-testid="temperature-input">
+                </div>
+                <div class="col-12">
+                  <div class="form-check">
+                    <input id="generate_side_behaviour" class="form-check-input" type="checkbox" checked
+                      data-testid="generate-side-behaviour">
+                    <label class="form-check-label" for="generate_side_behaviour">Backend complement</label>
+                  </div>
+                </div>
+              </div>
+              <div class="d-grid gap-2 mt-3">
+                <button id="toggle_realtime" class="btn btn-primary" type="button" data-testid="toggle-realtime">
+                  <i class="bi bi-mic-fill me-2"></i>Start Realtime
+                </button>
+                <button id="push_to_talk" class="btn btn-outline-ink d-none" type="button"
+                  data-testid="push-to-talk">
+                  <i class="bi bi-broadcast me-2"></i>Hold to Talk
+                </button>
+              </div>
+              <audio id="assistant_audio" class="mt-3" controls autoplay data-testid="assistant-audio"></audio>
+            </div>
+          </div>
+
+          <div class="demo-card card">
+            <div class="card-header">
+              <span><i class="bi bi-lightning-charge me-2"></i>Scenario</span>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="scenario_accordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#scenario_conversation" aria-expanded="true">
+                      Conversation
+                    </button>
+                  </h2>
+                  <div id="scenario_conversation" class="accordion-collapse collapse show"
+                    data-bs-parent="#scenario_accordion">
+                    <div class="accordion-body">
+                      <div class="scenario-buttons">
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Bereit."
+                          data-testid="shortcut-ready">Bereit</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Ja."
+                          data-testid="shortcut-yes">Ja</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-utterance="Nein."
+                          data-testid="shortcut-no">Nein</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button"
+                          data-utterance="Bitte beende die Interaktion."
+                          data-testid="shortcut-stop">Beenden</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#scenario_rps">
+                      Schere Stein Papier
+                    </button>
+                  </h2>
+                  <div id="scenario_rps" class="accordion-collapse collapse" data-bs-parent="#scenario_accordion">
+                    <div class="accordion-body">
+                      <div class="d-grid gap-2">
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="scissor"
+                          data-testid="manual-sign-scissor">
+                          <span class="sign-symbol">&#9996;</span><span>Schere</span>
+                        </button>
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="rock"
+                          data-testid="manual-sign-rock">
+                          <span class="sign-symbol">&#9994;</span><span>Stein</span>
+                        </button>
+                        <button class="btn btn-outline-ink sign-button" type="button" data-sign="paper"
+                          data-testid="manual-sign-paper">
+                          <span class="sign-symbol">&#9995;</span><span>Papier</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#scenario_social">
+                      Social Context
+                    </button>
+                  </h2>
+                  <div id="scenario_social" class="accordion-collapse collapse" data-bs-parent="#scenario_accordion">
+                    <div class="accordion-body">
+                      <div class="scenario-buttons">
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="alone"
+                          data-testid="social-sample-alone">No one</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="single"
+                          data-testid="social-sample-single">One nearby</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="crowd"
+                          data-testid="social-sample-crowd">Group</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="pair"
+                          data-testid="social-sample-pair">Pair</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="main-column">
+          <div class="demo-card card mb-3">
+            <div class="card-header">
+              <span><i class="bi bi-chat-dots me-2"></i>Interaction</span>
+              <button id="clear_messages" class="btn btn-outline-ink toolbar-button" type="button"
+                title="Clear messages">
+                <i class="bi bi-eraser"></i>
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="messages" class="message-list" data-testid="message-list"></div>
+              <div class="input-row mt-3">
+                <textarea id="text_input" class="form-control chat-input" rows="2"
+                  placeholder="Text input" data-testid="text-input"></textarea>
+                <button id="send_text" class="btn btn-primary toolbar-button" type="button" data-testid="send-text"
+                  title="Send">
+                  <i class="bi bi-send-fill"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card card">
+            <div class="card-header">
+              <span><i class="bi bi-eyeglasses me-2"></i>Behaviour</span>
+            </div>
+            <div class="card-body">
+              <div class="surface-panel mb-3">
+                <div class="metric-label">Speech</div>
+                <div id="speech_preview" data-testid="speech-preview">-</div>
+              </div>
+              <div class="behaviour-strip">
+                <div class="metric-tile">
+                  <span class="metric-label">Gesture</span>
+                  <strong id="gesture_value" data-testid="gesture-value">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Face</span>
+                  <strong id="face_value" data-testid="face-value">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Gaze</span>
+                  <strong id="gaze_value" data-testid="gaze-value">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Motion</span>
+                  <strong id="motion_value" data-testid="motion-value">-</strong>
+                </div>
+              </div>
+              <div class="metric-grid mt-3">
+                <div class="metric-tile">
+                  <span class="metric-label">GIGI Sign</span>
+                  <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">User Sign</span>
+                  <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Round</span>
+                  <strong id="round_value" data-testid="round-value">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Winner</span>
+                  <strong id="winner_value" data-testid="winner-value">-</strong>
+                </div>
+              </div>
+              <div class="surface-panel mt-3">
+                <div class="metric-label">Display</div>
+                <pre id="display_value" class="compact-json mb-0" data-testid="display-value">-</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="right-column">
+          <div class="demo-card card mb-3">
+            <div class="card-header">
+              <span><i class="bi bi-camera-video me-2"></i>Sensing</span>
+            </div>
+            <div class="card-body">
+              <div class="video-shell mb-3">
+                <video id="camera_video" autoplay playsinline muted data-testid="camera-video"></video>
+                <canvas id="overlay_canvas" data-testid="overlay-canvas"></canvas>
+              </div>
+              <div class="d-flex gap-2 mb-3">
+                <button id="start_camera" class="btn btn-primary flex-fill" type="button" data-testid="start-camera">
+                  <i class="bi bi-camera-video me-2"></i>Start
+                </button>
+                <button id="stop_camera" class="btn btn-outline-ink flex-fill" type="button" disabled
+                  data-testid="stop-camera">
+                  <i class="bi bi-camera-video-off me-2"></i>Stop
+                </button>
+              </div>
+
+              <div class="accordion" id="sensing_accordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#sensor_toggles" aria-expanded="true">
+                      Detectors
+                    </button>
+                  </h2>
+                  <div id="sensor_toggles" class="accordion-collapse collapse show" data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="form-check form-switch">
+                        <input id="sensor_emit_enabled" class="form-check-input" type="checkbox"
+                          data-testid="sensor-emit-enabled">
+                        <label class="form-check-label" for="sensor_emit_enabled">Emit events</label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input id="sensor_emotion_enabled" class="form-check-input" type="checkbox"
+                          data-testid="sensor-emotion-enabled">
+                        <label class="form-check-label" for="sensor_emotion_enabled">Face emotion</label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input id="sensor_social_enabled" class="form-check-input" type="checkbox"
+                          data-testid="sensor-social-enabled">
+                        <label class="form-check-label" for="sensor_social_enabled">Social grouping</label>
+                      </div>
+                      <div class="form-check form-switch">
+                        <input id="sensor_hand_enabled" class="form-check-input" type="checkbox"
+                          data-testid="sensor-hand-enabled">
+                        <label class="form-check-label" for="sensor_hand_enabled">Hand sign</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#sensor_config">
+                      Configuration
+                    </button>
+                  </h2>
+                  <div id="sensor_config" class="accordion-collapse collapse" data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="row g-2">
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="emit_interval_ms">Emit ms</label>
+                          <input id="emit_interval_ms" class="form-control form-control-sm" type="number" min="250"
+                            step="250" value="2500" data-testid="emit-interval-ms">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="face_confidence_threshold">Face conf</label>
+                          <input id="face_confidence_threshold" class="form-control form-control-sm" type="number"
+                            min="0" max="1" step="0.05" value="0.55" data-testid="face-confidence-threshold">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="group_distance_threshold">Group dist</label>
+                          <input id="group_distance_threshold" class="form-control form-control-sm" type="number"
+                            min="0.05" max="0.5" step="0.01" value="0.16"
+                            data-testid="group-distance-threshold">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="hand_confidence_threshold">Hand conf</label>
+                          <input id="hand_confidence_threshold" class="form-control form-control-sm" type="number"
+                            min="0" max="1" step="0.05" value="0.65" data-testid="hand-confidence-threshold">
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check mt-1">
+                            <input id="hand_auto_send" class="form-check-input" type="checkbox"
+                              data-testid="hand-auto-send">
+                            <label class="form-check-label" for="hand_auto_send">Auto-send hand sign</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="demo-card card">
+            <div class="card-header">
+              <span><i class="bi bi-graph-up me-2"></i>Signals</span>
+            </div>
+            <div class="card-body">
+              <div class="metric-grid">
+                <div class="metric-tile">
+                  <span class="metric-label">Emotion</span>
+                  <strong id="emotion_value" data-testid="emotion-value">-</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Humans</span>
+                  <strong id="human_count" data-testid="human-count">0</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Groups</span>
+                  <strong id="group_count" data-testid="group-count">0</strong>
+                </div>
+                <div class="metric-tile">
+                  <span class="metric-label">Camera Sign</span>
+                  <strong id="camera_sign_value" data-testid="camera-sign-value">-</strong>
+                </div>
+              </div>
+              <div class="surface-panel mt-3">
+                <div class="metric-label">Latest Event</div>
+                <div id="latest_event" data-testid="latest-event">-</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </section>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="diagnostics_drawer" aria-labelledby="diagnostics_title">
+    <div class="offcanvas-header">
+      <h5 id="diagnostics_title" class="offcanvas-title">Diagnostics</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="mb-3">
+        <div class="metric-label">Activity</div>
+        <div id="activity_log" class="mono-log" data-testid="activity-log"></div>
+      </div>
+      <div>
+        <div class="metric-label">Storage</div>
+        <pre id="storage_view" class="compact-json surface-panel" data-testid="storage-view">-</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="agent_info_modal" tabindex="-1" aria-labelledby="agent_info_title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="agent_info_title" class="modal-title">Agent</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="metric-label">Name</div>
+          <div id="agent_info_name" class="mb-3">-</div>
+          <div class="metric-label">Description</div>
+          <div id="agent_info_description">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>

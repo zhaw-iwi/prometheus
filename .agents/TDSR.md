@@ -637,6 +637,37 @@ Primary risks:
   server-side perception provider using image interpretation, but the game
   should still consume the same normalized `obs.hand.sign` event.
 
+### TDSR Milestone 7: Unified GIGI Demo Cockpit
+
+Status: Implemented in PROJECT.md Milestone 29.
+
+Goal:
+
+Add a single browser page for testing and demonstrating the TDSR agents without
+opening the separate text, realtime, visual, nonverbal, monitor, and RPS
+clients in parallel.
+
+Deliverables:
+
+- static client under `src/main/resources/public/gigi-demo`
+- redirect aliases for `/gigi-demo`, `/gigi`, and `/tdsr`
+- agent selection from `GET /agent` plus direct `?agentId=<uuid>` support
+- text interaction and realtime speech-to-speech controls on the same page
+- camera sensing controls for facial emotion, social grouping, and RPS hand
+  sign detection
+- manual fallback scenario buttons for conversation, social grouping, and RPS
+  hand signs
+- behaviour visualization for `speech`, `nonVerbal`, `motion`, and `display`
+- diagnostics drawer for activity and storage snapshots
+- static client contract tests and redirect tests
+
+Primary risks:
+
+- Browser-side perception remains dependent on camera permission, lighting,
+  local hardware, and model/CDN availability.
+- The cockpit selects existing database agents; it does not yet create seeded
+  TDSR demo agents from a one-click registry.
+
 ## Cross-Cutting Constraints
 
 - Do not introduce a new top-level behaviour modality for RPS. Use `motion`.
@@ -663,11 +694,16 @@ What is done:
 - **RPS Core Game**: `RockScissorPaper` has deterministic sign selection, winner calculation, `obs.hand.sign`, `motion.handSign`, result display, and replay coverage.
 - **RPS Web Client**: `/rps` client renders GIGI’s motion sign, result state, and supports manual hand-sign input.
 - **RPS Camera Detection**: `/rps` now includes browser-side MediaPipe detection with manual fallback, confidence threshold, stability gating, and normalized `obs.hand.sign` emission.
+- **Unified Demo Client**: `/gigi-demo` combines agent selection, text,
+  realtime speech, visual sensing controls, manual scenario inputs, behaviour
+  rendering, and diagnostics for the TDSR agents.
 
 What is left or worth doing:
 
-- **Live demo validation**: camera-based RPS detection still needs real browser/camera testing on the target demo machine. We only verified static/HTTP contracts because no in-app browser target was available.
+- **Live demo validation**: camera-based sensing still needs real browser/camera testing on the target demo machine. Static/HTTP contracts cover the browser surface, but not camera hardware quality.
 - **Tune RPS camera behavior**: threshold, stability frame count, camera angle, lighting, and false positives likely need adjustment after real use.
+- **One-click demo seeding**: the cockpit can select existing agents, but does
+  not yet seed GIGI TDSR agents from the browser.
 - **Social cooldown/rate limiting**: we implemented duplicate suppression based on social state changes, but not a separate wall-clock cooldown policy for spontaneous remarks. If repeated visual transitions are noisy in demos, this is the main backend polish item.
 - **Social final summary**: the original social agent description mentioned storing a compact interaction summary on exit; PROJECT does not record this as implemented.
 - **Renderer completeness**: the nonverbal renderer may still visualize only part of richer `nonVerbal` plans from the gestures agent.

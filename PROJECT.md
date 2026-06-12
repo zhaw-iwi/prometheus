@@ -32,6 +32,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 26: TDSR Schere-Stein-Papier core game and motion contract
 - [x] Milestone 27: TDSR RPS web behaviour and manual sensing client
 - [x] Milestone 28: TDSR RPS client-side hand detection
+- [x] Milestone 29: Unified GIGI TDSR demo cockpit
 
 ## Milestone 1
 ### Date
@@ -1301,3 +1302,65 @@ Implement TDSR Milestone 6 by adding browser-side camera hand-sign detection to 
 1. Manually verify camera classification on the target demo machine with real lighting and camera angle.
 2. Tune the confidence threshold and stability frame count if live demos produce false positives.
 3. Consider a custom gesture model or server-side image interpretation only if MediaPipe canned gestures are not reliable enough.
+
+## Milestone 29
+### Date
+2026-06-12
+
+### Goal
+Add a unified browser client for GIGI TDSR agent testing and demos so users can interact through text or realtime speech, run visual sensing, use manual scenario inputs, and inspect multimodal behaviour from one page.
+
+### What changed
+- Added the GIGI Demo Cockpit static client:
+  - `src/main/resources/public/gigi-demo/index.html`
+  - `src/main/resources/public/gigi-demo/script.js`
+- Added redirect aliases:
+  - `/gigi-demo`
+  - `/gigi`
+  - `/tdsr`
+- The cockpit:
+  - discovers existing agents from `GET /agent`
+  - accepts direct `?agentId=<uuid>` and persists the selected agent locally
+  - starts/resets agents and subscribes to behaviour/monitor SSE
+  - supports text interaction through `obs.user_utterance`
+  - supports realtime speech-to-speech through the existing Realtime session and prompt profile flow
+  - exposes realtime voice, temperature, continuous listening, push-to-talk, and backend complement controls
+  - combines camera controls for face emotion, social grouping, and RPS hand-sign detection
+  - preserves manual fallback controls for conversation shortcuts, social grouping samples, and RPS signs
+  - renders `BehaviourPlan.speech`, `nonVerbal`, `motion.handSign`, and `display`
+  - includes a diagnostics drawer for activity and storage snapshots
+- Added static contract coverage:
+  - `src/test/java/ch/zhaw/prometheus/controllers/GigiDemoClientStaticResourceContractTest.java`
+- Extended redirect coverage:
+  - `src/test/java/ch/zhaw/prometheus/controllers/StaticRedirectControllerWebMvcTest.java`
+- Updated README client documentation and `.agents/TDSR.md`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed one of the GIGI TDSR agents:
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java`
+   - `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java`
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+   - or `http://localhost:8080/tdsr/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest" test`
+  - local static HTTP smoke against `http://127.0.0.1:8095/gigi-demo/index.html?agentId=11111111-1111-1111-1111-111111111111`, verifying `200 OK` and presence of the cockpit, realtime, and hand-sensing controls
+
+### Known issues and decisions
+- The cockpit selects existing persisted agents; it does not yet create or seed TDSR demo agents from the browser.
+- Browser-side sensing still depends on camera permission, local hardware, lighting, pose, and CDN/model availability.
+- Manual scenario buttons intentionally remain first-class fallbacks so demos can proceed without reliable camera sensing.
+- The cockpit reuses existing event contracts and does not add new event types, behaviour modalities, or backend agent semantics.
+- The in-app browser backend was unavailable in this session, so interactive browser/camera validation still needs to be run on a live app with seeded agents and camera access.
+
+### Next steps
+1. Add a one-click GIGI TDSR demo-agent registry/seed endpoint if browser-driven demo setup becomes a requirement.
+2. Run a live rehearsal with the cockpit on the target demo machine and tune camera thresholds.
+3. Consider extracting shared browser sensing utilities if future clients duplicate the cockpit detector code.

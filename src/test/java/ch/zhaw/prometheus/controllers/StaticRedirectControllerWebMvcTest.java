@@ -70,4 +70,18 @@ class StaticRedirectControllerWebMvcTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/rps/index.html?agentId=uuid"));
     }
+
+    @Test
+    void redirectsGigiDemoToStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/gigi-demo?agentId=uuid"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/gigi-demo/index.html?agentId=uuid"));
+    }
+
+    @Test
+    void redirectsTdsrAliasToGigiDemoStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/tdsr?agentId=uuid"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/gigi-demo/index.html?agentId=uuid"));
+    }
 }
