@@ -195,4 +195,34 @@ class GigiDemoClientStaticResourceContractTest {
         assertFalse(script.contains("latest_event"));
         assertFalse(script.contains("camera_sign_value"));
     }
+
+    @Test
+    void gigiDemoClientConsumesAgentInteractionProfileForUiVisibility() throws IOException {
+        String index = Files.readString(INDEX);
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(index.contains("data-profile-observations=\"obs.emotion.face\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.hand.sign\""));
+        assertTrue(index.contains("data-profile-behaviours=\"speech\""));
+        assertTrue(index.contains("data-profile-behaviours=\"nonVerbal.gesture\""));
+        assertTrue(index.contains("data-profile-behaviours=\"nonVerbal.facialExpression\""));
+        assertTrue(index.contains("data-profile-behaviours=\"nonVerbal.gaze\""));
+        assertTrue(index.contains("data-profile-behaviours=\"motion.handSign display\""));
+        assertTrue(index.contains("data-profile-behaviours=\"display\""));
+
+        assertTrue(script.contains("applyInteractionProfile(data.interactionProfile);"));
+        assertTrue(script.contains("function applyInteractionProfile(profile)"));
+        assertTrue(script.contains("supportedObservations"));
+        assertTrue(script.contains("supportedBehaviourModalities"));
+        assertTrue(script.contains("fallbackAll: supportedObservations.length === 0"));
+        assertTrue(script.contains("element.hidden = !visible;"));
+        assertTrue(script.contains("function profileElementVisible"));
+        assertTrue(script.contains("function profileTokenMatches"));
+        assertTrue(script.contains("function resetUnsupportedSensorModes"));
+        assertTrue(script.contains("PROFILE_SENSOR_OBSERVATIONS"));
+
+        assertFalse(script.contains("applyInteractionProfile(isGigiAgent"));
+        assertFalse(script.contains("profileElementVisible(isGigiAgent"));
+    }
 }

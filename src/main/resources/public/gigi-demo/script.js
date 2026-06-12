@@ -90,6 +90,19 @@ const MANUAL_EMOTIONS = {
   surprised: { valence: 0.2, arousal: 0.8 },
 };
 
+const PROFILE_VISUAL_OBSERVATIONS = [
+  "obs.emotion.face",
+  "obs.human.presence",
+  "obs.social.grouping",
+  "obs.hand.sign",
+];
+
+const PROFILE_SENSOR_OBSERVATIONS = {
+  emotion: ["obs.emotion.face"],
+  social: ["obs.human.presence", "obs.social.grouping"],
+  hand: ["obs.hand.sign"],
+};
+
 const HAND_CONNECTIONS = [
   [0, 1], [1, 2], [2, 3], [3, 4],
   [0, 5], [5, 6], [6, 7], [7, 8],
@@ -108,6 +121,7 @@ async function init() {
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
+  applyInteractionProfile(null);
   updatePushToTalkUi();
   appendSystemMessage("Select or paste an agent ID, then connect.");
 
@@ -278,6 +292,7 @@ async function loadAgentInfo() {
     document.getElementById("agent_info_name").textContent = data.name || "-";
     document.getElementById("agent_info_description").textContent = data.description || "-";
     setActiveStatus(data.active);
+    applyInteractionProfile(data.interactionProfile);
     return true;
   } catch (error) {
     appendLog("app", "agent info failed: " + error.message);
@@ -324,6 +339,95 @@ function resetAgentInfo() {
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
   setActiveStatus(null);
+  applyInteractionProfile(null);
+}
+
+function applyInteractionProfile(profile) {
+  const capabilities = resolveInteractionCapabilities(profile);
+  document.querySelectorAll("[data-profile-observations],[data-profile-behaviours]").forEach((element) => {
+    const visible = profileElementVisible(element, capabilities);
+    element.hidden = !visible;
+  });
+  resetUnsupportedSensorModes(capabilities);
+}
+
+function resolveInteractionCapabilities(profile) {
+  const supportedObservations = normalizeProfileList(profile && profile.supportedObservations);
+  const supportedBehaviourModalities = normalizeProfileList(profile && profile.supportedBehaviourModalities);
+  return {
+    supportedObservations,
+    supportedBehaviourModalities,
+    fallbackAll: supportedObservations.length === 0 && supportedBehaviourModalities.length === 0,
+  };
+}
+
+function normalizeProfileList(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+  return Array.from(new Set(values
+    .filter((value) => typeof value === "string" && value.trim())
+    .map((value) => value.trim())));
+}
+
+function profileElementVisible(element, capabilities) {
+  if (capabilities.fallbackAll) {
+    return true;
+  }
+  const requiredObservations = profileTokens(element.dataset.profileObservations);
+  const requiredBehaviourModalities = profileTokens(element.dataset.profileBehaviours);
+  if (requiredObservations.length === 0 && requiredBehaviourModalities.length === 0) {
+    return true;
+  }
+  return profileListIntersects(capabilities.supportedObservations, requiredObservations)
+    || profileListIntersects(capabilities.supportedBehaviourModalities, requiredBehaviourModalities);
+}
+
+function profileTokens(value) {
+  if (typeof value !== "string" || !value.trim()) {
+    return [];
+  }
+  return value.split(/\s+/).map((token) => token.trim()).filter(Boolean);
+}
+
+function profileListIntersects(supported, required) {
+  if (!Array.isArray(supported) || !Array.isArray(required)) {
+    return false;
+  }
+  return required.some((requiredToken) => supported
+    .some((supportedToken) => profileTokenMatches(supportedToken, requiredToken)));
+}
+
+function profileTokenMatches(supportedToken, requiredToken) {
+  if (!supportedToken || !requiredToken) {
+    return false;
+  }
+  return supportedToken === requiredToken
+    || supportedToken.startsWith(`${requiredToken}.`)
+    || requiredToken.startsWith(`${supportedToken}.`);
+}
+
+function resetUnsupportedSensorModes(capabilities) {
+  if (capabilities.fallbackAll) {
+    return;
+  }
+  for (const [mode, observations] of Object.entries(PROFILE_SENSOR_OBSERVATIONS)) {
+    if (profileListIntersects(capabilities.supportedObservations, observations)) {
+      continue;
+    }
+    const input = document.getElementById(`sensor_${mode}_enabled`);
+    if (input) {
+      input.checked = false;
+    }
+  }
+  const hasVisualObservation = profileListIntersects(capabilities.supportedObservations, PROFILE_VISUAL_OBSERVATIONS);
+  if (!hasVisualObservation) {
+    const emit = document.getElementById("sensor_emit_enabled");
+    if (emit) {
+      emit.checked = false;
+    }
+  }
+  resetDisabledSensorState();
 }
 
 function updateSelectedAgentStatus() {

@@ -40,6 +40,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 34: GIGI demo sensing accordion and behaviour rows
 - [x] Milestone 35: GIGI demo explicit connect/disconnect lifecycle
 - [x] Milestone 36: Agent interaction profile declaration
+- [x] Milestone 37: GIGI demo consumes interaction profiles
 
 ## Milestone 1
 ### Date
@@ -1532,6 +1533,12 @@ Make GIGI demo visual sensing modes independently toggleable at runtime so face 
 - Executed:
   - `node --check src/main/resources/public/gigi-demo/script.js`
   - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+  - Temporary Playwright scripted smoke against the live local app with mocked agent/profile responses verifying:
+    - RPS profile shows hand-sign sensing plus speech, motion/sign, and display rows while hiding emotion/social/gesture rows
+    - social-context profile shows social sensing plus speech while hiding hand/emotion/display rows
+    - speech-only profile hides visual sensing controls and non-speech behaviour rows
+    - empty profile fallback keeps the full cockpit visible
+    - no local page HTTP responses with status `>=400`
 
 ### Known issues and decisions
 - This milestone keeps the existing browser-side detector libraries and event contracts; it changes runtime coordination only.
@@ -1749,3 +1756,45 @@ Add a framework-level agent interaction profile so agents can declare expected o
 1. Use `interactionProfile` in the GIGI demo to hide irrelevant sensing controls and behaviour rows after agent connection.
 2. Consider creation/update API support for setting interaction profiles outside seed tests.
 3. Normalize profile tables later if SQL querying by supported signal/modality becomes a real requirement.
+
+## Milestone 37
+### Date
+2026-06-12
+
+### Goal
+Make the GIGI demo consume `AgentInfoView.interactionProfile` so sensing controls and behaviour rows reflect the selected agent's declared observations and behaviour modalities.
+
+### What changed
+- Added profile visibility metadata to GIGI demo sensing sections, detector/config controls, sensed-signal rows, and behaviour rows.
+- Added frontend profile consumption after `/{agentID}/info` loads:
+  - `supportedObservations` controls sensing accordion visibility.
+  - `supportedBehaviourModalities` controls behaviour row visibility.
+  - missing or empty profiles keep the full cockpit visible as a conservative fallback for older agents.
+- Turned off unsupported sensor modes when a connected profile hides those observations, preventing hidden detectors from continuing to emit unsupported events.
+- Kept profile handling explicit and did not infer capabilities from agent names or descriptions.
+- Updated `GigiDemoClientStaticResourceContractTest` to guard the profile-driven UI hooks.
+- Updated README with the profile-driven cockpit behavior.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed GIGI TDSR agents with interaction profiles.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/gigi-demo/`
+5. Connect different profiled agents and verify the sensing accordion and behaviour card adapt to the selected profile.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/gigi-demo/script.js`
+  - `.\mvnw.cmd -q "-Dtest=GigiDemoClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Empty profiles are treated as "unknown" and show the full cockpit rather than hiding everything.
+- Profile matching supports exact tokens and prefix relationships, so a declared `motion.handSign` can satisfy generic `motion` rows.
+- The demo still uses static markup with profile attributes; it does not dynamically create controls from profile definitions yet.
+
+### Next steps
+1. Run live rehearsal with seeded GIGI agents and adjust any row mappings that feel too broad or too narrow.
+2. Consider profile-aware defaults for expanded accordion sections after more demo use.
+3. Consider creation/update API support for setting interaction profiles outside seed tests.

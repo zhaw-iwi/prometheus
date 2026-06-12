@@ -38,6 +38,7 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
 - Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; event emission uses per-mode throttles.
 - The sensing card groups detectors, configuration, manual emotion/social/hand inputs, and sensed signal readouts in one accordion. Behaviour modalities render as full-width rows.
+- After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
 
 ### Text Client
 
