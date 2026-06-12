@@ -14,6 +14,7 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.EventSelector;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
@@ -71,6 +72,8 @@ public class Agent {
     private String regulationSystemSpecJson;
     @Enumerated(EnumType.STRING)
     private SnapshotAggregatorType regulationSnapshotAggregatorType;
+    @Column(length = 4096)
+    private String interactionProfileJson;
 
     @Transient
     private RegulationSystem regulationSystem;
@@ -91,6 +94,7 @@ public class Agent {
         this.regulationSystem = new NoOpRegulationSystem();
         this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
         this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
+        this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
         this.latestModulation = ModulationBundle.neutral();
         this.attachEventHistory();
     }
@@ -101,6 +105,19 @@ public class Agent {
 
     public String getDescription() {
         return this.description;
+    }
+
+    public AgentInteractionProfile getInteractionProfile() {
+        if (this.interactionProfileJson == null || this.interactionProfileJson.isBlank()) {
+            this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
+        }
+        return AgentInteractionProfile.fromJson(this.interactionProfileJson);
+    }
+
+    public void setInteractionProfile(AgentInteractionProfile interactionProfile) {
+        AgentInteractionProfile resolved = interactionProfile == null ? AgentInteractionProfile.empty()
+                : interactionProfile;
+        this.interactionProfileJson = resolved.toJson();
     }
 
     public State getCurrentState() {
@@ -275,6 +292,9 @@ public class Agent {
         }
         if (this.regulationSnapshotAggregatorType == null) {
             this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
+        }
+        if (this.interactionProfileJson == null || this.interactionProfileJson.isBlank()) {
+            this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
         }
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();

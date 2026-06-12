@@ -17,6 +17,7 @@ import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -167,11 +168,13 @@ public class SocialContextSensitivity {
         interactionState.addTransition(toFinal);
         interactionState.addTransition(reactToSocialChange);
 
-        return new Agent(
+        Agent agent = new Agent(
                 "GIGI TDSR - Social Context Sensitivity",
                 "Deutschsprachiger TDSR-Demo-Agent fuer spontane Reaktionen auf berechnete soziale Kontextwechsel.",
                 interactionState,
                 storage);
+        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrSocialContextSensitivity());
+        return agent;
     }
 
     @Test

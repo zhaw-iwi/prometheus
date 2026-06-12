@@ -68,7 +68,7 @@ public class AgentApplicationService {
         List<AgentInfoView> result = new ArrayList<>();
         for (Agent current : agents) {
             result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
-                    current.isActive()));
+                    current.isActive(), current.getInteractionProfile()));
         }
         return result;
     }
@@ -83,7 +83,7 @@ public class AgentApplicationService {
 
     public Optional<AgentInfoView> getAgentInfo(UUID agentID) {
         return this.findAgent(agentID).map(agent -> new AgentInfoView(agent.getId(), agent.getName(),
-                agent.getDescription(), agent.isActive()));
+                agent.getDescription(), agent.isActive(), agent.getInteractionProfile()));
     }
 
     public Optional<AgentStateInfoView> getAgentState(UUID agentID) {
@@ -252,7 +252,8 @@ public class AgentApplicationService {
         Agent saved = this.repository.save(agent);
         safePublishMonitor(saved);
         this.publishBehaviour(saved, starter);
-        return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive()));
+        return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
+                saved.getInteractionProfile()));
     }
 
     private Optional<Agent> findAgent(UUID agentID) {

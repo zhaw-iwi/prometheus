@@ -14,6 +14,8 @@ import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptContextAugmenter;
 import ch.zhaw.prometheus.model.policy.PromptEventContentAdapter;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -85,5 +87,34 @@ class AgentApplicationServicePromptUnitTest {
         assertTrue(result.getPromptMessages().stream()
                 .anyMatch(message -> message.getRole().equals("system")
                         && message.getContent().contains("respond with natural spoken assistant text only")));
+    }
+
+    @Test
+    void agentInfoIncludesDeclaredInteractionProfile() {
+        UUID agentId = UUID.fromString("77777777-7777-7777-7777-777777777777");
+        State state = new State("s", new PromptPolicy("system-policy", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
+                List.of());
+        Agent agent = new Agent("a", "d", state);
+        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrSocialContextSensitivity());
+
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
+                behaviourBroadcaster, assembler, languageModelGateway);
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+        when(repository.findAll()).thenReturn(List.of(agent));
+
+        var info = service.getAgentInfo(agentId).orElseThrow();
+        var listed = service.listAgents().get(0);
+
+        assertTrue(info.getInteractionProfile().supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
+        assertTrue(info.getInteractionProfile().supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
+        assertTrue(info.getInteractionProfile().supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+        assertTrue(listed.getInteractionProfile().getProfileTags()
+                .contains(AgentInteractionProfile.TAG_GIGI_SOCIAL_CONTEXT));
     }
 }

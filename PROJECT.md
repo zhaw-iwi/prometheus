@@ -39,6 +39,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 33: GIGI demo UI layout and explicit agent connection
 - [x] Milestone 34: GIGI demo sensing accordion and behaviour rows
 - [x] Milestone 35: GIGI demo explicit connect/disconnect lifecycle
+- [x] Milestone 36: Agent interaction profile declaration
 
 ## Milestone 1
 ### Date
@@ -1705,3 +1706,46 @@ Remove ambiguity from the GIGI demo Agent drawer by separating agent selection f
 1. Implement the agent interaction profile/capability declaration as a framework-level feature.
 2. Use the declared profile in the GIGI demo to hide irrelevant controls and behaviour rows.
 3. Consider a visual connected badge in the page header if live demos need stronger state signalling.
+
+## Milestone 36
+### Date
+2026-06-12
+
+### Goal
+Add a framework-level agent interaction profile so agents can declare expected observation signals and supported behaviour modalities through persisted metadata instead of frontend heuristics or runtime storage.
+
+### What changed
+- Added `AgentInteractionProfile` with stable string identifiers for supported observations, supported behaviour modalities, and optional profile tags.
+- Added reusable GIGI/TDSR profile factories in `AgentInteractionProfiles`.
+- Persisted the profile on the `Agent` aggregate as a typed JSON value stored in the database-backed agent row.
+- Exposed the profile through `AgentInfoView`, including `GET /agent`, `GET /agent/{id}`, and `GET /{agentID}/info`.
+- Kept agents without an explicit profile compatible by exposing an empty profile rather than `null`.
+- Annotated the seeded GIGI TDSR agents:
+  - gesture guessing game: user utterance input plus speech and nonverbal gesture/face/gaze output
+  - social context sensitivity: user utterance, human presence, grouping, and social situation change input plus speech output
+  - Schere-Stein-Papier: user utterance and hand-sign input plus speech, `motion.handSign`, and display output
+- Updated README to document the profile as agent metadata, not runtime `Storage`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Seed or create agents.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Inspect an agent profile:
+   - `GET http://localhost:8080/{agentID}/info`
+   - `GET http://localhost:8080/agent`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,AgentApplicationServicePromptUnitTest,AgentClientCompatibilityWebMvcTest,AgentInteractionProfilePersistenceUnitTest" test`
+
+### Known issues and decisions
+- The profile is persisted as a typed JSON column on `Agent`, not as runtime storage and not as normalized child tables yet.
+- This is a deliberate prototype-stage compromise: the metadata is database-backed and type-checked in Java, while the vocabulary can still evolve without schema churn.
+- The GIGI demo still renders known TDSR controls and behaviour rows; it does not yet hide controls based on the profile.
+- Existing agents created before this milestone expose an empty profile until reseeded or updated.
+
+### Next steps
+1. Use `interactionProfile` in the GIGI demo to hide irrelevant sensing controls and behaviour rows after agent connection.
+2. Consider creation/update API support for setting interaction profiles outside seed tests.
+3. Normalize profile tables later if SQL querying by supported signal/modality becomes a real requirement.

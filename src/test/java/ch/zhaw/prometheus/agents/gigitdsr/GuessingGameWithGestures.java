@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -188,11 +189,13 @@ public class GuessingGameWithGestures {
                 interactionPolicy,
                 List.of(toFinal));
 
-        return new Agent(
+        Agent agent = new Agent(
                 "GIGI TDSR - Ratespiel mit Gesten",
                 "Deutschsprachiger TDSR-Demo-Agent fuer ein Ja/Nein-Ratespiel mit begleitenden Gesten.",
                 interactionState,
                 storage);
+        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrGuessingGameWithGestures());
+        return agent;
     }
 
     @Test

@@ -34,6 +34,8 @@ import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -89,7 +91,8 @@ class AgentClientCompatibilityWebMvcTest {
                 .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
         when(this.agentService.getAgentInfo(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentInfoView(TEST_AGENT_ID, "Example Conversational Agent",
-                        "Test fixture agent for chat, realtime, and monitor compatibility checks.", true)));
+                        "Test fixture agent for chat, realtime, and monitor compatibility checks.", true,
+                        AgentInteractionProfiles.gigiTdsrRockScissorPaper())));
         when(this.agentService.getAgentState(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentStateInfoView("conversation", null, List.of())));
         when(this.agentService.getAgentStorage(TEST_AGENT_ID)).thenReturn(Optional.of(List.of()));
@@ -190,7 +193,13 @@ class AgentClientCompatibilityWebMvcTest {
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Example Conversational Agent"))
-                .andExpect(jsonPath("$.active").value(true));
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.interactionProfile.supportedObservations[0]")
+                        .value(AgentInteractionProfile.OBS_USER_UTTERANCE))
+                .andExpect(jsonPath("$.interactionProfile.supportedObservations[1]")
+                        .value(AgentInteractionProfile.OBS_HAND_SIGN))
+                .andExpect(jsonPath("$.interactionProfile.supportedBehaviourModalities[1]")
+                        .value(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
 
         this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/state"))
                 .andExpect(status().isOk())

@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -189,11 +190,13 @@ public class RockScissorPaper {
         resultState.addTransition(resultToFinal);
         resultState.addTransition(resultToReveal);
 
-        return new Agent(
+        Agent agent = new Agent(
                 "GIGI TDSR - Schere, Stein, Papier",
                 "Deutschsprachiger TDSR-Demo-Agent fuer Schere, Stein, Papier mit deterministischer motion.handSign-Ausgabe.",
                 startState,
                 storage);
+        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrRockScissorPaper());
+        return agent;
     }
 
     private static Transition finalTransition(State finalState) {
