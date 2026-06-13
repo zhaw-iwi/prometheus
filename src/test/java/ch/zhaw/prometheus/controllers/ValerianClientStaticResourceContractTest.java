@@ -9,14 +9,17 @@ import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 
-class GigiDemoClientStaticResourceContractTest {
-    private static final Path INDEX = Path.of("src/main/resources/public/gigi-demo/index.html");
-    private static final Path SCRIPT = Path.of("src/main/resources/public/gigi-demo/script.js");
+class ValerianClientStaticResourceContractTest {
+    private static final Path INDEX = Path.of("src/main/resources/public/valerian/index.html");
+    private static final Path SCRIPT = Path.of("src/main/resources/public/valerian/script.js");
 
     @Test
-    void gigiDemoClientExposesSinglePageAgentAndInteractionControls() throws IOException {
+    void valerianClientExposesSinglePageAgentAndInteractionControls() throws IOException {
         String index = Files.readString(INDEX);
 
+        assertTrue(index.contains("<title>Prometheus Demo Cockpit</title>"));
+        assertTrue(index.contains("Prometheus Demo Cockpit"));
+        assertTrue(index.contains("PROMETHEUS demo console"));
         assertTrue(index.contains("<script src=\"script.js\"></script>"));
         assertTrue(index.contains("data-testid=\"agent-select\""));
         assertTrue(index.contains("data-testid=\"agent-id-input\""));
@@ -42,7 +45,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientExposesRealtimeSpeechControls() throws IOException {
+    void valerianClientExposesRealtimeSpeechControls() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
@@ -68,7 +71,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientExposesDiagnosticsDrawerControlsAndSnapshots() throws IOException {
+    void valerianClientExposesDiagnosticsDrawerControlsAndSnapshots() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
@@ -117,7 +120,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientRequiresExplicitAgentSelectionBeforeStreaming() throws IOException {
+    void valerianClientRequiresExplicitAgentSelectionBeforeStreaming() throws IOException {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("state.selectedAgentId = getAgentIdFromLocation();"));
@@ -145,14 +148,13 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("\"diagnostics_drawer_tab\""));
         assertTrue(script.contains("el.dataset.bsToggle === \"collapse\""));
 
-        assertFalse(script.contains("localStorage.getItem(\"gigiDemoAgentId\")"));
-        assertFalse(script.contains("localStorage.setItem(\"gigiDemoAgentId\""));
-        assertFalse(script.contains("const firstGigi"));
+        assertFalse(script.contains("localStorage.getItem"));
+        assertFalse(script.contains("localStorage.setItem"));
         assertFalse(script.contains("connectToAgent(id);"));
     }
 
     @Test
-    void gigiDemoClientExposesUnifiedVisualSensingControls() throws IOException {
+    void valerianClientExposesUnifiedVisualSensingControls() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
@@ -192,7 +194,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientSupportsIndependentRuntimeSensingModes() throws IOException {
+    void valerianClientSupportsIndependentRuntimeSensingModes() throws IOException {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("handleSensorModeChange"));
@@ -213,7 +215,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientEmitsExistingPrometheusObservationContracts() throws IOException {
+    void valerianClientEmitsExistingPrometheusObservationContracts() throws IOException {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("type: \"obs.user_utterance\""));
@@ -232,7 +234,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientRendersBehaviourModalitiesAndManualEventShortcuts() throws IOException {
+    void valerianClientRendersBehaviourModalitiesAndManualEventShortcuts() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
@@ -271,7 +273,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientHydratesTextTranscriptFromEventHistory() throws IOException {
+    void valerianClientHydratesTextTranscriptFromEventHistory() throws IOException {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("await loadEventHistory();"));
@@ -287,7 +289,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientSuppressesImmediateBehaviourResponseAndStreamDuplicates() throws IOException {
+    void valerianClientSuppressesImmediateBehaviourResponseAndStreamDuplicates() throws IOException {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("recentBehaviourPayloads: new Map()"));
@@ -305,7 +307,7 @@ class GigiDemoClientStaticResourceContractTest {
     }
 
     @Test
-    void gigiDemoClientConsumesAgentInteractionProfileForUiVisibility() throws IOException {
+    void valerianClientConsumesAgentInteractionProfileForUiVisibility() throws IOException {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
@@ -337,7 +339,7 @@ class GigiDemoClientStaticResourceContractTest {
         assertTrue(script.contains("function resetUnsupportedSensorModes"));
         assertTrue(script.contains("PROFILE_SENSOR_OBSERVATIONS"));
 
-        assertFalse(script.contains("applyInteractionProfile(isGigiAgent"));
-        assertFalse(script.contains("profileElementVisible(isGigiAgent"));
+        assertFalse(script.contains("applyInteractionProfile(isFeaturedAgent"));
+        assertFalse(script.contains("profileElementVisible(isFeaturedAgent"));
     }
 }

@@ -15,8 +15,8 @@ class RealtimeBrowserClientContractTest {
 
     private static final Path REALTIME_SCRIPT = Path.of("src/main/resources/public/realtime/script.js");
     private static final Path REALTIME_INDEX = Path.of("src/main/resources/public/realtime/index.html");
-    private static final Path GIGI_DEMO_SCRIPT = Path.of("src/main/resources/public/gigi-demo/script.js");
-    private static final Path GIGI_DEMO_INDEX = Path.of("src/main/resources/public/gigi-demo/index.html");
+    private static final Path VALERIAN_SCRIPT = Path.of("src/main/resources/public/valerian/script.js");
+    private static final Path VALERIAN_INDEX = Path.of("src/main/resources/public/valerian/index.html");
     private static final Path MULTILATERAL_LISTEN_SCRIPT = Path.of(
             "src/main/resources/public/multilateral/listen/script.js");
 
@@ -35,7 +35,7 @@ class RealtimeBrowserClientContractTest {
 
     @Test
     void speechRealtimeClientsSendGaSessionUpdatePayload() throws IOException {
-        for (Path scriptPath : List.of(REALTIME_SCRIPT, GIGI_DEMO_SCRIPT)) {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
             assertContains(script, "type: \"session.update\"");
@@ -55,7 +55,7 @@ class RealtimeBrowserClientContractTest {
 
     @Test
     void speechRealtimeClientsSendGaResponseCreatePayloadAndEvents() throws IOException {
-        for (Path scriptPath : List.of(REALTIME_SCRIPT, GIGI_DEMO_SCRIPT)) {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
             assertContains(script, "type: \"response.create\"");
@@ -70,7 +70,7 @@ class RealtimeBrowserClientContractTest {
 
     @Test
     void speechRealtimeClientsPreferAcknowledgeResponseEventOverDuplicateGeneration() throws IOException {
-        for (Path scriptPath : List.of(REALTIME_SCRIPT, GIGI_DEMO_SCRIPT)) {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
             assertContains(script, "ackResponseSpeech");
@@ -81,7 +81,7 @@ class RealtimeBrowserClientContractTest {
 
     @Test
     void speechRealtimeClientsExposeCurrentGaVoiceOptions() throws IOException {
-        for (Path indexPath : List.of(REALTIME_INDEX, GIGI_DEMO_INDEX)) {
+        for (Path indexPath : List.of(REALTIME_INDEX, VALERIAN_INDEX)) {
             String index = Files.readString(indexPath);
 
             assertContains(index, "value=\"cedar\"");
@@ -106,7 +106,7 @@ class RealtimeBrowserClientContractTest {
     }
 
     private static List<Path> allRealtimeScripts() {
-        return List.of(REALTIME_SCRIPT, GIGI_DEMO_SCRIPT, MULTILATERAL_LISTEN_SCRIPT);
+        return List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT, MULTILATERAL_LISTEN_SCRIPT);
     }
 
     private static void assertContains(String text, String expected) {

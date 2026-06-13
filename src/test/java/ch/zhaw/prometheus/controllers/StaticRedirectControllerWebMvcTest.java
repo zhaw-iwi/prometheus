@@ -72,16 +72,9 @@ class StaticRedirectControllerWebMvcTest {
     }
 
     @Test
-    void redirectsGigiDemoToStaticIndexPreservingQuery() throws Exception {
-        this.mockMvc.perform(get("/gigi-demo?agentId=uuid"))
+    void redirectsValerianToStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/valerian?agentId=uuid"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/gigi-demo/index.html?agentId=uuid"));
-    }
-
-    @Test
-    void redirectsTdsrAliasToGigiDemoStaticIndexPreservingQuery() throws Exception {
-        this.mockMvc.perform(get("/tdsr?agentId=uuid"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/gigi-demo/index.html?agentId=uuid"));
+                .andExpect(redirectedUrl("/valerian/index.html?agentId=uuid"));
     }
 }

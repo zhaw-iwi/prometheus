@@ -235,7 +235,7 @@ async function loadAgents() {
       }
       const option = document.createElement("option");
       option.value = id;
-      option.textContent = isGigiAgent(agent) ? `${agent.name} *` : agent.name || id;
+      option.textContent = agent.name || id;
       select.appendChild(option);
     }
     if (state.selectedAgentId) {
@@ -313,7 +313,7 @@ async function loadAgentInfo() {
     }
     const data = await response.json();
     state.agentInfo = data;
-    document.getElementById("agent_subtitle").textContent = data.name || "PROMETHEUS TDSR test console";
+    document.getElementById("agent_subtitle").textContent = data.name || "PROMETHEUS demo console";
     document.getElementById("agent_info_name").textContent = data.name || "-";
     document.getElementById("agent_info_description").textContent = data.description || "-";
     renderAgentInteractionProfile(data.interactionProfile);
@@ -362,7 +362,7 @@ function clearAgentConnection(options = {}) {
 
 function resetAgentInfo() {
   state.agentInfo = null;
-  document.getElementById("agent_subtitle").textContent = "PROMETHEUS TDSR test console";
+  document.getElementById("agent_subtitle").textContent = "PROMETHEUS demo console";
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
   renderAgentInteractionProfile(null);
@@ -2579,13 +2579,8 @@ function agentIdOf(agent) {
   return agent && (agent.id || agent.ID || agent.iD);
 }
 
-function isGigiAgent(agent) {
-  const text = `${agent && agent.name ? agent.name : ""} ${agent && agent.description ? agent.description : ""}`;
-  return text.toLowerCase().includes("gigi tdsr");
-}
-
 function agentSortKey(agent) {
-  return `${isGigiAgent(agent) ? "0" : "1"}-${agent && agent.name ? agent.name : ""}`;
+  return agent && agent.name ? agent.name : agentIdOf(agent) || "";
 }
 
 function normalizeSign(value) {
@@ -2608,7 +2603,7 @@ function normalizeSign(value) {
 function winnerLabel(value) {
   const token = String(value || "").trim().toLowerCase();
   if (token === "agent") {
-    return "GIGI";
+    return "Agent";
   }
   if (token === "user") {
     return "User";

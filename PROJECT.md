@@ -49,6 +49,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 43: GIGI demo duplicate behaviour render suppression
 - [x] Milestone 44: GIGI demo diagnostics drawer storage, log, and state polish
 - [x] Milestone 45: GIGI demo mirrored camera overlay alignment
+- [x] Milestone 46: Valerian cockpit rename and PROMETHEUS-facing branding
 
 ## Milestone 1
 ### Date
@@ -2155,3 +2156,50 @@ Align GIGI demo face and social-grouping overlay boxes with the mirrored camera 
 ### Next steps
 1. Verify with the live camera that social grouping and face boxes align in the mirrored self-view.
 2. If future cameras produce a different aspect ratio, add object-fit crop/offset handling to the overlay transform.
+
+## Milestone 46
+### Date
+2026-06-13
+
+### Goal
+Rename the unified demo cockpit package to Valerian and make its user-facing branding PROMETHEUS-centered.
+
+### What changed
+- Renamed the static cockpit files:
+  - `src/main/resources/public/valerian/index.html`
+  - `src/main/resources/public/valerian/script.js`
+- Replaced the old cockpit route with:
+  - `GET /valerian`
+  - `GET /valerian/`
+- Removed the previous legacy cockpit aliases from the redirect controller.
+- Updated user-facing cockpit copy:
+  - page title: `Prometheus Demo Cockpit`
+  - default subtitle: `PROMETHEUS demo console`
+  - behaviour hand-sign label: `Agent Sign`
+- Removed old cockpit-specific agent boosting/special labeling from the agent dropdown; agents now sort by name.
+- Renamed the static cockpit contract test to `ValerianClientStaticResourceContractTest`.
+- Updated realtime browser contract coverage to read the Valerian cockpit resources.
+- Updated README client documentation and event-contract examples to use `/valerian`.
+
+### How to run
+1. Configure properties as in `README.md`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/valerian/`
+   - or `http://localhost:8080/valerian/?agentId=<uuid>`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,RealtimeBrowserClientContractTest" test`
+
+### Known issues and decisions
+- Historical milestone entries and existing seed-agent package names still contain earlier demo naming because they are part of the audit trail or active Java test package names.
+- The old cockpit route aliases were removed rather than preserved, following the repository clean-slate rule.
+- The RPS-specific client remains separate and was not renamed in this milestone.
+- A browser smoke was attempted, but the in-app browser was unavailable in this session.
+
+### Next steps
+1. Run a live browser rehearsal against `http://localhost:8080/valerian/`.
+2. Consider whether the RPS-specific client should also receive generic PROMETHEUS branding in a separate milestone.

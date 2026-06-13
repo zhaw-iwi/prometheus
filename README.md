@@ -28,11 +28,10 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 All clients take `?agentId=<uuid>`.
 For the complete list including multilateral endpoints, see `All Client Endpoints` below.
 
-### GIGI Demo Cockpit
+### Prometheus Demo Cockpit
 
-- URL: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
-- Aliases: `http://localhost:8080/gigi/?agentId=<uuid>`, `http://localhost:8080/tdsr/?agentId=<uuid>`
-- Purpose: single-page TDSR demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
+- URL: `http://localhost:8080/valerian/?agentId=<uuid>`
+- Purpose: single-page PROMETHEUS demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
@@ -94,7 +93,7 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 ### RPS Manual Client
 
 - URL: `http://localhost:8080/rps/?agentId=<uuid>`
-- Purpose: Schere-Stein-Papier demo surface that renders GIGI's `motion.handSign` and emits manual or camera-detected `obs.hand.sign` events.
+- Purpose: Schere-Stein-Papier demo surface that renders the agent's `motion.handSign` and emits manual or camera-detected `obs.hand.sign` events.
 
 ## Core Concepts
 
@@ -190,7 +189,7 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 
 All clients take `?agentId=<uuid>`.
 
-- GIGI TDSR demo cockpit: `http://localhost:8080/gigi-demo/?agentId=<uuid>`
+- Prometheus demo cockpit: `http://localhost:8080/valerian/?agentId=<uuid>`
 - Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
@@ -258,7 +257,7 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 3. Use `Storage` keys for extracted values consumed by later states.
 4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
 5. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
-6. Seed the agent, run app, then iterate using the GIGI demo cockpit, Monitor, and behaviour streams.
+6. Seed the agent, run app, then iterate using the Prometheus demo cockpit, Monitor, and behaviour streams.
 7. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
 
 ### Event example
@@ -284,8 +283,8 @@ Visual social observations use raw event types:
 - `obs.human.presence`
 - `obs.social.grouping`
 
-The visual social client and the GIGI demo cockpit can emit these raw events
-from camera detection. The GIGI demo cockpit also includes manual social
+The visual social client and the Prometheus demo cockpit can emit these raw events
+from camera detection. The Prometheus demo cockpit also includes manual social
 scenario buttons that emit the same raw event contract for rehearsal without a
 camera.
 
@@ -306,8 +305,8 @@ Schere-Stein-Papier hand-sign observations use:
 - `payload.sign`: `rock`, `scissor`, or `paper`
 - optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
 
-The RPS client at `/rps/?agentId=<uuid>` and the GIGI demo cockpit at
-`/gigi-demo/?agentId=<uuid>` emit this event shape from manual sign buttons
+The RPS client at `/rps/?agentId=<uuid>` and the Prometheus demo cockpit at
+`/valerian/?agentId=<uuid>` emit this event shape from manual sign buttons
 with `source=rps.web` and `detectionMode=manual`. Their optional camera mode
 uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
 follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
