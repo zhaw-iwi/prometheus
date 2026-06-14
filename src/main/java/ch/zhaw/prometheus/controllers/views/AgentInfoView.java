@@ -10,18 +10,25 @@ public class AgentInfoView {
     private String description;
     private boolean isActive;
     private AgentInteractionProfile interactionProfile;
+    private String languageCode;
 
     public AgentInfoView(UUID id, String name, String descripion, boolean isActive) {
-        this(id, name, descripion, isActive, AgentInteractionProfile.empty());
+        this(id, name, descripion, isActive, AgentInteractionProfile.empty(), null);
     }
 
     public AgentInfoView(UUID id, String name, String descripion, boolean isActive,
             AgentInteractionProfile interactionProfile) {
+        this(id, name, descripion, isActive, interactionProfile, null);
+    }
+
+    public AgentInfoView(UUID id, String name, String descripion, boolean isActive,
+            AgentInteractionProfile interactionProfile, String languageCode) {
         this.id = id;
         this.name = name;
         this.description = descripion;
         this.isActive = isActive;
         this.interactionProfile = interactionProfile == null ? AgentInteractionProfile.empty() : interactionProfile;
+        this.languageCode = normalizeLanguageCode(languageCode);
     }
 
     public UUID getID() {
@@ -45,5 +52,16 @@ public class AgentInfoView {
             this.interactionProfile = AgentInteractionProfile.empty();
         }
         return this.interactionProfile;
+    }
+
+    public String getLanguageCode() {
+        return this.languageCode;
+    }
+
+    private static String normalizeLanguageCode(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }

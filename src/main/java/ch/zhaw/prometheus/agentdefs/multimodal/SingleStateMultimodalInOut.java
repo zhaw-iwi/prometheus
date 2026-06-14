@@ -249,13 +249,18 @@ public class SingleStateMultimodalInOut implements AgentDefinition {
     }
 
     @Override
+    public String languageCode() {
+        return LANGUAGE_GERMAN;
+    }
+
+    @Override
     public Agent createAgent() {
-        return createAgentDefinition();
+        return this.applyDefinitionMetadata(createAgentDefinition());
     }
 
     @Override
     public AgentCreationResult createInstance(AgentCreationContext context) {
-        Agent agent = createAgentDefinition();
+        Agent agent = this.createAgent();
         return AgentCreationResult.started(agent, agent.start(context.runtime()));
     }
 }

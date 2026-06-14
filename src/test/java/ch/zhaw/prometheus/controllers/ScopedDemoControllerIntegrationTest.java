@@ -99,7 +99,8 @@ class ScopedDemoControllerIntegrationTest {
                 .header(HEADER, "A49a1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id").value(agentA.toString()));
+                .andExpect(jsonPath("$[0].id").value(agentA.toString()))
+                .andExpect(jsonPath("$[0].languageCode").value("de"));
 
         this.mockMvc.perform(get("/demo/agents")
                 .header(HEADER, "B49b2"))
@@ -121,7 +122,8 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessCode").value("A49a1"))
                 .andExpect(jsonPath("$.agentTypes", hasSize(1)))
-                .andExpect(jsonPath("$.agents", hasSize(1)));
+                .andExpect(jsonPath("$.agents", hasSize(1)))
+                .andExpect(jsonPath("$.agents[0].languageCode").value("de"));
     }
 
     @Test

@@ -111,6 +111,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("call.sdp"));
         assertTrue(script.contains("/realtime/calls/"));
         assertTrue(script.contains("input_audio_buffer.commit"));
+        assertTrue(script.contains("input_audio_buffer.clear"));
+        assertTrue(script.contains("response.cancel"));
+        assertTrue(script.contains("output_audio_buffer.clear"));
 
         assertFalse(script.contains("/realtime/session"));
         assertFalse(script.contains("sessionInfo.realtimeCallsUrl"));

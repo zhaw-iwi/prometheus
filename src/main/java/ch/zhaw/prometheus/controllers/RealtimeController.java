@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
 import ch.zhaw.prometheus.application.RealtimeCallSettings;
 import ch.zhaw.prometheus.controllers.views.RealtimeCallView;
@@ -25,11 +26,13 @@ import ch.zhaw.prometheus.spi.RealtimeSessionInfo;
 public class RealtimeController {
     private final RealtimeSessionClient realtimeSessionClient;
     private final RealtimeCallOrchestrationService realtimeCallService;
+    private final AgentApplicationService agentService;
 
     public RealtimeController(RealtimeSessionClient realtimeSessionClient,
-            RealtimeCallOrchestrationService realtimeCallService) {
+            RealtimeCallOrchestrationService realtimeCallService, AgentApplicationService agentService) {
         this.realtimeSessionClient = realtimeSessionClient;
         this.realtimeCallService = realtimeCallService;
+        this.agentService = agentService;
     }
 
     @PostMapping(path = "{agentID}/realtime/call", consumes = { "application/sdp", MediaType.TEXT_PLAIN_VALUE })
@@ -60,8 +63,10 @@ public class RealtimeController {
     }
 
     @PostMapping("realtime/transcription/session")
-    public ResponseEntity<RealtimeSessionView> createTranscriptionSession() {
-        RealtimeSessionInfo session = this.realtimeSessionClient.createTranscriptionSession();
+    public ResponseEntity<RealtimeSessionView> createTranscriptionSession(
+            @RequestParam(required = false) UUID agentId) {
+        String languageCode = agentId == null ? null : this.agentService.getAgentLanguageCode(agentId).orElse(null);
+        RealtimeSessionInfo session = this.realtimeSessionClient.createTranscriptionSession(languageCode);
         RealtimeSessionView view = new RealtimeSessionView(
                 session.getClientSecret(),
                 session.getModel(),

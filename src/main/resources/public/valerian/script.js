@@ -36,6 +36,7 @@ const realtime = {
   callId: null,
   assistantTranscriptBuffer: "",
   assistantAudioSeen: false,
+  responseActive: false,
   pushToTalkActive: false,
   spaceKeyBindingActive: false,
 };
@@ -1520,6 +1521,7 @@ async function stopRealtime() {
   audio.srcObject = null;
   audio.load();
   realtime.pushToTalkActive = false;
+  realtime.responseActive = false;
   disableSpaceKeyPushToTalk();
   updatePushToTalkUi();
   appendLog("realtime", "stopped.");
@@ -1598,6 +1600,10 @@ function handleRealtimeEvent(event) {
       appendMessage("user", transcript.trim());
       appendLog("realtime", "user transcript completed.");
     }
+  } else if (data.type === "response.created") {
+    realtime.responseActive = true;
+    realtime.assistantAudioSeen = false;
+    realtime.assistantTranscriptBuffer = "";
   } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
     realtime.assistantAudioSeen = true;
     realtime.assistantTranscriptBuffer += data.delta || "";
@@ -1610,6 +1616,10 @@ function handleRealtimeEvent(event) {
     realtime.assistantTranscriptBuffer = "";
   } else if (data.type === "response.done") {
     realtime.assistantAudioSeen = false;
+    realtime.responseActive = false;
+  } else if (data.type === "response.cancelled") {
+    realtime.assistantAudioSeen = false;
+    realtime.responseActive = false;
   }
 }
 
@@ -1653,6 +1663,7 @@ function startPushToTalk(event) {
   }
   realtime.pushToTalkActive = true;
   document.getElementById("push_to_talk").classList.add("is-pressed");
+  prepareManualTurn();
   setMicEnabled(true);
 }
 
@@ -1722,6 +1733,25 @@ function commitManualTurn() {
     return;
   }
   realtime.dataChannel.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+}
+
+function prepareManualTurn() {
+  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
+    return;
+  }
+  if (realtime.responseActive) {
+    sendRealtimeEvent({ type: "response.cancel" });
+    sendRealtimeEvent({ type: "output_audio_buffer.clear" });
+    realtime.responseActive = false;
+  }
+  sendRealtimeEvent({ type: "input_audio_buffer.clear" });
+}
+
+function sendRealtimeEvent(payload) {
+  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
+    return;
+  }
+  realtime.dataChannel.send(JSON.stringify(payload));
 }
 
 function setMicEnabled(enabled) {

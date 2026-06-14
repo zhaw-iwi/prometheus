@@ -56,7 +56,7 @@ class RealtimeSessionClientTest {
         props.setRealtimeSafetyIdentifier("hashed-demo-user");
 
         RealtimeCallInfo callInfo = new RealtimeSessionClient(props).createCall("offer-sdp",
-                new RealtimeCallConfig("system: PROMETHEUS instructions", "marin", "server_vad"));
+                new RealtimeCallConfig("system: PROMETHEUS instructions", "marin", "server_vad", "de"));
 
         assertEquals("answer-sdp", callInfo.getSdp());
         assertEquals("gpt-realtime-2", callInfo.getModel());
@@ -84,6 +84,11 @@ class RealtimeSessionClientTest {
                 audio.getAsJsonObject("input")
                         .getAsJsonObject("transcription")
                         .get("model")
+                        .getAsString());
+        assertEquals("de",
+                audio.getAsJsonObject("input")
+                        .getAsJsonObject("transcription")
+                        .get("language")
                         .getAsString());
         JsonObject turnDetection = audio.getAsJsonObject("input").getAsJsonObject("turn_detection");
         assertEquals("server_vad", turnDetection.get("type").getAsString());
@@ -129,6 +134,32 @@ class RealtimeSessionClientTest {
         assertFalse(session.has("model"));
         assertFalse(session.has("output_modalities"));
         assertFalse(payload.has("input_audio_transcription"));
+    }
+
+    @Test
+    void createTranscriptionSessionPrefersExplicitLanguageOverGlobalDefault() throws Exception {
+        AtomicReference<String> requestBody = new AtomicReference<>();
+        startServer(exchange -> {
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            writeResponse(exchange, 200, "{\"value\":\"ek_transcription_secret\",\"session\":{\"type\":\"transcription\"}}");
+        }, "/client_secrets");
+
+        OpenAIProperties props = new OpenAIProperties();
+        props.setOpenaivsazureopenai("openai");
+        props.setKey("test-api-key");
+        props.setRealtimeTranscriptionModel("gpt-realtime-whisper");
+        props.setRealtimeTranscriptionLanguage("en");
+        props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
+        props.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+
+        new RealtimeSessionClient(props).createTranscriptionSession("de");
+
+        JsonObject payload = JsonParser.parseString(requestBody.get()).getAsJsonObject();
+        JsonObject transcription = payload.getAsJsonObject("session")
+                .getAsJsonObject("audio")
+                .getAsJsonObject("input")
+                .getAsJsonObject("transcription");
+        assertEquals("de", transcription.get("language").getAsString());
     }
 
     @Test

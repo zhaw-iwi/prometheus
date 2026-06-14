@@ -20,6 +20,7 @@ let gifState = "idle";
 let gifSwapTimeout = null;
 const gifFadeMs = 600;
 let assistantAudioSeen = false;
+let realtimeResponseActive = false;
 const gifSources = {
   idle: "her.gif",
   thinking: "her-fast.gif",
@@ -191,6 +192,7 @@ async function stopListening() {
     realtimeCallId = null;
   }
   pushToTalkActive = false;
+  realtimeResponseActive = false;
 }
 
 async function loadAgentInfo() {
@@ -306,6 +308,7 @@ function handleRealtimeEvent(event) {
   } else if (data.type === "response.created") {
     assistantAudioSeen = false;
     assistantTranscriptBuffer = "";
+    realtimeResponseActive = true;
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
     const partial = data.delta || data.transcript || "";
     if (partial.trim()) {
@@ -333,6 +336,8 @@ function handleRealtimeEvent(event) {
         setGifState("idle");
       }
     }
+  } else if (data.type === "response.done" || data.type === "response.cancelled") {
+    realtimeResponseActive = false;
   }
 }
 
@@ -522,6 +527,7 @@ function startPushToTalk(event) {
   if (button) {
     button.classList.add("is-pressed");
   }
+  prepareManualTurn();
   setMicEnabled(true);
 }
 
@@ -605,6 +611,25 @@ function commitManualTurn() {
       type: "input_audio_buffer.commit",
     })
   );
+}
+
+function prepareManualTurn() {
+  if (!dataChannel || dataChannel.readyState !== "open") {
+    return;
+  }
+  if (realtimeResponseActive) {
+    sendRealtimeEvent({ type: "response.cancel" });
+    sendRealtimeEvent({ type: "output_audio_buffer.clear" });
+    realtimeResponseActive = false;
+  }
+  sendRealtimeEvent({ type: "input_audio_buffer.clear" });
+}
+
+function sendRealtimeEvent(payload) {
+  if (!dataChannel || dataChannel.readyState !== "open") {
+    return;
+  }
+  dataChannel.send(JSON.stringify(payload));
 }
 
 function setMicEnabled(enabled) {

@@ -4,11 +4,17 @@ public class RealtimeCallConfig {
     private final String instructions;
     private final String voice;
     private final String turnDetection;
+    private final String languageCode;
 
     public RealtimeCallConfig(String instructions, String voice, String turnDetection) {
+        this(instructions, voice, turnDetection, null);
+    }
+
+    public RealtimeCallConfig(String instructions, String voice, String turnDetection, String languageCode) {
         this.instructions = instructions;
         this.voice = voice;
         this.turnDetection = turnDetection;
+        this.languageCode = languageCode;
     }
 
     public String getInstructions() {
@@ -21,5 +27,9 @@ public class RealtimeCallConfig {
 
     public String getTurnDetection() {
         return this.turnDetection;
+    }
+
+    public String getLanguageCode() {
+        return this.languageCode;
     }
 }

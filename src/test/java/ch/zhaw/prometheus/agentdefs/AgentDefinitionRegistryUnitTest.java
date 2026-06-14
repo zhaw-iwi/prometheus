@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,23 @@ class AgentDefinitionRegistryUnitTest {
             "gigielderlycare.guessing_game_user_guess",
             "gigielderlycare.smart_goal_coaching");
 
+    private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
+            Map.entry("basic.single_state_guessing_game", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("basic.single_state_micro_coaching", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("basic.single_state_co_creation", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("basic.four_states_circular", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("basic.four_states_linear", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("multimodal.single_state_in", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("multimodal.single_state_out", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("multimodal.single_state_in_out", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigitdsr.guessing_game_with_gestures", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigitdsr.social_context_sensitivity", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigitdsr.rock_scissor_paper", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigielderlycare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigielderlycare.guessing_game", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigielderlycare.guessing_game_user_guess", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("gigielderlycare.smart_goal_coaching", AgentDefinition.LANGUAGE_GERMAN));
+
     @Test
     void registryExposesExpectedUniqueDefinitionKeys() {
         AgentDefinitionRegistry registry = new AgentDefinitionRegistry();
@@ -39,8 +57,10 @@ class AgentDefinitionRegistryUnitTest {
 
         assertEquals(EXPECTED_KEYS, keys);
         assertEquals(EXPECTED_KEYS.size(), new HashSet<>(keys).size());
+        assertEquals(EXPECTED_KEYS.size(), EXPECTED_LANGUAGE_BY_KEY.size());
         for (String key : EXPECTED_KEYS) {
             assertTrue(registry.findByKey(key).isPresent(), "missing definition key " + key);
+            assertTrue(EXPECTED_LANGUAGE_BY_KEY.containsKey(key), "missing expected language for " + key);
         }
         assertTrue(registry.findByKey("unknown").isEmpty());
         assertTrue(registry.findByKey("").isEmpty());
@@ -60,6 +80,9 @@ class AgentDefinitionRegistryUnitTest {
             assertNotNull(agent.getDescription(), definition.key());
             assertNotNull(agent.getCurrentState(), definition.key());
             assertNotNull(agent.getInteractionProfile(), definition.key());
+            String expectedLanguage = EXPECTED_LANGUAGE_BY_KEY.get(definition.key());
+            assertEquals(expectedLanguage, definition.languageCode(), definition.key());
+            assertEquals(expectedLanguage, agent.getLanguageCode(), definition.key());
             assertEquals(agent.getName(), definition.displayName(), definition.key());
             assertEquals(agent.getDescription(), definition.description(), definition.key());
         }

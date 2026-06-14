@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -74,6 +75,8 @@ public class Agent {
     private SnapshotAggregatorType regulationSnapshotAggregatorType;
     @Column(length = 4096)
     private String interactionProfileJson;
+    @Column(length = 16)
+    private String languageCode;
 
     @Transient
     private RegulationSystem regulationSystem;
@@ -105,6 +108,14 @@ public class Agent {
 
     public String getDescription() {
         return this.description;
+    }
+
+    public String getLanguageCode() {
+        return normalizeLanguageCode(this.languageCode);
+    }
+
+    public void setLanguageCode(String languageCode) {
+        this.languageCode = normalizeLanguageCode(languageCode);
     }
 
     public AgentInteractionProfile getInteractionProfile() {
@@ -296,10 +307,18 @@ public class Agent {
         if (this.interactionProfileJson == null || this.interactionProfileJson.isBlank()) {
             this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
         }
+        this.languageCode = normalizeLanguageCode(this.languageCode);
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
         }
         this.attachEventHistory();
+    }
+
+    private static String normalizeLanguageCode(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toLowerCase(Locale.ROOT);
     }
 
     private void attachEventHistory() {

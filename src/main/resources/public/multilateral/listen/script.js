@@ -107,7 +107,9 @@ async function loadAgentInfo() {
 }
 
 async function createRealtimeSession() {
-  const response = await fetch("/realtime/transcription/session", {
+  const params = new URLSearchParams();
+  params.set("agentId", session.agentId);
+  const response = await fetch(`/realtime/transcription/session?${params.toString()}`, {
     method: "POST",
   });
   if (!response.ok) {

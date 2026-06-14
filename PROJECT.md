@@ -57,6 +57,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 51: Admin UI
 - [x] Milestone 52: End-to-end rehearsal and compatibility pass
 - [x] Milestone 53: PROMETHEUS-authoritative Realtime speech sideband orchestration
+- [x] Milestone 54: Realtime speech duplicate-response fix
+- [x] Milestone 55: Agent language codes for Realtime transcription hints
 
 ## Milestone 1
 ### Date
@@ -2593,3 +2595,104 @@ Rebuild Realtime speech-to-speech so PROMETHEUS remains authoritative for state,
 1. Run a live Realtime speech smoke with a real OpenAI key and one scoped Valerian agent.
 2. Add operational diagnostics for sideband connection state, prompt-update acknowledgements, and Realtime errors.
 3. Consider a strict STT -> PROMETHEUS -> TTS mode if exact backend-authored speech becomes more important than low-latency speech-to-speech.
+
+## Milestone 54
+### Date
+2026-06-14
+
+### Goal
+Fix duplicate assistant speech in push-to-talk Realtime sessions while keeping PROMETHEUS authoritative for response generation and state transitions.
+
+### What changed
+- Diagnosed the duplicate-response path from a live Valerian test with `gigitdsr.guessing_game_with_gestures`: one user transcript produced one PROMETHEUS user event, but two assistant speech events because the sideband used `BACKEND_COMPLEMENT` for user acknowledgement and then asked Realtime for free speech.
+- Changed the sideband user-turn flow:
+  - acknowledge user speech with `OutputProfile.REALTIME_SPEECH`
+  - if acknowledgement returns no speech, call backend `generate(..., REALTIME_SPEECH)` to mirror the text-client acknowledge-then-generate workflow
+  - persist that canonical PROMETHEUS speech before Realtime speaks
+  - optionally generate `BACKEND_COMPLEMENT` non-speech behaviour after canonical speech exists
+  - send Realtime `response.create` only with exact PROMETHEUS speech
+- Removed sideband persistence of assistant transcripts emitted by Realtime; those transcripts are audio-display telemetry, not authoritative PROMETHEUS behaviour.
+- Removed sideband free-form response instructions and unused initial response-instruction plumbing.
+- Updated standalone Realtime and Valerian push-to-talk clients to clear the Realtime input buffer on press, optionally cancel/clear active output, and commit captured audio on release.
+- Audited all browser clients that touch Realtime: `/realtime/` and `/valerian/` are speech-to-speech clients and now share the same backend-owned response contract; `multilateral/listen` remains transcription-only and is covered by a contract assertion that it does not create or cancel assistant responses.
+- Updated README Realtime notes and added regression coverage for the sideband profile contract, speech-plus-complement generation, and push-to-talk buffer clearing.
+
+### How to run
+1. Start the app with OpenAI Realtime configured:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open:
+   - `http://localhost:8080/valerian/`
+3. Use an access code with `gigitdsr.guessing_game_with_gestures`, create/connect an instance, start Realtime, select push-to-talk mode, and answer a few game questions.
+4. Expected behaviour: each user answer results in at most one assistant speech turn in the text transcript and behaviour stream.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest,RealtimeSessionClientTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest,AgentApplicationServiceGenerateOptionsUnitTest" test`
+
+### Known issues and decisions
+- The sideband now treats Realtime as speech realization for PROMETHEUS-authored text, not as the source of normal assistant content.
+- If PROMETHEUS produces no speech for a user turn, the sideband updates Realtime instructions but does not ask Realtime to invent a response.
+- Browser push-to-talk still leaves `response.create` to the backend sideband; this intentionally differs from the generic OpenAI client-only push-to-talk recipe.
+- A repeat live browser/WebRTC smoke with real credentials should be run after review.
+
+### Next steps
+1. Re-test the GIGI TDSR guessing-game push-to-talk flow with the same access-code setup.
+2. Add sideband runtime diagnostics for transcript handling, backend speech generation, and exact-speech response creation.
+3. Consider adding a lightweight endpoint or monitor event for sideband turn lifecycle debugging.
+
+## Milestone 55
+### Date
+2026-06-14
+
+### Goal
+Add an optional agent-level language code and use it wherever an agent-bound Realtime pipeline is created, so German agents can pass a transcription language hint without relying only on global OpenAI configuration.
+
+### What changed
+- Added persisted `Agent.languageCode` metadata with normalization to lower-case language codes.
+- Extended `AgentDefinition` with optional `languageCode()` metadata, shared `en`/`de` constants, and a shared metadata application helper.
+- Marked all currently registered built-in agent definitions as German with `de` after checking their prompt language; newly created definition-backed instances now inherit that metadata.
+- Defaulted custom `/agent/singlestate` creation to `en` when no explicit `languageCode` is supplied, while allowing callers to override it.
+- Exposed `languageCode` through `AgentInfoView`, global agent listings, scoped Valerian agent/session responses, and admin assignment listings.
+- Wired agent language into Realtime speech-to-speech calls as `audio.input.transcription.language`.
+- Added optional `agentId` support to `POST /realtime/transcription/session`; the multilateral listen client now passes its selected agent so transcription-only Realtime sessions can also use the agent language hint.
+- Kept `openai.realtimeTranscriptionLanguage` as the fallback for transcription-only sessions without an agent language.
+- Moved the Valerian admin "Save Assignments" action above the agent choices and made it full width.
+- Updated README Realtime notes and added regression coverage for metadata propagation, per-definition language expectations, custom single-state language defaults, Realtime payloads, controller routing, browser client behaviour, scoped demo views, and the admin layout.
+
+### How to run
+1. Start the app with OpenAI Realtime configured:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open:
+   - Valerian cockpit: `http://localhost:8080/valerian/`
+   - standalone speech client: `http://localhost:8080/realtime/?agentId=<uuid>`
+   - multilateral listen client: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
+3. Use a German built-in agent such as `gigitdsr.guessing_game_with_gestures`, start a Realtime session, and confirm the session payload includes `audio.input.transcription.language=de`.
+4. For the cosmetic change, open `http://localhost:8080/valerian-admin/` and verify that "Save Assignments" appears above the agent selection list and spans the form width.
+
+### How to test
+- Executed during the implementation:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentApplicationServicePromptUnitTest,RealtimeSessionClientTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ScopedDemoControllerIntegrationTest" test`
+- Final verification executed:
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentApplicationServicePromptUnitTest,RealtimeSessionClientTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest" test`
+  - `git diff --check`
+
+### Known issues and decisions
+- OpenAI's Realtime transcription `language` value is a hint, not a hard guarantee; it should reduce German-to-English drift such as `nein` becoming `nine`, but live audio still needs validation.
+- Agent-level language wins over the global `openai.realtimeTranscriptionLanguage` for agent-bound sessions; the global property remains useful for unbound transcription sessions.
+- This milestone does not add per-user or per-session language switching. Language remains agent metadata.
+- A live WebRTC smoke with real credentials was not run yet after this language-code change.
+
+### Next steps
+1. Re-test the GIGI TDSR guessing-game push-to-talk flow and verify German yes/no turns in the diagnostics drawer and text transcript.
+2. If `nein` still drifts under noisy conditions, consider a PROMETHEUS-side yes/no normalization guard for German guessing-game agents.
+3. Consider adding admin/editor affordances for custom agent language codes if non-built-in agents need runtime configuration.

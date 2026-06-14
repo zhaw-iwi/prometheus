@@ -50,6 +50,9 @@ class RealtimeBrowserClientContractTest {
             assertContains(script, "response.output_audio_transcript.delta");
             assertContains(script, "response.output_audio_transcript.done");
             assertContains(script, "input_audio_buffer.commit");
+            assertContains(script, "input_audio_buffer.clear");
+            assertContains(script, "response.cancel");
+            assertContains(script, "output_audio_buffer.clear");
 
             assertDoesNotContain(script, "type: \"session.update\"");
             assertDoesNotContain(script, "type: \"response.create\"");
@@ -91,14 +94,18 @@ class RealtimeBrowserClientContractTest {
         String script = Files.readString(MULTILATERAL_LISTEN_SCRIPT);
 
         assertContains(script, "/realtime/transcription/session");
+        assertContains(script, "params.set(\"agentId\", session.agentId)");
         assertContains(script, "input_audio_buffer.commit");
         assertContains(script, "gpt-realtime-whisper");
         assertContains(script, "data.delta || data.transcript");
 
         assertDoesNotContain(script, "type: \"session.update\"");
+        assertDoesNotContain(script, "type: \"response.create\"");
         assertDoesNotContain(script, "type: \"realtime\"");
         assertDoesNotContain(script, "output_modalities");
         assertDoesNotContain(script, "create_response");
+        assertDoesNotContain(script, "response.cancel");
+        assertDoesNotContain(script, "output_audio_buffer.clear");
         assertDoesNotContain(script, "interrupt_response");
     }
 

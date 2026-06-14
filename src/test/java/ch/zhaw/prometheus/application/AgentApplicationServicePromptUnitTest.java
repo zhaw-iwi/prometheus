@@ -1,6 +1,8 @@
 package ch.zhaw.prometheus.application;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -10,6 +12,9 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.controllers.AgentMetaType;
+import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
@@ -96,6 +101,7 @@ class AgentApplicationServicePromptUnitTest {
                 List.of());
         Agent agent = new Agent("a", "d", state);
         agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrSocialContextSensitivity());
+        agent.setLanguageCode("DE");
 
         AgentRepository repository = mock(AgentRepository.class);
         AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
@@ -116,5 +122,61 @@ class AgentApplicationServicePromptUnitTest {
         assertTrue(info.getInteractionProfile().supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
         assertTrue(listed.getInteractionProfile().getProfileTags()
                 .contains(AgentInteractionProfile.TAG_GIGI_SOCIAL_CONTEXT));
+        assertEquals("de", info.getLanguageCode());
+        assertEquals("de", listed.getLanguageCode());
+    }
+
+    @Test
+    void createdSingleStateAgentDefaultsLanguageToEnglish() {
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        when(languageModelGateway.complete(any())).thenReturn("Hello, I am ready.");
+        when(repository.save(any(Agent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
+                behaviourBroadcaster, assembler, languageModelGateway);
+
+        var info = service.createSingleStateAgent(singleStateCreateDto()).orElseThrow();
+
+        assertEquals(AgentDefinition.LANGUAGE_ENGLISH, info.getLanguageCode());
+    }
+
+    @Test
+    void createdSingleStateAgentUsesExplicitLanguageCode() {
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        when(languageModelGateway.complete(any())).thenReturn("Hallo, ich bin bereit.");
+        when(repository.save(any(Agent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
+                behaviourBroadcaster, assembler, languageModelGateway);
+        SingleStateAgentCreateDTO data = singleStateCreateDto();
+        data.setLanguageCode("DE");
+
+        var info = service.createSingleStateAgent(data).orElseThrow();
+
+        assertEquals(AgentDefinition.LANGUAGE_GERMAN, info.getLanguageCode());
+    }
+
+    private static SingleStateAgentCreateDTO singleStateCreateDto() {
+        SingleStateAgentCreateDTO data = new SingleStateAgentCreateDTO();
+        data.setType(AgentMetaType.singleState.getValue());
+        data.setAgentName("Digital Companion");
+        data.setAgentDescription("Daily check-in conversation.");
+        data.setStateName("Check-In Interaction");
+        data.setStatePrompt("As a digital therapy coach, conduct daily check-ins.");
+        data.setStateStarterPrompt("Compose a short first message.");
+        data.setTriggerToFinalPrompt("Return false.");
+        data.setGuardToFinalPrompt("Return true.");
+        data.setActionToFinalPrompt("Summarize the conversation.");
+        return data;
     }
 }

@@ -49,6 +49,7 @@ class RealtimeCallOrchestrationServiceUnitTest {
 
         when(agentService.prompt(agentId, OutputProfile.REALTIME_SPEECH)).thenReturn(Optional.of(prompt));
         when(agentService.getAgentEventHistory(agentId)).thenReturn(Optional.of(List.of(previousAssistant)));
+        when(agentService.getAgentLanguageCode(agentId)).thenReturn(Optional.of("de"));
         when(realtimeClient.createCall(eq("offer-sdp"), any()))
                 .thenReturn(call);
 
@@ -66,6 +67,7 @@ class RealtimeCallOrchestrationServiceUnitTest {
                 callConfig.getValue().getInstructions());
         assertEquals("marin", callConfig.getValue().getVoice());
         assertEquals("server_vad", callConfig.getValue().getTurnDetection());
+        assertEquals("de", callConfig.getValue().getLanguageCode());
 
         ArgumentCaptor<RealtimeSidebandSessionConfig> sidebandConfig = ArgumentCaptor
                 .forClass(RealtimeSidebandSessionConfig.class);

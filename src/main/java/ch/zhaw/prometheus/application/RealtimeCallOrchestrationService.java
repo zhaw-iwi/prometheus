@@ -35,7 +35,8 @@ public class RealtimeCallOrchestrationService {
             return Optional.empty();
         }
         List<Event> history = this.agentService.getAgentEventHistory(agentId).orElse(List.of());
-        return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history));
+        String languageCode = this.agentService.getAgentLanguageCode(agentId).orElse(null);
+        return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history, languageCode));
     }
 
     public Optional<RealtimeCallInfo> createScopedCall(String accessCode, UUID agentId, String offerSdp,
@@ -46,7 +47,8 @@ public class RealtimeCallOrchestrationService {
             return Optional.empty();
         }
         List<Event> history = this.scopedDemoService.getAgentEventHistory(accessCode, agentId).orElse(List.of());
-        return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history));
+        String languageCode = this.scopedDemoService.getAgentLanguageCode(accessCode, agentId).orElse(null);
+        return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history, languageCode));
     }
 
     public void closeCall(String callId) {
@@ -54,20 +56,19 @@ public class RealtimeCallOrchestrationService {
     }
 
     private RealtimeCallInfo createCall(UUID agentId, String offerSdp, RealtimeCallSettings settings,
-            PolicyResponseView prompt, List<Event> history) {
+            PolicyResponseView prompt, List<Event> history, String languageCode) {
         RealtimeCallSettings resolvedSettings = settings == null
                 ? new RealtimeCallSettings(null, null, true)
                 : settings;
         String instructions = RealtimePromptInstructions.systemInstructions(prompt);
         RealtimeCallInfo call = this.realtimeSessionClient.createCall(offerSdp,
                 new RealtimeCallConfig(instructions, resolvedSettings.getVoice(),
-                        resolvedSettings.getTurnDetection()));
+                        resolvedSettings.getTurnDetection(), languageCode));
         this.sidebandService.attach(new RealtimeSidebandSessionConfig(
                 call.getCallId(),
                 call.getSidebandUrl(),
                 agentId,
                 instructions,
-                RealtimePromptInstructions.responseInstruction(prompt),
                 latestAssistantSpeech(history),
                 resolvedSettings));
         return call;

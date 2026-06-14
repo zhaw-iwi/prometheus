@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -145,8 +144,8 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
     }
 
     @Test
-    void recordRealtimeAssistantSpeechPersistsAndPublishesBehaviourPlan() {
-        UUID agentId = UUID.fromString("12121212-1212-1212-1212-121212121212");
+    void realtimeSpeechGenerationPersistsSpeechBeforeBackendComplement() {
+        UUID agentId = UUID.fromString("23232323-2323-2323-2323-232323232323");
         AgentRepository repository = mock(AgentRepository.class);
         AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
         AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
@@ -154,27 +153,35 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
         PromptMessageAssembler assembler = new PromptMessageAssembler();
 
         PromptPolicy policy = new PromptPolicy("Respond naturally.", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
         State state = new State("conversation", policy, List.of());
         Agent agent = new Agent("agent", "desc", state);
 
         when(repository.findById(agentId)).thenReturn(Optional.of(agent));
         when(repository.save(agent)).thenReturn(agent);
+        when(languageModelGateway.complete(any()))
+                .thenReturn("Canonical realtime speech.")
+                .thenReturn("{\"gesture\":\"OPEN_QUESTION\"}");
 
-        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster,
-                assembler, languageModelGateway);
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
+                behaviourBroadcaster, assembler, languageModelGateway);
 
-        var response = service.recordRealtimeAssistantSpeech(agentId, "Hello from realtime.").orElseThrow();
+        assertSame(BehaviourGenerationOutcome.GENERATED,
+                service.generate(agentId, null, OutputProfile.REALTIME_SPEECH));
+        Event speechEvent = agent.getEventHistory().toList().get(0);
+        BehaviourPlan speechPlan = BehaviourPlan.fromJson(speechEvent.getPayload());
+        assertNotNull(speechPlan);
+        assertEquals("Canonical realtime speech.", speechPlan.getSpeech());
+        assertNull(speechPlan.getNonVerbal());
 
-        assertTrue(response.isActive());
-        List<Event> recordedEvents = agent.getEventHistory().toList();
-        assertEquals(1, recordedEvents.size());
-        Event recorded = recordedEvents.get(0);
-        assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, recorded.getType());
-        assertEquals(Event.ACTOR_ASSISTANT, recorded.getActor());
-        BehaviourPlan recordedPlan = BehaviourPlan.fromJson(recorded.getPayload());
-        assertNotNull(recordedPlan);
-        assertEquals("Hello from realtime.", recordedPlan.getSpeech());
-        verify(behaviourBroadcaster).publish(isNull(), same(recorded));
+        assertSame(BehaviourGenerationOutcome.GENERATED,
+                service.generate(agentId, List.of("speech"), OutputProfile.BACKEND_COMPLEMENT));
+        Event complementEvent = agent.getEventHistory().toList().get(1);
+        BehaviourPlan complementPlan = BehaviourPlan.fromJson(complementEvent.getPayload());
+        assertNotNull(complementPlan);
+        assertNull(complementPlan.getSpeech());
+        assertNotNull(complementPlan.getNonVerbal());
+        assertEquals("OPEN_QUESTION", complementPlan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
     }
 
     @Test

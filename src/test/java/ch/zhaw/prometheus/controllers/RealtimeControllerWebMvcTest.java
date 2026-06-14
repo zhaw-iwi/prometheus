@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import ch.zhaw.prometheus.application.AgentApplicationService;
 import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
 import ch.zhaw.prometheus.application.RealtimeCallSettings;
 import ch.zhaw.prometheus.spi.RealtimeCallInfo;
@@ -33,6 +34,9 @@ class RealtimeControllerWebMvcTest {
 
     @MockitoBean
     private RealtimeCallOrchestrationService realtimeCallService;
+
+    @MockitoBean
+    private AgentApplicationService agentService;
 
     @Test
     void createsAgentBoundRealtimeCallView() throws Exception {
@@ -70,10 +74,25 @@ class RealtimeControllerWebMvcTest {
 
     @Test
     void createsTranscriptionSessionView() throws Exception {
-        when(this.realtimeSessionClient.createTranscriptionSession()).thenReturn(new RealtimeSessionInfo(
+        when(this.realtimeSessionClient.createTranscriptionSession(null)).thenReturn(new RealtimeSessionInfo(
                 "ek_transcription", "gpt-realtime-whisper", "https://example.test/v1/realtime/calls"));
 
         this.mockMvc.perform(post("/realtime/transcription/session"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").value("ek_transcription"))
+                .andExpect(jsonPath("$.model").value("gpt-realtime-whisper"))
+                .andExpect(jsonPath("$.realtimeCallsUrl").value("https://example.test/v1/realtime/calls"));
+    }
+
+    @Test
+    void createsAgentLanguageAwareTranscriptionSessionView() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        when(this.agentService.getAgentLanguageCode(agentId)).thenReturn(Optional.of("de"));
+        when(this.realtimeSessionClient.createTranscriptionSession("de")).thenReturn(new RealtimeSessionInfo(
+                "ek_transcription", "gpt-realtime-whisper", "https://example.test/v1/realtime/calls"));
+
+        this.mockMvc.perform(post("/realtime/transcription/session")
+                .queryParam("agentId", agentId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.clientSecret").value("ek_transcription"))
                 .andExpect(jsonPath("$.model").value("gpt-realtime-whisper"))

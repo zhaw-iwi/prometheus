@@ -7,17 +7,15 @@ public class RealtimeSidebandSessionConfig {
     private final String sidebandUrl;
     private final UUID agentId;
     private final String initialInstructions;
-    private final String initialResponseInstruction;
     private final String initialExactSpeech;
     private final RealtimeCallSettings settings;
 
     public RealtimeSidebandSessionConfig(String callId, String sidebandUrl, UUID agentId, String initialInstructions,
-            String initialResponseInstruction, String initialExactSpeech, RealtimeCallSettings settings) {
+            String initialExactSpeech, RealtimeCallSettings settings) {
         this.callId = callId;
         this.sidebandUrl = sidebandUrl;
         this.agentId = agentId;
         this.initialInstructions = initialInstructions;
-        this.initialResponseInstruction = initialResponseInstruction;
         this.initialExactSpeech = initialExactSpeech;
         this.settings = settings;
     }
@@ -36,10 +34,6 @@ public class RealtimeSidebandSessionConfig {
 
     public String getInitialInstructions() {
         return this.initialInstructions;
-    }
-
-    public String getInitialResponseInstruction() {
-        return this.initialResponseInstruction;
     }
 
     public String getInitialExactSpeech() {

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
+import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.controllers.AgentMetaType;
 import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
@@ -69,7 +70,7 @@ public class AgentApplicationService {
         List<AgentInfoView> result = new ArrayList<>();
         for (Agent current : agents) {
             result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
-                    current.isActive(), current.getInteractionProfile()));
+                    current.isActive(), current.getInteractionProfile(), current.getLanguageCode()));
         }
         return result;
     }
@@ -84,7 +85,13 @@ public class AgentApplicationService {
 
     public Optional<AgentInfoView> getAgentInfo(UUID agentID) {
         return this.findAgent(agentID).map(agent -> new AgentInfoView(agent.getId(), agent.getName(),
-                agent.getDescription(), agent.isActive(), agent.getInteractionProfile()));
+                agent.getDescription(), agent.isActive(), agent.getInteractionProfile(), agent.getLanguageCode()));
+    }
+
+    public Optional<String> getAgentLanguageCode(UUID agentID) {
+        return this.findAgent(agentID)
+                .map(Agent::getLanguageCode)
+                .filter(AgentApplicationService::isPresent);
     }
 
     public Optional<AgentStateInfoView> getAgentState(UUID agentID) {
@@ -181,24 +188,6 @@ public class AgentApplicationService {
         return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
     }
 
-    public Optional<ResponseView> recordRealtimeAssistantSpeech(UUID agentID, String speech) {
-        if (speech == null || speech.isBlank()) {
-            return Optional.empty();
-        }
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                BehaviourPlan.speechOnly(speech.trim()).toJson());
-        Event response = agent.acknowledge(assistant, this.runtime(OutputProfile.FULL_PLAN));
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, assistant);
-        this.publishBehaviour(saved, response);
-        return Optional.of(new ResponseView(response, agent.isActive()));
-    }
-
     public Optional<ResponseView> reset(UUID agentID) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
@@ -267,12 +256,13 @@ public class AgentApplicationService {
         State state = new State(data.getStateName(), policy, List.of(transition));
 
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
+        agent.setLanguageCode(valueOrDefault(data.getLanguageCode(), AgentDefinition.LANGUAGE_ENGLISH));
         Event starter = agent.start(this.runtime());
         Agent saved = this.repository.save(agent);
         safePublishMonitor(saved);
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
-                saved.getInteractionProfile()));
+                saved.getInteractionProfile(), saved.getLanguageCode()));
     }
 
     public Agent persistCreatedAgent(AgentCreationResult creation) {
@@ -389,6 +379,14 @@ public class AgentApplicationService {
             case "display" -> "display";
             default -> null;
         };
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private static String valueOrDefault(String value, String fallback) {
+        return isPresent(value) ? value : fallback;
     }
 
     public PolicyRuntime runtime() {

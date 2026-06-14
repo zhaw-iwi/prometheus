@@ -88,12 +88,8 @@ public class RealtimeSidebandService {
     private final class SidebandSession implements WebSocket.Listener {
         private final RealtimeSidebandSessionConfig config;
         private final StringBuilder messageBuffer = new StringBuilder();
-        private final StringBuilder assistantTranscript = new StringBuilder();
         private volatile WebSocket webSocket;
         private volatile boolean closed;
-        private boolean assistantAudioSeen;
-        private boolean skipNextAssistantPersistence;
-        private String pendingResponseInstruction;
         private String pendingExactSpeech;
 
         private SidebandSession(RealtimeSidebandSessionConfig config) {
@@ -113,9 +109,9 @@ public class RealtimeSidebandService {
             }
             webSocket.request(1);
             if (isPresent(this.config.getInitialExactSpeech())) {
-                sendExactSpeech(this.config.getInitialExactSpeech());
+                updateSessionThenRespond(this.config.getInitialInstructions(), this.config.getInitialExactSpeech());
             } else {
-                sendResponseCreate(this.config.getInitialResponseInstruction());
+                sendSessionUpdate(this.config.getInitialInstructions());
             }
         }
 
@@ -167,33 +163,8 @@ public class RealtimeSidebandService {
                 handleUserTranscript(string(event, "transcript"));
                 return;
             }
-            if ("response.created".equals(type)) {
-                this.assistantAudioSeen = false;
-                this.assistantTranscript.setLength(0);
-                return;
-            }
             if ("session.updated".equals(type)) {
                 flushPendingResponse();
-                return;
-            }
-            if ("response.output_audio_transcript.delta".equals(type)) {
-                this.assistantAudioSeen = true;
-                this.assistantTranscript.append(string(event, "delta"));
-                return;
-            }
-            if ("response.output_text.delta".equals(type) && !this.assistantAudioSeen) {
-                this.assistantTranscript.append(string(event, "delta"));
-                return;
-            }
-            if ("response.output_audio_transcript.done".equals(type)) {
-                this.assistantAudioSeen = false;
-                completeAssistantTranscript(firstPresent(string(event, "transcript"),
-                        this.assistantTranscript.toString()));
-                return;
-            }
-            if ("response.output_text.done".equals(type) && !this.assistantAudioSeen) {
-                completeAssistantTranscript(firstPresent(string(event, "text"),
-                        this.assistantTranscript.toString()));
             }
         }
 
@@ -204,7 +175,7 @@ public class RealtimeSidebandService {
             Optional<ResponseView> acknowledged = agentService.acknowledge(this.config.getAgentId(),
                     new EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, Event.KIND_OBSERVATION,
                             transcript.trim()),
-                    OutputProfile.BACKEND_COMPLEMENT);
+                    OutputProfile.REALTIME_SPEECH);
             if (acknowledged.isEmpty()) {
                 LOGGER.warn("Realtime sideband transcript for unknown agent; callId={} agentId={}",
                         this.config.getCallId(), this.config.getAgentId());
@@ -212,29 +183,33 @@ public class RealtimeSidebandService {
             }
             ResponseView ack = acknowledged.get();
             String ackSpeech = speechFromEvent(ack.getResponseEvent());
-            if (!isPresent(ackSpeech) && ack.isActive() && this.config.getSettings().isGenerateComplement()) {
+            if (!isPresent(ackSpeech) && ack.isActive()) {
+                ackSpeech = generateRealtimeSpeech();
+            }
+            if (isPresent(ackSpeech) && this.config.getSettings().isGenerateComplement()) {
                 agentService.generate(this.config.getAgentId(), List.of("speech"), OutputProfile.BACKEND_COMPLEMENT);
             }
             PolicyResponseView prompt = agentService.prompt(this.config.getAgentId(), OutputProfile.REALTIME_SPEECH)
                     .orElse(null);
             if (isPresent(ackSpeech)) {
-                updateSessionThenRespond(RealtimePromptInstructions.systemInstructions(prompt), null, ackSpeech);
+                updateSessionThenRespond(RealtimePromptInstructions.systemInstructions(prompt), ackSpeech);
             } else {
-                updateSessionThenRespond(RealtimePromptInstructions.systemInstructions(prompt),
-                        RealtimePromptInstructions.responseInstruction(prompt), null);
+                sendSessionUpdate(RealtimePromptInstructions.systemInstructions(prompt));
             }
         }
 
-        private void completeAssistantTranscript(String transcript) {
-            this.assistantTranscript.setLength(0);
-            if (!isPresent(transcript)) {
-                return;
+        private String generateRealtimeSpeech() {
+            int historySizeBefore = agentService.getAgentEventHistory(this.config.getAgentId())
+                    .map(List::size)
+                    .orElse(0);
+            BehaviourGenerationOutcome outcome = agentService.generate(this.config.getAgentId(), null,
+                    OutputProfile.REALTIME_SPEECH);
+            if (outcome != BehaviourGenerationOutcome.GENERATED) {
+                return null;
             }
-            if (this.skipNextAssistantPersistence) {
-                this.skipNextAssistantPersistence = false;
-                return;
-            }
-            agentService.recordRealtimeAssistantSpeech(this.config.getAgentId(), transcript.trim());
+            return agentService.getAgentEventHistory(this.config.getAgentId())
+                    .map(history -> latestAssistantSpeechAfter(history, historySizeBefore))
+                    .orElse(null);
         }
 
         private void sendSessionUpdate(String instructions) {
@@ -269,26 +244,20 @@ public class RealtimeSidebandService {
             send(event);
         }
 
-        private void updateSessionThenRespond(String instructions, String responseInstruction, String exactSpeech) {
-            this.pendingResponseInstruction = responseInstruction;
+        private void updateSessionThenRespond(String instructions, String exactSpeech) {
             this.pendingExactSpeech = exactSpeech;
             sendSessionUpdate(instructions);
         }
 
         private void flushPendingResponse() {
             String exactSpeech = this.pendingExactSpeech;
-            String responseInstruction = this.pendingResponseInstruction;
             this.pendingExactSpeech = null;
-            this.pendingResponseInstruction = null;
             if (isPresent(exactSpeech)) {
                 sendExactSpeech(exactSpeech);
-            } else if (isPresent(responseInstruction)) {
-                sendResponseCreate(responseInstruction);
             }
         }
 
         private void sendExactSpeech(String speech) {
-            this.skipNextAssistantPersistence = true;
             sendResponseCreate("Say exactly the following text and nothing else. Do not add, remove, paraphrase, "
                     + "or explain.\n" + speech.trim());
         }
@@ -325,15 +294,25 @@ public class RealtimeSidebandService {
         return plan == null ? null : plan.getSpeech();
     }
 
+    private static String latestAssistantSpeechAfter(List<Event> history, int firstIndex) {
+        if (history == null || history.isEmpty()) {
+            return null;
+        }
+        int start = Math.max(0, firstIndex);
+        for (int i = history.size() - 1; i >= start; i--) {
+            String speech = speechFromEvent(history.get(i));
+            if (isPresent(speech)) {
+                return speech;
+            }
+        }
+        return null;
+    }
+
     private static String string(JsonObject object, String member) {
         if (object == null || member == null || !object.has(member) || object.get(member).isJsonNull()) {
             return "";
         }
         return object.get(member).getAsString();
-    }
-
-    private static String firstPresent(String first, String second) {
-        return isPresent(first) ? first : second;
     }
 
     private static boolean isPresent(String value) {

@@ -84,6 +84,9 @@ public class RealtimeSessionClient {
         }
         JsonObject transcription = new JsonObject();
         transcription.addProperty("model", "whisper-1");
+        if (config != null) {
+            addOptionalProperty(transcription, "language", config.getLanguageCode());
+        }
         JsonObject audioInput = new JsonObject();
         audioInput.add("transcription", transcription);
         String turnDetection = config == null ? null : config.getTurnDetection();
@@ -108,6 +111,10 @@ public class RealtimeSessionClient {
     }
 
     public RealtimeSessionInfo createTranscriptionSession() {
+        return this.createTranscriptionSession(null);
+    }
+
+    public RealtimeSessionInfo createTranscriptionSession(String languageCode) {
         String model = valueOrDefault(this.properties.getRealtimeTranscriptionModel(),
                 DEFAULT_REALTIME_TRANSCRIPTION_MODEL);
         JsonObject payload = new JsonObject();
@@ -115,7 +122,8 @@ public class RealtimeSessionClient {
         session.addProperty("type", "transcription");
         JsonObject transcription = new JsonObject();
         transcription.addProperty("model", model);
-        addOptionalProperty(transcription, "language", this.properties.getRealtimeTranscriptionLanguage());
+        addOptionalProperty(transcription, "language", valueOrDefault(languageCode,
+                this.properties.getRealtimeTranscriptionLanguage()));
         addOptionalProperty(transcription, "delay", this.properties.getRealtimeTranscriptionDelay());
         JsonObject audioInput = new JsonObject();
         audioInput.add("transcription", transcription);

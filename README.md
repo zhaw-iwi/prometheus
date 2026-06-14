@@ -226,8 +226,11 @@ Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code se
 - `GET /agent/{id}/eventhistory`
 - `POST /agent/singlestate`
 
-`GET /agent`, `GET /agent/{id}`, and `GET /{agentID}/info` return an
-`interactionProfile` object. The profile declares the observation event types an
+`GET /agent`, `GET /agent/{id}`, and `GET /{agentID}/info` return
+`languageCode` and an `interactionProfile` object. `languageCode` is optional
+agent metadata used as a Realtime transcription language hint; custom
+`POST /agent/singlestate` requests may include it and otherwise default to
+`en`. The profile declares the observation event types an
 agent expects and the behaviour modalities it can emit, for example
 `obs.hand.sign`, `obs.social.grouping`, `speech`, `motion.handSign`, and
 `display`. It is persisted with the `Agent` aggregate and is metadata, not
@@ -436,8 +439,9 @@ Notes:
   - Valerian scoped client: `POST /demo/agents/{agentId}/realtime/call`
   - query options: `voice`, `turnDetection=server_vad|semantic_vad|none`, `generateComplement=true|false`
 - PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
-- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, acknowledges user utterances through the normal PROMETHEUS runtime, refreshes session instructions after state transitions, and only then triggers `response.create`.
-- Realtime-generated assistant speech is recorded by the backend as `resp.behaviour_plan` and published through the normal behaviour stream. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
+- Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
+- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, acknowledges user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers `response.create` with an exact-speech instruction.
+- PROMETHEUS persists the canonical assistant speech as `resp.behaviour_plan` before Realtime speaks it. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
   - Server default: `openai.realtimeModel=gpt-realtime-2`.
   - Voice controls include the GA voice options `cedar` and `marin`.
   - Optional endpoint override: `openai.realtimeCallsUrl`.
@@ -445,13 +449,15 @@ Notes:
   `POST /realtime/transcription/session`.
   - Server default: `openai.realtimeTranscriptionModel=gpt-realtime-whisper`.
   - Optional transcription hints: `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`.
+  - When `/multilateral/listen` is opened for an agent, it passes `agentId`; the endpoint uses the agent `languageCode` as a transcription language override when present and falls back to `openai.realtimeTranscriptionLanguage` otherwise.
   - `gpt-realtime-whisper` omits turn detection, so `/multilateral/listen` sends periodic
     `input_audio_buffer.commit` events while listening.
 - If `openai.realtimeSafetyIdentifier` is set, the backend sends it as `OpenAI-Safety-Identifier` when creating
   Realtime calls and transcription client secrets. Use a stable, privacy-preserving identifier.
 - Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
 - `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
-- When PROMETHEUS acknowledgement returns a speech-bearing `responseEvent`, the sideband asks Realtime to say that exact text and does not persist a duplicate assistant event.
+- When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text and does not persist a duplicate assistant event.
+- In push-to-talk mode, browser clients clear the Realtime input buffer on button press, commit the captured audio on release, and leave response creation to the PROMETHEUS sideband.
 - To complement realtime speech with nonverbal backend output, call:
   - `POST /{agentID}/behaviour/generate`
   - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`

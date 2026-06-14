@@ -99,7 +99,7 @@ public class AccessCodeAdminService {
         for (AccessCodeAgent link : this.accessCodeAgents.findByAccessCodeId(id)) {
             Agent agent = link.getAgent();
             result.add(new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                    agent.getInteractionProfile()));
+                    agent.getInteractionProfile(), agent.getLanguageCode()));
         }
         return Optional.of(result);
     }

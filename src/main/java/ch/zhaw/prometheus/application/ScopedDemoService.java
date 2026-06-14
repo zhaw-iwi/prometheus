@@ -82,6 +82,7 @@ public class ScopedDemoService {
                 .orElseThrow(() -> new DemoAgentTypeForbiddenException(key));
         AgentCreationResult created = definition.createInstance(
                 new AgentCreationContext(this.promptMessageAssembler, this.languageModelGateway));
+        applyDefinitionLanguage(created.agent(), definition);
         Agent saved = this.agentService.persistCreatedAgent(created);
         this.accessCodeAgents.save(new AccessCodeAgent(accessCode, saved));
         return this.toAgentInfo(saved);
@@ -192,6 +193,13 @@ public class ScopedDemoService {
         return this.agentService.prompt(agentId, outputProfile);
     }
 
+    public Optional<String> getAgentLanguageCode(String accessCodeValue, UUID agentId) {
+        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
+            return Optional.empty();
+        }
+        return this.agentService.getAgentLanguageCode(agentId);
+    }
+
     private boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
         AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
         return agentId != null && this.accessCodeAgents.existsByAccessCode_IdAndAgent_Id(accessCode.getId(), agentId);
@@ -244,6 +252,18 @@ public class ScopedDemoService {
 
     private AgentInfoView toAgentInfo(Agent agent) {
         return new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                agent.getInteractionProfile());
+                agent.getInteractionProfile(), agent.getLanguageCode());
+    }
+
+    private static void applyDefinitionLanguage(Agent agent, AgentDefinition definition) {
+        if (agent == null || definition == null || isPresent(agent.getLanguageCode())
+                || !isPresent(definition.languageCode())) {
+            return;
+        }
+        agent.setLanguageCode(definition.languageCode());
+    }
+
+    private static boolean isPresent(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

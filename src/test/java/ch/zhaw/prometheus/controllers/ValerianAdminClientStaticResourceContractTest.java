@@ -35,6 +35,9 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"save-agent-type-assignment\""));
         assertTrue(index.contains("data-testid=\"refresh-instances\""));
         assertTrue(index.contains("data-testid=\"admin-instance-list\""));
+        assertTrue(index.contains("id=\"save_agent_type_assignment\" class=\"btn btn-primary w-100\""));
+        assertTrue(index.indexOf("data-testid=\"save-agent-type-assignment\"") <
+                index.indexOf("data-testid=\"admin-agent-type-list\""));
         assertTrue(index.contains("Agent Type Assignment"));
         assertTrue(index.contains("Instances"));
         assertTrue(index.contains("<script src=\"script.js\"></script>"));

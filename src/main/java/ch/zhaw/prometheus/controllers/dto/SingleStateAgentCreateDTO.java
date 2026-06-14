@@ -25,6 +25,7 @@ public class SingleStateAgentCreateDTO {
     private String triggerToFinalPrompt;
     private String guardToFinalPrompt;
     private String actionToFinalPrompt;
+    private String languageCode;
 
     public int getType() {
         return this.type;
@@ -104,6 +105,14 @@ public class SingleStateAgentCreateDTO {
 
     public void setActionToFinalPrompt(String actionToFinalPrompt) {
         this.actionToFinalPrompt = actionToFinalPrompt;
+    }
+
+    public String getLanguageCode() {
+        return this.languageCode;
+    }
+
+    public void setLanguageCode(String languageCode) {
+        this.languageCode = languageCode;
     }
 
 }
