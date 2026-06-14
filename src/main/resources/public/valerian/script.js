@@ -39,6 +39,10 @@ const realtime = {
   responseActive: false,
   pushToTalkActive: false,
   spaceKeyBindingActive: false,
+  pendingInputItemIds: new Set(),
+  processedInputItemIds: new Set(),
+  transcriptCandidates: [],
+  transcriptFlushTimer: null,
 };
 
 const camera = {
@@ -70,6 +74,7 @@ const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
 const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
+const TRANSCRIPT_BATCH_DELAY_MS = 900;
 const ACTIVITY_LOG_LIMIT = 300;
 const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
@@ -1487,6 +1492,7 @@ async function startRealtime() {
   }
   setRealtimeState(true);
   appendLog("realtime", "starting.");
+  resetRealtimeTranscriptGate();
   try {
     await setupRealtimeConnection();
     await waitForDataChannelOpen();
@@ -1522,6 +1528,7 @@ async function stopRealtime() {
   audio.load();
   realtime.pushToTalkActive = false;
   realtime.responseActive = false;
+  resetRealtimeTranscriptGate();
   disableSpaceKeyPushToTalk();
   updatePushToTalkUi();
   appendLog("realtime", "stopped.");
@@ -1594,12 +1601,12 @@ function handleRealtimeEvent(event) {
     appendLog("realtime", "non-json event.");
     return;
   }
-  if (data.type === "conversation.item.input_audio_transcription.completed") {
-    const transcript = data.transcript || "";
-    if (transcript.trim()) {
-      appendMessage("user", transcript.trim());
-      appendLog("realtime", "user transcript completed.");
-    }
+  if (data.type === "input_audio_buffer.committed") {
+    rememberRealtimeInputItem(data.item_id);
+  } else if (data.type === "input_audio_buffer.cleared") {
+    clearQueuedRealtimeTranscriptCandidates();
+  } else if (data.type === "conversation.item.input_audio_transcription.completed") {
+    queueRealtimeTranscriptCandidate(data);
   } else if (data.type === "response.created") {
     realtime.responseActive = true;
     realtime.assistantAudioSeen = false;
@@ -1621,6 +1628,104 @@ function handleRealtimeEvent(event) {
     realtime.assistantAudioSeen = false;
     realtime.responseActive = false;
   }
+}
+
+function rememberRealtimeInputItem(itemId) {
+  if (!itemId || realtime.processedInputItemIds.has(itemId)) {
+    return;
+  }
+  realtime.pendingInputItemIds.add(itemId);
+}
+
+function queueRealtimeTranscriptCandidate(data) {
+  const transcript = data.transcript || "";
+  if (!transcript.trim()) {
+    markRealtimeTranscriptItemsProcessed([{ itemId: data.item_id || "" }]);
+    return;
+  }
+  realtime.transcriptCandidates.push({
+    itemId: data.item_id || "",
+    eventId: data.event_id || "",
+    transcript: transcript.trim(),
+  });
+  if (!realtime.transcriptFlushTimer) {
+    realtime.transcriptFlushTimer = setTimeout(flushRealtimeTranscriptCandidates, TRANSCRIPT_BATCH_DELAY_MS);
+  }
+}
+
+function flushRealtimeTranscriptCandidates() {
+  const candidates = realtime.transcriptCandidates.slice();
+  realtime.transcriptCandidates = [];
+  realtime.transcriptFlushTimer = null;
+  const selected = selectRealtimeTranscriptCandidate(candidates);
+  markRealtimeTranscriptItemsProcessed(candidates);
+  if (!selected) {
+    appendLog("realtime", "ignored noisy or duplicate user transcript.");
+    return;
+  }
+  appendMessage("user", selected.transcript);
+  appendLog("realtime", "user transcript completed.");
+}
+
+function selectRealtimeTranscriptCandidate(candidates) {
+  let selected = null;
+  for (const candidate of candidates) {
+    if (!candidate.transcript.trim() || realtimeTranscriptItemAlreadyProcessed(candidate) ||
+      !realtimeTranscriptItemMatchesPendingCommit(candidate) || isLikelyAsrHallucination(candidate.transcript)) {
+      continue;
+    }
+    selected = candidate;
+  }
+  return selected;
+}
+
+function realtimeTranscriptItemAlreadyProcessed(candidate) {
+  return !!candidate.itemId && realtime.processedInputItemIds.has(candidate.itemId);
+}
+
+function realtimeTranscriptItemMatchesPendingCommit(candidate) {
+  return !candidate.itemId || realtime.pendingInputItemIds.size === 0 ||
+    realtime.pendingInputItemIds.has(candidate.itemId);
+}
+
+function markRealtimeTranscriptItemsProcessed(candidates) {
+  candidates.forEach((candidate) => {
+    if (!candidate.itemId) {
+      return;
+    }
+    realtime.processedInputItemIds.add(candidate.itemId);
+    realtime.pendingInputItemIds.delete(candidate.itemId);
+  });
+}
+
+function clearQueuedRealtimeTranscriptCandidates() {
+  realtime.transcriptCandidates = [];
+  if (realtime.transcriptFlushTimer) {
+    clearTimeout(realtime.transcriptFlushTimer);
+    realtime.transcriptFlushTimer = null;
+  }
+  realtime.pendingInputItemIds.clear();
+}
+
+function resetRealtimeTranscriptGate() {
+  clearQueuedRealtimeTranscriptCandidates();
+  realtime.processedInputItemIds = new Set();
+}
+
+function isLikelyAsrHallucination(transcript) {
+  const normalized = normalizeTranscriptForGate(transcript);
+  return normalized === "untertitel der amara org community" ||
+    normalized === "subtitles by the amara org community" ||
+    normalized === "captions by the amara org community";
+}
+
+function normalizeTranscriptForGate(transcript) {
+  return String(transcript || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function applySessionSettings() {

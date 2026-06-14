@@ -80,7 +80,7 @@ class RealtimeSessionClientTest {
         assertEquals("system: PROMETHEUS instructions", session.get("instructions").getAsString());
         assertTrue(session.getAsJsonArray("output_modalities").contains(new JsonPrimitive("audio")));
         JsonObject audio = session.getAsJsonObject("audio");
-        assertEquals("whisper-1",
+        assertEquals("gpt-4o-transcribe",
                 audio.getAsJsonObject("input")
                         .getAsJsonObject("transcription")
                         .get("model")

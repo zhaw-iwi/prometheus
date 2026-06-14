@@ -59,6 +59,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 53: PROMETHEUS-authoritative Realtime speech sideband orchestration
 - [x] Milestone 54: Realtime speech duplicate-response fix
 - [x] Milestone 55: Agent language codes for Realtime transcription hints
+- [x] Milestone 56: Realtime transcript ingress gating and ASR hallucination hardening
 
 ## Milestone 1
 ### Date
@@ -2696,3 +2697,56 @@ Add an optional agent-level language code and use it wherever an agent-bound Rea
 1. Re-test the GIGI TDSR guessing-game push-to-talk flow and verify German yes/no turns in the diagnostics drawer and text transcript.
 2. If `nein` still drifts under noisy conditions, consider a PROMETHEUS-side yes/no normalization guard for German guessing-game agents.
 3. Consider adding admin/editor affordances for custom agent language codes if non-built-in agents need runtime configuration.
+
+## Milestone 56
+### Date
+2026-06-14
+
+### Goal
+Stop duplicate and phantom Realtime speech-to-speech transcript completions from entering PROMETHEUS as multiple user turns.
+
+### What changed
+- Hardened `RealtimeSidebandService` transcript ingress:
+  - tracks `input_audio_buffer.committed` item IDs
+  - batches `conversation.item.input_audio_transcription.completed` events briefly before acknowledgement
+  - processes at most one accepted transcript per batch
+  - ignores duplicate item IDs
+  - suppresses the observed caption-style ASR hallucination `Untertitel der Amara.org-Community`
+- Kept PROMETHEUS authoritative: only the accepted transcript is acknowledged as `obs.user_utterance`; Realtime still only realizes backend-authored speech.
+- Mirrored the same committed-item, batch, duplicate, and hallucination filtering in:
+  - standalone `/realtime/`
+  - Valerian `/valerian/`
+- Added the same exact caption-hallucination suppression to transcription-only `/multilateral/listen` before it displays or acknowledges user transcripts.
+- Added `openai.realtimeInputTranscriptionModel` for speech-to-speech input transcription and defaulted it to `gpt-4o-transcribe`.
+- Left transcription-only sessions on `openai.realtimeTranscriptionModel=gpt-realtime-whisper`.
+- Updated README Realtime notes and configuration documentation.
+
+### How to run
+1. Configure OpenAI Realtime properties:
+   - `openai.realtimeModel=gpt-realtime-2`
+   - `openai.realtimeInputTranscriptionModel=gpt-4o-transcribe`
+   - `openai.realtimeTranscriptionModel=gpt-realtime-whisper`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use a German speech-enabled agent such as `gigitdsr.guessing_game_with_gestures`, start Realtime push-to-talk, and answer several turns.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest,RealtimeSessionClientTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- OpenAI documents Realtime input transcription as asynchronous ASR that can diverge from model interpretation, so PROMETHEUS treats completed transcript events as candidates rather than authoritative turns.
+- The batch window adds a short delay before backend acknowledgement so duplicate completions from the same push-to-talk action can be reconciled.
+- The caption-hallucination filter is intentionally exact after normalization to avoid suppressing legitimate longer utterances.
+- A live browser/WebRTC smoke with real credentials is still needed to confirm the duplicate-answer symptom is gone in Valerian.
+
+### Next steps
+1. Re-test the GIGI TDSR guessing-game push-to-talk flow with the same access-code setup that produced duplicate answers.
+2. If ASR still produces non-caption hallucinations, enable/use transcription confidence data or add a stricter PROMETHEUS-side acceptance policy for speech input.
+3. Consider exposing speech-call transcription model selection in admin/config UI if demos need to trade quality against cost.

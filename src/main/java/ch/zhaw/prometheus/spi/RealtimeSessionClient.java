@@ -19,6 +19,7 @@ public class RealtimeSessionClient {
     private static final String DEFAULT_REALTIME_CLIENT_SECRET_URL = "https://api.openai.com/v1/realtime/client_secrets";
     private static final String DEFAULT_REALTIME_CALLS_URL = "https://api.openai.com/v1/realtime/calls";
     private static final String DEFAULT_REALTIME_MODEL = "gpt-realtime-2";
+    private static final String DEFAULT_REALTIME_INPUT_TRANSCRIPTION_MODEL = "gpt-4o-transcribe";
     private static final String DEFAULT_REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -40,7 +41,9 @@ public class RealtimeSessionClient {
 
         String model = valueOrDefault(this.properties.getRealtimeModel(), DEFAULT_REALTIME_MODEL);
         String callsUrl = valueOrDefault(props.getRealtimeCallsUrl(), DEFAULT_REALTIME_CALLS_URL);
-        JsonObject session = realtimeSessionPayload(model, config);
+        String inputTranscriptionModel = valueOrDefault(this.properties.getRealtimeInputTranscriptionModel(),
+                DEFAULT_REALTIME_INPUT_TRANSCRIPTION_MODEL);
+        JsonObject session = realtimeSessionPayload(model, inputTranscriptionModel, config);
 
         String boundary = "----prometheus-realtime-" + UUID.randomUUID();
         String body = multipartCallBody(boundary, offerSdp, GSON.toJson(session));
@@ -74,7 +77,8 @@ public class RealtimeSessionClient {
         }
     }
 
-    private static JsonObject realtimeSessionPayload(String model, RealtimeCallConfig config) {
+    private static JsonObject realtimeSessionPayload(String model, String inputTranscriptionModel,
+            RealtimeCallConfig config) {
         JsonObject payload = new JsonObject();
         payload.addProperty("type", "realtime");
         payload.addProperty("model", model);
@@ -83,7 +87,8 @@ public class RealtimeSessionClient {
             payload.addProperty("instructions", config.getInstructions().trim());
         }
         JsonObject transcription = new JsonObject();
-        transcription.addProperty("model", "whisper-1");
+        transcription.addProperty("model", valueOrDefault(inputTranscriptionModel,
+                DEFAULT_REALTIME_INPUT_TRANSCRIPTION_MODEL));
         if (config != null) {
             addOptionalProperty(transcription, "language", config.getLanguageCode());
         }

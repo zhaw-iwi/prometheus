@@ -23,6 +23,7 @@ public class OpenAIProperties {
     private String model;
     private String key;
     private String realtimeModel;
+    private String realtimeInputTranscriptionModel;
     private String realtimeTranscriptionModel;
     private String realtimeTranscriptionLanguage;
     private String realtimeTranscriptionDelay;
@@ -60,6 +61,14 @@ public class OpenAIProperties {
 
     public void setRealtimeModel(String realtimeModel) {
         this.realtimeModel = realtimeModel;
+    }
+
+    public String getRealtimeInputTranscriptionModel() {
+        return this.realtimeInputTranscriptionModel;
+    }
+
+    public void setRealtimeInputTranscriptionModel(String realtimeInputTranscriptionModel) {
+        this.realtimeInputTranscriptionModel = realtimeInputTranscriptionModel;
     }
 
     public String getRealtimeTranscriptionModel() {

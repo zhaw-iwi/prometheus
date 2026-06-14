@@ -6,6 +6,10 @@ openai.key = openai api key here | azure ai service api key (key 1)
 
 # for realtime only
 openai.realtimeModel = gpt-realtime-2
+# Speech-to-speech input transcription model. OpenAI Realtime input
+# transcription supports models such as whisper-1 and gpt-4o-transcribe.
+openai.realtimeInputTranscriptionModel = gpt-4o-transcribe
+# Transcription-only session model.
 openai.realtimeTranscriptionModel = gpt-realtime-whisper
 # Optional: ISO-639-1 language hint, e.g. en or de
 openai.realtimeTranscriptionLanguage =

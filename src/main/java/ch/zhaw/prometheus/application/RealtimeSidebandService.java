@@ -3,12 +3,21 @@ package ch.zhaw.prometheus.application;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +40,14 @@ import jakarta.annotation.PreDestroy;
 public class RealtimeSidebandService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RealtimeSidebandService.class);
     private static final Gson GSON = new Gson();
+    private static final long TRANSCRIPT_BATCH_DELAY_MS = 900;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final ScheduledExecutorService transcriptExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+        Thread thread = new Thread(task, "prometheus-realtime-transcript-ingress");
+        thread.setDaemon(true);
+        return thread;
+    });
     private final OpenAIProperties properties;
     private final AgentApplicationService agentService;
     private final ConcurrentMap<String, SidebandSession> sessions = new ConcurrentHashMap<>();
@@ -83,14 +98,19 @@ public class RealtimeSidebandService {
         for (String callId : List.copyOf(this.sessions.keySet())) {
             close(callId);
         }
+        this.transcriptExecutor.shutdownNow();
     }
 
     private final class SidebandSession implements WebSocket.Listener {
         private final RealtimeSidebandSessionConfig config;
         private final StringBuilder messageBuffer = new StringBuilder();
+        private final Set<String> pendingInputItemIds = new LinkedHashSet<>();
+        private final Set<String> processedInputItemIds = new HashSet<>();
+        private final List<TranscriptCandidate> pendingTranscriptCandidates = new ArrayList<>();
         private volatile WebSocket webSocket;
         private volatile boolean closed;
         private String pendingExactSpeech;
+        private ScheduledFuture<?> pendingTranscriptFlush;
 
         private SidebandSession(RealtimeSidebandSessionConfig config) {
             this.config = config;
@@ -144,6 +164,7 @@ public class RealtimeSidebandService {
 
         private void close() {
             this.closed = true;
+            handleInputAudioCleared();
             WebSocket socket = this.webSocket;
             if (socket != null) {
                 socket.sendClose(WebSocket.NORMAL_CLOSURE, "PROMETHEUS realtime call closed");
@@ -159,8 +180,16 @@ public class RealtimeSidebandService {
                 return;
             }
             String type = string(event, "type");
+            if ("input_audio_buffer.committed".equals(type)) {
+                handleInputAudioCommitted(string(event, "item_id"));
+                return;
+            }
+            if ("input_audio_buffer.cleared".equals(type)) {
+                handleInputAudioCleared();
+                return;
+            }
             if ("conversation.item.input_audio_transcription.completed".equals(type)) {
-                handleUserTranscript(string(event, "transcript"));
+                queueUserTranscript(string(event, "transcript"), string(event, "item_id"), string(event, "event_id"));
                 return;
             }
             if ("session.updated".equals(type)) {
@@ -168,10 +197,99 @@ public class RealtimeSidebandService {
             }
         }
 
-        private void handleUserTranscript(String transcript) {
+        private synchronized void handleInputAudioCommitted(String itemId) {
+            if (!isPresent(itemId) || this.processedInputItemIds.contains(itemId)) {
+                return;
+            }
+            this.pendingInputItemIds.add(itemId);
+        }
+
+        private synchronized void handleInputAudioCleared() {
+            this.pendingInputItemIds.clear();
+            this.pendingTranscriptCandidates.clear();
+            ScheduledFuture<?> flush = this.pendingTranscriptFlush;
+            if (flush != null) {
+                flush.cancel(false);
+                this.pendingTranscriptFlush = null;
+            }
+        }
+
+        private void queueUserTranscript(String transcript, String itemId, String eventId) {
+            if (!isPresent(transcript)) {
+                markTranscriptItemsProcessed(List.of(new TranscriptCandidate(itemId, eventId, transcript)));
+                return;
+            }
+            synchronized (this) {
+                this.pendingTranscriptCandidates.add(new TranscriptCandidate(itemId, eventId, transcript.trim()));
+                if (this.pendingTranscriptFlush == null || this.pendingTranscriptFlush.isDone()) {
+                    this.pendingTranscriptFlush = transcriptExecutor.schedule(this::flushQueuedTranscripts,
+                            TRANSCRIPT_BATCH_DELAY_MS, TimeUnit.MILLISECONDS);
+                }
+            }
+        }
+
+        private void flushQueuedTranscripts() {
+            List<TranscriptCandidate> candidates;
+            synchronized (this) {
+                candidates = List.copyOf(this.pendingTranscriptCandidates);
+                this.pendingTranscriptCandidates.clear();
+                this.pendingTranscriptFlush = null;
+            }
+            if (this.closed || candidates.isEmpty()) {
+                return;
+            }
+            TranscriptCandidate selected = selectTranscriptCandidate(candidates);
+            markTranscriptItemsProcessed(candidates);
+            if (selected == null) {
+                LOGGER.debug("Realtime sideband ignored transcript batch; callId={} agentId={} candidates={}",
+                        this.config.getCallId(), this.config.getAgentId(), candidates.size());
+                return;
+            }
+            processUserTranscript(selected.transcript(), selected.itemId());
+        }
+
+        private TranscriptCandidate selectTranscriptCandidate(List<TranscriptCandidate> candidates) {
+            TranscriptCandidate selected = null;
+            synchronized (this) {
+                for (TranscriptCandidate candidate : candidates) {
+                    if (!isPresent(candidate.transcript()) || transcriptItemAlreadyProcessed(candidate)
+                            || !transcriptItemMatchesPendingCommit(candidate)
+                            || isLikelyAsrHallucination(candidate.transcript())) {
+                        continue;
+                    }
+                    selected = candidate;
+                }
+            }
+            return selected;
+        }
+
+        private boolean transcriptItemAlreadyProcessed(TranscriptCandidate candidate) {
+            return isPresent(candidate.itemId()) && this.processedInputItemIds.contains(candidate.itemId());
+        }
+
+        private boolean transcriptItemMatchesPendingCommit(TranscriptCandidate candidate) {
+            if (!isPresent(candidate.itemId()) || this.pendingInputItemIds.isEmpty()) {
+                return true;
+            }
+            return this.pendingInputItemIds.contains(candidate.itemId());
+        }
+
+        private synchronized void markTranscriptItemsProcessed(List<TranscriptCandidate> candidates) {
+            for (TranscriptCandidate candidate : candidates) {
+                if (!isPresent(candidate.itemId())) {
+                    continue;
+                }
+                this.processedInputItemIds.add(candidate.itemId());
+                this.pendingInputItemIds.remove(candidate.itemId());
+            }
+        }
+
+        private void processUserTranscript(String transcript, String itemId) {
             if (!isPresent(transcript)) {
                 return;
             }
+            LOGGER.debug("Realtime sideband accepting user transcript; callId={} agentId={} itemId={}",
+                    this.config.getCallId(), this.config.getAgentId(), itemId);
             Optional<ResponseView> acknowledged = agentService.acknowledge(this.config.getAgentId(),
                     new EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, Event.KIND_OBSERVATION,
                             transcript.trim()),
@@ -286,6 +404,9 @@ public class RealtimeSidebandService {
         }
     }
 
+    private record TranscriptCandidate(String itemId, String eventId, String transcript) {
+    }
+
     private static String speechFromEvent(Event event) {
         if (event == null || !Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
             return null;
@@ -317,5 +438,24 @@ public class RealtimeSidebandService {
 
     private static boolean isPresent(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static boolean isLikelyAsrHallucination(String transcript) {
+        String normalized = normalizeTranscriptForGate(transcript);
+        return "untertitel der amara org community".equals(normalized)
+                || "subtitles by the amara org community".equals(normalized)
+                || "captions by the amara org community".equals(normalized);
+    }
+
+    private static String normalizeTranscriptForGate(String transcript) {
+        if (transcript == null) {
+            return "";
+        }
+        String decomposed = Normalizer.normalize(transcript, Normalizer.Form.NFKD);
+        return decomposed
+                .replaceAll("\\p{M}", "")
+                .toLowerCase()
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim();
     }
 }

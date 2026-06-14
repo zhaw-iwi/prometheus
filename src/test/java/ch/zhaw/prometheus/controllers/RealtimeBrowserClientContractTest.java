@@ -49,10 +49,15 @@ class RealtimeBrowserClientContractTest {
 
             assertContains(script, "response.output_audio_transcript.delta");
             assertContains(script, "response.output_audio_transcript.done");
+            assertContains(script, "input_audio_buffer.committed");
             assertContains(script, "input_audio_buffer.commit");
             assertContains(script, "input_audio_buffer.clear");
             assertContains(script, "response.cancel");
             assertContains(script, "output_audio_buffer.clear");
+            assertContains(script, "TRANSCRIPT_BATCH_DELAY_MS");
+            assertContains(script, "isLikelyAsrHallucination");
+            assertContains(script, "amara org community");
+            assertContains(script, "processedInputItemIds");
 
             assertDoesNotContain(script, "type: \"session.update\"");
             assertDoesNotContain(script, "type: \"response.create\"");
@@ -98,6 +103,8 @@ class RealtimeBrowserClientContractTest {
         assertContains(script, "input_audio_buffer.commit");
         assertContains(script, "gpt-realtime-whisper");
         assertContains(script, "data.delta || data.transcript");
+        assertContains(script, "isLikelyAsrHallucination");
+        assertContains(script, "amara org community");
 
         assertDoesNotContain(script, "type: \"session.update\"");
         assertDoesNotContain(script, "type: \"response.create\"");

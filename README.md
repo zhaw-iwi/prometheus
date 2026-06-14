@@ -145,9 +145,10 @@ Minimum local fields:
 - DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
 - OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
 - Optional admin API: `prometheus.admin.token`
-- Optional realtime: `openai.realtimeModel`, `openai.realtimeTranscriptionModel`,
-  `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`,
-  `openai.realtimeSafetyIdentifier`, `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
+- Optional realtime: `openai.realtimeModel`, `openai.realtimeInputTranscriptionModel`,
+  `openai.realtimeTranscriptionModel`, `openai.realtimeTranscriptionLanguage`,
+  `openai.realtimeTranscriptionDelay`, `openai.realtimeSafetyIdentifier`,
+  `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
 
 ### 3. Run
 
@@ -440,7 +441,8 @@ Notes:
   - query options: `voice`, `turnDetection=server_vad|semantic_vad|none`, `generateComplement=true|false`
 - PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
 - Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
-- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, acknowledges user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers `response.create` with an exact-speech instruction.
+- Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
+- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers `response.create` with an exact-speech instruction.
 - PROMETHEUS persists the canonical assistant speech as `resp.behaviour_plan` before Realtime speaks it. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
   - Server default: `openai.realtimeModel=gpt-realtime-2`.
   - Voice controls include the GA voice options `cedar` and `marin`.
@@ -452,6 +454,7 @@ Notes:
   - When `/multilateral/listen` is opened for an agent, it passes `agentId`; the endpoint uses the agent `languageCode` as a transcription language override when present and falls back to `openai.realtimeTranscriptionLanguage` otherwise.
   - `gpt-realtime-whisper` omits turn detection, so `/multilateral/listen` sends periodic
     `input_audio_buffer.commit` events while listening.
+  - Known caption-style ASR hallucinations are filtered before display or `/acknowledge`.
 - If `openai.realtimeSafetyIdentifier` is set, the backend sends it as `OpenAI-Safety-Identifier` when creating
   Realtime calls and transcription client secrets. Use a stable, privacy-preserving identifier.
 - Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.

@@ -178,7 +178,7 @@ function handleRealtimeEvent(event) {
 
   if (data.type === "conversation.item.input_audio_transcription.delta") {
     const delta = data.delta || data.transcript || "";
-    if (delta.trim()) {
+    if (delta.trim() && !isLikelyAsrHallucination(delta)) {
       const key = transcriptItemKey(data);
       const partial = `${partialTranscriptsByItemId.get(key) || ""}${delta}`;
       partialTranscriptsByItemId.set(key, partial);
@@ -188,6 +188,10 @@ function handleRealtimeEvent(event) {
     const key = transcriptItemKey(data);
     const transcript = data.transcript || partialTranscriptsByItemId.get(key) || "";
     partialTranscriptsByItemId.delete(key);
+    if (isLikelyAsrHallucination(transcript)) {
+      appendLog("realtime", "Ignored noisy user transcript.");
+      return;
+    }
     if (transcript.trim()) {
       document.getElementById("live_transcript").textContent = transcript;
       addTranscriptEntry(transcript);
@@ -226,6 +230,22 @@ function commitAudioBuffer() {
 
 function transcriptItemKey(data) {
   return data.item_id || data.itemId || "latest";
+}
+
+function isLikelyAsrHallucination(transcript) {
+  const normalized = normalizeTranscriptForGate(transcript);
+  return normalized === "untertitel der amara org community" ||
+    normalized === "subtitles by the amara org community" ||
+    normalized === "captions by the amara org community";
+}
+
+function normalizeTranscriptForGate(transcript) {
+  return String(transcript || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function addTranscriptEntry(text) {

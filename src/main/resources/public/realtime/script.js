@@ -15,12 +15,17 @@ let isPageUnloading = false;
 const BEHAVIOUR_RECONNECT_MIN_MS = 1000;
 const BEHAVIOUR_RECONNECT_MAX_MS = 30000;
 const BEHAVIOUR_RECONNECT_JITTER = 0.2;
+const TRANSCRIPT_BATCH_DELAY_MS = 900;
 let assistantTranscriptBuffer = "";
 let gifState = "idle";
 let gifSwapTimeout = null;
 const gifFadeMs = 600;
 let assistantAudioSeen = false;
 let realtimeResponseActive = false;
+let pendingInputItemIds = new Set();
+let processedInputItemIds = new Set();
+let transcriptCandidates = [];
+let transcriptFlushTimer = null;
 const gifSources = {
   idle: "her.gif",
   thinking: "her-fast.gif",
@@ -138,6 +143,7 @@ async function toggleListening() {
 async function startListening() {
   appendLog("app", "Starting realtime session...");
   setListeningState(true);
+  resetRealtimeTranscriptGate();
   try {
     const eventHistory = await fetchEventHistory();
     primeBehaviourCursor(eventHistory || []);
@@ -193,6 +199,7 @@ async function stopListening() {
   }
   pushToTalkActive = false;
   realtimeResponseActive = false;
+  resetRealtimeTranscriptGate();
 }
 
 async function loadAgentInfo() {
@@ -298,20 +305,19 @@ function handleRealtimeEvent(event) {
     return;
   }
 
-  if (data.type === "conversation.item.input_audio_transcription.completed") {
-    const transcript = data.transcript || "";
-    if (transcript.trim()) {
-      document.getElementById("user_transcript").textContent = transcript;
-      appendLog("realtime", "User transcript completed.");
-      setGifState("thinking");
-    }
+  if (data.type === "input_audio_buffer.committed") {
+    rememberInputItem(data.item_id);
+  } else if (data.type === "input_audio_buffer.cleared") {
+    clearQueuedTranscriptCandidates();
+  } else if (data.type === "conversation.item.input_audio_transcription.completed") {
+    queueTranscriptCandidate(data);
   } else if (data.type === "response.created") {
     assistantAudioSeen = false;
     assistantTranscriptBuffer = "";
     realtimeResponseActive = true;
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
     const partial = data.delta || data.transcript || "";
-    if (partial.trim()) {
+    if (partial.trim() && !shouldIgnoreTranscriptPreview(data, partial)) {
       document.getElementById("user_transcript").textContent = partial;
     }
   } else if (data.type === "response.output_audio_transcript.delta") {
@@ -339,6 +345,110 @@ function handleRealtimeEvent(event) {
   } else if (data.type === "response.done" || data.type === "response.cancelled") {
     realtimeResponseActive = false;
   }
+}
+
+function rememberInputItem(itemId) {
+  if (!itemId || processedInputItemIds.has(itemId)) {
+    return;
+  }
+  pendingInputItemIds.add(itemId);
+}
+
+function queueTranscriptCandidate(data) {
+  const transcript = data.transcript || "";
+  if (!transcript.trim()) {
+    markTranscriptItemsProcessed([{ itemId: data.item_id || "" }]);
+    return;
+  }
+  transcriptCandidates.push({
+    itemId: data.item_id || "",
+    eventId: data.event_id || "",
+    transcript: transcript.trim(),
+  });
+  if (!transcriptFlushTimer) {
+    transcriptFlushTimer = setTimeout(flushTranscriptCandidates, TRANSCRIPT_BATCH_DELAY_MS);
+  }
+}
+
+function flushTranscriptCandidates() {
+  const candidates = transcriptCandidates.slice();
+  transcriptCandidates = [];
+  transcriptFlushTimer = null;
+  const selected = selectTranscriptCandidate(candidates);
+  markTranscriptItemsProcessed(candidates);
+  if (!selected) {
+    appendLog("realtime", "Ignored noisy or duplicate user transcript.");
+    return;
+  }
+  document.getElementById("user_transcript").textContent = selected.transcript;
+  appendLog("realtime", "User transcript completed.");
+  setGifState("thinking");
+}
+
+function selectTranscriptCandidate(candidates) {
+  let selected = null;
+  for (const candidate of candidates) {
+    if (!candidate.transcript.trim() || transcriptItemAlreadyProcessed(candidate) ||
+      !transcriptItemMatchesPendingCommit(candidate) || isLikelyAsrHallucination(candidate.transcript)) {
+      continue;
+    }
+    selected = candidate;
+  }
+  return selected;
+}
+
+function shouldIgnoreTranscriptPreview(data, transcript) {
+  const candidate = { itemId: data.item_id || "", transcript: transcript || "" };
+  return transcriptItemAlreadyProcessed(candidate) || !transcriptItemMatchesPendingCommit(candidate) ||
+    isLikelyAsrHallucination(transcript);
+}
+
+function transcriptItemAlreadyProcessed(candidate) {
+  return !!candidate.itemId && processedInputItemIds.has(candidate.itemId);
+}
+
+function transcriptItemMatchesPendingCommit(candidate) {
+  return !candidate.itemId || pendingInputItemIds.size === 0 || pendingInputItemIds.has(candidate.itemId);
+}
+
+function markTranscriptItemsProcessed(candidates) {
+  candidates.forEach((candidate) => {
+    if (!candidate.itemId) {
+      return;
+    }
+    processedInputItemIds.add(candidate.itemId);
+    pendingInputItemIds.delete(candidate.itemId);
+  });
+}
+
+function clearQueuedTranscriptCandidates() {
+  transcriptCandidates = [];
+  if (transcriptFlushTimer) {
+    clearTimeout(transcriptFlushTimer);
+    transcriptFlushTimer = null;
+  }
+  pendingInputItemIds.clear();
+}
+
+function resetRealtimeTranscriptGate() {
+  clearQueuedTranscriptCandidates();
+  processedInputItemIds = new Set();
+}
+
+function isLikelyAsrHallucination(transcript) {
+  const normalized = normalizeTranscriptForGate(transcript);
+  return normalized === "untertitel der amara org community" ||
+    normalized === "subtitles by the amara org community" ||
+    normalized === "captions by the amara org community";
+}
+
+function normalizeTranscriptForGate(transcript) {
+  return String(transcript || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function shouldGenerateSideBehaviour() {

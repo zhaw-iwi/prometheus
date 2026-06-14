@@ -110,10 +110,15 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("call.callId"));
         assertTrue(script.contains("call.sdp"));
         assertTrue(script.contains("/realtime/calls/"));
+        assertTrue(script.contains("input_audio_buffer.committed"));
         assertTrue(script.contains("input_audio_buffer.commit"));
         assertTrue(script.contains("input_audio_buffer.clear"));
         assertTrue(script.contains("response.cancel"));
         assertTrue(script.contains("output_audio_buffer.clear"));
+        assertTrue(script.contains("TRANSCRIPT_BATCH_DELAY_MS"));
+        assertTrue(script.contains("isLikelyAsrHallucination"));
+        assertTrue(script.contains("amara org community"));
+        assertTrue(script.contains("processedInputItemIds"));
 
         assertFalse(script.contains("/realtime/session"));
         assertFalse(script.contains("sessionInfo.realtimeCallsUrl"));
