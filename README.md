@@ -46,6 +46,13 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
+### Prometheus Admin Cockpit
+
+- URL: `http://localhost:8080/valerian-admin/`
+- Purpose: small root/admin page for configuring Valerian access codes without manual database changes.
+- Admin token is entered in the page and stored in `sessionStorage` for the current browser session.
+- The page can create manually typed five-character access codes, generate non-ambiguous five-character codes client-side, enable/disable codes, assign registered agent types with checkboxes, and inspect instances linked to each code.
+
 ### Text Client
 
 - URL: `http://localhost:8080/?agentId=<uuid>`
@@ -197,6 +204,7 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code session first.
 
 - Prometheus demo cockpit: `http://localhost:8080/valerian/`
+- Prometheus admin cockpit: `http://localhost:8080/valerian-admin/`
 - Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
@@ -261,6 +269,7 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 
 Admin endpoints require header `X-Prometheus-Admin-Token` with the exact value from `prometheus.admin.token`.
 Access codes are case-sensitive, are not normalized by the backend, and must be exactly five ASCII letters or digits.
+The same operations are available through the Prometheus admin cockpit at `/valerian-admin/`.
 
 - `GET /admin/agent-types`
 - `POST /admin/access-codes`

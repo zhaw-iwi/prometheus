@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prometheus Admin Cockpit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    @import url("/style.css");
+
+    :root {
+      --admin-bg: #f6f7f4;
+      --admin-panel: rgba(255, 255, 255, 0.94);
+      --admin-soft: rgba(255, 255, 255, 0.72);
+      --admin-muted: rgba(12, 22, 24, 0.62);
+      --admin-line: rgba(12, 22, 24, 0.12);
+      --admin-ok: #047857;
+    }
+
+    body {
+      background: var(--admin-bg);
+    }
+
+    .page-shell::before,
+    .page-shell::after {
+      display: none;
+    }
+
+    .admin-layout {
+      display: grid;
+      grid-template-columns: minmax(290px, 0.8fr) minmax(430px, 1.25fr) minmax(320px, 0.95fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1199px) {
+      .admin-layout {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .assignment-column {
+        grid-column: 1 / -1;
+        order: 3;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .admin-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .admin-card {
+      border-radius: 8px;
+      background: var(--admin-panel);
+      border: 1px solid var(--admin-line);
+      box-shadow: 0 14px 30px rgba(12, 22, 24, 0.06);
+      overflow: hidden;
+    }
+
+    .admin-card .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background: rgba(255, 255, 255, 0.96);
+      letter-spacing: 0;
+    }
+
+    .surface-panel {
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: var(--admin-soft);
+      padding: 0.85rem;
+    }
+
+    .token-panel {
+      max-width: 720px;
+    }
+
+    .code-row {
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .code-row.is-selected {
+      border-color: rgba(0, 176, 162, 0.46);
+      box-shadow: inset 3px 0 0 rgba(0, 176, 162, 0.68);
+    }
+
+    .code-list,
+    .agent-type-list,
+    .instance-list {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .agent-type-item,
+    .instance-item {
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.7rem;
+    }
+
+    .status-line {
+      min-height: 1.35rem;
+      color: var(--admin-muted);
+      font-size: 0.88rem;
+    }
+
+    .status-line.is-error {
+      color: #9f1239;
+    }
+
+    .status-line.is-success {
+      color: var(--admin-ok);
+    }
+
+    .metric-label {
+      color: var(--admin-muted);
+    }
+
+    .mono {
+      font-family: "Spline Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+    }
+  </style>
+</head>
+
+<body>
+  <section class="page-shell py-3">
+    <div class="container-fluid content-layer px-3 px-xl-4">
+      <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
+        <div>
+          <div class="page-title">Prometheus Admin Cockpit</div>
+          <div class="page-subtitle">Valerian access management</div>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span id="admin_connection_state" class="status-pill is-unknown"
+            data-testid="admin-connection-state">Admin Token Required</span>
+          <button id="forget_admin_token" class="btn btn-outline-ink toolbar-button" type="button"
+            title="Forget admin token" aria-label="Forget admin token" data-testid="forget-admin-token">
+            <i class="bi bi-box-arrow-right"></i>
+          </button>
+        </div>
+      </header>
+
+      <section id="token_panel" class="token-panel admin-card card mb-3" data-testid="admin-token-panel">
+        <div class="card-header">
+          <span><i class="bi bi-shield-lock me-2"></i>Admin Access</span>
+        </div>
+        <div class="card-body">
+          <label class="form-label metric-label" for="admin_token_input">Admin Token</label>
+          <div class="input-group">
+            <input id="admin_token_input" class="form-control mono" type="password" autocomplete="current-password"
+              data-testid="admin-token-input">
+            <button id="submit_admin_token" class="btn btn-primary" type="button" data-testid="submit-admin-token">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Enter
+            </button>
+          </div>
+          <div id="admin_token_status" class="status-line mt-2" data-testid="admin-token-status"></div>
+        </div>
+      </section>
+
+      <main id="admin_workspace" class="admin-layout d-none" data-testid="admin-workspace" hidden>
+        <section class="admin-card card">
+          <div class="card-header">
+            <span><i class="bi bi-key me-2"></i>Access Codes</span>
+            <button id="refresh_admin_data" class="btn btn-outline-ink btn-sm" type="button"
+              data-testid="refresh-admin-data">
+              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <label class="form-label metric-label" for="new_access_code_input">New Access Code</label>
+            <div class="input-group mb-2">
+              <input id="new_access_code_input" class="form-control mono" type="text" maxlength="5" spellcheck="false"
+                data-testid="new-access-code-input">
+              <button id="generate_access_code" class="btn btn-outline-ink" type="button"
+                data-testid="generate-access-code">
+                <i class="bi bi-shuffle me-1"></i>Generate
+              </button>
+              <button id="create_access_code" class="btn btn-primary" type="button"
+                data-testid="create-access-code">
+                <i class="bi bi-plus-lg me-1"></i>Create
+              </button>
+            </div>
+            <div id="access_code_create_status" class="status-line mb-3"
+              data-testid="access-code-create-status"></div>
+            <div id="access_code_list" class="code-list" data-testid="access-code-list"></div>
+          </div>
+        </section>
+
+        <section class="admin-card card assignment-column">
+          <div class="card-header">
+            <span><i class="bi bi-diagram-3 me-2"></i>Agent Type Assignment</span>
+            <span id="selected_code_label" class="metric-label mono" data-testid="selected-code-label">No code</span>
+          </div>
+          <div class="card-body">
+            <div id="agent_type_list" class="agent-type-list mb-3" data-testid="admin-agent-type-list"></div>
+            <div class="d-flex flex-wrap gap-2">
+              <button id="save_agent_type_assignment" class="btn btn-primary" type="button"
+                data-testid="save-agent-type-assignment">
+                <i class="bi bi-check2-circle me-1"></i>Save Assignments
+              </button>
+            </div>
+            <div id="assignment_status" class="status-line mt-2" data-testid="assignment-status"></div>
+          </div>
+        </section>
+
+        <section class="admin-card card">
+          <div class="card-header">
+            <span><i class="bi bi-cpu me-2"></i>Instances</span>
+            <button id="refresh_instances" class="btn btn-outline-ink btn-sm" type="button"
+              data-testid="refresh-instances">
+              <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="instance_list" class="instance-list" data-testid="admin-instance-list"></div>
+            <div id="instance_status" class="status-line mt-2" data-testid="instance-status"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+
+</html>

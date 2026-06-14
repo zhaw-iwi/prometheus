@@ -54,6 +54,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 48: Access code persistence and admin API
 - [x] Milestone 49: Scoped demo API
 - [x] Milestone 50: Valerian user UI
+- [x] Milestone 51: Admin UI
 
 ## Milestone 1
 ### Date
@@ -2419,3 +2420,57 @@ Make the Valerian cockpit access-code scoped so regular users can create and use
 1. Add the root/admin management UI for access-code creation, enable/disable state, and allowed type assignment.
 2. Rehearse a curated demo code with the desired PROMETHEUS agent types.
 3. Consider replacing direct Agent ID entry with a read-only selected-instance display once all supported demos use access-code-scoped instances.
+
+## Milestone 51
+### Date
+2026-06-14
+
+### Goal
+Add a small root/admin management page so access codes, enabled state, allowed agent types, and scoped instances can be managed without touching the database manually.
+
+### What changed
+- Added the Prometheus Admin Cockpit static client:
+  - `src/main/resources/public/valerian-admin/index.html`
+  - `src/main/resources/public/valerian-admin/script.js`
+- Added route:
+  - `GET /valerian-admin`
+  - `GET /valerian-admin/`
+- The admin page supports:
+  - entering an admin token and storing it in `sessionStorage`
+  - creating manually typed access codes
+  - generating five-character client-side codes that exclude ambiguous characters
+  - enabling/disabling access codes
+  - assigning registered agent types with checkboxes
+  - inspecting agents linked to the selected access code
+- The page calls the existing Milestone 48 admin API; no backend API changes were needed beyond the static route.
+- Added static contract coverage for the admin client and redirect coverage for `/valerian-admin`.
+- Updated README with the new admin cockpit URL and capabilities.
+
+### How to run
+1. Configure `prometheus.admin.token` in `src/main/resources/application.properties`.
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/valerian-admin/`
+4. Enter the admin token, create or generate a code, assign agent types, and use that code in:
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianAdminClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,AdminAccessCodeControllerWebMvcTest" test`
+  - Headless Chrome smoke against `http://127.0.0.1:18081/valerian-admin/` and `http://127.0.0.1:18081/valerian/`:
+    entered admin token, generated and created an access code, assigned three agent types, and verified Valerian login saw those three types.
+  - Smoke screenshots captured at:
+    - `target/milestone51-smoke/valerian-admin-smoke.png`
+    - `target/milestone51-smoke/valerian-types-smoke.png`
+
+### Known issues and decisions
+- Admin authentication remains the configured token header flow from Milestone 48; Spring Security is still not introduced.
+- The admin token is kept in `sessionStorage`, not persisted across browser sessions.
+- The admin UI sanitizes legacy demo naming from display labels while still sending the registered backend type keys to the API.
+
+### Next steps
+1. Add optional filtering/search once the agent type catalog grows.
+2. Consider showing per-code usage or last-created timestamps if repeated demos require audit visibility.
+3. Rehearse a curated root workflow for the three desired PROMETHEUS demo agent types.

@@ -1,0 +1,69 @@
+package ch.zhaw.prometheus.controllers;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.junit.jupiter.api.Test;
+
+class ValerianAdminClientStaticResourceContractTest {
+    private static final Path INDEX = Path.of("src/main/resources/public/valerian-admin/index.html");
+    private static final Path SCRIPT = Path.of("src/main/resources/public/valerian-admin/script.js");
+
+    @Test
+    void adminClientExposesRootManagementControls() throws IOException {
+        String index = Files.readString(INDEX);
+
+        assertTrue(index.contains("<title>Prometheus Admin Cockpit</title>"));
+        assertTrue(index.contains("Prometheus Admin Cockpit"));
+        assertTrue(index.contains("Valerian access management"));
+        assertTrue(index.contains("data-testid=\"admin-token-panel\""));
+        assertTrue(index.contains("data-testid=\"admin-token-input\""));
+        assertTrue(index.contains("data-testid=\"submit-admin-token\""));
+        assertTrue(index.contains("data-testid=\"forget-admin-token\""));
+        assertTrue(index.contains("data-testid=\"admin-workspace\""));
+        assertTrue(index.contains("data-testid=\"new-access-code-input\""));
+        assertTrue(index.contains("data-testid=\"generate-access-code\""));
+        assertTrue(index.contains("data-testid=\"create-access-code\""));
+        assertTrue(index.contains("data-testid=\"access-code-list\""));
+        assertTrue(index.contains("data-testid=\"admin-agent-type-list\""));
+        assertTrue(index.contains("data-testid=\"save-agent-type-assignment\""));
+        assertTrue(index.contains("data-testid=\"refresh-instances\""));
+        assertTrue(index.contains("data-testid=\"admin-instance-list\""));
+        assertTrue(index.contains("Agent Type Assignment"));
+        assertTrue(index.contains("Instances"));
+        assertTrue(index.contains("<script src=\"script.js\"></script>"));
+
+        assertFalse(index.toLowerCase().contains("gigi"));
+        assertFalse(index.toLowerCase().contains("tdsr"));
+    }
+
+    @Test
+    void adminClientUsesAdminApiAndSessionStorage() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("ADMIN_TOKEN_STORAGE_KEY = \"prometheus.valerianAdmin.adminToken\""));
+        assertTrue(script.contains("ADMIN_TOKEN_HEADER = \"X-Prometheus-Admin-Token\""));
+        assertTrue(script.contains("sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)"));
+        assertTrue(script.contains("sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token)"));
+        assertTrue(script.contains("sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY)"));
+        assertTrue(script.contains("GENERATED_CODE_CHARS = \"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789\""));
+        assertTrue(script.contains("adminJson(\"/admin/agent-types\")"));
+        assertTrue(script.contains("adminJson(\"/admin/access-codes\")"));
+        assertTrue(script.contains("adminJson(\"/admin/access-codes\","));
+        assertTrue(script.contains("body: JSON.stringify({ code, enabled: true })"));
+        assertTrue(script.contains("body: JSON.stringify({ enabled })"));
+        assertTrue(script.contains("body: JSON.stringify({ agentTypeKeys })"));
+        assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agent-types`"));
+        assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agents`"));
+        assertTrue(script.contains("headers.set(ADMIN_TOKEN_HEADER, state.adminToken);"));
+        assertTrue(script.contains("data-agent-type-checkbox"));
+        assertTrue(script.contains("function prometheusFacingText"));
+
+        assertFalse(script.toLowerCase().contains("gigi"));
+        assertFalse(script.toLowerCase().contains("tdsr"));
+    }
+}

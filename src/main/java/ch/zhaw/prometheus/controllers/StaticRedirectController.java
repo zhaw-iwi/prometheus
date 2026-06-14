@@ -47,6 +47,11 @@ public class StaticRedirectController {
         return redirectWithQuery("/valerian/index.html", request);
     }
 
+    @GetMapping({ "/valerian-admin", "/valerian-admin/" })
+    public String valerianAdmin(HttpServletRequest request) {
+        return redirectWithQuery("/valerian-admin/index.html", request);
+    }
+
     private String redirectWithQuery(String target, HttpServletRequest request) {
         String query = request.getQueryString();
         if (query == null || query.isBlank()) {

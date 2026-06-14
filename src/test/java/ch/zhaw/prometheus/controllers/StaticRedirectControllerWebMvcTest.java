@@ -77,4 +77,11 @@ class StaticRedirectControllerWebMvcTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/valerian/index.html?agentId=uuid"));
     }
+
+    @Test
+    void redirectsValerianAdminToStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/valerian-admin?view=root"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/valerian-admin/index.html?view=root"));
+    }
 }
