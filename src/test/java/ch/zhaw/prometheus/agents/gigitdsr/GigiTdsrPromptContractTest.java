@@ -26,7 +26,7 @@ class GigiTdsrPromptContractTest {
 
     @Test
     void gestureGuessingGameDefinesGermanGigiDemoContract() {
-        Agent agent = GuessingGameWithGestures.createAgentDefinition();
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
 
         assertTrue(agent.getName().contains("GIGI TDSR"));
         assertTrue(agent.getDescription().contains("Deutschsprachiger"));
@@ -42,7 +42,7 @@ class GigiTdsrPromptContractTest {
 
     @Test
     void gestureGuessingGamePersistsStructuredNonverbalPlanPrompt() throws Exception {
-        Agent agent = GuessingGameWithGestures.createAgentDefinition();
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
         PromptPolicy policy = interactionPolicy(agent.getCurrentState());
 
         assertNotNull(policy.getNonVerbalPlanPrompt());
@@ -53,8 +53,9 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
-    void explicitExitDecisionDoesNotTreatCorrectGuessAsFinal() {
-        String prompt = GuessingGameWithGestures.PROMPT_TO_FINAL;
+    void explicitExitDecisionDoesNotTreatCorrectGuessAsFinal() throws Exception {
+        String prompt = prompt(ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
+                "PROMPT_TO_FINAL");
 
         assertTrue(prompt.contains("hoher Sicherheit"));
         assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
@@ -65,7 +66,7 @@ class GigiTdsrPromptContractTest {
 
     @Test
     void socialContextAgentDefinesGermanGigiSocialEventContract() {
-        Agent agent = SocialContextSensitivity.createAgentDefinition();
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity().createAgent();
 
         assertTrue(agent.getName().contains("GIGI TDSR"));
         assertTrue(agent.getDescription().contains("soziale Kontextwechsel"));
@@ -81,8 +82,9 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
-    void socialContextExitDecisionRequiresExplicitStopIntent() {
-        String prompt = SocialContextSensitivity.PROMPT_TO_FINAL;
+    void socialContextExitDecisionRequiresExplicitStopIntent() throws Exception {
+        String prompt = prompt(ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
+                "PROMPT_TO_FINAL");
 
         assertTrue(prompt.contains("hoher Sicherheit"));
         assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
@@ -93,7 +95,7 @@ class GigiTdsrPromptContractTest {
 
     @Test
     void rockScissorPaperDefinesGermanGigiMotionContract() {
-        Agent agent = RockScissorPaper.createAgentDefinition();
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper().createAgent();
 
         assertTrue(agent.getName().contains("GIGI TDSR"));
         assertTrue(agent.getName().contains("Schere, Stein, Papier"));
@@ -110,20 +112,22 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
-    void rockScissorPaperPromptsKeepReadyPlayAgainAndFinalSeparated() {
-        assertTrue(RockScissorPaper.PROMPT_READY.contains("bereit"));
-        assertTrue(RockScissorPaper.PROMPT_READY.contains("Handzeichen-Events"));
-        assertTrue(RockScissorPaper.PROMPT_PLAY_AGAIN.contains("weitere Runde"));
-        assertTrue(RockScissorPaper.PROMPT_TO_FINAL.contains("das gesamte Schere-Stein-Papier-Spiel"));
-        assertTrue(RockScissorPaper.PROMPT_TO_FINAL.contains("Handzeichen-Events"));
+    void rockScissorPaperPromptsKeepReadyPlayAgainAndFinalSeparated() throws Exception {
+        Class<?> definitionClass = ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class;
+
+        assertTrue(prompt(definitionClass, "PROMPT_READY").contains("bereit"));
+        assertTrue(prompt(definitionClass, "PROMPT_READY").contains("Handzeichen-Events"));
+        assertTrue(prompt(definitionClass, "PROMPT_PLAY_AGAIN").contains("weitere Runde"));
+        assertTrue(prompt(definitionClass, "PROMPT_TO_FINAL").contains("das gesamte Schere-Stein-Papier-Spiel"));
+        assertTrue(prompt(definitionClass, "PROMPT_TO_FINAL").contains("Handzeichen-Events"));
     }
 
     @Test
     void promptsFitPersistedColumns() throws IllegalAccessException {
         for (Class<?> seedClass : List.of(
-                GuessingGameWithGestures.class,
-                SocialContextSensitivity.class,
-                RockScissorPaper.class)) {
+                ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class)) {
             for (Field field : seedClass.getDeclaredFields()) {
                 if (!field.getName().startsWith("PROMPT_")) {
                     continue;
@@ -139,7 +143,7 @@ class GigiTdsrPromptContractTest {
 
     @Test
     void configuredPolicyEmitsStructuredNonverbalPlanOnStart() {
-        Agent agent = GuessingGameWithGestures.createAgentDefinition();
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
         EventSequencedGateway gateway = new EventSequencedGateway(List.of(
                 "Hallo, ich bin GIGI. Denk an etwas Vertrautes.",
                 "{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7}}"));
@@ -160,6 +164,12 @@ class GigiTdsrPromptContractTest {
         policyField.setAccessible(true);
         Policy policy = (Policy) policyField.get(state);
         return assertInstanceOf(PromptPolicy.class, policy);
+    }
+
+    private static String prompt(Class<?> definitionClass, String fieldName) throws Exception {
+        Field field = definitionClass.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return (String) field.get(null);
     }
 
     private static final class EventSequencedGateway implements LanguageModelGateway {

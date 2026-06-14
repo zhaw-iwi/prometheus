@@ -50,6 +50,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 44: GIGI demo diagnostics drawer storage, log, and state polish
 - [x] Milestone 45: GIGI demo mirrored camera overlay alignment
 - [x] Milestone 46: Valerian cockpit rename and PROMETHEUS-facing branding
+- [x] Milestone 47: Feature branch and agent definition catalog
 
 ## Milestone 1
 ### Date
@@ -2203,3 +2204,58 @@ Rename the unified demo cockpit package to Valerian and make its user-facing bra
 ### Next steps
 1. Run a live browser rehearsal against `http://localhost:8080/valerian/`.
 2. Consider whether the RPS-specific client should also receive generic PROMETHEUS branding in a separate milestone.
+
+## Milestone 47
+### Date
+2026-06-14
+
+### Goal
+Create the feature branch for scoped Valerian access-code work and move reusable agent creation out of test sources into a production agent definition catalog.
+
+### What changed
+- Created and worked on feature branch:
+  - `feature/valerian-access-codes`
+- Added production agent definition infrastructure:
+  - `AgentDefinition`
+  - `AgentCreationContext`
+  - `AgentCreationResult`
+  - `AgentDefinitionRegistry`
+- Added production agent definitions under:
+  - `src/main/java/ch/zhaw/prometheus/agentdefs/basic`
+  - `src/main/java/ch/zhaw/prometheus/agentdefs/multimodal`
+  - `src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare`
+  - `src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr`
+- Registered all current agent types with stable definition keys.
+- Preserved existing agent names, descriptions, prompts, states, profiles, and startup behavior.
+- Kept startup as developer-written creation code: current migrated definitions call `Agent.start(...)` inside `createInstance(...)` because their previous seed tests did so.
+- Reduced the former seed classes in `src/test/java/ch/zhaw/prometheus/agents` to thin wrappers around production definitions for manual database seeding.
+- Updated prompt-contract, profile-contract, fixture, and replay references to use production definitions.
+- Added `seed-wrapper-start-script.json` so manual seed wrappers can be smoke-tested with a scripted gateway instead of live model calls.
+- Updated README guidance so new agents are implemented under `src/main/java/ch/zhaw/prometheus/agentdefs` and registered through `AgentDefinitionRegistry`.
+
+### How to run
+1. Stay on the feature branch:
+   - `git switch feature/valerian-access-codes`
+2. Configure properties as in `README.md`.
+3. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Seed a registered agent by running its thin wrapper test under `src/test/java/ch/zhaw/prometheus/agents`.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=ch.zhaw.prometheus.agents.SingleStateMicroCoaching,ch.zhaw.prometheus.agents.SingleStateGuessingGame,ch.zhaw.prometheus.agents.SingleStateCoCreation,ch.zhaw.prometheus.agents.FourStatesLinear,ch.zhaw.prometheus.agents.FourStatesCircular,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalIn,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalOut,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalInOut,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateTherapyAppointmentReminder,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateGuessingGame,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateGuessingGameUserGuess,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateSmartGoalCoaching,ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures,ch.zhaw.prometheus.agents.gigitdsr.SocialContextSensitivity,ch.zhaw.prometheus.agents.gigitdsr.RockScissorPaper" "-Dprometheus.gateway.mode=scripted" "-Dprometheus.gateway.script=classpath:scripts/seed-wrapper-start-script.json" "-DforkCount=1" "-DreuseForks=false" test`
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,PflegezentrumDemoPromptContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=SingleStateMicroCoachingReplayIntegrationTest,SingleStateGuessingGameReplayIntegrationTest,SingleStateCoCreationReplayIntegrationTest,FourStatesLinearReplayIntegrationTest,FourStatesCircularReplayIntegrationTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest,SingleStateMicroCoachingRealtimeReplayIntegrationTest,SingleStateGuessingGameRealtimeReplayIntegrationTest,SingleStateCoCreationRealtimeReplayIntegrationTest,FourStatesLinearRealtimeReplayIntegrationTest,FourStatesCircularRealtimeReplayIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone intentionally adds no access-code tables, admin UI, scoped endpoints, or Valerian cockpit changes.
+- Definition display metadata currently comes from creating an unsaved `Agent`; this keeps the catalog simple until the first UI/API consumer needs cheaper explicit metadata.
+- Historical package names such as `gigitdsr` and `gigielderlycare` remain as Java namespace history for the migrated demonstrator definitions.
+- Existing persisted database agents are not migrated or changed; reseed through the wrappers when persisted rows should reflect current definitions.
+
+### Next steps
+1. Add access-code persistence and admin-token-protected management endpoints.
+2. Add scoped Valerian demo endpoints for available agent types and access-code-bound instances.
+3. Update the Valerian UI with access-code login, root management, available type selection, instance creation, and scoped known-agent selection.

@@ -1,0 +1,18 @@
+{
+  "name": "seed_wrapper_start_smoke_v1",
+  "steps": [],
+  "gatewayCalls": [
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" },
+    { "method": "complete", "value": "{}" }
+  ]
+}

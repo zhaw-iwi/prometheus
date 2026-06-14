@@ -152,34 +152,37 @@ PowerShell:
 
 App default URL: `http://localhost:8080`
 
-## Seed or Create Agents
+## Agent Definitions and Creation
 
-### Option A: Seed example agents from tests
+Reusable agent type definitions live in `src/main/java/ch/zhaw/prometheus/agentdefs`.
+Each production definition implements `AgentDefinition`, exposes a stable `key()`, builds an unsaved `Agent` through `createAgent()`, and may define its startup path in `createInstance(...)`.
+The current migrated definitions call `Agent.start(...)` inside `createInstance(...)`, preserving the former seed-test startup behaviour as developer-written code.
 
-Templates:
+Registered definitions:
 
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateGuessingGame.java` - Single-state guessing game with guided prompt flow.
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateMicroCoaching.java` - Single-state supportive micro-coaching agent.
-- `src/test/java/ch/zhaw/prometheus/agents/SingleStateCoCreation.java` - Single-state collaborative co-creation conversation.
-- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateTherapyAppointmentReminder.java` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
-- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGame.java` - GIGI elderly-care guessing game where GIGI gives clues.
-- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGameUserGuess.java` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
-- `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateSmartGoalCoaching.java` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
-- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
-- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
-- `src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
-- `src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java` - Four-state linear progression with explicit stage transitions.
-- `src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java` - Four-state circular loop for iterative dialogue cycles.
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java` - Single-state micro-coaching with multimodal sensing inputs.
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java` - Single-state interaction with deterministic multimodal behaviour output.
-- `src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
+- `basic.single_state_guessing_game` - Single-state guessing game with guided prompt flow.
+- `basic.single_state_micro_coaching` - Single-state supportive micro-coaching agent.
+- `basic.single_state_co_creation` - Single-state collaborative co-creation conversation.
+- `basic.four_states_linear` - Four-state linear progression with explicit stage transitions.
+- `basic.four_states_circular` - Four-state circular loop for iterative dialogue cycles.
+- `multimodal.single_state_in` - Single-state micro-coaching with multimodal sensing inputs.
+- `multimodal.single_state_out` - Single-state interaction with deterministic multimodal behaviour output.
+- `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
+- `gigielderlycare.therapy_appointment_reminder` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
+- `gigielderlycare.guessing_game` - GIGI elderly-care guessing game where GIGI gives clues.
+- `gigielderlycare.guessing_game_user_guess` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
+- `gigielderlycare.smart_goal_coaching` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
+- `gigitdsr.guessing_game_with_gestures` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
+- `gigitdsr.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
+- `gigitdsr.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
 
-Some templates are marked `@Disabled("Manual seed test")` and some are directly runnable. To use them:
+### Option A: Seed registered agents from tests
 
-1. Copy one class and remove `@Disabled`, or create your own seed test from it.
-2. Run the test once.
-3. The test saves an initialized agent in the database.
-4. List agents via `GET /agent` and use the returned UUID.
+The classes under `src/test/java/ch/zhaw/prometheus/agents` are thin manual seed wrappers around production definitions. To persist one initialized agent locally:
+
+1. Run the wrapper test once.
+2. The test creates the production definition, runs its `createInstance(...)` startup path, and saves the initialized agent in the database.
+3. List agents via `GET /agent` and use the returned UUID.
 
 ### Option B: Create a simple single-state agent via REST
 
@@ -252,13 +255,16 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 
 ## Developer Workflow for New Agents
 
-1. Start from `SingleStateMicroCoaching` or `SingleStateMultimodalInOut` test templates.
+1. Start from an existing production definition under `src/main/java/ch/zhaw/prometheus/agentdefs`, such as `basic/SingleStateMicroCoaching.java` or `multimodal/SingleStateMultimodalInOut.java`.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
 4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
 5. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
-6. Seed the agent, run app, then iterate using the Prometheus demo cockpit, Monitor, and behaviour streams.
-7. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
+6. Implement `AgentDefinition`, choose a stable key, and register the definition in `AgentDefinitionRegistry`.
+7. Put startup behavior directly in `createInstance(...)`; call `Agent.start(...)` there only when this agent type should be started during creation.
+8. Add a thin test wrapper only when manual database seeding is useful.
+9. Seed the agent, run app, then iterate using the Prometheus demo cockpit, Monitor, and behaviour streams.
+10. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
 
 ### Event example
 

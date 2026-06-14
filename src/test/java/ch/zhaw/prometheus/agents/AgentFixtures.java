@@ -1,8 +1,5 @@
 package ch.zhaw.prometheus.agents;
 
-import ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures;
-import ch.zhaw.prometheus.agents.gigitdsr.RockScissorPaper;
-import ch.zhaw.prometheus.agents.gigitdsr.SocialContextSensitivity;
 import ch.zhaw.prometheus.model.Agent;
 
 public final class AgentFixtures {
@@ -10,34 +7,34 @@ public final class AgentFixtures {
     }
 
     public static Agent fourStatesCircular() {
-        return FourStatesCircular.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.basic.FourStatesCircular().createAgent();
     }
 
     public static Agent fourStatesLinear() {
-        return FourStatesLinear.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.basic.FourStatesLinear().createAgent();
     }
 
     public static Agent singleStateGuessingGame() {
-        return SingleStateGuessingGame.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.basic.SingleStateGuessingGame().createAgent();
     }
 
     public static Agent singleStateCoCreation() {
-        return SingleStateCoCreation.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.basic.SingleStateCoCreation().createAgent();
     }
 
     public static Agent singleStateMicroCoaching() {
-        return SingleStateMicroCoaching.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching().createAgent();
     }
 
     public static Agent gigiTdsrGuessingGameWithGestures() {
-        return GuessingGameWithGestures.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
     }
 
     public static Agent gigiTdsrSocialContextSensitivity() {
-        return SocialContextSensitivity.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity().createAgent();
     }
 
     public static Agent gigiTdsrRockScissorPaper() {
-        return RockScissorPaper.createAgentDefinition();
+        return new ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper().createAgent();
     }
 }

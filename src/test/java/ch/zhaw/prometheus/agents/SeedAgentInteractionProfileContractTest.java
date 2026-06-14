@@ -14,21 +14,21 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 class SeedAgentInteractionProfileContractTest {
     private static final List<Path> SEED_AGENT_FILES = List.of(
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/SingleStateGuessingGame.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/SingleStateMicroCoaching.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/SingleStateCoCreation.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/FourStatesCircular.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/FourStatesLinear.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateTherapyAppointmentReminder.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGame.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateGuessingGameUserGuess.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigielderlycare/SingleStateSmartGoalCoaching.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigitdsr/GuessingGameWithGestures.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigitdsr/SocialContextSensitivity.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/gigitdsr/RockScissorPaper.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalIn.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalOut.java"),
-            Path.of("src/test/java/ch/zhaw/prometheus/agents/multimodal/SingleStateMultimodalInOut.java"));
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/basic/SingleStateGuessingGame.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/basic/SingleStateMicroCoaching.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/basic/SingleStateCoCreation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/basic/FourStatesCircular.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/basic/FourStatesLinear.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateTherapyAppointmentReminder.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateGuessingGame.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateGuessingGameUserGuess.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateSmartGoalCoaching.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
 
     @Test
     void reusableSpeechOnlyFixturesDeclareUserUtteranceAndSpeech() {
