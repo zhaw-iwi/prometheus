@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.google.gson.Gson;
@@ -93,6 +94,21 @@ public class RealtimeSidebandService {
         }
     }
 
+    @EventListener
+    public void speakPublishedAssistantBehaviour(AssistantBehaviourPublishedEvent event) {
+        if (event == null || event.agentId() == null || event.event() == null) {
+            return;
+        }
+        String callId = this.callIdsByAgent.get(event.agentId());
+        if (!isPresent(callId)) {
+            return;
+        }
+        SidebandSession session = this.sessions.get(callId);
+        if (session != null) {
+            session.speakPublishedBehaviour(event.event());
+        }
+    }
+
     @PreDestroy
     public void closeAll() {
         for (String callId : List.copyOf(this.sessions.keySet())) {
@@ -106,6 +122,7 @@ public class RealtimeSidebandService {
         private final StringBuilder messageBuffer = new StringBuilder();
         private final Set<String> pendingInputItemIds = new LinkedHashSet<>();
         private final Set<String> processedInputItemIds = new HashSet<>();
+        private final Set<String> spokenBehaviourEventKeys = ConcurrentHashMap.newKeySet();
         private final List<TranscriptCandidate> pendingTranscriptCandidates = new ArrayList<>();
         private volatile WebSocket webSocket;
         private volatile boolean closed;
@@ -133,6 +150,26 @@ public class RealtimeSidebandService {
             } else {
                 sendSessionUpdate(this.config.getInitialInstructions());
             }
+        }
+
+        private void speakPublishedBehaviour(Event event) {
+            if (this.closed || event == null || this.webSocket == null) {
+                return;
+            }
+            String speech = speechFromEvent(event);
+            if (!isPresent(speech)) {
+                return;
+            }
+            if (!markBehaviourEventSpoken(event)) {
+                return;
+            }
+            PolicyResponseView prompt = agentService.prompt(this.config.getAgentId(), OutputProfile.REALTIME_SPEECH)
+                    .orElse(null);
+            updateSessionThenRespond(RealtimePromptInstructions.systemInstructions(prompt), speech);
+        }
+
+        private boolean markBehaviourEventSpoken(Event event) {
+            return this.spokenBehaviourEventKeys.add(behaviourEventKey(event));
         }
 
         @Override
@@ -304,34 +341,32 @@ public class RealtimeSidebandService {
                 return;
             }
             ResponseView ack = acknowledged.get();
-            String ackSpeech = speechFromEvent(ack.getResponseEvent());
-            if (!isPresent(ackSpeech) && ack.isActive()) {
-                ackSpeech = generateRealtimeSpeech();
+            boolean speechPublished = isPresent(speechFromEvent(ack.getResponseEvent()));
+            if (!speechPublished) {
+                speechPublished = generateRealtimeSpeech();
             }
-            if (isPresent(ackSpeech) && this.config.getSettings().isGenerateComplement()) {
+            if (speechPublished && this.config.getSettings().isGenerateComplement()) {
                 agentService.generate(this.config.getAgentId(), List.of("speech"), OutputProfile.BACKEND_COMPLEMENT);
             }
-            PolicyResponseView prompt = agentService.prompt(this.config.getAgentId(), OutputProfile.REALTIME_SPEECH)
-                    .orElse(null);
-            if (isPresent(ackSpeech)) {
-                updateSessionThenRespond(RealtimePromptInstructions.systemInstructions(prompt), ackSpeech);
-            } else {
+            if (!speechPublished) {
+                PolicyResponseView prompt = agentService.prompt(this.config.getAgentId(), OutputProfile.REALTIME_SPEECH)
+                        .orElse(null);
                 sendSessionUpdate(RealtimePromptInstructions.systemInstructions(prompt));
             }
         }
 
-        private String generateRealtimeSpeech() {
+        private boolean generateRealtimeSpeech() {
             int historySizeBefore = agentService.getAgentEventHistory(this.config.getAgentId())
                     .map(List::size)
                     .orElse(0);
             BehaviourGenerationOutcome outcome = agentService.generate(this.config.getAgentId(), null,
                     OutputProfile.REALTIME_SPEECH);
             if (outcome != BehaviourGenerationOutcome.GENERATED) {
-                return null;
+                return false;
             }
             return agentService.getAgentEventHistory(this.config.getAgentId())
-                    .map(history -> latestAssistantSpeechAfter(history, historySizeBefore))
-                    .orElse(null);
+                    .map(history -> isPresent(latestAssistantSpeechAfter(history, historySizeBefore)))
+                    .orElse(false);
         }
 
         private void sendSessionUpdate(String instructions) {
@@ -429,6 +464,16 @@ public class RealtimeSidebandService {
             }
         }
         return null;
+    }
+
+    private static String behaviourEventKey(Event event) {
+        if (event == null) {
+            return "null";
+        }
+        if (event.getId() != null) {
+            return "id:" + event.getId();
+        }
+        return "object:" + System.identityHashCode(event);
     }
 
     private static String string(JsonObject object, String member) {

@@ -18,6 +18,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.context.ApplicationEventPublisher;
 
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
@@ -69,6 +71,40 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
         assertNull(updated.getSpeech());
         assertNotNull(updated.getNonVerbal());
         assertEquals("EXPLAIN", updated.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+    }
+
+    @Test
+    void generatePublishesAssistantBehaviourApplicationEvent() {
+        UUID agentId = UUID.fromString("12121212-1212-1212-1212-121212121212");
+        Event response = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"hello\"}");
+        Agent agent = mock(Agent.class);
+        EventHistory history = mock(EventHistory.class);
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+        when(agent.generate(any())).thenReturn(response);
+        when(repository.save(agent)).thenReturn(agent);
+        when(agent.getEventHistory()).thenReturn(history);
+        when(history.toList()).thenReturn(List.of(response));
+        when(agent.getId()).thenReturn(agentId);
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster,
+                assembler, languageModelGateway);
+        service.setApplicationEventPublisher(eventPublisher);
+
+        assertSame(BehaviourGenerationOutcome.GENERATED, service.generate(agentId, null, OutputProfile.FULL_PLAN));
+
+        ArgumentCaptor<AssistantBehaviourPublishedEvent> published = ArgumentCaptor
+                .forClass(AssistantBehaviourPublishedEvent.class);
+        verify(eventPublisher).publishEvent(published.capture());
+        assertEquals(agentId, published.getValue().agentId());
+        assertSame(response, published.getValue().event());
     }
 
     @Test

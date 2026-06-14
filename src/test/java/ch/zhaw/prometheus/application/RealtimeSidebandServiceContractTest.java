@@ -5,7 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -18,6 +21,8 @@ import java.lang.reflect.Method;
 import java.net.http.WebSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +34,7 @@ import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.spi.OpenAIProperties;
 
@@ -93,6 +99,85 @@ class RealtimeSidebandServiceContractTest {
     }
 
     @Test
+    void activeSidebandSpeaksPublishedAssistantBehaviourSpeech() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
+        Object session = newSidebandSession(service, agentId);
+        WebSocket socket = mock(WebSocket.class);
+        try {
+            setWebSocket(session, socket);
+            registerSession(service, "call_test", agentId, session);
+
+            Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                    "{\"speech\":\"Du gewinnst diese Runde.\"}");
+            service.speakPublishedAssistantBehaviour(new AssistantBehaviourPublishedEvent(agentId, event));
+            emit(session, "{\"type\":\"session.updated\"}");
+
+            ArgumentCaptor<CharSequence> payload = ArgumentCaptor.forClass(CharSequence.class);
+            verify(socket, times(2)).sendText(payload.capture(), eq(true));
+            JsonObject sessionUpdate = JsonParser.parseString(payload.getAllValues().get(0).toString())
+                    .getAsJsonObject();
+            JsonObject responseCreate = JsonParser.parseString(payload.getAllValues().get(1).toString())
+                    .getAsJsonObject();
+
+            assertEquals("session.update", sessionUpdate.get("type").getAsString());
+            assertEquals("response.create", responseCreate.get("type").getAsString());
+            assertTrue(responseCreate.getAsJsonObject("response").get("instructions").getAsString()
+                    .contains("Du gewinnst diese Runde."));
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
+    void activeSidebandIgnoresPublishedAssistantBehaviourWithoutSpeech() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(),
+                mock(AgentApplicationService.class));
+        Object session = newSidebandSession(service, agentId);
+        WebSocket socket = mock(WebSocket.class);
+        try {
+            setWebSocket(session, socket);
+            registerSession(service, "call_test", agentId, session);
+
+            Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                    "{\"nonVerbal\":{\"gesture\":\"OPEN_QUESTION\"}}");
+            service.speakPublishedAssistantBehaviour(new AssistantBehaviourPublishedEvent(agentId, event));
+
+            verifyNoInteractions(socket);
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
+    void activeSidebandSpeaksPublishedAssistantBehaviourOnlyOnce() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(),
+                mock(AgentApplicationService.class));
+        Object session = newSidebandSession(service, agentId);
+        WebSocket socket = mock(WebSocket.class);
+        try {
+            setWebSocket(session, socket);
+            registerSession(service, "call_test", agentId, session);
+
+            Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                    "{\"speech\":\"Noch einmal?\"}");
+            service.speakPublishedAssistantBehaviour(new AssistantBehaviourPublishedEvent(agentId, event));
+            emit(session, "{\"type\":\"session.updated\"}");
+            clearInvocations(socket);
+
+            service.speakPublishedAssistantBehaviour(new AssistantBehaviourPublishedEvent(agentId, event));
+            emit(session, "{\"type\":\"session.updated\"}");
+
+            verifyNoInteractions(socket);
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
     void sidebandBatchesTranscriptCompletionsAndIgnoresKnownAsrHallucination() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
@@ -110,6 +195,32 @@ class RealtimeSidebandServiceContractTest {
             verify(agentService, timeout(2500).times(1))
                     .acknowledge(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
             assertEquals("Bereit?", event.getValue().getPayload());
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
+    void sidebandGeneratesRealtimeSpeechWhenInactiveFinalAckReturnsNoResponse() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        Event finalSpeech = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"Die Runde ist beendet. Starte bitte eine neue Sitzung, wenn du weiterspielen moechtest.\"}");
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
+                .thenReturn(Optional.of(new ResponseView(null, false)));
+        when(agentService.getAgentEventHistory(agentId))
+                .thenReturn(Optional.of(List.of()))
+                .thenReturn(Optional.of(List.of(finalSpeech)));
+        when(agentService.generate(eq(agentId), isNull(), eq(OutputProfile.REALTIME_SPEECH)))
+                .thenReturn(BehaviourGenerationOutcome.GENERATED);
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
+        Object session = newSidebandSession(service, agentId);
+        try {
+            emit(session, committed("item_final"));
+            emit(session, completed("item_final", "event_final", "Koennen wir nochmals spielen?"));
+
+            verify(agentService, timeout(2500))
+                    .generate(eq(agentId), isNull(), eq(OutputProfile.REALTIME_SPEECH));
         } finally {
             service.closeAll();
         }
@@ -192,6 +303,24 @@ class RealtimeSidebandServiceContractTest {
                 "call_test", "wss://example.test/realtime", agentId, "instructions", null,
                 new RealtimeCallSettings("marin", "server_vad", false));
         return constructor.newInstance(service, config);
+    }
+
+    private static void setWebSocket(Object session, WebSocket socket) throws Exception {
+        Field webSocketField = session.getClass().getDeclaredField("webSocket");
+        webSocketField.setAccessible(true);
+        webSocketField.set(session, socket);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private static void registerSession(RealtimeSidebandService service, String callId, UUID agentId, Object session)
+            throws Exception {
+        Field sessions = RealtimeSidebandService.class.getDeclaredField("sessions");
+        sessions.setAccessible(true);
+        ((Map) sessions.get(service)).put(callId, session);
+
+        Field callIdsByAgent = RealtimeSidebandService.class.getDeclaredField("callIdsByAgent");
+        callIdsByAgent.setAccessible(true);
+        ((Map<UUID, String>) callIdsByAgent.get(service)).put(agentId, callId);
     }
 
     private static void emit(Object session, String eventJson) throws Exception {

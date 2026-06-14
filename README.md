@@ -461,6 +461,7 @@ Notes:
 - Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
 - `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
 - When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text from an empty out-of-band response context and does not persist a duplicate assistant event.
+- Active Realtime calls render canonical backend `BehaviourPlan.speech` for any published assistant behaviour event, including responses triggered by non-speech observations such as hand signs or visual social signals.
 - Browser speech clients expose continuous Realtime speech only. Users choose `server_vad` or `semantic_vad`; OpenAI VAD owns turn chunking.
 - Continuous Realtime restarts through its sideband startup configuration: if the latest utterance in the current state history is assistant-authored, PROMETHEUS asks Realtime to read that exact stored `BehaviourPlan.speech`. Non-speech observations or backend complement events after the assistant speech do not prevent replay, but a later user utterance does.
 - To complement realtime speech with nonverbal backend output, call:

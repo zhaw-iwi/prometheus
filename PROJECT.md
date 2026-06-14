@@ -72,6 +72,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 66: Push-to-talk starter speech playback
 - [x] Milestone 67: Current-state latest-utterance speech replay
 - [x] Milestone 68: Remove push-to-talk speech clients
+- [x] Milestone 69: Realtime speaks published backend behaviour speech
 
 ## Milestone 1
 ### Date
@@ -3271,3 +3272,43 @@ Remove the push-to-talk speech path and leave PROMETHEUS speech clients with con
 ### Next steps
 1. Re-test Valerian Continuous with both `server_vad` and `semantic_vad`.
 2. If manual turn capture is needed later, design it as a new milestone with a clear PROMETHEUS authority boundary instead of reviving the removed PTT code.
+
+## Milestone 69
+### Date
+2026-06-14
+
+### Goal
+Make active Realtime speech sessions render canonical backend assistant speech even when the triggering observation is non-speech, such as visually sensed hand signs in the TDSR rock-scissor-paper agent.
+
+### What changed
+- Added `AssistantBehaviourPublishedEvent` as an internal application event emitted from the canonical `AgentApplicationService.publishBehaviour(...)` boundary.
+- Updated `RealtimeSidebandService` to listen for published assistant behaviour plans for agents with active Realtime calls.
+- Realtime now renders exact `BehaviourPlan.speech` through the sideband with `conversation="none"` for any backend-published assistant behaviour event, not only responses caused by Realtime ASR transcripts.
+- Removed the direct exact-speech trigger from the Realtime transcript handler so published backend behaviour is the single speech trigger and duplicate audio is avoided.
+- Aligned Realtime transcript handling with the text client fallback by generating `REALTIME_SPEECH` after an acknowledgement without a response even when the agent is in an inactive final state.
+- Added per-session spoken-event deduplication and ignored speechless backend complement events.
+- Documented that Realtime acts as an audio renderer for backend-authored speech across speech and visual input paths.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Start a continuous Realtime session for `gigitdsr.rock_scissor_paper`, then play a round using visual hand-sign sensing.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q "-Dtest=AgentApplicationServiceGenerateOptionsUnitTest,RealtimeSidebandServiceContractTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest" test`
+
+### Known issues and decisions
+- The bridge is backend-only: clients still only send observations and render backend events.
+- The sideband ignores published behaviour events when no active Realtime call exists or when the behaviour plan has no speech.
+- Final states can still generate short final-policy speech after further user input, matching the text client behaviour, without reactivating or restarting the agent.
+- A live browser smoke with OpenAI credentials is still needed to confirm visual hand-sign-triggered speech audio in Valerian.
+
+### Next steps
+1. Re-test TDSR rock-scissor-paper with visual hand-sign sensing and an active continuous Realtime session.
+2. Watch for duplicate audio on speech-triggered turns; the expected behavior is one spoken rendering per published assistant speech event.
