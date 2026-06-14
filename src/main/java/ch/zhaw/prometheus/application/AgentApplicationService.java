@@ -131,6 +131,10 @@ public class AgentApplicationService {
         return this.findAgent(agentID).map(agent -> agent.getEventHistory().toList());
     }
 
+    public Optional<List<Event>> getAgentCurrentStateEventHistory(UUID agentID) {
+        return this.findAgent(agentID).map(Agent::getCurrentStateEventHistory);
+    }
+
     public Optional<ResponseView> start(UUID agentID) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {

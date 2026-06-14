@@ -33,16 +33,16 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - URL: `http://localhost:8080/valerian/`
 - Purpose: single-page PROMETHEUS demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
 - Users enter a configured access code first. Accepted codes are stored in `sessionStorage` for the current browser session.
-- The drawer first shows `Available Agent Types` assigned to the access code. Users create one or more instances from those types, then select an instance in `Known Agents`.
+- The drawer opens on the `Agent` tab, which shows assigned agent types, known instances, connection controls, and agent metadata including name, description, language code, and interaction profile. Users create one or more instances from the assigned types, then select an instance in `Known Agents`; diagnostics are available on the second tab.
 - `Known Agents` lists only instances linked to the active access code. Delete removes the visible scoped instance link and deletes the underlying agent only when no other code links remain.
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
-- The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- The center column has separate Text, Continuous Speech, and Push to Talk tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
 - Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
-- The sensing card groups detectors, configuration, manual emotion/social/hand inputs, and sensed signal readouts in one accordion. Behaviour modalities render as full-width rows.
+- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social/hand inputs, and sensed visual signal readouts. The Continuous Speech and Push to Talk tabs each include a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as full-width rows.
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
@@ -432,17 +432,18 @@ Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
 Notes:
 - `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).
 - `/{agentID}/behaviour/generate` can be called in final states; final-state prompts may still produce behaviour while `active=false`.
+- The Valerian cockpit renders the gesture field as `NONE` when a behaviour event contains no `nonVerbal` object, making speech-only turns explicit instead of leaving a stale previous gesture visible.
 
 ## Realtime Notes
 
-- Speech-to-speech browsers no longer obtain OpenAI client secrets. They create a WebRTC offer and post the raw SDP to PROMETHEUS:
+- Continuous speech browsers no longer obtain OpenAI client secrets. They create a WebRTC offer and post the raw SDP to PROMETHEUS:
   - global client: `POST /{agentID}/realtime/call`
   - Valerian scoped client: `POST /demo/agents/{agentId}/realtime/call`
-  - query options: `voice`, `turnDetection=server_vad|semantic_vad|none`, `generateComplement=true|false`
+  - query options: `voice`, `turnDetection=server_vad|semantic_vad`, `generateComplement=true|false`
 - PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
 - Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
-- Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
-- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers `response.create` with an exact-speech instruction.
+- Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. This is the built-in ASR model for the Realtime call, not the response-generation model. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
+- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers an out-of-band `response.create` with `conversation=none`, empty input context, and an exact-speech instruction.
 - PROMETHEUS persists the canonical assistant speech as `resp.behaviour_plan` before Realtime speaks it. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
   - Server default: `openai.realtimeModel=gpt-realtime-2`.
   - Voice controls include the GA voice options `cedar` and `marin`.
@@ -459,8 +460,19 @@ Notes:
   Realtime calls and transcription client secrets. Use a stable, privacy-preserving identifier.
 - Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
 - `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
-- When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text and does not persist a duplicate assistant event.
-- In push-to-talk mode, browser clients clear the Realtime input buffer on button press, commit the captured audio on release, and leave response creation to the PROMETHEUS sideband.
+- When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text from an empty out-of-band response context and does not persist a duplicate assistant event.
+- Browser speech clients expose Continuous and Push to Talk as separate UI paths instead of a shared mode dropdown. Continuous uses `server_vad` or `semantic_vad` and leaves turn chunking to OpenAI VAD.
+- Push to Talk is backend-owned and does not create a Realtime WebRTC call. The browser records local audio only while the button/Space key is held, then uploads one audio file:
+  - global client: `POST /{agentID}/speech-turn`
+  - Valerian scoped client: `POST /demo/agents/{agentId}/speech-turn`
+  - query options: `voice`, `generateComplement=true|false`
+- When Push to Talk starts, the browser asks PROMETHEUS to synthesize the latest stored assistant `BehaviourPlan.speech` if the latest utterance in the current state history is from the assistant, so a visible starter or last assistant reply is read aloud:
+  - global client: `POST /{agentID}/speech/latest`
+  - Valerian scoped client: `POST /demo/agents/{agentId}/speech/latest`
+  - query option: `voice`
+- Continuous Realtime uses the same restart rule through its sideband startup configuration: non-speech observations or backend complement events after the assistant speech do not prevent replay, but a later user utterance does.
+- PROMETHEUS transcribes the uploaded turn with `openai.recordedSpeechTranscriptionModel`, passes the agent `languageCode` as the transcription language hint when present, acknowledges the transcript as `obs.user_utterance` with `REALTIME_SPEECH`, generates canonical backend behaviour when needed, and returns backend TTS audio rendered with `openai.speechModel`.
+- Request-based audio endpoints can be overridden with `openai.audioTranscriptionsUrl` and `openai.audioSpeechUrl`.
 - To complement realtime speech with nonverbal backend output, call:
   - `POST /{agentID}/behaviour/generate`
   - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`

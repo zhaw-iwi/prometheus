@@ -2,6 +2,7 @@ let session = {
   agentId: null,
   isListening: false,
   agentActive: null,
+  activeMode: null,
 };
 
 let peerConnection = null;
@@ -16,6 +17,8 @@ const BEHAVIOUR_RECONNECT_MIN_MS = 1000;
 const BEHAVIOUR_RECONNECT_MAX_MS = 30000;
 const BEHAVIOUR_RECONNECT_JITTER = 0.2;
 const TRANSCRIPT_BATCH_DELAY_MS = 900;
+const REALTIME_MODE_CONTINUOUS = "continuous";
+const REALTIME_MODE_PUSH_TO_TALK = "push_to_talk";
 let assistantTranscriptBuffer = "";
 let gifState = "idle";
 let gifSwapTimeout = null;
@@ -26,6 +29,7 @@ let pendingInputItemIds = new Set();
 let processedInputItemIds = new Set();
 let transcriptCandidates = [];
 let transcriptFlushTimer = null;
+let activeTurnDetection = null;
 const gifSources = {
   idle: "her.gif",
   thinking: "her-fast.gif",
@@ -36,6 +40,11 @@ let sessionSettings = {
 };
 let pushToTalkActive = false;
 let spaceKeyBindingActive = false;
+let recordedStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedMimeType = "";
+let discardRecordedTurn = false;
 let lastBackendBehaviourCreatedDate = null;
 let lastBackendBehaviourEventId = null;
 let lastBackendSpeech = "";
@@ -54,7 +63,9 @@ window.addEventListener("load", () => {
 });
 
 function wireUi() {
-  document.getElementById("toggle_listen").addEventListener("click", toggleListening);
+  document.getElementById("toggle_listen").addEventListener("click", () => toggleListening(REALTIME_MODE_CONTINUOUS));
+  document.getElementById("toggle_push_to_talk_listen")
+    .addEventListener("click", () => toggleListening(REALTIME_MODE_PUSH_TO_TALK));
   document.getElementById("reset_agent").addEventListener("click", resetAgent);
   document.getElementById("show_agent_info").addEventListener("click", showAgentInfo);
   const voiceSelect = document.getElementById("voice_select");
@@ -71,9 +82,8 @@ function wireUi() {
   if (turnDetectionSelect) {
     turnDetectionSelect.addEventListener("change", () => {
       sessionSettings.turnDetection = turnDetectionSelect.value;
-      updatePushToTalkUi();
       if (session.isListening) {
-        appendLog("realtime", "Restart realtime to apply mode changes.");
+        appendLog("realtime", "Restart realtime to apply VAD changes.");
       }
     });
   }
@@ -93,28 +103,54 @@ function disableToggle() {
   button.disabled = true;
 }
 
-function setListeningState(isListening) {
+function setListeningState(isListening, mode = session.activeMode || REALTIME_MODE_CONTINUOUS) {
   session.isListening = isListening;
-  const button = document.getElementById("toggle_listen");
+  const continuousButton = document.getElementById("toggle_listen");
+  const pushToTalkButton = document.getElementById("toggle_push_to_talk_listen");
   const status = document.getElementById("listen_status");
+  const continuousActive = isListening && mode === REALTIME_MODE_CONTINUOUS;
+  const pushToTalkActive = isListening && mode === REALTIME_MODE_PUSH_TO_TALK;
   if (isListening) {
-    button.innerHTML = '<i class="bi bi-mic-mute-fill me-2"></i>Stop';
+    continuousButton.innerHTML = continuousActive
+      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Continuous'
+      : '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+    pushToTalkButton.innerHTML = pushToTalkActive
+      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Push to Talk'
+      : '<i class="bi bi-mic-fill me-2"></i>Start Push to Talk';
     status.textContent = "Listening";
     status.className = "status-pill is-listening";
-    button.classList.add("is-listening");
+    continuousButton.classList.toggle("is-listening", continuousActive);
+    pushToTalkButton.classList.toggle("is-listening", pushToTalkActive);
+    continuousButton.disabled = !continuousActive;
+    pushToTalkButton.disabled = !pushToTalkActive;
     updatePushToTalkUi();
+    setRealtimeControlsLocked(true);
     setGifState("idle");
   } else {
-    button.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start';
+    continuousButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+    pushToTalkButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Push to Talk';
     status.textContent = "Idle";
     status.className = "status-pill is-idle";
-    button.classList.remove("is-listening");
+    continuousButton.classList.remove("is-listening");
+    pushToTalkButton.classList.remove("is-listening");
+    continuousButton.disabled = false;
+    pushToTalkButton.disabled = false;
     updatePushToTalkUi();
+    setRealtimeControlsLocked(false);
     const gif = document.getElementById("realtime_gif");
     if (gif) {
       gif.classList.add("is-hidden");
     }
   }
+}
+
+function setRealtimeControlsLocked(locked) {
+  ["voice_select", "turn_detection_select", "generate_side_behaviour"].forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.disabled = locked;
+    }
+  });
 }
 
 function setActiveStatus(isActive) {
@@ -132,22 +168,40 @@ function setActiveStatus(isActive) {
   }
 }
 
-async function toggleListening() {
+async function toggleListening(mode = REALTIME_MODE_CONTINUOUS) {
   if (!session.isListening) {
-    await startListening();
-  } else {
+    await startListening(mode);
+    return;
+  }
+  if (session.activeMode === mode) {
     await stopListening();
+  } else {
+    appendLog("realtime", "Stop the active speech session before starting another mode.");
   }
 }
 
-async function startListening() {
-  appendLog("app", "Starting realtime session...");
-  setListeningState(true);
+async function startListening(mode = REALTIME_MODE_CONTINUOUS) {
+  appendLog("app", mode === REALTIME_MODE_PUSH_TO_TALK
+    ? "Starting recorded push-to-talk session..."
+    : "Starting realtime session...");
+  session.activeMode = mode;
+  setListeningState(true, mode);
   resetRealtimeTranscriptGate();
   try {
     const eventHistory = await fetchEventHistory();
     primeBehaviourCursor(eventHistory || []);
-    await setupRealtimeConnection();
+    if (mode === REALTIME_MODE_PUSH_TO_TALK) {
+      connectBehaviourStream();
+      try {
+        await playLatestAssistantSpeechForPushToTalk();
+      } catch (error) {
+        appendLog("realtime", "Initial assistant audio failed: " + error.message);
+      }
+      updatePushToTalkUi();
+      appendLog("realtime", "Recorded push-to-talk ready.");
+      return;
+    }
+    await setupRealtimeConnection(mode);
     await waitForDataChannelOpen();
     connectBehaviourStream();
     updatePushToTalkUi();
@@ -159,7 +213,8 @@ async function startListening() {
 
 async function stopListening() {
   appendLog("app", "Stopping realtime session...");
-  setListeningState(false);
+  const stoppingMode = session.activeMode;
+  setListeningState(false, stoppingMode);
   gifState = "idle";
   if (gifSwapTimeout) {
     clearTimeout(gifSwapTimeout);
@@ -197,8 +252,11 @@ async function stopListening() {
     closeRealtimeCall(realtimeCallId);
     realtimeCallId = null;
   }
+  session.activeMode = null;
+  activeTurnDetection = null;
   pushToTalkActive = false;
   realtimeResponseActive = false;
+  cleanupRecordedTurn(true);
   resetRealtimeTranscriptGate();
 }
 
@@ -232,7 +290,9 @@ async function fetchEventHistory() {
   return await response.json();
 }
 
-async function setupRealtimeConnection() {
+async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
+  const settings = currentRealtimeSettings(mode);
+  activeTurnDetection = settings.turnDetection || "server_vad";
   peerConnection = new RTCPeerConnection();
   peerConnection.ontrack = (event) => {
     const audio = document.getElementById("assistant_audio");
@@ -242,24 +302,31 @@ async function setupRealtimeConnection() {
   dataChannel = peerConnection.createDataChannel("oai-events");
   dataChannel.addEventListener("message", handleRealtimeEvent);
 
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+  setMicEnabled(true);
   micStream.getTracks().forEach((track) => peerConnection.addTrack(track, micStream));
 
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  const call = await createRealtimeCall(offer.sdp);
+  const call = await createRealtimeCall(offer.sdp, settings);
   realtimeCallId = call.callId || null;
   await peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
   appendLog("realtime", "WebRTC session established.");
 }
 
-async function createRealtimeCall(offerSdp) {
+async function createRealtimeCall(offerSdp, settings = currentRealtimeSettings()) {
   const params = new URLSearchParams();
-  if (sessionSettings.voice) {
-    params.set("voice", sessionSettings.voice);
+  if (settings.voice) {
+    params.set("voice", settings.voice);
   }
-  params.set("turnDetection", sessionSettings.turnDetection || "server_vad");
+  params.set("turnDetection", settings.turnDetection || "server_vad");
   params.set("generateComplement", String(shouldGenerateSideBehaviour()));
   const response = await fetch(`/${session.agentId}/realtime/call?${params.toString()}`, {
     method: "POST",
@@ -272,6 +339,18 @@ async function createRealtimeCall(offerSdp) {
     throw new Error("Realtime call creation failed.");
   }
   return await response.json();
+}
+
+function currentRealtimeSettings(mode = session.activeMode || REALTIME_MODE_CONTINUOUS) {
+  if (mode === REALTIME_MODE_PUSH_TO_TALK) {
+    return {
+      voice: sessionSettings.voice,
+    };
+  }
+  return {
+    voice: sessionSettings.voice,
+    turnDetection: sessionSettings.turnDetection || "server_vad",
+  };
 }
 
 function closeRealtimeCall(callId) {
@@ -308,7 +387,7 @@ function handleRealtimeEvent(event) {
   if (data.type === "input_audio_buffer.committed") {
     rememberInputItem(data.item_id);
   } else if (data.type === "input_audio_buffer.cleared") {
-    clearQueuedTranscriptCandidates();
+    clearPendingInputItems();
   } else if (data.type === "conversation.item.input_audio_transcription.completed") {
     queueTranscriptCandidate(data);
   } else if (data.type === "response.created") {
@@ -427,6 +506,10 @@ function clearQueuedTranscriptCandidates() {
     clearTimeout(transcriptFlushTimer);
     transcriptFlushTimer = null;
   }
+  clearPendingInputItems();
+}
+
+function clearPendingInputItems() {
   pendingInputItemIds.clear();
 }
 
@@ -599,29 +682,18 @@ function applySessionSettings() {
 }
 
 function updatePushToTalkUi() {
-  const manualControls = document.getElementById("manual_controls");
   const pushToTalkButton = document.getElementById("push_to_talk");
-  const isManual = sessionSettings.turnDetection === "none";
-  if (manualControls) {
-    manualControls.classList.toggle("d-none", !isManual);
-  }
+  const isManualActive = session.isListening && session.activeMode === REALTIME_MODE_PUSH_TO_TALK;
   if (pushToTalkButton) {
-    pushToTalkButton.disabled = !session.isListening || !isManual;
-    if (!session.isListening || !isManual) {
+    pushToTalkButton.disabled = !isManualActive;
+    if (!isManualActive) {
       pushToTalkButton.classList.remove("is-pressed");
     }
   }
-  if (isManual && session.isListening) {
+  if (isManualActive) {
     enableSpaceKeyPushToTalk();
   } else {
     disableSpaceKeyPushToTalk();
-  }
-  if (session.isListening) {
-    if (isManual) {
-      setMicEnabled(false);
-    } else {
-      setMicEnabled(true);
-    }
   }
 }
 
@@ -630,15 +702,14 @@ function startPushToTalk(event) {
     event.preventDefault();
   }
   const button = document.getElementById("push_to_talk");
-  if (!session.isListening || sessionSettings.turnDetection !== "none" || pushToTalkActive) {
+  if (!session.isListening || session.activeMode !== REALTIME_MODE_PUSH_TO_TALK || pushToTalkActive) {
     return;
   }
   pushToTalkActive = true;
   if (button) {
     button.classList.add("is-pressed");
   }
-  prepareManualTurn();
-  setMicEnabled(true);
+  startRecordedTurn();
 }
 
 function stopPushToTalk(event) {
@@ -653,8 +724,7 @@ function stopPushToTalk(event) {
   if (button) {
     button.classList.remove("is-pressed");
   }
-  setMicEnabled(false);
-  commitManualTurn();
+  stopRecordedTurn();
 }
 
 function enableSpaceKeyPushToTalk() {
@@ -712,34 +782,195 @@ function shouldIgnoreSpace(event) {
   return tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
-function commitManualTurn() {
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    return;
-  }
-  dataChannel.send(
-    JSON.stringify({
-      type: "input_audio_buffer.commit",
-    })
-  );
-}
-
-function prepareManualTurn() {
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    return;
-  }
-  if (realtimeResponseActive) {
-    sendRealtimeEvent({ type: "response.cancel" });
-    sendRealtimeEvent({ type: "output_audio_buffer.clear" });
-    realtimeResponseActive = false;
-  }
-  sendRealtimeEvent({ type: "input_audio_buffer.clear" });
-}
-
 function sendRealtimeEvent(payload) {
   if (!dataChannel || dataChannel.readyState !== "open") {
     return;
   }
   dataChannel.send(JSON.stringify(payload));
+}
+
+async function startRecordedTurn() {
+  if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    appendLog("realtime", "Recorded push-to-talk is not supported by this browser.");
+    pushToTalkActive = false;
+    document.getElementById("push_to_talk").classList.remove("is-pressed");
+    return;
+  }
+  try {
+    cleanupRecordedTurn(true);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const mimeType = preferredRecordedAudioMimeType();
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    recordedStream = stream;
+    mediaRecorder = recorder;
+    recordedChunks = [];
+    recordedMimeType = recorder.mimeType || mimeType || "audio/webm";
+    discardRecordedTurn = false;
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    });
+    recorder.addEventListener("stop", handleRecordedTurnStopped);
+    recorder.start();
+    appendLog("realtime", "Recording turn.");
+  } catch (error) {
+    appendLog("realtime", "Recording failed: " + error.message);
+    pushToTalkActive = false;
+    document.getElementById("push_to_talk").classList.remove("is-pressed");
+    cleanupRecordedTurn(true);
+  }
+}
+
+function stopRecordedTurn() {
+  if (!mediaRecorder || mediaRecorder.state === "inactive") {
+    cleanupRecordedTurn(true);
+    return;
+  }
+  mediaRecorder.stop();
+}
+
+async function handleRecordedTurnStopped() {
+  const discard = discardRecordedTurn;
+  const chunks = recordedChunks.slice();
+  const mimeType = recordedMimeType || "audio/webm";
+  cleanupRecordedTurn(false);
+  if (discard) {
+    return;
+  }
+  const blob = new Blob(chunks, { type: mimeType });
+  if (blob.size === 0) {
+    appendLog("realtime", "Recorded turn was empty.");
+    return;
+  }
+  await submitRecordedSpeechTurn(blob);
+}
+
+function cleanupRecordedTurn(discard) {
+  discardRecordedTurn = !!discard;
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+    return;
+  }
+  if (recordedStream) {
+    recordedStream.getTracks().forEach((track) => track.stop());
+    recordedStream = null;
+  }
+  mediaRecorder = null;
+  recordedChunks = [];
+  recordedMimeType = "";
+}
+
+async function submitRecordedSpeechTurn(blob) {
+  const form = new FormData();
+  form.append("audio", blob, recordedAudioFilename(blob.type));
+  const params = new URLSearchParams();
+  if (sessionSettings.voice) {
+    params.set("voice", sessionSettings.voice);
+  }
+  params.set("generateComplement", String(shouldGenerateSideBehaviour()));
+  appendLog("realtime", "Uploading recorded turn.");
+  setGifState("thinking");
+  try {
+    const response = await fetch(`/${session.agentId}/speech-turn?${params.toString()}`, {
+      method: "POST",
+      body: form,
+    });
+    if (!response.ok) {
+      appendLog("realtime", `Recorded turn failed: ${response.status}`);
+      setGifState("idle");
+      return;
+    }
+    const data = await response.json();
+    handleRecordedSpeechTurnResponse(data);
+  } catch (error) {
+    appendLog("realtime", "Recorded turn failed: " + error.message);
+    setGifState("idle");
+  }
+}
+
+async function playLatestAssistantSpeechForPushToTalk() {
+  const params = new URLSearchParams();
+  if (sessionSettings.voice) {
+    params.set("voice", sessionSettings.voice);
+  }
+  const response = await fetch(`/${session.agentId}/speech/latest?${params.toString()}`, {
+    method: "POST",
+  });
+  if (response.status === 404) {
+    appendLog("realtime", "No stored assistant speech to read.");
+    return;
+  }
+  if (!response.ok) {
+    appendLog("realtime", `Initial assistant audio failed: ${response.status}`);
+    return;
+  }
+  const data = await response.json();
+  const speech = typeof data.speech === "string" ? data.speech.trim() : "";
+  if (speech) {
+    document.getElementById("assistant_transcript").textContent = speech;
+    lastBackendSpeech = speech;
+  }
+  playRecordedSpeechAudio(data);
+}
+
+function handleRecordedSpeechTurnResponse(data) {
+  if (!data) {
+    return;
+  }
+  const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
+  if (transcript) {
+    document.getElementById("user_transcript").textContent = transcript;
+    appendLog("realtime", "Recorded user transcript completed.");
+  }
+  if (data.response) {
+    if (typeof data.response.active === "boolean") {
+      setActiveStatus(data.response.active);
+    }
+    const speech = getEventSpeech(data.response.responseEvent);
+    if (speech && speech.trim()) {
+      document.getElementById("assistant_transcript").textContent = speech;
+      lastBackendSpeech = speech;
+    }
+  }
+  playRecordedSpeechAudio(data);
+  setGifState("idle");
+}
+
+function playRecordedSpeechAudio(data) {
+  if (!data || !data.audioBase64) {
+    return;
+  }
+  const audio = document.getElementById("assistant_audio");
+  audio.pause();
+  audio.srcObject = null;
+  audio.src = `data:${data.audioContentType || "audio/mpeg"};base64,${data.audioBase64}`;
+  audio.load();
+  audio.play().catch(() => {
+    appendLog("realtime", "Assistant audio ready; browser blocked autoplay.");
+  });
+}
+
+function preferredRecordedAudioMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ];
+  return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
+}
+
+function recordedAudioFilename(contentType) {
+  if (contentType && contentType.includes("mp4")) {
+    return "speech-turn.mp4";
+  }
+  return "speech-turn.webm";
 }
 
 function setMicEnabled(enabled) {

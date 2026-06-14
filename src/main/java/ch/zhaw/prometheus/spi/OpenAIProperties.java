@@ -30,6 +30,10 @@ public class OpenAIProperties {
     private String realtimeClientSecretUrl;
     private String realtimeCallsUrl;
     private String realtimeSafetyIdentifier;
+    private String audioTranscriptionsUrl;
+    private String audioSpeechUrl;
+    private String recordedSpeechTranscriptionModel;
+    private String speechModel;
 
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
@@ -117,6 +121,38 @@ public class OpenAIProperties {
 
     public void setRealtimeSafetyIdentifier(String realtimeSafetyIdentifier) {
         this.realtimeSafetyIdentifier = realtimeSafetyIdentifier;
+    }
+
+    public String getAudioTranscriptionsUrl() {
+        return this.audioTranscriptionsUrl;
+    }
+
+    public void setAudioTranscriptionsUrl(String audioTranscriptionsUrl) {
+        this.audioTranscriptionsUrl = audioTranscriptionsUrl;
+    }
+
+    public String getAudioSpeechUrl() {
+        return this.audioSpeechUrl;
+    }
+
+    public void setAudioSpeechUrl(String audioSpeechUrl) {
+        this.audioSpeechUrl = audioSpeechUrl;
+    }
+
+    public String getRecordedSpeechTranscriptionModel() {
+        return this.recordedSpeechTranscriptionModel;
+    }
+
+    public void setRecordedSpeechTranscriptionModel(String recordedSpeechTranscriptionModel) {
+        this.recordedSpeechTranscriptionModel = recordedSpeechTranscriptionModel;
+    }
+
+    public String getSpeechModel() {
+        return this.speechModel;
+    }
+
+    public void setSpeechModel(String speechModel) {
+        this.speechModel = speechModel;
     }
 
     public String headerKeyNameForAPIKey() {

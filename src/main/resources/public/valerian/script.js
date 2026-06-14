@@ -34,11 +34,18 @@ const realtime = {
   dataChannel: null,
   micStream: null,
   callId: null,
+  activeMode: null,
+  activeTurnDetection: null,
   assistantTranscriptBuffer: "",
   assistantAudioSeen: false,
   responseActive: false,
   pushToTalkActive: false,
   spaceKeyBindingActive: false,
+  recordedStream: null,
+  mediaRecorder: null,
+  recordedChunks: [],
+  recordedMimeType: "",
+  discardRecordedTurn: false,
   pendingInputItemIds: new Set(),
   processedInputItemIds: new Set(),
   transcriptCandidates: [],
@@ -75,6 +82,8 @@ const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
 const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
 const TRANSCRIPT_BATCH_DELAY_MS = 900;
+const REALTIME_MODE_CONTINUOUS = "continuous";
+const REALTIME_MODE_PUSH_TO_TALK = "push_to_talk";
 const ACTIVITY_LOG_LIMIT = 300;
 const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
@@ -196,10 +205,13 @@ function wireUi() {
     state.activityShowTimestamps = event.target.checked;
     renderActivityLog();
   });
-  document.getElementById("toggle_realtime").addEventListener("click", toggleRealtime);
+  document.getElementById("toggle_realtime").addEventListener("click", () => toggleRealtime(REALTIME_MODE_CONTINUOUS));
+  document.getElementById("toggle_push_to_talk_realtime")
+    .addEventListener("click", () => toggleRealtime(REALTIME_MODE_PUSH_TO_TALK));
+  document.getElementById("diagnostics_drawer").addEventListener("show.bs.offcanvas", showAgentDrawerTab);
   document.getElementById("voice_select").addEventListener("change", applySessionSettings);
+  document.getElementById("push_to_talk_voice_select").addEventListener("change", applySessionSettings);
   document.getElementById("turn_detection_select").addEventListener("change", () => {
-    updatePushToTalkUi();
     applySessionSettings();
   });
   document.getElementById("push_to_talk").addEventListener("mousedown", startPushToTalk);
@@ -230,6 +242,14 @@ function wireUi() {
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
     input.addEventListener("change", handleSensorModeChange);
   });
+}
+
+function showAgentDrawerTab() {
+  const tab = document.getElementById("agent_drawer_tab");
+  if (!tab || !window.bootstrap || !window.bootstrap.Tab) {
+    return;
+  }
+  window.bootstrap.Tab.getOrCreateInstance(tab).show();
 }
 
 function handleAccessCodeKeyDown(event) {
@@ -491,6 +511,7 @@ async function connectToAgent(agentId) {
   updateSelectedAgentStatus();
   state.lastBehaviourEventId = null;
   resetBehaviourDeduplication();
+  resetSpeechSensingPanel();
   setControlsEnabled(false);
   const infoLoaded = await loadAgentInfo();
   if (!infoLoaded) {
@@ -525,6 +546,7 @@ async function loadAgentInfo() {
     document.getElementById("agent_subtitle").textContent = prometheusFacingText(data.name) || "PROMETHEUS demo console";
     document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(data.description) || "-";
+    document.getElementById("agent_info_language").textContent = agentLanguageLabel(data.languageCode);
     renderAgentInteractionProfile(data.interactionProfile);
     setActiveStatus(data.active);
     applyInteractionProfile(data.interactionProfile);
@@ -556,6 +578,7 @@ async function disconnectAgent(options = {}) {
   resetStorageList();
   resetStateView();
   setBehaviourStatus("Behaviour Idle", "idle");
+  resetSpeechSensingPanel();
   resetAgentInfo();
   setControlsEnabled(false);
   updateSelectedAgentStatus();
@@ -574,6 +597,7 @@ function resetAgentInfo() {
   document.getElementById("agent_subtitle").textContent = "PROMETHEUS demo console";
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
+  document.getElementById("agent_info_language").textContent = "-";
   renderAgentInteractionProfile(null);
   setActiveStatus(null);
   applyInteractionProfile(null);
@@ -583,6 +607,10 @@ function renderAgentInteractionProfile(profile) {
   renderProfileTokenList("agent_profile_observations", normalizeProfileList(profile && profile.supportedObservations));
   renderProfileTokenList("agent_profile_behaviours", normalizeProfileList(profile && profile.supportedBehaviourModalities));
   renderProfileTokenList("agent_profile_tags", normalizeProfileList(profile && profile.profileTags));
+}
+
+function agentLanguageLabel(languageCode) {
+  return typeof languageCode === "string" && languageCode.trim() ? languageCode.trim() : "-";
 }
 
 function renderProfileTokenList(id, values) {
@@ -1192,6 +1220,7 @@ async function resetAgent() {
     clearMessages();
     resetBehaviourDeduplication();
     resetBehaviourPanels();
+    resetSpeechSensingPanel();
     handleResponseEvent(data.responseEvent);
     await loadAgentState();
     await loadStorage();
@@ -1416,9 +1445,10 @@ function renderBehaviourPlan(plan) {
 
 function renderNonVerbal(nonVerbal) {
   if (!nonVerbal || typeof nonVerbal !== "object") {
+    setText("gesture_value", "NONE");
     return;
   }
-  setText("gesture_value", asText(nonVerbal.gesture));
+  setText("gesture_value", asText(nonVerbal.gesture || "NONE"));
   const face = nonVerbal.facialExpression;
   if (typeof face === "string") {
     setText("face_value", face);
@@ -1478,23 +1508,38 @@ function renderDisplay(display) {
   }
 }
 
-async function toggleRealtime() {
+async function toggleRealtime(mode = REALTIME_MODE_CONTINUOUS) {
   if (!state.realtimeListening) {
-    await startRealtime();
-  } else {
+    await startRealtime(mode);
+    return;
+  }
+  if (realtime.activeMode === mode) {
     await stopRealtime();
+  } else {
+    appendLog("realtime", "stop the active speech session before starting another mode.");
   }
 }
 
-async function startRealtime() {
+async function startRealtime(mode = REALTIME_MODE_CONTINUOUS) {
   if (!state.agentId) {
     return;
   }
-  setRealtimeState(true);
-  appendLog("realtime", "starting.");
+  realtime.activeMode = mode;
+  setRealtimeState(true, mode);
   resetRealtimeTranscriptGate();
+  if (mode === REALTIME_MODE_PUSH_TO_TALK) {
+    try {
+      await playLatestAssistantSpeechForPushToTalk();
+    } catch (error) {
+      appendLog("realtime", "initial assistant audio failed: " + error.message);
+    }
+    appendLog("realtime", "recorded push-to-talk ready.");
+    updatePushToTalkUi();
+    return;
+  }
+  appendLog("realtime", "starting.");
   try {
-    await setupRealtimeConnection();
+    await setupRealtimeConnection(mode);
     await waitForDataChannelOpen();
     updatePushToTalkUi();
   } catch (error) {
@@ -1504,7 +1549,8 @@ async function startRealtime() {
 }
 
 async function stopRealtime() {
-  setRealtimeState(false);
+  const stoppingMode = realtime.activeMode;
+  setRealtimeState(false, stoppingMode);
   if (realtime.dataChannel) {
     realtime.dataChannel.close();
     realtime.dataChannel = null;
@@ -1521,45 +1567,62 @@ async function stopRealtime() {
     closeRealtimeCall(realtime.callId);
     realtime.callId = null;
   }
+  realtime.activeMode = null;
+  realtime.activeTurnDetection = null;
   const audio = document.getElementById("assistant_audio");
   audio.pause();
   audio.removeAttribute("src");
   audio.srcObject = null;
   audio.load();
+  const pushAudio = document.getElementById("push_to_talk_assistant_audio");
+  pushAudio.pause();
+  pushAudio.removeAttribute("src");
+  pushAudio.srcObject = null;
+  pushAudio.load();
   realtime.pushToTalkActive = false;
   realtime.responseActive = false;
+  cleanupRecordedTurn(true);
   resetRealtimeTranscriptGate();
   disableSpaceKeyPushToTalk();
   updatePushToTalkUi();
   appendLog("realtime", "stopped.");
 }
 
-async function setupRealtimeConnection() {
+async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
+  const settings = currentRealtimeSettings(mode);
+  realtime.activeMode = mode;
+  realtime.activeTurnDetection = settings.turnDetection || "server_vad";
   realtime.peerConnection = new RTCPeerConnection();
   realtime.peerConnection.ontrack = (event) => {
-    document.getElementById("assistant_audio").srcObject = event.streams[0];
+    activeAssistantAudioElement().srcObject = event.streams[0];
   };
   realtime.dataChannel = realtime.peerConnection.createDataChannel("oai-events");
   realtime.dataChannel.addEventListener("message", handleRealtimeEvent);
-  realtime.micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  realtime.micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+  setMicEnabled(true);
   realtime.micStream.getTracks().forEach((track) => realtime.peerConnection.addTrack(track, realtime.micStream));
 
   const offer = await realtime.peerConnection.createOffer();
   await realtime.peerConnection.setLocalDescription(offer);
-  const call = await createRealtimeCall(offer.sdp);
+  const call = await createRealtimeCall(offer.sdp, settings);
   realtime.callId = call.callId || null;
   await realtime.peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
   appendLog("realtime", "WebRTC session established.");
 }
 
-async function createRealtimeCall(offerSdp) {
-  const settings = currentRealtimeSettings();
+async function createRealtimeCall(offerSdp, settings = currentRealtimeSettings()) {
   const params = new URLSearchParams();
   if (settings.voice) {
     params.set("voice", settings.voice);
   }
   params.set("turnDetection", settings.turnDetection || "server_vad");
-  params.set("generateComplement", String(document.getElementById("generate_side_behaviour").checked));
+  params.set("generateComplement", String(settings.generateComplement));
   const response = await scopedFetch(demoAgentPath(`/realtime/call?${params.toString()}`), {
     method: "POST",
     headers: {
@@ -1604,7 +1667,7 @@ function handleRealtimeEvent(event) {
   if (data.type === "input_audio_buffer.committed") {
     rememberRealtimeInputItem(data.item_id);
   } else if (data.type === "input_audio_buffer.cleared") {
-    clearQueuedRealtimeTranscriptCandidates();
+    clearRealtimePendingInputItems();
   } else if (data.type === "conversation.item.input_audio_transcription.completed") {
     queueRealtimeTranscriptCandidate(data);
   } else if (data.type === "response.created") {
@@ -1664,6 +1727,7 @@ function flushRealtimeTranscriptCandidates() {
     return;
   }
   appendMessage("user", selected.transcript);
+  renderSpeechSensingTranscript(selected.transcript);
   appendLog("realtime", "user transcript completed.");
 }
 
@@ -1704,6 +1768,10 @@ function clearQueuedRealtimeTranscriptCandidates() {
     clearTimeout(realtime.transcriptFlushTimer);
     realtime.transcriptFlushTimer = null;
   }
+  clearRealtimePendingInputItems();
+}
+
+function clearRealtimePendingInputItems() {
   realtime.pendingInputItemIds.clear();
 }
 
@@ -1735,27 +1803,36 @@ function applySessionSettings() {
   appendLog("realtime", "restart realtime to apply voice or mode changes.");
 }
 
-function currentRealtimeSettings() {
+function currentRealtimeSettings(mode = realtime.activeMode || REALTIME_MODE_CONTINUOUS) {
+  if (mode === REALTIME_MODE_PUSH_TO_TALK) {
+    return {
+      voice: document.getElementById("push_to_talk_voice_select").value,
+      generateComplement: document.getElementById("push_to_talk_generate_side_behaviour").checked,
+    };
+  }
   return {
     voice: document.getElementById("voice_select").value,
     turnDetection: document.getElementById("turn_detection_select").value || "server_vad",
+    generateComplement: document.getElementById("generate_side_behaviour").checked,
   };
 }
 
+function activeAssistantAudioElement() {
+  if (realtime.activeMode === REALTIME_MODE_PUSH_TO_TALK) {
+    return document.getElementById("push_to_talk_assistant_audio");
+  }
+  return document.getElementById("assistant_audio");
+}
+
 function updatePushToTalkUi() {
-  const settings = currentRealtimeSettings();
   const button = document.getElementById("push_to_talk");
-  const isManual = settings.turnDetection === "none";
-  button.classList.toggle("d-none", !isManual);
-  button.disabled = !state.realtimeListening || !isManual;
-  if (isManual && state.realtimeListening) {
+  const isManualActive = state.realtimeListening && realtime.activeMode === REALTIME_MODE_PUSH_TO_TALK;
+  button.disabled = !isManualActive;
+  if (isManualActive) {
     enableSpaceKeyPushToTalk();
-    setMicEnabled(false);
   } else {
     disableSpaceKeyPushToTalk();
-    if (state.realtimeListening) {
-      setMicEnabled(true);
-    }
+    button.classList.remove("is-pressed");
   }
 }
 
@@ -1763,13 +1840,12 @@ function startPushToTalk(event) {
   if (event) {
     event.preventDefault();
   }
-  if (!state.realtimeListening || currentRealtimeSettings().turnDetection !== "none" || realtime.pushToTalkActive) {
+  if (!state.realtimeListening || realtime.activeMode !== REALTIME_MODE_PUSH_TO_TALK || realtime.pushToTalkActive) {
     return;
   }
   realtime.pushToTalkActive = true;
   document.getElementById("push_to_talk").classList.add("is-pressed");
-  prepareManualTurn();
-  setMicEnabled(true);
+  startRecordedTurn();
 }
 
 function stopPushToTalk(event) {
@@ -1781,8 +1857,7 @@ function stopPushToTalk(event) {
   }
   realtime.pushToTalkActive = false;
   document.getElementById("push_to_talk").classList.remove("is-pressed");
-  setMicEnabled(false);
-  commitManualTurn();
+  stopRecordedTurn();
 }
 
 function enableSpaceKeyPushToTalk() {
@@ -1833,30 +1908,193 @@ function shouldIgnoreSpace(event) {
   return tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
-function commitManualTurn() {
-  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
-    return;
-  }
-  realtime.dataChannel.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-}
-
-function prepareManualTurn() {
-  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
-    return;
-  }
-  if (realtime.responseActive) {
-    sendRealtimeEvent({ type: "response.cancel" });
-    sendRealtimeEvent({ type: "output_audio_buffer.clear" });
-    realtime.responseActive = false;
-  }
-  sendRealtimeEvent({ type: "input_audio_buffer.clear" });
-}
-
 function sendRealtimeEvent(payload) {
   if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
     return;
   }
   realtime.dataChannel.send(JSON.stringify(payload));
+}
+
+async function startRecordedTurn() {
+  if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    appendLog("realtime", "recorded push-to-talk is not supported by this browser.");
+    realtime.pushToTalkActive = false;
+    document.getElementById("push_to_talk").classList.remove("is-pressed");
+    return;
+  }
+  try {
+    cleanupRecordedTurn(true);
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const mimeType = preferredRecordedAudioMimeType();
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+    realtime.recordedStream = stream;
+    realtime.mediaRecorder = recorder;
+    realtime.recordedChunks = [];
+    realtime.recordedMimeType = recorder.mimeType || mimeType || "audio/webm";
+    realtime.discardRecordedTurn = false;
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data && event.data.size > 0) {
+        realtime.recordedChunks.push(event.data);
+      }
+    });
+    recorder.addEventListener("stop", handleRecordedTurnStopped);
+    recorder.start();
+    appendLog("realtime", "recording turn.");
+  } catch (error) {
+    appendLog("realtime", "recording failed: " + error.message);
+    realtime.pushToTalkActive = false;
+    document.getElementById("push_to_talk").classList.remove("is-pressed");
+    cleanupRecordedTurn(true);
+  }
+}
+
+function stopRecordedTurn() {
+  const recorder = realtime.mediaRecorder;
+  if (!recorder || recorder.state === "inactive") {
+    cleanupRecordedTurn(true);
+    return;
+  }
+  recorder.stop();
+}
+
+async function handleRecordedTurnStopped() {
+  const discard = realtime.discardRecordedTurn;
+  const chunks = realtime.recordedChunks.slice();
+  const mimeType = realtime.recordedMimeType || "audio/webm";
+  cleanupRecordedTurn(false);
+  if (discard) {
+    return;
+  }
+  const blob = new Blob(chunks, { type: mimeType });
+  if (blob.size === 0) {
+    appendLog("realtime", "recorded turn was empty.");
+    return;
+  }
+  await submitRecordedSpeechTurn(blob);
+}
+
+function cleanupRecordedTurn(discard) {
+  realtime.discardRecordedTurn = !!discard;
+  const recorder = realtime.mediaRecorder;
+  if (recorder && recorder.state !== "inactive") {
+    recorder.stop();
+    return;
+  }
+  if (realtime.recordedStream) {
+    realtime.recordedStream.getTracks().forEach((track) => track.stop());
+    realtime.recordedStream = null;
+  }
+  realtime.mediaRecorder = null;
+  realtime.recordedChunks = [];
+  realtime.recordedMimeType = "";
+}
+
+async function submitRecordedSpeechTurn(blob) {
+  const form = new FormData();
+  form.append("audio", blob, recordedAudioFilename(blob.type));
+  const settings = currentRealtimeSettings(REALTIME_MODE_PUSH_TO_TALK);
+  const params = new URLSearchParams();
+  if (settings.voice) {
+    params.set("voice", settings.voice);
+  }
+  params.set("generateComplement", String(settings.generateComplement));
+  appendLog("realtime", "uploading recorded turn.");
+  try {
+    const response = await scopedFetch(demoAgentPath(`/speech-turn?${params.toString()}`), {
+      method: "POST",
+      body: form,
+    });
+    if (!response.ok) {
+      appendLog("realtime", `recorded turn failed: ${response.status}`);
+      return;
+    }
+    const data = await response.json();
+    handleRecordedSpeechTurnResponse(data);
+  } catch (error) {
+    appendLog("realtime", "recorded turn failed: " + error.message);
+  }
+}
+
+async function playLatestAssistantSpeechForPushToTalk() {
+  const settings = currentRealtimeSettings(REALTIME_MODE_PUSH_TO_TALK);
+  const params = new URLSearchParams();
+  if (settings.voice) {
+    params.set("voice", settings.voice);
+  }
+  const response = await scopedFetch(demoAgentPath(`/speech/latest?${params.toString()}`), {
+    method: "POST",
+  });
+  if (response.status === 404) {
+    appendLog("realtime", "no stored assistant speech to read.");
+    return;
+  }
+  if (!response.ok) {
+    appendLog("realtime", `initial assistant audio failed: ${response.status}`);
+    return;
+  }
+  const data = await response.json();
+  const speech = typeof data.speech === "string" ? data.speech.trim() : "";
+  if (speech) {
+    setText("speech_preview", speech);
+  }
+  playRecordedSpeechAudio(data);
+}
+
+async function handleRecordedSpeechTurnResponse(data) {
+  if (!data) {
+    return;
+  }
+  const transcript = typeof data.transcript === "string" ? data.transcript.trim() : "";
+  if (transcript) {
+    appendMessage("user", transcript);
+    renderSpeechSensingTranscript(transcript);
+    appendLog("realtime", "recorded user transcript completed.");
+  }
+  if (data.response) {
+    if (typeof data.response.active === "boolean") {
+      setActiveStatus(data.response.active);
+    }
+    handleResponseEvent(data.response.responseEvent);
+  }
+  playRecordedSpeechAudio(data);
+  await loadStorage();
+  await loadAgentState();
+}
+
+function playRecordedSpeechAudio(data) {
+  if (!data || !data.audioBase64) {
+    return;
+  }
+  const audio = document.getElementById("push_to_talk_assistant_audio");
+  audio.pause();
+  audio.srcObject = null;
+  audio.src = `data:${data.audioContentType || "audio/mpeg"};base64,${data.audioBase64}`;
+  audio.load();
+  audio.play().catch(() => {
+    appendLog("realtime", "assistant audio ready; browser blocked autoplay.");
+  });
+}
+
+function preferredRecordedAudioMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ];
+  return candidates.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
+}
+
+function recordedAudioFilename(contentType) {
+  if (contentType && contentType.includes("mp4")) {
+    return "speech-turn.mp4";
+  }
+  return "speech-turn.webm";
 }
 
 function setMicEnabled(enabled) {
@@ -2566,6 +2804,17 @@ function resetDisabledSensorState() {
   }
 }
 
+function renderSpeechSensingTranscript(transcript) {
+  const text = typeof transcript === "string" ? transcript.trim() : "";
+  const value = text || "-";
+  setText("continuous_speech_sensing_value", value);
+  setText("speech_sensing_value", value);
+}
+
+function resetSpeechSensingPanel() {
+  renderSpeechSensingTranscript("");
+}
+
 function renderUserSignFromPayload(payload) {
   if (!payload) {
     return;
@@ -2687,7 +2936,8 @@ function setControlsEnabled(enabled) {
     "activity_log_wrap",
     "activity_log_timestamps",
     "text_interaction_tab",
-    "speech_interaction_tab",
+    "continuous_speech_tab",
+    "push_to_talk_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
     if (alwaysEnabled.has(el.id) || el.classList.contains("btn-close") ||
@@ -2723,26 +2973,63 @@ function setBehaviourStatus(text, mode) {
   el.className = `status-pill is-${mode || "idle"}`;
 }
 
-function setRealtimeState(isListening) {
+function setRealtimeState(isListening, mode = realtime.activeMode || REALTIME_MODE_CONTINUOUS) {
   state.realtimeListening = isListening;
-  const button = document.getElementById("toggle_realtime");
-  const listen = document.getElementById("listen_status");
+  const continuousButton = document.getElementById("toggle_realtime");
+  const pushButton = document.getElementById("toggle_push_to_talk_realtime");
+  const continuousListen = document.getElementById("listen_status");
+  const pushListen = document.getElementById("push_to_talk_status");
   const status = document.getElementById("realtime_status");
+  const continuousActive = isListening && mode === REALTIME_MODE_CONTINUOUS;
+  const pushToTalkActive = isListening && mode === REALTIME_MODE_PUSH_TO_TALK;
   if (isListening) {
-    button.innerHTML = '<i class="bi bi-mic-mute-fill me-2"></i>Stop Realtime';
-    button.classList.add("is-listening");
-    listen.textContent = "Listening";
-    listen.className = "status-pill is-listening";
+    continuousButton.innerHTML = continuousActive
+      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Continuous'
+      : '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+    pushButton.innerHTML = pushToTalkActive
+      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Push to Talk'
+      : '<i class="bi bi-mic-fill me-2"></i>Start Push to Talk';
+    continuousButton.classList.toggle("is-listening", continuousActive);
+    pushButton.classList.toggle("is-listening", pushToTalkActive);
+    continuousButton.disabled = !continuousActive;
+    pushButton.disabled = !pushToTalkActive;
+    continuousListen.textContent = continuousActive ? "Listening" : "Idle";
+    continuousListen.className = `status-pill is-${continuousActive ? "listening" : "idle"}`;
+    pushListen.textContent = pushToTalkActive ? "Listening" : "Idle";
+    pushListen.className = `status-pill is-${pushToTalkActive ? "listening" : "idle"}`;
     status.textContent = "Realtime Live";
     status.className = "status-pill is-live";
   } else {
-    button.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Realtime';
-    button.classList.remove("is-listening");
-    listen.textContent = "Idle";
-    listen.className = "status-pill is-idle";
+    continuousButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+    pushButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Push to Talk';
+    continuousButton.classList.remove("is-listening");
+    pushButton.classList.remove("is-listening");
+    continuousButton.disabled = false;
+    pushButton.disabled = false;
+    continuousListen.textContent = "Idle";
+    continuousListen.className = "status-pill is-idle";
+    pushListen.textContent = "Idle";
+    pushListen.className = "status-pill is-idle";
     status.textContent = "Realtime Idle";
     status.className = "status-pill is-idle";
   }
+  setRealtimeControlsLocked(isListening);
+  updatePushToTalkUi();
+}
+
+function setRealtimeControlsLocked(locked) {
+  [
+    "voice_select",
+    "turn_detection_select",
+    "generate_side_behaviour",
+    "push_to_talk_voice_select",
+    "push_to_talk_generate_side_behaviour",
+  ].forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.disabled = locked;
+    }
+  });
 }
 
 function setCameraStatus(text, mode) {

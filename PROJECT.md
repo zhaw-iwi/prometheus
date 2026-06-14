@@ -60,6 +60,17 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 54: Realtime speech duplicate-response fix
 - [x] Milestone 55: Agent language codes for Realtime transcription hints
 - [x] Milestone 56: Realtime transcript ingress gating and ASR hallucination hardening
+- [x] Milestone 57: Push-to-talk Realtime turn-boundary hardening
+- [x] Milestone 58: Valerian speech sensing readout
+- [x] Milestone 59: Valerian agent drawer language metadata and tab order
+- [x] Milestone 60: Move Valerian speech sensing into Realtime tab
+- [x] Milestone 61: Valerian explicit no-gesture display
+- [x] Milestone 62: Push-to-talk audio drain before commit
+- [x] Milestone 63: Split continuous and push-to-talk speech clients
+- [x] Milestone 64: Out-of-band exact Realtime speech and dual speech-sensing readouts
+- [x] Milestone 65: Backend-owned recorded push-to-talk speech turns
+- [x] Milestone 66: Push-to-talk starter speech playback
+- [x] Milestone 67: Current-state latest-utterance speech replay
 
 ## Milestone 1
 ### Date
@@ -2750,3 +2761,472 @@ Stop duplicate and phantom Realtime speech-to-speech transcript completions from
 1. Re-test the GIGI TDSR guessing-game push-to-talk flow with the same access-code setup that produced duplicate answers.
 2. If ASR still produces non-caption hallucinations, enable/use transcription confidence data or add a stricter PROMETHEUS-side acceptance policy for speech input.
 3. Consider exposing speech-call transcription model selection in admin/config UI if demos need to trade quality against cost.
+
+## Milestone 57
+### Date
+2026-06-14
+
+### Goal
+Harden the OpenAI Realtime push-to-talk turn boundary so manual sessions behave like the documented WebRTC push-to-talk flow while PROMETHEUS remains authoritative for responses.
+
+### What changed
+- Compared the live symptom against the OpenAI Realtime WebRTC push-to-talk guidance:
+  - `turn_detection` must be null for manual sessions
+  - button press clears the input audio buffer and active output when needed
+  - button release commits the buffered audio
+  - response creation remains backend-side in PROMETHEUS
+- Locked Realtime voice, turn-detection mode, and backend-complement controls while a WebRTC call is live in both speech clients, so the UI cannot enter push-to-talk behavior for a call that was created with server VAD.
+- Captured the active turn-detection mode at call creation and used that active mode for push-to-talk UI/keyboard guards instead of reading mutable dropdown state.
+- Disabled the local mic track immediately after `getUserMedia` when the active call is push-to-talk, preventing an initial open-mic window during WebRTC setup.
+- Changed push-to-talk release ordering in `/realtime/` and `/valerian/` so the client sends `input_audio_buffer.commit` before muting the mic track.
+- Changed push-to-talk press ordering so clients send `input_audio_buffer.clear` first, then cancel/clear active output when needed.
+- Changed sideband and browser transcript gates so `input_audio_buffer.cleared` clears pending input item tracking but does not discard already completed transcript candidates waiting in the batch window.
+
+### How to run
+1. Configure OpenAI Realtime properties:
+   - `openai.realtimeModel=gpt-realtime-2`
+   - `openai.realtimeInputTranscriptionModel=gpt-4o-transcribe`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Select Push to Talk before starting Realtime, start the call, and test `gigitdsr.guessing_game_with_gestures`.
+5. To change between Continuous and Push to Talk, stop Realtime, change the mode, then start it again.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest,RealtimeBrowserClientContractTest" test`
+
+### Known issues and decisions
+- PROMETHEUS still intentionally differs from the generic client-only OpenAI recipe at the final step: the browser does not send `response.create`; the sideband sends it only after backend acknowledgement/generation has produced canonical speech.
+- The fix is based on static contract coverage and targeted unit tests. A live WebRTC smoke with real credentials is still needed to confirm that push-to-talk speech and text-client history now stay aligned.
+- If live PTT still produces unexplained spoken output absent from the behaviour stream, the next diagnostic should add response/item IDs and exact sideband lifecycle events to the Valerian diagnostics drawer.
+
+### Next steps
+1. Re-test the GIGI TDSR guessing-game push-to-talk flow in Valerian with diagnostics open.
+2. If mismatch remains, add explicit sideband turn-lifecycle diagnostics for accepted transcript item ID, generated backend speech, session update acknowledgement, and exact-speech `response.create`.
+
+## Milestone 58
+### Date
+2026-06-14
+
+### Goal
+Extend the Valerian PROMETHEUS demo cockpit sensing area so speech input is visible next to visual sensing, and make the sensing/output panel icons more semantically clear.
+
+### What changed
+- Added a `Speech Sensing` surface to the Valerian sensing panel.
+- The speech sensing readout displays the latest accepted Realtime ASR user transcript from the same gated candidate path that updates the text transcript.
+- The speech sensing readout is reset when connecting to another agent, disconnecting, or resetting the current agent.
+- Marked the speech sensing surface with `data-profile-observations="obs.user_utterance"` so it participates in the existing interaction-profile visibility rules.
+- Changed the main sensing icon from a camera-specific icon to a radar-style sensing icon.
+- Changed the behaviour output panel icon from eyeglasses to a send/output icon.
+- Updated the Valerian static resource contract to pin the panel, icons, profile marker, and ASR binding.
+- Updated README cockpit notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect a speech-capable agent, start Realtime, and speak. The left sensing panel should show the accepted user speech in `Speech Sensing`.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The readout shows accepted completed ASR candidates, not raw partial deltas. This keeps the sensing display aligned with the transcript gate that suppresses duplicates and known hallucinations.
+- Historical text utterances do not populate the speech sensing readout on refresh. The panel is for live speech sensing, not general conversation history.
+- A live browser smoke with microphone input was not run in this milestone.
+
+### Next steps
+1. Re-test Valerian Realtime speech and confirm the speech sensing card updates together with the text transcript.
+2. If operators need deeper debugging, add transcript item IDs and ASR event IDs to the diagnostics drawer rather than the main cockpit panel.
+
+## Milestone 59
+### Date
+2026-06-14
+
+### Goal
+Expose agent language metadata in the Valerian agent drawer and make the Agent tab the first/default drawer view.
+
+### What changed
+- Added a `Language` field beneath agent name and description in the Agent tab.
+- The language field is always rendered and shows `-` when no `languageCode` is present.
+- Wired the field from the existing agent info response `languageCode`.
+- Reordered the drawer tabs so `Agent` is on the left and `Diagnostics` is on the right.
+- Added a drawer-open hook that activates the Agent tab whenever the drawer opens, even if the previous drawer view was Diagnostics.
+- Updated the Valerian static resource contract and README.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open `Agent & Diagnostics`. The drawer should open on `Agent`, with `Diagnostics` second, and the Agent panel should show `Language`.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This milestone only displays the existing language metadata; it does not add editing for language codes.
+- No live browser smoke was run.
+
+### Next steps
+1. Reopen the drawer after switching to Diagnostics and confirm it returns to the Agent tab.
+2. Consider adding a future admin affordance for editing custom-agent language codes if runtime configuration becomes necessary.
+
+## Milestone 60
+### Date
+2026-06-14
+
+### Goal
+Move the Valerian speech sensing readout out of the visual sensing column and into the Realtime Speech interaction tab.
+
+### What changed
+- Removed the `Speech Sensing` surface from the left Sensing card so that card is again visual-sensing-only.
+- Added the same `Speech Sensing` surface at the bottom of the Realtime Speech tab, below the assistant audio element.
+- Kept the existing accepted-ASR transcript wiring and reset behaviour unchanged.
+- Updated the Valerian static resource contract to enforce the new placement.
+- Updated README cockpit notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open the Realtime Speech tab. The `Speech Sensing` readout should be at the bottom of that tab, not in the left Sensing card.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The readout still shows accepted completed ASR candidates, not raw partial deltas.
+- No live browser smoke was run.
+
+### Next steps
+1. Re-test Valerian Realtime speech and confirm the readout updates inside the Realtime Speech tab.
+
+## Milestone 61
+### Date
+2026-06-14
+
+### Goal
+Make Valerian's behaviour output display explicit when a backend behaviour event does not emit a gesture.
+
+### What changed
+- Updated the Valerian behaviour renderer so missing `nonVerbal` output sets the gesture row to `NONE`.
+- Also defaults a present `nonVerbal` object without `gesture` to `NONE`.
+- Added Valerian static resource contract assertions for both display safeguards.
+- Updated README behaviour notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Trigger a speech-only behaviour event. The Behaviour Output gesture row should show `NONE` rather than retaining the previous gesture.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This is a cockpit display fix only. It does not add a final-state goodbye gesture to any agent definition.
+- Face, gaze, and motion rows are still only updated when their corresponding values are present in the latest plan.
+
+### Next steps
+1. Decide whether GIGI final states should emit an explicit nonverbal goodbye plan, and whether that should reuse `ACKNOWLEDGE` or introduce a new canonical goodbye gesture.
+
+## Milestone 62
+### Date
+2026-06-14
+
+### Goal
+Improve Realtime push-to-talk transcription reliability by avoiding a WebRTC commit race at key-up.
+
+### What changed
+- Compared the failing push-to-talk path against current OpenAI Realtime push-to-talk guidance:
+  - manual sessions use `audio.input.turn_detection=null`
+  - button press clears the input buffer
+  - button release commits the input buffer before response creation
+- Kept PROMETHEUS authoritative for responses: browser clients still do not send `response.create`.
+- Added a short 250 ms audio-drain window after push-to-talk release in both `/valerian/` and `/realtime/`.
+- During that drain window, the mic track remains enabled so late WebRTC audio frames can reach the Realtime input buffer before `input_audio_buffer.commit`.
+- After the delayed commit is sent, the clients mute the local mic track.
+- Added lifecycle handling to flush a pending delayed commit before a new push-to-talk turn and cancel pending delayed commits when a Realtime session stops.
+- Clarified `openai.properties.template`:
+  - `openai.realtimeInputTranscriptionModel` configures speech-to-speech call input transcription.
+  - `openai.realtimeTranscriptionModel` configures transcription-only sessions such as `/multilateral/listen`.
+- Updated README Realtime notes and browser contract coverage.
+
+### How to run
+1. Configure OpenAI Realtime properties:
+   - `openai.realtimeModel=gpt-realtime-2`
+   - `openai.realtimeInputTranscriptionModel=gpt-4o-transcribe`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Select Push to Talk before starting Realtime, start the call, hold Space while speaking, release, and confirm the Speech Sensing readout matches the utterance.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,RealtimeSessionClientTest" test`
+
+### Known issues and decisions
+- The transcription model defaults were not changed. Official OpenAI docs still distinguish speech-to-speech built-in input transcription from `gpt-realtime-whisper` transcription-only sessions.
+- The 250 ms drain window is a pragmatic browser/WebRTC timing fix. A live microphone smoke is still needed to tune it if a specific environment needs a longer delay.
+- If push-to-talk still produces correct spoken responses but wrong displayed transcripts, the next deeper fix should evaluate out-of-band transcription or using the Realtime model itself for authoritative transcript generation, but that would be a larger PROMETHEUS workflow decision.
+
+### Next steps
+1. Re-test GIGI push-to-talk with short German utterances such as `Bereit`, `Ja`, and `Nein`.
+2. If transcripts are still clipped, increase the drain delay in small increments and add diagnostics for commit timestamp, transcript item ID, and completed transcript text.
+
+## Milestone 63
+### Date
+2026-06-14
+
+### Goal
+Redesign browser Realtime speech mode handling so continuous VAD and push-to-talk are separate client paths instead of one shared mode-switching client.
+
+### What changed
+- Split Valerian's interaction area into three tabs:
+  - `Text`
+  - `Continuous`
+  - `Push to Talk`
+- Removed `Push to Talk` from the Valerian VAD dropdown. The continuous tab now only exposes VAD modes (`server_vad`, `semantic_vad`).
+- Added a dedicated Valerian push-to-talk start/stop control, voice selector, backend-complement checkbox, assistant audio element, and speech-sensing readout.
+- Split the standalone `/realtime/` client into separate continuous and push-to-talk controls as well.
+- Changed browser push-to-talk behavior:
+  - a PTT session is created with `turnDetection=none`
+  - the WebRTC mic track remains enabled while the manual session is active
+  - pressing the button clears the Realtime input buffer and cancels/clears active output if needed
+  - releasing the button schedules a delayed `input_audio_buffer.commit`
+  - the browser still does not send `response.create`; PROMETHEUS sideband remains authoritative
+- Removed the old per-turn mic-track enable/disable mechanism from PTT. This avoids using WebRTC track muting as a turn-boundary mechanism.
+- Updated browser/static contract tests and README.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect a speech-capable agent.
+4. Use `Continuous` for the known-working VAD path.
+5. Use `Push to Talk` for manual turns. Start the PTT session, hold the button or Space while speaking, then release.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Push-to-talk now controls Realtime input-buffer turn boundaries, not microphone transport privacy. The browser keeps the WebRTC mic track live during an active PTT session so OpenAI receives coherent audio frames; the next press clears any uncommitted background buffer.
+- This keeps PROMETHEUS authoritative: browser clients still never create assistant responses.
+- A live microphone smoke is still required because static tests cannot verify ASR quality.
+- If PTT still shows a mismatch between what Realtime appears to understand and what built-in ASR transcribes, the next design step should be a backend-owned recorded-turn pipeline or out-of-band transcription rather than further WebRTC track-timing tweaks.
+
+### Next steps
+1. Live-test GIGI in Valerian `Continuous` and `Push to Talk` tabs back to back with `Bereit`, `Ja`, and `Nein`.
+2. If PTT transcript quality remains unacceptable, prototype backend-owned recorded-turn PTT where the browser uploads one utterance and PROMETHEUS owns transcription before response generation.
+
+## Milestone 64
+### Date
+2026-06-14
+
+### Goal
+Restore Valerian speech sensing in both speech tabs and prevent Realtime from answering push-to-talk raw audio outside the PROMETHEUS behaviour path.
+
+### What changed
+- Added the live `Speech Sensing` readout to the Valerian `Continuous` tab while keeping the existing readout in `Push to Talk`.
+- Updated the shared speech-sensing renderer so the latest accepted Realtime ASR transcript is shown in both speech tabs.
+- Compared the sideband response flow with current OpenAI Realtime guidance:
+  - WebRTC push-to-talk uses explicit `input_audio_buffer.clear`, `input_audio_buffer.commit`, then `response.create`.
+  - `response.create` can be sent out-of-band with `conversation: "none"`.
+  - Providing `input: []` gives the response an empty context instead of the default conversation.
+- Changed `RealtimeSidebandService` exact-speech responses to send `conversation=none` and empty `input`, so Realtime speech output is only a rendering of PROMETHEUS backend speech rather than a fresh answer to the live audio item.
+- Added sideband contract coverage for the exact `response.create` event shape.
+- Updated Valerian static resource coverage and README notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect a speech-capable agent.
+4. Use `Continuous` or `Push to Talk`; both tabs should show the latest accepted ASR transcript in their `Speech Sensing` card.
+5. In Push to Talk, spoken assistant output should match the backend/text-client behaviour event rather than an additional Realtime-generated answer to raw audio.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSidebandServiceContractTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,RealtimeSessionClientTest" test`
+
+### Known issues and decisions
+- This preserves the PROMETHEUS authority boundary: the browser still does not create assistant responses and Realtime only speaks backend-authored text.
+- This should address the symptom where the first spoken answer reacts to the actual push-to-talk audio while the text client later shows a different backend response to a bad ASR transcript.
+- It does not solve poor push-to-talk ASR transcripts such as `Ja` becoming `Heureusement`, `Hello`, or punctuation. If that persists, the next design step should be a backend-owned recorded-turn PTT path or an out-of-band Realtime-model transcription pass before acknowledging the user event.
+- A live microphone smoke was not run in this milestone.
+
+### Next steps
+1. Re-test GIGI push-to-talk and verify that spoken output now exactly matches the text-client/backend behaviour.
+2. If ASR quality remains unacceptable, prototype backend-owned recorded-turn PTT where PROMETHEUS receives one utterance audio blob, transcribes it, and only then acknowledges `obs.user_utterance`.
+
+## Milestone 65
+### Date
+2026-06-14
+
+### Goal
+Replace WebRTC manual-buffer push-to-talk with a PROMETHEUS-owned recorded speech turn pipeline.
+
+### What changed
+- Added request-based OpenAI audio support:
+  - `OpenAIAudioClient.transcribe(...)` posts uploaded audio to `/v1/audio/transcriptions`.
+  - `OpenAIAudioClient.createSpeech(...)` renders backend speech through `/v1/audio/speech`.
+- Added configuration keys:
+  - `openai.audioTranscriptionsUrl`
+  - `openai.audioSpeechUrl`
+  - `openai.recordedSpeechTranscriptionModel`
+  - `openai.speechModel`
+- Added `RecordedSpeechTurnService`:
+  - accepts one uploaded browser-recorded audio turn
+  - transcribes it with the agent `languageCode` as language hint when present
+  - acknowledges the transcript as `obs.user_utterance` with `OutputProfile.REALTIME_SPEECH`
+  - generates canonical backend speech when acknowledgement does not directly produce speech and the agent remains active
+  - optionally generates backend complement behaviour with speech omitted
+  - returns the transcript, canonical `ResponseView`, and backend TTS audio
+- Added endpoints:
+  - `POST /{agentID}/speech-turn`
+  - `POST /demo/agents/{agentId}/speech-turn`
+- Changed Valerian Push to Talk:
+  - no Realtime WebRTC call is created
+  - no OpenAI data-channel buffer commands are sent
+  - the browser records local audio only while the PTT button or Space key is held
+  - release uploads one recorded audio blob to PROMETHEUS
+  - the returned transcript updates the Speech Sensing card and text conversation
+  - returned backend TTS audio is played in the Push to Talk audio element
+- Changed the standalone `/realtime/` Push to Talk path to use the same recorded-turn backend endpoint.
+- Kept Continuous speech on the existing Realtime WebRTC/VAD path.
+- Updated static browser contracts, backend unit/WebMvc coverage, README, and the OpenAI properties template.
+
+### How to run
+1. Configure OpenAI properties:
+   - `openai.recordedSpeechTranscriptionModel=gpt-4o-transcribe`
+   - `openai.speechModel=gpt-4o-mini-tts`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Connect a speech-capable agent.
+5. Use `Continuous` for live Realtime VAD.
+6. Use `Push to Talk` for backend-owned recorded turns. Start PTT, hold the button or Space while speaking, then release.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q "-Dtest=OpenAIAudioClientTest,RecordedSpeechTurnServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeSidebandServiceContractTest,RealtimeSessionClientTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This intentionally abandons Realtime manual-buffer PTT for PROMETHEUS clients because the browser no longer leaves a live microphone stream attached to OpenAI while idle.
+- Push to Talk is no longer low-latency speech-to-speech. It is a recorded request turn followed by backend transcription, backend behaviour generation, and backend TTS. This is slower but preserves the PROMETHEUS authority boundary.
+- Continuous VAD still uses Realtime sideband orchestration and remains the low-latency mode.
+- A live microphone smoke with real credentials is still needed to confirm German short-turn ASR quality in the new recorded path.
+
+### Next steps
+1. Live-test Valerian Push to Talk with `Bereit`, `Ja`, and `Nein`.
+2. If recorded-turn ASR still mishears short German utterances, add a narrow transcript post-processor for agent-declared yes/no interaction states rather than returning to live WebRTC PTT.
+
+## Milestone 66
+### Date
+2026-06-14
+
+### Goal
+Make backend-owned recorded Push to Talk read the latest stored assistant utterance when the PTT session starts.
+
+### What changed
+- Added `SpeechAudioView` for backend-rendered speech audio without a new user turn.
+- Added recorded-speech service methods that scan agent event history for the latest assistant `BehaviourPlan.speech` and synthesize it with backend TTS.
+- Added endpoints:
+  - `POST /{agentID}/speech/latest`
+  - `POST /demo/agents/{agentId}/speech/latest`
+- Updated the Valerian Push to Talk tab so `Start Push to Talk` requests and plays the latest stored assistant speech before the user records a turn.
+- Updated the standalone `/realtime/` Push to Talk client with the same start-time playback behavior.
+- Updated static browser contracts, service/MVC coverage, scoped integration coverage, and README notes.
+
+### How to run
+1. Configure OpenAI request-based audio properties:
+   - `openai.recordedSpeechTranscriptionModel=gpt-4o-transcribe`
+   - `openai.speechModel=gpt-4o-mini-tts`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Connect an agent that already has a starter assistant utterance in chat, open `Push to Talk`, and press `Start Push to Talk`. The stored assistant utterance should be read aloud before recording any user audio.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=RecordedSpeechTurnServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest" test`
+
+### Known issues and decisions
+- The endpoint only renders existing backend-authored assistant speech; it does not publish a new behaviour event or mutate agent state.
+- If no assistant speech exists in history, the browser logs that no stored speech is available and leaves Push to Talk ready.
+- A live browser smoke with real OpenAI TTS credentials was not run in this milestone.
+
+### Next steps
+1. Re-test Valerian Push to Talk after `Start Agent` and confirm the starter utterance is read on `Start Push to Talk`.
+2. If browser autoplay blocks the audio after a slow TTS response, add an explicit replay button next to the Push to Talk audio element.
+
+## Milestone 67
+### Date
+2026-06-14
+
+### Goal
+Align continuous and recorded Push to Talk restart playback around the latest utterance in the current state history.
+
+### What changed
+- Added a current-state event-history accessor on `Agent`, `AgentApplicationService`, and `ScopedDemoService`.
+- Added a shared `SpeechTurnSelector` that walks current-state history backward and returns assistant speech only when the latest utterance is assistant-authored.
+- Updated continuous Realtime call orchestration to seed the sideband with this selected speech instead of only checking the final raw event.
+- Updated recorded Push to Talk `/speech/latest` to use the same selector, so it no longer replays stale assistant speech after a newer user utterance.
+- Documented the restart playback rule in README.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect/start an agent, stop Continuous or Push to Talk after an assistant reply, then start the same speech mode again. If no later user utterance exists in the current state history, the assistant reply should be read aloud.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeCallOrchestrationServiceUnitTest,RecordedSpeechTurnServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest" test`
+
+### Known issues and decisions
+- The selector ignores non-speech assistant behaviour events and non-verbal complement events when deciding whether the latest utterance is assistant speech.
+- A later `obs.user_utterance` in the current state history blocks replay, even if no response has been generated yet.
+- A live browser smoke was not run in this milestone.
+
+### Next steps
+1. Re-test Valerian Continuous and Push to Talk by stopping and restarting immediately after an assistant reply.
+2. If nested outer-state agents need narrower leaf-only replay, add an exact active-state-path selector rather than the current state's existing event selector.

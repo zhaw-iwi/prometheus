@@ -41,8 +41,14 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"agent-profile-observations\""));
         assertTrue(index.contains("data-testid=\"agent-profile-behaviours\""));
         assertTrue(index.contains("data-testid=\"agent-profile-tags\""));
+        assertTrue(index.contains("data-testid=\"agent-info-language\""));
+        assertTrue(index.contains("Language"));
         assertTrue(index.contains("Interaction Profile"));
         assertTrue(index.contains("Agent &amp; Diagnostics"));
+        assertTrue(index.indexOf("data-testid=\"agent-drawer-tab\"")
+                < index.indexOf("data-testid=\"diagnostics-drawer-tab\""));
+        assertTrue(index.indexOf("id=\"agent_drawer_panel\"")
+                < index.indexOf("id=\"diagnostics_drawer_panel\""));
         assertTrue(index.contains("Available Agent Types"));
         assertTrue(index.contains("Connect"));
         assertTrue(index.contains("data-testid=\"agent-connection-state\""));
@@ -51,7 +57,10 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"send-text\""));
         assertTrue(index.contains("data-testid=\"message-list\""));
         assertTrue(index.contains("data-testid=\"text-interaction-tab\""));
-        assertTrue(index.contains("data-testid=\"speech-interaction-tab\""));
+        assertTrue(index.contains("data-testid=\"continuous-speech-tab\""));
+        assertTrue(index.contains("data-testid=\"push-to-talk-tab\""));
+        assertTrue(index.contains("bi-radar"));
+        assertTrue(index.contains("bi-send-fill"));
         assertFalse(index.toLowerCase().contains("gigi"));
         assertFalse(index.toLowerCase().contains("tdsr"));
     }
@@ -84,6 +93,12 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("params.set(\"accessCode\", state.accessCode);"));
         assertTrue(script.contains("function isVisibleAgentId"));
         assertTrue(script.contains("function prometheusFacingText"));
+        assertTrue(script.contains("function agentLanguageLabel"));
+        assertTrue(script.contains("data.languageCode"));
+        assertTrue(script.contains("agent_info_language"));
+        assertTrue(script.contains("show.bs.offcanvas"));
+        assertTrue(script.contains("showAgentDrawerTab"));
+        assertTrue(script.contains("window.bootstrap.Tab.getOrCreateInstance(tab).show();"));
 
         assertFalse(script.contains("fetch(\"/agent\")"));
         assertFalse(script.contains("fetch(`/${state.agentId}/"));
@@ -96,14 +111,44 @@ class ValerianClientStaticResourceContractTest {
         String index = Files.readString(INDEX);
         String script = Files.readString(SCRIPT);
 
-        assertTrue(index.contains("id=\"speech_interaction_panel\""));
+        assertTrue(index.contains("data-testid=\"continuous-speech-tab\""));
+        assertTrue(index.contains("data-testid=\"push-to-talk-tab\""));
+        assertTrue(index.contains("id=\"continuous_speech_panel\""));
+        assertTrue(index.contains("id=\"push_to_talk_panel\""));
         assertTrue(index.contains("data-testid=\"toggle-realtime\""));
+        assertTrue(index.contains("data-testid=\"toggle-push-to-talk-realtime\""));
         assertTrue(index.contains("data-testid=\"voice-select\""));
+        assertTrue(index.contains("data-testid=\"push-to-talk-voice-select\""));
         assertTrue(index.contains("data-testid=\"turn-detection-select\""));
         assertTrue(index.contains("data-testid=\"push-to-talk\""));
         assertTrue(index.contains("data-testid=\"generate-side-behaviour\""));
+        assertTrue(index.contains("data-testid=\"push-to-talk-generate-side-behaviour\""));
+        assertTrue(index.contains("data-testid=\"assistant-audio\""));
+        assertTrue(index.contains("data-testid=\"push-to-talk-assistant-audio\""));
+        assertTrue(index.contains("data-testid=\"continuous-speech-sensing-panel\""));
+        assertTrue(index.contains("data-testid=\"continuous-speech-sensing-value\""));
+        assertTrue(index.contains("data-testid=\"speech-sensing-panel\""));
+        assertTrue(index.contains("data-testid=\"speech-sensing-value\""));
+        assertTrue(index.contains("Speech Sensing"));
+        assertTrue(index.contains("User Speech"));
         assertTrue(index.contains("value=\"cedar\""));
         assertTrue(index.contains("value=\"marin\""));
+        assertTrue(index.contains("value=\"semantic_vad\""));
+        assertFalse(index.contains("<option value=\"none\""));
+        assertTrue(index.indexOf("id=\"continuous_speech_panel\"")
+                < index.indexOf("data-testid=\"continuous-speech-sensing-panel\""));
+        assertTrue(index.indexOf("data-testid=\"assistant-audio\"")
+                < index.indexOf("data-testid=\"continuous-speech-sensing-panel\""));
+        assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
+                < index.indexOf("id=\"push_to_talk_panel\""));
+        assertTrue(index.indexOf("id=\"push_to_talk_panel\"")
+                < index.indexOf("data-testid=\"speech-sensing-panel\""));
+        assertTrue(index.indexOf("data-testid=\"push-to-talk-assistant-audio\"")
+                < index.indexOf("data-testid=\"speech-sensing-panel\""));
+        assertTrue(index.indexOf("data-testid=\"speech-sensing-panel\"")
+                < index.indexOf("<aside class=\"right-column\">"));
+        assertTrue(index.indexOf("data-testid=\"speech-sensing-panel\"")
+                > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column\">")));
 
         assertTrue(script.contains("/realtime/call?"));
         assertTrue(script.contains("Content-Type\": \"application/sdp\""));
@@ -111,20 +156,38 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("call.sdp"));
         assertTrue(script.contains("/realtime/calls/"));
         assertTrue(script.contains("input_audio_buffer.committed"));
-        assertTrue(script.contains("input_audio_buffer.commit"));
-        assertTrue(script.contains("input_audio_buffer.clear"));
-        assertTrue(script.contains("response.cancel"));
-        assertTrue(script.contains("output_audio_buffer.clear"));
         assertTrue(script.contains("TRANSCRIPT_BATCH_DELAY_MS"));
         assertTrue(script.contains("isLikelyAsrHallucination"));
         assertTrue(script.contains("amara org community"));
         assertTrue(script.contains("processedInputItemIds"));
+        assertTrue(script.contains("renderSpeechSensingTranscript(selected.transcript);"));
+        assertTrue(script.contains("function renderSpeechSensingTranscript"));
+        assertTrue(script.contains("setText(\"continuous_speech_sensing_value\""));
+        assertTrue(script.contains("setText(\"speech_sensing_value\""));
+        assertTrue(script.contains("resetSpeechSensingPanel();"));
+        assertTrue(script.contains("REALTIME_MODE_CONTINUOUS"));
+        assertTrue(script.contains("REALTIME_MODE_PUSH_TO_TALK"));
+        assertTrue(script.contains("toggleRealtime(REALTIME_MODE_CONTINUOUS)"));
+        assertTrue(script.contains("toggleRealtime(REALTIME_MODE_PUSH_TO_TALK)"));
+        assertTrue(script.contains("activeAssistantAudioElement().srcObject"));
+        assertTrue(script.contains("window.MediaRecorder"));
+        assertTrue(script.contains("new MediaRecorder"));
+        assertTrue(script.contains("new FormData()"));
+        assertTrue(script.contains("form.append(\"audio\""));
+        assertTrue(script.contains("demoAgentPath(`/speech-turn?${params.toString()}`)"));
+        assertTrue(script.contains("demoAgentPath(`/speech/latest?${params.toString()}`)"));
+        assertTrue(script.contains("playRecordedSpeechAudio"));
+        assertTrue(script.contains("playLatestAssistantSpeechForPushToTalk"));
 
         assertFalse(script.contains("/realtime/session"));
         assertFalse(script.contains("sessionInfo.realtimeCallsUrl"));
         assertFalse(script.contains("clientSecret"));
         assertFalse(script.contains("type: \"session.update\""));
         assertFalse(script.contains("type: \"response.create\""));
+        assertFalse(script.contains("type: \"input_audio_buffer.commit\""));
+        assertFalse(script.contains("type: \"input_audio_buffer.clear\""));
+        assertFalse(script.contains("type: \"response.cancel\""));
+        assertFalse(script.contains("type: \"output_audio_buffer.clear\""));
         assertFalse(script.contains("ackResponseSpeech"));
         assertFalse(script.contains("speakStoredAssistantResponse"));
     }
@@ -325,6 +388,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("plan.nonVerbal"));
         assertTrue(script.contains("plan.motion"));
         assertTrue(script.contains("plan.display"));
+        assertTrue(script.contains("setText(\"gesture_value\", \"NONE\");"));
+        assertTrue(script.contains("setText(\"gesture_value\", asText(nonVerbal.gesture || \"NONE\"));"));
         assertTrue(script.contains("motion.handSign"));
         assertTrue(script.contains("renderAgentSign(sign)"));
         assertTrue(script.contains("renderUserSign(sign)"));
@@ -375,6 +440,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-profile-observations=\"obs.emotion.face\""));
         assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping\""));
         assertTrue(index.contains("data-profile-observations=\"obs.hand.sign\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.user_utterance\""));
         assertTrue(index.contains("data-profile-behaviours=\"speech\""));
         assertTrue(index.contains("data-profile-behaviours=\"nonVerbal.gesture\""));
         assertTrue(index.contains("data-profile-behaviours=\"nonVerbal.facialExpression\""));

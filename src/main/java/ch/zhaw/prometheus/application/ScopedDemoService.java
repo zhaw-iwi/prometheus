@@ -121,6 +121,13 @@ public class ScopedDemoService {
         return this.agentService.getAgentEventHistory(agentId);
     }
 
+    public Optional<List<Event>> getAgentCurrentStateEventHistory(String accessCodeValue, UUID agentId) {
+        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
+            return Optional.empty();
+        }
+        return this.agentService.getAgentCurrentStateEventHistory(agentId);
+    }
+
     public Optional<AgentStateInfoView> getAgentState(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
             return Optional.empty();

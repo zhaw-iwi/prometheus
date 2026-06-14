@@ -48,7 +48,7 @@ class RealtimeCallOrchestrationServiceUnitTest {
                 BehaviourPlan.speechOnly("Previous assistant speech.").toJson());
 
         when(agentService.prompt(agentId, OutputProfile.REALTIME_SPEECH)).thenReturn(Optional.of(prompt));
-        when(agentService.getAgentEventHistory(agentId)).thenReturn(Optional.of(List.of(previousAssistant)));
+        when(agentService.getAgentCurrentStateEventHistory(agentId)).thenReturn(Optional.of(List.of(previousAssistant)));
         when(agentService.getAgentLanguageCode(agentId)).thenReturn(Optional.of("de"));
         when(realtimeClient.createCall(eq("offer-sdp"), any()))
                 .thenReturn(call);
@@ -78,6 +78,67 @@ class RealtimeCallOrchestrationServiceUnitTest {
         assertEquals(agentId, sidebandConfig.getValue().getAgentId());
         assertEquals("Previous assistant speech.", sidebandConfig.getValue().getInitialExactSpeech());
         assertFalse(sidebandConfig.getValue().getSettings().isGenerateComplement());
+    }
+
+    @Test
+    void createCallReplaysAssistantSpeechWhenOnlyNonSpeechEventsFollowIt() {
+        UUID agentId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        ScopedDemoService scopedDemoService = mock(ScopedDemoService.class);
+        RealtimeSessionClient realtimeClient = mock(RealtimeSessionClient.class);
+        RealtimeSidebandService sidebandService = mock(RealtimeSidebandService.class);
+        RealtimeCallInfo call = new RealtimeCallInfo("answer-sdp", "gpt-realtime-2", "rtc_456",
+                "wss://api.openai.com/v1/realtime?call_id=rtc_456");
+        PolicyResponseView prompt = prompt(PromptMessage.system("PROMETHEUS system prompt."));
+        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                BehaviourPlan.speechOnly("Read me again.").toJson());
+        Event complement = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}");
+
+        when(agentService.prompt(agentId, OutputProfile.REALTIME_SPEECH)).thenReturn(Optional.of(prompt));
+        when(agentService.getAgentCurrentStateEventHistory(agentId)).thenReturn(Optional.of(List.of(
+                assistant, complement)));
+        when(realtimeClient.createCall(eq("offer-sdp"), any())).thenReturn(call);
+
+        RealtimeCallOrchestrationService service = new RealtimeCallOrchestrationService(agentService,
+                scopedDemoService, realtimeClient, sidebandService);
+
+        service.createCall(agentId, "offer-sdp", new RealtimeCallSettings(null, "server_vad", true));
+
+        ArgumentCaptor<RealtimeSidebandSessionConfig> sidebandConfig = ArgumentCaptor
+                .forClass(RealtimeSidebandSessionConfig.class);
+        verify(sidebandService).attach(sidebandConfig.capture());
+        assertEquals("Read me again.", sidebandConfig.getValue().getInitialExactSpeech());
+    }
+
+    @Test
+    void createCallDoesNotReplayAssistantSpeechWhenLatestUtteranceIsUser() {
+        UUID agentId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        ScopedDemoService scopedDemoService = mock(ScopedDemoService.class);
+        RealtimeSessionClient realtimeClient = mock(RealtimeSessionClient.class);
+        RealtimeSidebandService sidebandService = mock(RealtimeSidebandService.class);
+        RealtimeCallInfo call = new RealtimeCallInfo("answer-sdp", "gpt-realtime-2", "rtc_789",
+                "wss://api.openai.com/v1/realtime?call_id=rtc_789");
+        PolicyResponseView prompt = prompt(PromptMessage.system("PROMETHEUS system prompt."));
+        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                BehaviourPlan.speechOnly("Do not replay this.").toJson());
+        Event user = Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Ja.");
+
+        when(agentService.prompt(agentId, OutputProfile.REALTIME_SPEECH)).thenReturn(Optional.of(prompt));
+        when(agentService.getAgentCurrentStateEventHistory(agentId)).thenReturn(Optional.of(List.of(
+                assistant, user)));
+        when(realtimeClient.createCall(eq("offer-sdp"), any())).thenReturn(call);
+
+        RealtimeCallOrchestrationService service = new RealtimeCallOrchestrationService(agentService,
+                scopedDemoService, realtimeClient, sidebandService);
+
+        service.createCall(agentId, "offer-sdp", new RealtimeCallSettings(null, "server_vad", true));
+
+        ArgumentCaptor<RealtimeSidebandSessionConfig> sidebandConfig = ArgumentCaptor
+                .forClass(RealtimeSidebandSessionConfig.class);
+        verify(sidebandService).attach(sidebandConfig.capture());
+        assertEquals(null, sidebandConfig.getValue().getInitialExactSpeech());
     }
 
     @Test

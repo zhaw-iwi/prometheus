@@ -89,6 +89,14 @@
       padding: 0.85rem;
     }
 
+    .sensing-panel-title {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
     .toolbar-button {
       width: 2.35rem;
       height: 2.35rem;
@@ -460,7 +468,7 @@
         <aside class="left-column">
           <div class="demo-card card">
             <div class="card-header">
-              <span><i class="bi bi-camera-video me-2"></i>Sensing</span>
+              <span><i class="bi bi-radar me-2"></i>Sensing</span>
             </div>
             <div class="card-body">
               <div class="video-shell mb-3"
@@ -690,11 +698,19 @@
                   </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                  <button id="speech_interaction_tab" class="nav-link" type="button" role="tab"
-                    data-bs-toggle="tab" data-bs-target="#speech_interaction_panel"
-                    aria-controls="speech_interaction_panel" aria-selected="false"
-                    data-testid="speech-interaction-tab">
-                    <i class="bi bi-mic me-2"></i>Realtime Speech
+                  <button id="continuous_speech_tab" class="nav-link" type="button" role="tab"
+                    data-bs-toggle="tab" data-bs-target="#continuous_speech_panel"
+                    aria-controls="continuous_speech_panel" aria-selected="false"
+                    data-testid="continuous-speech-tab">
+                    <i class="bi bi-soundwave me-2"></i>Continuous
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button id="push_to_talk_tab" class="nav-link" type="button" role="tab"
+                    data-bs-toggle="tab" data-bs-target="#push_to_talk_panel"
+                    aria-controls="push_to_talk_panel" aria-selected="false"
+                    data-testid="push-to-talk-tab">
+                    <i class="bi bi-broadcast me-2"></i>Push to Talk
                   </button>
                 </li>
               </ul>
@@ -725,10 +741,10 @@
                     </div>
                   </div>
                 </div>
-                <div id="speech_interaction_panel" class="tab-pane fade" role="tabpanel"
-                  aria-labelledby="speech_interaction_tab" tabindex="0">
+                <div id="continuous_speech_panel" class="tab-pane fade" role="tabpanel"
+                  aria-labelledby="continuous_speech_tab" tabindex="0">
                   <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="metric-label">Speech Session</span>
+                    <span class="metric-label">Continuous Speech Session</span>
                     <span id="listen_status" class="status-pill is-idle">Idle</span>
                   </div>
                   <div class="row g-2">
@@ -749,11 +765,11 @@
                       </select>
                     </div>
                     <div class="col-6">
-                      <label class="form-label metric-label" for="turn_detection_select">Mode</label>
+                      <label class="form-label metric-label" for="turn_detection_select">VAD</label>
                       <select id="turn_detection_select" class="form-select form-select-sm"
                         data-testid="turn-detection-select">
-                        <option value="server_vad" selected>Continuous</option>
-                        <option value="none">Push to Talk</option>
+                        <option value="server_vad" selected>Server VAD</option>
+                        <option value="semantic_vad">Semantic VAD</option>
                       </select>
                     </div>
                     <div class="col-12">
@@ -766,15 +782,80 @@
                   </div>
                   <div class="d-grid gap-2 mt-3">
                     <button id="toggle_realtime" class="btn btn-primary" type="button" data-testid="toggle-realtime">
-                      <i class="bi bi-mic-fill me-2"></i>Start Realtime
-                    </button>
-                    <button id="push_to_talk" class="btn btn-outline-ink d-none" type="button"
-                      data-testid="push-to-talk">
-                      <i class="bi bi-broadcast me-2"></i>Hold to Talk
+                      <i class="bi bi-mic-fill me-2"></i>Start Continuous
                     </button>
                   </div>
                   <audio id="assistant_audio" class="mt-3 w-100" controls autoplay
                     data-testid="assistant-audio"></audio>
+                  <div id="continuous_speech_sensing_panel" class="surface-panel mt-3"
+                    data-profile-observations="obs.user_utterance" data-testid="continuous-speech-sensing-panel">
+                    <div class="sensing-panel-title">
+                      <i class="bi bi-mic"></i>
+                      <span>Speech Sensing</span>
+                    </div>
+                    <div class="metric-row mt-2 mb-0">
+                      <span class="metric-label">User Speech</span>
+                      <div id="continuous_speech_sensing_value" data-testid="continuous-speech-sensing-value">-</div>
+                    </div>
+                  </div>
+                </div>
+                <div id="push_to_talk_panel" class="tab-pane fade" role="tabpanel"
+                  aria-labelledby="push_to_talk_tab" tabindex="0">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="metric-label">Manual Speech Session</span>
+                    <span id="push_to_talk_status" class="status-pill is-idle">Idle</span>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label metric-label" for="push_to_talk_voice_select">Voice</label>
+                      <select id="push_to_talk_voice_select" class="form-select form-select-sm"
+                        data-testid="push-to-talk-voice-select">
+                        <option value="">Default</option>
+                        <option value="alloy">Alloy</option>
+                        <option value="ash">Ash</option>
+                        <option value="ballad">Ballad</option>
+                        <option value="cedar">Cedar</option>
+                        <option value="coral">Coral</option>
+                        <option value="echo">Echo</option>
+                        <option value="marin">Marin</option>
+                        <option value="sage">Sage</option>
+                        <option value="shimmer">Shimmer</option>
+                        <option value="verse">Verse</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <div class="form-check mt-md-4 pt-md-2">
+                        <input id="push_to_talk_generate_side_behaviour" class="form-check-input" type="checkbox"
+                          checked data-testid="push-to-talk-generate-side-behaviour">
+                        <label class="form-check-label" for="push_to_talk_generate_side_behaviour">
+                          Backend complement
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-grid gap-2 mt-3">
+                    <button id="toggle_push_to_talk_realtime" class="btn btn-primary" type="button"
+                      data-testid="toggle-push-to-talk-realtime">
+                      <i class="bi bi-mic-fill me-2"></i>Start Push to Talk
+                    </button>
+                    <button id="push_to_talk" class="btn btn-outline-ink" type="button" data-testid="push-to-talk"
+                      disabled>
+                      <i class="bi bi-broadcast me-2"></i>Hold to Talk
+                    </button>
+                  </div>
+                  <audio id="push_to_talk_assistant_audio" class="mt-3 w-100" controls autoplay
+                    data-testid="push-to-talk-assistant-audio"></audio>
+                  <div id="speech_sensing_panel" class="surface-panel mt-3"
+                    data-profile-observations="obs.user_utterance" data-testid="speech-sensing-panel">
+                    <div class="sensing-panel-title">
+                      <i class="bi bi-mic"></i>
+                      <span>Speech Sensing</span>
+                    </div>
+                    <div class="metric-row mt-2 mb-0">
+                      <span class="metric-label">User Speech</span>
+                      <div id="speech_sensing_value" data-testid="speech-sensing-value">-</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -784,7 +865,7 @@
         <aside class="right-column">
           <div class="demo-card card">
             <div class="card-header">
-              <span><i class="bi bi-eyeglasses me-2"></i>Behaviour</span>
+              <span><i class="bi bi-send-fill me-2"></i>Behaviour</span>
             </div>
             <div class="card-body">
               <div class="metric-row-list">
@@ -849,61 +930,21 @@
     <div class="offcanvas-body">
       <ul class="nav nav-tabs drawer-tabs mb-3" id="drawer_tabs" role="tablist">
         <li class="nav-item" role="presentation">
-          <button id="diagnostics_drawer_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
-            data-bs-target="#diagnostics_drawer_panel" aria-controls="diagnostics_drawer_panel"
-            aria-selected="false" data-testid="diagnostics-drawer-tab">
-            <i class="bi bi-activity me-2"></i>Diagnostics
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
           <button id="agent_drawer_tab" class="nav-link active" type="button" role="tab" data-bs-toggle="tab"
             data-bs-target="#agent_drawer_panel" aria-controls="agent_drawer_panel" aria-selected="true"
             data-testid="agent-drawer-tab">
             <i class="bi bi-cpu me-2"></i>Agent
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button id="diagnostics_drawer_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
+            data-bs-target="#diagnostics_drawer_panel" aria-controls="diagnostics_drawer_panel"
+            aria-selected="false" data-testid="diagnostics-drawer-tab">
+            <i class="bi bi-activity me-2"></i>Diagnostics
+          </button>
+        </li>
       </ul>
       <div class="tab-content">
-        <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
-          aria-labelledby="diagnostics_drawer_tab" tabindex="0">
-          <div class="mb-3">
-            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-              <div class="metric-label">Activity</div>
-              <button id="clear_activity_log" class="btn btn-outline-ink btn-sm toolbar-button" type="button"
-                title="Clear activity log" aria-label="Clear activity log" data-testid="clear-activity-log">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-            <div class="diagnostics-toolbar mb-2">
-              <div class="form-check">
-                <input id="activity_log_wrap" class="form-check-input" type="checkbox" checked
-                  data-testid="activity-log-wrap">
-                <label class="form-check-label" for="activity_log_wrap">Toggle line break</label>
-              </div>
-              <div class="form-check">
-                <input id="activity_log_timestamps" class="form-check-input" type="checkbox" checked
-                  data-testid="activity-log-timestamps">
-                <label class="form-check-label" for="activity_log_timestamps">Show timestamps</label>
-              </div>
-            </div>
-            <div id="activity_log" class="mono-log is-wrapped" data-testid="activity-log"></div>
-          </div>
-          <div class="mb-3">
-            <div class="metric-label">Current State</div>
-            <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
-              data-testid="diagnostics-current-state">Unknown</div>
-          </div>
-          <div class="mb-3">
-            <div class="metric-label">States</div>
-            <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
-              data-testid="diagnostics-state-list"></ul>
-          </div>
-          <div>
-            <div class="metric-label">Storage</div>
-            <div id="storage_list" class="list-group list-group-flush storage-list"
-              data-testid="storage-list"></div>
-          </div>
-        </div>
         <div id="agent_drawer_panel" class="tab-pane fade show active" role="tabpanel"
           aria-labelledby="agent_drawer_tab" tabindex="0">
           <label class="form-label metric-label" for="agent_type_select">Available Agent Types</label>
@@ -946,6 +987,8 @@
             <div id="agent_info_name" class="mb-3">-</div>
             <div class="metric-label">Description</div>
             <div id="agent_info_description" class="mb-3">-</div>
+            <div class="metric-label">Language</div>
+            <div id="agent_info_language" class="mb-3" data-testid="agent-info-language">-</div>
             <div class="metric-label">Interaction Profile</div>
             <div id="agent_interaction_profile" class="profile-summary mt-2"
               data-testid="agent-interaction-profile">
@@ -964,6 +1007,46 @@
                 <div id="agent_profile_tags" class="profile-token-list" data-testid="agent-profile-tags">-</div>
               </div>
             </div>
+          </div>
+        </div>
+        <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
+          aria-labelledby="diagnostics_drawer_tab" tabindex="0">
+          <div class="mb-3">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+              <div class="metric-label">Activity</div>
+              <button id="clear_activity_log" class="btn btn-outline-ink btn-sm toolbar-button" type="button"
+                title="Clear activity log" aria-label="Clear activity log" data-testid="clear-activity-log">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+            <div class="diagnostics-toolbar mb-2">
+              <div class="form-check">
+                <input id="activity_log_wrap" class="form-check-input" type="checkbox" checked
+                  data-testid="activity-log-wrap">
+                <label class="form-check-label" for="activity_log_wrap">Toggle line break</label>
+              </div>
+              <div class="form-check">
+                <input id="activity_log_timestamps" class="form-check-input" type="checkbox" checked
+                  data-testid="activity-log-timestamps">
+                <label class="form-check-label" for="activity_log_timestamps">Show timestamps</label>
+              </div>
+            </div>
+            <div id="activity_log" class="mono-log is-wrapped" data-testid="activity-log"></div>
+          </div>
+          <div class="mb-3">
+            <div class="metric-label">Current State</div>
+            <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
+              data-testid="diagnostics-current-state">Unknown</div>
+          </div>
+          <div class="mb-3">
+            <div class="metric-label">States</div>
+            <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
+              data-testid="diagnostics-state-list"></ul>
+          </div>
+          <div>
+            <div class="metric-label">Storage</div>
+            <div id="storage_list" class="list-group list-group-flush storage-list"
+              data-testid="storage-list"></div>
           </div>
         </div>
       </div>

@@ -50,10 +50,6 @@ class RealtimeBrowserClientContractTest {
             assertContains(script, "response.output_audio_transcript.delta");
             assertContains(script, "response.output_audio_transcript.done");
             assertContains(script, "input_audio_buffer.committed");
-            assertContains(script, "input_audio_buffer.commit");
-            assertContains(script, "input_audio_buffer.clear");
-            assertContains(script, "response.cancel");
-            assertContains(script, "output_audio_buffer.clear");
             assertContains(script, "TRANSCRIPT_BATCH_DELAY_MS");
             assertContains(script, "isLikelyAsrHallucination");
             assertContains(script, "amara org community");
@@ -61,6 +57,10 @@ class RealtimeBrowserClientContractTest {
 
             assertDoesNotContain(script, "type: \"session.update\"");
             assertDoesNotContain(script, "type: \"response.create\"");
+            assertDoesNotContain(script, "type: \"input_audio_buffer.commit\"");
+            assertDoesNotContain(script, "type: \"input_audio_buffer.clear\"");
+            assertDoesNotContain(script, "type: \"response.cancel\"");
+            assertDoesNotContain(script, "type: \"output_audio_buffer.clear\"");
             assertDoesNotContain(script, "output_modalities: [\"audio\"]");
             assertDoesNotContain(script, "sessionPayload.turn_detection");
             assertDoesNotContain(script, "sessionPayload.voice");
@@ -81,6 +81,67 @@ class RealtimeBrowserClientContractTest {
             assertDoesNotContain(script, "handleUserTranscript");
             assertDoesNotContain(script, "profile=backend_complement");
             assertDoesNotContain(script, "speakStoredAssistantResponse");
+        }
+    }
+
+    @Test
+    void speechRealtimeClientsExposeSeparateContinuousAndPushToTalkModes() throws IOException {
+        for (Path indexPath : List.of(REALTIME_INDEX, VALERIAN_INDEX)) {
+            String index = Files.readString(indexPath);
+
+            assertContains(index, "Push to Talk");
+            assertContains(index, "Continuous");
+            assertContains(index, "value=\"server_vad\"");
+            assertContains(index, "value=\"semantic_vad\"");
+            assertDoesNotContain(index, "<option value=\"none\"");
+        }
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
+            String script = Files.readString(scriptPath);
+
+            assertContains(script, "REALTIME_MODE_CONTINUOUS");
+            assertContains(script, "REALTIME_MODE_PUSH_TO_TALK");
+            assertContains(script, "activeTurnDetection");
+            assertContains(script, "setRealtimeControlsLocked");
+        }
+    }
+
+    @Test
+    void speechRealtimeClientsUseRecordedTurnsForPushToTalk() throws IOException {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
+            String script = Files.readString(scriptPath);
+            int start = script.indexOf("function startPushToTalk");
+            int startRecorded = script.indexOf("startRecordedTurn();", start);
+            int stop = script.indexOf("function stopPushToTalk");
+            int stopRecorded = script.indexOf("stopRecordedTurn();", stop);
+
+            assertTrue(startRecorded > start, "Expected push-to-talk press to start a local recording in "
+                    + scriptPath);
+            assertTrue(stopRecorded > stop, "Expected push-to-talk release to stop a local recording in "
+                    + scriptPath);
+            assertContains(script, "window.MediaRecorder");
+            assertContains(script, "new MediaRecorder");
+            assertContains(script, "new FormData()");
+            assertContains(script, "form.append(\"audio\"");
+            assertContains(script, "/speech-turn?");
+            assertContains(script, "/speech/latest?");
+            assertContains(script, "playRecordedSpeechAudio");
+            assertContains(script, "playLatestAssistantSpeechForPushToTalk");
+            assertDoesNotContain(script, "MANUAL_TURN_COMMIT_DELAY_MS");
+            assertDoesNotContain(script, "commitManualTurn");
+            assertDoesNotContain(script, "scheduleManualTurnCommit");
+            assertDoesNotContain(script, "prepareManualTurn");
+            assertDoesNotContain(script, "type: \"input_audio_buffer.commit\"");
+            assertDoesNotContain(script, "type: \"input_audio_buffer.clear\"");
+        }
+    }
+
+    @Test
+    void speechRealtimeClientsDoNotDropQueuedTranscriptCandidatesOnInputBufferClear() throws IOException {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
+            String script = Files.readString(scriptPath);
+
+            assertDoesNotMatch(script,
+                    "input_audio_buffer\\.cleared[\\s\\S]{0,160}clearQueued\\w*TranscriptCandidates\\(");
         }
     }
 

@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import ch.zhaw.prometheus.application.BehaviourGenerationOutcome;
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.DemoAgentTypeForbiddenException;
+import ch.zhaw.prometheus.application.RecordedSpeechTurnService;
 import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
 import ch.zhaw.prometheus.application.RealtimeCallSettings;
 import ch.zhaw.prometheus.application.ScopedDemoService;
@@ -34,8 +36,10 @@ import ch.zhaw.prometheus.controllers.views.BehaviourGenerateRequest;
 import ch.zhaw.prometheus.controllers.views.DemoSessionView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
+import ch.zhaw.prometheus.controllers.views.RecordedSpeechTurnView;
 import ch.zhaw.prometheus.controllers.views.RealtimeCallView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
+import ch.zhaw.prometheus.controllers.views.SpeechAudioView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
@@ -47,10 +51,13 @@ public class ScopedDemoController {
 
     private final ScopedDemoService demoService;
     private final RealtimeCallOrchestrationService realtimeCallService;
+    private final RecordedSpeechTurnService recordedSpeechTurnService;
 
-    public ScopedDemoController(ScopedDemoService demoService, RealtimeCallOrchestrationService realtimeCallService) {
+    public ScopedDemoController(ScopedDemoService demoService, RealtimeCallOrchestrationService realtimeCallService,
+            RecordedSpeechTurnService recordedSpeechTurnService) {
         this.demoService = demoService;
         this.realtimeCallService = realtimeCallService;
+        this.recordedSpeechTurnService = recordedSpeechTurnService;
     }
 
     @PostMapping("/demo/session")
@@ -264,6 +271,38 @@ public class ScopedDemoController {
         Optional<RealtimeCallInfo> call = this.realtimeCallService.createScopedCall(
                 accessCode(headerAccessCode, queryAccessCode), agentId, offerSdp, settings);
         return call.map(ScopedDemoController::toRealtimeCallView)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @PostMapping(path = "/demo/agents/{agentId}/speech-turn", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<RecordedSpeechTurnView> recordedSpeechTurn(
+            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable UUID agentId,
+            @RequestParam("audio") MultipartFile audio,
+            @RequestParam(required = false) String voice,
+            @RequestParam(defaultValue = "true") boolean generateComplement) {
+        if (agentId == null || audio == null || audio.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        return this.recordedSpeechTurnService.processScoped(
+                accessCode(headerAccessCode, queryAccessCode), agentId, audio, voice, generateComplement)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @PostMapping("/demo/agents/{agentId}/speech/latest")
+    public ResponseEntity<SpeechAudioView> latestAssistantSpeech(
+            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable UUID agentId,
+            @RequestParam(required = false) String voice) {
+        if (agentId == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        return this.recordedSpeechTurnService.latestScopedAssistantSpeech(
+                accessCode(headerAccessCode, queryAccessCode), agentId, voice)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

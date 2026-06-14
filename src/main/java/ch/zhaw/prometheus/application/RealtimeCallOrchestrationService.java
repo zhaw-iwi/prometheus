@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
-import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.spi.RealtimeCallConfig;
@@ -34,7 +33,7 @@ public class RealtimeCallOrchestrationService {
         if (prompt.isEmpty()) {
             return Optional.empty();
         }
-        List<Event> history = this.agentService.getAgentEventHistory(agentId).orElse(List.of());
+        List<Event> history = this.agentService.getAgentCurrentStateEventHistory(agentId).orElse(List.of());
         String languageCode = this.agentService.getAgentLanguageCode(agentId).orElse(null);
         return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history, languageCode));
     }
@@ -46,7 +45,8 @@ public class RealtimeCallOrchestrationService {
         if (prompt.isEmpty()) {
             return Optional.empty();
         }
-        List<Event> history = this.scopedDemoService.getAgentEventHistory(accessCode, agentId).orElse(List.of());
+        List<Event> history = this.scopedDemoService.getAgentCurrentStateEventHistory(accessCode, agentId)
+                .orElse(List.of());
         String languageCode = this.scopedDemoService.getAgentLanguageCode(accessCode, agentId).orElse(null);
         return Optional.of(this.createCall(agentId, offerSdp, settings, prompt.get(), history, languageCode));
     }
@@ -69,21 +69,8 @@ public class RealtimeCallOrchestrationService {
                 call.getSidebandUrl(),
                 agentId,
                 instructions,
-                latestAssistantSpeech(history),
+                SpeechTurnSelector.latestAssistantSpeechIfLatestUtterance(history).orElse(null),
                 resolvedSettings));
         return call;
-    }
-
-    private static String latestAssistantSpeech(List<Event> history) {
-        if (history == null || history.isEmpty()) {
-            return null;
-        }
-        Event last = history.get(history.size() - 1);
-        if (last == null || !Event.ACTOR_ASSISTANT.equals(last.getActor())
-                || !Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(last.getType())) {
-            return null;
-        }
-        BehaviourPlan plan = BehaviourPlan.fromJson(last.getPayload());
-        return plan == null ? null : plan.getSpeech();
     }
 }

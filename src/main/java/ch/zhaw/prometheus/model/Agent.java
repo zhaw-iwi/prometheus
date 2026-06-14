@@ -146,6 +146,13 @@ public class Agent {
         return this.eventHistory.selectList(EventSelector.stateName(stateName));
     }
 
+    public List<Event> getCurrentStateEventHistory() {
+        if (this.currentState == null) {
+            return List.of();
+        }
+        return this.currentState.getEventHistory().toList();
+    }
+
     @JsonIgnore
     public Map<String, JsonElement> getStorage() {
         if (this.storage == null) {

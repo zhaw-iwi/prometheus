@@ -164,7 +164,7 @@ public class RealtimeSidebandService {
 
         private void close() {
             this.closed = true;
-            handleInputAudioCleared();
+            discardQueuedTranscriptState();
             WebSocket socket = this.webSocket;
             if (socket != null) {
                 socket.sendClose(WebSocket.NORMAL_CLOSURE, "PROMETHEUS realtime call closed");
@@ -205,6 +205,10 @@ public class RealtimeSidebandService {
         }
 
         private synchronized void handleInputAudioCleared() {
+            this.pendingInputItemIds.clear();
+        }
+
+        private synchronized void discardQueuedTranscriptState() {
             this.pendingInputItemIds.clear();
             this.pendingTranscriptCandidates.clear();
             ScheduledFuture<?> flush = this.pendingTranscriptFlush;
@@ -382,6 +386,8 @@ public class RealtimeSidebandService {
 
         private void sendResponseCreate(String instructions) {
             JsonObject response = new JsonObject();
+            response.addProperty("conversation", "none");
+            response.add("input", GSON.toJsonTree(new Object[0]));
             response.add("output_modalities", GSON.toJsonTree(new String[] { "audio" }));
             if (isPresent(instructions)) {
                 response.addProperty("instructions", instructions.trim());

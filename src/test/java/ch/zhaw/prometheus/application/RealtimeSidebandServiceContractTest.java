@@ -13,7 +13,9 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.http.WebSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -21,6 +23,9 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
@@ -53,6 +58,38 @@ class RealtimeSidebandServiceContractTest {
         assertFalse(source.contains("pendingResponseInstruction"));
         assertFalse(source.contains("RealtimePromptInstructions.responseInstruction"));
         assertFalse(source.contains("recordRealtimeAssistantSpeech"));
+    }
+
+    @Test
+    void sidebandCreatesOutOfBandExactSpeechResponsesWithEmptyContext() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(),
+                mock(AgentApplicationService.class));
+        Object session = newSidebandSession(service, agentId);
+        WebSocket socket = mock(WebSocket.class);
+        try {
+            Field webSocketField = session.getClass().getDeclaredField("webSocket");
+            webSocketField.setAccessible(true);
+            webSocketField.set(session, socket);
+
+            Method sendExactSpeech = session.getClass().getDeclaredMethod("sendExactSpeech", String.class);
+            sendExactSpeech.setAccessible(true);
+            sendExactSpeech.invoke(session, "Ist es etwas, das man anfassen kann?");
+
+            ArgumentCaptor<CharSequence> payload = ArgumentCaptor.forClass(CharSequence.class);
+            verify(socket).sendText(payload.capture(), eq(true));
+            JsonObject event = JsonParser.parseString(payload.getValue().toString()).getAsJsonObject();
+            JsonObject response = event.getAsJsonObject("response");
+
+            assertEquals("response.create", event.get("type").getAsString());
+            assertEquals("none", response.get("conversation").getAsString());
+            assertEquals(0, response.getAsJsonArray("input").size());
+            assertEquals("audio", response.getAsJsonArray("output_modalities").get(0).getAsString());
+            assertTrue(response.get("instructions").getAsString()
+                    .contains("Ist es etwas, das man anfassen kann?"));
+        } finally {
+            service.closeAll();
+        }
     }
 
     @Test
@@ -90,6 +127,28 @@ class RealtimeSidebandServiceContractTest {
             emit(session, committed("item_yes"));
             emit(session, completed("item_yes", "event_yes_1", "Nein."));
             emit(session, completed("item_yes", "event_yes_2", "Nein."));
+
+            ArgumentCaptor<EventRequest> event = ArgumentCaptor.forClass(EventRequest.class);
+            verify(agentService, timeout(2500).times(1))
+                    .acknowledge(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
+            assertEquals("Nein.", event.getValue().getPayload());
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
+    void sidebandDoesNotDropCompletedTranscriptWhenInputBufferIsClearedBeforeBatchFlush() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
+                .thenReturn(Optional.<ResponseView>empty());
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
+        Object session = newSidebandSession(service, agentId);
+        try {
+            emit(session, committed("item_yes"));
+            emit(session, completed("item_yes", "event_yes", "Nein."));
+            emit(session, cleared());
 
             ArgumentCaptor<EventRequest> event = ArgumentCaptor.forClass(EventRequest.class);
             verify(agentService, timeout(2500).times(1))
@@ -148,5 +207,9 @@ class RealtimeSidebandServiceContractTest {
     private static String completed(String itemId, String eventId, String transcript) {
         return "{\"type\":\"conversation.item.input_audio_transcription.completed\",\"item_id\":\"" + itemId
                 + "\",\"event_id\":\"" + eventId + "\",\"transcript\":\"" + transcript + "\"}";
+    }
+
+    private static String cleared() {
+        return "{\"type\":\"input_audio_buffer.cleared\"}";
     }
 }
