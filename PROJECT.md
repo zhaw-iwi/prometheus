@@ -55,6 +55,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 49: Scoped demo API
 - [x] Milestone 50: Valerian user UI
 - [x] Milestone 51: Admin UI
+- [x] Milestone 52: End-to-end rehearsal and compatibility pass
 
 ## Milestone 1
 ### Date
@@ -2474,3 +2475,64 @@ Add a small root/admin management page so access codes, enabled state, allowed a
 1. Add optional filtering/search once the agent type catalog grows.
 2. Consider showing per-code usage or last-created timestamps if repeated demos require audit visibility.
 3. Rehearse a curated root workflow for the three desired PROMETHEUS demo agent types.
+
+## Milestone 52
+### Date
+2026-06-14
+
+### Goal
+Prove the access-code-scoped Valerian feature works end to end without disrupting existing global PROMETHEUS application workflows.
+
+### What changed
+- No production code changes.
+- Rehearsed the complete admin and user flow on the feature branch with the real Spring Boot app, local MySQL persistence, and scripted gateway responses.
+- Verified the three former `gigitdsr` definitions can be assigned to an access code, instantiated through Valerian, and connected through the scoped UI.
+- Verified access-code isolation with a second code assigned to the same agent types but showing no instances created under the first code.
+- Verified a disabled access code is rejected by the Valerian access screen.
+- Verified existing global `/agent`, `/{agentId}/info`, `/realtime`, `/monitor`, and `/rps` routes still respond successfully for a created agent before cleanup.
+
+### How to run
+1. Stay on the feature branch:
+   - `git switch feature/valerian-access-codes`
+2. Configure an admin token:
+   - `prometheus.admin.token=<token>`
+3. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+4. Open:
+   - `http://localhost:8080/valerian-admin/`
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=AdminAccessCodeControllerWebMvcTest,ScopedDemoControllerIntegrationTest,AccessCodeAdminServiceIntegrationTest,AgentClientCompatibilityWebMvcTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,RpsClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,PflegezentrumDemoPromptContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest,SingleStateMicroCoachingReplayIntegrationTest,SingleStateGuessingGameReplayIntegrationTest,SingleStateCoCreationReplayIntegrationTest,FourStatesLinearReplayIntegrationTest,FourStatesCircularReplayIntegrationTest" test`
+- Headless Chrome smoke against `http://127.0.0.1:18082/` with admin token `m52-root`:
+  - invalid Valerian code rejected
+  - admin created codes `98FH5` and `AQFSQ`
+  - admin assigned the three former `gigitdsr` definitions to both codes
+  - user logged into Valerian with `98FH5`
+  - user created and connected all three assigned instances
+  - user logged into Valerian with `AQFSQ` and saw the same types but zero known agents
+  - admin disabled `AQFSQ`; Valerian rejected that disabled code
+  - global compatibility checks returned `200` for `/agent`, `/{agentId}/info`, `/realtime?agentId=...`, `/monitor?agentId=...`, and `/rps?agentId=...`
+  - created smoke agents were deleted through the scoped API after compatibility checks
+- Smoke artifacts:
+  - `target/milestone52-smoke/smoke-summary.json`
+  - `target/milestone52-smoke/admin-assigned.png`
+  - `target/milestone52-smoke/valerian-created-and-connected.png`
+  - `target/milestone52-smoke/valerian-code-isolation.png`
+  - `target/milestone52-smoke/valerian-disabled-code.png`
+
+### Known issues and decisions
+- The smoke used installed headless Chrome over CDP because the in-app browser backend was not available in this session.
+- Access codes created by the smoke remain in the local database because there is no access-code delete API; the created agent instances were cleaned up.
+- Access codes remain case-sensitive and unnormalized.
+- Browser SSE streams still use the `accessCode` query parameter due to `EventSource` header limitations.
+
+### Next steps
+1. Review and merge `feature/valerian-access-codes`, or run a full suite before merge if broader confidence is needed.
+2. Consider adding admin access-code deletion or archival if repeated smoke rehearsals should not leave local database codes behind.
+3. Continue hardening with UI search/filtering and operational audit fields once the catalog grows.
