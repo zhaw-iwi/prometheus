@@ -283,6 +283,54 @@ Allowed-type replacement body:
 }
 ```
 
+### Scoped demo API
+
+The scoped demo API is intended for the Valerian cockpit and does not change the
+existing global agent endpoints. Requests use an existing enabled access code.
+Pass the code as header `X-Prometheus-Access-Code`. Browser SSE clients may pass
+the same value as `?accessCode=<code>` because `EventSource` cannot set custom
+headers.
+
+- `POST /demo/session`
+- `GET /demo/agent-types`
+- `GET /demo/agents`
+- `POST /demo/agents`
+- `DELETE /demo/agents/{agentId}`
+- `GET /demo/agents/{agentId}/info`
+- `GET /demo/agents/{agentId}/eventhistory`
+- `GET /demo/agents/{agentId}/state`
+- `GET /demo/agents/{agentId}/states`
+- `GET /demo/agents/{agentId}/storage`
+- `POST /demo/agents/{agentId}/start`
+- `DELETE /demo/agents/{agentId}/reset`
+- `POST /demo/agents/{agentId}/acknowledge`
+- `POST /demo/agents/{agentId}/behaviour/generate`
+- `GET /demo/agents/{agentId}/behaviour/stream`
+- `GET /demo/agents/{agentId}/monitor/stream`
+- `GET /demo/agents/{agentId}/prompt`
+
+Session body:
+
+```json
+{
+  "accessCode": "af7u1"
+}
+```
+
+Agent creation body:
+
+```json
+{
+  "agentDefinitionKey": "gigitdsr.rock_scissor_paper"
+}
+```
+
+Only agent types assigned to the access code can be created. Agents created
+through a code are visible only through that code unless an admin or later flow
+links the same agent to another code. Deleting a scoped agent removes the link
+first and deletes the underlying `Agent` only when no other access code links
+remain.
+
 ## Developer Workflow for New Agents
 
 1. Start from an existing production definition under `src/main/java/ch/zhaw/prometheus/agentdefs`, such as `basic/SingleStateMicroCoaching.java` or `multimodal/SingleStateMultimodalInOut.java`.

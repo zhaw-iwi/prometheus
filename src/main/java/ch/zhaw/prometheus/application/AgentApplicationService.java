@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.controllers.AgentMetaType;
 import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
@@ -254,6 +255,16 @@ public class AgentApplicationService {
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
                 saved.getInteractionProfile()));
+    }
+
+    public Agent persistCreatedAgent(AgentCreationResult creation) {
+        if (creation == null) {
+            throw new IllegalArgumentException("agent creation result must not be null");
+        }
+        Agent saved = this.repository.save(creation.agent());
+        safePublishMonitor(saved);
+        this.publishBehaviour(saved, creation.starterEvent());
+        return saved;
     }
 
     private Optional<Agent> findAgent(UUID agentID) {

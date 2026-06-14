@@ -52,6 +52,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 46: Valerian cockpit rename and PROMETHEUS-facing branding
 - [x] Milestone 47: Feature branch and agent definition catalog
 - [x] Milestone 48: Access code persistence and admin API
+- [x] Milestone 49: Scoped demo API
 
 ## Milestone 1
 ### Date
@@ -2320,3 +2321,58 @@ Add database-backed access codes and allowed agent-type assignments so a root/ad
 1. Add scoped Valerian/demo API endpoints that validate access codes and expose only allowed agent types and associated agents.
 2. Add runtime instance creation from `AgentDefinitionRegistry` and persist `AccessCodeAgent` links.
 3. Build the root/admin UI and access-code user flow in the Valerian cockpit.
+
+## Milestone 49
+### Date
+2026-06-14
+
+### Goal
+Add user-facing scoped `/demo` endpoints for Valerian so access-code users can see allowed agent types, create access-code-bound instances, and use runtime operations only for visible agents, without changing existing global endpoints.
+
+### What changed
+- Added `ScopedDemoService` for access-code validation, allowed-type filtering, scoped agent listing, runtime agent creation, visibility checks, and scoped deletion.
+- Added scoped demo endpoints:
+  - `POST /demo/session`
+  - `GET /demo/agent-types`
+  - `GET /demo/agents`
+  - `POST /demo/agents`
+  - `DELETE /demo/agents/{agentId}`
+  - scoped runtime proxies under `/demo/agents/{agentId}/...` for info, event history, state, states, storage, start, reset, acknowledge, behaviour generation, behaviour stream, monitor stream, and prompt.
+- Added `X-Prometheus-Access-Code` as the scoped API header and also accepted `?accessCode=<code>` for browser SSE streams.
+- Added production creation support through `AgentApplicationService.persistCreatedAgent(...)` so definition-created agents use the existing monitor and behaviour publication path.
+- Extended `AccessCodeAgentRepository` with link lookup, visibility, and agent-reference count helpers.
+- Implemented scoped delete semantics: remove the access-code link first and delete the underlying `Agent` only when no links remain.
+- Added scoped demo request/view DTOs and dedicated access-denied/type-forbidden exceptions.
+- Kept existing global endpoints unchanged.
+
+### How to run
+1. Stay on the feature branch:
+   - `git switch feature/valerian-access-codes`
+2. Configure and start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Use admin endpoints to create an enabled access code and assign agent type keys.
+4. Validate the code:
+   - `POST /demo/session`
+   - body: `{ "accessCode": "af7u1" }`
+5. Call scoped endpoints with:
+   - header `X-Prometheus-Access-Code: af7u1`
+   - or for SSE/browser streams: `?accessCode=af7u1`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=ScopedDemoControllerIntegrationTest" test`
+  - `.\mvnw.cmd -q "-Dtest=AgentClientCompatibilityWebMvcTest" test`
+
+### Known issues and decisions
+- No Valerian UI changes are included in this milestone.
+- Access codes remain case-sensitive and unnormalized.
+- Invalid or disabled access codes return `401`; disallowed agent type creation returns `403`; agents outside a valid code's scope return `404`.
+- `POST /demo/session` does not create server-side session state; it validates the code and returns the current scoped agent types and agents.
+- Query-parameter access codes are accepted to support `EventSource`; the UI should avoid logging or exposing stream URLs unnecessarily.
+
+### Next steps
+1. Update Valerian with access-code login, available agent type selection, scoped instance creation, and scoped known-agent selection.
+2. Add root/admin UI flows for code creation, enabled state, and allowed type assignment.
+3. Rehearse scoped Valerian flows with the three TDSR agent types assigned to one access code.
