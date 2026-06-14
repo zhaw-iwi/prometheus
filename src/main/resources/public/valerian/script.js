@@ -33,14 +33,11 @@ const realtime = {
   peerConnection: null,
   dataChannel: null,
   micStream: null,
+  callId: null,
   assistantTranscriptBuffer: "",
-  assistantAppended: false,
   assistantAudioSeen: false,
-  suppressAssistantAppend: false,
-  lastSystemPrompt: "",
   pushToTalkActive: false,
   spaceKeyBindingActive: false,
-  pendingBackendSpeech: null,
 };
 
 const camera = {
@@ -1490,14 +1487,9 @@ async function startRealtime() {
   setRealtimeState(true);
   appendLog("realtime", "starting.");
   try {
-    const promptBundle = await fetchPromptBundle();
-    setActiveStatus(promptBundle.active);
-    const sessionInfo = await createRealtimeSession();
-    await setupRealtimeConnection(sessionInfo);
+    await setupRealtimeConnection();
     await waitForDataChannelOpen();
-    applySessionSettings();
     updatePushToTalkUi();
-    applyPromptBundle(promptBundle, true);
   } catch (error) {
     appendLog("realtime", "start failed: " + error.message);
     await stopRealtime();
@@ -1518,6 +1510,10 @@ async function stopRealtime() {
     realtime.micStream.getTracks().forEach((track) => track.stop());
     realtime.micStream = null;
   }
+  if (realtime.callId) {
+    closeRealtimeCall(realtime.callId);
+    realtime.callId = null;
+  }
   const audio = document.getElementById("assistant_audio");
   audio.pause();
   audio.removeAttribute("src");
@@ -1529,25 +1525,7 @@ async function stopRealtime() {
   appendLog("realtime", "stopped.");
 }
 
-async function fetchPromptBundle() {
-  const response = await scopedFetch(demoAgentPath("/prompt?profile=realtime_speech"));
-  if (!response.ok) {
-    throw new Error("prompt fetch failed.");
-  }
-  const data = await response.json();
-  appendLog("policy", "prompt bundle received.");
-  return data;
-}
-
-async function createRealtimeSession() {
-  const response = await fetch("/realtime/session", { method: "POST" });
-  if (!response.ok) {
-    throw new Error("realtime session creation failed.");
-  }
-  return await response.json();
-}
-
-async function setupRealtimeConnection(sessionInfo) {
+async function setupRealtimeConnection() {
   realtime.peerConnection = new RTCPeerConnection();
   realtime.peerConnection.ontrack = (event) => {
     document.getElementById("assistant_audio").srcObject = event.streams[0];
@@ -1559,20 +1537,36 @@ async function setupRealtimeConnection(sessionInfo) {
 
   const offer = await realtime.peerConnection.createOffer();
   await realtime.peerConnection.setLocalDescription(offer);
-  const answerResponse = await fetch(sessionInfo.realtimeCallsUrl, {
+  const call = await createRealtimeCall(offer.sdp);
+  realtime.callId = call.callId || null;
+  await realtime.peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
+  appendLog("realtime", "WebRTC session established.");
+}
+
+async function createRealtimeCall(offerSdp) {
+  const settings = currentRealtimeSettings();
+  const params = new URLSearchParams();
+  if (settings.voice) {
+    params.set("voice", settings.voice);
+  }
+  params.set("turnDetection", settings.turnDetection || "server_vad");
+  params.set("generateComplement", String(document.getElementById("generate_side_behaviour").checked));
+  const response = await scopedFetch(demoAgentPath(`/realtime/call?${params.toString()}`), {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${sessionInfo.clientSecret}`,
       "Content-Type": "application/sdp",
     },
-    body: offer.sdp,
+    body: offerSdp,
   });
-  if (!answerResponse.ok) {
-    throw new Error("realtime SDP exchange failed.");
+  if (!response.ok) {
+    throw new Error("realtime call creation failed.");
   }
-  const answer = await answerResponse.text();
-  await realtime.peerConnection.setRemoteDescription({ type: "answer", sdp: answer });
-  appendLog("realtime", "WebRTC session established.");
+  return await response.json();
+}
+
+function closeRealtimeCall(callId) {
+  fetch(`/realtime/calls/${encodeURIComponent(callId)}`, { method: "DELETE" }).catch(() => {
+  });
 }
 
 function waitForDataChannelOpen(timeoutMs = 5000) {
@@ -1602,7 +1596,7 @@ function handleRealtimeEvent(event) {
     const transcript = data.transcript || "";
     if (transcript.trim()) {
       appendMessage("user", transcript.trim());
-      handleRealtimeUserTranscript(transcript.trim());
+      appendLog("realtime", "user transcript completed.");
     }
   } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
     realtime.assistantAudioSeen = true;
@@ -1612,154 +1606,18 @@ function handleRealtimeEvent(event) {
     const transcript = realtime.assistantTranscriptBuffer.trim();
     if (transcript) {
       setText("speech_preview", transcript);
-      if (!realtime.suppressAssistantAppend && !realtime.assistantAppended) {
-        appendMessage("assistant", transcript);
-        appendAssistantTranscript(transcript);
-        realtime.assistantAppended = true;
-      }
     }
-    realtime.suppressAssistantAppend = false;
     realtime.assistantTranscriptBuffer = "";
   } else if (data.type === "response.done") {
     realtime.assistantAudioSeen = false;
   }
 }
 
-async function handleRealtimeUserTranscript(transcript) {
-  const ackData = await acknowledgeEvent({
-    type: "obs.user_utterance",
-    actor: "user",
-    kind: "observation",
-    payload: transcript,
-  }, { profile: "backend_complement", renderResponse: true });
-  if (!ackData) {
-    return;
-  }
-  const ackResponseSpeech = getEventSpeech(ackData.responseEvent);
-  if (!ackResponseSpeech && ackData.active !== false && document.getElementById("generate_side_behaviour").checked) {
-    await generateBehaviour("backend_complement");
-  }
-  const promptBundle = await fetchPromptBundle();
-  setActiveStatus(promptBundle.active);
-  await loadAgentState();
-  if (ackResponseSpeech) {
-    sendSessionUpdate(buildSystemPrompt(promptBundle), currentRealtimeSettings());
-    speakStoredAssistantResponse(ackResponseSpeech);
-    appendLog("realtime", "spoke acknowledge response event.");
-  } else {
-    applyPromptBundle(promptBundle, true);
-  }
-}
-
-async function appendAssistantTranscript(transcript) {
-  const data = await acknowledgeEvent({
-    type: "resp.behaviour_plan",
-    actor: "assistant",
-    kind: "response",
-    payload: JSON.stringify({ speech: transcript }),
-  }, { renderResponse: false });
-  if (data) {
-    appendLog("policy", "assistant response stored.");
-  }
-}
-
-function applyPromptBundle(promptBundle, shouldRespond) {
-  sendSessionUpdate(buildSystemPrompt(promptBundle), currentRealtimeSettings());
-  if (shouldRespond) {
-    sendResponseCreate(buildResponseInstruction(promptBundle));
-  }
-}
-
-function buildSystemPrompt(promptBundle) {
-  if (!promptBundle || !Array.isArray(promptBundle.promptMessages)) {
-    return "";
-  }
-  return promptBundle.promptMessages
-    .map((message) => `${message.role || "user"}: ${message.content || ""}`)
-    .filter((line) => line.trim())
-    .join("\n");
-}
-
-function buildResponseInstruction(promptBundle) {
-  const telemetry = "Use the provided PROMETHEUS perception telemetry when relevant. Do not mention unavailable perception if telemetry is present.";
-  if (promptBundle && promptBundle.active === false) {
-    return `The interaction has ended. Briefly acknowledge and do not continue. ${telemetry}`;
-  }
-  if (promptBundle && Array.isArray(promptBundle.promptMessages) && promptBundle.promptMessages.length <= 1) {
-    return `Begin the interaction now. ${telemetry}`;
-  }
-  return `Respond to the latest input while following the system instructions. ${telemetry}`;
-}
-
-function sendSessionUpdate(systemPrompt, settings) {
-  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
-    return;
-  }
-  realtime.lastSystemPrompt = systemPrompt || "";
-  const sessionPayload = {
-    type: "realtime",
-    instructions: realtime.lastSystemPrompt,
-    output_modalities: ["audio"],
-  };
-  const audio = {};
-  if (settings.voice) {
-    audio.output = {
-      voice: settings.voice,
-    };
-  }
-  if (settings.turnDetection === "none") {
-    audio.input = {
-      turn_detection: null,
-    };
-  } else if (settings.turnDetection) {
-    audio.input = {
-      turn_detection: {
-        type: settings.turnDetection,
-        create_response: false,
-        interrupt_response: false,
-      },
-    };
-  }
-  if (Object.keys(audio).length > 0) {
-    sessionPayload.audio = audio;
-  }
-  console.log(`[session.update] turnDetection=${settings.turnDetection}`);
-  realtime.dataChannel.send(JSON.stringify({ type: "session.update", session: sessionPayload }));
-  appendLog("realtime", "session updated.");
-}
-
-function sendResponseCreate(instructions) {
-  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
-    appendLog("realtime", "response.create skipped.");
-    return;
-  }
-  realtime.assistantAudioSeen = false;
-  realtime.assistantAppended = false;
-  realtime.assistantTranscriptBuffer = "";
-  realtime.dataChannel.send(JSON.stringify({
-    type: "response.create",
-    response: {
-      instructions,
-      output_modalities: ["audio"],
-    },
-  }));
-}
-
-function speakStoredAssistantResponse(text) {
-  if (!text) {
-    return;
-  }
-  realtime.suppressAssistantAppend = true;
-  sendResponseCreate(
-    `Say exactly the following text and nothing else. Do not add, remove, paraphrase, or explain.\n${text}`
-  );
-}
-
 function applySessionSettings() {
   if (!state.realtimeListening) {
     return;
   }
-  sendSessionUpdate(realtime.lastSystemPrompt, currentRealtimeSettings());
+  appendLog("realtime", "restart realtime to apply voice or mode changes.");
 }
 
 function currentRealtimeSettings() {

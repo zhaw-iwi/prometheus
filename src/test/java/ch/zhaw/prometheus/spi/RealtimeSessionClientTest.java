@@ -31,49 +31,67 @@ class RealtimeSessionClientTest {
     }
 
     @Test
-    void createSessionUsesGaClientSecretEndpointAndPayload() throws Exception {
+    void createCallUsesUnifiedWebRtcEndpointAndPromptedSessionPayload() throws Exception {
         AtomicReference<String> requestMethod = new AtomicReference<>();
         AtomicReference<String> authorizationHeader = new AtomicReference<>();
         AtomicReference<String> safetyIdentifierHeader = new AtomicReference<>();
+        AtomicReference<String> contentTypeHeader = new AtomicReference<>();
         AtomicReference<String> requestBody = new AtomicReference<>();
         startServer(exchange -> {
             requestMethod.set(exchange.getRequestMethod());
             authorizationHeader.set(exchange.getRequestHeaders().getFirst("Authorization"));
             safetyIdentifierHeader.set(exchange.getRequestHeaders().getFirst("OpenAI-Safety-Identifier"));
+            contentTypeHeader.set(exchange.getRequestHeaders().getFirst("Content-Type"));
             requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-            writeResponse(exchange, 200, "{\"value\":\"ek_test_secret\",\"session\":{\"type\":\"realtime\"}}");
-        });
+            exchange.getResponseHeaders().set("Location", "/v1/realtime/calls/rtc_test_call");
+            writeResponse(exchange, 200, "answer-sdp");
+        }, "/calls");
 
         OpenAIProperties props = new OpenAIProperties();
         props.setOpenaivsazureopenai("openai");
         props.setKey("test-api-key");
-        props.setRealtimeModel("gpt-realtime");
+        props.setRealtimeModel("gpt-realtime-2");
         props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
-        props.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+        props.setRealtimeCallsUrl(serverUrl("/calls"));
         props.setRealtimeSafetyIdentifier("hashed-demo-user");
 
-        RealtimeSessionInfo sessionInfo = new RealtimeSessionClient(props).createSession();
+        RealtimeCallInfo callInfo = new RealtimeSessionClient(props).createCall("offer-sdp",
+                new RealtimeCallConfig("system: PROMETHEUS instructions", "marin", "server_vad"));
 
-        assertEquals("ek_test_secret", sessionInfo.getClientSecret());
-        assertEquals("gpt-realtime", sessionInfo.getModel());
-        assertEquals("https://example.test/v1/realtime/calls", sessionInfo.getRealtimeCallsUrl());
+        assertEquals("answer-sdp", callInfo.getSdp());
+        assertEquals("gpt-realtime-2", callInfo.getModel());
+        assertEquals("rtc_test_call", callInfo.getCallId());
+        assertTrue(callInfo.getSidebandUrl().contains("call_id=rtc_test_call"));
+        assertTrue(callInfo.getSidebandUrl().startsWith("ws://127.0.0.1:"));
         assertEquals("POST", requestMethod.get());
         assertEquals("Bearer test-api-key", authorizationHeader.get());
         assertEquals("hashed-demo-user", safetyIdentifierHeader.get());
+        assertTrue(contentTypeHeader.get().startsWith("multipart/form-data; boundary="));
 
-        JsonObject payload = JsonParser.parseString(requestBody.get()).getAsJsonObject();
-        JsonObject session = payload.getAsJsonObject("session");
+        String body = requestBody.get();
+        assertTrue(body.contains("Content-Disposition: form-data; name=\"sdp\""));
+        assertTrue(body.contains("offer-sdp"));
+        assertTrue(body.contains("Content-Disposition: form-data; name=\"session\""));
+        String sessionJson = body.substring(body.indexOf("{\"type\":\"realtime\""));
+        sessionJson = sessionJson.substring(0, sessionJson.indexOf("\r\n--"));
+        JsonObject session = JsonParser.parseString(sessionJson).getAsJsonObject();
         assertEquals("realtime", session.get("type").getAsString());
-        assertEquals("gpt-realtime", session.get("model").getAsString());
+        assertEquals("gpt-realtime-2", session.get("model").getAsString());
+        assertEquals("system: PROMETHEUS instructions", session.get("instructions").getAsString());
         assertTrue(session.getAsJsonArray("output_modalities").contains(new JsonPrimitive("audio")));
+        JsonObject audio = session.getAsJsonObject("audio");
         assertEquals("whisper-1",
-                session.getAsJsonObject("audio")
-                        .getAsJsonObject("input")
+                audio.getAsJsonObject("input")
                         .getAsJsonObject("transcription")
                         .get("model")
                         .getAsString());
-        assertFalse(payload.has("modalities"));
-        assertFalse(payload.has("input_audio_transcription"));
+        JsonObject turnDetection = audio.getAsJsonObject("input").getAsJsonObject("turn_detection");
+        assertEquals("server_vad", turnDetection.get("type").getAsString());
+        assertFalse(turnDetection.get("create_response").getAsBoolean());
+        assertFalse(turnDetection.get("interrupt_response").getAsBoolean());
+        assertEquals("marin", audio.getAsJsonObject("output").get("voice").getAsString());
+        assertFalse(session.has("modalities"));
+        assertFalse(session.has("input_audio_transcription"));
     }
 
     @Test
@@ -82,7 +100,7 @@ class RealtimeSessionClientTest {
         startServer(exchange -> {
             requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             writeResponse(exchange, 200, "{\"value\":\"ek_transcription_secret\",\"session\":{\"type\":\"transcription\"}}");
-        });
+        }, "/client_secrets");
 
         OpenAIProperties props = new OpenAIProperties();
         props.setOpenaivsazureopenai("openai");
@@ -114,25 +132,26 @@ class RealtimeSessionClientTest {
     }
 
     @Test
-    void createSessionFailsLoudlyOnHttpError() throws Exception {
-        startServer(exchange -> writeResponse(exchange, 400, "{\"error\":{\"code\":\"bad_request\"}}"));
+    void createCallFailsLoudlyOnHttpError() throws Exception {
+        startServer(exchange -> writeResponse(exchange, 400, "{\"error\":{\"code\":\"bad_request\"}}"), "/calls");
 
         OpenAIProperties props = new OpenAIProperties();
         props.setOpenaivsazureopenai("openai");
         props.setKey("test-api-key");
         props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
-        props.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+        props.setRealtimeCallsUrl(serverUrl("/calls"));
 
         RuntimeException thrown = assertThrows(RuntimeException.class,
-                () -> new RealtimeSessionClient(props).createSession());
+                () -> new RealtimeSessionClient(props).createCall("offer-sdp",
+                        new RealtimeCallConfig("instructions", null, "server_vad")));
 
-        assertEquals("unable to create realtime session", thrown.getMessage());
+        assertEquals("unable to create realtime call", thrown.getMessage());
         assertTrue(thrown.getCause().getMessage().contains("http request returned status code: 400"));
     }
 
-    private void startServer(ExchangeHandler handler) throws IOException {
+    private void startServer(ExchangeHandler handler, String path) throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/client_secrets", exchange -> {
+        server.createContext(path, exchange -> {
             try {
                 handler.handle(exchange);
             } finally {

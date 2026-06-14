@@ -250,7 +250,8 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 
 - `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
 - `POST /{agentID}/acknowledge` returns `ResponseView` (`responseEvent`, `active`)
-- `POST /realtime/session`
+- `POST /{agentID}/realtime/call` with raw SDP body (`Content-Type: application/sdp`)
+- `DELETE /realtime/calls/{callId}`
 - `POST /realtime/transcription/session`
 
 ### Streaming (SSE)
@@ -320,6 +321,7 @@ headers.
 - `GET /demo/agents/{agentId}/behaviour/stream`
 - `GET /demo/agents/{agentId}/monitor/stream`
 - `GET /demo/agents/{agentId}/prompt`
+- `POST /demo/agents/{agentId}/realtime/call` with raw SDP body (`Content-Type: application/sdp`)
 
 Session body:
 
@@ -429,10 +431,16 @@ Notes:
 
 ## Realtime Notes
 
-- Speech-to-speech browsers obtain an OpenAI Realtime GA ephemeral client secret from `POST /realtime/session`.
-  - Server default: `openai.realtimeModel=gpt-realtime`.
+- Speech-to-speech browsers no longer obtain OpenAI client secrets. They create a WebRTC offer and post the raw SDP to PROMETHEUS:
+  - global client: `POST /{agentID}/realtime/call`
+  - Valerian scoped client: `POST /demo/agents/{agentId}/realtime/call`
+  - query options: `voice`, `turnDetection=server_vad|semantic_vad|none`, `generateComplement=true|false`
+- PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
+- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, acknowledges user utterances through the normal PROMETHEUS runtime, refreshes session instructions after state transitions, and only then triggers `response.create`.
+- Realtime-generated assistant speech is recorded by the backend as `resp.behaviour_plan` and published through the normal behaviour stream. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
+  - Server default: `openai.realtimeModel=gpt-realtime-2`.
   - Voice controls include the GA voice options `cedar` and `marin`.
-  - Optional endpoint overrides: `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`.
+  - Optional endpoint override: `openai.realtimeCallsUrl`.
 - The multilateral listening client obtains a transcription-only client secret from
   `POST /realtime/transcription/session`.
   - Server default: `openai.realtimeTranscriptionModel=gpt-realtime-whisper`.
@@ -440,14 +448,10 @@ Notes:
   - `gpt-realtime-whisper` omits turn detection, so `/multilateral/listen` sends periodic
     `input_audio_buffer.commit` events while listening.
 - If `openai.realtimeSafetyIdentifier` is set, the backend sends it as `OpenAI-Safety-Identifier` when creating
-  Realtime client secrets. Use a stable, privacy-preserving identifier.
-- Browser clients establish WebRTC by posting SDP to the returned `realtimeCallsUrl`.
-- Realtime client sends transcript-derived events to `/{agentID}/acknowledge`.
-- PROMETHEUS returns orchestration prompt bundles via `/{agentID}/prompt`.
-  - Use `/{agentID}/prompt?profile=REALTIME_SPEECH` for OpenAI Realtime instruction setup to avoid JSON-style behaviour-plan output.
-- When `/acknowledge` returns a speech-bearing `responseEvent`, realtime clients speak that exact event and only
-  update session instructions; they do not request a second model-generated response for the same user transcript.
-- Assistant outputs are stored as behaviour-plan events.
+  Realtime calls and transcription client secrets. Use a stable, privacy-preserving identifier.
+- Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
+- `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
+- When PROMETHEUS acknowledgement returns a speech-bearing `responseEvent`, the sideband asks Realtime to say that exact text and does not persist a duplicate assistant event.
 - To complement realtime speech with nonverbal backend output, call:
   - `POST /{agentID}/behaviour/generate`
   - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`

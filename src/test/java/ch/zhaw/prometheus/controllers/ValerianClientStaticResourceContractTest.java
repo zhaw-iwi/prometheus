@@ -80,7 +80,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("demoAgentPath(\"/behaviour/generate\")"));
         assertTrue(script.contains("demoAgentPath(\"/behaviour/stream\")"));
         assertTrue(script.contains("demoAgentPath(\"/monitor/stream\")"));
-        assertTrue(script.contains("demoAgentPath(\"/prompt?profile=realtime_speech\")"));
+        assertTrue(script.contains("demoAgentPath(`/realtime/call?${params.toString()}`)"));
         assertTrue(script.contains("params.set(\"accessCode\", state.accessCode);"));
         assertTrue(script.contains("function isVisibleAgentId"));
         assertTrue(script.contains("function prometheusFacingText"));
@@ -105,16 +105,20 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("value=\"cedar\""));
         assertTrue(index.contains("value=\"marin\""));
 
-        assertTrue(script.contains("/prompt?profile=realtime_speech"));
-        assertTrue(script.contains("/realtime/session"));
-        assertTrue(script.contains("sessionInfo.realtimeCallsUrl"));
-        assertTrue(script.contains("output_modalities"));
-        assertTrue(script.contains("turn_detection"));
+        assertTrue(script.contains("/realtime/call?"));
+        assertTrue(script.contains("Content-Type\": \"application/sdp\""));
+        assertTrue(script.contains("call.callId"));
+        assertTrue(script.contains("call.sdp"));
+        assertTrue(script.contains("/realtime/calls/"));
         assertTrue(script.contains("input_audio_buffer.commit"));
-        assertTrue(script.contains("profile: \"backend_complement\""));
-        assertTrue(script.contains("outputProfile"));
-        assertTrue(script.contains("ackResponseSpeech"));
-        assertTrue(script.contains("speakStoredAssistantResponse"));
+
+        assertFalse(script.contains("/realtime/session"));
+        assertFalse(script.contains("sessionInfo.realtimeCallsUrl"));
+        assertFalse(script.contains("clientSecret"));
+        assertFalse(script.contains("type: \"session.update\""));
+        assertFalse(script.contains("type: \"response.create\""));
+        assertFalse(script.contains("ackResponseSpeech"));
+        assertFalse(script.contains("speakStoredAssistantResponse"));
     }
 
     @Test

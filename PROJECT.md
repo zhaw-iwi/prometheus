@@ -56,6 +56,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 50: Valerian user UI
 - [x] Milestone 51: Admin UI
 - [x] Milestone 52: End-to-end rehearsal and compatibility pass
+- [x] Milestone 53: PROMETHEUS-authoritative Realtime speech sideband orchestration
 
 ## Milestone 1
 ### Date
@@ -2536,3 +2537,59 @@ Prove the access-code-scoped Valerian feature works end to end without disruptin
 1. Review and merge `feature/valerian-access-codes`, or run a full suite before merge if broader confidence is needed.
 2. Consider adding admin access-code deletion or archival if repeated smoke rehearsals should not leave local database codes behind.
 3. Continue hardening with UI search/filtering and operational audit fields once the catalog grows.
+
+## Milestone 53
+### Date
+2026-06-14
+
+### Goal
+Rebuild Realtime speech-to-speech so PROMETHEUS remains authoritative for state, prompt refresh, user-turn acknowledgement, and behaviour persistence while browser clients handle only WebRTC media.
+
+### What changed
+- Replaced the speech-to-speech browser client-secret flow with agent-bound raw-SDP call creation:
+  - `POST /{agentID}/realtime/call`
+  - `POST /demo/agents/{agentId}/realtime/call`
+  - `DELETE /realtime/calls/{callId}`
+- Added unified OpenAI Realtime call creation through `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt installed as session `instructions`, default model `gpt-realtime-2`, and turn detection configured with `create_response=false`.
+- Added backend Realtime sideband orchestration for WebRTC calls. The sideband monitors Realtime transcript events, acknowledges user speech through `AgentApplicationService`, refreshes PROMETHEUS instructions after state transitions, waits for `session.updated`, then sends `response.create`.
+- Added backend persistence for Realtime-generated assistant speech as `resp.behaviour_plan` via `recordRealtimeAssistantSpeech(...)`, so normal behaviour streams remain the canonical assistant-output feed.
+- When PROMETHEUS acknowledgement already returns exact speech, the sideband asks Realtime to say that text and avoids persisting a duplicate assistant event.
+- Updated the standalone `/realtime` client and the Valerian cockpit Realtime tab to post SDP to PROMETHEUS, track returned call IDs, close calls through the backend, and stop sending browser-side `session.update`, `response.create`, or acknowledgement requests.
+- Kept the multilateral listening path on `POST /realtime/transcription/session` because it is transcription-only and still uses OpenAI client secrets.
+- Updated OpenAI Realtime configuration defaults in the template and prod properties to `gpt-realtime-2`.
+- Updated README Realtime notes and the affected backend/frontend contract tests.
+
+### How to run
+1. Configure OpenAI Realtime properties in `src/main/resources/openai.properties`:
+   - `openai.openaivsazureopenai=openai`
+   - `openai.key=<standard OpenAI API key>`
+   - optional `openai.realtimeModel=gpt-realtime-2`
+   - optional `openai.realtimeSafetyIdentifier=<stable privacy-preserving user id>`
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open one of:
+   - standalone speech client: `http://localhost:8080/realtime/?agentId=<uuid>`
+   - Valerian cockpit: `http://localhost:8080/valerian/`
+4. Connect/start an agent, start Realtime speech, and verify that spoken user turns advance PROMETHEUS state and that assistant speech appears on the normal behaviour stream.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSessionClientTest,RealtimeCallOrchestrationServiceUnitTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest,AgentApplicationServiceGenerateOptionsUnitTest" test`
+
+### Known issues and decisions
+- This milestone follows the current OpenAI Realtime WebRTC guidance: browser media connects through unified `/v1/realtime/calls`, and PROMETHEUS keeps business logic on a backend sideband connection.
+- `instructions` remains the relevant Realtime session field for PROMETHEUS prompts.
+- The sideband intentionally waits for `session.updated` before creating a response after prompt refresh; if the update fails, it does not generate from stale PROMETHEUS context.
+- Exact backend acknowledgement speech is realized through Realtime audio, so wording is constrained by instructions rather than by a separate deterministic TTS engine.
+- Browser voice and turn-detection changes apply on the next Realtime restart.
+- The speech-to-speech call path is OpenAI-only for now. Azure Realtime speech remains unsupported by this code path.
+- A live browser/WebRTC smoke with real Realtime credentials was not run in this milestone.
+
+### Next steps
+1. Run a live Realtime speech smoke with a real OpenAI key and one scoped Valerian agent.
+2. Add operational diagnostics for sideband connection state, prompt-update acknowledgements, and Realtime errors.
+3. Consider a strict STT -> PROMETHEUS -> TTS mode if exact backend-authored speech becomes more important than low-latency speech-to-speech.

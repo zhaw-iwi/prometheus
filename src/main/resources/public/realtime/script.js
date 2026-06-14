@@ -7,6 +7,7 @@ let session = {
 let peerConnection = null;
 let dataChannel = null;
 let micStream = null;
+let realtimeCallId = null;
 let behaviourSource = null;
 let behaviourReconnectTimer = null;
 let behaviourReconnectAttempt = 0;
@@ -15,13 +16,10 @@ const BEHAVIOUR_RECONNECT_MIN_MS = 1000;
 const BEHAVIOUR_RECONNECT_MAX_MS = 30000;
 const BEHAVIOUR_RECONNECT_JITTER = 0.2;
 let assistantTranscriptBuffer = "";
-let suppressAssistantAppend = false;
-let lastSystemPrompt = "";
 let gifState = "idle";
 let gifSwapTimeout = null;
 const gifFadeMs = 600;
 let assistantAudioSeen = false;
-let assistantAppended = false;
 const gifSources = {
   idle: "her.gif",
   thinking: "her-fast.gif",
@@ -35,7 +33,6 @@ let spaceKeyBindingActive = false;
 let lastBackendBehaviourCreatedDate = null;
 let lastBackendBehaviourEventId = null;
 let lastBackendSpeech = "";
-let pendingBackendSpeech = null;
 
 window.addEventListener("load", () => {
   session.agentId = getAgentId();
@@ -60,14 +57,18 @@ function wireUi() {
   if (voiceSelect) {
     voiceSelect.addEventListener("change", () => {
       sessionSettings.voice = voiceSelect.value;
-      applySessionSettings();
+      if (session.isListening) {
+        appendLog("realtime", "Restart realtime to apply voice changes.");
+      }
     });
   }
   if (turnDetectionSelect) {
     turnDetectionSelect.addEventListener("change", () => {
       sessionSettings.turnDetection = turnDetectionSelect.value;
       updatePushToTalkUi();
-      applySessionSettings();
+      if (session.isListening) {
+        appendLog("realtime", "Restart realtime to apply mode changes.");
+      }
     });
   }
   if (pushToTalkButton) {
@@ -125,56 +126,6 @@ function setActiveStatus(isActive) {
   }
 }
 
-function applyPromptBundle(promptBundle, shouldRespond) {
-  sendSessionUpdate(buildSystemPrompt(promptBundle), sessionSettings);
-  if (!shouldRespond) {
-    return;
-  }
-  const responseInstruction = buildResponseInstruction(promptBundle);
-  sendResponseCreate(responseInstruction);
-}
-
-function buildSystemPrompt(promptBundle) {
-  if (!promptBundle) {
-    return "";
-  }
-  const promptMessages = promptBundle.promptMessages || [];
-  if (!Array.isArray(promptMessages) || promptMessages.length === 0) {
-    return "";
-  }
-  const lines = promptMessages
-    .map((message) => {
-      if (!message) {
-        return null;
-      }
-      const role = message.role || "user";
-      const content = message.content || "";
-      return `${role}: ${content}`;
-    })
-    .filter((line) => line && line.trim().length > 0);
-  return lines.join("\n");
-}
-
-function buildResponseInstruction(promptBundle) {
-  const telemetryInstruction =
-    "Perception telemetry is provided in the prompt context (for example 'User facial emotion ...' and 'Nonverbal summary ...'). Treat it as available sensor input. Do not claim you cannot see or assess the user if telemetry is present. If asked about appearance or emotion, answer from the provided telemetry with appropriate uncertainty.";
-  if (promptBundle && promptBundle.active === false) {
-    return `The interaction has ended. Briefly acknowledge and do not continue with new topics. ${telemetryInstruction}`;
-  }
-  if (promptBundle && Array.isArray(promptBundle.promptMessages) && promptBundle.promptMessages.length <= 1) {
-    return `Begin the interaction now. ${telemetryInstruction}`;
-  }
-  if (promptBundle && Array.isArray(promptBundle.promptMessages)) {
-    const hasUserMessage = promptBundle.promptMessages.some(
-      (message) => message && String(message.role || "").toLowerCase() === "user"
-    );
-    if (hasUserMessage) {
-      return `Respond to the user's latest message while strictly following the system instructions. ${telemetryInstruction}`;
-    }
-  }
-  return `Respond to the user's latest message. ${telemetryInstruction}`;
-}
-
 async function toggleListening() {
   if (!session.isListening) {
     await startListening();
@@ -187,26 +138,12 @@ async function startListening() {
   appendLog("app", "Starting realtime session...");
   setListeningState(true);
   try {
-    const [promptBundle, eventHistory] = await Promise.all([
-      fetchPromptBundle(),
-      fetchEventHistory(),
-    ]);
+    const eventHistory = await fetchEventHistory();
     primeBehaviourCursor(eventHistory || []);
-    setActiveStatus(promptBundle.active);
-    const sessionInfo = await createRealtimeSession();
-    await setupRealtimeConnection(sessionInfo);
+    await setupRealtimeConnection();
     await waitForDataChannelOpen();
     connectBehaviourStream();
-    flushPendingBackendSpeech();
-    applySessionSettings();
     updatePushToTalkUi();
-    const lastAssistantFromHistory = getLastAssistantResponse(eventHistory || []);
-    if (lastAssistantFromHistory) {
-      sendSessionUpdate(buildSystemPrompt(promptBundle), sessionSettings);
-      speakStoredAssistantResponse(lastAssistantFromHistory);
-    } else {
-      applyPromptBundle(promptBundle, true);
-    }
   } catch (error) {
     appendLog("app", "Failed to start: " + error.message);
     await stopListening();
@@ -249,8 +186,11 @@ async function stopListening() {
     micStream.getTracks().forEach((track) => track.stop());
     micStream = null;
   }
+  if (realtimeCallId) {
+    closeRealtimeCall(realtimeCallId);
+    realtimeCallId = null;
+  }
   pushToTalkActive = false;
-  pendingBackendSpeech = null;
 }
 
 async function loadAgentInfo() {
@@ -283,28 +223,7 @@ async function fetchEventHistory() {
   return await response.json();
 }
 
-async function fetchPromptBundle() {
-  const response = await fetch(`/${session.agentId}/prompt?profile=realtime_speech`);
-  if (!response.ok) {
-    throw new Error("Prompt fetch failed.");
-  }
-  const data = await response.json();
-  console.log(`[policy] state=${data.stateName || "unknown"} active=${data.active} promptMessages=${Array.isArray(data.promptMessages) ? data.promptMessages.length : 0}`);
-  appendLog("policy", "Prompt bundle received.");
-  return data;
-}
-
-async function createRealtimeSession() {
-  const response = await fetch("/realtime/session", {
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error("Realtime session creation failed.");
-  }
-  return await response.json();
-}
-
-async function setupRealtimeConnection(sessionInfo) {
+async function setupRealtimeConnection() {
   peerConnection = new RTCPeerConnection();
   peerConnection.ontrack = (event) => {
     const audio = document.getElementById("assistant_audio");
@@ -320,25 +239,35 @@ async function setupRealtimeConnection(sessionInfo) {
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  const answerResponse = await fetch(
-    sessionInfo.realtimeCallsUrl,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${sessionInfo.clientSecret}`,
-        "Content-Type": "application/sdp",
-      },
-      body: offer.sdp,
-    }
-  );
-
-  if (!answerResponse.ok) {
-    throw new Error("Realtime SDP exchange failed.");
-  }
-
-  const answer = await answerResponse.text();
-  await peerConnection.setRemoteDescription({ type: "answer", sdp: answer });
+  const call = await createRealtimeCall(offer.sdp);
+  realtimeCallId = call.callId || null;
+  await peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
   appendLog("realtime", "WebRTC session established.");
+}
+
+async function createRealtimeCall(offerSdp) {
+  const params = new URLSearchParams();
+  if (sessionSettings.voice) {
+    params.set("voice", sessionSettings.voice);
+  }
+  params.set("turnDetection", sessionSettings.turnDetection || "server_vad");
+  params.set("generateComplement", String(shouldGenerateSideBehaviour()));
+  const response = await fetch(`/${session.agentId}/realtime/call?${params.toString()}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/sdp",
+    },
+    body: offerSdp,
+  });
+  if (!response.ok) {
+    throw new Error("Realtime call creation failed.");
+  }
+  return await response.json();
+}
+
+function closeRealtimeCall(callId) {
+  fetch(`/realtime/calls/${encodeURIComponent(callId)}`, { method: "DELETE" }).catch(() => {
+  });
 }
 
 function waitForDataChannelOpen(timeoutMs = 5000) {
@@ -372,11 +301,10 @@ function handleRealtimeEvent(event) {
     if (transcript.trim()) {
       document.getElementById("user_transcript").textContent = transcript;
       appendLog("realtime", "User transcript completed.");
-      handleUserTranscript(transcript);
+      setGifState("thinking");
     }
   } else if (data.type === "response.created") {
     assistantAudioSeen = false;
-    assistantAppended = false;
     assistantTranscriptBuffer = "";
   } else if (data.type === "conversation.item.input_audio_transcription.delta") {
     const partial = data.delta || data.transcript || "";
@@ -394,87 +322,16 @@ function handleRealtimeEvent(event) {
     assistantAudioSeen = false;
     if (assistantTranscriptBuffer.trim()) {
       document.getElementById("assistant_transcript").textContent = assistantTranscriptBuffer;
-      if (!suppressAssistantAppend && !assistantAppended) {
-        appendAssistantTranscript(assistantTranscriptBuffer);
-        assistantAppended = true;
-      } else {
-        suppressAssistantAppend = false;
-      }
       assistantTranscriptBuffer = "";
+      setGifState("idle");
     }
   } else if (data.type === "response.output_text.done") {
     if (!assistantAudioSeen) {
       if (assistantTranscriptBuffer.trim()) {
         document.getElementById("assistant_transcript").textContent = assistantTranscriptBuffer;
-        if (!suppressAssistantAppend && !assistantAppended) {
-          appendAssistantTranscript(assistantTranscriptBuffer);
-          assistantAppended = true;
-        } else {
-          suppressAssistantAppend = false;
-        }
         assistantTranscriptBuffer = "";
+        setGifState("idle");
       }
-    }
-  }
-}
-
-async function handleUserTranscript(transcript) {
-  setGifState("thinking");
-  try {
-    const ackResponse = await fetch(`/${session.agentId}/acknowledge?profile=backend_complement`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-      },
-      body: JSON.stringify({
-        type: "obs.user_utterance",
-        actor: "user",
-        kind: "observation",
-        payload: transcript,
-      }),
-    });
-    if (!ackResponse.ok) {
-      appendLog("policy", "acknowledge failed.");
-      return;
-    }
-    const ackData = await ackResponse.json();
-    if (ackData && typeof ackData.active === "boolean") {
-      setActiveStatus(ackData.active);
-    }
-    const ackResponseSpeech = getEventSpeech(ackData && ackData.responseEvent);
-    const isInactive = !!(ackData && ackData.active === false);
-    if (isInactive) {
-      appendLog("policy", "Agent is inactive; generating final-state acknowledgement only.");
-    }
-    if (!ackResponseSpeech && !isInactive && shouldGenerateSideBehaviour()) {
-      const generateResponse = await fetch(`/${session.agentId}/behaviour/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-        },
-        body: JSON.stringify({
-          outputProfile: "backend_complement",
-        }),
-      });
-      if (!generateResponse.ok) {
-        appendLog("policy", `side behaviour generate failed (${generateResponse.status}).`);
-      } else {
-        appendLog("policy", "Side behaviour generated.");
-      }
-    }
-    const data = await fetchPromptBundle();
-    setActiveStatus(data.active);
-    if (ackResponseSpeech) {
-      rememberBackendBehaviour(ackData.responseEvent, ackResponseSpeech);
-      sendSessionUpdate(buildSystemPrompt(data), sessionSettings);
-      speakStoredAssistantResponse(ackResponseSpeech);
-      appendLog("policy", "Spoke acknowledge response event.");
-    } else {
-      applyPromptBundle(data, true);
-    }
-  } finally {
-    if (gifState === "thinking") {
-      setGifState("idle");
     }
   }
 }
@@ -530,8 +387,8 @@ function connectBehaviourStream() {
     }
     lastBackendBehaviourCreatedDate = data.createdDate || null;
     lastBackendSpeech = speech;
-    speakBackendBehaviourSpeech(speech);
-    appendLog("policy", "Spoke backend behaviour from stream.");
+    document.getElementById("assistant_transcript").textContent = speech;
+    appendLog("policy", "Backend behaviour persisted.");
   });
   behaviourSource.onerror = () => {
     if (behaviourSource) {
@@ -600,51 +457,6 @@ function primeBehaviourCursor(eventHistory) {
   }
 }
 
-function speakBackendBehaviourSpeech(speech) {
-  if (!speech || !speech.trim()) {
-    return;
-  }
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    pendingBackendSpeech = speech;
-    return;
-  }
-  pendingBackendSpeech = null;
-  speakStoredAssistantResponse(speech);
-}
-
-function rememberBackendBehaviour(event, speech) {
-  if (event && event.createdDate) {
-    lastBackendBehaviourCreatedDate = event.createdDate;
-  }
-  if (speech && speech.trim()) {
-    lastBackendSpeech = speech;
-  }
-}
-
-async function appendAssistantTranscript(transcript) {
-  const response = await fetch(`/${session.agentId}/acknowledge`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify({
-      type: "resp.behaviour_plan",
-      actor: "assistant",
-      kind: "response",
-      payload: JSON.stringify({ speech: transcript }),
-    }),
-  });
-  if (!response.ok) {
-    appendLog("policy", "assistant append failed.");
-    return;
-  }
-  const data = await response.json();
-  if (data && typeof data.active === "boolean") {
-    setActiveStatus(data.active);
-  }
-  appendLog("policy", "Assistant response stored.");
-}
-
 async function resetAgent() {
   if (!confirm("Reset the event history?")) {
     return;
@@ -662,68 +474,13 @@ async function resetAgent() {
   document.getElementById("user_transcript").textContent = "";
   document.getElementById("assistant_transcript").textContent = "";
   assistantTranscriptBuffer = "";
-  try {
-    const promptBundle = await fetchPromptBundle();
-    sendSessionUpdate(buildSystemPrompt(promptBundle), sessionSettings);
-  } catch (error) {
-    appendLog("app", "Unable to refresh prompt after reset.");
-  }
-  const responseText = getEventSpeech(data.responseEvent);
-  if (responseText) {
-    speakStoredAssistantResponse(responseText);
-  }
-}
-
-function sendSessionUpdate(systemPrompt, settings = null) {
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    appendLog("realtime", "Data channel not ready for session update.");
-    return;
-  }
-  lastSystemPrompt = systemPrompt || "";
-  const sessionPayload = {
-    type: "realtime",
-    instructions: lastSystemPrompt,
-    output_modalities: ["audio"],
-  };
-  if (settings) {
-    const audio = {};
-    if (settings.voice) {
-      audio.output = {
-        voice: settings.voice,
-      };
-    }
-    if (settings.turnDetection === "none") {
-      audio.input = {
-        turn_detection: null,
-      };
-    } else if (settings.turnDetection) {
-      audio.input = {
-        turn_detection: {
-          type: settings.turnDetection,
-          create_response: false,
-          interrupt_response: false,
-        },
-      };
-    }
-    if (Object.keys(audio).length > 0) {
-      sessionPayload.audio = audio;
-    }
-  }
-  console.log(`[session.update] turnDetection=${settings && settings.turnDetection ? settings.turnDetection : "default"}`);
-  dataChannel.send(
-    JSON.stringify({
-      type: "session.update",
-      session: sessionPayload,
-    })
-  );
-  appendLog("realtime", "Session instructions updated.");
 }
 
 function applySessionSettings() {
-  if (!dataChannel || dataChannel.readyState !== "open") {
+  if (!session.isListening) {
     return;
   }
-  sendSessionUpdate(lastSystemPrompt, sessionSettings);
+  appendLog("realtime", "Restart realtime to apply session settings.");
 }
 
 function updatePushToTalkUi() {
@@ -859,35 +616,6 @@ function setMicEnabled(enabled) {
   });
 }
 
-function sendResponseCreate(instructions) {
-  if (!dataChannel || dataChannel.readyState !== "open") {
-    appendLog("realtime", "Data channel not ready for response.create.");
-    return;
-  }
-  assistantAudioSeen = false;
-  assistantAppended = false;
-  assistantTranscriptBuffer = "";
-  dataChannel.send(
-    JSON.stringify({
-      type: "response.create",
-      response: {
-        instructions: instructions,
-        output_modalities: ["audio"],
-      },
-    })
-  );
-  appendLog("realtime", "Initial response triggered.");
-}
-
-function flushPendingBackendSpeech() {
-  if (!pendingBackendSpeech) {
-    return;
-  }
-  const speech = pendingBackendSpeech;
-  pendingBackendSpeech = null;
-  speakStoredAssistantResponse(speech);
-}
-
 function setGifState(state) {
   gifState = state;
   const gif = document.getElementById("realtime_gif");
@@ -930,17 +658,6 @@ function appendLog(source, message) {
   console.log(`${prefix}${message}`);
 }
 
-function getLastAssistantResponse(eventHistory) {
-  if (!Array.isArray(eventHistory) || eventHistory.length === 0) {
-    return null;
-  }
-  const last = eventHistory[eventHistory.length - 1];
-  if (!last || last.actor !== "assistant") {
-    return null;
-  }
-  return getEventSpeech(last);
-}
-
 function getEventSpeech(event) {
   if (!event) {
     return null;
@@ -957,16 +674,6 @@ function getEventSpeech(event) {
     return null;
   }
   return null;
-}
-
-function speakStoredAssistantResponse(text) {
-  if (!text) {
-    return;
-  }
-  suppressAssistantAppend = true;
-  sendResponseCreate(
-    `Say exactly the following text and nothing else. Do not add, remove, paraphrase, or explain.\n${text}`
-  );
 }
 
 function getAgentId() {

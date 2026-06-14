@@ -21,11 +21,20 @@ class RealtimeBrowserClientContractTest {
             "src/main/resources/public/multilateral/listen/script.js");
 
     @Test
-    void realtimeClientsUseGaWebRtcCallsEndpoint() throws IOException {
-        for (Path scriptPath : allRealtimeScripts()) {
+    void speechRealtimeClientsUsePrometheusBoundRealtimeCallEndpoint() throws IOException {
+        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
-            assertContains(script, "sessionInfo.realtimeCallsUrl");
+            assertContains(script, "/realtime/call?");
+            assertContains(script, "Content-Type\": \"application/sdp\"");
+            assertContains(script, "call.callId");
+            assertContains(script, "call.sdp");
+            assertContains(script, "/realtime/calls/");
+
+            assertDoesNotContain(script, "/realtime/session");
+            assertDoesNotContain(script, "clientSecret");
+            assertDoesNotContain(script, "sessionInfo.realtimeCallsUrl");
+            assertDoesNotContain(script, "Authorization: `Bearer");
             assertDoesNotContain(script, "sessionInfo.realtimeUrl");
             assertDoesNotContain(script, "?model=");
             assertDoesNotContain(script, "/v1/realtime/sessions");
@@ -34,48 +43,36 @@ class RealtimeBrowserClientContractTest {
     }
 
     @Test
-    void speechRealtimeClientsSendGaSessionUpdatePayload() throws IOException {
+    void speechRealtimeClientsDoNotOwnPromptOrResponseCreation() throws IOException {
         for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
-            assertContains(script, "type: \"session.update\"");
-            assertContains(script, "type: \"realtime\"");
-            assertContains(script, "output_modalities: [\"audio\"]");
-            assertContains(script, "audio.input = {");
-            assertContains(script, "turn_detection: {");
-            assertContains(script, "interrupt_response: false");
-            assertContains(script, "sessionPayload.audio = audio;");
+            assertContains(script, "response.output_audio_transcript.delta");
+            assertContains(script, "response.output_audio_transcript.done");
+            assertContains(script, "input_audio_buffer.commit");
 
+            assertDoesNotContain(script, "type: \"session.update\"");
+            assertDoesNotContain(script, "type: \"response.create\"");
+            assertDoesNotContain(script, "output_modalities: [\"audio\"]");
             assertDoesNotContain(script, "sessionPayload.turn_detection");
             assertDoesNotContain(script, "sessionPayload.voice");
             assertDoesNotContain(script, "sessionPayload.temperature");
+            assertDoesNotContain(script, "interrupt_response: false");
             assertDoesNotMatch(script, "(?m)^\\s*modalities\\s*:");
         }
     }
 
     @Test
-    void speechRealtimeClientsSendGaResponseCreatePayloadAndEvents() throws IOException {
+    void speechRealtimeClientsDoNotAcknowledgeRealtimeTurnsDirectly() throws IOException {
         for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
-            assertContains(script, "type: \"response.create\"");
-            assertContains(script, "output_modalities: [\"audio\"]");
-            assertContains(script, "response.output_audio_transcript.delta");
-            assertContains(script, "response.output_audio_transcript.done");
-
-            assertDoesNotContain(script, "response.audio_transcript.delta");
-            assertDoesNotContain(script, "response.audio_transcript.done");
-        }
-    }
-
-    @Test
-    void speechRealtimeClientsPreferAcknowledgeResponseEventOverDuplicateGeneration() throws IOException {
-        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
-            String script = Files.readString(scriptPath);
-
-            assertContains(script, "ackResponseSpeech");
-            assertContains(script, "speakStoredAssistantResponse(ackResponseSpeech)");
-            assertContains(script, "!ackResponseSpeech");
+            assertDoesNotContain(script, "ackResponseSpeech");
+            assertDoesNotContain(script, "appendAssistantTranscript");
+            assertDoesNotContain(script, "handleRealtimeUserTranscript");
+            assertDoesNotContain(script, "handleUserTranscript");
+            assertDoesNotContain(script, "profile=backend_complement");
+            assertDoesNotContain(script, "speakStoredAssistantResponse");
         }
     }
 
@@ -103,10 +100,6 @@ class RealtimeBrowserClientContractTest {
         assertDoesNotContain(script, "output_modalities");
         assertDoesNotContain(script, "create_response");
         assertDoesNotContain(script, "interrupt_response");
-    }
-
-    private static List<Path> allRealtimeScripts() {
-        return List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT, MULTILATERAL_LISTEN_SCRIPT);
     }
 
     private static void assertContains(String text, String expected) {

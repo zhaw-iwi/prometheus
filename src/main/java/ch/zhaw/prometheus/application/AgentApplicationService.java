@@ -181,6 +181,24 @@ public class AgentApplicationService {
         return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
     }
 
+    public Optional<ResponseView> recordRealtimeAssistantSpeech(UUID agentID, String speech) {
+        if (speech == null || speech.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<Agent> agentMaybe = this.findAgent(agentID);
+        if (agentMaybe.isEmpty()) {
+            return Optional.empty();
+        }
+        Agent agent = agentMaybe.get();
+        Event assistant = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                BehaviourPlan.speechOnly(speech.trim()).toJson());
+        Event response = agent.acknowledge(assistant, this.runtime(OutputProfile.FULL_PLAN));
+        Agent saved = this.persistAndPublishMonitor(agent);
+        this.publishBehaviour(saved, assistant);
+        this.publishBehaviour(saved, response);
+        return Optional.of(new ResponseView(response, agent.isActive()));
+    }
+
     public Optional<ResponseView> reset(UUID agentID) {
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
