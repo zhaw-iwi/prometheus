@@ -38,9 +38,7 @@ import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
-import ch.zhaw.prometheus.spi.GeneratedSpeechAudio;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
-import ch.zhaw.prometheus.spi.OpenAIAudioClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -72,9 +70,6 @@ class ScopedDemoControllerIntegrationTest {
 
     @MockitoBean
     private LanguageModelGateway languageModelGateway;
-
-    @MockitoBean
-    private OpenAIAudioClient audioClient;
 
     @BeforeEach
     void setUp() {
@@ -237,22 +232,6 @@ class ScopedDemoControllerIntegrationTest {
         this.mockMvc.perform(get("/demo/agents/" + agentId + "/monitor/stream")
                 .param("accessCode", "Q49q8"))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    void scopedLatestAssistantSpeechRendersStoredStarterSpeech() throws Exception {
-        this.allowType("P49p9", TYPE_KEY);
-        UUID agentId = this.createAgent("P49p9", TYPE_KEY);
-        when(this.audioClient.createSpeech("Scoped response.", "marin"))
-                .thenReturn(new GeneratedSpeechAudio(new byte[] { 7, 8, 9 }, "audio/mpeg"));
-
-        this.mockMvc.perform(post("/demo/agents/" + agentId + "/speech/latest")
-                .header(HEADER, "P49p9")
-                .queryParam("voice", "marin"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.speech").value("Scoped response."))
-                .andExpect(jsonPath("$.audioContentType").value("audio/mpeg"))
-                .andExpect(jsonPath("$.audioBase64").value("BwgJ"));
     }
 
     private AccessCodeView allowType(String code, String typeKey) {

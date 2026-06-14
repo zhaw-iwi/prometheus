@@ -58,9 +58,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"message-list\""));
         assertTrue(index.contains("data-testid=\"text-interaction-tab\""));
         assertTrue(index.contains("data-testid=\"continuous-speech-tab\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk-tab\""));
         assertTrue(index.contains("bi-radar"));
         assertTrue(index.contains("bi-send-fill"));
+        assertFalse(index.contains("data-testid=\"push-to-talk-tab\""));
         assertFalse(index.toLowerCase().contains("gigi"));
         assertFalse(index.toLowerCase().contains("tdsr"));
     }
@@ -112,23 +112,14 @@ class ValerianClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(index.contains("data-testid=\"continuous-speech-tab\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk-tab\""));
         assertTrue(index.contains("id=\"continuous_speech_panel\""));
-        assertTrue(index.contains("id=\"push_to_talk_panel\""));
         assertTrue(index.contains("data-testid=\"toggle-realtime\""));
-        assertTrue(index.contains("data-testid=\"toggle-push-to-talk-realtime\""));
         assertTrue(index.contains("data-testid=\"voice-select\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk-voice-select\""));
         assertTrue(index.contains("data-testid=\"turn-detection-select\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk\""));
         assertTrue(index.contains("data-testid=\"generate-side-behaviour\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk-generate-side-behaviour\""));
         assertTrue(index.contains("data-testid=\"assistant-audio\""));
-        assertTrue(index.contains("data-testid=\"push-to-talk-assistant-audio\""));
         assertTrue(index.contains("data-testid=\"continuous-speech-sensing-panel\""));
         assertTrue(index.contains("data-testid=\"continuous-speech-sensing-value\""));
-        assertTrue(index.contains("data-testid=\"speech-sensing-panel\""));
-        assertTrue(index.contains("data-testid=\"speech-sensing-value\""));
         assertTrue(index.contains("Speech Sensing"));
         assertTrue(index.contains("User Speech"));
         assertTrue(index.contains("value=\"cedar\""));
@@ -140,15 +131,12 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.indexOf("data-testid=\"assistant-audio\"")
                 < index.indexOf("data-testid=\"continuous-speech-sensing-panel\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
-                < index.indexOf("id=\"push_to_talk_panel\""));
-        assertTrue(index.indexOf("id=\"push_to_talk_panel\"")
-                < index.indexOf("data-testid=\"speech-sensing-panel\""));
-        assertTrue(index.indexOf("data-testid=\"push-to-talk-assistant-audio\"")
-                < index.indexOf("data-testid=\"speech-sensing-panel\""));
-        assertTrue(index.indexOf("data-testid=\"speech-sensing-panel\"")
                 < index.indexOf("<aside class=\"right-column\">"));
-        assertTrue(index.indexOf("data-testid=\"speech-sensing-panel\"")
+        assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
                 > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column\">")));
+        assertFalse(index.contains("Push to Talk"));
+        assertFalse(index.contains("push_to_talk"));
+        assertFalse(index.contains("push-to-talk"));
 
         assertTrue(script.contains("/realtime/call?"));
         assertTrue(script.contains("Content-Type\": \"application/sdp\""));
@@ -163,23 +151,22 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("renderSpeechSensingTranscript(selected.transcript);"));
         assertTrue(script.contains("function renderSpeechSensingTranscript"));
         assertTrue(script.contains("setText(\"continuous_speech_sensing_value\""));
-        assertTrue(script.contains("setText(\"speech_sensing_value\""));
         assertTrue(script.contains("resetSpeechSensingPanel();"));
         assertTrue(script.contains("REALTIME_MODE_CONTINUOUS"));
-        assertTrue(script.contains("REALTIME_MODE_PUSH_TO_TALK"));
-        assertTrue(script.contains("toggleRealtime(REALTIME_MODE_CONTINUOUS)"));
-        assertTrue(script.contains("toggleRealtime(REALTIME_MODE_PUSH_TO_TALK)"));
         assertTrue(script.contains("activeAssistantAudioElement().srcObject"));
-        assertTrue(script.contains("window.MediaRecorder"));
-        assertTrue(script.contains("new MediaRecorder"));
-        assertTrue(script.contains("new FormData()"));
-        assertTrue(script.contains("form.append(\"audio\""));
-        assertTrue(script.contains("demoAgentPath(`/speech-turn?${params.toString()}`)"));
-        assertTrue(script.contains("demoAgentPath(`/speech/latest?${params.toString()}`)"));
-        assertTrue(script.contains("playRecordedSpeechAudio"));
-        assertTrue(script.contains("playLatestAssistantSpeechForPushToTalk"));
 
         assertFalse(script.contains("/realtime/session"));
+        assertFalse(script.contains("REALTIME_MODE_PUSH_TO_TALK"));
+        assertFalse(script.contains("push_to_talk"));
+        assertFalse(script.contains("push-to-talk"));
+        assertFalse(script.contains("window.MediaRecorder"));
+        assertFalse(script.contains("new MediaRecorder"));
+        assertFalse(script.contains("new FormData()"));
+        assertFalse(script.contains("form.append(\"audio\""));
+        assertFalse(script.contains("speech-turn"));
+        assertFalse(script.contains("speech/latest"));
+        assertFalse(script.contains("playRecordedSpeechAudio"));
+        assertFalse(script.contains("playLatestAssistantSpeechForPushToTalk"));
         assertFalse(script.contains("sessionInfo.realtimeCallsUrl"));
         assertFalse(script.contains("clientSecret"));
         assertFalse(script.contains("type: \"session.update\""));

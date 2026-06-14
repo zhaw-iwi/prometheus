@@ -197,25 +197,6 @@ body {
   color: var(--ink);
 }
 
-#push_to_talk {
-  border-color: #dc5037;
-  color: var(--ink);
-  font-weight: 600;
-}
-
-#push_to_talk:hover,
-#push_to_talk:focus-visible {
-  background: #ffffff;
-  border-color: #dc5037;
-  color: var(--ink);
-}
-
-#push_to_talk.is-pressed {
-  background: #dc5037;
-  border-color: #dc5037;
-  color: #101010;
-}
-
 #send_message {
   background: #dc5037;
   border-color: #dc5037;

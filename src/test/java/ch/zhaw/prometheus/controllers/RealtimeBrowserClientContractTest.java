@@ -85,53 +85,34 @@ class RealtimeBrowserClientContractTest {
     }
 
     @Test
-    void speechRealtimeClientsExposeSeparateContinuousAndPushToTalkModes() throws IOException {
+    void speechRealtimeClientsExposeContinuousVadModesOnly() throws IOException {
         for (Path indexPath : List.of(REALTIME_INDEX, VALERIAN_INDEX)) {
             String index = Files.readString(indexPath);
 
-            assertContains(index, "Push to Talk");
             assertContains(index, "Continuous");
             assertContains(index, "value=\"server_vad\"");
             assertContains(index, "value=\"semantic_vad\"");
             assertDoesNotContain(index, "<option value=\"none\"");
+            assertDoesNotContain(index, "Push to Talk");
+            assertDoesNotContain(index, "push_to_talk");
+            assertDoesNotContain(index, "push-to-talk");
         }
         for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
             String script = Files.readString(scriptPath);
 
             assertContains(script, "REALTIME_MODE_CONTINUOUS");
-            assertContains(script, "REALTIME_MODE_PUSH_TO_TALK");
             assertContains(script, "activeTurnDetection");
             assertContains(script, "setRealtimeControlsLocked");
-        }
-    }
-
-    @Test
-    void speechRealtimeClientsUseRecordedTurnsForPushToTalk() throws IOException {
-        for (Path scriptPath : List.of(REALTIME_SCRIPT, VALERIAN_SCRIPT)) {
-            String script = Files.readString(scriptPath);
-            int start = script.indexOf("function startPushToTalk");
-            int startRecorded = script.indexOf("startRecordedTurn();", start);
-            int stop = script.indexOf("function stopPushToTalk");
-            int stopRecorded = script.indexOf("stopRecordedTurn();", stop);
-
-            assertTrue(startRecorded > start, "Expected push-to-talk press to start a local recording in "
-                    + scriptPath);
-            assertTrue(stopRecorded > stop, "Expected push-to-talk release to stop a local recording in "
-                    + scriptPath);
-            assertContains(script, "window.MediaRecorder");
-            assertContains(script, "new MediaRecorder");
-            assertContains(script, "new FormData()");
-            assertContains(script, "form.append(\"audio\"");
-            assertContains(script, "/speech-turn?");
-            assertContains(script, "/speech/latest?");
-            assertContains(script, "playRecordedSpeechAudio");
-            assertContains(script, "playLatestAssistantSpeechForPushToTalk");
-            assertDoesNotContain(script, "MANUAL_TURN_COMMIT_DELAY_MS");
-            assertDoesNotContain(script, "commitManualTurn");
-            assertDoesNotContain(script, "scheduleManualTurnCommit");
-            assertDoesNotContain(script, "prepareManualTurn");
-            assertDoesNotContain(script, "type: \"input_audio_buffer.commit\"");
-            assertDoesNotContain(script, "type: \"input_audio_buffer.clear\"");
+            assertDoesNotContain(script, "REALTIME_MODE_PUSH_TO_TALK");
+            assertDoesNotContain(script, "MediaRecorder");
+            assertDoesNotContain(script, "new FormData()");
+            assertDoesNotContain(script, "form.append(\"audio\"");
+            assertDoesNotContain(script, "/speech-turn?");
+            assertDoesNotContain(script, "/speech/latest?");
+            assertDoesNotContain(script, "playRecordedSpeechAudio");
+            assertDoesNotContain(script, "playLatestAssistantSpeechForPushToTalk");
+            assertDoesNotContain(script, "startPushToTalk");
+            assertDoesNotContain(script, "stopPushToTalk");
         }
     }
 

@@ -71,6 +71,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 65: Backend-owned recorded push-to-talk speech turns
 - [x] Milestone 66: Push-to-talk starter speech playback
 - [x] Milestone 67: Current-state latest-utterance speech replay
+- [x] Milestone 68: Remove push-to-talk speech clients
 
 ## Milestone 1
 ### Date
@@ -3228,5 +3229,45 @@ Align continuous and recorded Push to Talk restart playback around the latest ut
 - A live browser smoke was not run in this milestone.
 
 ### Next steps
-1. Re-test Valerian Continuous and Push to Talk by stopping and restarting immediately after an assistant reply.
+1. Re-test Valerian Continuous by stopping and restarting immediately after an assistant reply.
 2. If nested outer-state agents need narrower leaf-only replay, add an exact active-state-path selector rather than the current state's existing event selector.
+
+## Milestone 68
+### Date
+2026-06-14
+
+### Goal
+Remove the push-to-talk speech path and leave PROMETHEUS speech clients with continuous Realtime only, selectable between server VAD and semantic VAD.
+
+### What changed
+- Removed the backend-owned recorded speech turn pipeline, including request-based transcription/TTS SPI classes, views, services, controller endpoints, configuration properties, and tests.
+- Removed Push to Talk tabs, controls, local `MediaRecorder` recording, upload handling, and recorded-audio playback from both `/valerian/` and `/realtime/`.
+- Kept continuous Realtime WebRTC speech-to-speech with `server_vad` and `semantic_vad`, including sideband exact backend speech rendering and speech-sensing transcript display.
+- Updated browser static-resource contracts, MVC/integration tests, and README to describe the continuous-only speech surface.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. In the Continuous tab, choose `Server VAD` or `Semantic VAD`, then start speech.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/realtime/script.js`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeCallOrchestrationServiceUnitTest,RealtimeSidebandServiceContractTest,RealtimeSessionClientTest,RealtimeControllerWebMvcTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ScopedDemoControllerIntegrationTest" test`
+  - `.\mvnw.cmd -q "-Dtest=TransitionDecisionActionReplayIntegrationTest" test`
+- Attempted:
+  - `.\mvnw.cmd -q test`
+  - The full run stopped on `TransitionDecisionActionReplayIntegrationTest` because MySQL rejected a context-load connection with `Too many connections`; the same test passed when rerun in isolation.
+
+### Known issues and decisions
+- Push-to-talk is intentionally removed instead of hidden; the remaining speech clients rely on OpenAI VAD turn detection.
+- Request-based audio transcription and TTS configuration keys are no longer part of the application surface.
+- A live browser smoke with real OpenAI credentials still needs to verify both VAD modes after this removal.
+
+### Next steps
+1. Re-test Valerian Continuous with both `server_vad` and `semantic_vad`.
+2. If manual turn capture is needed later, design it as a new milestone with a clear PROMETHEUS authority boundary instead of reviving the removed PTT code.

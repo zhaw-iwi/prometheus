@@ -705,14 +705,6 @@
                     <i class="bi bi-soundwave me-2"></i>Continuous
                   </button>
                 </li>
-                <li class="nav-item" role="presentation">
-                  <button id="push_to_talk_tab" class="nav-link" type="button" role="tab"
-                    data-bs-toggle="tab" data-bs-target="#push_to_talk_panel"
-                    aria-controls="push_to_talk_panel" aria-selected="false"
-                    data-testid="push-to-talk-tab">
-                    <i class="bi bi-broadcast me-2"></i>Push to Talk
-                  </button>
-                </li>
               </ul>
               <div class="tab-content">
                 <div id="text_interaction_panel" class="tab-pane fade show active" role="tabpanel"
@@ -796,64 +788,6 @@
                     <div class="metric-row mt-2 mb-0">
                       <span class="metric-label">User Speech</span>
                       <div id="continuous_speech_sensing_value" data-testid="continuous-speech-sensing-value">-</div>
-                    </div>
-                  </div>
-                </div>
-                <div id="push_to_talk_panel" class="tab-pane fade" role="tabpanel"
-                  aria-labelledby="push_to_talk_tab" tabindex="0">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="metric-label">Manual Speech Session</span>
-                    <span id="push_to_talk_status" class="status-pill is-idle">Idle</span>
-                  </div>
-                  <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                      <label class="form-label metric-label" for="push_to_talk_voice_select">Voice</label>
-                      <select id="push_to_talk_voice_select" class="form-select form-select-sm"
-                        data-testid="push-to-talk-voice-select">
-                        <option value="">Default</option>
-                        <option value="alloy">Alloy</option>
-                        <option value="ash">Ash</option>
-                        <option value="ballad">Ballad</option>
-                        <option value="cedar">Cedar</option>
-                        <option value="coral">Coral</option>
-                        <option value="echo">Echo</option>
-                        <option value="marin">Marin</option>
-                        <option value="sage">Sage</option>
-                        <option value="shimmer">Shimmer</option>
-                        <option value="verse">Verse</option>
-                      </select>
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <div class="form-check mt-md-4 pt-md-2">
-                        <input id="push_to_talk_generate_side_behaviour" class="form-check-input" type="checkbox"
-                          checked data-testid="push-to-talk-generate-side-behaviour">
-                        <label class="form-check-label" for="push_to_talk_generate_side_behaviour">
-                          Backend complement
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="d-grid gap-2 mt-3">
-                    <button id="toggle_push_to_talk_realtime" class="btn btn-primary" type="button"
-                      data-testid="toggle-push-to-talk-realtime">
-                      <i class="bi bi-mic-fill me-2"></i>Start Push to Talk
-                    </button>
-                    <button id="push_to_talk" class="btn btn-outline-ink" type="button" data-testid="push-to-talk"
-                      disabled>
-                      <i class="bi bi-broadcast me-2"></i>Hold to Talk
-                    </button>
-                  </div>
-                  <audio id="push_to_talk_assistant_audio" class="mt-3 w-100" controls autoplay
-                    data-testid="push-to-talk-assistant-audio"></audio>
-                  <div id="speech_sensing_panel" class="surface-panel mt-3"
-                    data-profile-observations="obs.user_utterance" data-testid="speech-sensing-panel">
-                    <div class="sensing-panel-title">
-                      <i class="bi bi-mic"></i>
-                      <span>Speech Sensing</span>
-                    </div>
-                    <div class="metric-row mt-2 mb-0">
-                      <span class="metric-label">User Speech</span>
-                      <div id="speech_sensing_value" data-testid="speech-sensing-value">-</div>
                     </div>
                   </div>
                 </div>

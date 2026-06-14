@@ -190,7 +190,7 @@ class RealtimeSidebandServiceContractTest {
         constructor.setAccessible(true);
         RealtimeSidebandSessionConfig config = new RealtimeSidebandSessionConfig(
                 "call_test", "wss://example.test/realtime", agentId, "instructions", null,
-                new RealtimeCallSettings("marin", "none", false));
+                new RealtimeCallSettings("marin", "server_vad", false));
         return constructor.newInstance(service, config);
     }
 

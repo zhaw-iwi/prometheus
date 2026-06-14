@@ -95,9 +95,7 @@ public class RealtimeSessionClient {
         JsonObject audioInput = new JsonObject();
         audioInput.add("transcription", transcription);
         String turnDetection = config == null ? null : config.getTurnDetection();
-        if ("none".equals(turnDetection)) {
-            audioInput.add("turn_detection", null);
-        } else if (isPresent(turnDetection)) {
+        if (isPresent(turnDetection)) {
             JsonObject vad = new JsonObject();
             vad.addProperty("type", turnDetection.trim());
             vad.addProperty("create_response", false);

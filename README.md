@@ -37,12 +37,12 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - `Known Agents` lists only instances linked to the active access code. Delete removes the visible scoped instance link and deletes the underlying agent only when no other code links remain.
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
-- The center column has separate Text, Continuous Speech, and Push to Talk tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- The center column has separate Text and Continuous Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
 - Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
-- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social/hand inputs, and sensed visual signal readouts. The Continuous Speech and Push to Talk tabs each include a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as full-width rows.
+- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social/hand inputs, and sensed visual signal readouts. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as full-width rows.
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
@@ -461,18 +461,8 @@ Notes:
 - Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
 - `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
 - When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text from an empty out-of-band response context and does not persist a duplicate assistant event.
-- Browser speech clients expose Continuous and Push to Talk as separate UI paths instead of a shared mode dropdown. Continuous uses `server_vad` or `semantic_vad` and leaves turn chunking to OpenAI VAD.
-- Push to Talk is backend-owned and does not create a Realtime WebRTC call. The browser records local audio only while the button/Space key is held, then uploads one audio file:
-  - global client: `POST /{agentID}/speech-turn`
-  - Valerian scoped client: `POST /demo/agents/{agentId}/speech-turn`
-  - query options: `voice`, `generateComplement=true|false`
-- When Push to Talk starts, the browser asks PROMETHEUS to synthesize the latest stored assistant `BehaviourPlan.speech` if the latest utterance in the current state history is from the assistant, so a visible starter or last assistant reply is read aloud:
-  - global client: `POST /{agentID}/speech/latest`
-  - Valerian scoped client: `POST /demo/agents/{agentId}/speech/latest`
-  - query option: `voice`
-- Continuous Realtime uses the same restart rule through its sideband startup configuration: non-speech observations or backend complement events after the assistant speech do not prevent replay, but a later user utterance does.
-- PROMETHEUS transcribes the uploaded turn with `openai.recordedSpeechTranscriptionModel`, passes the agent `languageCode` as the transcription language hint when present, acknowledges the transcript as `obs.user_utterance` with `REALTIME_SPEECH`, generates canonical backend behaviour when needed, and returns backend TTS audio rendered with `openai.speechModel`.
-- Request-based audio endpoints can be overridden with `openai.audioTranscriptionsUrl` and `openai.audioSpeechUrl`.
+- Browser speech clients expose continuous Realtime speech only. Users choose `server_vad` or `semantic_vad`; OpenAI VAD owns turn chunking.
+- Continuous Realtime restarts through its sideband startup configuration: if the latest utterance in the current state history is assistant-authored, PROMETHEUS asks Realtime to read that exact stored `BehaviourPlan.speech`. Non-speech observations or backend complement events after the assistant speech do not prevent replay, but a later user utterance does.
 - To complement realtime speech with nonverbal backend output, call:
   - `POST /{agentID}/behaviour/generate`
   - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`

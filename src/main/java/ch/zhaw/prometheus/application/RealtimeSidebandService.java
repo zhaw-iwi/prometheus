@@ -344,15 +344,11 @@ public class RealtimeSidebandService {
             JsonObject audio = new JsonObject();
             JsonObject input = new JsonObject();
             String turnDetection = this.config.getSettings().getTurnDetection();
-            if ("none".equals(turnDetection)) {
-                input.add("turn_detection", null);
-            } else {
-                JsonObject vad = new JsonObject();
-                vad.addProperty("type", turnDetection);
-                vad.addProperty("create_response", false);
-                vad.addProperty("interrupt_response", false);
-                input.add("turn_detection", vad);
-            }
+            JsonObject vad = new JsonObject();
+            vad.addProperty("type", turnDetection);
+            vad.addProperty("create_response", false);
+            vad.addProperty("interrupt_response", false);
+            input.add("turn_detection", vad);
             audio.add("input", input);
             if (isPresent(this.config.getSettings().getVoice())) {
                 JsonObject output = new JsonObject();

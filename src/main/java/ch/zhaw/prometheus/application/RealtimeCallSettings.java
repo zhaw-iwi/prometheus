@@ -5,7 +5,7 @@ import java.util.Set;
 public class RealtimeCallSettings {
     private static final Set<String> VOICES = Set.of(
             "alloy", "ash", "ballad", "coral", "echo", "sage", "shimmer", "verse", "marin", "cedar");
-    private static final Set<String> TURN_DETECTION = Set.of("server_vad", "semantic_vad", "none");
+    private static final Set<String> TURN_DETECTION = Set.of("server_vad", "semantic_vad");
 
     private final String voice;
     private final String turnDetection;

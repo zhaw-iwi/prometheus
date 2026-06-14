@@ -22,13 +22,3 @@ openai.realtimeTranscriptionDelay =
 openai.realtimeSafetyIdentifier =
 openai.realtimeClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets
 openai.realtimeCallsUrl = https://api.openai.com/v1/realtime/calls
-
-# request-based audio endpoints used by backend-owned recorded push-to-talk
-openai.audioTranscriptionsUrl = https://api.openai.com/v1/audio/transcriptions
-openai.audioSpeechUrl = https://api.openai.com/v1/audio/speech
-# Uploaded push-to-talk turns use request-based transcription before PROMETHEUS
-# acknowledges obs.user_utterance.
-openai.recordedSpeechTranscriptionModel = gpt-4o-transcribe
-# Backend TTS model used to render PROMETHEUS BehaviourPlan.speech for recorded
-# push-to-talk turns.
-openai.speechModel = gpt-4o-mini-tts
