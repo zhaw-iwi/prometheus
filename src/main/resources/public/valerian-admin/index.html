@@ -79,8 +79,21 @@
       padding: 0.85rem;
     }
 
+    .admin-access-screen {
+      min-height: calc(100vh - 2rem);
+      display: grid;
+      place-items: center;
+    }
+
     .token-panel {
-      max-width: 720px;
+      width: min(100%, 430px);
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem;
+      align-items: end;
     }
 
     .code-row {
@@ -141,39 +154,42 @@
 <body>
   <section class="page-shell py-3">
     <div class="container-fluid content-layer px-3 px-xl-4">
-      <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
-        <div>
-          <div class="page-title">Prometheus Admin Cockpit</div>
-          <div class="page-subtitle">Valerian access management</div>
-        </div>
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <span id="admin_connection_state" class="status-pill is-unknown"
-            data-testid="admin-connection-state">Admin Token Required</span>
-          <button id="forget_admin_token" class="btn btn-outline-ink toolbar-button" type="button"
-            title="Forget admin token" aria-label="Forget admin token" data-testid="forget-admin-token">
-            <i class="bi bi-box-arrow-right"></i>
-          </button>
-        </div>
-      </header>
-
-      <section id="token_panel" class="token-panel admin-card card mb-3" data-testid="admin-token-panel">
-        <div class="card-header">
-          <span><i class="bi bi-shield-lock me-2"></i>Admin Access</span>
-        </div>
-        <div class="card-body">
-          <label class="form-label metric-label" for="admin_token_input">Admin Token</label>
-          <div class="input-group">
-            <input id="admin_token_input" class="form-control mono" type="password" autocomplete="current-password"
-              data-testid="admin-token-input">
-            <button id="submit_admin_token" class="btn btn-primary" type="button" data-testid="submit-admin-token">
-              <i class="bi bi-box-arrow-in-right me-2"></i>Enter
-            </button>
+      <section id="token_panel" class="admin-access-screen" data-testid="admin-token-panel">
+        <div class="token-panel admin-card card">
+          <div class="card-header">
+            <span><i class="bi bi-shield-lock me-2"></i>Prometheus Admin Cockpit</span>
           </div>
-          <div id="admin_token_status" class="status-line mt-2" data-testid="admin-token-status"></div>
+          <div class="card-body">
+            <label class="form-label metric-label" for="admin_token_input">Admin Token</label>
+            <div class="input-row">
+              <input id="admin_token_input" class="form-control mono" type="password" autocomplete="current-password"
+                data-testid="admin-token-input">
+              <button id="submit_admin_token" class="btn btn-primary" type="button" data-testid="submit-admin-token">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Enter
+              </button>
+            </div>
+            <div id="admin_token_status" class="status-line mt-2" data-testid="admin-token-status"></div>
+          </div>
         </div>
       </section>
 
-      <main id="admin_workspace" class="admin-layout d-none" data-testid="admin-workspace" hidden>
+      <div id="admin_shell" class="d-none" data-testid="admin-shell" hidden>
+        <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
+          <div>
+            <div class="page-title">Prometheus Admin Cockpit</div>
+            <div class="page-subtitle">Valerian access management</div>
+          </div>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span id="admin_connection_state" class="status-pill is-unknown"
+              data-testid="admin-connection-state">Admin Token Required</span>
+            <button id="forget_admin_token" class="btn btn-outline-ink toolbar-button" type="button"
+              title="Forget admin token" aria-label="Forget admin token" data-testid="forget-admin-token">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+          </div>
+        </header>
+
+      <main id="admin_workspace" class="admin-layout" data-testid="admin-workspace">
         <section class="admin-card card">
           <div class="card-header">
             <span><i class="bi bi-key me-2"></i>Access Codes</span>
@@ -233,6 +249,7 @@
           </div>
         </section>
       </main>
+      </div>
     </div>
   </section>
 

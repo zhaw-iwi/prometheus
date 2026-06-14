@@ -389,9 +389,14 @@ function emptyPanel(text) {
 }
 
 function showWorkspace(visible) {
+  const shell = document.getElementById("admin_shell");
+  const tokenPanel = document.getElementById("token_panel");
   const workspace = document.getElementById("admin_workspace");
+  shell.hidden = !visible;
+  shell.classList.toggle("d-none", !visible);
+  tokenPanel.hidden = visible;
+  tokenPanel.classList.toggle("d-none", visible);
   workspace.hidden = !visible;
-  workspace.classList.toggle("d-none", !visible);
 }
 
 function setConnectionState(text, mode) {

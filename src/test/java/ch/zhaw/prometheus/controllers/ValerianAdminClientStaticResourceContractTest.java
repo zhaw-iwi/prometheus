@@ -20,9 +20,11 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(index.contains("<title>Prometheus Admin Cockpit</title>"));
         assertTrue(index.contains("Prometheus Admin Cockpit"));
         assertTrue(index.contains("Valerian access management"));
+        assertTrue(index.contains("class=\"admin-access-screen\""));
         assertTrue(index.contains("data-testid=\"admin-token-panel\""));
         assertTrue(index.contains("data-testid=\"admin-token-input\""));
         assertTrue(index.contains("data-testid=\"submit-admin-token\""));
+        assertTrue(index.contains("data-testid=\"admin-shell\""));
         assertTrue(index.contains("data-testid=\"forget-admin-token\""));
         assertTrue(index.contains("data-testid=\"admin-workspace\""));
         assertTrue(index.contains("data-testid=\"new-access-code-input\""));
@@ -62,6 +64,9 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("headers.set(ADMIN_TOKEN_HEADER, state.adminToken);"));
         assertTrue(script.contains("data-agent-type-checkbox"));
         assertTrue(script.contains("function prometheusFacingText"));
+        assertTrue(script.contains("const shell = document.getElementById(\"admin_shell\")"));
+        assertTrue(script.contains("const tokenPanel = document.getElementById(\"token_panel\")"));
+        assertTrue(script.contains("tokenPanel.hidden = visible;"));
 
         assertFalse(script.toLowerCase().contains("gigi"));
         assertFalse(script.toLowerCase().contains("tdsr"));
