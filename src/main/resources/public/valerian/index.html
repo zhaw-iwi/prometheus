@@ -259,7 +259,7 @@
 
     .drawer-agent-actions {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.5rem;
     }
 
@@ -382,18 +382,64 @@
       background: rgba(180, 83, 9, 0.14);
       border-color: rgba(180, 83, 9, 0.34);
     }
+
+    .access-screen {
+      min-height: calc(100vh - 2rem);
+      display: grid;
+      place-items: center;
+    }
+
+    .access-card {
+      width: min(100%, 430px);
+    }
+
+    .access-status {
+      min-height: 1.35rem;
+      color: var(--demo-muted);
+      font-size: 0.88rem;
+    }
+
+    .access-status.is-error {
+      color: #9f1239;
+    }
+
+    .access-status.is-success {
+      color: var(--demo-ok);
+    }
   </style>
 </head>
 
 <body>
   <section class="page-shell py-3">
     <div class="container-fluid content-layer px-3 px-xl-4">
+      <section id="access_screen" class="access-screen" data-testid="access-screen">
+        <div class="access-card demo-card card">
+          <div class="card-header">
+            <span><i class="bi bi-key me-2"></i>Prometheus Demo Cockpit</span>
+          </div>
+          <div class="card-body">
+            <label class="form-label metric-label" for="access_code_input">Access Code</label>
+            <div class="input-row">
+              <input id="access_code_input" class="form-control mono" type="text" maxlength="5"
+                autocomplete="one-time-code" spellcheck="false" data-testid="access-code-input">
+              <button id="submit_access_code" class="btn btn-primary" type="button"
+                data-testid="submit-access-code">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Enter
+              </button>
+            </div>
+            <div id="access_code_status" class="access-status mt-2" data-testid="access-code-status"></div>
+          </div>
+        </div>
+      </section>
+
+      <div id="cockpit_shell" class="d-none" data-testid="cockpit-shell" hidden>
       <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
         <div>
           <div class="page-title">Prometheus Demo Cockpit</div>
           <div id="agent_subtitle" class="page-subtitle">PROMETHEUS demo console</div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
+          <span id="active_access_code" class="status-pill is-live" data-testid="active-access-code">Access -</span>
           <span id="active_status" class="status-pill is-unknown">Unknown</span>
           <span id="behaviour_status" class="status-pill is-idle">Behaviour Idle</span>
           <span id="realtime_status" class="status-pill is-idle">Realtime Idle</span>
@@ -402,6 +448,10 @@
             data-bs-toggle="offcanvas" data-bs-target="#diagnostics_drawer" aria-controls="diagnostics_drawer"
             title="Diagnostics">
             <i class="bi bi-activity"></i>
+          </button>
+          <button id="clear_access_code" class="btn btn-outline-ink toolbar-button" type="button"
+            title="Change access code" aria-label="Change access code" data-testid="clear-access-code">
+            <i class="bi bi-box-arrow-right"></i>
           </button>
         </div>
       </header>
@@ -787,6 +837,7 @@
           </div>
         </aside>
       </main>
+      </div>
     </div>
   </section>
 
@@ -855,6 +906,16 @@
         </div>
         <div id="agent_drawer_panel" class="tab-pane fade show active" role="tabpanel"
           aria-labelledby="agent_drawer_tab" tabindex="0">
+          <label class="form-label metric-label" for="agent_type_select">Available Agent Types</label>
+          <select id="agent_type_select" class="form-select form-select-sm mb-2"
+            data-testid="agent-type-select"></select>
+          <div class="d-grid mb-2">
+            <button id="create_agent_instance" class="btn btn-primary" type="button"
+              data-testid="create-agent-instance">
+              <i class="bi bi-plus-lg me-2"></i>Create Instance
+            </button>
+          </div>
+          <div id="agent_type_status" class="access-status mb-3" data-testid="agent-type-status"></div>
           <label class="form-label metric-label" for="agent_select">Known Agents</label>
           <select id="agent_select" class="form-select form-select-sm mb-3" data-testid="agent-select"></select>
           <label class="form-label metric-label" for="agent_id_input">Agent ID</label>
@@ -875,6 +936,9 @@
             </button>
             <button id="reset_agent" class="btn btn-outline-ink" type="button" data-testid="reset-agent">
               <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+            </button>
+            <button id="delete_agent" class="btn btn-outline-danger" type="button" data-testid="delete-agent">
+              <i class="bi bi-trash me-2"></i>Delete
             </button>
           </div>
           <div class="surface-panel drawer-info-panel">

@@ -21,11 +21,20 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("Prometheus Demo Cockpit"));
         assertTrue(index.contains("PROMETHEUS demo console"));
         assertTrue(index.contains("<script src=\"script.js\"></script>"));
+        assertTrue(index.contains("data-testid=\"access-screen\""));
+        assertTrue(index.contains("data-testid=\"access-code-input\""));
+        assertTrue(index.contains("data-testid=\"submit-access-code\""));
+        assertTrue(index.contains("data-testid=\"cockpit-shell\""));
+        assertTrue(index.contains("data-testid=\"active-access-code\""));
+        assertTrue(index.contains("data-testid=\"clear-access-code\""));
+        assertTrue(index.contains("data-testid=\"agent-type-select\""));
+        assertTrue(index.contains("data-testid=\"create-agent-instance\""));
         assertTrue(index.contains("data-testid=\"agent-select\""));
         assertTrue(index.contains("data-testid=\"agent-id-input\""));
         assertTrue(index.contains("data-testid=\"connect-agent\""));
         assertTrue(index.contains("data-testid=\"start-agent\""));
         assertTrue(index.contains("data-testid=\"reset-agent\""));
+        assertTrue(index.contains("data-testid=\"delete-agent\""));
         assertTrue(index.contains("data-testid=\"agent-drawer-tab\""));
         assertTrue(index.contains("data-testid=\"diagnostics-drawer-tab\""));
         assertTrue(index.contains("data-testid=\"agent-interaction-profile\""));
@@ -34,6 +43,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"agent-profile-tags\""));
         assertTrue(index.contains("Interaction Profile"));
         assertTrue(index.contains("Agent &amp; Diagnostics"));
+        assertTrue(index.contains("Available Agent Types"));
         assertTrue(index.contains("Connect"));
         assertTrue(index.contains("data-testid=\"agent-connection-state\""));
         assertTrue(index.contains("Start Agent"));
@@ -42,6 +52,43 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"message-list\""));
         assertTrue(index.contains("data-testid=\"text-interaction-tab\""));
         assertTrue(index.contains("data-testid=\"speech-interaction-tab\""));
+        assertFalse(index.toLowerCase().contains("gigi"));
+        assertFalse(index.toLowerCase().contains("tdsr"));
+    }
+
+    @Test
+    void valerianClientUsesAccessCodeScopedDemoApi() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("ACCESS_CODE_STORAGE_KEY = \"prometheus.valerian.accessCode\""));
+        assertTrue(script.contains("ACCESS_CODE_HEADER = \"X-Prometheus-Access-Code\""));
+        assertTrue(script.contains("sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY)"));
+        assertTrue(script.contains("sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode)"));
+        assertTrue(script.contains("fetch(\"/demo/session\""));
+        assertTrue(script.contains("scopedFetch(\"/demo/agents\""));
+        assertTrue(script.contains("JSON.stringify({ agentDefinitionKey })"));
+        assertTrue(script.contains("scopedFetch(`/demo/agents/${encodeURIComponent(selectedAgentId)}`"));
+        assertTrue(script.contains("headers.set(ACCESS_CODE_HEADER, state.accessCode);"));
+        assertTrue(script.contains("demoAgentPath(\"/info\")"));
+        assertTrue(script.contains("demoAgentPath(\"/eventhistory\")"));
+        assertTrue(script.contains("demoAgentPath(\"/state\")"));
+        assertTrue(script.contains("demoAgentPath(\"/states\")"));
+        assertTrue(script.contains("demoAgentPath(\"/storage\")"));
+        assertTrue(script.contains("demoAgentPath(\"/start\")"));
+        assertTrue(script.contains("demoAgentPath(\"/reset\")"));
+        assertTrue(script.contains("demoAgentPath(`/acknowledge${profile}`)"));
+        assertTrue(script.contains("demoAgentPath(\"/behaviour/generate\")"));
+        assertTrue(script.contains("demoAgentPath(\"/behaviour/stream\")"));
+        assertTrue(script.contains("demoAgentPath(\"/monitor/stream\")"));
+        assertTrue(script.contains("demoAgentPath(\"/prompt?profile=realtime_speech\")"));
+        assertTrue(script.contains("params.set(\"accessCode\", state.accessCode);"));
+        assertTrue(script.contains("function isVisibleAgentId"));
+        assertTrue(script.contains("function prometheusFacingText"));
+
+        assertFalse(script.contains("fetch(\"/agent\")"));
+        assertFalse(script.contains("fetch(`/${state.agentId}/"));
+        assertFalse(script.toLowerCase().contains("gigi"));
+        assertFalse(script.toLowerCase().contains("tdsr"));
     }
 
     @Test
@@ -100,8 +147,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("\"activity_log_timestamps\""));
 
         assertTrue(script.contains("async function loadAgentState()"));
-        assertTrue(script.contains("fetch(`/${state.agentId}/state`)"));
-        assertTrue(script.contains("fetch(`/${state.agentId}/states`)"));
+        assertTrue(script.contains("scopedFetch(demoAgentPath(\"/state\"))"));
+        assertTrue(script.contains("scopedFetch(demoAgentPath(\"/states\"))"));
         assertTrue(script.contains("function applyMonitorSnapshot(data)"));
         assertTrue(script.contains("applyStateSnapshot(data);"));
         assertTrue(script.contains("function updateCurrentState"));
@@ -150,6 +197,8 @@ class ValerianClientStaticResourceContractTest {
 
         assertFalse(script.contains("localStorage.getItem"));
         assertFalse(script.contains("localStorage.setItem"));
+        assertTrue(script.contains("sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY)"));
+        assertTrue(script.contains("sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode)"));
         assertFalse(script.contains("connectToAgent(id);"));
     }
 

@@ -1,4 +1,6 @@
 const state = {
+  accessCode: null,
+  agentTypes: [],
   agentId: null,
   selectedAgentId: null,
   agents: [],
@@ -71,6 +73,8 @@ const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
 const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
 const ACTIVITY_LOG_LIMIT = 300;
+const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
+const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
@@ -134,26 +138,34 @@ async function init() {
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
+  showCockpit(false);
   applyInteractionProfile(null);
   resetStateView();
   resetStorageList();
   updatePushToTalkUi();
-  appendSystemMessage("Select or paste an agent ID, then connect.");
+  appendSystemMessage("Select or create an agent instance, then connect.");
 
   state.selectedAgentId = getAgentIdFromLocation();
-  await loadAgents();
-  if (state.selectedAgentId) {
-    document.getElementById("agent_id_input").value = state.selectedAgentId;
-    document.getElementById("agent_select").value = state.selectedAgentId;
-    updateSelectedAgentStatus();
-    await connectToAgent(state.selectedAgentId);
+  const storedAccessCode = sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY);
+  if (storedAccessCode) {
+    document.getElementById("access_code_input").value = storedAccessCode;
+    await openAccessSession(storedAccessCode, { fromStorage: true });
   } else {
+    setAccessStatus("");
+    renderAgentTypes();
+    renderAgents();
     updateSelectedAgentStatus();
     setControlsEnabled(false);
   }
 }
 
 function wireUi() {
+  document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
+  document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
+  document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
+  document.getElementById("agent_type_select").addEventListener("change", updateAgentTypeControls);
+  document.getElementById("create_agent_instance").addEventListener("click", createAgentInstance);
+  document.getElementById("delete_agent").addEventListener("click", deleteSelectedAgent);
   document.getElementById("connect_agent").addEventListener("click", async () => {
     if (state.agentId) {
       await disconnectAgent({ preserveInput: true, message: "Disconnected." });
@@ -217,32 +229,226 @@ function wireUi() {
   });
 }
 
-async function loadAgents() {
-  const select = document.getElementById("agent_select");
-  select.innerHTML = '<option value="">Select agent</option>';
+function handleAccessCodeKeyDown(event) {
+  if (event.key !== "Enter") {
+    return;
+  }
+  event.preventDefault();
+  submitAccessCode();
+}
+
+async function submitAccessCode() {
+  const code = document.getElementById("access_code_input").value;
+  await openAccessSession(code);
+}
+
+async function openAccessSession(accessCode, options = {}) {
+  if (!accessCode) {
+    setAccessStatus("Access code required.", "error");
+    return false;
+  }
+  setAccessStatus("Checking access code.");
+  const button = document.getElementById("submit_access_code");
+  button.disabled = true;
   try {
-    const response = await fetch("/agent");
+    const response = await fetch("/demo/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ accessCode }),
+    });
+    if (!response.ok) {
+      throw new Error(`session rejected: ${response.status}`);
+    }
+    const session = await response.json();
+    state.accessCode = session.accessCode || accessCode;
+    state.agentTypes = Array.isArray(session.agentTypes) ? session.agentTypes : [];
+    state.agents = Array.isArray(session.agents) ? session.agents : [];
+    sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode);
+    document.getElementById("active_access_code").textContent = `Access ${state.accessCode}`;
+    showCockpit(true);
+    setAccessStatus("Access accepted.", "success");
+    renderAgentTypes();
+    renderAgents();
+    if (state.selectedAgentId) {
+      document.getElementById("agent_id_input").value = state.selectedAgentId;
+      document.getElementById("agent_select").value = state.selectedAgentId;
+      updateSelectedAgentStatus();
+      await connectToAgent(state.selectedAgentId);
+    } else {
+      updateSelectedAgentStatus();
+      setControlsEnabled(false);
+    }
+    if (!options.fromStorage) {
+      appendSystemMessage("Access accepted. Create or select an agent instance.");
+    }
+    return true;
+  } catch (error) {
+    sessionStorage.removeItem(ACCESS_CODE_STORAGE_KEY);
+    state.accessCode = null;
+    state.agentTypes = [];
+    state.agents = [];
+    renderAgentTypes();
+    renderAgents();
+    showCockpit(false);
+    setControlsEnabled(false);
+    setAccessStatus("Access code rejected.", "error");
+    appendLog("app", error.message);
+    return false;
+  } finally {
+    button.disabled = false;
+    updateAgentTypeControls();
+    updateSelectedAgentStatus();
+  }
+}
+
+async function clearAccessSession() {
+  await disconnectAgent({ preserveInput: false, silent: true });
+  sessionStorage.removeItem(ACCESS_CODE_STORAGE_KEY);
+  state.accessCode = null;
+  state.agentTypes = [];
+  state.agents = [];
+  state.selectedAgentId = null;
+  document.getElementById("access_code_input").value = "";
+  document.getElementById("agent_id_input").value = "";
+  setAccessStatus("");
+  renderAgentTypes();
+  renderAgents();
+  showCockpit(false);
+  setControlsEnabled(false);
+}
+
+function showCockpit(visible) {
+  const accessScreen = document.getElementById("access_screen");
+  const cockpitShell = document.getElementById("cockpit_shell");
+  accessScreen.hidden = visible;
+  accessScreen.classList.toggle("d-none", visible);
+  cockpitShell.hidden = !visible;
+  cockpitShell.classList.toggle("d-none", !visible);
+}
+
+function setAccessStatus(message, mode) {
+  const status = document.getElementById("access_code_status");
+  status.textContent = message || "";
+  status.className = `access-status mt-2${mode ? ` is-${mode}` : ""}`;
+}
+
+async function loadAgents() {
+  if (!state.accessCode) {
+    state.agents = [];
+    renderAgents();
+    return;
+  }
+  try {
+    const response = await scopedFetch("/demo/agents");
     if (!response.ok) {
       appendLog("app", `agent list failed: ${response.status}`);
       return;
     }
     state.agents = await response.json();
-    const sorted = [...state.agents].sort((a, b) => agentSortKey(a).localeCompare(agentSortKey(b)));
-    for (const agent of sorted) {
-      const id = agentIdOf(agent);
-      if (!id) {
-        continue;
-      }
-      const option = document.createElement("option");
-      option.value = id;
-      option.textContent = agent.name || id;
-      select.appendChild(option);
-    }
-    if (state.selectedAgentId) {
-      select.value = state.selectedAgentId;
-    }
+    renderAgents();
   } catch (error) {
     appendLog("app", "agent list failed: " + error.message);
+  }
+}
+
+function renderAgentTypes() {
+  const select = document.getElementById("agent_type_select");
+  select.innerHTML = '<option value="">Select agent type</option>';
+  const sorted = [...state.agentTypes].sort((a, b) => agentTypeSortKey(a).localeCompare(agentTypeSortKey(b)));
+  for (const type of sorted) {
+    if (!type || !type.key) {
+      continue;
+    }
+    const option = document.createElement("option");
+    option.value = type.key;
+    option.textContent = prometheusFacingText(type.displayName || type.key);
+    option.title = prometheusFacingText(type.description || type.key);
+    select.appendChild(option);
+  }
+  updateAgentTypeControls();
+}
+
+function renderAgents() {
+  const select = document.getElementById("agent_select");
+  select.innerHTML = '<option value="">Select agent</option>';
+  const sorted = [...state.agents].sort((a, b) => agentSortKey(a).localeCompare(agentSortKey(b)));
+  for (const agent of sorted) {
+    const id = agentIdOf(agent);
+    if (!id) {
+      continue;
+    }
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = prometheusFacingText(agent.name || id);
+    select.appendChild(option);
+  }
+  if (state.selectedAgentId) {
+    select.value = state.selectedAgentId;
+  }
+  updateAgentSelectionControls();
+}
+
+async function createAgentInstance() {
+  const agentDefinitionKey = document.getElementById("agent_type_select").value;
+  if (!state.accessCode || !agentDefinitionKey) {
+    setAgentTypeStatus("Select an agent type first.", "error");
+    return;
+  }
+  setAgentTypeStatus("Creating instance.");
+  const button = document.getElementById("create_agent_instance");
+  button.disabled = true;
+  try {
+    const response = await scopedFetch("/demo/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ agentDefinitionKey }),
+    });
+    if (!response.ok) {
+      setAgentTypeStatus(`Create failed: ${response.status}`, "error");
+      appendLog("app", `create agent failed: ${response.status}`);
+      return;
+    }
+    const agent = await response.json();
+    state.agents = mergeAgents(state.agents, [agent]);
+    renderAgents();
+    const createdId = agentIdOf(agent);
+    if (createdId) {
+      await selectAgent(createdId, { updateInput: true, updateSelect: true });
+    }
+    setAgentTypeStatus("Instance created.", "success");
+    appendSystemMessage(`Created ${prometheusFacingText(agent.name || createdId || "agent instance")}.`);
+  } catch (error) {
+    setAgentTypeStatus("Create failed.", "error");
+    appendLog("app", "create agent failed: " + error.message);
+  } finally {
+    updateAgentTypeControls();
+  }
+}
+
+async function deleteSelectedAgent() {
+  const selectedAgentId = state.selectedAgentId || document.getElementById("agent_id_input").value;
+  if (!state.accessCode || !selectedAgentId || !isVisibleAgentId(selectedAgentId)) {
+    return;
+  }
+  if (state.agentId === selectedAgentId) {
+    await disconnectAgent({ preserveInput: false, silent: true });
+  }
+  try {
+    const response = await scopedFetch(`/demo/agents/${encodeURIComponent(selectedAgentId)}`, { method: "DELETE" });
+    if (!response.ok && response.status !== 404) {
+      appendLog("app", `delete failed: ${response.status}`);
+      return;
+    }
+    state.agents = state.agents.filter((agent) => agentIdOf(agent) !== selectedAgentId);
+    if (state.selectedAgentId === selectedAgentId) {
+      state.selectedAgentId = null;
+      document.getElementById("agent_id_input").value = "";
+    }
+    renderAgents();
+    updateSelectedAgentStatus();
+    appendSystemMessage("Agent instance deleted.");
+  } catch (error) {
+    appendLog("app", "delete failed: " + error.message);
   }
 }
 
@@ -305,7 +511,7 @@ async function loadAgentInfo() {
     return false;
   }
   try {
-    const response = await fetch(`/${state.agentId}/info`);
+    const response = await scopedFetch(demoAgentPath("/info"));
     if (!response.ok) {
       appendLog("app", `agent info failed: ${response.status}`);
       resetAgentInfo();
@@ -313,9 +519,9 @@ async function loadAgentInfo() {
     }
     const data = await response.json();
     state.agentInfo = data;
-    document.getElementById("agent_subtitle").textContent = data.name || "PROMETHEUS demo console";
-    document.getElementById("agent_info_name").textContent = data.name || "-";
-    document.getElementById("agent_info_description").textContent = data.description || "-";
+    document.getElementById("agent_subtitle").textContent = prometheusFacingText(data.name) || "PROMETHEUS demo console";
+    document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name) || "-";
+    document.getElementById("agent_info_description").textContent = prometheusFacingText(data.description) || "-";
     renderAgentInteractionProfile(data.interactionProfile);
     setActiveStatus(data.active);
     applyInteractionProfile(data.interactionProfile);
@@ -510,6 +716,7 @@ function updateSelectedAgentStatus() {
       : "No agent selected";
   setText("agent_connection_state", text);
   updateConnectionButton();
+  updateAgentSelectionControls();
 }
 
 function updateConnectionButton() {
@@ -532,7 +739,7 @@ function updateConnectionButton() {
 
 async function loadEventHistory() {
   try {
-    const response = await fetch(`/${state.agentId}/eventhistory`);
+    const response = await scopedFetch(demoAgentPath("/eventhistory"));
     if (!response.ok) {
       appendLog("app", `event history failed: ${response.status}`);
       return [];
@@ -562,7 +769,7 @@ async function loadStorage() {
     return;
   }
   try {
-    const response = await fetch(`/${state.agentId}/storage`);
+    const response = await scopedFetch(demoAgentPath("/storage"));
     if (!response.ok) {
       resetStorageList();
       return;
@@ -581,8 +788,8 @@ async function loadAgentState() {
   }
   try {
     const [stateResponse, statesResponse] = await Promise.all([
-      fetch(`/${state.agentId}/state`),
-      fetch(`/${state.agentId}/states`),
+      scopedFetch(demoAgentPath("/state")),
+      scopedFetch(demoAgentPath("/states")),
     ]);
     const stateInfo = stateResponse.ok ? await stateResponse.json() : null;
     const states = statesResponse.ok ? await statesResponse.json() : [];
@@ -879,7 +1086,7 @@ function connectMonitorStream() {
   if (!state.agentId || state.monitorSource || state.isPageUnloading) {
     return;
   }
-  state.monitorSource = new EventSource(`/${state.agentId}/monitor/stream`);
+  state.monitorSource = new EventSource(monitorStreamUrl());
   state.monitorSource.addEventListener("open", () => {
     state.monitorReconnectAttempt = 0;
   });
@@ -901,11 +1108,22 @@ function connectMonitorStream() {
 }
 
 function behaviourStreamUrl() {
-  let url = `/${state.agentId}/behaviour/stream`;
-  if (state.lastBehaviourEventId) {
-    url += `?lastEventId=${encodeURIComponent(state.lastBehaviourEventId)}`;
+  const params = new URLSearchParams();
+  if (state.accessCode) {
+    params.set("accessCode", state.accessCode);
   }
-  return url;
+  if (state.lastBehaviourEventId) {
+    params.set("lastEventId", state.lastBehaviourEventId);
+  }
+  return `${demoAgentPath("/behaviour/stream")}?${params.toString()}`;
+}
+
+function monitorStreamUrl() {
+  const params = new URLSearchParams();
+  if (state.accessCode) {
+    params.set("accessCode", state.accessCode);
+  }
+  return `${demoAgentPath("/monitor/stream")}?${params.toString()}`;
 }
 
 function closeBehaviourStream() {
@@ -940,7 +1158,7 @@ async function startAgent() {
     return;
   }
   try {
-    const response = await fetch(`/${state.agentId}/start`, { method: "POST" });
+    const response = await scopedFetch(demoAgentPath("/start"), { method: "POST" });
     if (!response.ok) {
       appendLog("app", `start failed: ${response.status}`);
       return;
@@ -961,7 +1179,7 @@ async function resetAgent() {
     return;
   }
   try {
-    const response = await fetch(`/${state.agentId}/reset`, { method: "DELETE" });
+    const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
       return;
@@ -1029,7 +1247,7 @@ async function acknowledgeEvent(request, options = {}) {
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
   try {
-    const response = await fetch(`/${state.agentId}/acknowledge${profile}`, {
+    const response = await scopedFetch(demoAgentPath(`/acknowledge${profile}`), {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(request),
@@ -1056,7 +1274,7 @@ async function acknowledgeEvent(request, options = {}) {
 
 async function generateBehaviour(outputProfile) {
   try {
-    const response = await fetch(`/${state.agentId}/behaviour/generate`, {
+    const response = await scopedFetch(demoAgentPath("/behaviour/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ outputProfile }),
@@ -1312,7 +1530,7 @@ async function stopRealtime() {
 }
 
 async function fetchPromptBundle() {
-  const response = await fetch(`/${state.agentId}/prompt?profile=realtime_speech`);
+  const response = await scopedFetch(demoAgentPath("/prompt?profile=realtime_speech"));
   if (!response.ok) {
     throw new Error("prompt fetch failed.");
   }
@@ -2460,9 +2678,15 @@ function resetBehaviourPanels() {
 
 function setControlsEnabled(enabled) {
   const alwaysEnabled = new Set([
+    "access_code_input",
+    "submit_access_code",
+    "clear_access_code",
+    "agent_type_select",
+    "create_agent_instance",
     "agent_id_input",
     "agent_select",
     "connect_agent",
+    "delete_agent",
     "open_diagnostics",
     "agent_drawer_tab",
     "diagnostics_drawer_tab",
@@ -2481,6 +2705,8 @@ function setControlsEnabled(enabled) {
   });
   document.getElementById("start_camera").disabled = !enabled || state.cameraRunning;
   document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning;
+  updateAgentTypeControls();
+  updateAgentSelectionControls();
   updatePushToTalkUi();
 }
 
@@ -2575,12 +2801,87 @@ function getAgentIdFromLocation() {
   return search.substring(1);
 }
 
+function scopedFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+  if (state.accessCode) {
+    headers.set(ACCESS_CODE_HEADER, state.accessCode);
+  }
+  return fetch(url, { ...options, headers });
+}
+
+function demoAgentPath(path) {
+  return `/demo/agents/${encodeURIComponent(state.agentId)}${path || ""}`;
+}
+
+function updateAgentTypeControls() {
+  const select = document.getElementById("agent_type_select");
+  const button = document.getElementById("create_agent_instance");
+  if (!select || !button) {
+    return;
+  }
+  button.disabled = !state.accessCode || !select.value;
+}
+
+function updateAgentSelectionControls() {
+  const deleteButton = document.getElementById("delete_agent");
+  const connectButton = document.getElementById("connect_agent");
+  const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
+  if (deleteButton) {
+    deleteButton.disabled = !state.accessCode || !selected || !isVisibleAgentId(selected);
+  }
+  if (connectButton) {
+    connectButton.disabled = !state.accessCode || (!state.agentId && !selected);
+  }
+}
+
+function setAgentTypeStatus(message, mode) {
+  const status = document.getElementById("agent_type_status");
+  if (!status) {
+    return;
+  }
+  status.textContent = message || "";
+  status.className = `access-status mb-3${mode ? ` is-${mode}` : ""}`;
+}
+
+function mergeAgents(existing, additions) {
+  const byId = new Map();
+  for (const agent of [...(existing || []), ...(additions || [])]) {
+    const id = agentIdOf(agent);
+    if (id) {
+      byId.set(id, agent);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+function isVisibleAgentId(agentId) {
+  return !!agentId && state.agents.some((agent) => agentIdOf(agent) === agentId);
+}
+
 function agentIdOf(agent) {
   return agent && (agent.id || agent.ID || agent.iD);
 }
 
 function agentSortKey(agent) {
   return agent && agent.name ? agent.name : agentIdOf(agent) || "";
+}
+
+function agentTypeSortKey(agentType) {
+  return agentType && (agentType.displayName || agentType.key) ? (agentType.displayName || agentType.key) : "";
+}
+
+function prometheusFacingText(value) {
+  if (typeof value !== "string") {
+    return value || "";
+  }
+  const legacyAgentName = String.fromCharCode(103, 105, 103, 105);
+  const legacyDomainName = String.fromCharCode(116, 100, 115, 114);
+  return value
+    .replace(new RegExp(`\\b${legacyAgentName} on Prometheus\\b`, "gi"), "Prometheus")
+    .replace(new RegExp(`\\b${legacyAgentName}\\b`, "gi"), "Prometheus")
+    .replace(new RegExp(`\\b${legacyDomainName}\\b`, "gi"), "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function normalizeSign(value) {

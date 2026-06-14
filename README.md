@@ -25,15 +25,18 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 
 ## Clients (Quick Tour)
 
-All clients take `?agentId=<uuid>`.
+Most runtime clients take `?agentId=<uuid>`. The Valerian cockpit starts with an access-code screen and then uses scoped `/demo/...` endpoints.
 For the complete list including multilateral endpoints, see `All Client Endpoints` below.
 
 ### Prometheus Demo Cockpit
 
-- URL: `http://localhost:8080/valerian/?agentId=<uuid>`
+- URL: `http://localhost:8080/valerian/`
 - Purpose: single-page PROMETHEUS demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
-- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
-- Without an explicit `?agentId=` URL or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
+- Users enter a configured access code first. Accepted codes are stored in `sessionStorage` for the current browser session.
+- The drawer first shows `Available Agent Types` assigned to the access code. Users create one or more instances from those types, then select an instance in `Known Agents`.
+- `Known Agents` lists only instances linked to the active access code. Delete removes the visible scoped instance link and deletes the underlying agent only when no other code links remain.
+- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
+- Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Realtime Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
@@ -191,9 +194,9 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 
 ## All Client Endpoints
 
-All clients take `?agentId=<uuid>`.
+Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code session first.
 
-- Prometheus demo cockpit: `http://localhost:8080/valerian/?agentId=<uuid>`
+- Prometheus demo cockpit: `http://localhost:8080/valerian/`
 - Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`

@@ -53,6 +53,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 47: Feature branch and agent definition catalog
 - [x] Milestone 48: Access code persistence and admin API
 - [x] Milestone 49: Scoped demo API
+- [x] Milestone 50: Valerian user UI
 
 ## Milestone 1
 ### Date
@@ -2376,3 +2377,45 @@ Add user-facing scoped `/demo` endpoints for Valerian so access-code users can s
 1. Update Valerian with access-code login, available agent type selection, scoped instance creation, and scoped known-agent selection.
 2. Add root/admin UI flows for code creation, enabled state, and allowed type assignment.
 3. Rehearse scoped Valerian flows with the three TDSR agent types assigned to one access code.
+
+## Milestone 50
+### Date
+2026-06-14
+
+### Goal
+Make the Valerian cockpit access-code scoped so regular users can create and use only the agent instances visible through their active access code.
+
+### What changed
+- Added an access-code screen before the cockpit and store accepted codes in `sessionStorage`.
+- Added `Available Agent Types` in the agent drawer and wired instance creation through `POST /demo/agents`.
+- Kept `Known Agents` scoped to `GET /demo/agents` for the active access code.
+- Added scoped instance deletion through `DELETE /demo/agents/{agentId}`; the UI only enables delete for agents visible in the active scoped list.
+- Routed existing info, event history, state, storage, start, reset, acknowledge, behaviour generation, prompt, behaviour stream, and monitor stream calls through `/demo/agents/{agentId}/...`.
+- Kept realtime session creation on `/realtime/session`; the prompt and backend complement calls remain scoped to the selected agent.
+- Updated the Valerian static contract test and README client guidance.
+
+### How to run
+1. Configure an admin token and create an enabled access code with assigned agent type keys through the admin API.
+2. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Open:
+   - `http://localhost:8080/valerian/`
+4. Enter the access code, create an instance from `Available Agent Types`, then connect through `Known Agents`.
+
+### How to test
+- Executed:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - Headless Chrome smoke against `http://127.0.0.1:18080/valerian/` with a temporary access code:
+    invalid code rejected, valid code showed assigned types, create instance, instance appeared in `Known Agents`, connect succeeded, delete removed it.
+  - Smoke screenshot captured at `target/milestone50-smoke/valerian-smoke.png`.
+
+### Known issues and decisions
+- The user UI has no root/admin management screen yet; access codes and allowed types are still configured through the admin API.
+- Access codes remain case-sensitive and unnormalized.
+- Browser SSE streams include `accessCode` as a query parameter because `EventSource` cannot set custom headers.
+
+### Next steps
+1. Add the root/admin management UI for access-code creation, enable/disable state, and allowed type assignment.
+2. Rehearse a curated demo code with the desired PROMETHEUS agent types.
+3. Consider replacing direct Agent ID entry with a read-only selected-instance display once all supported demos use access-code-scoped instances.
