@@ -51,6 +51,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 45: GIGI demo mirrored camera overlay alignment
 - [x] Milestone 46: Valerian cockpit rename and PROMETHEUS-facing branding
 - [x] Milestone 47: Feature branch and agent definition catalog
+- [x] Milestone 48: Access code persistence and admin API
 
 ## Milestone 1
 ### Date
@@ -2259,3 +2260,63 @@ Create the feature branch for scoped Valerian access-code work and move reusable
 1. Add access-code persistence and admin-token-protected management endpoints.
 2. Add scoped Valerian demo endpoints for available agent types and access-code-bound instances.
 3. Update the Valerian UI with access-code login, root management, available type selection, instance creation, and scoped known-agent selection.
+
+## Milestone 48
+### Date
+2026-06-14
+
+### Goal
+Add database-backed access codes and allowed agent-type assignments so a root/admin can configure which registered agent types an access code may instantiate.
+
+### What changed
+- Added access-code persistence entities:
+  - `AccessCode`
+  - `AccessCodeAllowedAgentType`
+  - `AccessCodeAgent`
+- Added repositories for the new tables:
+  - `AccessCodeRepository`
+  - `AccessCodeAllowedAgentTypeRepository`
+  - `AccessCodeAgentRepository`
+- Added `AccessCodeAdminService` for:
+  - listing registered production agent types
+  - creating access codes
+  - enforcing exact case-sensitive code uniqueness
+  - enabling/disabling codes
+  - replacing allowed agent-type assignments
+  - listing agents already associated with an access code
+- Added admin endpoints guarded by header `X-Prometheus-Admin-Token`:
+  - `GET /admin/agent-types`
+  - `POST /admin/access-codes`
+  - `GET /admin/access-codes`
+  - `PATCH /admin/access-codes/{id}`
+  - `PUT /admin/access-codes/{id}/agent-types`
+  - `GET /admin/access-codes/{id}/agents`
+- Added property placeholders:
+  - local/template: `prometheus.admin.token`
+  - prod: `prometheus.admin.token=${PROMETHEUS_ADMIN_TOKEN:}`
+- Updated README with the admin API contract.
+
+### How to run
+1. Configure `prometheus.admin.token` in `src/main/resources/application.properties`.
+2. Start app:
+   - `.\mvnw.cmd spring-boot:run`
+3. Call admin endpoints with:
+   - header `X-Prometheus-Admin-Token: <configured token>`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=AccessCodeAdminServiceIntegrationTest,AdminAccessCodeControllerWebMvcTest" test`
+
+### Known issues and decisions
+- Access codes are exactly five ASCII letters or digits.
+- Access codes are case-sensitive and are not normalized by the backend.
+- The `AccessCode.code` column uses binary collation in generated MySQL DDL to preserve case-sensitive uniqueness.
+- This milestone intentionally adds no Valerian UI changes, scoped demo endpoints, or runtime agent creation through access codes.
+- Admin token checking is deliberately local and property-driven; Spring Security is still not introduced.
+
+### Next steps
+1. Add scoped Valerian/demo API endpoints that validate access codes and expose only allowed agent types and associated agents.
+2. Add runtime instance creation from `AgentDefinitionRegistry` and persist `AccessCodeAgent` links.
+3. Build the root/admin UI and access-code user flow in the Valerian cockpit.

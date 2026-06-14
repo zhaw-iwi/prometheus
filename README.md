@@ -134,6 +134,7 @@ Minimum local fields:
 
 - DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
 - OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
+- Optional admin API: `prometheus.admin.token`
 - Optional realtime: `openai.realtimeModel`, `openai.realtimeTranscriptionModel`,
   `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`,
   `openai.realtimeSafetyIdentifier`, `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
@@ -252,6 +253,35 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 - Behaviour SSE frames carry persisted event ids. Reconnecting clients may pass `Last-Event-ID` or `?lastEventId=<id>` to replay missed behaviour events from event history.
 - Browser clients close EventSource streams on page unload and use one reconnect timer per stream with bounded exponential backoff and jitter on disconnect.
 - Monitor client log and behaviour panes use bounded in-memory buffers to avoid unbounded growth during long sessions or repeated stream failures.
+
+### Admin access-code API
+
+Admin endpoints require header `X-Prometheus-Admin-Token` with the exact value from `prometheus.admin.token`.
+Access codes are case-sensitive, are not normalized by the backend, and must be exactly five ASCII letters or digits.
+
+- `GET /admin/agent-types`
+- `POST /admin/access-codes`
+- `GET /admin/access-codes`
+- `PATCH /admin/access-codes/{id}`
+- `PUT /admin/access-codes/{id}/agent-types`
+- `GET /admin/access-codes/{id}/agents`
+
+Create body:
+
+```json
+{
+  "code": "af7u1",
+  "enabled": true
+}
+```
+
+Allowed-type replacement body:
+
+```json
+{
+  "agentTypeKeys": ["gigitdsr.rock_scissor_paper"]
+}
+```
 
 ## Developer Workflow for New Agents
 
