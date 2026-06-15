@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21.0.1_12-jdk-alpine
 
-WORKDIR /[root working directory =? github repo name]
+WORKDIR /prometheus
 
 COPY . .
 
