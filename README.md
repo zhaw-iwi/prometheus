@@ -145,6 +145,9 @@ Minimum local fields:
 - DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
 - OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
 - Optional admin API: `prometheus.admin.token`
+- Optional external browser clients:
+  `prometheus.cors.allowed-origins`,
+  `prometheus.cors.allowed-origin-patterns`
 - Optional realtime: `openai.realtimeModel`, `openai.realtimeInputTranscriptionModel`,
   `openai.realtimeTranscriptionModel`, `openai.realtimeTranscriptionLanguage`,
   `openai.realtimeTranscriptionDelay`, `openai.realtimeSafetyIdentifier`,
@@ -163,6 +166,34 @@ PowerShell:
 ```
 
 App default URL: `http://localhost:8080`
+
+### 4. External browser clients and CORS
+
+The bundled PROMETHEUS clients are same-origin and do not need CORS. If a
+separate browser client such as `zhaw-iwi/valerian.git` runs on another origin
+and calls PROMETHEUS directly, configure an explicit allowlist.
+
+For a local laptop cockpit:
+
+```properties
+prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010
+```
+
+For variable local ports or hostnames, use origin patterns instead:
+
+```properties
+prometheus.cors.allowed-origin-patterns=http://127.0.0.1:*,http://localhost:*
+```
+
+On Heroku, set the equivalent config vars:
+
+```bash
+PROMETHEUS_CORS_ALLOWED_ORIGINS=http://127.0.0.1:5010,http://localhost:5010
+PROMETHEUS_CORS_ALLOWED_ORIGIN_PATTERNS=http://127.0.0.1:*,http://localhost:*
+```
+
+Keep the allowlist as narrow as practical because the scoped demo access code is
+used as a bearer-style client credential.
 
 ## Agent Definitions and Creation
 

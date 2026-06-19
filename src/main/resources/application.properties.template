@@ -21,3 +21,7 @@ prometheus.runtime.tick.delay-ms=1000
 
 # admin access-code management
 prometheus.admin.token=
+
+# cross-origin browser clients, for example an external Valerian cockpit
+prometheus.cors.allowed-origins=
+prometheus.cors.allowed-origin-patterns=

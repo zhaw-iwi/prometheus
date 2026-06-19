@@ -73,6 +73,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 67: Current-state latest-utterance speech replay
 - [x] Milestone 68: Remove push-to-talk speech clients
 - [x] Milestone 69: Realtime speaks published backend behaviour speech
+- [x] Milestone 70: Property-driven CORS for external Valerian cockpit clients
 
 ## Milestone 1
 ### Date
@@ -3312,3 +3313,47 @@ Make active Realtime speech sessions render canonical backend assistant speech e
 ### Next steps
 1. Re-test TDSR rock-scissor-paper with visual hand-sign sensing and an active continuous Realtime session.
 2. Watch for duplicate audio on speech-triggered turns; the expected behavior is one spoken rendering per published assistant speech event.
+
+## Milestone 70
+### Date
+2026-06-19
+
+### Goal
+Allow independently hosted browser clients such as the external Valerian cockpit to call PROMETHEUS directly without introducing a proxy backend solely to avoid CORS.
+
+### What changed
+- Added property-driven global CORS configuration:
+  - `prometheus.cors.allowed-origins`
+  - `prometheus.cors.allowed-origin-patterns`
+- CORS remains disabled by default unless one of the allowlist properties is configured.
+- Allowed browser methods and headers cover the external cockpit flow:
+  - JSON scoped demo requests
+  - `X-Prometheus-Access-Code`
+  - `Last-Event-ID`
+  - raw `application/sdp` Realtime call preparation
+  - Realtime call cleanup with `DELETE`
+- Added Heroku-friendly production property bindings:
+  - `PROMETHEUS_CORS_ALLOWED_ORIGINS`
+  - `PROMETHEUS_CORS_ALLOWED_ORIGIN_PATTERNS`
+- Updated README with local and Heroku CORS examples for external browser clients.
+
+### How to run
+1. Configure allowed external browser origins, for example:
+   - `prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010`
+2. Start PROMETHEUS:
+   - `.\mvnw.cmd spring-boot:run`
+3. Start the external Valerian cockpit on the allowed origin and point its `PROMETHEUS Host` to the PROMETHEUS backend.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=PrometheusCorsConfigurationWebMvcTest,ScopedDemoControllerIntegrationTest,RealtimeControllerWebMvcTest" test`
+
+### Known issues and decisions
+- A Valerian proxy backend is not required for the current browser client shape; direct browser-to-PROMETHEUS calls remain the preferred low-latency path.
+- The allowlist is intentionally opt-in because scoped demo access codes are bearer-style client credentials.
+- Robot-server CORS must still be configured separately because the external cockpit calls robot-server directly.
+- A real browser smoke from a laptop-hosted cockpit to a Heroku PROMETHEUS app was not run in this milestone.
+
+### Next steps
+1. Configure Heroku with the laptop cockpit origin and run a live cross-origin cockpit smoke.
+2. Keep the allowlist as narrow as practical for demos; use origin patterns only when laptop hostnames or ports cannot be fixed.
