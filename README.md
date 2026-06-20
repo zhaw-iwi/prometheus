@@ -336,6 +336,10 @@ Allowed-type replacement body:
 }
 ```
 
+`PUT /admin/access-codes/{id}/agent-types` replaces the complete assignment. Send a
+smaller list to remove types, a larger list to add types, or an empty list to
+clear all assigned agent types.
+
 ### Scoped demo API
 
 The scoped demo API is intended for the Valerian cockpit and does not change the

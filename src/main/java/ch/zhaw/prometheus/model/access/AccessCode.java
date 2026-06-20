@@ -2,7 +2,9 @@ package ch.zhaw.prometheus.model.access;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import jakarta.persistence.CascadeType;
@@ -65,12 +67,21 @@ public class AccessCode {
     }
 
     public void replaceAllowedAgentTypes(Collection<String> agentTypeKeys) {
-        this.getAllowedAgentTypes().clear();
+        Set<String> replacement = new LinkedHashSet<>();
         if (agentTypeKeys == null) {
+            this.getAllowedAgentTypes().clear();
             return;
         }
-        for (String key : agentTypeKeys) {
-            this.getAllowedAgentTypes().add(new AccessCodeAllowedAgentType(this, key));
+        replacement.addAll(agentTypeKeys);
+        this.getAllowedAgentTypes().removeIf(type -> !replacement.contains(type.getAgentTypeKey()));
+        Set<String> existing = new LinkedHashSet<>();
+        for (AccessCodeAllowedAgentType type : this.getAllowedAgentTypes()) {
+            existing.add(type.getAgentTypeKey());
+        }
+        for (String key : replacement) {
+            if (!existing.contains(key)) {
+                this.getAllowedAgentTypes().add(new AccessCodeAllowedAgentType(this, key));
+            }
         }
     }
 }

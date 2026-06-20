@@ -61,6 +61,8 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("adminJson(\"/admin/access-codes\","));
         assertTrue(script.contains("body: JSON.stringify({ code, enabled: true })"));
         assertTrue(script.contains("body: JSON.stringify({ enabled })"));
+        assertTrue(script.contains("document.querySelectorAll(\"[data-agent-type-checkbox]:checked\")"));
+        assertTrue(script.contains(".map((input) => input.value)"));
         assertTrue(script.contains("body: JSON.stringify({ agentTypeKeys })"));
         assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agent-types`"));
         assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agents`"));

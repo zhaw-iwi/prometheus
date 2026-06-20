@@ -76,6 +76,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 70: Property-driven CORS for external Valerian cockpit clients
 - [x] Milestone 71: GIGI TDSR prompt storyline grounding and relevance guards
 - [x] Milestone 72: General GIGI TDSR tour conversation agent
+- [x] Milestone 73: Valerian Admin assignment replacement fix
 
 ## Milestone 1
 ### Date
@@ -3436,3 +3437,45 @@ Add a fourth GIGI TDSR agent for free station conversations with visitors, groun
 ### Next steps
 1. Live-test likely visitor questions about GIGI, TDSR, specific stations, robot usefulness, and concerns about robots replacing people.
 2. If answers are too long, further compress the route capsule or move station details behind a station-specific runtime context.
+
+## Milestone 73
+### Date
+2026-06-20
+
+### Goal
+Fix Valerian Admin access-code agent-type assignment updates so existing assignments can be expanded, reduced, replaced, or cleared without server errors.
+
+### What changed
+- Changed `AccessCode.replaceAllowedAgentTypes(...)` from clear-and-reinsert semantics to a diff-style replacement:
+  - keep overlapping existing keys
+  - remove keys absent from the submitted replacement set
+  - add only genuinely new keys
+- This avoids unique-constraint failures when an update keeps any previously assigned key, such as `A -> A+B` or `A+B -> A`.
+- Expanded database-backed admin-service coverage to exercise:
+  - adding to an existing assignment
+  - removing from an existing assignment
+  - replacing with a disjoint assignment
+  - clearing all assigned types
+  - rejecting unknown and duplicate keys
+- Added authorized MVC coverage for `PUT /admin/access-codes/{id}/agent-types` with an empty `agentTypeKeys` list.
+- Tightened Valerian Admin static client coverage around sending only checked checkboxes as the full replacement body.
+- Updated README to document complete replacement semantics for the admin assignment endpoint.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Select an access code, add and remove assigned agent types, then save.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AccessCodeAdminServiceIntegrationTest,AdminAccessCodeControllerWebMvcTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The fix is backend-side and protects all admin clients that use the replacement endpoint.
+- The static Valerian Admin test does not simulate real browser checkbox interaction; it verifies the client payload-building contract. A future browser-level test would catch DOM interaction regressions more directly.
+
+### Next steps
+1. Re-test Valerian Admin manually by saving `A -> A+B`, `A+B -> A`, `A -> B`, and `B -> []`.
+2. Add a browser-level admin cockpit smoke if this UI keeps changing.

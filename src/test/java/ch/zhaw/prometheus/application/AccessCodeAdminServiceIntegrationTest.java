@@ -105,7 +105,7 @@ class AccessCodeAdminServiceIntegrationTest {
     }
 
     @Test
-    void replacesAllowedAgentTypesAndRejectsUnknownOrDuplicateKeys() {
+    void changesAllowedAgentTypesByAddingRemovingReplacingAndClearingExistingAssignments() {
         AccessCodeView created = this.service.createAccessCode("typ48", true);
 
         AccessCodeView assigned = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
@@ -116,12 +116,41 @@ class AccessCodeAdminServiceIntegrationTest {
                 assigned.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
-        AccessCodeView replaced = this.service.replaceAllowedAgentTypes(created.getId(),
-                List.of("basic.single_state_micro_coaching", "gigitdsr.tour_conversation")).orElseThrow();
+        AccessCodeView added = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
+                "gigitdsr.guessing_game_with_gestures",
+                "gigitdsr.rock_scissor_paper",
+                "gigitdsr.tour_conversation")).orElseThrow();
 
-        assertEquals(List.of("basic.single_state_micro_coaching", "gigitdsr.tour_conversation"),
-                replaced.getAllowedAgentTypeKeys());
+        assertEquals(List.of(
+                "gigitdsr.guessing_game_with_gestures",
+                "gigitdsr.rock_scissor_paper",
+                "gigitdsr.tour_conversation"), added.getAllowedAgentTypeKeys());
+        assertEquals(3, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
+
+        AccessCodeView removed = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
+                "gigitdsr.guessing_game_with_gestures",
+                "gigitdsr.tour_conversation")).orElseThrow();
+
+        assertEquals(List.of("gigitdsr.guessing_game_with_gestures", "gigitdsr.tour_conversation"),
+                removed.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
+
+        AccessCodeView replaced = this.service.replaceAllowedAgentTypes(created.getId(),
+                List.of("basic.single_state_micro_coaching")).orElseThrow();
+
+        assertEquals(List.of("basic.single_state_micro_coaching"), replaced.getAllowedAgentTypeKeys());
+        assertEquals(1, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
+
+        AccessCodeView cleared = this.service.replaceAllowedAgentTypes(created.getId(), List.of()).orElseThrow();
+
+        assertTrue(cleared.getAllowedAgentTypeKeys().isEmpty());
+        assertTrue(this.allowedAgentTypes.findByAccessCodeId(created.getId()).isEmpty());
+    }
+
+    @Test
+    void rejectsUnknownOrDuplicateAgentTypeAssignments() {
+        AccessCodeView created = this.service.createAccessCode("dup48", true);
+
         assertThrows(IllegalArgumentException.class,
                 () -> this.service.replaceAllowedAgentTypes(created.getId(), List.of("missing.type")));
         assertThrows(IllegalArgumentException.class,

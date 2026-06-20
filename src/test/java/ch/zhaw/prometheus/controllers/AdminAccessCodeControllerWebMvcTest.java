@@ -159,6 +159,8 @@ class AdminAccessCodeControllerWebMvcTest {
         when(this.service.replaceAllowedAgentTypes(id, List.of("basic.single_state_micro_coaching")))
                 .thenReturn(Optional.of(new AccessCodeView(id, "af7u1", false,
                         List.of("basic.single_state_micro_coaching"))));
+        when(this.service.replaceAllowedAgentTypes(id, List.of()))
+                .thenReturn(Optional.of(new AccessCodeView(id, "af7u1", false, List.of())));
 
         this.mockMvc.perform(patch("/admin/access-codes/" + id)
                 .header(HEADER, TOKEN)
@@ -181,6 +183,17 @@ class AdminAccessCodeControllerWebMvcTest {
                         """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allowedAgentTypeKeys[0]").value("basic.single_state_micro_coaching"));
+
+        this.mockMvc.perform(put("/admin/access-codes/" + id + "/agent-types")
+                .header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "agentTypeKeys": []
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowedAgentTypeKeys").isEmpty());
     }
 
     @Test
