@@ -222,7 +222,9 @@ Registered definitions:
 
 The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
 context and keep it guarded as background knowledge, so normal demo turns stay
-focused on the active game or sensing capability.
+focused on the active game or sensing capability. German-facing TDSR prompt
+text uses UTF-8 umlauts, and the general tour conversation agent is instructed
+to keep replies short while varying one-, two-, and rare three-sentence answers.
 
 ### Option A: Seed registered agents from tests
 

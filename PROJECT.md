@@ -77,6 +77,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 71: GIGI TDSR prompt storyline grounding and relevance guards
 - [x] Milestone 72: General GIGI TDSR tour conversation agent
 - [x] Milestone 73: Valerian Admin assignment replacement fix
+- [x] Milestone 74: GIGI TDSR UTF-8 German prompt polish
 
 ## Milestone 1
 ### Date
@@ -3479,3 +3480,40 @@ Fix Valerian Admin access-code agent-type assignment updates so existing assignm
 ### Next steps
 1. Re-test Valerian Admin manually by saving `A -> A+B`, `A+B -> A`, `A -> B`, and `B -> []`.
 2. Add a browser-level admin cockpit smoke if this UI keeps changing.
+
+## Milestone 74
+### Date
+2026-06-20
+
+### Goal
+Polish the four GIGI TDSR agent prompts so German-facing text uses UTF-8 umlauts and the general tour conversation agent produces shorter, less uniform replies.
+
+### What changed
+- Converted avoidable German ASCII spellings in the four TDSR production definitions from forms such as `fuer`, `koennen`, `Gespraech`, and `Haende` to proper UTF-8 German forms.
+- Kept technical identifiers, JSON keys, event names, and the English nonverbal-plan prompt text unchanged.
+- Tightened the tour conversation style guidance from "mostly one to three sentences" to:
+  - usually one or two short sentences
+  - three sentences only for direct explanation questions
+  - varied answer length across the conversation
+- Updated TDSR prompt contract coverage so future prompt edits fail if avoidable German ASCII umlaut spellings return.
+- Updated README registered-agent notes to document the UTF-8 prompt decision and short varied response guidance.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Create or connect a GIGI TDSR agent in Valerian:
+   - `http://localhost:8080/valerian/`
+3. For `gigitdsr.tour_conversation`, ask several visitor-style questions and check that replies vary naturally between very short and moderately short responses.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- Source and Maven builds are configured for UTF-8, so Java text blocks can safely contain umlauts.
+- The prompt keeps Swiss-style `ss` spellings such as `ausser` and `heisst`; this milestone specifically targets umlaut transliterations.
+- Prompt wording can encourage shorter and more varied replies, but live LLM testing remains necessary because exact response length is probabilistic.
+
+### Next steps
+1. Live-test `gigitdsr.tour_conversation` with typical station questions and compare answer length over at least ten turns.
+2. If answers remain too long, make the response contract stricter by asking for default one-sentence answers and only optional second sentences.

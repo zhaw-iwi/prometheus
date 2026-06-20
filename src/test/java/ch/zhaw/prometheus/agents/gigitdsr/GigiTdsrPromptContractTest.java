@@ -41,7 +41,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Gesten"));
         assertTrue(prompt.contains("wechselnden Menschen"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
-        assertTrue(prompt.contains("Eine richtige Bestaetigung deines Tipps allein beendet die Interaktion nicht"));
+        assertTrue(prompt.contains("Eine richtige Bestätigung deines Tipps allein beendet die Interaktion nicht"));
     }
 
     @Test
@@ -62,9 +62,9 @@ class GigiTdsrPromptContractTest {
                 "PROMPT_TO_FINAL");
 
         assertTrue(prompt.contains("hoher Sicherheit"));
-        assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
-        assertTrue(prompt.contains("eine Bestaetigung, dass dein finaler Tipp richtig war"));
-        assertFalse(prompt.contains("der finale Tipp bestaetigt wurde"),
+        assertTrue(prompt.contains("das gesamte Gespräch jetzt zu beenden"));
+        assertTrue(prompt.contains("eine Bestätigung, dass dein finaler Tipp richtig war"));
+        assertFalse(prompt.contains("der finale Tipp bestätigt wurde"),
                 "Correct-guess confirmation alone must not trigger the final state");
     }
 
@@ -95,7 +95,7 @@ class GigiTdsrPromptContractTest {
                 "PROMPT_TO_FINAL");
 
         assertTrue(prompt.contains("hoher Sicherheit"));
-        assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
+        assertTrue(prompt.contains("das gesamte Gespräch jetzt zu beenden"));
         assertTrue(prompt.contains("soziale Beobachtungen"));
         assertFalse(prompt.contains("arrival"),
                 "Social change events must not be listed as final-state triggers");
@@ -117,7 +117,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTrue(prompt.contains("deterministisch"));
         assertTdsrContextIsGuarded(prompt);
-        assertTrue(prompt.contains("Haenden"));
+        assertTrue(prompt.contains("Händen"));
         assertTrue(prompt.contains("Fingern"));
         assertTrue(prompt.contains("visuell erkannte Handzeichen"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
@@ -139,17 +139,19 @@ class GigiTdsrPromptContractTest {
         Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation().createAgent();
 
         assertTrue(agent.getName().contains("GIGI TDSR"));
-        assertTrue(agent.getDescription().contains("freie Gespraeche"));
+        assertTrue(agent.getDescription().contains("freie Gespräche"));
 
         String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
-        assertTrue(prompt.contains("allgemeine TDSR-Gespraechsagent"));
+        assertTrue(prompt.contains("allgemeine TDSR-Gesprächsagent"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
+        assertTrue(prompt.contains("meist ein oder zwei kurze Sätze"));
+        assertTrue(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
         assertTrue(prompt.contains("Route kompakt"));
         assertTrue(prompt.contains("EPFL Lausanne"));
         assertTrue(prompt.contains("ETH Zurich"));
         assertTrue(prompt.contains("SUPSI Lugano"));
         assertTdsrContextIsGuarded(prompt);
-        assertTrue(prompt.contains("zufaelligen Menschen"));
+        assertTrue(prompt.contains("zufälligen Menschen"));
         assertTrue(prompt.contains("Keine Listen"));
         assertTrue(prompt.contains("Behaupte nicht, gerade an einer Station zu sein"));
 
@@ -165,7 +167,7 @@ class GigiTdsrPromptContractTest {
                 "PROMPT_TO_FINAL");
 
         assertTrue(prompt.contains("hoher Sicherheit"));
-        assertTrue(prompt.contains("das gesamte Gespraech jetzt zu beenden"));
+        assertTrue(prompt.contains("das gesamte Gespräch jetzt zu beenden"));
         assertTrue(prompt.contains("Fragen zu GIGI, TDSR, Robotik oder Stationen"));
     }
 
@@ -182,7 +184,7 @@ class GigiTdsrPromptContractTest {
                 ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
                 "PROMPT_FINAL");
         assertTdsrContextIsGuarded(socialFinal);
-        assertTrue(socialFinal.contains("soziale Naehe"));
+        assertTrue(socialFinal.contains("soziale Nähe"));
         assertTrue(socialFinal.contains("Ankunft"));
         assertTrue(socialFinal.contains("Weggehen"));
 
@@ -190,7 +192,7 @@ class GigiTdsrPromptContractTest {
                 ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
                 "PROMPT_FINAL");
         assertTdsrContextIsGuarded(rpsFinal);
-        assertTrue(rpsFinal.contains("Haende, Finger"));
+        assertTrue(rpsFinal.contains("Hände, Finger"));
         assertTrue(rpsFinal.contains("visuelle Erkennung"));
         assertTrue(rpsFinal.contains("soziale Reaktion"));
 
@@ -203,12 +205,50 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void germanFacingTdsrPromptsUseUtf8Umlauts() throws IllegalAccessException {
+        List<String> avoidableAsciiSpellings = List.of(
+                "fuer",
+                "koennen",
+                "Gespraech",
+                "Saetze",
+                "hoechstens",
+                "Erklaer",
+                "Pruefe",
+                "zurueck",
+                "moechte",
+                "Haende",
+                "Haenden",
+                "Naehe",
+                "zufaellig",
+                "beduerftig",
+                "aeussert",
+                "oeffentliche",
+                "Buergenstock",
+                "Schaukaeserei",
+                "unterstuetzen",
+                "ausdruecklich",
+                "bestaetigt",
+                "vertrauenswuerdiger");
+
+        for (Class<?> seedClass : tdsrDefinitionClasses()) {
+            for (Field field : seedClass.getDeclaredFields()) {
+                if (!field.getName().startsWith("PROMPT_")) {
+                    continue;
+                }
+                field.setAccessible(true);
+                String prompt = (String) field.get(null);
+                for (String spelling : avoidableAsciiSpellings) {
+                    assertFalse(prompt.contains(spelling),
+                            seedClass.getSimpleName() + "." + field.getName()
+                                    + " should use UTF-8 German umlauts instead of " + spelling);
+                }
+            }
+        }
+    }
+
+    @Test
     void promptsFitPersistedColumns() throws IllegalAccessException {
-        for (Class<?> seedClass : List.of(
-                ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
-                ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
-                ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
-                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation.class)) {
+        for (Class<?> seedClass : tdsrDefinitionClasses()) {
             for (Field field : seedClass.getDeclaredFields()) {
                 if (!field.getName().startsWith("PROMPT_")) {
                     continue;
@@ -220,6 +260,14 @@ class GigiTdsrPromptContractTest {
                                 + " must fit the persisted prompt column");
             }
         }
+    }
+
+    private static List<Class<?>> tdsrDefinitionClasses() {
+        return List.of(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation.class);
     }
 
     @Test
