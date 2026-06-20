@@ -81,6 +81,16 @@ public final class AgentInteractionProfiles {
                         AgentInteractionProfile.TAG_GIGI_RPS));
     }
 
+    public static AgentInteractionProfile gigiTdsrTourConversation() {
+        return AgentInteractionProfile.of(
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE),
+                speechAndNonverbalModalities(),
+                List.of(
+                        AgentInteractionProfile.TAG_GIGI_TDSR,
+                        AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
+    }
+
     private static List<String> userUtteranceObservations() {
         return List.of(AgentInteractionProfile.OBS_USER_UTTERANCE);
     }

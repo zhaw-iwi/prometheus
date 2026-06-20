@@ -19,6 +19,7 @@ import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateTherapyAppointmen
 import ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures;
 import ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation;
 
 @Component
 public class AgentDefinitionRegistry {
@@ -37,6 +38,7 @@ public class AgentDefinitionRegistry {
                 new GuessingGameWithGestures(),
                 new SocialContextSensitivity(),
                 new RockScissorPaper(),
+                new TourConversation(),
                 new SingleStateTherapyAppointmentReminder(),
                 new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame(),
                 new SingleStateGuessingGameUserGuess(),

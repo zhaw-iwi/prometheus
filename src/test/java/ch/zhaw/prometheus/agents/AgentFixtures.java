@@ -37,4 +37,8 @@ public final class AgentFixtures {
     public static Agent gigiTdsrRockScissorPaper() {
         return new ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper().createAgent();
     }
+
+    public static Agent gigiTdsrTourConversation() {
+        return new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation().createAgent();
+    }
 }

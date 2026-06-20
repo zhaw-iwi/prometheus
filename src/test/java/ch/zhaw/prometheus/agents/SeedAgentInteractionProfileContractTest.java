@@ -26,6 +26,7 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/GuessingGameWithGestures.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/SocialContextSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/TourConversation.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -64,6 +65,14 @@ class SeedAgentInteractionProfileContractTest {
         assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
         assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
+
+        AgentInteractionProfile tourProfile = AgentFixtures.gigiTdsrTourConversation().getInteractionProfile();
+        assertTrue(tourProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+        assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+        assertTrue(tourProfile.supportsBehaviourModality(
+                AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertTrue(tourProfile.getSupportedObservations().size() == 1);
     }
 
     @Test

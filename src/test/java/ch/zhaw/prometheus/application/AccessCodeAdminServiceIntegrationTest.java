@@ -61,6 +61,7 @@ class AccessCodeAdminServiceIntegrationTest {
 
         assertTrue(keys.contains("basic.single_state_micro_coaching"));
         assertTrue(keys.contains("gigitdsr.rock_scissor_paper"));
+        assertTrue(keys.contains("gigitdsr.tour_conversation"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
     }
 
@@ -116,10 +117,11 @@ class AccessCodeAdminServiceIntegrationTest {
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView replaced = this.service.replaceAllowedAgentTypes(created.getId(),
-                List.of("basic.single_state_micro_coaching")).orElseThrow();
+                List.of("basic.single_state_micro_coaching", "gigitdsr.tour_conversation")).orElseThrow();
 
-        assertEquals(List.of("basic.single_state_micro_coaching"), replaced.getAllowedAgentTypeKeys());
-        assertEquals(1, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
+        assertEquals(List.of("basic.single_state_micro_coaching", "gigitdsr.tour_conversation"),
+                replaced.getAllowedAgentTypeKeys());
+        assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
         assertThrows(IllegalArgumentException.class,
                 () -> this.service.replaceAllowedAgentTypes(created.getId(), List.of("missing.type")));
         assertThrows(IllegalArgumentException.class,

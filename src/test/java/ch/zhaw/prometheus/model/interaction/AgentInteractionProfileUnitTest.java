@@ -61,4 +61,19 @@ class AgentInteractionProfileUnitTest {
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
     }
+
+    @Test
+    void gigiTdsrTourConversationProfileDeclaresSpeechAndNonverbalWithoutVisualInput() {
+        AgentInteractionProfile profile = AgentInteractionProfiles.gigiTdsrTourConversation();
+
+        assertEquals(List.of(AgentInteractionProfile.OBS_USER_UTTERANCE), profile.getSupportedObservations());
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
+        assertTrue(profile.getProfileTags().contains(AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
+        assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+    }
 }

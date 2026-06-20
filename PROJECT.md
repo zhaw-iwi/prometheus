@@ -75,6 +75,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 69: Realtime speaks published backend behaviour speech
 - [x] Milestone 70: Property-driven CORS for external Valerian cockpit clients
 - [x] Milestone 71: GIGI TDSR prompt storyline grounding and relevance guards
+- [x] Milestone 72: General GIGI TDSR tour conversation agent
 
 ## Milestone 1
 ### Date
@@ -3396,3 +3397,42 @@ Ground the three GIGI TDSR agent prompts in the Tour de Suisse Robotique storyli
 ### Next steps
 1. Live-test the three GIGI TDSR agents with likely visitor questions about GIGI, TDSR, and the current demo capability.
 2. If responses still over-explain the tour, reduce the final-prompt tie-back to a single optional clause.
+
+## Milestone 72
+### Date
+2026-06-20
+
+### Goal
+Add a fourth GIGI TDSR agent for free station conversations with visitors, grounded in GIGI's tour persona and usable through Valerian Admin and Valerian.
+
+### What changed
+- Added `gigitdsr.tour_conversation`, a single-state German TDSR agent for open public conversation at any station.
+- The agent supports user utterances plus speech and occasional nonverbal behaviour; it intentionally declares no visual, hand-sign, or social-situation sensing input.
+- Added compact route/persona grounding covering major research, partner, cultural, and public-location stops, with guards against claiming a current station unless the context says so.
+- Registered the definition in `AgentDefinitionRegistry`, so Valerian Admin can assign the key to access codes and Valerian can create scoped instances.
+- Added the matching interaction-profile factory/tag and a manual seed wrapper under `src/test/java/ch/zhaw/prometheus/agents/gigitdsr`.
+- Updated prompt, registry, profile, seed-source, and scoped-demo creation coverage.
+- Updated README registered-agent documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign `gigitdsr.tour_conversation` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Enter that access code, create `GIGI TDSR - Tour Conversation`, connect it, and start the agent.
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest" test`
+
+### Known issues and decisions
+- Station knowledge is intentionally compact; the agent can discuss the route, but should not be treated as a full schedule database.
+- The route prompt avoids exact station dates to reduce prompt size and lower the risk of stale live statements.
+- Live LLM/browser testing is still needed to tune whether the general conversation agent feels concise enough for public station interactions.
+
+### Next steps
+1. Live-test likely visitor questions about GIGI, TDSR, specific stations, robot usefulness, and concerns about robots replacing people.
+2. If answers are too long, further compress the route capsule or move station details behind a station-specific runtime context.
