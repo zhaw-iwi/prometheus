@@ -70,6 +70,12 @@ const camera = {
   lastCameraEmitAt: 0,
 };
 
+const weather = {
+  current: null,
+  forecast: null,
+  locationQuery: "",
+};
+
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
@@ -89,6 +95,8 @@ const MEDIAPIPE_TASKS_VERSION = "0.10.35";
 const MEDIAPIPE_TASKS_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}`;
 const MEDIAPIPE_WASM_ROOT = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_TASKS_VERSION}/wasm`;
 const GESTURE_MODEL_URL = "https://storage.googleapis.com/mediapipe-tasks/gesture_recognizer/gesture_recognizer.task";
+const OPEN_METEO_GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
+const OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 
 const CANNED_GESTURE_TO_SIGN = {
   Closed_Fist: "rock",
@@ -116,6 +124,11 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.human.presence",
   "obs.social.grouping",
   "obs.hand.sign",
+];
+
+const PROFILE_WEATHER_OBSERVATIONS = [
+  "obs.weather.current",
+  "obs.weather.forecast",
 ];
 
 const PROFILE_SENSOR_OBSERVATIONS = {
@@ -224,6 +237,9 @@ function wireUi() {
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
     input.addEventListener("change", handleSensorModeChange);
   });
+  document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
+  document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
+  document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
 }
 
 function showAgentDrawerTab() {
@@ -666,7 +682,9 @@ function setProfileElementVisible(element, visible) {
 function updateVisualSensingEmptyState(capabilities) {
   const hasVisualSensing = capabilities.fallbackAll
     || profileListIntersects(capabilities.supportedObservations, PROFILE_VISUAL_OBSERVATIONS);
-  setProfileElementVisible(document.getElementById("sensing_accordion"), hasVisualSensing);
+  const hasWeatherSensing = capabilities.fallbackAll
+    || profileListIntersects(capabilities.supportedObservations, PROFILE_WEATHER_OBSERVATIONS);
+  setProfileElementVisible(document.getElementById("sensing_accordion"), hasVisualSensing || hasWeatherSensing);
   setProfileElementVisible(document.getElementById("no_visual_sensing_message"), !hasVisualSensing);
   if (!hasVisualSensing && state.cameraRunning) {
     stopCamera({ silent: true });
@@ -717,6 +735,9 @@ function resetUnsupportedSensorModes(capabilities) {
       emit.checked = false;
     }
   }
+  if (!profileListIntersects(capabilities.supportedObservations, PROFILE_WEATHER_OBSERVATIONS)) {
+    resetWeatherState();
+  }
   resetDisabledSensorState();
 }
 
@@ -765,6 +786,8 @@ async function loadEventHistory() {
         renderUserSignFromPayload(event.payload);
       } else if (event.type === "obs.social.situation_change") {
         renderLatestEvent(event);
+      } else if (event.type === "obs.weather.current" || event.type === "obs.weather.forecast") {
+        renderWeatherFromPayload(event.type, event.payload);
       } else if (event.type === "obs.user_utterance") {
         renderHistoricalUserUtterance(event);
       }
@@ -2338,6 +2361,326 @@ async function submitHandSign(sign, options = {}) {
     payload: JSON.stringify(payload),
   }, { renderResponse: true });
   return !!data;
+}
+
+async function fetchWeatherCurrent() {
+  try {
+    const payloads = await loadWeatherPayloads();
+    weather.current = payloads.current;
+    weather.forecast = payloads.forecast;
+    weather.locationQuery = weatherLocationQuery();
+    renderWeatherPayload(weather.current);
+    appendLog("weather", "current weather fetched.");
+    return true;
+  } catch (error) {
+    renderWeatherStatus("Weather unavailable");
+    appendLog("weather", errorMessage(error));
+    return false;
+  }
+}
+
+async function sendWeatherCurrent() {
+  if (!state.agentId) {
+    appendLog("weather", "send skipped: no agent.");
+    return false;
+  }
+  if (!weather.current || weather.locationQuery !== weatherLocationQuery()) {
+    const fetched = await fetchWeatherCurrent();
+    if (!fetched) {
+      return false;
+    }
+  }
+  const data = await acknowledgeEvent({
+    type: "obs.weather.current",
+    actor: "system",
+    kind: "observation",
+    payload: JSON.stringify(weather.current),
+  }, { renderResponse: false });
+  if (data) {
+    appendLog("weather", "current weather sent.");
+  }
+  return !!data;
+}
+
+async function sendWeatherForecast() {
+  if (!state.agentId) {
+    appendLog("weather", "send skipped: no agent.");
+    return false;
+  }
+  if (!weather.forecast || weather.locationQuery !== weatherLocationQuery()) {
+    try {
+      const payloads = await loadWeatherPayloads();
+      weather.current = payloads.current;
+      weather.forecast = payloads.forecast;
+      weather.locationQuery = weatherLocationQuery();
+      renderWeatherPayload(weather.forecast);
+    } catch (error) {
+      renderWeatherStatus("Weather unavailable");
+      appendLog("weather", errorMessage(error));
+      return false;
+    }
+  }
+  const data = await acknowledgeEvent({
+    type: "obs.weather.forecast",
+    actor: "system",
+    kind: "observation",
+    payload: JSON.stringify(weather.forecast),
+  }, { renderResponse: false });
+  if (data) {
+    appendLog("weather", "weather forecast sent.");
+  }
+  return !!data;
+}
+
+async function loadWeatherPayloads() {
+  const query = weatherLocationQuery();
+  if (!query) {
+    throw new Error("weather location required.");
+  }
+  const location = await resolveWeatherLocation(query);
+  const forecast = await fetchOpenMeteoForecast(location);
+  return normalizeOpenMeteoWeather(query, location, forecast);
+}
+
+function weatherLocationQuery() {
+  const input = document.getElementById("weather_location_input");
+  return input && input.value ? input.value.trim() : "";
+}
+
+async function resolveWeatherLocation(query) {
+  const params = new URLSearchParams({
+    name: query,
+    count: "1",
+    language: "de",
+    format: "json",
+  });
+  const data = await fetchJson(`${OPEN_METEO_GEOCODING_URL}?${params.toString()}`);
+  const result = data && Array.isArray(data.results) ? data.results[0] : null;
+  if (!result || typeof result.latitude !== "number" || typeof result.longitude !== "number") {
+    throw new Error("weather location not found.");
+  }
+  const name = result.name || query;
+  const country = result.country || "";
+  return {
+    name,
+    country,
+    label: country ? `${name}, ${country}` : name,
+    latitude: result.latitude,
+    longitude: result.longitude,
+    timezone: result.timezone || "auto",
+  };
+}
+
+async function fetchOpenMeteoForecast(location) {
+  const params = new URLSearchParams({
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+    current: [
+      "weather_code",
+      "temperature_2m",
+      "precipitation",
+      "rain",
+      "showers",
+      "snowfall",
+      "cloud_cover",
+      "wind_speed_10m",
+      "wind_gusts_10m",
+      "is_day",
+    ].join(","),
+    daily: [
+      "weather_code",
+      "temperature_2m_max",
+      "temperature_2m_min",
+      "precipitation_sum",
+      "rain_sum",
+      "showers_sum",
+      "snowfall_sum",
+      "wind_speed_10m_max",
+      "wind_gusts_10m_max",
+    ].join(","),
+    forecast_days: "3",
+    timezone: location.timezone || "auto",
+  });
+  return await fetchJson(`${OPEN_METEO_FORECAST_URL}?${params.toString()}`);
+}
+
+async function fetchJson(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`weather service returned ${response.status}.`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeOpenMeteoWeather(query, location, data) {
+  const current = data && data.current ? data.current : {};
+  const currentCondition = weatherCondition(
+    current.weather_code,
+    current.precipitation,
+    current.rain,
+    current.showers,
+    current.snowfall);
+  const currentPrecipitation = maxNumber(current.precipitation, Number(current.rain || 0) + Number(current.showers || 0),
+    current.snowfall);
+  const base = weatherLocationPayload(query, location);
+  return {
+    current: {
+      ...base,
+      source: "open-meteo.client",
+      kind: "current",
+      condition: currentCondition,
+      intensity: weatherIntensity(currentCondition, currentPrecipitation, false),
+      wind: weatherWind(current.wind_speed_10m, current.wind_gusts_10m),
+      is_day: Number(current.is_day || 0) === 1,
+      cloud_cover: Math.round(Number(current.cloud_cover || 0)),
+      temperature_c: round(current.temperature_2m, 1),
+      precipitation_mm: round(currentPrecipitation, 2),
+      weather_code: Number(current.weather_code || 0),
+      observed_at: current.time || new Date().toISOString(),
+      ts: new Date().toISOString(),
+    },
+    forecast: {
+      ...base,
+      source: "open-meteo.client",
+      kind: "forecast",
+      days: normalizeForecastDays(data && data.daily),
+      ts: new Date().toISOString(),
+    },
+  };
+}
+
+function weatherLocationPayload(query, location) {
+  return {
+    location_query: query,
+    location_name: location.name,
+    country: location.country,
+    location_label: location.label,
+    latitude: round(location.latitude, 5),
+    longitude: round(location.longitude, 5),
+    timezone: location.timezone,
+  };
+}
+
+function normalizeForecastDays(daily) {
+  if (!daily || !Array.isArray(daily.time)) {
+    return [];
+  }
+  return daily.time.slice(0, 3).map((date, index) => {
+    const precipitation = maxNumber(
+      arrayNumber(daily.precipitation_sum, index),
+      arrayNumber(daily.rain_sum, index) + arrayNumber(daily.showers_sum, index),
+      arrayNumber(daily.snowfall_sum, index));
+    const condition = weatherCondition(
+      arrayNumber(daily.weather_code, index),
+      precipitation,
+      arrayNumber(daily.rain_sum, index),
+      arrayNumber(daily.showers_sum, index),
+      arrayNumber(daily.snowfall_sum, index));
+    return {
+      date,
+      condition,
+      intensity: weatherIntensity(condition, precipitation, true),
+      wind: weatherWind(arrayNumber(daily.wind_speed_10m_max, index), arrayNumber(daily.wind_gusts_10m_max, index)),
+      temperature_min_c: round(arrayNumber(daily.temperature_2m_min, index), 1),
+      temperature_max_c: round(arrayNumber(daily.temperature_2m_max, index), 1),
+      precipitation_mm: round(precipitation, 2),
+      weather_code: arrayNumber(daily.weather_code, index),
+    };
+  });
+}
+
+function weatherCondition(codeValue, precipitationValue, rainValue, showersValue, snowfallValue) {
+  const code = Number(codeValue || 0);
+  const rain = Number(rainValue || 0) + Number(showersValue || 0);
+  const snowfall = Number(snowfallValue || 0);
+  if (snowfall > 0 || [71, 73, 75, 77, 85, 86].includes(code)) {
+    return "snow";
+  }
+  if ([95, 96, 99].includes(code)) {
+    return "storm";
+  }
+  if (Number(precipitationValue || 0) > 0 || rain > 0
+    || [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+    return "rain";
+  }
+  if ([45, 48].includes(code)) {
+    return "fog";
+  }
+  if ([2, 3].includes(code)) {
+    return "cloudy";
+  }
+  return "clear";
+}
+
+function weatherIntensity(condition, precipitation, daily) {
+  if (!["rain", "snow", "storm"].includes(condition)) {
+    return "none";
+  }
+  const mediumThreshold = daily ? 2 : 1;
+  const heavyThreshold = daily ? 10 : 4;
+  if (precipitation >= heavyThreshold) {
+    return "heavy";
+  }
+  if (precipitation >= mediumThreshold) {
+    return "medium";
+  }
+  return "light";
+}
+
+function weatherWind(speed, gusts) {
+  return maxNumber(speed, gusts) >= 25 ? "windy" : "calm";
+}
+
+function maxNumber(...values) {
+  return Math.max(...values.map((value) => Number(value || 0)));
+}
+
+function arrayNumber(values, index) {
+  return Array.isArray(values) ? Number(values[index] || 0) : 0;
+}
+
+function renderWeatherFromPayload(type, payload) {
+  if (!payload) {
+    return;
+  }
+  try {
+    renderWeatherPayload(JSON.parse(payload));
+  } catch (_) {
+    renderWeatherStatus(type);
+  }
+}
+
+function renderWeatherPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    renderWeatherStatus("-");
+    return;
+  }
+  if (payload.kind === "forecast") {
+    const first = Array.isArray(payload.days) ? payload.days[0] : null;
+    const location = payload.location_label || "Weather";
+    renderWeatherStatus(first
+      ? `Forecast ${location}: ${first.condition}, ${first.temperature_min_c}-${first.temperature_max_c} C`
+      : `Forecast ${location}`);
+    return;
+  }
+  renderWeatherStatus(`${payload.location_label || "Weather"}: ${payload.condition}, ${payload.temperature_c} C`);
+}
+
+function renderWeatherStatus(value) {
+  setText("weather_value", value || "-");
+}
+
+function resetWeatherState() {
+  weather.current = null;
+  weather.forecast = null;
+  weather.locationQuery = "";
+  renderWeatherStatus("-");
 }
 
 function drawFaceBox(box) {

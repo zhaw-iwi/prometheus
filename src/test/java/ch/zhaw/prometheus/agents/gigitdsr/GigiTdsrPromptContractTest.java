@@ -150,6 +150,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("EPFL Lausanne"));
         assertTrue(prompt.contains("ETH Zurich"));
         assertTrue(prompt.contains("SUPSI Lugano"));
+        assertTrue(prompt.contains("obs.weather.current"));
+        assertTrue(prompt.contains("obs.weather.forecast"));
+        assertTrue(prompt.contains("bereitgestellter Kontext"));
         assertTdsrContextIsGuarded(prompt);
         assertTrue(prompt.contains("zufälligen Menschen"));
         assertTrue(prompt.contains("Keine Listen"));

@@ -643,8 +643,34 @@
                     </div>
                   </div>
                 </div>
+                <div class="accordion-item" data-profile-observations="obs.weather.current obs.weather.forecast">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#manual_weather_events">
+                      Weather
+                    </button>
+                  </h2>
+                  <div id="manual_weather_events" class="accordion-collapse collapse"
+                    data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="mb-2">
+                        <label class="form-label metric-label" for="weather_location_input">Location</label>
+                        <input id="weather_location_input" class="form-control form-control-sm" type="text"
+                          value="Zurich" maxlength="120" data-testid="weather-location-input">
+                      </div>
+                      <div class="d-grid gap-2">
+                        <button id="fetch_weather_current" class="btn btn-outline-ink btn-sm" type="button"
+                          data-testid="fetch-weather-current">Fetch Current</button>
+                        <button id="send_weather_current" class="btn btn-outline-ink btn-sm" type="button"
+                          data-testid="send-weather-current">Send Current</button>
+                        <button id="send_weather_forecast" class="btn btn-outline-ink btn-sm" type="button"
+                          data-testid="send-weather-forecast">Send Forecast</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign obs.weather.current obs.weather.forecast">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensed_signals">
@@ -669,6 +695,10 @@
                         <div class="metric-row" data-profile-observations="obs.hand.sign">
                           <span class="metric-label">Hand Sign</span>
                           <strong id="hand_sign_value" data-testid="hand-sign-value">-</strong>
+                        </div>
+                        <div class="metric-row" data-profile-observations="obs.weather.current obs.weather.forecast">
+                          <span class="metric-label">Weather</span>
+                          <strong id="weather_value" data-testid="weather-value">-</strong>
                         </div>
                       </div>
                     </div>

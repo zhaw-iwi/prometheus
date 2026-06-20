@@ -11,6 +11,7 @@ class PromptEventContentAdapterUnitTest {
     private final BehaviourPlanPromptEventContentAdapter behaviourPlanAdapter = new BehaviourPlanPromptEventContentAdapter();
     private final SocialSituationChangePromptEventContentAdapter socialChangeAdapter =
             new SocialSituationChangePromptEventContentAdapter();
+    private final WeatherPromptEventContentAdapter weatherAdapter = new WeatherPromptEventContentAdapter();
 
     @Test
     void mapsFaceEmotionWithConfidence() {
@@ -72,6 +73,39 @@ class PromptEventContentAdapterUnitTest {
         Event change = Event.observation(Event.TYPE_SOCIAL_SITUATION_CHANGE, Event.ACTOR_SYSTEM, "{invalid-json");
 
         assertEquals("Social situation changed.", this.socialChangeAdapter.toPromptContent(change));
+    }
+
+    @Test
+    void mapsCurrentWeatherToReadablePromptContent() {
+        Event weather = Event.observation(Event.TYPE_WEATHER_CURRENT, Event.ACTOR_SYSTEM,
+                "{\"location_label\":\"Zurich, Switzerland\",\"condition\":\"rain\",\"intensity\":\"light\","
+                        + "\"wind\":\"windy\",\"temperature_c\":18.4,\"cloud_cover\":72,"
+                        + "\"observed_at\":\"2026-06-21T10:00\"}");
+
+        assertEquals(
+                "Current weather for Zurich, Switzerland: rain, light intensity, wind is windy, 18.4 C, cloud cover 72%. Observed at 2026-06-21T10:00",
+                this.weatherAdapter.toPromptContent(weather));
+    }
+
+    @Test
+    void mapsWeatherForecastToReadablePromptContent() {
+        Event weather = Event.observation(Event.TYPE_WEATHER_FORECAST, Event.ACTOR_SYSTEM,
+                "{\"location_label\":\"Lugano, Switzerland\",\"days\":["
+                        + "{\"date\":\"2026-06-21\",\"condition\":\"clear\",\"intensity\":\"none\","
+                        + "\"temperature_min_c\":20,\"temperature_max_c\":29},"
+                        + "{\"date\":\"2026-06-22\",\"condition\":\"storm\",\"intensity\":\"heavy\","
+                        + "\"temperature_min_c\":18,\"temperature_max_c\":24}]}");
+
+        assertEquals(
+                "Weather forecast for Lugano, Switzerland: 2026-06-21 clear, 20-29 C; 2026-06-22 storm (heavy), 18-24 C",
+                this.weatherAdapter.toPromptContent(weather));
+    }
+
+    @Test
+    void mapsInvalidWeatherPayloadConservatively() {
+        Event weather = Event.observation(Event.TYPE_WEATHER_CURRENT, Event.ACTOR_SYSTEM, "{invalid-json");
+
+        assertEquals("Weather observation received.", this.weatherAdapter.toPromptContent(weather));
     }
 }
 

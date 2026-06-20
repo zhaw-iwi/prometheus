@@ -218,7 +218,7 @@ Registered definitions:
 - `gigitdsr.guessing_game_with_gestures` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
 - `gigitdsr.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
 - `gigitdsr.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
-- `gigitdsr.tour_conversation` - GIGI TDSR German general-purpose station conversation agent with TDSR route/persona grounding and occasional nonverbal gestures.
+- `gigitdsr.tour_conversation` - GIGI TDSR German general-purpose station conversation agent with TDSR route/persona grounding, manual weather context, and occasional nonverbal gestures.
 
 The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
 context and keep it guarded as background knowledge, so normal demo turns stay
@@ -455,6 +455,21 @@ with `source=rps.web` and `detectionMode=manual`. Their optional camera mode
 uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
 follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
 Camera events use `source=rps.web.camera` and `detectionMode=client_camera`.
+
+Weather observations use:
+
+- `type`: `obs.weather.current` or `obs.weather.forecast`
+- `actor`: `system`
+- `kind`: `observation`
+- payload fields for current weather: `location_label`, `condition`, `intensity`,
+  `wind`, `temperature_c`, `cloud_cover`, `observed_at`
+- payload fields for forecasts: `location_label` and `days[]` with `date`,
+  `condition`, `intensity`, `temperature_min_c`, and `temperature_max_c`
+
+The Valerian cockpit exposes weather controls only for agents that declare
+weather observations. It resolves a manually entered location through
+Open-Meteo in the browser, normalizes the result, and sends current weather or a
+short forecast only when the operator presses the corresponding button.
 
 Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
 

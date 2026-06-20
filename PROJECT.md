@@ -78,6 +78,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 72: General GIGI TDSR tour conversation agent
 - [x] Milestone 73: Valerian Admin assignment replacement fix
 - [x] Milestone 74: GIGI TDSR UTF-8 German prompt polish
+- [x] Milestone 75: Manual weather sensing for GIGI TDSR tour conversation
 
 ## Milestone 1
 ### Date
@@ -3517,3 +3518,48 @@ Polish the four GIGI TDSR agent prompts so German-facing text uses UTF-8 umlauts
 ### Next steps
 1. Live-test `gigitdsr.tour_conversation` with typical station questions and compare answer length over at least ten turns.
 2. If answers remain too long, make the response contract stricter by asking for default one-sentence answers and only optional second sentences.
+
+## Milestone 75
+### Date
+2026-06-21
+
+### Goal
+Add manual weather awareness as a declared non-visual sensing capability for the GIGI TDSR tour conversation agent.
+
+### What changed
+- Added weather observation event types:
+  - `obs.weather.current`
+  - `obs.weather.forecast`
+- Added weather observation constants to `AgentInteractionProfile`.
+- Declared current and forecast weather support only for `gigitdsr.tour_conversation`.
+- Added `WeatherPromptEventContentAdapter` so weather JSON is rendered into compact readable prompt context instead of raw provider payloads.
+- Updated the tour conversation prompt to treat weather as manually provided context, only use it when asked or directly relevant, and avoid claiming GIGI physically senses the weather.
+- Added a Valerian Weather panel gated by `obs.weather.current obs.weather.forecast`:
+  - location input
+  - fetch current weather
+  - send current weather
+  - send short forecast
+- The Valerian client resolves locations and weather through Open-Meteo in the browser, normalizes the data into PROMETHEUS weather events, and never emits weather on a timer.
+- Updated README observation documentation and tests for the profile, prompt adapter, prompt contract, and static Valerian client contract.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Create or connect `GIGI TDSR - Tour Conversation`.
+4. In the Sensing card, enter a location in the Weather panel, fetch current weather, then send current weather or forecast.
+5. Ask GIGI a weather-relevant question in the conversation.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,PromptEventContentAdapterUnitTest,GigiTdsrPromptContractTest,ValerianClientStaticResourceContractTest,SeedAgentInteractionProfileContractTest,ScopedDemoControllerIntegrationTest" test`
+
+### Known issues and decisions
+- Weather is intentionally manual context, not a continuous sensor loop, because weather does not change meaningfully during a short interaction.
+- The first version uses Open-Meteo directly from the browser because no secret is needed. Production use should still review provider terms, attribution, and reliability needs.
+- Weather sends do not automatically trigger speech. They add context to PROMETHEUS so the next relevant user turn can use it.
+
+### Next steps
+1. Live-test the Valerian Weather panel with Zurich, Lugano, and a station-specific location.
+2. If operators need immediate weather narration, add an explicit `Send and Generate` button instead of changing weather sends into automatic speech triggers.

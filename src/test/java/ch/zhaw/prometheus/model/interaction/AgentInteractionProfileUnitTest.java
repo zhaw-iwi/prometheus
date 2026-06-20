@@ -63,16 +63,21 @@ class AgentInteractionProfileUnitTest {
     }
 
     @Test
-    void gigiTdsrTourConversationProfileDeclaresSpeechAndNonverbalWithoutVisualInput() {
+    void gigiTdsrTourConversationProfileDeclaresSpeechWeatherAndNonverbalWithoutVisualInput() {
         AgentInteractionProfile profile = AgentInteractionProfiles.gigiTdsrTourConversation();
 
-        assertEquals(List.of(AgentInteractionProfile.OBS_USER_UTTERANCE), profile.getSupportedObservations());
+        assertEquals(List.of(
+                AgentInteractionProfile.OBS_USER_UTTERANCE,
+                AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                AgentInteractionProfile.OBS_WEATHER_FORECAST), profile.getSupportedObservations());
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
         assertTrue(profile.getProfileTags().contains(AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
         assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
     }

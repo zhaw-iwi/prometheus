@@ -84,7 +84,9 @@ public final class AgentInteractionProfiles {
     public static AgentInteractionProfile gigiTdsrTourConversation() {
         return AgentInteractionProfile.of(
                 List.of(
-                        AgentInteractionProfile.OBS_USER_UTTERANCE),
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 speechAndNonverbalModalities(),
                 List.of(
                         AgentInteractionProfile.TAG_GIGI_TDSR,

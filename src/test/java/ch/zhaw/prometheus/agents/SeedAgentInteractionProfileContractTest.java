@@ -68,11 +68,13 @@ class SeedAgentInteractionProfileContractTest {
 
         AgentInteractionProfile tourProfile = AgentFixtures.gigiTdsrTourConversation().getInteractionProfile();
         assertTrue(tourProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertTrue(tourProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+        assertTrue(tourProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
         assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
         assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(tourProfile.supportsBehaviourModality(
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
-        assertTrue(tourProfile.getSupportedObservations().size() == 1);
+        assertTrue(tourProfile.getSupportedObservations().size() == 3);
     }
 
     @Test

@@ -17,6 +17,8 @@ public class AgentInteractionProfile {
     public static final String OBS_SOCIAL_GROUPING = Event.TYPE_SOCIAL_GROUPING;
     public static final String OBS_SOCIAL_SITUATION_CHANGE = Event.TYPE_SOCIAL_SITUATION_CHANGE;
     public static final String OBS_HAND_SIGN = Event.TYPE_HAND_SIGN;
+    public static final String OBS_WEATHER_CURRENT = Event.TYPE_WEATHER_CURRENT;
+    public static final String OBS_WEATHER_FORECAST = Event.TYPE_WEATHER_FORECAST;
 
     public static final String MODALITY_SPEECH = "speech";
     public static final String MODALITY_NONVERBAL_GESTURE = "nonVerbal.gesture";
