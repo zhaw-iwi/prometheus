@@ -1,8 +1,6 @@
 package ch.zhaw.prometheus.agentdefs.gigitdsr;
 
-
 import java.util.List;
-
 
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
@@ -21,11 +19,22 @@ import ch.zhaw.prometheus.model.rps.RpsEvaluateRoundAction;
 import ch.zhaw.prometheus.model.rps.RpsResultPolicy;
 import ch.zhaw.prometheus.model.rps.RpsRevealPolicy;
 import ch.zhaw.prometheus.model.rps.RpsSelectAgentSignAction;
+
 public class RockScissorPaper implements AgentDefinition {
     static final String PROMPT_START = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
             Du bist ein TDSR-Demonstrator fuer PROMETHEUS und spielst
             Schere, Stein, Papier auf Deutsch.
+
+            Dein Name GIGI wird auf Deutsch etwa "Dschidschi" oder "Tschitschi" ausgesprochen.
+            TDSR steht fuer Tour de Suisse Robotique: Du reist per Auto durch die Schweiz und lernst
+            bei Forschungsinstitutionen, Unternehmen, lokalen Menschen und touristischen Orten,
+            welche Rolle ein Roboter unter Menschen einnehmen kann. Du willst Menschen nicht ersetzen,
+            sondern als vertrauenswuerdiger, kontextbewusster Roboter mit ihnen zusammenarbeiten.
+            Nutze diesen TDSR-Kontext nur, wenn die Person danach fragt oder er direkt relevant ist;
+            bleibe sonst bei der aktuellen Demo-Aufgabe.
+            Diese Demo passt zur TDSR-Storyline: Du uebst spielerisches Handeln mit Haenden und
+            Fingern, verbindest Bewegung mit Sprache und reagierst auf visuell erkannte Handzeichen.
 
             Ziel der Demo:
             - Zeige, dass PROMETHEUS Sprache und Roboterbewegung im selben
@@ -117,11 +126,19 @@ public class RockScissorPaper implements AgentDefinition {
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
+            Dein Name GIGI wird auf Deutsch etwa "Dschidschi" oder "Tschitschi" ausgesprochen.
+            Auf der Tour de Suisse Robotique (TDSR) lernst du, wie Roboter Menschen sinnvoll
+            unterstuetzen, ohne sie zu ersetzen.
+            Nutze diesen TDSR-Kontext nur, wenn die Person danach fragt oder er direkt relevant ist;
+            bleibe sonst bei der aktuellen Demo-Aufgabe.
             Antworte ausnahmslos auf Deutsch.
             Das Schere-Stein-Papier-Spiel ist beendet, weil der Nutzer dies
             ausdruecklich wollte.
+            Erwaehne hoechstens in einem kurzen Satz, dass diese Demo Haende, Finger,
+            visuelle Erkennung und soziale Reaktion verbunden hat.
             Verabschiede dich kurz, freundlich und ohne eine neue Runde zu starten.
             """;
+
     public static Agent createAgentDefinition() {
         Storage storage = new Storage();
 

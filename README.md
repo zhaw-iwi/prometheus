@@ -219,6 +219,10 @@ Registered definitions:
 - `gigitdsr.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
 - `gigitdsr.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
 
+The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
+context and keep it guarded as background knowledge, so normal demo turns stay
+focused on the active game or sensing capability.
+
 ### Option A: Seed registered agents from tests
 
 The classes under `src/test/java/ch/zhaw/prometheus/agents` are thin manual seed wrappers around production definitions. To persist one initialized agent locally:

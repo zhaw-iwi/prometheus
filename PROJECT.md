@@ -74,6 +74,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 68: Remove push-to-talk speech clients
 - [x] Milestone 69: Realtime speaks published backend behaviour speech
 - [x] Milestone 70: Property-driven CORS for external Valerian cockpit clients
+- [x] Milestone 71: GIGI TDSR prompt storyline grounding and relevance guards
 
 ## Milestone 1
 ### Date
@@ -3357,3 +3358,41 @@ Allow independently hosted browser clients such as the external Valerian cockpit
 ### Next steps
 1. Configure Heroku with the laptop cockpit origin and run a live cross-origin cockpit smoke.
 2. Keep the allowlist as narrow as practical for demos; use origin patterns only when laptop hostnames or ports cannot be fixed.
+
+## Milestone 71
+### Date
+2026-06-20
+
+### Goal
+Ground the three GIGI TDSR agent prompts in the Tour de Suisse Robotique storyline while keeping normal demo responses focused and concise.
+
+### What changed
+- Added concise TDSR persona context to the active and final prompts for:
+  - `gigitdsr.guessing_game_with_gestures`
+  - `gigitdsr.social_context_sensitivity`
+  - `gigitdsr.rock_scissor_paper`
+- Added an explicit relevance guard so agents use the TDSR background only when asked or directly relevant.
+- Added demo-capability tie-backs:
+  - guessing game: speech, gestures, and short yes/no interaction with changing humans
+  - social context: humans entering, leaving, and changing group presence near GIGI
+  - rock-scissor-paper: hands, fingers, visual hand-sign detection, and social play
+- Normalized the three agent definition files back to the repository's usual 4-space Java style.
+- Updated GIGI TDSR prompt contract coverage and README agent-definition notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Create or connect one of the GIGI TDSR agents in Valerian:
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Executed:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- The TDSR context is intentionally short and guarded to reduce prompt tokens and avoid persona leakage into routine game turns.
+- Final prompts include only a minimal capability tie-back; live LLM responses should still be smoke-tested for naturalness before public demos.
+
+### Next steps
+1. Live-test the three GIGI TDSR agents with likely visitor questions about GIGI, TDSR, and the current demo capability.
+2. If responses still over-explain the tour, reduce the final-prompt tie-back to a single optional clause.

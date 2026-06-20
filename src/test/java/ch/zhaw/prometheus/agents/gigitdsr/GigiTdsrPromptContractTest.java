@@ -36,6 +36,10 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Du bist GIGI"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("BehaviourPlan"));
+        assertTdsrContextIsGuarded(prompt);
+        assertTrue(prompt.contains("Sprache"));
+        assertTrue(prompt.contains("Gesten"));
+        assertTrue(prompt.contains("wechselnden Menschen"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
         assertTrue(prompt.contains("Eine richtige Bestaetigung deines Tipps allein beendet die Interaktion nicht"));
     }
@@ -75,6 +79,10 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Du bist GIGI"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("obs.social.situation_change"));
+        assertTdsrContextIsGuarded(prompt);
+        assertTrue(prompt.contains("Menschen in deinem Sichtfeld"));
+        assertTrue(prompt.contains("Ankunft"));
+        assertTrue(prompt.contains("Weggehen"));
         assertTrue(prompt.contains("arrival ->"));
         assertTrue(prompt.contains("crowd_detected ->"));
         assertTrue(prompt.contains("Normale Unterhaltung"));
@@ -108,6 +116,10 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTrue(prompt.contains("deterministisch"));
+        assertTdsrContextIsGuarded(prompt);
+        assertTrue(prompt.contains("Haenden"));
+        assertTrue(prompt.contains("Fingern"));
+        assertTrue(prompt.contains("visuell erkannte Handzeichen"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
     }
 
@@ -120,6 +132,32 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt(definitionClass, "PROMPT_PLAY_AGAIN").contains("weitere Runde"));
         assertTrue(prompt(definitionClass, "PROMPT_TO_FINAL").contains("das gesamte Schere-Stein-Papier-Spiel"));
         assertTrue(prompt(definitionClass, "PROMPT_TO_FINAL").contains("Handzeichen-Events"));
+    }
+
+    @Test
+    void finalPromptsGuardTourContextAndTieBackDemoCapability() throws Exception {
+        String guessingFinal = prompt(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
+                "PROMPT_FINAL");
+        assertTdsrContextIsGuarded(guessingFinal);
+        assertTrue(guessingFinal.contains("Sprache, Gestik"));
+        assertTrue(guessingFinal.contains("Ja/Nein-Interaktion"));
+
+        String socialFinal = prompt(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
+                "PROMPT_FINAL");
+        assertTdsrContextIsGuarded(socialFinal);
+        assertTrue(socialFinal.contains("soziale Naehe"));
+        assertTrue(socialFinal.contains("Ankunft"));
+        assertTrue(socialFinal.contains("Weggehen"));
+
+        String rpsFinal = prompt(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
+                "PROMPT_FINAL");
+        assertTdsrContextIsGuarded(rpsFinal);
+        assertTrue(rpsFinal.contains("Haende, Finger"));
+        assertTrue(rpsFinal.contains("visuelle Erkennung"));
+        assertTrue(rpsFinal.contains("soziale Reaktion"));
     }
 
     @Test
@@ -170,6 +208,12 @@ class GigiTdsrPromptContractTest {
         Field field = definitionClass.getDeclaredField(fieldName);
         field.setAccessible(true);
         return (String) field.get(null);
+    }
+
+    private static void assertTdsrContextIsGuarded(String prompt) {
+        assertTrue(prompt.contains("Tour de Suisse Robotique"));
+        assertTrue(prompt.contains("Nutze diesen TDSR-Kontext nur"));
+        assertTrue(prompt.contains("bleibe sonst bei der aktuellen Demo-Aufgabe"));
     }
 
     private static final class EventSequencedGateway implements LanguageModelGateway {

@@ -1,8 +1,6 @@
 package ch.zhaw.prometheus.agentdefs.gigitdsr;
 
-
 import java.util.List;
-
 
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
@@ -16,6 +14,7 @@ import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+
 public class GuessingGameWithGestures implements AgentDefinition {
 
     static final String PROMPT_NONVERBAL_PLAN = """
@@ -52,6 +51,16 @@ public class GuessingGameWithGestures implements AgentDefinition {
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
             Du bist ein TDSR-Demonstrator fuer PROMETHEUS und zeigst, dass Sprache
             und Gestik gemeinsam als BehaviourPlan ausgegeben werden koennen.
+
+            Dein Name GIGI wird auf Deutsch etwa "Dschidschi" oder "Tschitschi" ausgesprochen.
+            TDSR steht fuer Tour de Suisse Robotique: Du reist per Auto durch die Schweiz und lernst
+            bei Forschungsinstitutionen, Unternehmen, lokalen Menschen und touristischen Orten,
+            welche Rolle ein Roboter unter Menschen einnehmen kann. Du willst Menschen nicht ersetzen,
+            sondern als vertrauenswuerdiger, kontextbewusster Roboter mit ihnen zusammenarbeiten.
+            Nutze diesen TDSR-Kontext nur, wenn die Person danach fragt oder er direkt relevant ist;
+            bleibe sonst bei der aktuellen Demo-Aufgabe.
+            Diese Demo passt zur TDSR-Storyline: Du verbindest gesprochene Antworten mit Gesten und
+            kannst kurze Ja/Nein-Beitraege auch von wechselnden Menschen sinnvoll aufnehmen.
 
             Sprachrichtlinie:
             - Antworte immer auf Deutsch.
@@ -141,12 +150,20 @@ public class GuessingGameWithGestures implements AgentDefinition {
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
+            Dein Name GIGI wird auf Deutsch etwa "Dschidschi" oder "Tschitschi" ausgesprochen.
+            Auf der Tour de Suisse Robotique (TDSR) lernst du, wie Roboter Menschen sinnvoll
+            unterstuetzen, ohne sie zu ersetzen.
+            Nutze diesen TDSR-Kontext nur, wenn die Person danach fragt oder er direkt relevant ist;
+            bleibe sonst bei der aktuellen Demo-Aufgabe.
             Antworte ausnahmslos auf Deutsch.
             Formuliere jetzt eine knappe Abschlussreaktion in zwei bis vier kurzen Saetzen.
             Wenn das Ratespiel erfolgreich war, erwaehne den bestaetigten Tipp kurz.
             Wenn der Nutzer vorher beendet hat, benenne den Abbruchwunsch neutral.
+            Erwaehne hoechstens in einem kurzen Satz, dass diese Demo Sprache, Gestik und
+            Ja/Nein-Interaktion mit Menschen verbunden hat.
             Verabschiede dich freundlich und beginne keine neue Runde.
             """;
+
     public static Agent createAgentDefinition() {
         Storage storage = new Storage();
         State sessionFinal = new Final(
