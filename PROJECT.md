@@ -79,6 +79,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 73: Valerian Admin assignment replacement fix
 - [x] Milestone 74: GIGI TDSR UTF-8 German prompt polish
 - [x] Milestone 75: Manual weather sensing for GIGI TDSR tour conversation
+- [x] Milestone 76: Weather-location grounding for GIGI TDSR tour conversation
 
 ## Milestone 1
 ### Date
@@ -3563,3 +3564,34 @@ Add manual weather awareness as a declared non-visual sensing capability for the
 ### Next steps
 1. Live-test the Valerian Weather panel with Zurich, Lugano, and a station-specific location.
 2. If operators need immediate weather narration, add an explicit `Send and Generate` button instead of changing weather sends into automatic speech triggers.
+
+## Milestone 76
+### Date
+2026-06-21
+
+### Goal
+Let the GIGI TDSR tour conversation agent use the location carried by manual weather events as current-location context.
+
+### What changed
+- Extended the Tour Conversation weather prompt minimally so the location named in the latest weather event is treated as operator-provided current location until newer context overrides it.
+- Kept the safety boundary explicit: GIGI must not claim that it physically senses weather or determined the location itself.
+- Updated the prompt contract test and README weather observation notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Create or connect `GIGI TDSR - Tour Conversation`.
+4. Send current weather or a forecast for a location, then ask GIGI where it is.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- This is intentionally prompt-only; no new event type or runtime state was added.
+- The latest weather location is operator-provided context, not an independently sensed robot location.
+
+### Next steps
+1. Live-test with station locations and check that GIGI answers location questions naturally without overusing weather context.

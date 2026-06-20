@@ -469,7 +469,9 @@ Weather observations use:
 The Valerian cockpit exposes weather controls only for agents that declare
 weather observations. It resolves a manually entered location through
 Open-Meteo in the browser, normalizes the result, and sends current weather or a
-short forecast only when the operator presses the corresponding button.
+short forecast only when the operator presses the corresponding button. For the
+GIGI TDSR tour conversation agent, the latest weather event location is also
+treated as operator-provided current-location context.
 
 Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
 

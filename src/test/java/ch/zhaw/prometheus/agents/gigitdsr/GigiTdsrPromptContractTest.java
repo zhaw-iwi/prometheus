@@ -152,6 +152,8 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("SUPSI Lugano"));
         assertTrue(prompt.contains("obs.weather.current"));
         assertTrue(prompt.contains("obs.weather.forecast"));
+        assertTrue(prompt.contains("bereitgestellter aktueller Standort"));
+        assertTrue(prompt.contains("Ort selbst bestimmt"));
         assertTrue(prompt.contains("bereitgestellter Kontext"));
         assertTdsrContextIsGuarded(prompt);
         assertTrue(prompt.contains("zufälligen Menschen"));
