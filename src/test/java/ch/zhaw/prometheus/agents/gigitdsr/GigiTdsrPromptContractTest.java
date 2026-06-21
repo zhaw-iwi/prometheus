@@ -43,6 +43,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Sprache"));
         assertTrue(prompt.contains("Gesten"));
         assertTrue(prompt.contains("wechselnden Menschen"));
+        assertTrue(prompt.contains("keine zusätzliche offene Rückfrage"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
         assertTrue(prompt.contains("Eine richtige Bestätigung deines Tipps allein beendet die Interaktion nicht"));
     }
@@ -56,6 +57,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Produce STRICT JSON only"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("gesture"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("OPEN_QUESTION"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("routine yes/no game questions"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("Do not use OPEN_QUESTION just because"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("Avoid OPEN_QUESTION if it was used recently"));
         assertTrue(policy.getNonVerbalGesturePrompt().contains("Allowed labels only"));
     }
 
@@ -160,6 +164,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("meist ein oder zwei kurze Sätze"));
         assertTrue(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
+        assertTrue(prompt.contains("Stelle Rückfragen sparsam"));
         assertTrue(prompt.contains("Route kompakt"));
         assertTrue(prompt.contains("EPFL Lausanne"));
         assertTrue(prompt.contains("ETH Zurich"));
@@ -173,7 +178,9 @@ class GigiTdsrPromptContractTest {
         PromptPolicy policy = interactionPolicy(agent.getCurrentState());
         assertNotNull(policy.getNonVerbalPlanPrompt());
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Keep gestures occasional"));
-        assertTrue(policy.getNonVerbalPlanPrompt().contains("Prefer NONE for routine turns"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("Prefer NONE for many routine turns"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("Do not use OPEN_QUESTION just because"));
+        assertTrue(policy.getNonVerbalPlanPrompt().contains("Avoid OPEN_QUESTION if it was used recently"));
     }
 
     @Test

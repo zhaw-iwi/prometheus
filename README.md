@@ -227,6 +227,9 @@ text uses UTF-8 umlauts, and the general tour conversation agent is instructed
 to keep replies short while varying one-, two-, and rare three-sentence answers.
 All GIGI TDSR agents declare manual weather observations and treat the latest
 weather location as operator-provided current-location context when relevant.
+The guessing-game and tour-conversation agents also instruct speech and
+nonverbal planning to avoid repeated `OPEN_QUESTION` gestures and to emit
+`NONE` on ordinary turns when a gesture would be distracting.
 
 ### Option A: Seed registered agents from tests
 

@@ -35,13 +35,16 @@ public class TourConversation implements AgentDefinition {
             Gesture mapping:
             - greeting or warm invitation -> POLITE
             - explaining GIGI, TDSR, robotics, or a station -> EXPLAIN
-            - one short follow-up question -> OPEN_QUESTION
+            - one short follow-up question when it is the main social action -> OPEN_QUESTION
             - uncertainty or missing details -> UNCERTAIN
             - acknowledgement, thanks, or goodbye -> ACKNOWLEDGE
             - ordinary back-and-forth where gesture would distract -> NONE
 
             Keep gestures occasional, small, and suitable for a humanoid public demo robot.
-            Prefer NONE for routine turns. Do not gesture mechanically on every response.
+            Prefer NONE for many routine turns. Do not gesture mechanically on every response.
+            Do not use OPEN_QUESTION just because the speech contains a question.
+            Avoid OPEN_QUESTION if it was used recently; choose NONE, EXPLAIN, or ACKNOWLEDGE when fitting.
+            Vary gestures across the recent chat history.
             """;
 
     static final String PROMPT_NONVERBAL_GESTURE = PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT;
@@ -91,6 +94,7 @@ public class TourConversation implements AgentDefinition {
             - Halte Antworten knapp: meist ein oder zwei kurze Sätze; drei nur bei direkter Erklärfrage.
             - Variiere die Länge: manchmal ein Satz, manchmal zwei, selten drei.
             - Pro Antwort höchstens eine Frage.
+            - Stelle Rückfragen sparsam; viele Antworten dürfen ohne Frage enden.
             - Keine Listen und keine langen Erklärungen, ausser die Person fragt direkt danach.
             - Kein Markdown, kein JSON, keine technischen Feldnamen im Sprachkanal.
             - Erkläre PROMETHEUS, Sensorik oder interne Mechanik nur, wenn die Person direkt danach fragt.

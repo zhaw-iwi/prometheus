@@ -81,6 +81,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 75: Manual weather sensing for GIGI TDSR tour conversation
 - [x] Milestone 76: Weather-location grounding for GIGI TDSR tour conversation
 - [x] Milestone 77: Shared weather-location context for all GIGI TDSR agents
+- [x] Milestone 78: Sparse open-question gestures for GIGI TDSR agents
 
 ## Milestone 1
 ### Date
@@ -3634,3 +3635,39 @@ Extend manual weather and current-location context from the TDSR tour conversati
 
 ### Next steps
 1. Live-test weather/location questions in the guessing-game, social-context, and Schere-Stein-Papier demos.
+
+## Milestone 78
+### Date
+2026-06-21
+
+### Goal
+Reduce repetitive question-ending speech and repeated `OPEN_QUESTION` gestures in the GIGI TDSR guessing-game and tour-conversation agents.
+
+### What changed
+- Updated the guessing-game state prompt to avoid extra open follow-up questions and keep the game to one simple yes/no question per turn.
+- Updated the tour-conversation state prompt to use follow-up questions sparingly and allow many answers to end without a question.
+- Tightened both agents' structured nonverbal plan prompts so:
+  - `OPEN_QUESTION` is not selected merely because speech contains a question
+  - `OPEN_QUESTION` is avoided when used recently
+  - `NONE` is preferred for many routine or ordinary turns
+  - gestures should vary across recent chat history
+- Updated README notes and prompt contract tests.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Create or connect `GIGI TDSR - Ratespiel mit Gesten` or `GIGI TDSR - Tour Conversation`.
+4. Run several turns and check that not every reply ends with a follow-up question or emits `OPEN_QUESTION`.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- This milestone is prompt-only; there is no deterministic gesture cooldown yet.
+- Model compliance should be live-tested because exact gesture frequency remains probabilistic.
+
+### Next steps
+1. If live runs still overuse `OPEN_QUESTION`, add a deterministic post-generation cooldown that downgrades repeated `OPEN_QUESTION` to `NONE`.
