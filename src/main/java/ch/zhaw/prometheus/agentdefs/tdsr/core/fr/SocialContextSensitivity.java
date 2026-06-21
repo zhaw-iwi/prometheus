@@ -96,32 +96,7 @@ public class SocialContextSensitivity implements AgentDefinition {
             Réponds exclusivement true ou false.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrais le résultat de la démo Social Context qui vient de se terminer.
-            Réponds uniquement avec du JSON valide, sans Markdown ni explication.
-
-            Structure:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "social_context_sensitivity",
-                  "completed": true,
-                  "reacted_to_social_events": true|false,
-                  "observed_change_types": ["arrival"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Règles:
-            - Exactement un élément outcomes.
-            - completed vaut true parce que la personne a confirmé explicitement la fin.
-            - observed_change_types contient seulement les change types apparus dans le déroulement.
-            - Les résumés sont courts et fondés uniquement sur la conversation et les événements.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.socialContextSensitivityOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Tu es GIGI, un robot humanoïde socialement intelligent.

@@ -132,6 +132,21 @@ class TdsrCoreLocalizedPromptContractTest {
         }
     }
 
+    @Test
+    void localizedOutcomeExtractionPromptsUseSharedCompactCoreContracts() throws Exception {
+        for (LocalizedDefinition localized : LOCALIZED_DEFINITIONS) {
+            Map<String, String> prompts = promptFields(localized.definitionClass());
+            if (localized.definitionClass().getSimpleName().equals("RockScissorPaper")) {
+                assertFalse(prompts.containsKey("PROMPT_OUTCOME_EXTRACTION"), localized.definitionClass().getName());
+                continue;
+            }
+
+            assertSharedCoreOutcomePrompt(
+                    prompts.get("PROMPT_OUTCOME_EXTRACTION"),
+                    localized.definitionClass());
+        }
+    }
+
     private static Map<String, String> promptFields(Class<?> definitionClass) throws Exception {
         java.util.LinkedHashMap<String, String> prompts = new java.util.LinkedHashMap<>();
         for (Field field : definitionClass.getDeclaredFields()) {
@@ -142,6 +157,50 @@ class TdsrCoreLocalizedPromptContractTest {
             prompts.put(field.getName(), (String) field.get(null));
         }
         return prompts;
+    }
+
+    private static void assertSharedCoreOutcomePrompt(String prompt, Class<?> definitionClass) {
+        assertTrue(prompt.contains("\"flow_type\":\"single_state\""), definitionClass.getName());
+        assertTrue(prompt.contains("\"outcomes\""), definitionClass.getName());
+        assertTrue(prompt.contains("Rules: exactly one outcome"), definitionClass.getName());
+        assertTrue(prompt.length() < 700, definitionClass.getName());
+        assertFalse(prompt.contains("Extrahiere das Ergebnis"), definitionClass.getName());
+        assertFalse(prompt.contains("Extrais le résultat"), definitionClass.getName());
+        assertFalse(prompt.contains("Estrai il risultato"), definitionClass.getName());
+
+        switch (definitionClass.getSimpleName()) {
+            case "GuessingGameWithGestures" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core guessing game"), definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"guessing_game_with_gestures\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"final_guess\":\"string|null\""), definitionClass.getName());
+                assertTrue(prompt.contains("\"gesture_demo\":true"), definitionClass.getName());
+            }
+            case "SocialContextSensitivity" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core social-context demo"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"social_context_sensitivity\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"reacted_to_social_events\":true|false"),
+                        definitionClass.getName());
+            }
+            case "TourConversation" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core tour interaction"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"tdsr_tour_conversation\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"visitor_questions\""), definitionClass.getName());
+            }
+            case "TourConversationSocialContextSensitivity" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core social-tour interaction"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"tdsr_tour_conversation_social_context\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"social_context_used\":true|false"), definitionClass.getName());
+                assertTrue(prompt.contains("\"observed_change_types\""), definitionClass.getName());
+            }
+            default -> throw new IllegalStateException("Unexpected TDSR core class: " + definitionClass);
+        }
     }
 
     private record LocalizedDefinition(AgentDefinition definition, Class<?> definitionClass, String languageCode,

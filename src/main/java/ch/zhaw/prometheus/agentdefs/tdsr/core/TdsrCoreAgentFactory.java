@@ -93,6 +93,38 @@ public final class TdsrCoreAgentFactory {
     private TdsrCoreAgentFactory() {
     }
 
+    public static String tourConversationOutcomeExtraction() {
+        return """
+                Extract ended TDSR core tour interaction. Return valid JSON only:
+                {"flow_type":"single_state","outcomes":[{"interaction_type":"tdsr_tour_conversation","completed":true,"discussed_topics":["string"],"visitor_questions":["string"],"conversation_summary":"string","result_summary":"string"}],"overall_summary":"string"}
+                Rules: exactly one outcome; arrays may be empty; summaries are short and based only on the conversation.
+                """;
+    }
+
+    public static String tourConversationSocialContextOutcomeExtraction() {
+        return """
+                Extract ended TDSR core social-tour interaction. Return valid JSON only:
+                {"flow_type":"single_state","outcomes":[{"interaction_type":"tdsr_tour_conversation_social_context","completed":true,"discussed_topics":["string"],"visitor_questions":["string"],"social_context_used":true|false,"observed_change_types":["string"],"conversation_summary":"string","result_summary":"string"}],"overall_summary":"string"}
+                Rules: exactly one outcome; arrays may be empty; social_context_used is true only if GIGI used social context changes; summaries are short and based only on the conversation/events.
+                """;
+    }
+
+    public static String socialContextSensitivityOutcomeExtraction() {
+        return """
+                Extract ended TDSR core social-context demo. Return valid JSON only:
+                {"flow_type":"single_state","outcomes":[{"interaction_type":"social_context_sensitivity","completed":true,"reacted_to_social_events":true|false,"observed_change_types":["arrival"],"conversation_summary":"string","result_summary":"string"}],"overall_summary":"string"}
+                Rules: exactly one outcome; observed_change_types contains only change types that occurred; summaries are short and based only on the conversation/events.
+                """;
+    }
+
+    public static String guessingGameOutcomeExtraction() {
+        return """
+                Extract ended TDSR core guessing game. Return valid JSON only:
+                {"flow_type":"single_state","outcomes":[{"interaction_type":"guessing_game_with_gestures","completed":true|false,"final_guess":"string|null","gesture_demo":true,"result_summary":"string","user_confirmation":"string|null"}],"overall_summary":"string"}
+                Rules: exactly one outcome; completed is true only if GIGI's final guess was confirmed; gesture_demo is always true; summaries are short and based only on the conversation.
+                """;
+    }
+
     public record SingleStatePrompts(String state, String starter, String toFinal, String outcomeExtraction,
             String finalPrompt) {
     }

@@ -5,6 +5,7 @@ import java.util.List;
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -159,32 +160,7 @@ public class TourConversation implements AgentDefinition {
             Gib ausschliesslich true oder false zurück.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrahiere das Ergebnis der gerade beendeten TDSR-Tour-Unterhaltung.
-            Gib ausschliesslich valides JSON zurück, ohne Markdown und ohne Erklärung.
-
-            Struktur:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "tdsr_tour_conversation",
-                  "completed": true,
-                  "discussed_topics": ["string"],
-                  "visitor_questions": ["string"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Regeln:
-            - Genau ein outcomes-Element.
-            - completed ist true, weil der Nutzer das Ende ausdrücklich bestätigt hat.
-            - discussed_topics und visitor_questions dürfen leer sein.
-            - Zusammenfassungen kurz und nur anhand des Gesprächs.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.tourConversationOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.

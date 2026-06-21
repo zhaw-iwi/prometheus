@@ -50,35 +50,7 @@ public class TourConversationSocialContextSensitivity implements AgentDefinition
             Réponds exclusivement true ou false.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrais le résultat de la conversation TDSR avec contexte social qui vient de se terminer.
-            Réponds uniquement avec du JSON valide, sans Markdown ni explication.
-
-            Structure:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "tdsr_tour_conversation_social_context",
-                  "completed": true,
-                  "discussed_topics": ["string"],
-                  "visitor_questions": ["string"],
-                  "social_context_used": true|false,
-                  "observed_change_types": ["string"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Règles:
-            - Exactement un élément outcomes.
-            - completed vaut true parce que la personne a confirmé explicitement la fin.
-            - discussed_topics, visitor_questions et observed_change_types peuvent être vides.
-            - social_context_used vaut true si GIGI a repris des changements de contexte social dans la conversation.
-            - Les résumés sont courts et fondés uniquement sur la conversation et les événements.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.tourConversationSocialContextOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Tu es GIGI, un robot humanoïde socialement intelligent.

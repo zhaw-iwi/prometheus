@@ -203,8 +203,8 @@ The current migrated definitions call `Agent.start(...)` inside `createInstance(
 The elderly-care definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare` and use `elderlycare.<agent>` keys.
 The GIGI TDSR core definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/<language>`.
 Their Valerian/Admin keys follow the same structure: `tdsr.core.<language>.<agent>`.
-The German TDSR SHHD scene definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de`
-and use `tdsr.shhd.de.<agent>` keys.
+The TDSR SHHD scene definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/<language>`
+and use `tdsr.shhd.<language>.<agent>` keys.
 
 Registered definitions:
 
@@ -250,6 +250,11 @@ Registered definitions:
 - `tdsr.shhd.de.interviewing_people` - GIGI TDSR SHHD German interview agent for public views on robot collaboration, trust, boundaries, and social acceptance.
 - `tdsr.shhd.de.supsi_active` - GIGI TDSR SHHD German SUPSI workcell agent for teleoperated, safety-conscious battery-pack collaboration.
 - `tdsr.shhd.de.unis_student` - GIGI TDSR SHHD German university-student conversation agent for motivation, robotics, and human meaning behind research.
+- `tdsr.shhd.en.epfl_active`, `tdsr.shhd.it.epfl_active`, `tdsr.shhd.fr.epfl_active`, `tdsr.shhd.babylon.epfl_active` - English, Italian, French, and multilingual Babylon variants of the EPFL/Qolo scene agent.
+- `tdsr.shhd.en.furka`, `tdsr.shhd.it.furka`, `tdsr.shhd.fr.furka`, `tdsr.shhd.babylon.furka` - English, Italian, French, and multilingual Babylon variants of the Furka/Belvedere scene agent.
+- `tdsr.shhd.en.interviewing_people`, `tdsr.shhd.it.interviewing_people`, `tdsr.shhd.fr.interviewing_people`, `tdsr.shhd.babylon.interviewing_people` - English, Italian, French, and multilingual Babylon variants of the robot-collaboration interview agent.
+- `tdsr.shhd.en.supsi_active`, `tdsr.shhd.it.supsi_active`, `tdsr.shhd.fr.supsi_active`, `tdsr.shhd.babylon.supsi_active` - English, Italian, French, and multilingual Babylon variants of the SUPSI workcell agent.
+- `tdsr.shhd.en.unis_student`, `tdsr.shhd.it.unis_student`, `tdsr.shhd.fr.unis_student`, `tdsr.shhd.babylon.unis_student` - English, Italian, French, and multilingual Babylon variants of the university-student conversation agent.
 
 The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
 context and keep it guarded as background knowledge, so normal demo turns stay
@@ -260,10 +265,12 @@ JSON schemas, event names, gesture labels, and `motion.handSign` protocol values
 The Babylon variants are copied from the English core agents, start their opening
 turns in English, do not set a fixed Realtime language code, and instruct GIGI to
 answer in German, French, Italian, or English according to the user's language.
-The German SHHD definitions currently reuse the social tour-conversation
-architecture: one interaction state, the same explicit stop-to-final guard,
-manual weather context, sparse social-context interjections, and structured
-nonverbal gesture prompting.
+The SHHD definitions reuse the social tour-conversation architecture: one
+interaction state, the same explicit stop-to-final guard, manual weather context,
+sparse social-context interjections, and structured nonverbal gesture prompting.
+The fixed-language SHHD variants set Realtime language metadata; the Babylon
+variants intentionally do not set a fixed language code and instruct GIGI to
+answer in German, French, Italian, or English according to the user's language.
 The general tour conversation agent is instructed to keep replies short while
 varying one-, two-, and rare three-sentence answers.
 The GIGI TDSR agents share a warmer learning-companion persona with

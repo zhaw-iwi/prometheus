@@ -5,6 +5,7 @@ import java.util.List;
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -118,32 +119,7 @@ public class SocialContextSensitivity implements AgentDefinition {
             Gib ausschliesslich true oder false zurück.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrahiere das Ergebnis der gerade beendeten Social-Context-Demo.
-            Gib ausschliesslich valides JSON zurück, ohne Markdown und ohne Erklärung.
-
-            Struktur:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "social_context_sensitivity",
-                  "completed": true,
-                  "reacted_to_social_events": true|false,
-                  "observed_change_types": ["arrival"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Regeln:
-            - Genau ein outcomes-Element.
-            - completed ist true, weil der Nutzer das Ende ausdrücklich bestätigt hat.
-            - observed_change_types enthält nur Change Types, die im Verlauf vorkamen.
-            - Zusammenfassungen kurz und nur anhand des Gesprächs und der Events.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.socialContextSensitivityOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.

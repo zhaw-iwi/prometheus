@@ -149,6 +149,20 @@ class TdsrShhdGermanPromptContractTest {
     }
 
     @Test
+    void outcomeExtractionPromptsUseSharedCompactJsonContract() throws Exception {
+        for (DefinitionCase definitionCase : DEFINITIONS) {
+            String prompt = prompt(definitionCase.definitionClass(), "PROMPT_OUTCOME_EXTRACTION");
+
+            assertTrue(prompt.startsWith("Extract the ended TDSR SHHD interaction"), definitionCase.key());
+            assertTrue(prompt.contains("\"flow_type\":\"single_state\""), definitionCase.key());
+            assertTrue(prompt.contains("\"social_context_used\":true|false"), definitionCase.key());
+            assertTrue(prompt.contains("Rules: exactly one outcome"), definitionCase.key());
+            assertTrue(prompt.length() < 700, definitionCase.key());
+            assertFalse(prompt.contains("Extrahiere das Ergebnis"), definitionCase.key());
+        }
+    }
+
+    @Test
     void policiesKeepStructuredNonverbalPromptAndPromptFieldsFitPersistence() throws Exception {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             PromptPolicy policy = interactionPolicy(definitionCase.definition().createAgent().getCurrentState());

@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.agentdefs.tdsr.shhd;
 
 import java.util.List;
 
+import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -31,7 +32,7 @@ public final class TdsrShhdAgentFactory {
                 prompts.state(),
                 prompts.starter(),
                 PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        interactionPolicy.setNonVerbalPlanPrompt(TdsrShhdGermanPrompts.PROMPT_NONVERBAL_PLAN);
+        interactionPolicy.setNonVerbalPlanPrompt(TdsrCoreAgentFactory.TOUR_NONVERBAL_PLAN);
         interactionPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
 
         State interactionState = new State(stateName, interactionPolicy, List.of());

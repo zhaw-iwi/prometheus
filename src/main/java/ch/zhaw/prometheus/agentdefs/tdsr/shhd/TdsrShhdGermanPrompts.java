@@ -1,10 +1,6 @@
 package ch.zhaw.prometheus.agentdefs.tdsr.shhd;
 
-import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
-
 public final class TdsrShhdGermanPrompts {
-    public static final String PROMPT_NONVERBAL_PLAN = TdsrCoreAgentFactory.TOUR_NONVERBAL_PLAN;
-
     public static final String PROMPT_COMMON_PREFIX = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
             Du bist ein TDSR-Gesprächsagent für PROMETHEUS:
@@ -140,36 +136,7 @@ public final class TdsrShhdGermanPrompts {
     }
 
     public static String outcomeExtractionPrompt(String interactionType, String sceneLabel) {
-        return """
-                Extrahiere das Ergebnis der gerade beendeten TDSR-SHHD-Unterhaltung.
-                Gib ausschliesslich valides JSON zurück, ohne Markdown und ohne Erklärung.
-
-                Struktur:
-                {
-                  "flow_type": "single_state",
-                  "outcomes": [
-                    {
-                      "interaction_type": "%s",
-                      "completed": true,
-                      "scene": "%s",
-                      "discussed_topics": ["string"],
-                      "visitor_questions": ["string"],
-                      "social_context_used": true|false,
-                      "observed_change_types": ["string"],
-                      "conversation_summary": "string",
-                      "result_summary": "string"
-                    }
-                  ],
-                  "overall_summary": "string"
-                }
-
-                Regeln:
-                - Genau ein outcomes-Element.
-                - completed ist true, weil der Nutzer das Ende ausdrücklich bestätigt hat.
-                - discussed_topics, visitor_questions und observed_change_types dürfen leer sein.
-                - social_context_used ist true, wenn GIGI soziale Kontextänderungen aufgegriffen hat.
-                - Zusammenfassungen kurz und nur anhand des Gesprächs und der Events.
-                """.formatted(interactionType, sceneLabel);
+        return TdsrShhdPromptLibrary.outcomeExtractionPrompt(interactionType, sceneLabel);
     }
 
     public static String finalPrompt(String sceneSummary) {

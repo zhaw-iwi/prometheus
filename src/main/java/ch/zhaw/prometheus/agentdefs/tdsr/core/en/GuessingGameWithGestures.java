@@ -94,33 +94,7 @@ public class GuessingGameWithGestures implements AgentDefinition {
             Return only true or false.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extract the result of the guessing-game interaction that just ended.
-            Return only valid JSON, without Markdown or explanation.
-
-            Structure:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "guessing_game_with_gestures",
-                  "completed": true|false,
-                  "final_guess": "string|null",
-                  "gesture_demo": true,
-                  "result_summary": "string",
-                  "user_confirmation": "string|null"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Rules:
-            - Exactly one outcomes element.
-            - completed is true if a final guess by GIGI was confirmed, even if the interaction ended afterward.
-            - completed is false if the person stopped before a final guess was confirmed.
-            - gesture_demo is always true.
-            - Summaries are short and based only on the conversation.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.guessingGameOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             You are GIGI, a socially intelligent humanoid robot.

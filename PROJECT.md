@@ -92,6 +92,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 86: Elderly-care package and key rename
 - [x] Milestone 87: Valerian Admin package-based agent type tree
 - [x] Milestone 88: German TDSR SHHD scene agents
+- [x] Milestone 89: Multilingual and Babylon TDSR SHHD scene agents
+- [x] Milestone 90: Compact shared TDSR core outcome extraction prompts
 
 ## Milestone 1
 ### Date
@@ -4083,3 +4085,82 @@ Add the initial German TDSR SHHD scene-agent set under `tdsr.shhd.de` using the 
 ### Next steps
 1. Live-test the five German SHHD agents in Valerian with text, Realtime speech, manual weather, and social-context events.
 2. Create the French, Italian, English, and Babylon SHHD variants once the German prompts are reviewed.
+
+## Milestone 89
+### Date
+2026-06-21
+
+### Goal
+Replicate the TDSR core language-package structure for SHHD scene agents by adding English, Italian, French, and Babylon variants of the five SHHD agents.
+
+### What changed
+- Added a generic SHHD agent-definition base class and localized SHHD prompt library.
+- Decoupled the SHHD social-tour factory from the German prompt helper while preserving the shared TDSR tour nonverbal gesture prompt.
+- Added fixed-language SHHD variants under:
+  - `tdsr.shhd.en.*`
+  - `tdsr.shhd.it.*`
+  - `tdsr.shhd.fr.*`
+- Added language-open Babylon SHHD variants under `tdsr.shhd.babylon.*`.
+- Each new package contains the same five scene agents:
+  - `epfl_active`
+  - `furka`
+  - `interviewing_people`
+  - `supsi_active`
+  - `unis_student`
+- Registered all 20 new definitions so Valerian Admin exposes them dynamically through package metadata.
+- Fixed-language variants set Realtime language metadata to `en`, `it`, or `fr`; Babylon variants intentionally leave language metadata unset and instruct GIGI to answer in German, French, Italian, or English according to the user's language.
+- Refined localized/Babylon prompts to restore source-prompt scene beats for social-context example reactions, EPFL object/person distinction, SUPSI teleoperation wording, adaptive interview follow-ups, Furka tour continuity, and UnisStudent response strategy.
+- Replaced localized SHHD outcome-extraction prompts with one compact shared JSON extraction prompt for all SHHD language variants.
+- Added localized/Babylon prompt contract coverage plus registry, source-profile, and admin package-path coverage.
+- Updated README catalog notes for the expanded SHHD package structure.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign a key such as `tdsr.shhd.en.epfl_active`, `tdsr.shhd.it.supsi_active`, `tdsr.shhd.fr.interviewing_people`, or `tdsr.shhd.babylon.unis_student` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned SHHD agent. Fixed-language variants should expose their language code; Babylon variants should not.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TdsrShhdGermanPromptContractTest,TdsrShhdLocalizedPromptContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The localized SHHD prompt text is intentionally concise and should be live-tested with native speakers before public deployment.
+- Babylon starts in English when no user language is known and then relies on prompt behavior plus unset Realtime language metadata for language switching.
+- The SHHD agents still use prompt-gated social-context interjections rather than deterministic rate limiting.
+
+### Next steps
+1. Live-test at least one SHHD agent per fixed language and one Babylon SHHD agent in Valerian.
+2. Review localized tone and terminology with native speakers, especially for the SUPSI and EPFL technical scenes.
+
+## Milestone 90
+### Date
+2026-06-22
+
+### Goal
+Reduce token duplication in TDSR core outcome extraction prompts without changing spoken behavior or outcome schemas.
+
+### What changed
+- Added compact shared outcome extraction helpers in `TdsrCoreAgentFactory` for tour conversation, social tour conversation, social context sensitivity, and guessing game with gestures.
+- Replaced duplicated localized and Babylon `PROMPT_OUTCOME_EXTRACTION` text in the core German, English, French, Italian, and Babylon variants with the shared helpers.
+- Left `RockScissorPaper` unchanged because it uses deterministic RPS actions/storage and has no static outcome extraction prompt.
+- Added German, localized, and Babylon prompt contract coverage to assert the shared compact JSON schemas and prevent old localized extraction prompt text from returning.
+
+### How to run
+- No runtime workflow changes. Continue assigning and running `tdsr.core.*` agents through Valerian Admin and Valerian as before.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest,TdsrCoreLocalizedPromptContractTest,TdsrCoreBabylonPromptContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest,TdsrCoreLocalizedPromptContractTest,TdsrCoreBabylonPromptContractTest,AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TdsrShhdGermanPromptContractTest,TdsrShhdLocalizedPromptContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The extraction prompts are intentionally English-only technical instructions because they are not spoken to users.
+- The public agent keys, state prompts, final prompts, language metadata, and output schemas are unchanged.
+
+### Next steps
+1. Consider the same shared-extraction-prompt pattern if other non-TDSR agent families accumulate duplicated technical extraction prompts.

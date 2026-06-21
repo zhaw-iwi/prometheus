@@ -5,6 +5,7 @@ import java.util.List;
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -151,35 +152,7 @@ public class GuessingGameWithGestures implements AgentDefinition {
             Gib ausschliesslich true oder false zurück.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrahiere das Ergebnis der gerade beendeten Ratespiel-Interaktion.
-            Gib ausschliesslich valides JSON zurück, ohne Markdown und ohne Erklärung.
-
-            Struktur:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "guessing_game_with_gestures",
-                  "completed": true|false,
-                  "final_guess": "string|null",
-                  "gesture_demo": true,
-                  "result_summary": "string",
-                  "user_confirmation": "string|null"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Regeln:
-            - Genau ein outcomes-Element.
-            - completed ist true, wenn im Gespräch ein finaler Tipp von GIGI
-              bestätigt wurde, auch wenn die Interaktion erst danach beendet wurde.
-            - completed ist false, wenn der Nutzer beendet hat, bevor ein finaler Tipp
-              bestätigt wurde.
-            - gesture_demo ist immer true.
-            - Zusammenfassungen kurz und nur anhand des Gesprächs.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.guessingGameOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.

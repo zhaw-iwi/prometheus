@@ -1,0 +1,52 @@
+package ch.zhaw.prometheus.agentdefs.tdsr.shhd;
+
+import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
+import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
+import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.model.Agent;
+
+public abstract class BaseShhdAgentDefinition implements AgentDefinition {
+    private final String key;
+    private final String languageCode;
+    private final String agentName;
+    private final String agentDescription;
+    private final String stateName;
+    private final TdsrShhdAgentFactory.ShhdPrompts prompts;
+
+    protected BaseShhdAgentDefinition(String key, String languageCode, String agentName, String agentDescription,
+            String stateName, TdsrShhdAgentFactory.ShhdPrompts prompts) {
+        this.key = key;
+        this.languageCode = languageCode;
+        this.agentName = agentName;
+        this.agentDescription = agentDescription;
+        this.stateName = stateName;
+        this.prompts = prompts;
+    }
+
+    @Override
+    public final String key() {
+        return this.key;
+    }
+
+    @Override
+    public final String languageCode() {
+        return this.languageCode;
+    }
+
+    @Override
+    public final Agent createAgent() {
+        return this.applyDefinitionMetadata(TdsrShhdAgentFactory.socialTourAgent(
+                this.prompts,
+                this.agentName,
+                this.agentDescription,
+                this.stateName,
+                this.stateName + " Final",
+                "outcome"));
+    }
+
+    @Override
+    public final AgentCreationResult createInstance(AgentCreationContext context) {
+        Agent agent = this.createAgent();
+        return AgentCreationResult.started(agent, agent.start(context.runtime()));
+    }
+}

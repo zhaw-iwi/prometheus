@@ -107,32 +107,7 @@ public class TourConversation implements AgentDefinition {
             Rispondi esclusivamente true o false.
             """;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Estrai il risultato della conversazione TDSR appena terminata.
-            Rispondi solo con JSON valido, senza Markdown e senza spiegazioni.
-
-            Struttura:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "tdsr_tour_conversation",
-                  "completed": true,
-                  "discussed_topics": ["string"],
-                  "visitor_questions": ["string"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Regole:
-            - Esattamente un elemento outcomes.
-            - completed è true perché la persona ha confermato esplicitamente la fine.
-            - discussed_topics e visitor_questions possono essere vuoti.
-            - I riassunti sono brevi e basati solo sulla conversazione.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.tourConversationOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Sei GIGI, un robot umanoide socialmente intelligente.

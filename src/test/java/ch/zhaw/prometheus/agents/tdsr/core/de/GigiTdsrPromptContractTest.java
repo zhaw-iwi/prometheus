@@ -341,6 +341,30 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void outcomeExtractionPromptsUseSharedCompactCoreContracts() throws Exception {
+        assertSharedCoreOutcomePrompt(
+                prompt(ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures.class,
+                        "PROMPT_OUTCOME_EXTRACTION"),
+                ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures.class);
+        assertSharedCoreOutcomePrompt(
+                prompt(ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity.class,
+                        "PROMPT_OUTCOME_EXTRACTION"),
+                ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity.class);
+        assertSharedCoreOutcomePrompt(
+                prompt(ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation.class,
+                        "PROMPT_OUTCOME_EXTRACTION"),
+                ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation.class);
+        assertSharedCoreOutcomePrompt(
+                prompt(ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity.class,
+                        "PROMPT_OUTCOME_EXTRACTION"),
+                ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity.class);
+
+        assertFalse(java.util.Arrays.stream(
+                ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper.class.getDeclaredFields())
+                .anyMatch(field -> field.getName().equals("PROMPT_OUTCOME_EXTRACTION")));
+    }
+
+    @Test
     void germanFacingTdsrPromptsUseUtf8Umlauts() throws IllegalAccessException {
         List<String> avoidableAsciiSpellings = List.of(
                 "fuer",
@@ -512,6 +536,50 @@ class GigiTdsrPromptContractTest {
         assertFalse(prompt.contains("\"motion\""));
         assertFalse(prompt.contains("stillness"));
         assertFalse(prompt.contains("energy\":0.0"));
+    }
+
+    private static void assertSharedCoreOutcomePrompt(String prompt, Class<?> definitionClass) {
+        assertTrue(prompt.contains("\"flow_type\":\"single_state\""), definitionClass.getName());
+        assertTrue(prompt.contains("\"outcomes\""), definitionClass.getName());
+        assertTrue(prompt.contains("Rules: exactly one outcome"), definitionClass.getName());
+        assertTrue(prompt.length() < 700, definitionClass.getName());
+        assertFalse(prompt.contains("Extrahiere das Ergebnis"), definitionClass.getName());
+        assertFalse(prompt.contains("Extrais le résultat"), definitionClass.getName());
+        assertFalse(prompt.contains("Estrai il risultato"), definitionClass.getName());
+
+        switch (definitionClass.getSimpleName()) {
+            case "GuessingGameWithGestures" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core guessing game"), definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"guessing_game_with_gestures\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"final_guess\":\"string|null\""), definitionClass.getName());
+                assertTrue(prompt.contains("\"gesture_demo\":true"), definitionClass.getName());
+            }
+            case "SocialContextSensitivity" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core social-context demo"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"social_context_sensitivity\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"reacted_to_social_events\":true|false"),
+                        definitionClass.getName());
+            }
+            case "TourConversation" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core tour interaction"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"tdsr_tour_conversation\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"visitor_questions\""), definitionClass.getName());
+            }
+            case "TourConversationSocialContextSensitivity" -> {
+                assertTrue(prompt.startsWith("Extract ended TDSR core social-tour interaction"),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"interaction_type\":\"tdsr_tour_conversation_social_context\""),
+                        definitionClass.getName());
+                assertTrue(prompt.contains("\"social_context_used\":true|false"), definitionClass.getName());
+                assertTrue(prompt.contains("\"observed_change_types\""), definitionClass.getName());
+            }
+            default -> throw new IllegalStateException("Unexpected TDSR core class: " + definitionClass);
+        }
     }
 
     private static void assertValidBehaviourPlanPayload(String payload) {

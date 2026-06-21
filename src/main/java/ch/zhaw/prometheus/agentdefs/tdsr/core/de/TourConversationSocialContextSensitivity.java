@@ -5,6 +5,7 @@ import java.util.List;
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.TdsrCoreAgentFactory;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.State;
@@ -142,35 +143,7 @@ public class TourConversationSocialContextSensitivity implements AgentDefinition
 
     static final String PROMPT_TO_FINAL = TourConversation.PROMPT_TO_FINAL;
 
-    static final String PROMPT_OUTCOME_EXTRACTION = """
-            Extrahiere das Ergebnis der gerade beendeten TDSR-Tour-Unterhaltung mit sozialem Kontext.
-            Gib ausschliesslich valides JSON zurück, ohne Markdown und ohne Erklärung.
-
-            Struktur:
-            {
-              "flow_type": "single_state",
-              "outcomes": [
-                {
-                  "interaction_type": "tdsr_tour_conversation_social_context",
-                  "completed": true,
-                  "discussed_topics": ["string"],
-                  "visitor_questions": ["string"],
-                  "social_context_used": true|false,
-                  "observed_change_types": ["string"],
-                  "conversation_summary": "string",
-                  "result_summary": "string"
-                }
-              ],
-              "overall_summary": "string"
-            }
-
-            Regeln:
-            - Genau ein outcomes-Element.
-            - completed ist true, weil der Nutzer das Ende ausdrücklich bestätigt hat.
-            - discussed_topics, visitor_questions und observed_change_types dürfen leer sein.
-            - social_context_used ist true, wenn GIGI im Gespräch soziale Kontextänderungen aufgegriffen hat.
-            - Zusammenfassungen kurz und nur anhand des Gesprächs und der Events.
-            """;
+    static final String PROMPT_OUTCOME_EXTRACTION = TdsrCoreAgentFactory.tourConversationSocialContextOutcomeExtraction();
 
     static final String PROMPT_FINAL = """
             Du bist GIGI, ein sozial intelligenter humanoider Roboter.
