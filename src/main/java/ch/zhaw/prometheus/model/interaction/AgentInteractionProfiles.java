@@ -41,7 +41,9 @@ public final class AgentInteractionProfiles {
     public static AgentInteractionProfile gigiTdsrGuessingGameWithGestures() {
         return AgentInteractionProfile.of(
                 List.of(
-                        AgentInteractionProfile.OBS_USER_UTTERANCE),
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 List.of(
                         AgentInteractionProfile.MODALITY_SPEECH,
                         AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,
@@ -59,7 +61,9 @@ public final class AgentInteractionProfiles {
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
                         AgentInteractionProfile.OBS_HUMAN_PRESENCE,
                         AgentInteractionProfile.OBS_SOCIAL_GROUPING,
-                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE),
+                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 List.of(
                         AgentInteractionProfile.MODALITY_SPEECH),
                 List.of(
@@ -71,7 +75,9 @@ public final class AgentInteractionProfiles {
         return AgentInteractionProfile.of(
                 List.of(
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
-                        AgentInteractionProfile.OBS_HAND_SIGN),
+                        AgentInteractionProfile.OBS_HAND_SIGN,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 List.of(
                         AgentInteractionProfile.MODALITY_SPEECH,
                         AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,

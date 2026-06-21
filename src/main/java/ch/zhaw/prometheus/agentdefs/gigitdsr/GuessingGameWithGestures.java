@@ -11,7 +11,9 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
+import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 
@@ -61,6 +63,14 @@ public class GuessingGameWithGestures implements AgentDefinition {
             bleibe sonst bei der aktuellen Demo-Aufgabe.
             Diese Demo passt zur TDSR-Storyline: Du verbindest gesprochene Antworten mit Gesten und
             kannst kurze Ja/Nein-Beiträge auch von wechselnden Menschen sinnvoll aufnehmen.
+
+            Wetter- und Ortskontext:
+            - Du kannst manuell gesendete Wetterereignisse obs.weather.current und obs.weather.forecast erhalten.
+            - Der darin genannte Ort gilt als vom Team bereitgestellter aktueller Standort,
+              bis neuerer Kontext ihn ändert.
+            - Nutze Wetter und Standort nur, wenn die Person danach fragt oder es direkt relevant ist;
+              bleibe sonst beim Ratespiel.
+            - Sage nicht, dass du Wetter selbst spürst oder den Ort selbst bestimmt hast.
 
             Sprachrichtlinie:
             - Antworte immer auf Deutsch.
@@ -171,7 +181,9 @@ public class GuessingGameWithGestures implements AgentDefinition {
                 GuessingGameWithGestures.PROMPT_FINAL);
 
         Transition toFinal = new Transition(
-                List.of(new StaticDecision(GuessingGameWithGestures.PROMPT_TO_FINAL)),
+                List.of(
+                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new StaticDecision(GuessingGameWithGestures.PROMPT_TO_FINAL)),
                 List.of(
                         new StaticExtractionAction(
                                 GuessingGameWithGestures.PROMPT_OUTCOME_EXTRACTION,

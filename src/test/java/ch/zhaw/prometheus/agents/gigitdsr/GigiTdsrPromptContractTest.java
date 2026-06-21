@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -37,6 +39,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTdsrContextIsGuarded(prompt);
+        assertWeatherContextIsLocationAware(prompt);
         assertTrue(prompt.contains("Sprache"));
         assertTrue(prompt.contains("Gesten"));
         assertTrue(prompt.contains("wechselnden Menschen"));
@@ -69,6 +72,15 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void gestureGuessingGameFinalTransitionIsGuardedToUserUtterances() throws Exception {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
+
+        assertTrue(transitions(agent.getCurrentState()).stream()
+                .flatMap(transition -> transition.getDecisions().stream())
+                .anyMatch(decision -> decision.toString().contains(Event.TYPE_USER_UTTERANCE)));
+    }
+
+    @Test
     void socialContextAgentDefinesGermanGigiSocialEventContract() {
         Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity().createAgent();
 
@@ -80,6 +92,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("obs.social.situation_change"));
         assertTdsrContextIsGuarded(prompt);
+        assertWeatherContextIsLocationAware(prompt);
         assertTrue(prompt.contains("Menschen in deinem Sichtfeld"));
         assertTrue(prompt.contains("Ankunft"));
         assertTrue(prompt.contains("Weggehen"));
@@ -117,6 +130,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTrue(prompt.contains("deterministisch"));
         assertTdsrContextIsGuarded(prompt);
+        assertWeatherContextIsLocationAware(prompt);
         assertTrue(prompt.contains("Händen"));
         assertTrue(prompt.contains("Fingern"));
         assertTrue(prompt.contains("visuell erkannte Handzeichen"));
@@ -150,11 +164,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("EPFL Lausanne"));
         assertTrue(prompt.contains("ETH Zurich"));
         assertTrue(prompt.contains("SUPSI Lugano"));
-        assertTrue(prompt.contains("obs.weather.current"));
-        assertTrue(prompt.contains("obs.weather.forecast"));
-        assertTrue(prompt.contains("bereitgestellter aktueller Standort"));
-        assertTrue(prompt.contains("Ort selbst bestimmt"));
-        assertTrue(prompt.contains("bereitgestellter Kontext"));
+        assertWeatherContextIsLocationAware(prompt);
         assertTdsrContextIsGuarded(prompt);
         assertTrue(prompt.contains("zufälligen Menschen"));
         assertTrue(prompt.contains("Keine Listen"));
@@ -300,6 +310,13 @@ class GigiTdsrPromptContractTest {
         return assertInstanceOf(PromptPolicy.class, policy);
     }
 
+    @SuppressWarnings("unchecked")
+    private static List<Transition> transitions(State state) throws Exception {
+        Field transitionsField = State.class.getDeclaredField("transitions");
+        transitionsField.setAccessible(true);
+        return (List<Transition>) transitionsField.get(state);
+    }
+
     private static String prompt(Class<?> definitionClass, String fieldName) throws Exception {
         Field field = definitionClass.getDeclaredField(fieldName);
         field.setAccessible(true);
@@ -310,6 +327,13 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Tour de Suisse Robotique"));
         assertTrue(prompt.contains("Nutze diesen TDSR-Kontext nur"));
         assertTrue(prompt.contains("bleibe sonst bei der aktuellen"));
+    }
+
+    private static void assertWeatherContextIsLocationAware(String prompt) {
+        assertTrue(prompt.contains("obs.weather.current"));
+        assertTrue(prompt.contains("obs.weather.forecast"));
+        assertTrue(prompt.contains("bereitgestellter aktueller Standort"));
+        assertTrue(prompt.contains("Ort selbst bestimmt"));
     }
 
     private static final class EventSequencedGateway implements LanguageModelGateway {

@@ -80,6 +80,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 74: GIGI TDSR UTF-8 German prompt polish
 - [x] Milestone 75: Manual weather sensing for GIGI TDSR tour conversation
 - [x] Milestone 76: Weather-location grounding for GIGI TDSR tour conversation
+- [x] Milestone 77: Shared weather-location context for all GIGI TDSR agents
 
 ## Milestone 1
 ### Date
@@ -3595,3 +3596,41 @@ Let the GIGI TDSR tour conversation agent use the location carried by manual wea
 
 ### Next steps
 1. Live-test with station locations and check that GIGI answers location questions naturally without overusing weather context.
+
+## Milestone 77
+### Date
+2026-06-21
+
+### Goal
+Extend manual weather and current-location context from the TDSR tour conversation agent to the other GIGI TDSR agents.
+
+### What changed
+- Added `obs.weather.current` and `obs.weather.forecast` to the interaction profiles for:
+  - `gigitdsr.guessing_game_with_gestures`
+  - `gigitdsr.social_context_sensitivity`
+  - `gigitdsr.rock_scissor_paper`
+- Added concise weather/location prompt guidance to the active prompts of those agents.
+- Kept weather and location guarded as operator-provided context that should only be used when asked or directly relevant to the current demo.
+- Guarded the guessing-game final transition with `obs.user_utterance` so manual weather events cannot be treated as exit-intent inputs.
+- Updated prompt/profile contract tests and README notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Create or connect any `gigitdsr.*` agent.
+4. Use the Sensing Weather panel to send current weather or forecast for a location.
+5. Ask a location- or weather-relevant question during the demo.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Weather remains manual context, not a continuous sensor loop.
+- The weather event location is treated as team-provided current-location context, not independently sensed robot localization.
+- Specialized demo prompts still prioritize their active task unless weather or location is directly relevant.
+
+### Next steps
+1. Live-test weather/location questions in the guessing-game, social-context, and Schere-Stein-Papier demos.

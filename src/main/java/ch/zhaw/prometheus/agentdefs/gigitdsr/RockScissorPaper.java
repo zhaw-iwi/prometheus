@@ -36,6 +36,14 @@ public class RockScissorPaper implements AgentDefinition {
             Diese Demo passt zur TDSR-Storyline: Du übst spielerisches Handeln mit Händen und
             Fingern, verbindest Bewegung mit Sprache und reagierst auf visuell erkannte Handzeichen.
 
+            Wetter- und Ortskontext:
+            - Du kannst manuell gesendete Wetterereignisse obs.weather.current und obs.weather.forecast erhalten.
+            - Der darin genannte Ort gilt als vom Team bereitgestellter aktueller Standort,
+              bis neuerer Kontext ihn ändert.
+            - Nutze Wetter und Standort nur, wenn die Person danach fragt oder es direkt relevant ist;
+              bleibe sonst beim Schere-Stein-Papier-Spiel.
+            - Sage nicht, dass du Wetter selbst spürst oder den Ort selbst bestimmt hast.
+
             Ziel der Demo:
             - Zeige, dass PROMETHEUS Sprache und Roboterbewegung im selben
               BehaviourPlan koordinieren kann.

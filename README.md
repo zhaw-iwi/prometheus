@@ -225,6 +225,8 @@ context and keep it guarded as background knowledge, so normal demo turns stay
 focused on the active game or sensing capability. German-facing TDSR prompt
 text uses UTF-8 umlauts, and the general tour conversation agent is instructed
 to keep replies short while varying one-, two-, and rare three-sentence answers.
+All GIGI TDSR agents declare manual weather observations and treat the latest
+weather location as operator-provided current-location context when relevant.
 
 ### Option A: Seed registered agents from tests
 
@@ -469,8 +471,8 @@ Weather observations use:
 The Valerian cockpit exposes weather controls only for agents that declare
 weather observations. It resolves a manually entered location through
 Open-Meteo in the browser, normalizes the result, and sends current weather or a
-short forecast only when the operator presses the corresponding button. For the
-GIGI TDSR tour conversation agent, the latest weather event location is also
+short forecast only when the operator presses the corresponding button. For
+GIGI TDSR agents, the latest weather event location is also
 treated as operator-provided current-location context.
 
 Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:

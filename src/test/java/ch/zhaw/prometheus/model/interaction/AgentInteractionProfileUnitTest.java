@@ -63,6 +63,19 @@ class AgentInteractionProfileUnitTest {
     }
 
     @Test
+    void gigiTdsrProfilesDeclareManualWeatherObservations() {
+        for (AgentInteractionProfile profile : List.of(
+                AgentInteractionProfiles.gigiTdsrGuessingGameWithGestures(),
+                AgentInteractionProfiles.gigiTdsrSocialContextSensitivity(),
+                AgentInteractionProfiles.gigiTdsrRockScissorPaper(),
+                AgentInteractionProfiles.gigiTdsrTourConversation())) {
+            assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+            assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+            assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
+        }
+    }
+
+    @Test
     void gigiTdsrTourConversationProfileDeclaresSpeechWeatherAndNonverbalWithoutVisualInput() {
         AgentInteractionProfile profile = AgentInteractionProfiles.gigiTdsrTourConversation();
 
