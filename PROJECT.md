@@ -82,6 +82,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 76: Weather-location grounding for GIGI TDSR tour conversation
 - [x] Milestone 77: Shared weather-location context for all GIGI TDSR agents
 - [x] Milestone 78: Sparse open-question gestures for GIGI TDSR agents
+- [x] Milestone 79: GIGI TDSR physical behaviour vocabulary alignment
+- [x] Milestone 80: Warmer GIGI TDSR tour conversation persona and route grounding
+- [x] Milestone 81: Shared GIGI TDSR persona continuity across task agents
+- [x] Milestone 82: GIGI TDSR tour conversation with sparse social context sensitivity
 
 ## Milestone 1
 ### Date
@@ -3719,3 +3723,119 @@ Align the four GIGI TDSR agents with the current Valerian/G1 physical behaviour 
 ### Next steps
 1. Live-test each TDSR agent on Valerian and confirm the G1 receives only mapped
    semantic gestures or canonical RPS hand signs.
+
+## Milestone 80
+### Date
+2026-06-21
+
+### Goal
+Warm up the `gigitdsr.tour_conversation` persona and route grounding without changing its Valerian/Admin creation path, German speech contract, weather-location guardrails, or concise-response discipline.
+
+### What changed
+- Updated `TourConversation.PROMPT_STATE` so GIGI is more explicitly sympathetic, lightly humorous, open to people and places, and framed as a learning travel companion.
+- Added Frank as GIGI's occasional travel/context reference and design/mobility/technology sparring partner, with a guard to mention him only when fitting.
+- Replaced the compressed route capsule with a concrete station list covering Bürgenstock, Paradeplatz, Rinspeed, ETH Zürich, Rheinfall, Quantum Basel, Emmentaler Schaukäserei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
+- Strengthened the prompt's humor and learning-companion wording while preserving existing German-only, sparse-follow-up, weather-location, no-Markdown, no-JSON, and current-station guardrails.
+- Added a small final-state prompt update so the closing response can acknowledge the Frank/TDSR learning journey without starting a new topic.
+- Updated prompt contract coverage and README notes for the revised tour-conversation behavior.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign `gigitdsr.tour_conversation` to an access code if needed.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect `GIGI TDSR - Tour Conversation` and ask station, Frank, robot-skepticism, and casual visitor questions.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- This milestone is prompt-only; exact warmth, humor frequency, and Frank mentions remain probabilistic and should be live-tested.
+- The agent remains German-only at prompt and Realtime language-code level; the multilingual wording from the proposed draft was intentionally not adopted.
+- The existing weather-location rule remains in place so manually sent weather locations can still serve as operator-provided current-location context.
+
+### Next steps
+1. Live-test `gigitdsr.tour_conversation` in Valerian and check that GIGI feels warmer without mentioning Frank or learning phrases too often.
+
+## Milestone 81
+### Date
+2026-06-21
+
+### Goal
+Carry the warmer GIGI TDSR persona continuity from the tour conversation agent into the guessing-game, rock-scissor-paper, and social-context agents without weakening their individual demo focus.
+
+### What changed
+- Updated `GuessingGameWithGestures.PROMPT_STATE` with compact Frank/travel/persona continuity, a short route capsule, careful humor guidance, and a task-specific framing of the game as social yes/no interaction practice.
+- Updated `RockScissorPaper.PROMPT_START` with the same continuity capsule while explicitly preserving deterministic rules, sign selection, and winner calculation outside the language model.
+- Updated `SocialContextSensitivity.PROMPT_STATE` with the continuity capsule and a stronger respectful-social-attention frame for arrivals, departures, and group changes without pressuring people.
+- Updated all three final prompts so their closings reference the Frank/TDSR learning journey only briefly and remain bounded by each agent's completed demo task.
+- Updated prompt contract coverage and README notes for shared TDSR persona continuity across all four GIGI TDSR agents.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign any of the `gigitdsr.*` task agents to an access code if needed.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the guessing-game, Schere-Stein-Papier, and social-context agents and exercise their normal demo flows.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest" test`
+
+### Known issues and decisions
+- This milestone is prompt-only; exact humor frequency, Frank mentions, and learning-language reuse remain probabilistic and need live Valerian/robot testing.
+- The task agents intentionally use a compact route capsule instead of the full tour station list so their game and social-event prompts stay focused.
+- No registry, interaction-profile, Admin UI, or Valerian client changes were needed because the existing agent keys and modalities are unchanged.
+
+### Next steps
+1. Live-test all four GIGI TDSR agents in Valerian and check that they feel like the same GIGI while each still prioritizes its own task.
+
+## Milestone 82
+### Date
+2026-06-21
+
+### Goal
+Add a fifth GIGI TDSR agent that keeps the open tour-conversation flow while adding sparse, non-disruptive social context sensitivity.
+
+### What changed
+- Added `gigitdsr.tour_conversation_social_context` as a new production `AgentDefinition`:
+  - class: `TourConversationSocialContextSensitivity`
+  - display name: `GIGI TDSR - Tour Conversation Social Context`
+  - base behavior: tour conversation persona, route grounding, weather/location context, and occasional nonverbal gestures
+  - added input capability: human presence, social grouping, and computed social situation changes
+- Added a prompt-gated self-transition on `obs.social.situation_change`:
+  - routine or low-value changes should be ignored
+  - salient changes such as suddenly being alone or a shift from one person to a group may produce a short aside
+  - social comments must remain sparse and must not interrupt serious or important answers
+- Added a dedicated interaction profile combining tour-conversation and social-context observations/tags.
+- Registered the new definition so Valerian Admin can assign it to access codes and Valerian can create scoped instances.
+- Added the matching manual seed wrapper, fixtures, registry/profile/scoped-demo coverage, prompt contract assertions, README entry, and source-profile contract coverage.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign `gigitdsr.tour_conversation_social_context` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create `GIGI TDSR - Tour Conversation Social Context`, connect it, start it, and run text plus social camera/manual social inputs.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone uses a prompt-gated social interjection transition instead of a deterministic cooldown/rate limiter. That keeps the implementation aligned with existing seed-agent patterns, but exact frequency remains model-dependent.
+- The original `gigitdsr.tour_conversation` agent is unchanged; users can choose the plain or social-context-aware variant in Valerian Admin.
+- The social variant deliberately comments on social changes only as a short aside when appropriate, not as the primary topic of every computed change.
+
+### Next steps
+1. Live-test the social tour conversation variant with manual `now_alone`, `arrival`, `crowd_detected`, and group-size-change scenarios and tune the gate if remarks are too frequent or too quiet.

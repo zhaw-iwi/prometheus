@@ -94,6 +94,22 @@ public final class AgentInteractionProfiles {
                         AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
     }
 
+    public static AgentInteractionProfile gigiTdsrTourConversationSocialContextSensitivity() {
+        return AgentInteractionProfile.of(
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_HUMAN_PRESENCE,
+                        AgentInteractionProfile.OBS_SOCIAL_GROUPING,
+                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
+                speechAndGestureModalities(),
+                List.of(
+                        AgentInteractionProfile.TAG_GIGI_TDSR,
+                        AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION,
+                        AgentInteractionProfile.TAG_GIGI_SOCIAL_CONTEXT));
+    }
+
     private static List<String> userUtteranceObservations() {
         return List.of(AgentInteractionProfile.OBS_USER_UTTERANCE);
     }

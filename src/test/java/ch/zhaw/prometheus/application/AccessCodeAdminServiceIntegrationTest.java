@@ -62,6 +62,7 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("basic.single_state_micro_coaching"));
         assertTrue(keys.contains("gigitdsr.rock_scissor_paper"));
         assertTrue(keys.contains("gigitdsr.tour_conversation"));
+        assertTrue(keys.contains("gigitdsr.tour_conversation_social_context"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
     }
 

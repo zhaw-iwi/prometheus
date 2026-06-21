@@ -68,7 +68,8 @@ class AgentInteractionProfileUnitTest {
                 AgentInteractionProfiles.gigiTdsrGuessingGameWithGestures(),
                 AgentInteractionProfiles.gigiTdsrSocialContextSensitivity(),
                 AgentInteractionProfiles.gigiTdsrRockScissorPaper(),
-                AgentInteractionProfiles.gigiTdsrTourConversation())) {
+                AgentInteractionProfiles.gigiTdsrTourConversation(),
+                AgentInteractionProfiles.gigiTdsrTourConversationSocialContextSensitivity())) {
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
@@ -96,10 +97,34 @@ class AgentInteractionProfileUnitTest {
     }
 
     @Test
+    void gigiTdsrTourConversationSocialContextProfileDeclaresTourWeatherSocialInputAndNonverbal() {
+        AgentInteractionProfile profile = AgentInteractionProfiles.gigiTdsrTourConversationSocialContextSensitivity();
+
+        assertEquals(List.of(
+                AgentInteractionProfile.OBS_USER_UTTERANCE,
+                AgentInteractionProfile.OBS_HUMAN_PRESENCE,
+                AgentInteractionProfile.OBS_SOCIAL_GROUPING,
+                AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
+                AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                AgentInteractionProfile.OBS_WEATHER_FORECAST), profile.getSupportedObservations());
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
+        assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
+        assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
+        assertTrue(profile.getProfileTags().contains(AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
+        assertTrue(profile.getProfileTags().contains(AgentInteractionProfile.TAG_GIGI_SOCIAL_CONTEXT));
+        assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertFalse(profile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+    }
+
+    @Test
     void gigiTdsrGestureProfilesDoNotAdvertiseUnsupportedNonverbalMotion() {
         for (AgentInteractionProfile profile : List.of(
                 AgentInteractionProfiles.gigiTdsrGuessingGameWithGestures(),
-                AgentInteractionProfiles.gigiTdsrTourConversation())) {
+                AgentInteractionProfiles.gigiTdsrTourConversation(),
+                AgentInteractionProfiles.gigiTdsrTourConversationSocialContextSensitivity())) {
             assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
             assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
             assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));

@@ -28,6 +28,7 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/SocialContextSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/RockScissorPaper.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/TourConversationSocialContextSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -79,6 +80,16 @@ class SeedAgentInteractionProfileContractTest {
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
         assertFalse(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
         assertTrue(tourProfile.getSupportedObservations().size() == 3);
+
+        AgentInteractionProfile socialTourProfile = AgentFixtures.gigiTdsrTourConversationSocialContextSensitivity()
+                .getInteractionProfile();
+        assertTdsrWeatherSupport(socialTourProfile);
+        assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
+        assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
+        assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
+        assertTrue(socialTourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+        assertTrue(socialTourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+        assertFalse(socialTourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
     }
 
     @Test

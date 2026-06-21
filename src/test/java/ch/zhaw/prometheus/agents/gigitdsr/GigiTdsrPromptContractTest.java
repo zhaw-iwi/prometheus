@@ -52,9 +52,13 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTdsrContextIsGuarded(prompt);
         assertWeatherContextIsLocationAware(prompt);
+        assertSharedTdsrCompanionContinuity(prompt);
         assertTrue(prompt.contains("Sprache"));
         assertTrue(prompt.contains("Gesten"));
         assertTrue(prompt.contains("wechselnden Menschen"));
+        assertTrue(prompt.contains("kleine Übung im sozialen Raten"));
+        assertTrue(prompt.contains("mit wenigen Ja/Nein-Fragen"));
+        assertTrue(prompt.contains("kurze Selbstironie"));
         assertTrue(prompt.contains("keine zusätzliche offene Rückfrage"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
         assertTrue(prompt.contains("Eine richtige Bestätigung deines Tipps allein beendet die Interaktion nicht"));
@@ -110,9 +114,14 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("obs.social.situation_change"));
         assertTdsrContextIsGuarded(prompt);
         assertWeatherContextIsLocationAware(prompt);
+        assertSharedTdsrCompanionContinuity(prompt);
         assertTrue(prompt.contains("Menschen in deinem Sichtfeld"));
         assertTrue(prompt.contains("Ankunft"));
         assertTrue(prompt.contains("Weggehen"));
+        assertTrue(prompt.contains("TDSR-Übung in sozialer Aufmerksamkeit"));
+        assertTrue(prompt.contains("ohne Menschen zu bedrängen"));
+        assertTrue(prompt.contains("nie bedürftig, nie aufdringlich"));
+        assertTrue(prompt.contains("Frank kurz"));
         assertTrue(prompt.contains("arrival ->"));
         assertTrue(prompt.contains("crowd_detected ->"));
         assertTrue(prompt.contains("Normale Unterhaltung"));
@@ -148,8 +157,12 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("deterministisch"));
         assertTdsrContextIsGuarded(prompt);
         assertWeatherContextIsLocationAware(prompt);
+        assertSharedTdsrCompanionContinuity(prompt);
         assertTrue(prompt.contains("Händen"));
         assertTrue(prompt.contains("Fingern"));
+        assertTrue(prompt.contains("spielerische TDSR-Übung"));
+        assertTrue(prompt.contains("Händen, Timing und fairer Reaktion"));
+        assertTrue(prompt.contains("kein Spott"));
         assertTrue(prompt.contains("visuell erkannte Handzeichen"));
         assertTrue(prompt.contains("Die Interaktion endet nur"));
     }
@@ -175,16 +188,36 @@ class GigiTdsrPromptContractTest {
         String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
         assertTrue(prompt.contains("allgemeine TDSR-Gesprächsagent"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
+        assertTrue(prompt.contains("mit Frank gemeinsam per Auto"));
+        assertTrue(prompt.contains("sympathisch, humorvoll"));
+        assertTrue(prompt.contains("Sparringspartner für Design"));
+        assertTrue(prompt.contains("Beziehe ihn nur ein"));
         assertTrue(prompt.contains("meist ein oder zwei kurze Sätze"));
         assertTrue(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
+        assertTrue(prompt.contains("leichten Augenzwinkern"));
+        assertTrue(prompt.contains("Charmantes Staunen"));
+        assertTrue(prompt.contains("sympathisch selbstironisch"));
         assertTrue(prompt.contains("Stelle Rückfragen sparsam"));
         assertTrue(prompt.contains("Route kompakt"));
+        assertTrue(prompt.contains("Bürgenstock"));
+        assertTrue(prompt.contains("Paradeplatz in Zürich"));
+        assertTrue(prompt.contains("Rinspeed"));
         assertTrue(prompt.contains("EPFL Lausanne"));
-        assertTrue(prompt.contains("ETH Zurich"));
+        assertTrue(prompt.contains("ETH Zürich"));
+        assertTrue(prompt.contains("Rheinfall"));
+        assertTrue(prompt.contains("Quantum Basel"));
+        assertTrue(prompt.contains("Emmentaler Schaukäserei"));
         assertTrue(prompt.contains("SUPSI Lugano"));
+        assertTrue(prompt.contains("Swiss Miniature"));
+        assertTrue(prompt.contains("Migros Appenzell"));
+        assertTrue(prompt.contains("ZHAW Winterthur"));
         assertWeatherContextIsLocationAware(prompt);
         assertTdsrContextIsGuarded(prompt);
         assertTrue(prompt.contains("zufälligen Menschen"));
+        assertTrue(prompt.contains("menschliche Verbindung"));
+        assertTrue(prompt.contains("lernender Reisebegleiter"));
+        assertTrue(prompt.contains("Das merke ich mir"));
+        assertTrue(prompt.contains("nicht formelhaft"));
         assertTrue(prompt.contains("Keine Listen"));
         assertTrue(prompt.contains("Behaupte nicht, gerade an einer Station zu sein"));
 
@@ -208,6 +241,53 @@ class GigiTdsrPromptContractTest {
     }
 
     @Test
+    void tourConversationSocialContextVariantDefinesSparseSocialAwarenessContract() throws Exception {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity()
+                .createAgent();
+
+        assertTrue(agent.getName().contains("GIGI TDSR"));
+        assertTrue(agent.getName().contains("Social Context"));
+        assertTrue(agent.getDescription().contains("dezenter sozialer Kontextwahrnehmung"));
+        assertTrue(agent.listStates().contains("GIGI TDSR Tour Conversation Social Context"));
+
+        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("allgemeine TDSR-Gesprächsagent"));
+        assertTrue(prompt.contains("Antworte immer auf Deutsch"));
+        assertSharedTdsrCompanionContinuity(prompt);
+        assertWeatherContextIsLocationAware(prompt);
+        assertTdsrContextIsGuarded(prompt);
+        assertTrue(prompt.contains("Sozialer Kontext"));
+        assertTrue(prompt.contains("obs.human.presence"));
+        assertTrue(prompt.contains("obs.social.grouping"));
+        assertTrue(prompt.contains("obs.social.situation_change"));
+        assertTrue(prompt.contains("dezente Bühnenwahrnehmung"));
+        assertTrue(prompt.contains("nicht mechanisch und nicht jedes Mal"));
+        assertTrue(prompt.contains("höchstens einen kurzen Zusatzsatz"));
+        assertTrue(prompt.contains("plötzlich niemand mehr sichtbar"));
+        assertTrue(prompt.contains("aus einer Person mehrere werden"));
+        assertTrue(prompt.contains("Unterbrich keine ernste"));
+        assertTrue(prompt.contains("Jetzt sind wir ja eine kleine Runde"));
+
+        String opportunityPrompt = prompt(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity.class,
+                "PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY");
+        assertTrue(opportunityPrompt.contains("obs.social.situation_change"));
+        assertTrue(opportunityPrompt.contains("kurze, dezente soziale Randbemerkung"));
+        assertTrue(opportunityPrompt.contains("nicht schon die soziale Umgebung kommentiert"));
+        assertTrue(opportunityPrompt.contains("now_alone"));
+        assertTrue(opportunityPrompt.contains("crowd_detected"));
+        assertTrue(opportunityPrompt.contains("Schweigen natürlicher"));
+
+        assertTrue(transitions(agent.getCurrentState()).stream()
+                .flatMap(transition -> transition.getDecisions().stream())
+                .anyMatch(decision -> decision.toString().contains(Event.TYPE_SOCIAL_SITUATION_CHANGE)));
+
+        PromptPolicy policy = interactionPolicy(agent.getCurrentState());
+        assertNotNull(policy.getNonVerbalPlanPrompt());
+        assertSafeValerianGesturePrompt(policy.getNonVerbalPlanPrompt());
+    }
+
+    @Test
     void finalPromptsGuardTourContextAndTieBackDemoCapability() throws Exception {
         String guessingFinal = prompt(
                 ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
@@ -215,6 +295,9 @@ class GigiTdsrPromptContractTest {
         assertTdsrContextIsGuarded(guessingFinal);
         assertTrue(guessingFinal.contains("Sprache, Gestik"));
         assertTrue(guessingFinal.contains("Ja/Nein-Interaktion"));
+        assertTrue(guessingFinal.contains("reist du mit Frank"));
+        assertTrue(guessingFinal.contains("kurze spielerische Begegnungen"));
+        assertTrue(guessingFinal.contains("kleinen Lernmoment"));
 
         String socialFinal = prompt(
                 ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
@@ -223,6 +306,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(socialFinal.contains("soziale Nähe"));
         assertTrue(socialFinal.contains("Ankunft"));
         assertTrue(socialFinal.contains("Weggehen"));
+        assertTrue(socialFinal.contains("reist du mit Frank"));
+        assertTrue(socialFinal.contains("soziale Nähe respektvoll"));
+        assertTrue(socialFinal.contains("Gruppenänderungen"));
 
         String rpsFinal = prompt(
                 ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
@@ -230,14 +316,28 @@ class GigiTdsrPromptContractTest {
         assertTdsrContextIsGuarded(rpsFinal);
         assertTrue(rpsFinal.contains("Hände, Finger"));
         assertTrue(rpsFinal.contains("visuelle Erkennung"));
-        assertTrue(rpsFinal.contains("soziale Reaktion"));
+        assertTrue(rpsFinal.contains("faires gemeinsames Spielen"));
+        assertTrue(rpsFinal.contains("reist du mit Frank"));
+        assertTrue(rpsFinal.contains("leichtem Augenzwinkern"));
 
         String tourFinal = prompt(
                 ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation.class,
                 "PROMPT_FINAL");
         assertTdsrContextIsGuarded(tourFinal);
         assertTrue(tourFinal.contains("freie TDSR-Unterhaltung"));
+        assertTrue(tourFinal.contains("reist du mit Frank"));
         assertTrue(tourFinal.contains("Lernreise mit Menschen"));
+        assertTrue(tourFinal.contains("leichtem Augenzwinkern"));
+
+        String socialTourFinal = prompt(
+                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity.class,
+                "PROMPT_FINAL");
+        assertTdsrContextIsGuarded(socialTourFinal);
+        assertTrue(socialTourFinal.contains("freie TDSR-Unterhaltung mit sozialer Kontextwahrnehmung"));
+        assertTrue(socialTourFinal.contains("reist du mit Frank"));
+        assertTrue(socialTourFinal.contains("soziale Nähe"));
+        assertTrue(socialTourFinal.contains("Gruppenwechsel"));
+        assertTrue(socialTourFinal.contains("leichtem Augenzwinkern"));
     }
 
     @Test
@@ -303,7 +403,8 @@ class GigiTdsrPromptContractTest {
                 ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures.class,
                 ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity.class,
                 ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper.class,
-                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation.class);
+                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation.class,
+                ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity.class);
     }
 
     @Test
@@ -377,6 +478,19 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Tour de Suisse Robotique"));
         assertTrue(prompt.contains("Nutze diesen TDSR-Kontext nur"));
         assertTrue(prompt.contains("bleibe sonst bei der aktuellen"));
+    }
+
+    private static void assertSharedTdsrCompanionContinuity(String prompt) {
+        assertTrue(prompt.contains("mit Frank gemeinsam per Auto"));
+        assertTrue(prompt.contains("sympathisch, humorvoll"));
+        assertTrue(prompt.contains("Beziehe ihn nur ein"));
+        assertTrue(prompt.contains("Bürgenstock"));
+        assertTrue(prompt.contains("ETH Zürich"));
+        assertTrue(prompt.contains("EPFL Lausanne"));
+        assertTrue(prompt.contains("SUPSI Lugano"));
+        assertTrue(prompt.contains("Swiss Miniature"));
+        assertTrue(prompt.contains("ZHAW Winterthur"));
+        assertTrue(prompt.contains("leichtem Augenzwinkern") || prompt.contains("leichten Augenzwinkern"));
     }
 
     private static void assertWeatherContextIsLocationAware(String prompt) {

@@ -41,4 +41,8 @@ public final class AgentFixtures {
     public static Agent gigiTdsrTourConversation() {
         return new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation().createAgent();
     }
+
+    public static Agent gigiTdsrTourConversationSocialContextSensitivity() {
+        return new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity().createAgent();
+    }
 }

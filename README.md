@@ -219,12 +219,21 @@ Registered definitions:
 - `gigitdsr.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
 - `gigitdsr.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
 - `gigitdsr.tour_conversation` - GIGI TDSR German general-purpose station conversation agent with TDSR route/persona grounding, manual weather context, and occasional nonverbal gestures.
+- `gigitdsr.tour_conversation_social_context` - GIGI TDSR German station conversation agent with manual weather context, occasional nonverbal gestures, and sparse social-context-aware interjections.
 
 The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
 context and keep it guarded as background knowledge, so normal demo turns stay
 focused on the active game or sensing capability. German-facing TDSR prompt
 text uses UTF-8 umlauts, and the general tour conversation agent is instructed
 to keep replies short while varying one-, two-, and rare three-sentence answers.
+The four GIGI TDSR agents share a warmer learning-companion persona with
+careful humor and Frank as an occasional travel/context reference while
+preserving their German speech contracts and task-specific focus. The tour
+conversation agent carries concrete station grounding; the task agents keep a
+short route capsule so games and social-event reactions stay focused.
+The social-context tour conversation variant keeps the open station-conversation
+flow but declares social sensing observations and gates social remarks so
+changes in group presence are acknowledged only when a short aside is fitting.
 All GIGI TDSR agents declare manual weather observations and treat the latest
 weather location as operator-provided current-location context when relevant.
 The guessing-game and tour-conversation agents also instruct speech and
