@@ -60,9 +60,12 @@ class AccessCodeAdminServiceIntegrationTest {
                 .toList();
 
         assertTrue(keys.contains("basic.single_state_micro_coaching"));
-        assertTrue(keys.contains("gigitdsr.rock_scissor_paper"));
-        assertTrue(keys.contains("gigitdsr.tour_conversation"));
-        assertTrue(keys.contains("gigitdsr.tour_conversation_social_context"));
+        assertTrue(keys.contains("tdsr.core.de.rock_scissor_paper"));
+        assertTrue(keys.contains("tdsr.core.de.tour_conversation"));
+        assertTrue(keys.contains("tdsr.core.de.tour_conversation_social_context"));
+        assertTrue(keys.contains("tdsr.core.fr.tour_conversation"));
+        assertTrue(keys.contains("tdsr.core.it.rock_scissor_paper"));
+        assertTrue(keys.contains("tdsr.core.en.tour_conversation_social_context"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
     }
 
@@ -110,29 +113,29 @@ class AccessCodeAdminServiceIntegrationTest {
         AccessCodeView created = this.service.createAccessCode("typ48", true);
 
         AccessCodeView assigned = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "gigitdsr.rock_scissor_paper",
-                "gigitdsr.guessing_game_with_gestures")).orElseThrow();
+                "tdsr.core.de.rock_scissor_paper",
+                "tdsr.core.de.guessing_game_with_gestures")).orElseThrow();
 
-        assertEquals(List.of("gigitdsr.guessing_game_with_gestures", "gigitdsr.rock_scissor_paper"),
+        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.rock_scissor_paper"),
                 assigned.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView added = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "gigitdsr.guessing_game_with_gestures",
-                "gigitdsr.rock_scissor_paper",
-                "gigitdsr.tour_conversation")).orElseThrow();
+                "tdsr.core.de.guessing_game_with_gestures",
+                "tdsr.core.de.rock_scissor_paper",
+                "tdsr.core.de.tour_conversation")).orElseThrow();
 
         assertEquals(List.of(
-                "gigitdsr.guessing_game_with_gestures",
-                "gigitdsr.rock_scissor_paper",
-                "gigitdsr.tour_conversation"), added.getAllowedAgentTypeKeys());
+                "tdsr.core.de.guessing_game_with_gestures",
+                "tdsr.core.de.rock_scissor_paper",
+                "tdsr.core.de.tour_conversation"), added.getAllowedAgentTypeKeys());
         assertEquals(3, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView removed = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "gigitdsr.guessing_game_with_gestures",
-                "gigitdsr.tour_conversation")).orElseThrow();
+                "tdsr.core.de.guessing_game_with_gestures",
+                "tdsr.core.de.tour_conversation")).orElseThrow();
 
-        assertEquals(List.of("gigitdsr.guessing_game_with_gestures", "gigitdsr.tour_conversation"),
+        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.tour_conversation"),
                 removed.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigitdsr;
+package ch.zhaw.prometheus.agentdefs.tdsr.core.de;
 
 import java.util.List;
 
@@ -231,7 +231,7 @@ public class RockScissorPaper implements AgentDefinition {
                 finalState);
     }
 
-    public static final String KEY = "gigitdsr.rock_scissor_paper";
+    public static final String KEY = "tdsr.core.de.rock_scissor_paper";
 
     @Override
     public String key() {

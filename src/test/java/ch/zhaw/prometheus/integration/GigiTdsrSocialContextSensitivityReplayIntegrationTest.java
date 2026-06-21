@@ -30,6 +30,7 @@ import ch.zhaw.prometheus.agents.AgentFixtures;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;
@@ -49,12 +50,15 @@ class GigiTdsrSocialContextSensitivityReplayIntegrationTest {
 
     @Autowired
     private AgentRepository agentRepository;
+    @Autowired
+    private AccessCodeAgentRepository accessCodeAgentRepository;
 
     @LocalServerPort
     private int port;
 
     @BeforeEach
     void clearData() {
+        this.accessCodeAgentRepository.deleteAll();
         this.agentRepository.deleteAll();
     }
 

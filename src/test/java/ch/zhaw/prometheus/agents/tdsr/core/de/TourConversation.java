@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigitdsr;
+package ch.zhaw.prometheus.agents.tdsr.core.de;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -15,7 +15,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
 public class TourConversation {
-    private static final ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation DEFINITION = new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation();
+    private static final ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation DEFINITION = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation();
 
     @Autowired
     private AgentRepository repository;

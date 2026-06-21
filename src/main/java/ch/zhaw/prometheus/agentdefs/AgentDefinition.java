@@ -5,7 +5,9 @@ import ch.zhaw.prometheus.model.Agent;
 public interface AgentDefinition {
 
     String LANGUAGE_ENGLISH = "en";
+    String LANGUAGE_FRENCH = "fr";
     String LANGUAGE_GERMAN = "de";
+    String LANGUAGE_ITALIAN = "it";
 
     String key();
 

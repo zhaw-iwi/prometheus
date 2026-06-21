@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigitdsr;
+package ch.zhaw.prometheus.agentdefs.tdsr.core.de;
 
 import java.util.List;
 
@@ -236,7 +236,7 @@ public class GuessingGameWithGestures implements AgentDefinition {
         return agent;
     }
 
-    public static final String KEY = "gigitdsr.guessing_game_with_gestures";
+    public static final String KEY = "tdsr.core.de.guessing_game_with_gestures";
 
     @Override
     public String key() {

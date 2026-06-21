@@ -24,11 +24,31 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateGuessingGame.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateGuessingGameUserGuess.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare/SingleStateSmartGoalCoaching.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/GuessingGameWithGestures.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/SocialContextSensitivity.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/RockScissorPaper.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/TourConversation.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/GuessingGameWithGestures.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/TourConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/TourConversationSocialContextSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -96,7 +116,7 @@ class SeedAgentInteractionProfileContractTest {
     void seedAgentSourcesDeclareInteractionProfiles() throws IOException {
         for (Path seedAgentFile : SEED_AGENT_FILES) {
             String source = Files.readString(seedAgentFile);
-            assertTrue(source.contains("setInteractionProfile("),
+            assertTrue(source.contains("setInteractionProfile(") || source.contains("TdsrCoreAgentFactory."),
                     "missing interaction profile declaration in " + seedAgentFile);
         }
     }

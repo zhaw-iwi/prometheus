@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigitdsr;
+package ch.zhaw.prometheus.agentdefs.tdsr.core.de;
 
 import java.util.List;
 
@@ -201,7 +201,7 @@ public class SocialContextSensitivity implements AgentDefinition {
         return agent;
     }
 
-    public static final String KEY = "gigitdsr.social_context_sensitivity";
+    public static final String KEY = "tdsr.core.de.social_context_sensitivity";
 
     @Override
     public String key() {

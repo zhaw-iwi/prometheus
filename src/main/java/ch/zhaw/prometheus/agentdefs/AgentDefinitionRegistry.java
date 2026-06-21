@@ -16,11 +16,11 @@ import ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching;
 import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGameUserGuess;
 import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateSmartGoalCoaching;
 import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateTherapyAppointmentReminder;
-import ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures;
-import ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper;
-import ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity;
-import ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation;
-import ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation;
+import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity;
 
 @Component
 public class AgentDefinitionRegistry {
@@ -41,6 +41,26 @@ public class AgentDefinitionRegistry {
                 new RockScissorPaper(),
                 new TourConversation(),
                 new TourConversationSocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.GuessingGameWithGestures(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.SocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.RockScissorPaper(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.TourConversation(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.TourConversationSocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.GuessingGameWithGestures(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.SocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.RockScissorPaper(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.TourConversation(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.TourConversationSocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.GuessingGameWithGestures(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.SocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.RockScissorPaper(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.TourConversation(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.TourConversationSocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.GuessingGameWithGestures(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.SocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.RockScissorPaper(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversation(),
+                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversationSocialContextSensitivity(),
                 new SingleStateTherapyAppointmentReminder(),
                 new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame(),
                 new SingleStateGuessingGameUserGuess(),

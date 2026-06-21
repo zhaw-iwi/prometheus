@@ -27,22 +27,22 @@ public final class AgentFixtures {
     }
 
     public static Agent gigiTdsrGuessingGameWithGestures() {
-        return new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures().createAgent();
+        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures().createAgent();
     }
 
     public static Agent gigiTdsrSocialContextSensitivity() {
-        return new ch.zhaw.prometheus.agentdefs.gigitdsr.SocialContextSensitivity().createAgent();
+        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity().createAgent();
     }
 
     public static Agent gigiTdsrRockScissorPaper() {
-        return new ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper().createAgent();
+        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper().createAgent();
     }
 
     public static Agent gigiTdsrTourConversation() {
-        return new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation().createAgent();
+        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation().createAgent();
     }
 
     public static Agent gigiTdsrTourConversationSocialContextSensitivity() {
-        return new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversationSocialContextSensitivity().createAgent();
+        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity().createAgent();
     }
 }

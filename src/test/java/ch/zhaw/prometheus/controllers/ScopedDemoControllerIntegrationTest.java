@@ -46,8 +46,8 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class ScopedDemoControllerIntegrationTest {
     private static final String HEADER = ScopedDemoController.ACCESS_CODE_HEADER;
     private static final String TYPE_KEY = "basic.single_state_micro_coaching";
-    private static final String TDSR_TOUR_TYPE_KEY = "gigitdsr.tour_conversation";
-    private static final String TDSR_TOUR_SOCIAL_TYPE_KEY = "gigitdsr.tour_conversation_social_context";
+    private static final String TDSR_TOUR_TYPE_KEY = "tdsr.core.de.tour_conversation";
+    private static final String TDSR_TOUR_SOCIAL_TYPE_KEY = "tdsr.core.de.tour_conversation_social_context";
 
     @Autowired
     private MockMvc mockMvc;
@@ -172,7 +172,7 @@ class ScopedDemoControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "agentDefinitionKey": "gigitdsr.rock_scissor_paper"
+                          "agentDefinitionKey": "tdsr.core.de.rock_scissor_paper"
                         }
                         """))
                 .andExpect(status().isForbidden());

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigitdsr;
+package ch.zhaw.prometheus.agents.tdsr.core.de;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -14,8 +14,8 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
-public class GuessingGameWithGestures {
-    private static final ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures DEFINITION = new ch.zhaw.prometheus.agentdefs.gigitdsr.GuessingGameWithGestures();
+public class TourConversationSocialContextSensitivity {
+    private static final ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity DEFINITION = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity();
 
     @Autowired
     private AgentRepository repository;

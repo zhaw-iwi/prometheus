@@ -86,6 +86,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 80: Warmer GIGI TDSR tour conversation persona and route grounding
 - [x] Milestone 81: Shared GIGI TDSR persona continuity across task agents
 - [x] Milestone 82: GIGI TDSR tour conversation with sparse social context sensitivity
+- [x] Milestone 83: GIGI TDSR German core package reorganization
+- [x] Milestone 84: Multilingual TDSR core agents and package-shaped keys
+- [x] Milestone 85: Babylon multilingual TDSR core agents
 
 ## Milestone 1
 ### Date
@@ -3839,3 +3842,130 @@ Add a fifth GIGI TDSR agent that keeps the open tour-conversation flow while add
 
 ### Next steps
 1. Live-test the social tour conversation variant with manual `now_alone`, `arrival`, `crowd_detected`, and group-size-change scenarios and tune the gate if remarks are too frequent or too quiet.
+
+## Milestone 83
+### Date
+2026-06-21
+
+### Goal
+Reorganize the GIGI TDSR German agent implementation package from the old flat `gigitdsr` package into the new `tdsr.core.de` hierarchy.
+
+### What changed
+- Moved the five production GIGI TDSR agent definitions to `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/de`.
+- Moved the matching manual seed wrappers and prompt contract test package to `src/test/java/ch/zhaw/prometheus/agents/tdsr/core/de`.
+- Updated registry imports, test fixtures, and source-profile contract paths to use the new Java package.
+- Preserved the stable Valerian/Admin agent definition keys (`gigitdsr.*`) so existing access-code assignments and scoped demo creation semantics do not change.
+- Hardened the GIGI TDSR replay integration test cleanup so access-code-to-agent links are removed before agents.
+- Updated README package-layout notes.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign any `gigitdsr.*` agent to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned GIGI TDSR agent and confirm the public key is unchanged.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+
+### Known issues and decisions
+- This is a Java/package reorganization only; public agent definition keys intentionally remain under `gigitdsr.*`.
+- Historical PROJECT milestone entries still mention the old package paths because those entries describe the repository state at the time they were completed.
+
+### Next steps
+1. Continue with the planned `tdsr` subpackage split for additional SHHD agents once this reorganization is reviewed.
+
+## Milestone 84
+### Date
+2026-06-21
+
+### Goal
+Create French, Italian, and English variants of the five TDSR core agents and switch all TDSR core public keys to the package-shaped `tdsr.core.<language>.<agent>` namespace.
+
+### What changed
+- Added French definitions under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/fr`.
+- Added Italian definitions under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/it`.
+- Added English definitions under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/en`.
+- Added `LANGUAGE_FRENCH` and `LANGUAGE_ITALIAN` to `AgentDefinition`; English already existed.
+- Registered all 20 TDSR core definitions:
+  - `tdsr.core.de.*`
+  - `tdsr.core.fr.*`
+  - `tdsr.core.it.*`
+  - `tdsr.core.en.*`
+- Renamed the five German public keys from `gigitdsr.*` to `tdsr.core.de.*`.
+- Translated model-facing prompts for the localized variants, including state, starter, final, decision, extraction, and social-interjection prompts.
+- Kept protocol vocabulary stable across languages: JSON schema fields, event names, gesture labels, change types, and `motion.handSign` values remain language-neutral.
+- Added a shared `TdsrCoreAgentFactory` for the non-German variants so state-machine wiring and interaction-profile assignment stay consistent.
+- Updated README, registry tests, access-code/scoped-demo tests, source-profile coverage, and localized prompt contract coverage.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign a key such as `tdsr.core.fr.tour_conversation`, `tdsr.core.it.rock_scissor_paper`, or `tdsr.core.en.tour_conversation_social_context` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned agent and start Realtime; the agent language code should be `fr`, `it`, `en`, or `de` according to the key.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,TdsrCoreLocalizedPromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone intentionally supersedes the previous compatibility decision to keep `gigitdsr.*` public keys.
+- Existing access-code assignments that still reference old `gigitdsr.*` keys need to be recreated or migrated to the new `tdsr.core.de.*` keys.
+- The localized prompts are translated manually in code and should be live-tested with native speakers for tone, idiom, and robot suitability.
+- Nonverbal and hand-sign protocol values remain English-like machine values because Valerian/G1 mappings depend on those labels.
+
+### Next steps
+1. Live-test one agent per language in Valerian with Realtime transcription and spoken output.
+2. Decide whether the Valerian Admin UI needs language filters or grouping for the expanded TDSR catalog.
+
+## Milestone 85
+### Date
+2026-06-21
+
+### Goal
+Add Babylon variants of the five TDSR core agents that start in English but can answer in German, French, Italian, or English without pinning a Realtime transcription language.
+
+### What changed
+- Added five production definitions under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon`:
+  - `tdsr.core.babylon.guessing_game_with_gestures`
+  - `tdsr.core.babylon.social_context_sensitivity`
+  - `tdsr.core.babylon.rock_scissor_paper`
+  - `tdsr.core.babylon.tour_conversation`
+  - `tdsr.core.babylon.tour_conversation_social_context`
+- Copied the English core agents as the implementation base, kept English starter prompts for the opening turn, and replaced English-only state/final guards with the shared multilingual instruction:
+  `Du kannst Deutsch, Französisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
+- Kept the Babylon definitions without a `languageCode()` override so Valerian/Realtime does not receive a fixed language hint for these agents.
+- Extended the stop/readiness/play-again guard prompts so they interpret German, French, Italian, and English user intent.
+- Registered the Babylon keys and updated registry, source-profile, and Babylon prompt contract coverage.
+- Updated README entries for the expanded TDSR core catalog.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign a key such as `tdsr.core.babylon.tour_conversation` or `tdsr.core.babylon.rock_scissor_paper` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned agent and start Realtime; the agent metadata should not contain a fixed language code.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,TdsrCoreLocalizedPromptContractTest,TdsrCoreBabylonPromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest" test`
+
+### Known issues and decisions
+- The Babylon variants intentionally omit Realtime language-code metadata; actual language switching still depends on live ASR/model behavior and should be tested in Valerian.
+- The first generated starter turn remains English by design. Later replies should follow the user's language among German, French, Italian, and English.
+- Protocol values remain language-neutral machine values as in the fixed-language variants.
+
+### Next steps
+1. Live-test a Babylon tour conversation in Valerian by switching among German, French, Italian, and English across turns.
+2. Confirm Realtime session payloads omit the input transcription language for `tdsr.core.babylon.*` agents.

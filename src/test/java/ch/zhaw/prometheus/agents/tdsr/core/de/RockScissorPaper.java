@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigitdsr;
+package ch.zhaw.prometheus.agents.tdsr.core.de;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -15,7 +15,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
 public class RockScissorPaper {
-    private static final ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper DEFINITION = new ch.zhaw.prometheus.agentdefs.gigitdsr.RockScissorPaper();
+    private static final ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper DEFINITION = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper();
 
     @Autowired
     private AgentRepository repository;
