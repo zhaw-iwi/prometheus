@@ -49,6 +49,11 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/RockScissorPaper.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/TourConversation.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/babylon/TourConversationSocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de/EPFLActive.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de/Furka.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de/InterviewingPeople.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de/SUPSIActive.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de/UnisStudent.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -116,7 +121,20 @@ class SeedAgentInteractionProfileContractTest {
     void seedAgentSourcesDeclareInteractionProfiles() throws IOException {
         for (Path seedAgentFile : SEED_AGENT_FILES) {
             String source = Files.readString(seedAgentFile);
-            assertTrue(source.contains("setInteractionProfile(") || source.contains("TdsrCoreAgentFactory."),
+            assertTrue(source.contains("setInteractionProfile(") || source.contains("TdsrCoreAgentFactory.")
+                    || source.contains("TdsrShhdAgentFactory."),
+                    "missing interaction profile declaration in " + seedAgentFile);
+        }
+    }
+
+    @Test
+    void shhdAgentSourcesUseSharedSocialTourFactory() throws IOException {
+        for (Path seedAgentFile : SEED_AGENT_FILES) {
+            if (!seedAgentFile.toString().replace('\\', '/').contains("/tdsr/shhd/")) {
+                continue;
+            }
+            String source = Files.readString(seedAgentFile);
+            assertTrue(source.contains("TdsrShhdAgentFactory.ShhdPrompts"),
                     "missing interaction profile declaration in " + seedAgentFile);
         }
     }

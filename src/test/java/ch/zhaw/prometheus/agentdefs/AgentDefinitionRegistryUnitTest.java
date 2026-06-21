@@ -52,6 +52,11 @@ class AgentDefinitionRegistryUnitTest {
             tdsrKey("babylon", "rock_scissor_paper"),
             tdsrKey("babylon", "tour_conversation"),
             tdsrKey("babylon", "tour_conversation_social_context"),
+            tdsrShhdKey("de", "epfl_active"),
+            tdsrShhdKey("de", "furka"),
+            tdsrShhdKey("de", "interviewing_people"),
+            tdsrShhdKey("de", "supsi_active"),
+            tdsrShhdKey("de", "unis_student"),
             "elderlycare.therapy_appointment_reminder",
             "elderlycare.guessing_game",
             "elderlycare.guessing_game_user_guess",
@@ -86,6 +91,11 @@ class AgentDefinitionRegistryUnitTest {
             Map.entry(tdsrKey("en", "rock_scissor_paper"), AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry(tdsrKey("en", "tour_conversation"), AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry(tdsrKey("en", "tour_conversation_social_context"), AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry(tdsrShhdKey("de", "epfl_active"), AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry(tdsrShhdKey("de", "furka"), AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry(tdsrShhdKey("de", "interviewing_people"), AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry(tdsrShhdKey("de", "supsi_active"), AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry(tdsrShhdKey("de", "unis_student"), AgentDefinition.LANGUAGE_GERMAN),
             Map.entry("elderlycare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_GERMAN),
             Map.entry("elderlycare.guessing_game", AgentDefinition.LANGUAGE_GERMAN),
             Map.entry("elderlycare.guessing_game_user_guess", AgentDefinition.LANGUAGE_GERMAN),
@@ -151,5 +161,9 @@ class AgentDefinitionRegistryUnitTest {
 
     private static String tdsrKey(String language, String agentName) {
         return "tdsr.core." + language + "." + agentName;
+    }
+
+    private static String tdsrShhdKey(String language, String agentName) {
+        return "tdsr.shhd." + language + "." + agentName;
     }
 }

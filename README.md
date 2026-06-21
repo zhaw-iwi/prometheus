@@ -203,6 +203,8 @@ The current migrated definitions call `Agent.start(...)` inside `createInstance(
 The elderly-care definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare` and use `elderlycare.<agent>` keys.
 The GIGI TDSR core definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/<language>`.
 Their Valerian/Admin keys follow the same structure: `tdsr.core.<language>.<agent>`.
+The German TDSR SHHD scene definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/de`
+and use `tdsr.shhd.de.<agent>` keys.
 
 Registered definitions:
 
@@ -243,6 +245,11 @@ Registered definitions:
 - `tdsr.core.babylon.rock_scissor_paper` - GIGI TDSR multilingual rock-scissor-paper demo with deterministic `motion.handSign` output.
 - `tdsr.core.babylon.tour_conversation` - GIGI TDSR multilingual general-purpose station conversation agent.
 - `tdsr.core.babylon.tour_conversation_social_context` - GIGI TDSR multilingual station conversation agent with sparse social-context-aware interjections.
+- `tdsr.shhd.de.epfl_active` - GIGI TDSR SHHD German EPFL/Qolo scene agent for learning safe, socially aware navigation among people.
+- `tdsr.shhd.de.furka` - GIGI TDSR SHHD German Furka/Belvedere scene agent for pass history, mobility, Goldfinger, landscape change, and memory.
+- `tdsr.shhd.de.interviewing_people` - GIGI TDSR SHHD German interview agent for public views on robot collaboration, trust, boundaries, and social acceptance.
+- `tdsr.shhd.de.supsi_active` - GIGI TDSR SHHD German SUPSI workcell agent for teleoperated, safety-conscious battery-pack collaboration.
+- `tdsr.shhd.de.unis_student` - GIGI TDSR SHHD German university-student conversation agent for motivation, robotics, and human meaning behind research.
 
 The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
 context and keep it guarded as background knowledge, so normal demo turns stay
@@ -253,6 +260,10 @@ JSON schemas, event names, gesture labels, and `motion.handSign` protocol values
 The Babylon variants are copied from the English core agents, start their opening
 turns in English, do not set a fixed Realtime language code, and instruct GIGI to
 answer in German, French, Italian, or English according to the user's language.
+The German SHHD definitions currently reuse the social tour-conversation
+architecture: one interaction state, the same explicit stop-to-final guard,
+manual weather context, sparse social-context interjections, and structured
+nonverbal gesture prompting.
 The general tour conversation agent is instructed to keep replies short while
 varying one-, two-, and rare three-sentence answers.
 The GIGI TDSR agents share a warmer learning-companion persona with

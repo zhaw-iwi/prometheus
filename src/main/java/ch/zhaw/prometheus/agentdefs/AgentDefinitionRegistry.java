@@ -21,6 +21,11 @@ import ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.EPFLActive;
+import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.Furka;
+import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.InterviewingPeople;
+import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.SUPSIActive;
+import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.UnisStudent;
 
 @Component
 public class AgentDefinitionRegistry {
@@ -61,6 +66,11 @@ public class AgentDefinitionRegistry {
                 new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.RockScissorPaper(),
                 new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversation(),
                 new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversationSocialContextSensitivity(),
+                new EPFLActive(),
+                new Furka(),
+                new InterviewingPeople(),
+                new SUPSIActive(),
+                new UnisStudent(),
                 new SingleStateTherapyAppointmentReminder(),
                 new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGame(),
                 new SingleStateGuessingGameUserGuess(),

@@ -67,6 +67,7 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.core.fr.tour_conversation"));
         assertTrue(keys.contains("tdsr.core.it.rock_scissor_paper"));
         assertTrue(keys.contains("tdsr.core.en.tour_conversation_social_context"));
+        assertTrue(keys.contains("tdsr.shhd.de.epfl_active"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
         assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
         assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
@@ -74,6 +75,8 @@ class AccessCodeAdminServiceIntegrationTest {
                 packagePath(agentTypes, "tdsr.core.de.rock_scissor_paper"));
         assertEquals(List.of("tdsr", "core", "babylon"),
                 packagePath(agentTypes, "tdsr.core.babylon.tour_conversation"));
+        assertEquals(List.of("tdsr", "shhd", "de"),
+                packagePath(agentTypes, "tdsr.shhd.de.epfl_active"));
     }
 
     @Test

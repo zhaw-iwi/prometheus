@@ -91,6 +91,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 85: Babylon multilingual TDSR core agents
 - [x] Milestone 86: Elderly-care package and key rename
 - [x] Milestone 87: Valerian Admin package-based agent type tree
+- [x] Milestone 88: German TDSR SHHD scene agents
 
 ## Milestone 1
 ### Date
@@ -4040,3 +4041,45 @@ Introduce package-based browsing for Valerian Admin agent type assignments witho
 
 ### Next steps
 1. Live-check Valerian Admin with a dense agent catalog and adjust spacing or default expansion rules if operators need a more compact view.
+## Milestone 88
+### Date
+2026-06-21
+
+### Goal
+Add the initial German TDSR SHHD scene-agent set under `tdsr.shhd.de` using the existing social tour-conversation architecture.
+
+### What changed
+- Added a shared SHHD social-tour factory for single-state agents with one interaction state, the explicit user-stop final transition used by tour conversation, sparse social-context self-transition on `obs.social.situation_change`, manual weather context support, and structured nonverbal gesture prompting.
+- Added five German production definitions:
+  - `tdsr.shhd.de.epfl_active`
+  - `tdsr.shhd.de.furka`
+  - `tdsr.shhd.de.interviewing_people`
+  - `tdsr.shhd.de.supsi_active`
+  - `tdsr.shhd.de.unis_student`
+- Condensed the authoritative Word prompt material into German state/final prompts while preserving each agent's intent: EPFL/Qolo social navigation, Furka/Belvedere/Goldfinger mobility and memory, public interviews about robot collaboration and trust, SUPSI teleoperated workcell safety and human support, and university-student motivation behind robotics work.
+- Registered the new definitions so Valerian Admin exposes them dynamically under `tdsr / shhd / de`.
+- Added prompt/registry/profile/admin-service contract coverage and README catalog entries.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign a key such as `tdsr.shhd.de.epfl_active` or `tdsr.shhd.de.supsi_active` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned SHHD agent and start Realtime; the agent language code should be `de`.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TdsrShhdGermanPromptContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The SHHD prompts are condensed from the Word documents in `.agents/tdsr/shhdagents`; those source documents are not runtime inputs.
+- The German variants intentionally force German prompt and Realtime language behavior. French, Italian, English, and Babylon variants are planned as separate packages.
+- The SUPSI source prompt had duplicated material and mixed autonomous wording with teleoperation constraints; this implementation keeps the safer teleoperation framing.
+- Social context sensitivity remains prompt-gated rather than deterministically rate-limited, matching the current TDSR social tour agent.
+
+### Next steps
+1. Live-test the five German SHHD agents in Valerian with text, Realtime speech, manual weather, and social-context events.
+2. Create the French, Italian, English, and Babylon SHHD variants once the German prompts are reviewed.
