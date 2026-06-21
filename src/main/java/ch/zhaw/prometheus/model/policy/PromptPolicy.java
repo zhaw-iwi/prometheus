@@ -421,6 +421,7 @@ public class PromptPolicy extends Policy {
                 gesture = "NONE";
             }
             normalized.addProperty("gesture", gesture);
+            removeUnsupportedLocomotion(normalized);
             return normalized;
         } catch (Exception ignored) {
             return null;
@@ -465,6 +466,15 @@ public class PromptPolicy extends Policy {
             case "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE" -> normalized;
             default -> null;
         };
+    }
+
+    private static void removeUnsupportedLocomotion(JsonObject nonVerbal) {
+        if (!nonVerbal.has("motion") || !nonVerbal.get("motion").isJsonObject()) {
+            return;
+        }
+        JsonObject motion = nonVerbal.getAsJsonObject("motion");
+        motion.remove("move");
+        motion.remove("turn");
     }
 
     private static String parseGestureFromJson(String raw) {

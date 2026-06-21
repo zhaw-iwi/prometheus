@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.agents;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -55,6 +56,7 @@ class SeedAgentInteractionProfileContractTest {
         assertTrue(gestureProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(gestureProfile.supportsBehaviourModality(
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertFalse(gestureProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
 
         AgentInteractionProfile socialProfile = AgentFixtures.gigiTdsrSocialContextSensitivity()
                 .getInteractionProfile();
@@ -75,6 +77,7 @@ class SeedAgentInteractionProfileContractTest {
         assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(tourProfile.supportsBehaviourModality(
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+        assertFalse(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
         assertTrue(tourProfile.getSupportedObservations().size() == 3);
     }
 

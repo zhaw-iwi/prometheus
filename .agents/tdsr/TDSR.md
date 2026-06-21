@@ -235,26 +235,25 @@ Use the existing `BehaviourPlan` shape:
     "posture": "open",
     "prosody": "warm"
   },
-  "motion": {
-    "stillness": 0.2,
-    "energy": 0.35
-  },
+  "motion": null,
   "display": null
 }
 ```
 
-The first version should configure `PromptPolicy#setNonVerbalPlanPrompt(...)`
-with a compact deterministic mapping:
+Valerian-facing GIGI agents should follow `.agents/BEHVAIOURS_GIGI.md`.
+For gestures, configure `PromptPolicy#setNonVerbalPlanPrompt(...)` with safe
+semantic `nonVerbal.gesture` labels only:
 
-- greeting/invitation -> small wave/open posture
-- asking a yes/no question -> explanatory hand motion or attentive stillness
-- acknowledging user answer -> nod/acknowledge gesture
-- playful self-correction -> small shrug
-- final guess -> focused presentation gesture
-- goodbye/final -> farewell gesture
+- greeting or socially careful response -> `POLITE`
+- important invitation or opening the floor -> `OPEN_QUESTION`
+- explanation, clue summary, or final guess -> `EXPLAIN`
+- uncertainty or playful self-correction -> `UNCERTAIN`
+- acknowledgement, wrap-up, or goodbye -> `ACKNOWLEDGE`
+- routine turn where a gesture would distract -> `NONE`
 
-The existing nonverbal renderer can visualize at least the gesture field. Richer
-fields can be stored and replayed even if not every channel is rendered yet.
+Do not emit robot-server snake_case gesture IDs in `nonVerbal.gesture`. Do not
+emit locomotion fields such as `motion.move` or `motion.turn`. Use top-level
+`motion.handSign` only for hand-sign demos such as Schere-Stein-Papier.
 
 ### Tests
 

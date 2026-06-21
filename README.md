@@ -230,6 +230,11 @@ weather location as operator-provided current-location context when relevant.
 The guessing-game and tour-conversation agents also instruct speech and
 nonverbal planning to avoid repeated `OPEN_QUESTION` gestures and to emit
 `NONE` on ordinary turns when a gesture would be distracting.
+Valerian-facing GIGI physical behaviour vocabulary is documented in
+`.agents/BEHVAIOURS_GIGI.md`. TDSR gesture agents emit only semantic
+`nonVerbal.gesture` labels from `OPEN_QUESTION`, `EXPLAIN`, `UNCERTAIN`,
+`ACKNOWLEDGE`, `POLITE`, and `NONE`; Schere-Stein-Papier hand signs use
+top-level `motion.handSign` values `rock`, `scissor`, or `paper`.
 
 ### Option A: Seed registered agents from tests
 
@@ -276,9 +281,9 @@ agent metadata used as a Realtime transcription language hint; custom
 `POST /agent/singlestate` requests may include it and otherwise default to
 `en`. The profile declares the observation event types an
 agent expects and the behaviour modalities it can emit, for example
-`obs.hand.sign`, `obs.social.grouping`, `speech`, `motion.handSign`, and
-`display`. It is persisted with the `Agent` aggregate and is metadata, not
-runtime `Storage`.
+`obs.hand.sign`, `obs.social.grouping`, `speech`, `nonVerbal.gesture`,
+`motion.handSign`, and `display`. It is persisted with the `Agent` aggregate
+and is metadata, not runtime `Storage`.
 Seed agent templates declare profiles through `AgentInteractionProfiles`
 factories such as `speechOnly()`, `multimodalOutput()`, and
 `multimodalInputOutput()`.
@@ -497,6 +502,9 @@ Notes:
 - `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).
 - `/{agentID}/behaviour/generate` can be called in final states; final-state prompts may still produce behaviour while `active=false`.
 - The Valerian cockpit renders the gesture field as `NONE` when a behaviour event contains no `nonVerbal` object, making speech-only turns explicit instead of leaving a stale previous gesture visible.
+- Valerian-facing agents should not emit robot-server gesture IDs directly in
+  `nonVerbal.gesture`, and should not emit unsupported locomotion fields such
+  as `motion.move` or `motion.turn`.
 
 ## Realtime Notes
 

@@ -32,7 +32,12 @@ public class GuessingGameWithGestures implements AgentDefinition {
             - "posture": {"type":"string","lean":"string","openness":0.0-1.0}
             - "prosody": {"rate":"string","pitch":"string","volume":"string"}
             - "proxemics": {"distance":"string"}
-            - "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
+
+            Do not output robot-server command IDs such as open_question_gesture,
+            explanatory_sweep_gesture, uncertainty_shrug_gesture,
+            acknowledgement_close_hands_gesture, polite_apology_gesture,
+            right_hand_up, face_wave, left_kiss, hands_up, release_arm, or idle_pose.
+            Do not output top-level motion, motion.move, motion.turn, or locomotion fields.
 
             Gesture mapping:
             - greeting or invitation to start the game -> POLITE

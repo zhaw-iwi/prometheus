@@ -44,12 +44,7 @@ public final class AgentInteractionProfiles {
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
                         AgentInteractionProfile.OBS_WEATHER_CURRENT,
                         AgentInteractionProfile.OBS_WEATHER_FORECAST),
-                List.of(
-                        AgentInteractionProfile.MODALITY_SPEECH,
-                        AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,
-                        AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
-                        AgentInteractionProfile.MODALITY_NONVERBAL_GAZE,
-                        AgentInteractionProfile.MODALITY_NONVERBAL_MOTION),
+                speechAndGestureModalities(),
                 List.of(
                         AgentInteractionProfile.TAG_GIGI_TDSR,
                         AgentInteractionProfile.TAG_GIGI_GUESSING_GAME));
@@ -93,7 +88,7 @@ public final class AgentInteractionProfiles {
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
                         AgentInteractionProfile.OBS_WEATHER_CURRENT,
                         AgentInteractionProfile.OBS_WEATHER_FORECAST),
-                speechAndNonverbalModalities(),
+                speechAndGestureModalities(),
                 List.of(
                         AgentInteractionProfile.TAG_GIGI_TDSR,
                         AgentInteractionProfile.TAG_GIGI_TOUR_CONVERSATION));
@@ -118,5 +113,13 @@ public final class AgentInteractionProfiles {
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
                 AgentInteractionProfile.MODALITY_NONVERBAL_GAZE,
                 AgentInteractionProfile.MODALITY_NONVERBAL_MOTION);
+    }
+
+    private static List<String> speechAndGestureModalities() {
+        return List.of(
+                AgentInteractionProfile.MODALITY_SPEECH,
+                AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,
+                AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
+                AgentInteractionProfile.MODALITY_NONVERBAL_GAZE);
     }
 }

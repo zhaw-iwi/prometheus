@@ -3671,3 +3671,51 @@ Reduce repetitive question-ending speech and repeated `OPEN_QUESTION` gestures i
 
 ### Next steps
 1. If live runs still overuse `OPEN_QUESTION`, add a deterministic post-generation cooldown that downgrades repeated `OPEN_QUESTION` to `NONE`.
+
+## Milestone 79
+### Date
+2026-06-21
+
+### Goal
+Align the four GIGI TDSR agents with the current Valerian/G1 physical behaviour vocabulary.
+
+### What changed
+- Added `.agents/BEHVAIOURS_GIGI.md` as the reusable reference for GIGI
+  `BehaviourPlan` physical outputs.
+- Updated the guessing-game and tour-conversation structured nonverbal prompts
+  to use only safe semantic `nonVerbal.gesture` labels and to forbid robot-server
+  gesture IDs and unsupported locomotion fields.
+- Removed `nonVerbal.motion` from the TDSR guessing-game and tour-conversation
+  interaction profiles, because those agents now advertise semantic gestures,
+  facial expression, and gaze only.
+- Kept the social-context agent speech-only for outputs.
+- Kept Schere-Stein-Papier on top-level `motion.handSign` with canonical
+  `rock`, `scissor`, and `paper` values.
+- Added a narrow structured-nonverbal sanitizer that strips `move` and `turn`
+  if a language model returns them inside a nonverbal motion object.
+- Expanded tests for safe gesture labels, valid `BehaviourPlan` JSON payloads,
+  canonical RPS hand signs, and no unsupported locomotion.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Create each `gigitdsr.*` agent and inspect the interaction profile plus
+   generated behaviour events.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest,RpsRevealPolicyContractTest,AgentInteractionProfileUnitTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- The reusable behaviour reference intentionally keeps the user-requested file
+  name `.agents/BEHVAIOURS_GIGI.md`.
+- Generic multimodal demo prompts still mention `nonVerbal.motion`; this
+  milestone only aligned the four Valerian-facing GIGI TDSR agents.
+- Valerian can normalize some aliases, but TDSR agents should emit canonical
+  semantic gesture and hand-sign values.
+
+### Next steps
+1. Live-test each TDSR agent on Valerian and confirm the G1 receives only mapped
+   semantic gestures or canonical RPS hand signs.

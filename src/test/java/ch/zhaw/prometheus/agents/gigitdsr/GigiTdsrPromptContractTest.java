@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.agents.gigitdsr;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,8 +8,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
@@ -25,6 +30,13 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class GigiTdsrPromptContractTest {
 
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
+    private static final Set<String> SAFE_GESTURES = Set.of(
+            "OPEN_QUESTION",
+            "EXPLAIN",
+            "UNCERTAIN",
+            "ACKNOWLEDGE",
+            "POLITE",
+            "NONE");
 
     @Test
     void gestureGuessingGameDefinesGermanGigiDemoContract() {
@@ -60,6 +72,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(policy.getNonVerbalPlanPrompt().contains("routine yes/no game questions"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Do not use OPEN_QUESTION just because"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Avoid OPEN_QUESTION if it was used recently"));
+        assertSafeValerianGesturePrompt(policy.getNonVerbalPlanPrompt());
         assertTrue(policy.getNonVerbalGesturePrompt().contains("Allowed labels only"));
     }
 
@@ -181,6 +194,7 @@ class GigiTdsrPromptContractTest {
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Prefer NONE for many routine turns"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Do not use OPEN_QUESTION just because"));
         assertTrue(policy.getNonVerbalPlanPrompt().contains("Avoid OPEN_QUESTION if it was used recently"));
+        assertSafeValerianGesturePrompt(policy.getNonVerbalPlanPrompt());
     }
 
     @Test
@@ -303,11 +317,40 @@ class GigiTdsrPromptContractTest {
                 new PolicyRuntime(new PromptMessageAssembler(), gateway));
 
         assertNotNull(event);
+        assertValidBehaviourPlanPayload(event.getPayload());
         BehaviourPlan plan = BehaviourPlan.fromJson(event.getPayload());
         assertNotNull(plan);
         assertNotNull(plan.getNonVerbal());
         assertTrue(plan.getNonVerbal().getAsJsonObject().has("facialExpression"));
-        assertTrue(plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString().equals("POLITE"));
+        assertEquals("POLITE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertKnownGestureOnly(plan);
+        assertNoUnsupportedLocomotion(plan);
+        assertTrue(plan.getMotion() == null);
+    }
+
+    @Test
+    void configuredPolicyNormalizesUnsupportedRobotGestureIdsAndStripsLocomotion() {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.gigitdsr.TourConversation().createAgent();
+        EventSequencedGateway gateway = new EventSequencedGateway(List.of(
+                "Ich erklaere das kurz.",
+                """
+                        {
+                          "gesture":"open_question_gesture",
+                          "motion":{"move":"forward","turn":"left","energy":0.4}
+                        }
+                        """));
+
+        ch.zhaw.prometheus.model.event.Event event = agent.start(
+                new PolicyRuntime(new PromptMessageAssembler(), gateway));
+
+        assertNotNull(event);
+        assertValidBehaviourPlanPayload(event.getPayload());
+        BehaviourPlan plan = BehaviourPlan.fromJson(event.getPayload());
+        assertNotNull(plan);
+        assertNotNull(plan.getNonVerbal());
+        assertEquals("NONE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertKnownGestureOnly(plan);
+        assertNoUnsupportedLocomotion(plan);
     }
 
     private static PromptPolicy interactionPolicy(State state) throws Exception {
@@ -341,6 +384,56 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("obs.weather.forecast"));
         assertTrue(prompt.contains("bereitgestellter aktueller Standort"));
         assertTrue(prompt.contains("Ort selbst bestimmt"));
+    }
+
+    private static void assertSafeValerianGesturePrompt(String prompt) {
+        for (String gesture : SAFE_GESTURES) {
+            assertTrue(prompt.contains(gesture), "missing safe gesture label " + gesture);
+        }
+        assertTrue(prompt.contains("Do not output robot-server command IDs"));
+        assertTrue(prompt.contains("open_question_gesture"));
+        assertTrue(prompt.contains("Do not output top-level motion"));
+        assertTrue(prompt.contains("motion.move"));
+        assertTrue(prompt.contains("motion.turn"));
+        assertFalse(prompt.contains("\"motion\""));
+        assertFalse(prompt.contains("stillness"));
+        assertFalse(prompt.contains("energy\":0.0"));
+    }
+
+    private static void assertValidBehaviourPlanPayload(String payload) {
+        BehaviourPlan parsed = BehaviourPlan.fromJson(payload);
+        assertNotNull(parsed);
+        assertTrue(payload.trim().startsWith("{"));
+        assertTrue(payload.trim().endsWith("}"));
+    }
+
+    private static void assertKnownGestureOnly(BehaviourPlan plan) {
+        JsonElement nonVerbal = plan.getNonVerbal();
+        if (nonVerbal == null || !nonVerbal.isJsonObject()) {
+            return;
+        }
+        JsonObject nonVerbalObject = nonVerbal.getAsJsonObject();
+        if (!nonVerbalObject.has("gesture") || nonVerbalObject.get("gesture").isJsonNull()) {
+            return;
+        }
+        assertTrue(SAFE_GESTURES.contains(nonVerbalObject.get("gesture").getAsString()));
+    }
+
+    private static void assertNoUnsupportedLocomotion(BehaviourPlan plan) {
+        assertNoUnsupportedLocomotion(plan.getMotion());
+        JsonElement nonVerbal = plan.getNonVerbal();
+        if (nonVerbal != null && nonVerbal.isJsonObject()) {
+            assertNoUnsupportedLocomotion(nonVerbal.getAsJsonObject().get("motion"));
+        }
+    }
+
+    private static void assertNoUnsupportedLocomotion(JsonElement motion) {
+        if (motion == null || !motion.isJsonObject()) {
+            return;
+        }
+        JsonObject motionObject = motion.getAsJsonObject();
+        assertFalse(motionObject.has("move"));
+        assertFalse(motionObject.has("turn"));
     }
 
     private static final class EventSequencedGateway implements LanguageModelGateway {
