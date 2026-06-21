@@ -90,6 +90,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 84: Multilingual TDSR core agents and package-shaped keys
 - [x] Milestone 85: Babylon multilingual TDSR core agents
 - [x] Milestone 86: Elderly-care package and key rename
+- [x] Milestone 87: Valerian Admin package-based agent type tree
 
 ## Milestone 1
 ### Date
@@ -4004,3 +4005,38 @@ Rename the elderly-care demonstrator namespace from `gigielderlycare` to `elderl
 
 ### Next steps
 1. If existing demo databases are reused, update any saved access-code assignments from `gigielderlycare.*` to `elderlycare.*`.
+
+## Milestone 87
+### Date
+2026-06-21
+
+### Goal
+Introduce package-based browsing for Valerian Admin agent type assignments without hard-coding package names in the client.
+
+### What changed
+- Added `AgentDefinition.packagePath()` to derive package segments from Java packages below `ch.zhaw.prometheus.agentdefs`.
+- Extended `AdminAgentTypeView` with `packagePath` while keeping the existing key, display name, and description fields.
+- Included package metadata in both admin and scoped demo agent-type views.
+- Replaced the flat Valerian Admin agent-type checkbox list with a dynamic package tree built client-side from `packagePath`.
+- Added package expansion state, assigned-count badges, and a package/name/key filter for the assignment panel.
+- Updated controller, service, scoped-demo, and static-resource tests plus README API documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Select an access code and browse agent types through the package tree.
+4. Save assignments; the payload remains the list of selected agent definition keys.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,AccessCodeAdminServiceIntegrationTest,AdminAccessCodeControllerWebMvcTest,ScopedDemoControllerIntegrationTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Package hierarchy is derived from backend metadata and is not hard-coded in the Valerian Admin client.
+- The assignment storage model is unchanged: only agent definition keys are persisted for access-code assignments.
+- `/demo/agent-types` also receives `packagePath` because it shares `AdminAgentTypeView`, although the Valerian user cockpit does not currently use it for browsing.
+
+### Next steps
+1. Live-check Valerian Admin with a dense agent catalog and adjust spacing or default expansion rules if operators need a more compact view.

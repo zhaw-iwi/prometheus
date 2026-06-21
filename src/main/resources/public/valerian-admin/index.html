@@ -127,6 +127,44 @@
       padding: 0.7rem;
     }
 
+    .agent-package {
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+      overflow: hidden;
+    }
+
+    .agent-package-row {
+      width: 100%;
+      min-height: 2.65rem;
+      border: 0;
+      background: transparent;
+      padding: 0.65rem 0.75rem;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.55rem;
+      align-items: center;
+      text-align: left;
+    }
+
+    .agent-package-row:hover {
+      background: rgba(0, 176, 162, 0.06);
+    }
+
+    .agent-package-children {
+      display: grid;
+      gap: 0.5rem;
+      padding: 0 0.65rem 0.65rem 1.1rem;
+    }
+
+    .agent-type-list>.agent-type-item {
+      margin: 0;
+    }
+
+    .agent-package-children .agent-type-item {
+      background: rgba(255, 255, 255, 0.82);
+    }
+
     .status-line {
       min-height: 1.35rem;
       color: var(--admin-muted);
@@ -230,6 +268,13 @@
                 <i class="bi bi-check2-circle me-1"></i>Save Assignments
               </button>
               <div id="assignment_status" class="status-line mt-2" data-testid="assignment-status"></div>
+            </div>
+            <label class="form-label metric-label" for="agent_type_filter">Filter Agent Types</label>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input id="agent_type_filter" class="form-control" type="search"
+                placeholder="Search by package, name, or key" autocomplete="off"
+                data-testid="admin-agent-type-filter">
             </div>
             <div id="agent_type_list" class="agent-type-list" data-testid="admin-agent-type-list"></div>
           </div>

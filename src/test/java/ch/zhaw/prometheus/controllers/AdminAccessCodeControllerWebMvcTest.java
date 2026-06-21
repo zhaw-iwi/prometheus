@@ -94,13 +94,17 @@ class AdminAccessCodeControllerWebMvcTest {
     @Test
     void acceptsValidAdminTokenForAgentTypes() throws Exception {
         when(this.service.listAgentTypes()).thenReturn(List.of(
-                new AdminAgentTypeView("tdsr.core.de.rock_scissor_paper", "RPS", "Rock scissor paper")));
+                new AdminAgentTypeView("tdsr.core.de.rock_scissor_paper", "RPS", "Rock scissor paper",
+                        List.of("tdsr", "core", "de"))));
 
         this.mockMvc.perform(get("/admin/agent-types")
                 .header(HEADER, TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].key").value("tdsr.core.de.rock_scissor_paper"))
-                .andExpect(jsonPath("$[0].displayName").value("RPS"));
+                .andExpect(jsonPath("$[0].displayName").value("RPS"))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
+                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
+                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
     }
 
     @Test

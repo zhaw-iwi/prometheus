@@ -369,6 +369,22 @@ The same operations are available through the Prometheus admin cockpit at `/vale
 - `PUT /admin/access-codes/{id}/agent-types`
 - `GET /admin/access-codes/{id}/agents`
 
+Agent type views include package metadata derived from the Java package below
+`ch.zhaw.prometheus.agentdefs`, for example:
+
+```json
+{
+  "key": "tdsr.core.de.rock_scissor_paper",
+  "displayName": "GIGI TDSR - Schere, Stein, Papier",
+  "description": "German TDSR rock-scissor-paper demo",
+  "packagePath": ["tdsr", "core", "de"]
+}
+```
+
+The admin cockpit uses `packagePath` to build its assignment tree dynamically.
+Package names are not hard-coded in the client, so new, renamed, or removed
+agent-definition packages appear from the API metadata.
+
 Create body:
 
 ```json

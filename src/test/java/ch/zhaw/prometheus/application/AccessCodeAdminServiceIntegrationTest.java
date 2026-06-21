@@ -55,7 +55,8 @@ class AccessCodeAdminServiceIntegrationTest {
 
     @Test
     void listsRegisteredProductionAgentTypes() {
-        List<String> keys = this.service.listAgentTypes().stream()
+        List<AdminAgentTypeView> agentTypes = this.service.listAgentTypes();
+        List<String> keys = agentTypes.stream()
                 .map(AdminAgentTypeView::getKey)
                 .toList();
 
@@ -67,6 +68,12 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.core.it.rock_scissor_paper"));
         assertTrue(keys.contains("tdsr.core.en.tour_conversation_social_context"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
+        assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
+        assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
+        assertEquals(List.of("tdsr", "core", "de"),
+                packagePath(agentTypes, "tdsr.core.de.rock_scissor_paper"));
+        assertEquals(List.of("tdsr", "core", "babylon"),
+                packagePath(agentTypes, "tdsr.core.babylon.tour_conversation"));
     }
 
     @Test
@@ -177,5 +184,13 @@ class AccessCodeAdminServiceIntegrationTest {
         assertEquals(agent.getId(), visibleAgents.get(0).getID());
         assertEquals("Scoped Agent", visibleAgents.get(0).getName());
         assertTrue(this.service.listAgents(java.util.UUID.randomUUID()).isEmpty());
+    }
+
+    private static List<String> packagePath(List<AdminAgentTypeView> agentTypes, String key) {
+        return agentTypes.stream()
+                .filter(agentType -> key.equals(agentType.getKey()))
+                .findFirst()
+                .map(AdminAgentTypeView::getPackagePath)
+                .orElseThrow();
     }
 }

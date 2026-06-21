@@ -32,6 +32,7 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"create-access-code\""));
         assertTrue(index.contains("data-testid=\"access-code-list\""));
         assertTrue(index.contains("data-testid=\"admin-agent-type-list\""));
+        assertTrue(index.contains("data-testid=\"admin-agent-type-filter\""));
         assertTrue(index.contains("data-testid=\"save-agent-type-assignment\""));
         assertTrue(index.contains("data-testid=\"refresh-instances\""));
         assertTrue(index.contains("data-testid=\"admin-instance-list\""));
@@ -66,6 +67,10 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("body: JSON.stringify({ agentTypeKeys })"));
         assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agent-types`"));
         assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agents`"));
+        assertTrue(script.contains("buildAgentTypeTree"));
+        assertTrue(script.contains("packagePathOf"));
+        assertTrue(script.contains("renderPackageNode"));
+        assertTrue(script.contains("admin-agent-package-toggle"));
         assertTrue(script.contains("headers.set(ADMIN_TOKEN_HEADER, state.adminToken);"));
         assertTrue(script.contains("data-agent-type-checkbox"));
         assertTrue(script.contains("function prometheusFacingText"));

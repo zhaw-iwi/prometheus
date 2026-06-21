@@ -41,7 +41,7 @@ public class AccessCodeAdminService {
     public List<AdminAgentTypeView> listAgentTypes() {
         return this.agentDefinitions.list().stream()
                 .map(definition -> new AdminAgentTypeView(definition.key(), definition.displayName(),
-                        definition.description()))
+                        definition.description(), definition.packagePath()))
                 .toList();
     }
 

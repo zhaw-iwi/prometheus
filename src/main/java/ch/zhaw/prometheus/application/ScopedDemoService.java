@@ -238,7 +238,7 @@ public class ScopedDemoService {
                 .map(this.agentDefinitions::findByKey)
                 .flatMap(Optional::stream)
                 .map(definition -> new AdminAgentTypeView(definition.key(), definition.displayName(),
-                        definition.description()))
+                        definition.description(), definition.packagePath()))
                 .toList();
     }
 

@@ -95,7 +95,8 @@ class ScopedDemoControllerIntegrationTest {
                 .header(HEADER, "A49a1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].key").value(TYPE_KEY));
+                .andExpect(jsonPath("$[0].key").value(TYPE_KEY))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("basic"));
 
         this.mockMvc.perform(get("/demo/agents")
                 .header(HEADER, "A49a1"))
@@ -187,7 +188,10 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].key").value(TDSR_TOUR_TYPE_KEY))
-                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation"));
+                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation"))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
+                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
+                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
 
         UUID agentId = this.createAgent("G49g9", TDSR_TOUR_TYPE_KEY);
 
@@ -213,7 +217,10 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].key").value(TDSR_TOUR_SOCIAL_TYPE_KEY))
-                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation Social Context"));
+                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation Social Context"))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
+                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
+                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
 
         UUID agentId = this.createAgent("H49h1", TDSR_TOUR_SOCIAL_TYPE_KEY);
 

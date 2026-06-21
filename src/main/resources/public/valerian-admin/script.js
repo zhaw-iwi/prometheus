@@ -4,6 +4,8 @@ const state = {
   accessCodes: [],
   selectedAccessCodeId: null,
   selectedAgents: [],
+  agentTypeFilter: "",
+  expandedAgentTypePackages: new Set(),
 };
 
 const ADMIN_TOKEN_STORAGE_KEY = "prometheus.valerianAdmin.adminToken";
@@ -41,6 +43,10 @@ function wireUi() {
   document.getElementById("create_access_code").addEventListener("click", createAccessCode);
   document.getElementById("save_agent_type_assignment").addEventListener("click", saveAgentTypeAssignments);
   document.getElementById("refresh_instances").addEventListener("click", loadSelectedInstances);
+  document.getElementById("agent_type_filter").addEventListener("input", (event) => {
+    state.agentTypeFilter = event.target.value || "";
+    renderAgentTypes();
+  });
 }
 
 async function submitAdminToken() {
@@ -77,8 +83,11 @@ function forgetAdminToken() {
   state.accessCodes = [];
   state.selectedAccessCodeId = null;
   state.selectedAgents = [];
+  state.agentTypeFilter = "";
+  state.expandedAgentTypePackages = new Set();
   sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
   document.getElementById("admin_token_input").value = "";
+  document.getElementById("agent_type_filter").value = "";
   showWorkspace(false);
   setConnectionState("Admin Token Required", "unknown");
   setAdminStatus("");
@@ -215,6 +224,7 @@ async function loadSelectedInstances() {
 
 function selectAccessCode(accessCodeId) {
   state.selectedAccessCodeId = accessCodeId;
+  state.expandedAgentTypePackages = new Set();
   renderAccessCodes();
   renderAgentTypes();
   loadSelectedInstances();
@@ -265,41 +275,193 @@ function renderAgentTypes() {
   const list = document.getElementById("agent_type_list");
   list.replaceChildren();
   const saveButton = document.getElementById("save_agent_type_assignment");
+  const filterInput = document.getElementById("agent_type_filter");
   saveButton.disabled = !selected;
+  filterInput.disabled = !selected;
   if (!selected) {
     list.appendChild(emptyPanel("Select or create an access code."));
     return;
   }
   const allowed = new Set(selected.allowedAgentTypeKeys || []);
-  const sorted = [...state.agentTypes].sort((a, b) => agentTypeSortKey(a).localeCompare(agentTypeSortKey(b)));
-  if (sorted.length === 0) {
+  const filterText = state.agentTypeFilter.trim().toLowerCase();
+  const visibleAgentTypes = filterAgentTypes(state.agentTypes, filterText);
+  if (state.agentTypes.length === 0) {
     list.appendChild(emptyPanel("No registered agent types."));
     return;
   }
-  for (const agentType of sorted) {
-    const item = document.createElement("label");
-    item.className = "agent-type-item";
-    item.dataset.testid = "admin-agent-type-option";
+  if (visibleAgentTypes.length === 0) {
+    list.appendChild(emptyPanel("No agent types match the filter."));
+    return;
+  }
+  const tree = buildAgentTypeTree(visibleAgentTypes);
+  expandAssignedPackages(tree, allowed);
+  if (filterText) {
+    expandAllPackages(tree);
+  }
+  renderAgentTypeChildren(list, tree, allowed, filterText);
+}
 
-    const input = document.createElement("input");
-    input.className = "form-check-input me-2";
-    input.type = "checkbox";
-    input.value = agentType.key;
-    input.checked = allowed.has(agentType.key);
-    input.dataset.agentTypeCheckbox = "true";
-    input.dataset.testid = "admin-agent-type-checkbox";
+function buildAgentTypeTree(agentTypes) {
+  const root = createPackageNode("", []);
+  for (const agentType of [...agentTypes].sort((a, b) => agentTypeSortKey(a).localeCompare(agentTypeSortKey(b)))) {
+    const path = packagePathOf(agentType);
+    let node = root;
+    for (const segment of path) {
+      if (!node.children.has(segment)) {
+        node.children.set(segment, createPackageNode(segment, [...node.path, segment]));
+      }
+      node = node.children.get(segment);
+    }
+    node.agentTypes.push(agentType);
+  }
+  return root;
+}
 
-    const title = document.createElement("span");
-    title.innerHTML = `<strong>${escapeHtml(prometheusFacingText(agentType.displayName || agentType.key))}</strong>`;
+function createPackageNode(name, path) {
+  return {
+    name,
+    path,
+    children: new Map(),
+    agentTypes: [],
+  };
+}
 
-    const description = document.createElement("div");
-    description.className = "metric-label ms-4";
-    description.textContent = prometheusFacingText(agentType.description || "");
+function renderAgentTypeChildren(container, node, allowed, filterText) {
+  for (const child of sortedPackageChildren(node)) {
+    container.appendChild(renderPackageNode(child, allowed, filterText));
+  }
+  for (const agentType of node.agentTypes) {
+    container.appendChild(renderAgentTypeItem(agentType, allowed));
+  }
+}
 
-    item.appendChild(input);
-    item.appendChild(title);
-    item.appendChild(description);
-    list.appendChild(item);
+function renderPackageNode(node, allowed, filterText) {
+  const pathKey = packagePathKey(node.path);
+  const expanded = filterText || state.expandedAgentTypePackages.has(pathKey);
+  const selectedCount = selectedAgentTypeCount(node, allowed);
+  const totalCount = totalAgentTypeCount(node);
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "agent-package";
+  wrapper.dataset.packagePath = pathKey;
+  wrapper.dataset.testid = "admin-agent-package";
+
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "agent-package-row";
+  row.dataset.testid = "admin-agent-package-toggle";
+  row.setAttribute("aria-expanded", expanded ? "true" : "false");
+  row.addEventListener("click", () => {
+    if (state.expandedAgentTypePackages.has(pathKey)) {
+      state.expandedAgentTypePackages.delete(pathKey);
+    } else {
+      state.expandedAgentTypePackages.add(pathKey);
+    }
+    renderAgentTypes();
+  });
+  row.innerHTML = `
+    <i class="bi bi-chevron-${expanded ? "down" : "right"}"></i>
+    <span class="text-truncate"><strong>${escapeHtml(packageLabel(node.name))}</strong></span>
+    <span class="badge text-bg-light">${selectedCount}/${totalCount}</span>
+  `;
+
+  const children = document.createElement("div");
+  children.className = "agent-package-children";
+  children.hidden = !expanded;
+  if (expanded) {
+    renderAgentTypeChildren(children, node, allowed, filterText);
+  }
+
+  wrapper.appendChild(row);
+  wrapper.appendChild(children);
+  return wrapper;
+}
+
+function renderAgentTypeItem(agentType, allowed) {
+  const item = document.createElement("label");
+  item.className = "agent-type-item";
+  item.dataset.testid = "admin-agent-type-option";
+
+  const input = document.createElement("input");
+  input.className = "form-check-input me-2";
+  input.type = "checkbox";
+  input.value = agentType.key;
+  input.checked = allowed.has(agentType.key);
+  input.dataset.agentTypeCheckbox = "true";
+  input.dataset.testid = "admin-agent-type-checkbox";
+
+  const title = document.createElement("span");
+  title.innerHTML = `<strong>${escapeHtml(prometheusFacingText(agentType.displayName || agentType.key))}</strong>`;
+
+  const description = document.createElement("div");
+  description.className = "metric-label ms-4";
+  description.textContent = prometheusFacingText(agentType.description || "");
+
+  item.appendChild(input);
+  item.appendChild(title);
+  item.appendChild(description);
+  return item;
+}
+
+function filterAgentTypes(agentTypes, filterText) {
+  if (!filterText) {
+    return [...agentTypes];
+  }
+  return (agentTypes || []).filter((agentType) => {
+    const searchable = [
+      agentType.key,
+      agentType.displayName,
+      agentType.description,
+      packagePathOf(agentType).join("."),
+    ].join(" ").toLowerCase();
+    return searchable.includes(filterText);
+  });
+}
+
+function packagePathOf(agentType) {
+  if (Array.isArray(agentType.packagePath)) {
+    return agentType.packagePath
+      .map((segment) => String(segment || "").trim())
+      .filter((segment) => segment.length > 0);
+  }
+  const keyParts = String(agentType.key || "").split(".").filter((part) => part.length > 0);
+  return keyParts.length > 1 ? keyParts.slice(0, -1) : [];
+}
+
+function sortedPackageChildren(node) {
+  return Array.from(node.children.values())
+    .sort((a, b) => packagePathKey(a.path).localeCompare(packagePathKey(b.path)));
+}
+
+function totalAgentTypeCount(node) {
+  let count = node.agentTypes.length;
+  for (const child of node.children.values()) {
+    count += totalAgentTypeCount(child);
+  }
+  return count;
+}
+
+function selectedAgentTypeCount(node, allowed) {
+  let count = node.agentTypes.filter((agentType) => allowed.has(agentType.key)).length;
+  for (const child of node.children.values()) {
+    count += selectedAgentTypeCount(child, allowed);
+  }
+  return count;
+}
+
+function expandAssignedPackages(node, allowed) {
+  for (const child of node.children.values()) {
+    expandAssignedPackages(child, allowed);
+  }
+  if (node.path.length > 0 && selectedAgentTypeCount(node, allowed) > 0) {
+    state.expandedAgentTypePackages.add(packagePathKey(node.path));
+  }
+}
+
+function expandAllPackages(node) {
+  for (const child of node.children.values()) {
+    state.expandedAgentTypePackages.add(packagePathKey(child.path));
+    expandAllPackages(child);
   }
 }
 
@@ -379,6 +541,14 @@ function agentIdOf(agent) {
 
 function agentTypeSortKey(agentType) {
   return agentType && (agentType.displayName || agentType.key) ? (agentType.displayName || agentType.key) : "";
+}
+
+function packagePathKey(path) {
+  return (path || []).join(".");
+}
+
+function packageLabel(segment) {
+  return segment || "root";
 }
 
 function emptyPanel(text) {

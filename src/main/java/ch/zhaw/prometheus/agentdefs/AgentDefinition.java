@@ -1,9 +1,13 @@
 package ch.zhaw.prometheus.agentdefs;
 
+import java.util.Arrays;
+import java.util.List;
+
 import ch.zhaw.prometheus.model.Agent;
 
 public interface AgentDefinition {
 
+    String PACKAGE_PREFIX = "ch.zhaw.prometheus.agentdefs.";
     String LANGUAGE_ENGLISH = "en";
     String LANGUAGE_FRENCH = "fr";
     String LANGUAGE_GERMAN = "de";
@@ -30,6 +34,20 @@ public interface AgentDefinition {
 
     default String description() {
         return this.createAgent().getDescription();
+    }
+
+    default List<String> packagePath() {
+        String packageName = this.getClass().getPackageName();
+        if (packageName == null || !packageName.startsWith(PACKAGE_PREFIX)) {
+            return List.of();
+        }
+        String relativePackage = packageName.substring(PACKAGE_PREFIX.length());
+        if (relativePackage.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(relativePackage.split("\\."))
+                .filter(segment -> !segment.isBlank())
+                .toList();
     }
 
     default AgentCreationResult createInstance(AgentCreationContext context) {
