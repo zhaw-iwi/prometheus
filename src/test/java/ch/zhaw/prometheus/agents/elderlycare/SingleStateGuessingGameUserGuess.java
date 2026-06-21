@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigielderlycare;
+package ch.zhaw.prometheus.agents.elderlycare;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -15,7 +15,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
 class SingleStateGuessingGameUserGuess {
-    private static final ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGameUserGuess DEFINITION = new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGameUserGuess();
+    private static final ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGameUserGuess DEFINITION = new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGameUserGuess();
 
     @Autowired
     private AgentRepository repository;

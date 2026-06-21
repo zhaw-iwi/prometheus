@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigielderlycare;
+package ch.zhaw.prometheus.agentdefs.elderlycare;
 
 
 import java.util.List;
@@ -174,7 +174,7 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
     return agent;
   }
 
-    public static final String KEY = "gigielderlycare.therapy_appointment_reminder";
+    public static final String KEY = "elderlycare.therapy_appointment_reminder";
 
     @Override
     public String key() {

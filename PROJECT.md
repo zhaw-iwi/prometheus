@@ -1,4 +1,4 @@
-ï»¿# PROJECT.md
+# PROJECT.md
 
 ## Short project summary
 PROMETHEUS is an event-driven Java framework for explicit state-machine agent control with first-class regulation and multimodal behaviour plans.
@@ -89,6 +89,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 83: GIGI TDSR German core package reorganization
 - [x] Milestone 84: Multilingual TDSR core agents and package-shaped keys
 - [x] Milestone 85: Babylon multilingual TDSR core agents
+- [x] Milestone 86: Elderly-care package and key rename
 
 ## Milestone 1
 ### Date
@@ -875,7 +876,7 @@ Stabilize the current implementation before expanding the framework by adopting 
 
 ### What changed
 - Added and migrated the elderly-care seed-agent package under:
-  - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare`
+  - `src/test/java/ch/zhaw/prometheus/agents/elderlycare`
 - Adapted the former PROMISE-shaped seed classes to PROMETHEUS runtime APIs:
   - prompt text is persisted through `PromptPolicy`
   - seed startup uses `PolicyRuntime`, `PromptMessageAssembler`, and `LanguageModelGateway`
@@ -892,7 +893,7 @@ Stabilize the current implementation before expanding the framework by adopting 
 ### How to run
 1. Configure properties as in `README.md`.
 2. Run one of the elderly-care seed classes manually from:
-   - `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare`
+   - `src/test/java/ch/zhaw/prometheus/agents/elderlycare`
 
 ### How to test
 - Executed:
@@ -2261,7 +2262,7 @@ Create the feature branch for scoped Valerian access-code work and move reusable
 - Added production agent definitions under:
   - `src/main/java/ch/zhaw/prometheus/agentdefs/basic`
   - `src/main/java/ch/zhaw/prometheus/agentdefs/multimodal`
-  - `src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare`
+  - `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare`
   - `src/main/java/ch/zhaw/prometheus/agentdefs/gigitdsr`
 - Registered all current agent types with stable definition keys.
 - Preserved existing agent names, descriptions, prompts, states, profiles, and startup behavior.
@@ -2283,14 +2284,14 @@ Create the feature branch for scoped Valerian access-code work and move reusable
 - Executed:
   - `.\mvnw.cmd -q -DskipTests compile`
   - `.\mvnw.cmd -q -DskipTests test-compile`
-  - `.\mvnw.cmd -q "-Dtest=ch.zhaw.prometheus.agents.SingleStateMicroCoaching,ch.zhaw.prometheus.agents.SingleStateGuessingGame,ch.zhaw.prometheus.agents.SingleStateCoCreation,ch.zhaw.prometheus.agents.FourStatesLinear,ch.zhaw.prometheus.agents.FourStatesCircular,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalIn,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalOut,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalInOut,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateTherapyAppointmentReminder,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateGuessingGame,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateGuessingGameUserGuess,ch.zhaw.prometheus.agents.gigielderlycare.SingleStateSmartGoalCoaching,ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures,ch.zhaw.prometheus.agents.gigitdsr.SocialContextSensitivity,ch.zhaw.prometheus.agents.gigitdsr.RockScissorPaper" "-Dprometheus.gateway.mode=scripted" "-Dprometheus.gateway.script=classpath:scripts/seed-wrapper-start-script.json" "-DforkCount=1" "-DreuseForks=false" test`
+  - `.\mvnw.cmd -q "-Dtest=ch.zhaw.prometheus.agents.SingleStateMicroCoaching,ch.zhaw.prometheus.agents.SingleStateGuessingGame,ch.zhaw.prometheus.agents.SingleStateCoCreation,ch.zhaw.prometheus.agents.FourStatesLinear,ch.zhaw.prometheus.agents.FourStatesCircular,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalIn,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalOut,ch.zhaw.prometheus.agents.multimodal.SingleStateMultimodalInOut,ch.zhaw.prometheus.agents.elderlycare.SingleStateTherapyAppointmentReminder,ch.zhaw.prometheus.agents.elderlycare.SingleStateGuessingGame,ch.zhaw.prometheus.agents.elderlycare.SingleStateGuessingGameUserGuess,ch.zhaw.prometheus.agents.elderlycare.SingleStateSmartGoalCoaching,ch.zhaw.prometheus.agents.gigitdsr.GuessingGameWithGestures,ch.zhaw.prometheus.agents.gigitdsr.SocialContextSensitivity,ch.zhaw.prometheus.agents.gigitdsr.RockScissorPaper" "-Dprometheus.gateway.mode=scripted" "-Dprometheus.gateway.script=classpath:scripts/seed-wrapper-start-script.json" "-DforkCount=1" "-DreuseForks=false" test`
   - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,GigiTdsrPromptContractTest,PflegezentrumDemoPromptContractTest" test`
   - `.\mvnw.cmd -q "-Dtest=SingleStateMicroCoachingReplayIntegrationTest,SingleStateGuessingGameReplayIntegrationTest,SingleStateCoCreationReplayIntegrationTest,FourStatesLinearReplayIntegrationTest,FourStatesCircularReplayIntegrationTest,GigiTdsrGuessingGameWithGesturesReplayIntegrationTest,GigiTdsrSocialContextSensitivityReplayIntegrationTest,GigiTdsrRockScissorPaperReplayIntegrationTest,SingleStateMicroCoachingRealtimeReplayIntegrationTest,SingleStateGuessingGameRealtimeReplayIntegrationTest,SingleStateCoCreationRealtimeReplayIntegrationTest,FourStatesLinearRealtimeReplayIntegrationTest,FourStatesCircularRealtimeReplayIntegrationTest" test`
 
 ### Known issues and decisions
 - This milestone intentionally adds no access-code tables, admin UI, scoped endpoints, or Valerian cockpit changes.
 - Definition display metadata currently comes from creating an unsaved `Agent`; this keeps the catalog simple until the first UI/API consumer needs cheaper explicit metadata.
-- Historical package names such as `gigitdsr` and `gigielderlycare` remain as Java namespace history for the migrated demonstrator definitions.
+- Some demonstrator package names still reflected their earlier GIGI-specific namespace at the time of this milestone; later cleanup milestones may rename them.
 - Existing persisted database agents are not migrated or changed; reseed through the wrappers when persisted rows should reflect current definitions.
 
 ### Next steps
@@ -3737,7 +3738,7 @@ Warm up the `gigitdsr.tour_conversation` persona and route grounding without cha
 ### What changed
 - Updated `TourConversation.PROMPT_STATE` so GIGI is more explicitly sympathetic, lightly humorous, open to people and places, and framed as a learning travel companion.
 - Added Frank as GIGI's occasional travel/context reference and design/mobility/technology sparring partner, with a guard to mention him only when fitting.
-- Replaced the compressed route capsule with a concrete station list covering BÃ¼rgenstock, Paradeplatz, Rinspeed, ETH ZÃ¼rich, Rheinfall, Quantum Basel, Emmentaler SchaukÃ¤serei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
+- Replaced the compressed route capsule with a concrete station list covering Bürgenstock, Paradeplatz, Rinspeed, ETH Zürich, Rheinfall, Quantum Basel, Emmentaler Schaukäserei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
 - Strengthened the prompt's humor and learning-companion wording while preserving existing German-only, sparse-follow-up, weather-location, no-Markdown, no-JSON, and current-station guardrails.
 - Added a small final-state prompt update so the closing response can acknowledge the Frank/TDSR learning journey without starting a new topic.
 - Updated prompt contract coverage and README notes for the revised tour-conversation behavior.
@@ -3941,7 +3942,7 @@ Add Babylon variants of the five TDSR core agents that start in English but can 
   - `tdsr.core.babylon.tour_conversation`
   - `tdsr.core.babylon.tour_conversation_social_context`
 - Copied the English core agents as the implementation base, kept English starter prompts for the opening turn, and replaced English-only state/final guards with the shared multilingual instruction:
-  `Du kannst Deutsch, FranzÃ¶sisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
+  `Du kannst Deutsch, Französisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
 - Kept the Babylon definitions without a `languageCode()` override so Valerian/Realtime does not receive a fixed language hint for these agents.
 - Extended the stop/readiness/play-again guard prompts so they interpret German, French, Italian, and English user intent.
 - Registered the Babylon keys and updated registry, source-profile, and Babylon prompt contract coverage.
@@ -3969,3 +3970,37 @@ Add Babylon variants of the five TDSR core agents that start in English but can 
 ### Next steps
 1. Live-test a Babylon tour conversation in Valerian by switching among German, French, Italian, and English across turns.
 2. Confirm Realtime session payloads omit the input transcription language for `tdsr.core.babylon.*` agents.
+
+## Milestone 86
+### Date
+2026-06-21
+
+### Goal
+Rename the elderly-care demonstrator namespace from `gigielderlycare` to `elderlycare`.
+
+### What changed
+- Moved production elderly-care agent definitions from `src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare` to `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare`.
+- Moved the matching manual seed wrappers and prompt contract tests from `src/test/java/ch/zhaw/prometheus/agents/gigielderlycare` to `src/test/java/ch/zhaw/prometheus/agents/elderlycare`.
+- Updated Java package declarations, registry imports, source-profile contract paths, prompt contract references, and README catalog entries.
+- Renamed the public Valerian/Admin keys from `gigielderlycare.*` to `elderlycare.*`.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign a key such as `elderlycare.therapy_appointment_reminder` or `elderlycare.smart_goal_coaching` to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned elderly-care agent.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,PflegezentrumDemoPromptContractTest" test`
+
+### Known issues and decisions
+- This is a clean rename. The old `gigielderlycare.*` public keys are not preserved.
+- Existing access-code assignments that reference old `gigielderlycare.*` keys need to be recreated or migrated to the new `elderlycare.*` keys.
+
+### Next steps
+1. If existing demo databases are reused, update any saved access-code assignments from `gigielderlycare.*` to `elderlycare.*`.

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigielderlycare;
+package ch.zhaw.prometheus.agentdefs.elderlycare;
 
 
 import java.util.List;
@@ -191,7 +191,7 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
     return agent;
   }
 
-    public static final String KEY = "gigielderlycare.smart_goal_coaching";
+    public static final String KEY = "elderlycare.smart_goal_coaching";
 
     @Override
     public String key() {

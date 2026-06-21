@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigielderlycare;
+package ch.zhaw.prometheus.agents.elderlycare;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -14,8 +14,8 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
-class SingleStateGuessingGame {
-    private static final ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame DEFINITION = new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame();
+class SingleStateTherapyAppointmentReminder {
+    private static final ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder DEFINITION = new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
 
     @Autowired
     private AgentRepository repository;

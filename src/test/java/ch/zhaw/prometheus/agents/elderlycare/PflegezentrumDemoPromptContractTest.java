@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigielderlycare;
+package ch.zhaw.prometheus.agents.elderlycare;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,7 +19,7 @@ class PflegezentrumDemoPromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
 
     private static final Path PROMPT_DIR =
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/gigielderlycare");
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare");
 
     @Test
     void sharedOuterPromptDefinesDirectOlderAdultFrameAndRhythm() {
@@ -112,10 +112,10 @@ class PflegezentrumDemoPromptContractTest {
                 "Outer prompt must fit the configured persisted prompt limit");
 
         for (Class<?> seedClass : List.of(
-                ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateTherapyAppointmentReminder.class,
-                ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame.class,
-                ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGameUserGuess.class,
-                ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateSmartGoalCoaching.class)) {
+                ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder.class,
+                ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGame.class,
+                ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGameUserGuess.class,
+                ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateSmartGoalCoaching.class)) {
             for (Field field : seedClass.getDeclaredFields()) {
                 if (!field.getName().startsWith("PROMPT_")) {
                     continue;

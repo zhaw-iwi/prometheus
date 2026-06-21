@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigielderlycare;
+package ch.zhaw.prometheus.agentdefs.elderlycare;
 
 public final class PflegezentrumDemoPrompts {
 

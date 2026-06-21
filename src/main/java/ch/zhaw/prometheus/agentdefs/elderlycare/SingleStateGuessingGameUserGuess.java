@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agentdefs.gigielderlycare;
+package ch.zhaw.prometheus.agentdefs.elderlycare;
 
 
 import java.util.List;
@@ -18,7 +18,7 @@ import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
-public class SingleStateGuessingGame implements AgentDefinition {
+public class SingleStateGuessingGameUserGuess implements AgentDefinition {
 
   private static final String PROMPT_STATE = """
       Aufgabe: Führe ein ruhiges Ja/Nein-Ratespiel zur kognitiven Aktivierung einer älteren erwachsenen Person durch.
@@ -26,37 +26,38 @@ public class SingleStateGuessingGame implements AgentDefinition {
       Sprich nicht von Demenz, Training, Test oder Leistung. Es ist kein Vorführen und kein
       Quizgefühl, sondern ein einfaches gemeinsames Spiel.
 
-      Ziel: Die Person denkt an etwas Vertrautes aus dem Pflegezentrum-Alltag oder aus ihrer
-      vertrauten Lebenswelt. Geeignet sind Gegenstände, Orte, Tiere oder Erinnerungen. Nenne
-      keine feste Beispielauswahl, aus der die Person wählen soll; halte die Kategorien offen.
-      Du stellst einfache Ja/Nein-Fragen und machst am Ende einen direkten Tipp.
+      Ziel: Du denkst dir immer selbst etwas Vertrautes aus dem Pflegezentrum-Alltag oder aus der
+      vertrauten Lebenswelt der Person aus. Geeignet sind Gegenstände, Orte, Tiere oder Erinnerungen.
+      Nenne keine feste Beispielauswahl. Die ältere Person stellt dir Ja/Nein-Fragen und versucht,
+      dein gedachtes Ding zu erraten.
 
-      Regeln: Nutze den oben beschriebenen Live-Gesprächsrhythmus. Stelle in jeder Spielrunde nur
-      eine kurze Ja/Nein-Frage. Nutze alltagsnahe Kategorien wie drinnen/draußen, groß/klein,
-      lebendig/nicht lebendig. Leichte Kommentare zu Fragen, Hinweisen oder eigenen Fehlversuchen
-      sind erwünscht, auch mit kleinem humorvollem Akzent. Mache dich dabei eher über deine
-      Roboter-Raterei lustig, nie über die Person, ihre Erinnerungen oder einen falschen Hinweis.
-      Wenn die Person Rollen tauschen oder eigene Rätselfragen stellen will, lehne freundlich ab
-      und bleibe bei deiner Rolle.
+      Regeln: Nutze den oben beschriebenen Live-Gesprächsrhythmus. Verrate dein gedachtes Ding
+      nicht, bevor die Person es richtig erraten hat oder das Spiel beendet. Beantworte echte
+      Ja/Nein-Fragen knapp mit "Ja", "Nein", "Eher ja" oder "Eher nein"; ergänze höchstens einen
+      sehr kurzen spielerischen Kommentar. Bei unklaren Fragen bitte freundlich um eine Ja/Nein-Frage.
+      Bei einem falschen Tipp sage knapp, dass es das noch nicht ist, und ermutige zur nächsten Frage.
+      Bei einem richtigen Tipp bestätige klar, würdige es kurz und frage, ob ihr es dabei belassen sollt.
+
+      Leichte Kommentare zu Fragen, Hinweisen oder deiner eigenen Roboter-Geheimhaltung sind erwünscht,
+      auch mit kleinem humorvollem Akzent. Mache dich dabei eher über deine Roboter-Raterei lustig,
+      nie über die Person, ihre Erinnerungen oder einen falschen Tipp.
 
       Spiele primär mit der älteren Person. Mache daraus kein öffentliches Mehrpersonen-Raten.
       Wenn eine andere Stimme eine Idee einwirft, kannst du sie kurz aufnehmen und dann wieder zur
       älteren Person zurückkehren.
 
       Nutze die oben beschriebenen Motivations- und Humorstrategien. Spiel-spezifische Rubrik:
-      keine Lust -> Rätselspiel oder selbstironischer Roboterhumor; ich weiss nicht -> biete
-      einfache offene Kategorien wie Gegenstand, Ort, Tier oder Erinnerung an; zu schwer ->
-      Foot-in-the-door als sehr leichte erste Runde; langweilig -> Beobachtungshumor oder kleine
-      spielerische Wette;
-      nur Roboter -> Identitätsansprache oder selbstironischer Roboterhumor; ich will nicht ->
-      Autonomie-Reset, aber erst nach mehreren unterschiedlichen Spiel-Einladungen akzeptieren.
-      Bei jedem Versuch nur eine Einladung oder Frage.
+      keine Lust -> Rätselspiel oder selbstironischer Roboterhumor; ich weiss nicht -> biete an,
+      dass du dir etwas sehr Einfaches ausdenkst und die Person nur eine erste Ja/Nein-Frage stellt;
+      zu schwer -> Foot-in-the-door als eine einzige sehr leichte Frage; langweilig ->
+      Beobachtungshumor oder kleine spielerische Wette; nur Roboter -> Identitätsansprache oder
+      selbstironischer Roboterhumor; ich will nicht -> Autonomie-Reset, aber erst nach mehreren
+      unterschiedlichen Spiel-Einladungen akzeptieren. Bei jedem Versuch nur eine Einladung oder Frage.
 
       Ablauf:
-      1. Wenn die Person zustimmt, bitte sie, an etwas Vertrautes zu denken und "Bereit" zu sagen.
-      2. Wenn die Person bereit ist, stelle Ja/Nein-Fragen, mache bei genug Hinweisen einen finalen
-         Tipp und bitte um eine sinngemäße Bestätigung, ob du richtig geraten hast.
-      3. Wenn der Tipp bestätigt wurde, würdige es kurz und frage, ob ihr es dabei belassen sollt.
+      1. Wenn die Person zustimmt, denke dir still etwas Vertrautes aus und sage, dass du bereit bist.
+      2. Danach beantwortest du die Fragen der Person mit Ja/Nein-Antworten.
+      3. Wenn die Person richtig geraten hat, bestätige den Treffer und frage, ob ihr es dabei belassen sollt.
       4. Wenn die Person nicht spielen möchte oder "ich weiss nicht" sagt, versuche zuerst mehrere
          unterschiedliche, sehr einfache Einstiege. Erst bei anhaltender Ablehnung akzeptierst du
          freundlich und fragst, ob ihr es dabei belassen sollt.
@@ -70,14 +71,15 @@ public class SingleStateGuessingGame implements AgentDefinition {
   private static final String PROMPT_STATE_STARTER = """
       Sag etwas in der Art von, jedoch nicht wörtlich genau:
       "Hallo, ich bin GIGI. Hätten Sie Lust auf ein kurzes Ratespiel?
-      Ganz ohne Test, nur freundlich für den Kopf."
+      Ich denke mir etwas aus, und Sie dürfen mich mit Ja-oder-Nein-Fragen löchern."
       """;
 
   private static final String PROMPT_TO_FINAL = """
       Entscheide, ob die Ratespiel-Interaktion abgeschlossen ist.
-      Gib true zurück, wenn der finale Tipp bestätigt wurde oder die Person das Spiel nach mehreren
-      Engagementversuchen abgelehnt hat, und die letzte Nutzeraussage eine kurze Abschlussbestätigung auf eine Abschlussfrage der
-      Assistenz ist, z.B. "ja", "okay", "passt so", "belassen wir es dabei" oder ähnlich.
+      Gib true zurück, wenn die Person GIGIs gedachtes Ding richtig erraten hat oder das Spiel nach
+      mehreren Engagementversuchen abgelehnt hat, und die letzte Nutzeraussage eine kurze
+      Abschlussbestätigung auf eine Abschlussfrage der Assistenz ist, z.B. "ja", "okay",
+      "passt so", "belassen wir es dabei" oder ähnlich.
 
       Gib auch true zurück, wenn mit hoher Sicherheit eine ernsthafte Absicht erkennbar ist,
       das gesamte Gespräch jetzt zu beenden und keine weitere Antwort mehr zu bekommen.
@@ -87,10 +89,9 @@ public class SingleStateGuessingGame implements AgentDefinition {
       - Ablehnung des Spiels, solange die Assistenz noch nicht mehrere unterschiedliche
         Engagementversuche gemacht und gefragt hat, ob ihr es dabei belassen sollt,
       - "ich weiss nicht" oder "ich weiß nicht",
-      - "Bereit",
-      - Ja/Nein-Antworten,
-      - Bestätigung des finalen Tipps, solange die Assistenz noch nicht gefragt hat, ob ihr es
-        dabei belassen sollt,
+      - Ja/Nein-Fragen der Person,
+      - falsche Tipps,
+      - richtige Tipps, solange die Assistenz noch nicht gefragt hat, ob ihr es dabei belassen sollt,
       - öffentliche Rückmeldungen direkt nach einer Frage ans Publikum.
       Gib ausschließlich true oder false zurück.
       """;
@@ -104,9 +105,10 @@ public class SingleStateGuessingGame implements AgentDefinition {
         "flow_type": "single_state",
         "outcomes": [
           {
-            "interaction_type": "guessing_game",
+            "interaction_type": "guessing_game_user_guess",
             "completed": true|false,
-            "final_guess": "string|null",
+            "secret_item": "string|null",
+            "correct_user_guess": "string|null",
             "audience_rating": number|null,
             "audience_feedback": "string|null",
             "result_summary": "string",
@@ -118,7 +120,9 @@ public class SingleStateGuessingGame implements AgentDefinition {
 
       Regeln:
       - Genau ein outcomes-Element.
-      - completed ist true, wenn der finale Tipp bestätigt wurde.
+      - completed ist true, wenn die Person GIGIs gedachtes Ding richtig erraten hat.
+      - secret_item enthält das gedachte Ding, falls es im Gespräch erkennbar wurde, sonst null.
+      - correct_user_guess enthält den richtigen Tipp der Person, falls vorhanden, sonst null.
       - audience_rating enthält die Publikumsbewertung von 1 bis 10, falls vorhanden, sonst null.
       - audience_feedback enthält eine öffentliche Rückmeldung, falls vorhanden, sonst null.
       - user_confirmation enthält die bestätigende Nutzeraussage oder null.
@@ -128,10 +132,10 @@ public class SingleStateGuessingGame implements AgentDefinition {
   private static final String PROMPT_FINAL = """
       Du bist GIGI, ein sozial intelligenter humanoider Roboter in einem Pflegezentrum.
       Antworte ausnahmslos auf Deutsch.
-      Du hast mit der Person ein Ratespiel gemacht, wobei die Person sich etwas ausgedacht hat und du musstest das erraten.
+      Du hast mit der Person ein Ratespiel gemacht wobei du dir was ausgedacht hast und die Person musste das erraten.
       Formuliere jetzt eine knappe Abschlussreaktion in zwei bis vier
       kurzen Sätzen, ohne Aufzählung und ohne Markdown.
-      Wenn das Spiel abgeschlossen wurde, nenne finalen Tipp und Bestätigung.
+      Wenn das Spiel abgeschlossen wurde, nenne dein gedachtes Ding und den richtigen Tipp der Person.
       Nenne eine öffentliche Rückmeldung nur, falls sie im Gespräch vorkam.
       Wenn die Person abgebrochen hat, benenne den Abbruchwunsch neutral.
       Wenn die Person danach weiter spricht, reagiere normal, freundlich und knapp im Pflegezentrum-Kontext.
@@ -141,25 +145,25 @@ public class SingleStateGuessingGame implements AgentDefinition {
   public static Agent createAgentDefinition() {
     Storage storage = new Storage();
     State sessionFinal = new Final(
-        "Pflegezentrum Ratespiel Abschluss",
-        SingleStateGuessingGame.PROMPT_FINAL,
+        "Pflegezentrum Ratespiel Benutzer rät Abschluss",
+        SingleStateGuessingGameUserGuess.PROMPT_FINAL,
         PflegezentrumDemoPrompts.FINAL_STARTER);
     sessionFinal.setEventSelectorSpec(EventSelectorSpec.any());
 
     Transition innerToFinal = new Transition(
-        List.of(new StaticDecision(SingleStateGuessingGame.PROMPT_TO_FINAL)),
+        List.of(new StaticDecision(SingleStateGuessingGameUserGuess.PROMPT_TO_FINAL)),
         List.of(
             new StaticExtractionAction(
-                SingleStateGuessingGame.PROMPT_OUTCOME_EXTRACTION,
+                SingleStateGuessingGameUserGuess.PROMPT_OUTCOME_EXTRACTION,
                 storage,
                 "outcome")),
         sessionFinal);
 
     State interactionState = new State(
-        "Pflegezentrum Ratespiel",
+        "Pflegezentrum Ratespiel - Benutzer rät",
         new PromptPolicy(
-            SingleStateGuessingGame.PROMPT_STATE,
-            SingleStateGuessingGame.PROMPT_STATE_STARTER,
+            SingleStateGuessingGameUserGuess.PROMPT_STATE,
+            SingleStateGuessingGameUserGuess.PROMPT_STATE_STARTER,
             PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
         List.of(innerToFinal));
 
@@ -167,7 +171,7 @@ public class SingleStateGuessingGame implements AgentDefinition {
         List.of(new StaticDecision(PflegezentrumDemoPrompts.OUTER_STATE_TO_FINAL)),
         List.of(
             new StaticExtractionAction(
-                SingleStateGuessingGame.PROMPT_OUTCOME_EXTRACTION,
+                SingleStateGuessingGameUserGuess.PROMPT_OUTCOME_EXTRACTION,
                 storage,
                 "outcome")),
         sessionFinal);
@@ -179,15 +183,15 @@ public class SingleStateGuessingGame implements AgentDefinition {
         interactionState);
 
     Agent agent = new Agent(
-        "GIGI Pflegezentrum - Ratespiel",
-        "Seed-Agent für ein deutsches Ratespiel zur kognitiven Aktivierung im Pflegezentrum.",
+        "GIGI Pflegezentrum - Ratespiel: Sie raten",
+        "Seed-Agent für ein deutsches Ratespiel, bei dem GIGI an etwas denkt und die ältere Person rät.",
         outerState,
         storage);
     agent.setInteractionProfile(AgentInteractionProfiles.speechOnly());
     return agent;
   }
 
-    public static final String KEY = "gigielderlycare.guessing_game";
+    public static final String KEY = "elderlycare.guessing_game_user_guess";
 
     @Override
     public String key() {

@@ -1,4 +1,4 @@
-package ch.zhaw.prometheus.agents.gigielderlycare;
+package ch.zhaw.prometheus.agents.elderlycare;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -15,7 +15,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest
 class SingleStateSmartGoalCoaching {
-    private static final ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateSmartGoalCoaching DEFINITION = new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateSmartGoalCoaching();
+    private static final ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateSmartGoalCoaching DEFINITION = new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateSmartGoalCoaching();
 
     @Autowired
     private AgentRepository repository;

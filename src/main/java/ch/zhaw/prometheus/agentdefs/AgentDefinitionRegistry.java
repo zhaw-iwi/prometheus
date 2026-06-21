@@ -13,9 +13,9 @@ import ch.zhaw.prometheus.agentdefs.basic.FourStatesLinear;
 import ch.zhaw.prometheus.agentdefs.basic.SingleStateCoCreation;
 import ch.zhaw.prometheus.agentdefs.basic.SingleStateGuessingGame;
 import ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching;
-import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGameUserGuess;
-import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateSmartGoalCoaching;
-import ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateTherapyAppointmentReminder;
+import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGameUserGuess;
+import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateSmartGoalCoaching;
+import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity;
@@ -62,7 +62,7 @@ public class AgentDefinitionRegistry {
                 new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversation(),
                 new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversationSocialContextSensitivity(),
                 new SingleStateTherapyAppointmentReminder(),
-                new ch.zhaw.prometheus.agentdefs.gigielderlycare.SingleStateGuessingGame(),
+                new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGame(),
                 new SingleStateGuessingGameUserGuess(),
                 new SingleStateSmartGoalCoaching()));
     }

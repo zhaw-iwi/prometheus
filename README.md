@@ -200,6 +200,7 @@ used as a bearer-style client credential.
 Reusable agent type definitions live in `src/main/java/ch/zhaw/prometheus/agentdefs`.
 Each production definition implements `AgentDefinition`, exposes a stable `key()`, builds an unsaved `Agent` through `createAgent()`, and may define its startup path in `createInstance(...)`.
 The current migrated definitions call `Agent.start(...)` inside `createInstance(...)`, preserving the former seed-test startup behaviour as developer-written code.
+The elderly-care definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare` and use `elderlycare.<agent>` keys.
 The GIGI TDSR core definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/<language>`.
 Their Valerian/Admin keys follow the same structure: `tdsr.core.<language>.<agent>`.
 
@@ -213,10 +214,10 @@ Registered definitions:
 - `multimodal.single_state_in` - Single-state micro-coaching with multimodal sensing inputs.
 - `multimodal.single_state_out` - Single-state interaction with deterministic multimodal behaviour output.
 - `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
-- `gigielderlycare.therapy_appointment_reminder` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
-- `gigielderlycare.guessing_game` - GIGI elderly-care guessing game where GIGI gives clues.
-- `gigielderlycare.guessing_game_user_guess` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
-- `gigielderlycare.smart_goal_coaching` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
+- `elderlycare.therapy_appointment_reminder` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
+- `elderlycare.guessing_game` - GIGI elderly-care guessing game where GIGI gives clues.
+- `elderlycare.guessing_game_user_guess` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
+- `elderlycare.smart_goal_coaching` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
 - `tdsr.core.de.guessing_game_with_gestures` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
 - `tdsr.core.de.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
 - `tdsr.core.de.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.

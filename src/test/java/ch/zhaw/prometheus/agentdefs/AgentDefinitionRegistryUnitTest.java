@@ -52,10 +52,10 @@ class AgentDefinitionRegistryUnitTest {
             tdsrKey("babylon", "rock_scissor_paper"),
             tdsrKey("babylon", "tour_conversation"),
             tdsrKey("babylon", "tour_conversation_social_context"),
-            "gigielderlycare.therapy_appointment_reminder",
-            "gigielderlycare.guessing_game",
-            "gigielderlycare.guessing_game_user_guess",
-            "gigielderlycare.smart_goal_coaching");
+            "elderlycare.therapy_appointment_reminder",
+            "elderlycare.guessing_game",
+            "elderlycare.guessing_game_user_guess",
+            "elderlycare.smart_goal_coaching");
 
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
             Map.entry("basic.single_state_guessing_game", AgentDefinition.LANGUAGE_GERMAN),
@@ -86,10 +86,10 @@ class AgentDefinitionRegistryUnitTest {
             Map.entry(tdsrKey("en", "rock_scissor_paper"), AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry(tdsrKey("en", "tour_conversation"), AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry(tdsrKey("en", "tour_conversation_social_context"), AgentDefinition.LANGUAGE_ENGLISH),
-            Map.entry("gigielderlycare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("gigielderlycare.guessing_game", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("gigielderlycare.guessing_game_user_guess", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("gigielderlycare.smart_goal_coaching", AgentDefinition.LANGUAGE_GERMAN));
+            Map.entry("elderlycare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("elderlycare.guessing_game", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("elderlycare.guessing_game_user_guess", AgentDefinition.LANGUAGE_GERMAN),
+            Map.entry("elderlycare.smart_goal_coaching", AgentDefinition.LANGUAGE_GERMAN));
 
     private static final Set<String> EXPECTED_LANGUAGELESS_KEYS = Set.of(
             tdsrKey("babylon", "guessing_game_with_gestures"),
