@@ -65,7 +65,7 @@ public class TourConversationSocialContextSensitivity implements AgentDefinition
             Menziona al massimo brevemente che questa conversazione faceva parte del tuo viaggio di apprendimento
             con le persone e ha anche esercitato il legame naturale tra vicinanza sociale,
             cambiamenti di gruppo e conversazione.
-            Congedati brevemente, in modo caldo e amichevole, al massimo con un piccolo sorriso,
+            Congedati in una frase breve, in modo caldo e amichevole, al massimo con un piccolo sorriso,
             e non iniziare un nuovo tema.
             """;
 

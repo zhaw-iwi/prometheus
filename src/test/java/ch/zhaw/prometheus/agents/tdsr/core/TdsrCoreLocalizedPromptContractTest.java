@@ -147,6 +147,34 @@ class TdsrCoreLocalizedPromptContractTest {
         }
     }
 
+    @Test
+    void localizedTourPromptsUseBriefMicroHumorContract() throws Exception {
+        for (LocalizedDefinition localized : LOCALIZED_DEFINITIONS) {
+            if (!isTourConversationClass(localized.definitionClass())) {
+                continue;
+            }
+
+            Map<String, String> prompts = promptFields(localized.definitionClass());
+            String statePrompt = prompts.get("PROMPT_STATE");
+            String finalPrompt = prompts.get("PROMPT_FINAL");
+
+            assertLocalizedBriefMicroHumorContract(
+                    statePrompt,
+                    finalPrompt,
+                    localized.languageCode(),
+                    localized.definitionClass());
+            assertFalse(statePrompt.contains("usually one or two short sentences"),
+                    localized.definitionClass().getName());
+            assertFalse(statePrompt.contains("souvent une ou deux phrases"),
+                    localized.definitionClass().getName());
+            assertFalse(statePrompt.contains("di solito una o due frasi"),
+                    localized.definitionClass().getName());
+            assertFalse(statePrompt.contains("rarely three"), localized.definitionClass().getName());
+            assertFalse(statePrompt.contains("rarement trois"), localized.definitionClass().getName());
+            assertFalse(statePrompt.contains("raramente tre"), localized.definitionClass().getName());
+        }
+    }
+
     private static Map<String, String> promptFields(Class<?> definitionClass) throws Exception {
         java.util.LinkedHashMap<String, String> prompts = new java.util.LinkedHashMap<>();
         for (Field field : definitionClass.getDeclaredFields()) {
@@ -157,6 +185,46 @@ class TdsrCoreLocalizedPromptContractTest {
             prompts.put(field.getName(), (String) field.get(null));
         }
         return prompts;
+    }
+
+    private static boolean isTourConversationClass(Class<?> definitionClass) {
+        String simpleName = definitionClass.getSimpleName();
+        return simpleName.equals("TourConversation")
+                || simpleName.equals("TourConversationSocialContextSensitivity");
+    }
+
+    private static void assertLocalizedBriefMicroHumorContract(
+            String statePrompt,
+            String finalPrompt,
+            String languageCode,
+            Class<?> definitionClass) {
+        switch (languageCode) {
+            case AgentDefinition.LANGUAGE_ENGLISH -> {
+                assertTrue(statePrompt.contains("Use warm micro-humor more often"), definitionClass.getName());
+                assertTrue(statePrompt.contains("Answer very briefly: usually one sentence, often only 3-10 words"),
+                        definitionClass.getName());
+                assertTrue(statePrompt.contains("Do not compensate with one long sentence"),
+                        definitionClass.getName());
+                assertTrue(finalPrompt.contains("Say goodbye in one short sentence"), definitionClass.getName());
+            }
+            case AgentDefinition.LANGUAGE_FRENCH -> {
+                assertTrue(statePrompt.contains("micro-humour chaleureux"), definitionClass.getName());
+                assertTrue(statePrompt.contains("Réponds très brièvement: souvent une phrase"),
+                        definitionClass.getName());
+                assertTrue(statePrompt.contains("Ne compense pas par une longue phrase unique"),
+                        definitionClass.getName());
+                assertTrue(finalPrompt.contains("Dis au revoir en une phrase courte"), definitionClass.getName());
+            }
+            case AgentDefinition.LANGUAGE_ITALIAN -> {
+                assertTrue(statePrompt.contains("micro-umorismo caldo"), definitionClass.getName());
+                assertTrue(statePrompt.contains("Rispondi in modo molto breve: di solito una frase"),
+                        definitionClass.getName());
+                assertTrue(statePrompt.contains("Non compensare con una frase unica ma lunga"),
+                        definitionClass.getName());
+                assertTrue(finalPrompt.contains("Congedati in una frase breve"), definitionClass.getName());
+            }
+            default -> throw new IllegalStateException("Unexpected language: " + languageCode);
+        }
     }
 
     private static void assertSharedCoreOutcomePrompt(String prompt, Class<?> definitionClass) {

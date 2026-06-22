@@ -98,6 +98,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 92: Valerian Admin package accordion manual collapse fix
 - [x] Milestone 93: Valerian speech audio device selection
 - [x] Milestone 94: Valerian Realtime ICE diagnostics
+- [x] Milestone 95: TDSR tour and SHHD concise micro-humor prompt accent
 
 ## Milestone 1
 ### Date
@@ -4321,3 +4322,43 @@ Expose browser-side Realtime WebRTC ICE/STUN diagnostics in the PROMETHEUS Valer
 
 ### Next steps
 1. Live-test the diagnostic while reproducing the laptop/demo ICE failure and compare the cockpit status with browser about:webrtc details.
+
+## Milestone 95
+### Date
+2026-06-22
+
+### Goal
+Tighten the behavioural accent of TDSR tour-conversation and SHHD scene agents so GIGI speaks more briefly while using warmer, good-willed micro-humor more often.
+
+### What changed
+- Updated the TDSR core tour-conversation prompts in German, English, French, Italian, and Babylon variants to prefer one very short spoken sentence, often 3-10 words, with two short sentences only when a direct explanation truly needs it.
+- Updated the tour-conversation social-context variants through their inherited base prompts and tightened their final prompts to one short goodbye sentence.
+- Updated the SHHD German, English, French, Italian, and Babylon shared prompt profiles so all SHHD scene agents use the same concise response contract.
+- Added explicit warm micro-humor guidance: light irony, self-irony, playful understatement, and callbacks to earlier turns, while forbidding mocking, hurtful, safety-relevant, or serious-moment jokes.
+- Tightened starter and final prompts for affected agents so openings and closings do not drift into multi-sentence monologues.
+- Left the guessing-game, rock-scissor-paper, and dedicated social-context-sensitivity agents unchanged.
+- Updated prompt contract tests to assert the new concise micro-humor wording and reject the old one/two/rare-three response contract where this milestone applies.
+- Updated README notes for the TDSR catalogue.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Assign an affected agent such as `tdsr.core.de.tour_conversation`, `tdsr.core.babylon.tour_conversation`, or any `tdsr.shhd.*` scene agent to an access code.
+4. Open Valerian:
+   - `http://localhost:8080/valerian/`
+5. Create or connect the assigned agent and live-test short turns, explanation questions, and callback-friendly conversational moments.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=GigiTdsrPromptContractTest,TdsrCoreLocalizedPromptContractTest,TdsrCoreBabylonPromptContractTest,TdsrShhdGermanPromptContractTest,TdsrShhdLocalizedPromptContractTest" test`
+
+### Known issues and decisions
+- This is a prompt-only behavioural accent change; no runtime, API, interaction-profile, or agent-key semantics changed.
+- Exact response length and humor frequency remain probabilistic and need live Valerian/robot testing with GPT-5.2.
+- The excluded guessing-game, Schere-Stein-Papier, and dedicated social-context-sensitivity agents keep their existing task-specific prompt cadence.
+
+### Next steps
+1. Live-test affected tour and SHHD agents in Valerian with GPT-5.2 and check whether responses stay genuinely short instead of becoming long single sentences.
+2. If live runs still drift long, consider a deterministic post-generation speech trimmer or a stricter output-length validator for affected agents.

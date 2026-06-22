@@ -62,7 +62,7 @@ public class TourConversationSocialContextSensitivity implements AgentDefinition
             The open TDSR conversation with social context awareness is finished because the user explicitly wanted that.
             Mention at most briefly that this conversation was part of your learning journey with humans
             and also practiced bringing social closeness, group changes, and conversation together naturally.
-            Say goodbye briefly, warmly, and kindly, with at most a light wink,
+            Say goodbye in one short sentence, warmly and kindly, with at most a light wink,
             and do not start a new topic.
             """;
 

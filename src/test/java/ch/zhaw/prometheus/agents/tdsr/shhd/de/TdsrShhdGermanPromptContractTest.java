@@ -108,6 +108,9 @@ class TdsrShhdGermanPromptContractTest {
             assertTrue(prompt.contains("SUPSI Lugano"));
             assertTrue(prompt.contains("ZHAW Winterthur"));
             assertTrue(prompt.contains("Gesprächsfokus"));
+            assertGermanBriefMicroHumorContract(prompt);
+            assertFalse(prompt.contains("meist ein oder zwei kurze Sätze"));
+            assertFalse(prompt.contains("selten drei"));
             assertTrue(prompt.contains("Kontextsignale, untergeordnet zum Gesprächsfokus"));
             assertTrue(prompt.contains("obs.weather.current"));
             assertTrue(prompt.contains("obs.weather.forecast"));
@@ -188,7 +191,7 @@ class TdsrShhdGermanPromptContractTest {
 
             assertTrue(prompt.contains("Antworte ausnahmslos auf Deutsch"));
             assertTrue(prompt.contains("Diese SHHD-Unterhaltung ist beendet"));
-            assertTrue(prompt.contains("Verabschiede dich kurz"));
+            assertTrue(prompt.contains("Verabschiede dich in einem kurzen Satz"));
             assertTrue(prompt.contains("beginne kein neues Thema"));
         }
     }
@@ -211,6 +214,17 @@ class TdsrShhdGermanPromptContractTest {
         Field field = definitionClass.getDeclaredField(fieldName);
         field.setAccessible(true);
         return (String) field.get(null);
+    }
+
+    private static void assertGermanBriefMicroHumorContract(String prompt) {
+        assertTrue(prompt.contains("warmen Mikrohumor häufiger"));
+        assertTrue(prompt.contains("kurzen Bezug auf etwas Früheres"));
+        assertTrue(prompt.contains("gutwillig, situationsbezogen"));
+        assertTrue(prompt.contains("Mach keine Witze auf Kosten"));
+        assertTrue(prompt.contains("Antworte sehr knapp: meist ein Satz, oft nur 3 bis 10 Wörter"));
+        assertTrue(prompt.contains("direkte Erklärung es wirklich braucht"));
+        assertTrue(prompt.contains("langen Ein-Satz-Monolog"));
+        assertTrue(prompt.contains("fast fragmentartig kurz"));
     }
 
     private static Map<String, String> promptFields(Class<?> definitionClass) throws Exception {

@@ -65,7 +65,7 @@ public class TourConversationSocialContextSensitivity implements AgentDefinition
             Mentionne au plus brièvement que cette conversation faisait partie de ton voyage d'apprentissage
             avec les humains et qu'elle a aussi exercé le lien naturel entre proximité sociale,
             changements de groupe et conversation.
-            Dis au revoir brièvement, chaleureusement et amicalement, avec au plus un léger clin d'oeil,
+            Dis au revoir en une phrase courte, chaleureusement et amicalement, avec au plus un léger clin d'oeil,
             et ne commence pas de nouveau sujet.
             """;
 

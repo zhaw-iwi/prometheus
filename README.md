@@ -274,13 +274,18 @@ sparse social-context interjections, and structured nonverbal gesture prompting.
 The fixed-language SHHD variants set Realtime language metadata; the Babylon
 variants intentionally do not set a fixed language code and instruct GIGI to
 answer in German, French, Italian, or English according to the user's language.
-The general tour conversation agent is instructed to keep replies short while
-varying one-, two-, and rare three-sentence answers.
+The TDSR tour-conversation and SHHD scene agents are instructed to answer very
+briefly: usually one sentence, often only a few words, with two compact sentences
+only when a direct explanation truly needs it. They are also guided toward warmer
+micro-humor: light irony, self-irony, playful understatement, and small callbacks
+to earlier turns, while avoiding jokes in serious, personal, safety-relevant, or
+delicate factual moments. The guessing-game, Schere-Stein-Papier, and dedicated
+social-context-sensitivity agents keep their task-specific prompt cadence.
 The GIGI TDSR agents share a warmer learning-companion persona with
-careful humor and Frank as an occasional travel/context reference while
-preserving their language-specific speech contracts and task-specific focus. The tour
-conversation agent carries concrete station grounding; the task agents keep a
-short route capsule so games and social-event reactions stay focused.
+Frank as an occasional travel/context reference while preserving their
+language-specific speech contracts and task-specific focus. The tour conversation
+agent carries concrete station grounding; the task agents keep a short route
+capsule so games and social-event reactions stay focused.
 The social-context tour conversation variant keeps the open station-conversation
 flow but declares social sensing observations and gates social remarks so
 changes in group presence are acknowledged only when a short aside is fitting.

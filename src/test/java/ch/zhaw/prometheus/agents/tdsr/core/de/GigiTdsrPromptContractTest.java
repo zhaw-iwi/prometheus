@@ -192,11 +192,10 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("sympathisch, humorvoll"));
         assertTrue(prompt.contains("Sparringspartner für Design"));
         assertTrue(prompt.contains("Beziehe ihn nur ein"));
-        assertTrue(prompt.contains("meist ein oder zwei kurze Sätze"));
-        assertTrue(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
+        assertGermanBriefMicroHumorContract(prompt);
+        assertFalse(prompt.contains("meist ein oder zwei kurze Sätze"));
+        assertFalse(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
         assertTrue(prompt.contains("leichten Augenzwinkern"));
-        assertTrue(prompt.contains("Charmantes Staunen"));
-        assertTrue(prompt.contains("sympathisch selbstironisch"));
         assertTrue(prompt.contains("Stelle Rückfragen sparsam"));
         assertTrue(prompt.contains("Route kompakt"));
         assertTrue(prompt.contains("Bürgenstock"));
@@ -254,6 +253,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("allgemeine TDSR-Gesprächsagent"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertSharedTdsrCompanionContinuity(prompt);
+        assertGermanBriefMicroHumorContract(prompt);
+        assertFalse(prompt.contains("meist ein oder zwei kurze Sätze"));
+        assertFalse(prompt.contains("manchmal ein Satz, manchmal zwei, selten drei"));
         assertWeatherContextIsLocationAware(prompt);
         assertTdsrContextIsGuarded(prompt);
         assertTrue(prompt.contains("Sozialer Kontext"));
@@ -515,6 +517,17 @@ class GigiTdsrPromptContractTest {
         assertTrue(prompt.contains("Swiss Miniature"));
         assertTrue(prompt.contains("ZHAW Winterthur"));
         assertTrue(prompt.contains("leichtem Augenzwinkern") || prompt.contains("leichten Augenzwinkern"));
+    }
+
+    private static void assertGermanBriefMicroHumorContract(String prompt) {
+        assertTrue(prompt.contains("warmen Mikrohumor häufiger"));
+        assertTrue(prompt.contains("kurzen Bezug auf etwas Früheres"));
+        assertTrue(prompt.contains("gutwillig, situationsbezogen"));
+        assertTrue(prompt.contains("Mach keine Witze auf Kosten"));
+        assertTrue(prompt.contains("Antworte sehr knapp: meist ein Satz, oft nur 3 bis 10 Wörter"));
+        assertTrue(prompt.contains("direkte Erklärung es wirklich braucht"));
+        assertTrue(prompt.contains("langen Ein-Satz-Monolog"));
+        assertTrue(prompt.contains("fast fragmentartig kurz"));
     }
 
     private static void assertWeatherContextIsLocationAware(String prompt) {

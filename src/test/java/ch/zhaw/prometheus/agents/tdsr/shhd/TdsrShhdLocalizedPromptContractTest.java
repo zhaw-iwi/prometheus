@@ -168,6 +168,24 @@ class TdsrShhdLocalizedPromptContractTest {
     }
 
     @Test
+    void promptsUseBriefMicroHumorAccentAcrossLanguages() throws Exception {
+        for (Class<?> definitionClass : allDefinitionClasses()) {
+            Map<String, String> prompts = promptFields(definitionClass);
+            String statePrompt = prompts.get("PROMPT_STATE");
+            String finalPrompt = prompts.get("PROMPT_FINAL");
+
+            assertBriefMicroHumorContract(statePrompt, finalPrompt, promptLanguage(definitionClass), definitionClass);
+            assertFalse(statePrompt.contains("usually one or two short sentences"), definitionClass.getName());
+            assertFalse(statePrompt.contains("souvent une ou deux phrases"), definitionClass.getName());
+            assertFalse(statePrompt.contains("di solito una o due frasi"), definitionClass.getName());
+            assertFalse(statePrompt.contains("rarely three"), definitionClass.getName());
+            assertFalse(statePrompt.contains("rarement trois"), definitionClass.getName());
+            assertFalse(statePrompt.contains("raramente tre"), definitionClass.getName());
+        }
+    }
+
+
+    @Test
     void outcomeExtractionPromptsUseSharedCompactJsonContract() throws Exception {
         for (Class<?> definitionClass : allDefinitionClasses()) {
             String prompt = promptFields(definitionClass).get("PROMPT_OUTCOME_EXTRACTION");
@@ -243,6 +261,34 @@ class TdsrShhdLocalizedPromptContractTest {
 
     private static void assertContains(String prompt, String expected, Class<?> definitionClass) {
         assertTrue(prompt.contains(expected), definitionClass.getName() + " missing: " + expected);
+    }
+
+    private static void assertBriefMicroHumorContract(
+            String statePrompt,
+            String finalPrompt,
+            String language,
+            Class<?> definitionClass) {
+        switch (language) {
+            case "fr" -> {
+                assertContains(statePrompt, "micro-humour chaleureux", definitionClass);
+                assertContains(statePrompt, "Réponds très brièvement: souvent une phrase", definitionClass);
+                assertContains(statePrompt, "Ne compense pas par une longue phrase unique", definitionClass);
+                assertContains(finalPrompt, "Dis au revoir en une phrase courte", definitionClass);
+            }
+            case "it" -> {
+                assertContains(statePrompt, "micro-umorismo caldo", definitionClass);
+                assertContains(statePrompt, "Rispondi in modo molto breve: di solito una frase", definitionClass);
+                assertContains(statePrompt, "Non compensare con una frase unica ma lunga", definitionClass);
+                assertContains(finalPrompt, "Congedati in una frase breve", definitionClass);
+            }
+            default -> {
+                assertContains(statePrompt, "Use warm micro-humor more often", definitionClass);
+                assertContains(statePrompt, "Answer very briefly: usually one sentence, often only 3-10 words",
+                        definitionClass);
+                assertContains(statePrompt, "Do not compensate with one long sentence", definitionClass);
+                assertContains(finalPrompt, "Say goodbye in one short sentence", definitionClass);
+            }
+        }
     }
 
     private static String promptLanguage(Class<?> definitionClass) {

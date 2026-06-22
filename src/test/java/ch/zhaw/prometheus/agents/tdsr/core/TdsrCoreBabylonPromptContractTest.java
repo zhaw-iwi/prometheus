@@ -107,6 +107,37 @@ class TdsrCoreBabylonPromptContractTest {
         }
     }
 
+    @Test
+    void babylonTourPromptsUseBriefMicroHumorContract() throws Exception {
+        for (BabylonDefinition babylon : BABYLON_DEFINITIONS) {
+            if (!isTourConversationClass(babylon.definitionClass())) {
+                continue;
+            }
+
+            Map<String, String> prompts = promptFields(babylon.definitionClass());
+            String statePrompt = statePrompt(prompts);
+            String finalPrompt = prompts.get("PROMPT_FINAL");
+
+            assertTrue(statePrompt.contains("Use warm micro-humor more often"),
+                    babylon.definitionClass().getName());
+            assertTrue(statePrompt.contains("Answer very briefly: usually one sentence, often only 3-10 words"),
+                    babylon.definitionClass().getName());
+            assertTrue(statePrompt.contains("Do not compensate with one long sentence"),
+                    babylon.definitionClass().getName());
+            assertTrue(finalPrompt.contains("Say goodbye in one short sentence"),
+                    babylon.definitionClass().getName());
+            assertFalse(statePrompt.contains("usually one or two short sentences"),
+                    babylon.definitionClass().getName());
+            assertFalse(statePrompt.contains("rarely three"), babylon.definitionClass().getName());
+        }
+    }
+
+    private static boolean isTourConversationClass(Class<?> definitionClass) {
+        String simpleName = definitionClass.getSimpleName();
+        return simpleName.equals("TourConversation")
+                || simpleName.equals("TourConversationSocialContextSensitivity");
+    }
+
     private static String statePrompt(Map<String, String> prompts) {
         if (prompts.containsKey("PROMPT_STATE")) {
             return prompts.get("PROMPT_STATE");
