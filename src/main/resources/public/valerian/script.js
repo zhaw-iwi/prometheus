@@ -99,6 +99,7 @@ const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 const SPEECH_INPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechInputDevice";
 const SPEECH_OUTPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechOutputDevice";
 const CAMERA_DEVICE_STORAGE_KEY = "prometheus.valerian.cameraDevice";
+const THEME_STORAGE_KEY = "prometheus.valerian.theme";
 const REALTIME_ICE_FAILURE_MESSAGE = "Realtime WebRTC ICE failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
 const REALTIME_CONNECTION_FAILURE_MESSAGE = "Realtime WebRTC connection failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
 const CAMERA_PERIOD_MS = 350;
@@ -170,6 +171,7 @@ async function init() {
   camera.video = document.getElementById("camera_video");
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
+  applyStoredTheme();
   wireUi();
   loadStoredSpeechDeviceSelection();
   loadStoredCameraDeviceSelection();
@@ -198,6 +200,9 @@ async function init() {
 }
 
 function wireUi() {
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", toggleTheme);
+  });
   document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
@@ -284,6 +289,59 @@ function wireUi() {
   document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
   document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
   document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
+}
+
+function applyStoredTheme() {
+  setTheme(loadStoredTheme(), { persist: false });
+}
+
+function loadStoredTheme() {
+  try {
+    return normalizeTheme(localStorage.getItem(THEME_STORAGE_KEY));
+  } catch (error) {
+    return "light";
+  }
+}
+
+function toggleTheme() {
+  setTheme(currentTheme() === "dark" ? "light" : "dark");
+}
+
+function currentTheme() {
+  return normalizeTheme(document.documentElement.dataset.theme);
+}
+
+function normalizeTheme(theme) {
+  return theme === "dark" ? "dark" : "light";
+}
+
+function setTheme(theme, options = {}) {
+  const nextTheme = normalizeTheme(theme);
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.dataset.bsTheme = nextTheme;
+  if (options.persist !== false) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (error) {
+      // Ignore storage failures; the visible theme can still change for this page.
+    }
+  }
+  updateThemeControls(nextTheme);
+}
+
+function updateThemeControls(theme) {
+  const dark = theme === "dark";
+  const label = dark ? "Switch to light mode" : "Switch to dark mode";
+  const icon = dark ? "bi-sun" : "bi-moon-stars";
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", dark ? "true" : "false");
+    const iconElement = button.querySelector("i");
+    if (iconElement) {
+      iconElement.className = `bi ${icon}`;
+    }
+  });
 }
 
 function showAgentDrawerTab() {
@@ -3396,7 +3454,7 @@ function setControlsEnabled(enabled) {
     "continuous_speech_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (alwaysEnabled.has(el.id) || el.classList.contains("btn-close") ||
+    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.classList.contains("btn-close") ||
       el.dataset.bsDismiss === "offcanvas" || el.dataset.bsToggle === "collapse") {
       return;
     }

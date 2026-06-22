@@ -26,6 +26,13 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"submit-access-code\""));
         assertTrue(index.contains("data-testid=\"cockpit-shell\""));
         assertTrue(index.contains("data-testid=\"active-access-code\""));
+        assertTrue(index.contains("data-testid=\"access-theme-toggle\""));
+        assertTrue(index.contains("data-testid=\"cockpit-theme-toggle\""));
+        assertTrue(index.contains("data-theme-toggle"));
+        assertTrue(index.contains("aria-label=\"Switch to dark mode\""));
+        assertTrue(index.contains("bi bi-moon-stars"));
+        assertTrue(index.contains("[data-theme=\"dark\"]"));
+        assertTrue(index.contains("document.documentElement.dataset.bsTheme = theme;"));
         assertTrue(index.contains("data-testid=\"clear-access-code\""));
         assertTrue(index.contains("data-testid=\"agent-type-select\""));
         assertTrue(index.contains("data-testid=\"create-agent-instance\""));
@@ -71,6 +78,15 @@ class ValerianClientStaticResourceContractTest {
 
         assertTrue(script.contains("ACCESS_CODE_STORAGE_KEY = \"prometheus.valerian.accessCode\""));
         assertTrue(script.contains("ACCESS_CODE_HEADER = \"X-Prometheus-Access-Code\""));
+        assertTrue(script.contains("THEME_STORAGE_KEY = \"prometheus.valerian.theme\""));
+        assertTrue(script.contains("function applyStoredTheme()"));
+        assertTrue(script.contains("function toggleTheme()"));
+        assertTrue(script.contains("function setTheme(theme, options = {})"));
+        assertTrue(script.contains("document.documentElement.dataset.bsTheme = nextTheme;"));
+        assertTrue(script.contains("localStorage.setItem(THEME_STORAGE_KEY, nextTheme);"));
+        assertTrue(script.contains("button.setAttribute(\"aria-pressed\", dark ? \"true\" : \"false\");"));
+        assertTrue(script.contains("iconElement.className = `bi ${icon}`;"));
+        assertTrue(script.contains("el.hasAttribute(\"data-theme-toggle\")"));
         assertTrue(script.contains("sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY)"));
         assertTrue(script.contains("sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode)"));
         assertTrue(script.contains("fetch(\"/demo/session\""));

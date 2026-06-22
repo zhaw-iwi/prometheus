@@ -100,6 +100,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 94: Valerian Realtime ICE diagnostics
 - [x] Milestone 95: TDSR tour and SHHD concise micro-humor prompt accent
 - [x] Milestone 96: Valerian camera device selection
+- [x] Milestone 97: Valerian shared light/dark cockpit themes
 
 ## Milestone 1
 ### Date
@@ -4402,3 +4403,40 @@ Let Valerian cockpit operators refresh and select the browser camera used for vi
 ### Next steps
 1. Live-test with the demo laptop's built-in camera and a USB camera in the target browser.
 2. If operators need more control, add explicit resolution/frame-rate choices beside the camera selector.
+## Milestone 97
+### Date
+2026-06-23
+
+### Goal
+Add a persistent light/dark theme switch to both the Valerian cockpit and Valerian Admin cockpit while treating the existing UI as the light mode baseline.
+
+### What changed
+- Added icon-only theme toggle buttons to the pre-auth card headers and authenticated header tool rows in both `/valerian/` and `/valerian-admin/`.
+- Added page-local dark theme CSS overrides for cockpit panels, forms, cards, status pills, lists, accordions, menus, and modal surfaces while leaving the current design as light mode.
+- Persisted the shared theme selection in localStorage under `prometheus.valerian.theme` so Valerian and Valerian Admin stay in sync across page loads.
+- Applied the stored theme in a small head script before the main page script runs to avoid a visible light-to-dark flash.
+- Updated both static resource contract tests and README documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+4. Toggle the moon/sun button on either page and verify the chosen theme persists when reloading or moving between the two cockpits.
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The current light UI remains the default; dark mode is opt-in and browser-local.
+- The theme is a browser presentation preference only and does not affect backend API, access-code, agent, sensing, or realtime behavior.
+- Live visual contrast should still be checked on the target demo laptop because camera/video lighting and browser font rendering can vary.
+
+### Next steps
+1. Live-check both cockpits on the target browser in light and dark mode.
+2. If operators use both pages side by side, decide whether a future shared static CSS/JS asset is worth extracting from the two page-local implementations.

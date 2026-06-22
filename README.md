@@ -27,6 +27,7 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 
 Most runtime clients take `?agentId=<uuid>`. The Valerian cockpit starts with an access-code screen and then uses scoped `/demo/...` endpoints.
 For the complete list including multilateral endpoints, see `All Client Endpoints` below.
+The Valerian and Valerian Admin cockpits include a shared light/dark theme toggle in their header tool rows; the current light UI remains the default and the selected theme is persisted in the browser.
 
 ### Prometheus Demo Cockpit
 

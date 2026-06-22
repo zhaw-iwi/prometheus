@@ -25,6 +25,13 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"admin-token-input\""));
         assertTrue(index.contains("data-testid=\"submit-admin-token\""));
         assertTrue(index.contains("data-testid=\"admin-shell\""));
+        assertTrue(index.contains("data-testid=\"admin-token-theme-toggle\""));
+        assertTrue(index.contains("data-testid=\"admin-shell-theme-toggle\""));
+        assertTrue(index.contains("data-theme-toggle"));
+        assertTrue(index.contains("aria-label=\"Switch to dark mode\""));
+        assertTrue(index.contains("bi bi-moon-stars"));
+        assertTrue(index.contains("[data-theme=\"dark\"]"));
+        assertTrue(index.contains("document.documentElement.dataset.bsTheme = theme;"));
         assertTrue(index.contains("data-testid=\"access-code-preset-menu-button\""));
         assertTrue(index.contains("data-testid=\"access-code-preset-menu\""));
         assertTrue(index.contains("data-testid=\"access-code-preset-modal\""));
@@ -58,6 +65,14 @@ class ValerianAdminClientStaticResourceContractTest {
 
         assertTrue(script.contains("ADMIN_TOKEN_STORAGE_KEY = \"prometheus.valerianAdmin.adminToken\""));
         assertTrue(script.contains("ADMIN_TOKEN_HEADER = \"X-Prometheus-Admin-Token\""));
+        assertTrue(script.contains("THEME_STORAGE_KEY = \"prometheus.valerian.theme\""));
+        assertTrue(script.contains("function applyStoredTheme()"));
+        assertTrue(script.contains("function toggleTheme()"));
+        assertTrue(script.contains("function setTheme(theme, options = {})"));
+        assertTrue(script.contains("document.documentElement.dataset.bsTheme = nextTheme;"));
+        assertTrue(script.contains("localStorage.setItem(THEME_STORAGE_KEY, nextTheme);"));
+        assertTrue(script.contains("button.setAttribute(\"aria-pressed\", dark ? \"true\" : \"false\");"));
+        assertTrue(script.contains("iconElement.className = `bi ${icon}`;"));
         assertTrue(script.contains("sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)"));
         assertTrue(script.contains("sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token)"));
         assertTrue(script.contains("sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY)"));

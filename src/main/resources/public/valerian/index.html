@@ -10,6 +10,18 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <script>
+    (() => {
+      let theme = "light";
+      try {
+        theme = localStorage.getItem("prometheus.valerian.theme") === "dark" ? "dark" : "light";
+      } catch (error) {
+        theme = "light";
+      }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.bsTheme = theme;
+    })();
+  </script>
   <style>
     @import url("/style.css");
 
@@ -414,6 +426,137 @@
     .access-status.is-success {
       color: var(--demo-ok);
     }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --ink: #f3f7f6;
+      --paper: #11191c;
+      --surface: rgba(18, 27, 30, 0.78);
+      --surface-strong: rgba(24, 35, 39, 0.94);
+      --line: rgba(226, 232, 240, 0.16);
+      --demo-bg: #101719;
+      --demo-panel: rgba(18, 27, 30, 0.94);
+      --demo-panel-soft: rgba(24, 35, 39, 0.78);
+      --demo-muted: rgba(226, 232, 240, 0.68);
+      --demo-line: rgba(226, 232, 240, 0.16);
+      --demo-ok: #34d399;
+      --demo-warn: #fbbf24;
+      --bs-body-color: var(--ink);
+      --bs-body-bg: var(--demo-bg);
+      --bs-border-color: var(--demo-line);
+      --bs-secondary-color: var(--demo-muted);
+      --bs-emphasis-color: var(--ink);
+      --bs-tertiary-bg: rgba(24, 35, 39, 0.92);
+    }
+
+    [data-theme="dark"] body {
+      background:
+        radial-gradient(circle at 15% 18%, rgba(255, 122, 0, 0.14), transparent 34%),
+        radial-gradient(circle at 86% 10%, rgba(0, 176, 162, 0.16), transparent 32%),
+        linear-gradient(135deg, #0e1517 0%, #121b1e 55%, #172225 100%);
+    }
+
+    [data-theme="dark"] .page-subtitle,
+    [data-theme="dark"] .metric-label,
+    [data-theme="dark"] .range-value,
+    [data-theme="dark"] .access-status,
+    [data-theme="dark"] .demo-message.system .demo-bubble {
+      color: var(--demo-muted);
+    }
+
+    [data-theme="dark"] .demo-card,
+    [data-theme="dark"] .surface-panel,
+    [data-theme="dark"] .message-list,
+    [data-theme="dark"] .demo-bubble,
+    [data-theme="dark"] .metric-row,
+    [data-theme="dark"] .profile-token,
+    [data-theme="dark"] .diagnostics-current-state,
+    [data-theme="dark"] .storage-list .list-group-item,
+    [data-theme="dark"] .state-list .list-group-item,
+    [data-theme="dark"] .storage-value,
+    [data-theme="dark"] .offcanvas {
+      background: var(--demo-panel-soft);
+      border-color: var(--demo-line);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .demo-card .card-header,
+    [data-theme="dark"] .card-header,
+    [data-theme="dark"] .card-footer {
+      background: var(--demo-panel);
+      border-color: var(--demo-line);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .demo-message.user .demo-bubble {
+      background: rgba(255, 122, 0, 0.16);
+      border-color: rgba(255, 122, 0, 0.34);
+    }
+
+    [data-theme="dark"] .demo-message.system .demo-bubble,
+    [data-theme="dark"] .video-shell {
+      background: rgba(226, 232, 240, 0.06);
+    }
+
+    [data-theme="dark"] .sign-symbol,
+    [data-theme="dark"] .form-control,
+    [data-theme="dark"] .form-select,
+    [data-theme="dark"] .input-group-text {
+      background-color: rgba(12, 19, 22, 0.92);
+      border-color: var(--demo-line);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .form-control::placeholder {
+      color: rgba(226, 232, 240, 0.48);
+    }
+
+    [data-theme="dark"] .btn-outline-ink {
+      border-color: rgba(226, 232, 240, 0.36);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .btn-outline-ink:hover,
+    [data-theme="dark"] .btn-outline-ink:focus-visible {
+      background: rgba(226, 232, 240, 0.12);
+      border-color: rgba(226, 232, 240, 0.56);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .status-pill {
+      background: rgba(226, 232, 240, 0.08);
+      border-color: rgba(226, 232, 240, 0.2);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .status-pill.is-inactive,
+    [data-theme="dark"] .status-pill.is-idle {
+      color: var(--demo-muted);
+    }
+
+    [data-theme="dark"] .accordion-item,
+    [data-theme="dark"] .accordion-button {
+      background: var(--demo-panel-soft);
+      border-color: var(--demo-line);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .accordion-button:not(.collapsed),
+    [data-theme="dark"] .interaction-tabs .nav-link.active,
+    [data-theme="dark"] .drawer-tabs .nav-link.active {
+      background: rgba(0, 176, 162, 0.16);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .accordion-button::after,
+    [data-theme="dark"] .btn-close {
+      filter: invert(1) grayscale(1);
+    }
+
+    [data-theme="dark"] .text-bg-light {
+      background-color: rgba(226, 232, 240, 0.14) !important;
+      color: var(--ink) !important;
+    }
   </style>
 </head>
 
@@ -424,6 +567,10 @@
         <div class="access-card demo-card card">
           <div class="card-header">
             <span><i class="bi bi-key me-2"></i>Prometheus Demo Cockpit</span>
+            <button class="btn btn-outline-ink toolbar-button" type="button" title="Switch to dark mode"
+              aria-label="Switch to dark mode" data-theme-toggle data-testid="access-theme-toggle">
+              <i class="bi bi-moon-stars"></i>
+            </button>
           </div>
           <div class="card-body">
             <label class="form-label metric-label" for="access_code_input">Access Code</label>
@@ -452,6 +599,10 @@
           <span id="behaviour_status" class="status-pill is-idle">Behaviour Idle</span>
           <span id="realtime_status" class="status-pill is-idle">Realtime Idle</span>
           <span id="camera_status" class="status-pill is-idle">Camera Idle</span>
+          <button class="btn btn-outline-ink toolbar-button" type="button" title="Switch to dark mode"
+            aria-label="Switch to dark mode" data-theme-toggle data-testid="cockpit-theme-toggle">
+            <i class="bi bi-moon-stars"></i>
+          </button>
           <button id="open_diagnostics" class="btn btn-outline-ink toolbar-button" type="button"
             data-bs-toggle="offcanvas" data-bs-target="#diagnostics_drawer" aria-controls="diagnostics_drawer"
             title="Diagnostics">

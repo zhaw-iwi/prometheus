@@ -14,11 +14,13 @@ const state = {
 
 const ADMIN_TOKEN_STORAGE_KEY = "prometheus.valerianAdmin.adminToken";
 const ADMIN_TOKEN_HEADER = "X-Prometheus-Admin-Token";
+const THEME_STORAGE_KEY = "prometheus.valerian.theme";
 const GENERATED_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
 window.addEventListener("load", init);
 
 function init() {
+  applyStoredTheme();
   wireUi();
   renderAccessCodes();
   renderAgentTypes();
@@ -35,6 +37,9 @@ function init() {
 }
 
 function wireUi() {
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", toggleTheme);
+  });
   document.getElementById("submit_admin_token").addEventListener("click", submitAdminToken);
   document.getElementById("admin_token_input").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -67,6 +72,59 @@ function wireUi() {
   document.getElementById("agent_type_filter").addEventListener("input", (event) => {
     state.agentTypeFilter = event.target.value || "";
     renderAgentTypes();
+  });
+}
+
+function applyStoredTheme() {
+  setTheme(loadStoredTheme(), { persist: false });
+}
+
+function loadStoredTheme() {
+  try {
+    return normalizeTheme(localStorage.getItem(THEME_STORAGE_KEY));
+  } catch (error) {
+    return "light";
+  }
+}
+
+function toggleTheme() {
+  setTheme(currentTheme() === "dark" ? "light" : "dark");
+}
+
+function currentTheme() {
+  return normalizeTheme(document.documentElement.dataset.theme);
+}
+
+function normalizeTheme(theme) {
+  return theme === "dark" ? "dark" : "light";
+}
+
+function setTheme(theme, options = {}) {
+  const nextTheme = normalizeTheme(theme);
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.dataset.bsTheme = nextTheme;
+  if (options.persist !== false) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (error) {
+      // Ignore storage failures; the visible theme can still change for this page.
+    }
+  }
+  updateThemeControls(nextTheme);
+}
+
+function updateThemeControls(theme) {
+  const dark = theme === "dark";
+  const label = dark ? "Switch to light mode" : "Switch to dark mode";
+  const icon = dark ? "bi-sun" : "bi-moon-stars";
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", dark ? "true" : "false");
+    const iconElement = button.querySelector("i");
+    if (iconElement) {
+      iconElement.className = `bi ${icon}`;
+    }
   });
 }
 
