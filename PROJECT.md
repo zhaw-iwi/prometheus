@@ -99,6 +99,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 93: Valerian speech audio device selection
 - [x] Milestone 94: Valerian Realtime ICE diagnostics
 - [x] Milestone 95: TDSR tour and SHHD concise micro-humor prompt accent
+- [x] Milestone 96: Valerian camera device selection
 
 ## Milestone 1
 ### Date
@@ -4362,3 +4363,42 @@ Tighten the behavioural accent of TDSR tour-conversation and SHHD scene agents s
 ### Next steps
 1. Live-test affected tour and SHHD agents in Valerian with GPT-5.2 and check whether responses stay genuinely short instead of becoming long single sentences.
 2. If live runs still drift long, consider a deterministic post-generation speech trimmer or a stricter output-length validator for affected agents.
+
+## Milestone 96
+### Date
+2026-06-23
+
+### Goal
+Let Valerian cockpit operators refresh and select the browser camera used for visual sensing, including USB cameras connected after page load.
+
+### What changed
+- Added a Camera selector with an appended refresh icon button and camera-device status line to the Valerian Sensing card.
+- Added browser videoinput enumeration with labels unlocked through an operator-initiated camera permission request when needed.
+- Persisted the selected camera device ID in localStorage under `prometheus.valerian.cameraDevice`.
+- Applied the selected camera through getUserMedia video deviceId constraints when starting visual sensing.
+- Restarted the camera stream automatically when the selected camera changes while visual sensing is live.
+- Refreshed camera devices on browser devicechange events so newly plugged USB cameras can appear without reloading the cockpit.
+- Kept backend APIs, event payload schemas, interaction profiles, detection models, and observation emission semantics unchanged.
+- Updated Valerian static contract coverage and README documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect an agent with visual sensing, refresh cameras, select the desired camera, and start visual sensing.
+4. Plug in a USB camera, click Refresh if the browser does not fire devicechange immediately, select the new camera, and verify the preview switches.
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Browser camera labels still depend on camera permission, so operators may need to click Refresh Cameras once to unlock readable labels.
+- Device routing is browser-owned; if a selected camera disappears or is blocked by permissions, the cockpit reports the camera start error and leaves the backend untouched.
+- This milestone does not add camera resolution controls or robot-side camera selection.
+
+### Next steps
+1. Live-test with the demo laptop's built-in camera and a USB camera in the target browser.
+2. If operators need more control, add explicit resolution/frame-rate choices beside the camera selector.

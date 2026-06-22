@@ -476,6 +476,25 @@
                 <video id="camera_video" autoplay playsinline muted data-testid="camera-video"></video>
                 <canvas id="overlay_canvas" data-testid="overlay-canvas"></canvas>
               </div>
+              <div class="mb-2"
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                <label class="form-label metric-label" for="camera_device_select">Camera</label>
+                <div class="input-group input-group-sm" data-testid="camera-device-input-group">
+                  <select id="camera_device_select" class="form-select" data-testid="camera-device">
+                    <option value="">System / browser default</option>
+                  </select>
+                  <button id="refresh_camera_devices" class="btn btn-outline-ink" type="button"
+                    title="Refresh camera sources" aria-label="Refresh camera sources"
+                    data-testid="refresh-camera-devices">
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+              </div>
+              <div id="camera_device_status" class="text-muted small mb-3"
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign"
+                data-testid="camera-device-status">
+                Camera uses browser default.
+              </div>
               <div class="d-flex gap-2 mb-3"
                 data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
                 <button id="start_camera" class="btn btn-primary flex-fill" type="button" data-testid="start-camera">

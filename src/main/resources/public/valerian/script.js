@@ -51,6 +51,11 @@ const speechDevices = {
   devicesLoaded: false,
 };
 
+const cameraDevices = {
+  deviceId: "",
+  devicesLoaded: false,
+};
+
 const camera = {
   video: null,
   canvas: null,
@@ -93,6 +98,7 @@ const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 const SPEECH_INPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechInputDevice";
 const SPEECH_OUTPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechOutputDevice";
+const CAMERA_DEVICE_STORAGE_KEY = "prometheus.valerian.cameraDevice";
 const REALTIME_ICE_FAILURE_MESSAGE = "Realtime WebRTC ICE failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
 const REALTIME_CONNECTION_FAILURE_MESSAGE = "Realtime WebRTC connection failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
 const CAMERA_PERIOD_MS = 350;
@@ -166,12 +172,15 @@ async function init() {
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
   loadStoredSpeechDeviceSelection();
+  loadStoredCameraDeviceSelection();
   renderSpeechDeviceSelections([], []);
+  renderCameraDeviceSelections([]);
   showCockpit(false);
   applyInteractionProfile(null);
   resetStateView();
   resetStorageList();
   refreshAudioDevices({ requestPermission: false, silent: true });
+  refreshCameraDevices({ requestPermission: false, silent: true });
   appendSystemMessage("Select or create an agent instance, then connect.");
 
   state.selectedAgentId = getAgentIdFromLocation();
@@ -238,9 +247,16 @@ function wireUi() {
   document.getElementById("refresh_audio_devices").addEventListener("click", () => {
     refreshAudioDevices({ requestPermission: true });
   });
+  document.getElementById("camera_device_select").addEventListener("change", () => {
+    saveCameraDeviceSelection();
+  });
+  document.getElementById("refresh_camera_devices").addEventListener("click", () => {
+    refreshCameraDevices({ requestPermission: true });
+  });
   if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
     navigator.mediaDevices.addEventListener("devicechange", () => {
       refreshAudioDevices({ requestPermission: false, silent: true });
+      refreshCameraDevices({ requestPermission: false, silent: true });
     });
   }
   document.getElementById("start_camera").addEventListener("click", startCamera);
@@ -1973,6 +1989,131 @@ function setSpeechDeviceStatus(text, mode = "") {
   el.classList.toggle("text-muted", mode !== "error" && mode !== "ready");
 }
 
+function loadStoredCameraDeviceSelection() {
+  cameraDevices.deviceId = localStorage.getItem(CAMERA_DEVICE_STORAGE_KEY) || "";
+}
+
+async function saveCameraDeviceSelection() {
+  cameraDevices.deviceId = selectedCameraDeviceId();
+  localStorage.setItem(CAMERA_DEVICE_STORAGE_KEY, cameraDevices.deviceId);
+  if (state.cameraRunning) {
+    setCameraDeviceStatus("Switching camera input.", "ready");
+    await restartCameraWithSelectedDevice();
+  } else {
+    setCameraDeviceStatus("Camera saved for the next camera session.", "ready");
+  }
+}
+
+function cameraSelectionSupported() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices && navigator.mediaDevices.getUserMedia);
+}
+
+async function refreshCameraDevices(options = {}) {
+  const requestPermission = options.requestPermission === true;
+  const silent = options.silent === true;
+  if (!cameraSelectionSupported()) {
+    renderCameraDeviceSelections([]);
+    setCameraDeviceStatus("Camera selection is not supported by this browser.", "error");
+    updateCameraDeviceControls();
+    return;
+  }
+  let permissionStream = null;
+  try {
+    if (requestPermission && !camera.stream) {
+      permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter((device) => device.kind === "videoinput");
+    renderCameraDeviceSelections(videoDevices);
+    cameraDevices.devicesLoaded = true;
+    if (!silent) {
+      setCameraDeviceStatus(
+        videoDevices.length ? `Camera devices refreshed (${videoDevices.length}).` : "No camera devices found.",
+        videoDevices.length ? "ready" : "error"
+      );
+    }
+  } catch (error) {
+    setCameraDeviceStatus(`Camera device refresh failed: ${error.message}`, "error");
+    appendLog("camera", `device refresh failed: ${error.message}`);
+  } finally {
+    if (permissionStream) {
+      permissionStream.getTracks().forEach((track) => track.stop());
+    }
+    updateCameraDeviceControls();
+  }
+}
+
+function renderCameraDeviceSelections(videoDevices) {
+  const select = document.getElementById("camera_device_select");
+  if (!select) {
+    return;
+  }
+  select.replaceChildren(new Option("System / browser default", ""));
+  const seen = new Set([""]);
+  videoDevices.forEach((device, index) => {
+    if (!device.deviceId || device.deviceId === "default" || seen.has(device.deviceId)) {
+      return;
+    }
+    const label = device.label || `Camera ${index + 1}`;
+    select.appendChild(new Option(label, device.deviceId));
+    seen.add(device.deviceId);
+  });
+  select.value = seen.has(cameraDevices.deviceId) ? cameraDevices.deviceId : "";
+}
+
+function selectedCameraDeviceId() {
+  return document.getElementById("camera_device_select").value || "";
+}
+
+function selectedCameraDeviceLabel() {
+  const select = document.getElementById("camera_device_select");
+  const selected = select && select.options[select.selectedIndex];
+  return selected ? selected.textContent : "System / browser default";
+}
+
+function cameraVideoConstraints() {
+  const constraints = {
+    width: { ideal: 960 },
+    height: { ideal: 720 },
+  };
+  const deviceId = selectedCameraDeviceId();
+  if (deviceId) {
+    constraints.deviceId = { exact: deviceId };
+  } else {
+    constraints.facingMode = "user";
+  }
+  return constraints;
+}
+
+async function restartCameraWithSelectedDevice() {
+  stopCamera({ silent: true, preserveStatus: true });
+  await startCamera();
+}
+
+function setCameraDeviceStatus(text, mode = "") {
+  const el = document.getElementById("camera_device_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text || "";
+  el.classList.toggle("text-danger", mode === "error");
+  el.classList.toggle("text-success", mode === "ready");
+  el.classList.toggle("text-muted", mode !== "error" && mode !== "ready");
+}
+
+function updateCameraDeviceControls() {
+  const supported = cameraSelectionSupported();
+  const enabled = !!state.agentId && supported;
+  const select = document.getElementById("camera_device_select");
+  const refresh = document.getElementById("refresh_camera_devices");
+  if (select) {
+    select.disabled = !enabled;
+  }
+  if (refresh) {
+    refresh.disabled = !enabled;
+  }
+}
+
 function wireRealtimePeerDiagnostics(peerConnection) {
   if (!peerConnection) {
     return;
@@ -2108,7 +2249,7 @@ async function startCamera() {
   await ensureEnabledModels();
   try {
     camera.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 720 } },
+      video: cameraVideoConstraints(),
       audio: false,
     });
     camera.video.srcObject = camera.stream;
@@ -2116,12 +2257,16 @@ async function startCamera() {
     state.cameraRunning = true;
     document.getElementById("start_camera").disabled = true;
     document.getElementById("stop_camera").disabled = false;
+    updateCameraDeviceControls();
     setCameraStatus("Camera Live", "live");
+    setCameraDeviceStatus(`Camera input: ${selectedCameraDeviceLabel()}.`, "ready");
+    refreshCameraDevices({ requestPermission: false, silent: true });
     runCameraLoop();
   } catch (error) {
     setCameraStatus("Camera Error", "error");
+    setCameraDeviceStatus(`Camera start failed: ${error.message}`, "error");
     appendLog("camera", "start failed: " + error.message);
-    stopCamera({ silent: true });
+    stopCamera({ silent: true, preserveStatus: true });
   }
 }
 
@@ -2139,7 +2284,10 @@ function stopCamera(options = {}) {
   clearOverlay();
   document.getElementById("start_camera").disabled = false;
   document.getElementById("stop_camera").disabled = true;
-  setCameraStatus("Camera Idle", "idle");
+  updateCameraDeviceControls();
+  if (!options.preserveStatus) {
+    setCameraStatus("Camera Idle", "idle");
+  }
   if (!options.silent) {
     appendLog("camera", "stopped.");
   }
@@ -3256,6 +3404,7 @@ function setControlsEnabled(enabled) {
   });
   document.getElementById("start_camera").disabled = !enabled || state.cameraRunning;
   document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning;
+  updateCameraDeviceControls();
   updateAgentTypeControls();
   updateAgentSelectionControls();
 }

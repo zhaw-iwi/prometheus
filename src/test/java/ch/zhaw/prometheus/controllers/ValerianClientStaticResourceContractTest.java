@@ -305,6 +305,13 @@ class ValerianClientStaticResourceContractTest {
 
         assertTrue(index.contains("data-testid=\"camera-video\""));
         assertTrue(index.contains("data-testid=\"overlay-canvas\""));
+        assertTrue(index.contains("data-testid=\"camera-device-input-group\""));
+        assertTrue(index.contains("class=\"input-group input-group-sm\""));
+        assertTrue(index.contains("data-testid=\"camera-device\""));
+        assertTrue(index.contains("data-testid=\"refresh-camera-devices\""));
+        assertTrue(index.contains("data-testid=\"camera-device-status\""));
+        assertTrue(index.contains("aria-label=\"Refresh camera sources\""));
+        assertTrue(index.contains("bi bi-arrow-clockwise"));
         assertTrue(index.contains("data-testid=\"sensor-emotion-enabled\""));
         assertTrue(index.contains("data-testid=\"sensor-social-enabled\""));
         assertTrue(index.contains("data-testid=\"sensor-hand-enabled\""));
@@ -316,6 +323,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"send-weather-current\""));
         assertTrue(index.contains("data-testid=\"send-weather-forecast\""));
         assertTrue(index.contains("data-testid=\"weather-value\""));
+        assertTrue(index.contains("Camera uses browser default."));
         assertTrue(index.contains("Emit camera observations"));
         assertTrue(index.contains("Manual Emotion"));
         assertTrue(index.contains("Manual Social"));
@@ -329,6 +337,17 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("faceapi.nets.tinyFaceDetector"));
         assertTrue(script.contains("cocoSsd.load"));
         assertTrue(script.contains("GestureRecognizer.createFromOptions"));
+        assertTrue(script.contains("CAMERA_DEVICE_STORAGE_KEY"));
+        assertTrue(script.contains("prometheus.valerian.cameraDevice"));
+        assertTrue(script.contains("function refreshCameraDevices"));
+        assertTrue(script.contains("navigator.mediaDevices.getUserMedia({ video: true, audio: false })"));
+        assertTrue(script.contains("device.kind === \"videoinput\""));
+        assertTrue(script.contains("function cameraVideoConstraints"));
+        assertTrue(script.contains("video: cameraVideoConstraints()"));
+        assertTrue(script.contains("constraints.deviceId = { exact: deviceId };"));
+        assertTrue(script.contains("function restartCameraWithSelectedDevice"));
+        assertTrue(script.contains("Switching camera input."));
+        assertTrue(script.contains("Camera saved for the next camera session."));
         assertTrue(script.contains("Closed_Fist: \"rock\""));
         assertTrue(script.contains("Open_Palm: \"paper\""));
         assertTrue(script.contains("Victory: \"scissor\""));
