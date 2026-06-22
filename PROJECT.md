@@ -95,6 +95,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 89: Multilingual and Babylon TDSR SHHD scene agents
 - [x] Milestone 90: Compact shared TDSR core outcome extraction prompts
 - [x] Milestone 91: Valerian Admin access-code presets
+- [x] Milestone 92: Valerian Admin package accordion manual collapse fix
 
 ## Milestone 1
 ### Date
@@ -4209,3 +4210,36 @@ Add backend-defined Valerian Admin presets that create specific access-code and 
 ### Next steps
 1. Live-check the Admin cockpit preset modal against a local database and confirm the created codes appear in Valerian with the expected agent sets.
 2. Add more Java preset entries if future rehearsals need repeatable access-code bundles.
+
+## Milestone 92
+### Date
+2026-06-22
+
+### Goal
+Fix Valerian Admin agent-type package accordions so packages with selected agents can still be manually collapsed.
+
+### What changed
+- Confirmed that assigned package accordions were being reopened immediately because `renderAgentTypes()` called `expandAssignedPackages(...)` on every render.
+- Added `collapsedAgentTypePackages` state to remember packages the operator manually closes.
+- Updated assigned-package auto-expansion to respect manual collapses while still auto-opening selected packages when switching access codes, creating a code, applying a preset, or saving assignments.
+- Kept filter behavior unchanged: active search text still expands matching package paths for visibility.
+- Added static contract coverage for the collapsed-package state and assigned-package expansion call.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Select an access code with assigned SHHD agents and verify a `5/5` package such as `it` can be closed and reopened.
+
+### How to test
+- Targeted tests run:
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This is a Valerian Admin client-state fix only; no backend API or persistence behavior changed.
+- Search/filter mode still forces packages open so matching agent types remain visible.
+
+### Next steps
+1. Live-check the Admin cockpit package tree with assigned SHHD preset codes and confirm selected packages can be manually collapsed.

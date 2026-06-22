@@ -80,6 +80,10 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("packagePathOf"));
         assertTrue(script.contains("renderPackageNode"));
         assertTrue(script.contains("admin-agent-package-toggle"));
+        assertTrue(script.contains("collapsedAgentTypePackages"));
+        assertTrue(script.contains("expandAssignedPackages(tree, allowed, state.collapsedAgentTypePackages)"));
+        assertTrue(script.contains("state.collapsedAgentTypePackages.add(pathKey)"));
+        assertTrue(script.contains("state.collapsedAgentTypePackages.delete(pathKey)"));
         assertTrue(script.contains("headers.set(ADMIN_TOKEN_HEADER, state.adminToken);"));
         assertTrue(script.contains("data-agent-type-checkbox"));
         assertTrue(script.contains("function prometheusFacingText"));

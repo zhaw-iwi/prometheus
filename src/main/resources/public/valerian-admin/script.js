@@ -7,6 +7,7 @@ const state = {
   selectedAgents: [],
   agentTypeFilter: "",
   expandedAgentTypePackages: new Set(),
+  collapsedAgentTypePackages: new Set(),
   presetMenuOpen: false,
   activeAccessCodePresetKey: null,
 };
@@ -106,6 +107,7 @@ function forgetAdminToken() {
   state.selectedAgents = [];
   state.agentTypeFilter = "";
   state.expandedAgentTypePackages = new Set();
+  state.collapsedAgentTypePackages = new Set();
   state.presetMenuOpen = false;
   state.activeAccessCodePresetKey = null;
   sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
@@ -135,6 +137,7 @@ async function loadAdminData() {
   state.accessCodePresets = Array.isArray(accessCodePresets) ? accessCodePresets : [];
   if (!selectedAccessCode()) {
     state.selectedAccessCodeId = state.accessCodes.length > 0 ? state.accessCodes[0].id : null;
+    resetAgentTypePackageExpansion();
   }
   renderAccessCodes();
   renderAgentTypes();
@@ -166,6 +169,7 @@ async function createAccessCode() {
     });
     state.accessCodes = mergeAccessCodes(state.accessCodes, [created]);
     state.selectedAccessCodeId = created.id;
+    resetAgentTypePackageExpansion();
     document.getElementById("new_access_code_input").value = "";
     setCreateStatus(`Created ${created.code}.`, "success");
     renderAccessCodes();
@@ -222,6 +226,7 @@ async function saveAgentTypeAssignments() {
       body: JSON.stringify({ agentTypeKeys }),
     });
     state.accessCodes = mergeAccessCodes(state.accessCodes, [updated]);
+    state.collapsedAgentTypePackages = new Set();
     renderAccessCodes();
     renderAgentTypes();
     setAssignmentStatus("Assignments saved.", "success");
@@ -375,6 +380,7 @@ async function createAccessCodePreset() {
     state.accessCodes = mergeAccessCodes(state.accessCodes, Array.isArray(created) ? created : []);
     if (Array.isArray(created) && created.length > 0) {
       state.selectedAccessCodeId = created[0].id;
+      resetAgentTypePackageExpansion();
     }
     closePresetModal();
     renderAccessCodes();
@@ -389,10 +395,15 @@ async function createAccessCodePreset() {
 
 function selectAccessCode(accessCodeId) {
   state.selectedAccessCodeId = accessCodeId;
-  state.expandedAgentTypePackages = new Set();
+  resetAgentTypePackageExpansion();
   renderAccessCodes();
   renderAgentTypes();
   loadSelectedInstances();
+}
+
+function resetAgentTypePackageExpansion() {
+  state.expandedAgentTypePackages = new Set();
+  state.collapsedAgentTypePackages = new Set();
 }
 
 function renderAccessCodes() {
@@ -459,7 +470,7 @@ function renderAgentTypes() {
     return;
   }
   const tree = buildAgentTypeTree(visibleAgentTypes);
-  expandAssignedPackages(tree, allowed);
+  expandAssignedPackages(tree, allowed, state.collapsedAgentTypePackages);
   if (filterText) {
     expandAllPackages(tree);
   }
@@ -519,8 +530,10 @@ function renderPackageNode(node, allowed, filterText) {
   row.addEventListener("click", () => {
     if (state.expandedAgentTypePackages.has(pathKey)) {
       state.expandedAgentTypePackages.delete(pathKey);
+      state.collapsedAgentTypePackages.add(pathKey);
     } else {
       state.expandedAgentTypePackages.add(pathKey);
+      state.collapsedAgentTypePackages.delete(pathKey);
     }
     renderAgentTypes();
   });
@@ -614,12 +627,13 @@ function selectedAgentTypeCount(node, allowed) {
   return count;
 }
 
-function expandAssignedPackages(node, allowed) {
+function expandAssignedPackages(node, allowed, collapsed) {
   for (const child of node.children.values()) {
-    expandAssignedPackages(child, allowed);
+    expandAssignedPackages(child, allowed, collapsed);
   }
-  if (node.path.length > 0 && selectedAgentTypeCount(node, allowed) > 0) {
-    state.expandedAgentTypePackages.add(packagePathKey(node.path));
+  const pathKey = packagePathKey(node.path);
+  if (node.path.length > 0 && selectedAgentTypeCount(node, allowed) > 0 && !collapsed.has(pathKey)) {
+    state.expandedAgentTypePackages.add(pathKey);
   }
 }
 
