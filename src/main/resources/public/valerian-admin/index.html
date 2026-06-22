@@ -114,7 +114,8 @@
 
     .code-list,
     .agent-type-list,
-    .instance-list {
+    .instance-list,
+    .preset-entry-list {
       display: grid;
       gap: 0.55rem;
     }
@@ -163,6 +164,76 @@
 
     .agent-package-children .agent-type-item {
       background: rgba(255, 255, 255, 0.82);
+    }
+
+    .preset-menu-wrap {
+      position: relative;
+    }
+
+    .preset-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.35rem);
+      z-index: 20;
+      width: min(22rem, calc(100vw - 2rem));
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 16px 32px rgba(12, 22, 24, 0.16);
+      padding: 0.35rem;
+    }
+
+    .preset-menu-item {
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      padding: 0.65rem 0.7rem;
+      text-align: left;
+    }
+
+    .preset-menu-item:hover {
+      background: rgba(0, 176, 162, 0.08);
+    }
+
+    .preset-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      background: rgba(12, 22, 24, 0.38);
+      padding: 1rem;
+    }
+
+    .preset-modal {
+      width: min(760px, 100%);
+      max-height: min(720px, calc(100vh - 2rem));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    .preset-modal-body {
+      overflow: auto;
+    }
+
+    .preset-entry {
+      border: 1px solid var(--admin-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.74);
+      overflow: hidden;
+    }
+
+    .preset-entry summary {
+      cursor: pointer;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .preset-entry-body {
+      display: grid;
+      gap: 0.5rem;
+      padding: 0 0.75rem 0.75rem 0.75rem;
     }
 
     .status-line {
@@ -220,6 +291,15 @@
           <div class="d-flex flex-wrap align-items-center gap-2">
             <span id="admin_connection_state" class="status-pill is-unknown"
               data-testid="admin-connection-state">Admin Token Required</span>
+            <div class="preset-menu-wrap">
+              <button id="access_code_preset_menu_button" class="btn btn-outline-ink toolbar-button" type="button"
+                title="Access-code presets" aria-label="Access-code presets"
+                data-testid="access-code-preset-menu-button">
+                <i class="bi bi-lightning-charge"></i>
+              </button>
+              <div id="access_code_preset_menu" class="preset-menu" hidden
+                data-testid="access-code-preset-menu"></div>
+            </div>
             <button id="forget_admin_token" class="btn btn-outline-ink toolbar-button" type="button"
               title="Forget admin token" aria-label="Forget admin token" data-testid="forget-admin-token">
               <i class="bi bi-box-arrow-right"></i>
@@ -297,6 +377,37 @@
       </div>
     </div>
   </section>
+
+  <div id="access_code_preset_modal" class="preset-modal-backdrop d-none" hidden
+    data-testid="access-code-preset-modal">
+    <section class="preset-modal admin-card card" role="dialog" aria-modal="true"
+      aria-labelledby="access_code_preset_modal_title">
+      <div class="card-header">
+        <span id="access_code_preset_modal_title"><i class="bi bi-lightning-charge me-2"></i>Access-Code Preset</span>
+        <button id="close_access_code_preset_modal" class="btn btn-outline-ink toolbar-button" type="button"
+          aria-label="Close preset modal" data-testid="close-access-code-preset-modal">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="card-body preset-modal-body">
+        <div id="access_code_preset_entries" class="preset-entry-list"
+          data-testid="access-code-preset-entries"></div>
+      </div>
+      <div class="card-footer bg-white">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+          <div id="access_code_preset_status" class="status-line" data-testid="access-code-preset-status"></div>
+          <div class="d-flex gap-2">
+            <button id="cancel_access_code_preset" class="btn btn-outline-ink" type="button"
+              data-testid="cancel-access-code-preset">Cancel</button>
+            <button id="create_access_code_preset" class="btn btn-primary" type="button"
+              data-testid="create-access-code-preset">
+              <i class="bi bi-plus-lg me-1"></i>Create
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <script src="script.js"></script>
 </body>

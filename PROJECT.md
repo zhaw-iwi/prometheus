@@ -94,6 +94,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 88: German TDSR SHHD scene agents
 - [x] Milestone 89: Multilingual and Babylon TDSR SHHD scene agents
 - [x] Milestone 90: Compact shared TDSR core outcome extraction prompts
+- [x] Milestone 91: Valerian Admin access-code presets
 
 ## Milestone 1
 ### Date
@@ -4164,3 +4165,47 @@ Reduce token duplication in TDSR core outcome extraction prompts without changin
 
 ### Next steps
 1. Consider the same shared-extraction-prompt pattern if other non-TDSR agent families accumulate duplicated technical extraction prompts.
+
+## Milestone 91
+### Date
+2026-06-22
+
+### Goal
+Add backend-defined Valerian Admin presets that create specific access-code and agent-type assignment sets without requiring manual checkbox work in the Admin cockpit.
+
+### What changed
+- Added an explicit `shhd_scene_agents` access-code preset catalog in Java with five entries:
+  - `shhde` for the five `tdsr.shhd.de.*` scene agents.
+  - `shhen` for the five `tdsr.shhd.en.*` scene agents.
+  - `shhfr` for the five `tdsr.shhd.fr.*` scene agents.
+  - `shhit` for the five `tdsr.shhd.it.*` scene agents.
+  - `shhba` for the five `tdsr.shhd.babylon.*` scene agents.
+- Added authenticated Admin API endpoints:
+  - `GET /admin/access-code-presets`
+  - `POST /admin/access-code-presets/{presetKey}/apply`
+- Preset application is transactional and strict: all preset codes must be submitted, existing code conflicts abort the whole operation, and selected agent type keys must belong to that preset entry.
+- Added a Valerian Admin header preset menu and review modal with one accordion per preset access code. Preset agents are checked by default and can be unchecked before creation.
+- Updated README Admin API and Admin cockpit documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+3. Enter the configured admin token.
+4. Use the preset button next to the forget-token button, select `SHHD scene access codes`, review the checked agents, and create the preset codes.
+
+### How to test
+- Targeted tests run:
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=AccessCodeAdminServiceIntegrationTest,AdminAccessCodeControllerWebMvcTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Agent specifications remain Java `AgentDefinition` classes registered through `AgentDefinitionRegistry`; presets persist only access codes and allowed agent type keys.
+- Preset definitions are explicit maps from access code to agent type keys, not package scans, so the client does not infer package contents.
+- The Babylon SHHD access code is `shhba` and maps to `tdsr.shhd.babylon.*` because the Java package is `babylon`, not `ba`.
+- If a preset code already exists, operators must adjust existing codes manually before applying the preset; there is still no delete/archive flow for access codes.
+
+### Next steps
+1. Live-check the Admin cockpit preset modal against a local database and confirm the created codes appear in Valerian with the expected agent sets.
+2. Add more Java preset entries if future rehearsals need repeatable access-code bundles.

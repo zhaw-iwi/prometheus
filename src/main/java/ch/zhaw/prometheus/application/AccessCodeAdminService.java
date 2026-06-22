@@ -1,8 +1,10 @@
 package ch.zhaw.prometheus.application;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -14,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.agentdefs.AgentDefinitionRegistry;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetEntryView;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.model.Agent;
@@ -30,12 +34,14 @@ public class AccessCodeAdminService {
     private final AccessCodeRepository accessCodes;
     private final AccessCodeAgentRepository accessCodeAgents;
     private final AgentDefinitionRegistry agentDefinitions;
+    private final AccessCodePresetCatalog accessCodePresets;
 
     public AccessCodeAdminService(AccessCodeRepository accessCodes, AccessCodeAgentRepository accessCodeAgents,
-            AgentDefinitionRegistry agentDefinitions) {
+            AgentDefinitionRegistry agentDefinitions, AccessCodePresetCatalog accessCodePresets) {
         this.accessCodes = accessCodes;
         this.accessCodeAgents = accessCodeAgents;
         this.agentDefinitions = agentDefinitions;
+        this.accessCodePresets = accessCodePresets;
     }
 
     public List<AdminAgentTypeView> listAgentTypes() {
@@ -45,10 +51,16 @@ public class AccessCodeAdminService {
                 .toList();
     }
 
+    public List<AccessCodePresetView> listAccessCodePresets() {
+        return this.accessCodePresets.list().stream()
+                .map(this::toPresetView)
+                .toList();
+    }
+
     @Transactional
     public AccessCodeView createAccessCode(String code, Boolean enabled) {
         this.validateCode(code);
-        if (this.accessCodes.findAll().stream().anyMatch(existing -> code.equals(existing.getCode()))) {
+        if (this.accessCodes.findByCode(code).isPresent()) {
             throw new DuplicateAccessCodeException(code);
         }
         AccessCode accessCode = new AccessCode(code, enabled == null || enabled.booleanValue());
@@ -91,6 +103,29 @@ public class AccessCodeAdminService {
         return Optional.of(this.toView(this.accessCodes.save(accessCode.get())));
     }
 
+    @Transactional
+    public Optional<List<AccessCodeView>> applyAccessCodePreset(String presetKey,
+            List<AccessCodePresetEntrySpec> requestedEntries) {
+        Optional<AccessCodePresetSpec> preset = this.findPreset(presetKey);
+        if (preset.isEmpty()) {
+            return Optional.empty();
+        }
+        Map<String, List<String>> resolvedAssignments = this.resolvePresetAssignments(preset.get(), requestedEntries);
+        for (String code : resolvedAssignments.keySet()) {
+            if (this.accessCodes.findByCode(code).isPresent()) {
+                throw new DuplicateAccessCodeException(code);
+            }
+        }
+        List<AccessCodeView> created = new ArrayList<>();
+        for (Map.Entry<String, List<String>> assignment : resolvedAssignments.entrySet()) {
+            AccessCode accessCode = new AccessCode(assignment.getKey(), true);
+            accessCode.replaceAllowedAgentTypes(assignment.getValue());
+            created.add(this.toView(this.accessCodes.save(accessCode)));
+        }
+        this.accessCodes.flush();
+        return Optional.of(created);
+    }
+
     public Optional<List<AgentInfoView>> listAgents(UUID id) {
         if (id == null || this.accessCodes.findById(id).isEmpty()) {
             return Optional.empty();
@@ -125,6 +160,73 @@ public class AccessCodeAdminService {
             if (!resolved.add(key)) {
                 throw new IllegalArgumentException("duplicate agent type key: " + key);
             }
+        }
+        return resolved;
+    }
+
+    private Optional<AccessCodePresetSpec> findPreset(String presetKey) {
+        if (presetKey == null || presetKey.isBlank()) {
+            return Optional.empty();
+        }
+        return this.accessCodePresets.list().stream()
+                .filter(preset -> presetKey.equals(preset.key()))
+                .findFirst();
+    }
+
+    private AccessCodePresetView toPresetView(AccessCodePresetSpec preset) {
+        if (preset.key() == null || preset.key().isBlank()) {
+            throw new IllegalArgumentException("access-code preset key must not be blank");
+        }
+        List<AccessCodePresetEntryView> entries = preset.entries().stream()
+                .map(entry -> {
+                    this.validateCode(entry.code());
+                    List<String> keys = this.validatePresetAgentTypeKeys(entry.agentTypeKeys());
+                    return new AccessCodePresetEntryView(entry.code(), keys);
+                })
+                .toList();
+        return new AccessCodePresetView(preset.key(), preset.displayName(), entries);
+    }
+
+    private List<String> validatePresetAgentTypeKeys(List<String> agentTypeKeys) {
+        return List.copyOf(this.validateAgentTypeKeys(agentTypeKeys));
+    }
+
+    private Map<String, List<String>> resolvePresetAssignments(AccessCodePresetSpec preset,
+            List<AccessCodePresetEntrySpec> requestedEntries) {
+        if (requestedEntries == null) {
+            throw new IllegalArgumentException("preset entries must be provided");
+        }
+        Map<String, Set<String>> allowedByCode = new LinkedHashMap<>();
+        for (AccessCodePresetEntrySpec entry : preset.entries()) {
+            this.validateCode(entry.code());
+            if (allowedByCode.put(entry.code(), this.validateAgentTypeKeys(entry.agentTypeKeys())) != null) {
+                throw new IllegalArgumentException("duplicate preset access code: " + entry.code());
+            }
+        }
+        Map<String, List<String>> resolved = new LinkedHashMap<>();
+        for (AccessCodePresetEntrySpec requested : requestedEntries) {
+            if (requested == null) {
+                throw new IllegalArgumentException("preset entry must not be null");
+            }
+            this.validateCode(requested.code());
+            Set<String> allowed = allowedByCode.get(requested.code());
+            if (allowed == null) {
+                throw new IllegalArgumentException("access code is not part of preset: " + requested.code());
+            }
+            if (resolved.containsKey(requested.code())) {
+                throw new IllegalArgumentException("duplicate access code in preset request: " + requested.code());
+            }
+            Set<String> selectedKeys = this.validateAgentTypeKeys(requested.agentTypeKeys());
+            for (String key : selectedKeys) {
+                if (!allowed.contains(key)) {
+                    throw new IllegalArgumentException(
+                            "agent type key is not part of preset entry " + requested.code() + ": " + key);
+                }
+            }
+            resolved.put(requested.code(), List.copyOf(selectedKeys));
+        }
+        if (!resolved.keySet().equals(allowedByCode.keySet())) {
+            throw new IllegalArgumentException("preset request must include every preset access code");
         }
         return resolved;
     }

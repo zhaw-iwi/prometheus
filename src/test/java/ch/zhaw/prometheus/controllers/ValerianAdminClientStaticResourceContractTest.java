@@ -25,6 +25,11 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"admin-token-input\""));
         assertTrue(index.contains("data-testid=\"submit-admin-token\""));
         assertTrue(index.contains("data-testid=\"admin-shell\""));
+        assertTrue(index.contains("data-testid=\"access-code-preset-menu-button\""));
+        assertTrue(index.contains("data-testid=\"access-code-preset-menu\""));
+        assertTrue(index.contains("data-testid=\"access-code-preset-modal\""));
+        assertTrue(index.contains("data-testid=\"access-code-preset-entries\""));
+        assertTrue(index.contains("data-testid=\"create-access-code-preset\""));
         assertTrue(index.contains("data-testid=\"forget-admin-token\""));
         assertTrue(index.contains("data-testid=\"admin-workspace\""));
         assertTrue(index.contains("data-testid=\"new-access-code-input\""));
@@ -59,10 +64,14 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("GENERATED_CODE_CHARS = \"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789\""));
         assertTrue(script.contains("adminJson(\"/admin/agent-types\")"));
         assertTrue(script.contains("adminJson(\"/admin/access-codes\")"));
+        assertTrue(script.contains("adminJson(\"/admin/access-code-presets\")"));
         assertTrue(script.contains("adminJson(\"/admin/access-codes\","));
+        assertTrue(script.contains("`/admin/access-code-presets/${encodeURIComponent(preset.key)}/apply`"));
         assertTrue(script.contains("body: JSON.stringify({ code, enabled: true })"));
+        assertTrue(script.contains("body: JSON.stringify({ entries })"));
         assertTrue(script.contains("body: JSON.stringify({ enabled })"));
         assertTrue(script.contains("document.querySelectorAll(\"[data-agent-type-checkbox]:checked\")"));
+        assertTrue(script.contains("data-preset-agent-checkbox"));
         assertTrue(script.contains(".map((input) => input.value)"));
         assertTrue(script.contains("body: JSON.stringify({ agentTypeKeys })"));
         assertTrue(script.contains("`/admin/access-codes/${encodeURIComponent(selected.id)}/agent-types`"));
@@ -77,6 +86,8 @@ class ValerianAdminClientStaticResourceContractTest {
         assertTrue(script.contains("const shell = document.getElementById(\"admin_shell\")"));
         assertTrue(script.contains("const tokenPanel = document.getElementById(\"token_panel\")"));
         assertTrue(script.contains("tokenPanel.hidden = visible;"));
+        assertTrue(script.contains("function openPresetModal"));
+        assertTrue(script.contains("function createAccessCodePreset"));
 
         assertFalse(script.toLowerCase().contains("gigi"));
         assertFalse(script.toLowerCase().contains("tdsr"));

@@ -15,6 +15,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetEntryView;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.model.Agent;
@@ -97,6 +99,88 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(first.isEnabled());
         assertFalse(second.isEnabled());
         assertEquals(2, this.accessCodes.findAll().size());
+    }
+
+    @Test
+    void listsShhdAccessCodePresetWithExplicitAssignments() {
+        AccessCodePresetView preset = this.service.listAccessCodePresets().stream()
+                .filter(candidate -> "shhd_scene_agents".equals(candidate.getKey()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals("SHHD scene access codes", preset.getDisplayName());
+        assertEquals(List.of("shhde", "shhen", "shhfr", "shhit", "shhba"), preset.getEntries().stream()
+                .map(AccessCodePresetEntryView::getCode)
+                .toList());
+        assertEquals(List.of(
+                "tdsr.shhd.de.epfl_active",
+                "tdsr.shhd.de.furka",
+                "tdsr.shhd.de.interviewing_people",
+                "tdsr.shhd.de.supsi_active",
+                "tdsr.shhd.de.unis_student"), presetEntry(preset, "shhde").getAgentTypeKeys());
+        assertEquals(List.of(
+                "tdsr.shhd.babylon.epfl_active",
+                "tdsr.shhd.babylon.furka",
+                "tdsr.shhd.babylon.interviewing_people",
+                "tdsr.shhd.babylon.supsi_active",
+                "tdsr.shhd.babylon.unis_student"), presetEntry(preset, "shhba").getAgentTypeKeys());
+    }
+
+    @Test
+    void appliesAccessCodePresetWithReviewedAssignments() {
+        List<AccessCodeView> created = this.service.applyAccessCodePreset("shhd_scene_agents", List.of(
+                new AccessCodePresetEntrySpec("shhde", List.of(
+                        "tdsr.shhd.de.epfl_active",
+                        "tdsr.shhd.de.furka",
+                        "tdsr.shhd.de.interviewing_people",
+                        "tdsr.shhd.de.supsi_active")),
+                new AccessCodePresetEntrySpec("shhen", List.of(
+                        "tdsr.shhd.en.epfl_active",
+                        "tdsr.shhd.en.furka",
+                        "tdsr.shhd.en.interviewing_people",
+                        "tdsr.shhd.en.supsi_active",
+                        "tdsr.shhd.en.unis_student")),
+                new AccessCodePresetEntrySpec("shhfr", List.of(
+                        "tdsr.shhd.fr.epfl_active",
+                        "tdsr.shhd.fr.furka",
+                        "tdsr.shhd.fr.interviewing_people",
+                        "tdsr.shhd.fr.supsi_active",
+                        "tdsr.shhd.fr.unis_student")),
+                new AccessCodePresetEntrySpec("shhit", List.of(
+                        "tdsr.shhd.it.epfl_active",
+                        "tdsr.shhd.it.furka",
+                        "tdsr.shhd.it.interviewing_people",
+                        "tdsr.shhd.it.supsi_active",
+                        "tdsr.shhd.it.unis_student")),
+                new AccessCodePresetEntrySpec("shhba", List.of(
+                        "tdsr.shhd.babylon.epfl_active",
+                        "tdsr.shhd.babylon.furka",
+                        "tdsr.shhd.babylon.interviewing_people",
+                        "tdsr.shhd.babylon.supsi_active",
+                        "tdsr.shhd.babylon.unis_student")))).orElseThrow();
+
+        assertEquals(5, created.size());
+        assertEquals(5, this.accessCodes.findAll().size());
+        assertTrue(accessCode(created, "shhde").isEnabled());
+        assertEquals(List.of(
+                "tdsr.shhd.de.epfl_active",
+                "tdsr.shhd.de.furka",
+                "tdsr.shhd.de.interviewing_people",
+                "tdsr.shhd.de.supsi_active"), accessCode(created, "shhde").getAllowedAgentTypeKeys());
+        assertEquals(24, this.allowedAgentTypes.findAll().size());
+    }
+
+    @Test
+    void rejectsConflictingOrEditedAccessCodePresetRequests() {
+        this.service.createAccessCode("shhde", true);
+
+        assertThrows(DuplicateAccessCodeException.class, () -> this.service.applyAccessCodePreset("shhd_scene_agents",
+                this.service.listAccessCodePresets().get(0).getEntries().stream()
+                        .map(entry -> new AccessCodePresetEntrySpec(entry.getCode(), entry.getAgentTypeKeys()))
+                        .toList()));
+        assertThrows(IllegalArgumentException.class, () -> this.service.applyAccessCodePreset("shhd_scene_agents",
+                List.of(new AccessCodePresetEntrySpec("shhde", List.of("basic.single_state_micro_coaching")))));
+        assertTrue(this.service.applyAccessCodePreset("missing", List.of()).isEmpty());
     }
 
     @Test
@@ -200,6 +284,20 @@ class AccessCodeAdminServiceIntegrationTest {
                 .filter(agentType -> key.equals(agentType.getKey()))
                 .findFirst()
                 .map(AdminAgentTypeView::getPackagePath)
+                .orElseThrow();
+    }
+
+    private static AccessCodePresetEntryView presetEntry(AccessCodePresetView preset, String code) {
+        return preset.getEntries().stream()
+                .filter(entry -> code.equals(entry.getCode()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static AccessCodeView accessCode(List<AccessCodeView> accessCodes, String code) {
+        return accessCodes.stream()
+                .filter(accessCode -> code.equals(accessCode.getCode()))
+                .findFirst()
                 .orElseThrow();
     }
 }

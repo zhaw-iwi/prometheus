@@ -2,10 +2,13 @@ const state = {
   adminToken: null,
   agentTypes: [],
   accessCodes: [],
+  accessCodePresets: [],
   selectedAccessCodeId: null,
   selectedAgents: [],
   agentTypeFilter: "",
   expandedAgentTypePackages: new Set(),
+  presetMenuOpen: false,
+  activeAccessCodePresetKey: null,
 };
 
 const ADMIN_TOKEN_STORAGE_KEY = "prometheus.valerianAdmin.adminToken";
@@ -19,6 +22,7 @@ function init() {
   renderAccessCodes();
   renderAgentTypes();
   renderInstances();
+  renderPresetMenu();
   const storedToken = sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
   if (storedToken) {
     document.getElementById("admin_token_input").value = storedToken;
@@ -38,6 +42,22 @@ function wireUi() {
     }
   });
   document.getElementById("forget_admin_token").addEventListener("click", forgetAdminToken);
+  document.getElementById("access_code_preset_menu_button").addEventListener("click", togglePresetMenu);
+  document.getElementById("close_access_code_preset_modal").addEventListener("click", closePresetModal);
+  document.getElementById("cancel_access_code_preset").addEventListener("click", closePresetModal);
+  document.getElementById("create_access_code_preset").addEventListener("click", createAccessCodePreset);
+  document.getElementById("access_code_preset_modal").addEventListener("click", (event) => {
+    if (event.target.id === "access_code_preset_modal") {
+      closePresetModal();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    const wrap = document.querySelector(".preset-menu-wrap");
+    if (state.presetMenuOpen && wrap && !wrap.contains(event.target)) {
+      state.presetMenuOpen = false;
+      renderPresetMenu();
+    }
+  });
   document.getElementById("refresh_admin_data").addEventListener("click", refreshAdminData);
   document.getElementById("generate_access_code").addEventListener("click", generateAccessCode);
   document.getElementById("create_access_code").addEventListener("click", createAccessCode);
@@ -81,10 +101,13 @@ function forgetAdminToken() {
   state.adminToken = null;
   state.agentTypes = [];
   state.accessCodes = [];
+  state.accessCodePresets = [];
   state.selectedAccessCodeId = null;
   state.selectedAgents = [];
   state.agentTypeFilter = "";
   state.expandedAgentTypePackages = new Set();
+  state.presetMenuOpen = false;
+  state.activeAccessCodePresetKey = null;
   sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
   document.getElementById("admin_token_input").value = "";
   document.getElementById("agent_type_filter").value = "";
@@ -94,23 +117,28 @@ function forgetAdminToken() {
   renderAccessCodes();
   renderAgentTypes();
   renderInstances();
+  renderPresetMenu();
+  closePresetModal();
 }
 
 async function loadAdminData() {
   if (!state.adminToken) {
     throw new Error("Admin token required.");
   }
-  const [agentTypes, accessCodes] = await Promise.all([
+  const [agentTypes, accessCodes, accessCodePresets] = await Promise.all([
     adminJson("/admin/agent-types"),
     adminJson("/admin/access-codes"),
+    adminJson("/admin/access-code-presets"),
   ]);
   state.agentTypes = Array.isArray(agentTypes) ? agentTypes : [];
   state.accessCodes = Array.isArray(accessCodes) ? accessCodes : [];
+  state.accessCodePresets = Array.isArray(accessCodePresets) ? accessCodePresets : [];
   if (!selectedAccessCode()) {
     state.selectedAccessCodeId = state.accessCodes.length > 0 ? state.accessCodes[0].id : null;
   }
   renderAccessCodes();
   renderAgentTypes();
+  renderPresetMenu();
   await loadSelectedInstances();
 }
 
@@ -219,6 +247,143 @@ async function loadSelectedInstances() {
     state.selectedAgents = [];
     renderInstances();
     setInstanceStatus("Instance load failed.", "error");
+  }
+}
+
+function togglePresetMenu(event) {
+  if (event) {
+    event.stopPropagation();
+  }
+  state.presetMenuOpen = !state.presetMenuOpen;
+  renderPresetMenu();
+}
+
+function renderPresetMenu() {
+  const button = document.getElementById("access_code_preset_menu_button");
+  const menu = document.getElementById("access_code_preset_menu");
+  button.disabled = !state.adminToken || state.accessCodePresets.length === 0;
+  menu.hidden = !state.presetMenuOpen || button.disabled;
+  menu.replaceChildren();
+  if (state.accessCodePresets.length === 0) {
+    menu.appendChild(emptyPanel("No presets."));
+    return;
+  }
+  for (const preset of state.accessCodePresets) {
+    const item = document.createElement("button");
+    item.className = "preset-menu-item";
+    item.type = "button";
+    item.dataset.testid = "access-code-preset-menu-item";
+    item.innerHTML = `<strong>${escapeHtml(preset.displayName || preset.key)}</strong><div class="metric-label">${presetEntryCount(preset)} code${presetEntryCount(preset) === 1 ? "" : "s"}</div>`;
+    item.addEventListener("click", () => {
+      state.presetMenuOpen = false;
+      openPresetModal(preset.key);
+      renderPresetMenu();
+    });
+    menu.appendChild(item);
+  }
+}
+
+function openPresetModal(presetKey) {
+  const preset = accessCodePresetByKey(presetKey);
+  if (!preset) {
+    setAdminStatus("Preset not found.", "error");
+    return;
+  }
+  state.activeAccessCodePresetKey = preset.key;
+  document.getElementById("access_code_preset_modal_title").innerHTML =
+    `<i class="bi bi-lightning-charge me-2"></i>${escapeHtml(preset.displayName || preset.key)}`;
+  renderPresetEntries(preset);
+  setPresetStatus("");
+  const modal = document.getElementById("access_code_preset_modal");
+  modal.hidden = false;
+  modal.classList.remove("d-none");
+}
+
+function closePresetModal() {
+  state.activeAccessCodePresetKey = null;
+  const modal = document.getElementById("access_code_preset_modal");
+  modal.hidden = true;
+  modal.classList.add("d-none");
+  setPresetStatus("");
+}
+
+function renderPresetEntries(preset) {
+  const list = document.getElementById("access_code_preset_entries");
+  list.replaceChildren();
+  const byKey = agentTypeMap();
+  for (const entry of preset.entries || []) {
+    const details = document.createElement("details");
+    details.className = "preset-entry";
+    details.open = true;
+    details.dataset.testid = "access-code-preset-entry";
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<strong class="mono">${escapeHtml(entry.code)}</strong><span class="metric-label ms-2">${(entry.agentTypeKeys || []).length} type${(entry.agentTypeKeys || []).length === 1 ? "" : "s"}</span>`;
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "preset-entry-body";
+    for (const key of entry.agentTypeKeys || []) {
+      const agentType = byKey.get(key);
+      const item = document.createElement("label");
+      item.className = "agent-type-item";
+      item.dataset.testid = "access-code-preset-agent-type";
+
+      const input = document.createElement("input");
+      input.className = "form-check-input me-2";
+      input.type = "checkbox";
+      input.value = key;
+      input.checked = true;
+      input.dataset.presetAgentCheckbox = "true";
+      input.dataset.presetAccessCode = entry.code;
+      input.dataset.testid = "access-code-preset-agent-checkbox";
+
+      const title = document.createElement("span");
+      title.innerHTML = `<strong>${escapeHtml(prometheusFacingText(agentType ? agentType.displayName : key))}</strong>`;
+
+      const description = document.createElement("div");
+      description.className = "metric-label ms-4";
+      description.textContent = prometheusFacingText(agentType ? agentType.description || "" : key);
+
+      item.appendChild(input);
+      item.appendChild(title);
+      item.appendChild(description);
+      body.appendChild(item);
+    }
+    details.appendChild(body);
+    list.appendChild(details);
+  }
+}
+
+async function createAccessCodePreset() {
+  const preset = accessCodePresetByKey(state.activeAccessCodePresetKey);
+  if (!preset) {
+    setPresetStatus("Preset not found.", "error");
+    return;
+  }
+  const entries = (preset.entries || []).map((entry) => ({
+    code: entry.code,
+    agentTypeKeys: Array.from(document.querySelectorAll(`[data-preset-access-code="${cssEscape(entry.code)}"][data-preset-agent-checkbox]:checked`))
+      .map((input) => input.value),
+  }));
+  setPresetStatus("Creating access codes.");
+  try {
+    const created = await adminJson(`/admin/access-code-presets/${encodeURIComponent(preset.key)}/apply`, {
+      method: "POST",
+      body: JSON.stringify({ entries }),
+    });
+    state.accessCodes = mergeAccessCodes(state.accessCodes, Array.isArray(created) ? created : []);
+    if (Array.isArray(created) && created.length > 0) {
+      state.selectedAccessCodeId = created[0].id;
+    }
+    closePresetModal();
+    renderAccessCodes();
+    renderAgentTypes();
+    await loadSelectedInstances();
+    const createdCount = Array.isArray(created) ? created.length : 0;
+    setCreateStatus(`Created ${createdCount} access code${createdCount === 1 ? "" : "s"}.`, "success");
+  } catch (error) {
+    setPresetStatus(error.message === "conflict" ? "One or more access codes already exist." : "Preset creation failed.", "error");
   }
 }
 
@@ -531,6 +696,22 @@ function mergeAccessCodes(existing, additions) {
   return Array.from(byId.values());
 }
 
+function accessCodePresetByKey(key) {
+  return state.accessCodePresets.find((preset) => preset.key === key) || null;
+}
+
+function presetEntryCount(preset) {
+  return Array.isArray(preset.entries) ? preset.entries.length : 0;
+}
+
+function agentTypeMap() {
+  const result = new Map();
+  for (const agentType of state.agentTypes || []) {
+    result.set(agentType.key, agentType);
+  }
+  return result;
+}
+
 function assignmentCount(accessCode) {
   return Array.isArray(accessCode.allowedAgentTypeKeys) ? accessCode.allowedAgentTypeKeys.length : 0;
 }
@@ -591,6 +772,10 @@ function setInstanceStatus(message, mode) {
   setStatus("instance_status", message, mode);
 }
 
+function setPresetStatus(message, mode) {
+  setStatus("access_code_preset_status", message, mode);
+}
+
 function setStatus(id, message, mode) {
   const status = document.getElementById(id);
   status.textContent = message || "";
@@ -618,4 +803,11 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function cssEscape(value) {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(String(value || ""));
+  }
+  return String(value || "").replace(/"/g, "\\\"");
 }

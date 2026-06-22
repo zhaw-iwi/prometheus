@@ -17,10 +17,14 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.prometheus.application.AccessCodeAdminService;
+import ch.zhaw.prometheus.application.AccessCodePresetEntrySpec;
 import ch.zhaw.prometheus.application.DuplicateAccessCodeException;
 import ch.zhaw.prometheus.controllers.dto.AccessCodeAgentTypesRequest;
 import ch.zhaw.prometheus.controllers.dto.AccessCodeCreateRequest;
+import ch.zhaw.prometheus.controllers.dto.AccessCodePresetApplyRequest;
+import ch.zhaw.prometheus.controllers.dto.AccessCodePresetEntryRequest;
 import ch.zhaw.prometheus.controllers.dto.AccessCodeUpdateRequest;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
@@ -47,6 +51,19 @@ public class AdminAccessCodeController {
         return new ResponseEntity<>(this.service.listAgentTypes(), HttpStatus.OK);
     }
 
+    @GetMapping("/admin/access-code-presets")
+    public ResponseEntity<List<AccessCodePresetView>> accessCodePresets(
+            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token) {
+        if (!this.isAuthorized(token)) {
+            return this.unauthorized();
+        }
+        try {
+            return new ResponseEntity<>(this.service.listAccessCodePresets(), HttpStatus.OK);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PostMapping("/admin/access-codes")
     public ResponseEntity<AccessCodeView> createAccessCode(
             @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token,
@@ -60,6 +77,31 @@ public class AdminAccessCodeController {
         try {
             AccessCodeView created = this.service.createAccessCode(request.getCode(), request.getEnabled());
             return new ResponseEntity<>(created, HttpStatus.CREATED);
+        } catch (DuplicateAccessCodeException exception) {
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
+        } catch (IllegalArgumentException exception) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/admin/access-code-presets/{presetKey}/apply")
+    public ResponseEntity<List<AccessCodeView>> applyAccessCodePreset(
+            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token,
+            @PathVariable String presetKey,
+            @RequestBody(required = false) AccessCodePresetApplyRequest request) {
+        if (!this.isAuthorized(token)) {
+            return this.unauthorized();
+        }
+        if (request == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        try {
+            Optional<List<AccessCodeView>> created = this.service.applyAccessCodePreset(presetKey,
+                    this.toPresetEntrySpecs(request.getEntries()));
+            if (created.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            return new ResponseEntity<>(created.get(), HttpStatus.CREATED);
         } catch (DuplicateAccessCodeException exception) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         } catch (IllegalArgumentException exception) {
@@ -139,6 +181,17 @@ public class AdminAccessCodeController {
                 && !this.adminToken.isBlank()
                 && token != null
                 && this.adminToken.equals(token);
+    }
+
+    private List<AccessCodePresetEntrySpec> toPresetEntrySpecs(List<AccessCodePresetEntryRequest> entries) {
+        if (entries == null) {
+            return null;
+        }
+        return entries.stream()
+                .map(entry -> entry == null
+                        ? null
+                        : new AccessCodePresetEntrySpec(entry.getCode(), entry.getAgentTypeKeys()))
+                .toList();
     }
 
     private <T> ResponseEntity<T> unauthorized() {

@@ -52,6 +52,7 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - Purpose: small root/admin page for configuring Valerian access codes without manual database changes.
 - Admin token is entered in the page and stored in `sessionStorage` for the current browser session.
 - The page can create manually typed five-character access codes, generate non-ambiguous five-character codes client-side, enable/disable codes, assign registered agent types with checkboxes, and inspect instances linked to each code.
+- The header preset menu can load backend-defined access-code presets, review their preselected agent assignments in a modal, optionally uncheck individual agents, and create the whole preset set in one transaction.
 
 ### Text Client
 
@@ -381,6 +382,8 @@ Access codes are case-sensitive, are not normalized by the backend, and must be 
 The same operations are available through the Prometheus admin cockpit at `/valerian-admin/`.
 
 - `GET /admin/agent-types`
+- `GET /admin/access-code-presets`
+- `POST /admin/access-code-presets/{presetKey}/apply`
 - `POST /admin/access-codes`
 - `GET /admin/access-codes`
 - `PATCH /admin/access-codes/{id}`
@@ -403,6 +406,19 @@ The admin cockpit uses `packagePath` to build its assignment tree dynamically.
 Package names are not hard-coded in the client, so new, renamed, or removed
 agent-definition packages appear from the API metadata.
 
+Access-code presets are backend-defined convenience bundles. They are listed as
+explicit access-code-to-agent-type-key assignments so the admin cockpit does not
+need to infer package contents. Applying a preset creates all requested access
+codes and assignments transactionally; if any code already exists or a submitted
+agent type is not part of that preset entry, the request fails without creating
+partial data. The built-in `shhd_scene_agents` preset creates:
+
+- `shhde` with the five `tdsr.shhd.de.*` scene agents.
+- `shhen` with the five `tdsr.shhd.en.*` scene agents.
+- `shhfr` with the five `tdsr.shhd.fr.*` scene agents.
+- `shhit` with the five `tdsr.shhd.it.*` scene agents.
+- `shhba` with the five `tdsr.shhd.babylon.*` scene agents.
+
 Create body:
 
 ```json
@@ -417,6 +433,22 @@ Allowed-type replacement body:
 ```json
 {
   "agentTypeKeys": ["tdsr.core.de.rock_scissor_paper"]
+}
+```
+
+Preset apply body:
+
+```json
+{
+  "entries": [
+    {
+      "code": "shhde",
+      "agentTypeKeys": [
+        "tdsr.shhd.de.epfl_active",
+        "tdsr.shhd.de.furka"
+      ]
+    }
+  ]
 }
 ```
 

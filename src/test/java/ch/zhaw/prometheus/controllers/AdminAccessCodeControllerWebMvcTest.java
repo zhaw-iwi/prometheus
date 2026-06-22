@@ -25,6 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import ch.zhaw.prometheus.application.AccessCodeAdminService;
 import ch.zhaw.prometheus.application.DuplicateAccessCodeException;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetEntryView;
+import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 
@@ -57,6 +59,16 @@ class AdminAccessCodeControllerWebMvcTest {
                 .content("""
                         {
                           "code": "af7u1"
+                        }
+                        """))
+                .andExpect(status().isUnauthorized());
+        this.mockMvc.perform(get("/admin/access-code-presets"))
+                .andExpect(status().isUnauthorized());
+        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "entries": []
                         }
                         """))
                 .andExpect(status().isUnauthorized());
@@ -108,6 +120,23 @@ class AdminAccessCodeControllerWebMvcTest {
     }
 
     @Test
+    void acceptsValidAdminTokenForAccessCodePresets() throws Exception {
+        when(this.service.listAccessCodePresets()).thenReturn(List.of(
+                new AccessCodePresetView("shhd_scene_agents", "SHHD scene access codes", List.of(
+                        new AccessCodePresetEntryView("shhde", List.of(
+                                "tdsr.shhd.de.epfl_active",
+                                "tdsr.shhd.de.furka"))))));
+
+        this.mockMvc.perform(get("/admin/access-code-presets")
+                .header(HEADER, TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].key").value("shhd_scene_agents"))
+                .andExpect(jsonPath("$[0].displayName").value("SHHD scene access codes"))
+                .andExpect(jsonPath("$[0].entries[0].code").value("shhde"))
+                .andExpect(jsonPath("$[0].entries[0].agentTypeKeys[0]").value("tdsr.shhd.de.epfl_active"));
+    }
+
+    @Test
     void createsAccessCodeWithValidAdminToken() throws Exception {
         UUID id = UUID.fromString("22222222-2222-2222-2222-222222222222");
         when(this.service.createAccessCode("af7u1", true))
@@ -129,9 +158,46 @@ class AdminAccessCodeControllerWebMvcTest {
     }
 
     @Test
+    void appliesAccessCodePresetWithValidAdminToken() throws Exception {
+        UUID firstId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        UUID secondId = UUID.fromString("66666666-6666-6666-6666-666666666666");
+        when(this.service.applyAccessCodePreset(eq("shhd_scene_agents"), any()))
+                .thenReturn(Optional.of(List.of(
+                        new AccessCodeView(firstId, "shhde", true, List.of("tdsr.shhd.de.epfl_active")),
+                        new AccessCodeView(secondId, "shhen", true, List.of("tdsr.shhd.en.epfl_active")))));
+
+        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+                .header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "entries": [
+                            {
+                              "code": "shhde",
+                              "agentTypeKeys": ["tdsr.shhd.de.epfl_active"]
+                            },
+                            {
+                              "code": "shhen",
+                              "agentTypeKeys": ["tdsr.shhd.en.epfl_active"]
+                            }
+                          ]
+                        }
+                        """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$[0].id").value(firstId.toString()))
+                .andExpect(jsonPath("$[0].code").value("shhde"))
+                .andExpect(jsonPath("$[0].allowedAgentTypeKeys[0]").value("tdsr.shhd.de.epfl_active"))
+                .andExpect(jsonPath("$[1].code").value("shhen"));
+    }
+
+    @Test
     void mapsDuplicateAndInvalidCreateRequests() throws Exception {
         when(this.service.createAccessCode("duP77", true)).thenThrow(new DuplicateAccessCodeException("duP77"));
         when(this.service.createAccessCode(eq("bad!!"), any())).thenThrow(new IllegalArgumentException("invalid"));
+        when(this.service.applyAccessCodePreset(eq("shhd_scene_agents"), any()))
+                .thenThrow(new DuplicateAccessCodeException("shhde"));
+        when(this.service.applyAccessCodePreset(eq("invalid_preset"), any()))
+                .thenThrow(new IllegalArgumentException("invalid"));
 
         this.mockMvc.perform(post("/admin/access-codes")
                 .header(HEADER, TOKEN)
@@ -150,6 +216,26 @@ class AdminAccessCodeControllerWebMvcTest {
                 .content("""
                         {
                           "code": "bad!!"
+                        }
+                        """))
+                .andExpect(status().isBadRequest());
+
+        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+                .header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "entries": []
+                        }
+                        """))
+                .andExpect(status().isConflict());
+
+        this.mockMvc.perform(post("/admin/access-code-presets/invalid_preset/apply")
+                .header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "entries": []
                         }
                         """))
                 .andExpect(status().isBadRequest());
@@ -204,6 +290,7 @@ class AdminAccessCodeControllerWebMvcTest {
     void returnsNotFoundForMissingAccessCode() throws Exception {
         UUID id = UUID.fromString("44444444-4444-4444-4444-444444444444");
         when(this.service.updateAccessCodeEnabled(id, true)).thenReturn(Optional.empty());
+        when(this.service.applyAccessCodePreset(eq("missing"), any())).thenReturn(Optional.empty());
 
         this.mockMvc.perform(patch("/admin/access-codes/" + id)
                 .header(HEADER, TOKEN)
@@ -211,6 +298,16 @@ class AdminAccessCodeControllerWebMvcTest {
                 .content("""
                         {
                           "enabled": true
+                        }
+                        """))
+                .andExpect(status().isNotFound());
+
+        this.mockMvc.perform(post("/admin/access-code-presets/missing/apply")
+                .header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "entries": []
                         }
                         """))
                 .andExpect(status().isNotFound());
