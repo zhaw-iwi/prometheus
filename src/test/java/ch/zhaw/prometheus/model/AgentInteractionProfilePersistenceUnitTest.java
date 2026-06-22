@@ -30,8 +30,11 @@ class AgentInteractionProfilePersistenceUnitTest {
         Agent loaded = this.repository.findById(saved.getId()).orElseThrow();
 
         AgentInteractionProfile profile = loaded.getInteractionProfile();
-        assertEquals(List.of(AgentInteractionProfile.OBS_USER_UTTERANCE, AgentInteractionProfile.OBS_HAND_SIGN),
-                profile.getSupportedObservations());
+        assertEquals(List.of(
+                AgentInteractionProfile.OBS_USER_UTTERANCE,
+                AgentInteractionProfile.OBS_HAND_SIGN,
+                AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                AgentInteractionProfile.OBS_WEATHER_FORECAST), profile.getSupportedObservations());
         assertEquals(List.of(
                 AgentInteractionProfile.MODALITY_SPEECH,
                 AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,

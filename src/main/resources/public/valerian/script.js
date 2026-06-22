@@ -45,6 +45,12 @@ const realtime = {
   transcriptFlushTimer: null,
 };
 
+const speechDevices = {
+  inputDeviceId: "",
+  outputDeviceId: "",
+  devicesLoaded: false,
+};
+
 const camera = {
   video: null,
   canvas: null,
@@ -85,6 +91,10 @@ const REALTIME_MODE_CONTINUOUS = "continuous";
 const ACTIVITY_LOG_LIMIT = 300;
 const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
+const SPEECH_INPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechInputDevice";
+const SPEECH_OUTPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechOutputDevice";
+const REALTIME_ICE_FAILURE_MESSAGE = "Realtime WebRTC ICE failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
+const REALTIME_CONNECTION_FAILURE_MESSAGE = "Realtime WebRTC connection failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
@@ -155,10 +165,13 @@ async function init() {
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   wireUi();
+  loadStoredSpeechDeviceSelection();
+  renderSpeechDeviceSelections([], []);
   showCockpit(false);
   applyInteractionProfile(null);
   resetStateView();
   resetStorageList();
+  refreshAudioDevices({ requestPermission: false, silent: true });
   appendSystemMessage("Select or create an agent instance, then connect.");
 
   state.selectedAgentId = getAgentIdFromLocation();
@@ -211,10 +224,25 @@ function wireUi() {
   });
   document.getElementById("toggle_realtime").addEventListener("click", () => toggleRealtime());
   document.getElementById("diagnostics_drawer").addEventListener("show.bs.offcanvas", showAgentDrawerTab);
+  document.getElementById("continuous_speech_tab").addEventListener("shown.bs.tab", () => {
+    refreshAudioDevices({ requestPermission: false, silent: true });
+  });
   document.getElementById("voice_select").addEventListener("change", applySessionSettings);
   document.getElementById("turn_detection_select").addEventListener("change", () => {
     applySessionSettings();
   });
+  document.getElementById("speech_input_device_select").addEventListener("change", saveSpeechInputDeviceSelection);
+  document.getElementById("speech_output_device_select").addEventListener("change", () => {
+    saveSpeechOutputDeviceSelection();
+  });
+  document.getElementById("refresh_audio_devices").addEventListener("click", () => {
+    refreshAudioDevices({ requestPermission: true });
+  });
+  if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
+    navigator.mediaDevices.addEventListener("devicechange", () => {
+      refreshAudioDevices({ requestPermission: false, silent: true });
+    });
+  }
   document.getElementById("start_camera").addEventListener("click", startCamera);
   document.getElementById("stop_camera").addEventListener("click", () => stopCamera());
 
@@ -1529,12 +1557,14 @@ async function startRealtime() {
   setRealtimeState(true);
   resetRealtimeTranscriptGate();
   appendLog("realtime", "starting.");
+  setRealtimeTransportStatus("Transport Starting", "idle", "");
   try {
     await setupRealtimeConnection();
     await waitForDataChannelOpen();
   } catch (error) {
     appendLog("realtime", "start failed: " + error.message);
     await stopRealtime();
+    setRealtimeTransportStatus("Transport Failed", "error", `Realtime start failed: ${error.message}`);
   }
 }
 
@@ -1566,6 +1596,7 @@ async function stopRealtime() {
   audio.load();
   realtime.responseActive = false;
   resetRealtimeTranscriptGate();
+  setRealtimeTransportStatus("Transport Idle", "idle", "");
   appendLog("realtime", "stopped.");
 }
 
@@ -1574,18 +1605,19 @@ async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
   realtime.activeMode = mode;
   realtime.activeTurnDetection = settings.turnDetection || "server_vad";
   realtime.peerConnection = new RTCPeerConnection();
+  wireRealtimePeerDiagnostics(realtime.peerConnection);
   realtime.peerConnection.ontrack = (event) => {
-    activeAssistantAudioElement().srcObject = event.streams[0];
+    const audio = activeAssistantAudioElement();
+    audio.srcObject = event.streams[0];
+    applySelectedSpeechOutputDevice().catch(() => {
+    });
   };
   realtime.dataChannel = realtime.peerConnection.createDataChannel("oai-events");
   realtime.dataChannel.addEventListener("message", handleRealtimeEvent);
   realtime.micStream = await navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    },
+    audio: speechInputConstraints(),
   });
+  refreshAudioDevices({ requestPermission: false, silent: true });
   setMicEnabled(true);
   realtime.micStream.getTracks().forEach((track) => realtime.peerConnection.addTrack(track, realtime.micStream));
 
@@ -1782,6 +1814,265 @@ function applySessionSettings() {
     return;
   }
   appendLog("realtime", "restart realtime to apply voice or mode changes.");
+}
+
+function loadStoredSpeechDeviceSelection() {
+  speechDevices.inputDeviceId = localStorage.getItem(SPEECH_INPUT_DEVICE_STORAGE_KEY) || "";
+  speechDevices.outputDeviceId = localStorage.getItem(SPEECH_OUTPUT_DEVICE_STORAGE_KEY) || "";
+}
+
+function saveSpeechInputDeviceSelection() {
+  speechDevices.inputDeviceId = document.getElementById("speech_input_device_select").value || "";
+  localStorage.setItem(SPEECH_INPUT_DEVICE_STORAGE_KEY, speechDevices.inputDeviceId);
+  setSpeechDeviceStatus(state.realtimeListening
+    ? "Microphone saved. Restart speech to use the new input device."
+    : "Microphone saved for the next speech session.", "ready");
+}
+
+async function saveSpeechOutputDeviceSelection() {
+  speechDevices.outputDeviceId = document.getElementById("speech_output_device_select").value || "";
+  localStorage.setItem(SPEECH_OUTPUT_DEVICE_STORAGE_KEY, speechDevices.outputDeviceId);
+  await applySelectedSpeechOutputDevice();
+}
+
+function speechAudioSelectionSupported() {
+  return !!(navigator.mediaDevices && navigator.mediaDevices.enumerateDevices);
+}
+
+function speechOutputSelectionSupported() {
+  return !!(activeAssistantAudioElement() && typeof activeAssistantAudioElement().setSinkId === "function");
+}
+
+async function refreshAudioDevices(options = {}) {
+  const requestPermission = options.requestPermission === true;
+  const silent = options.silent === true;
+  if (!speechAudioSelectionSupported()) {
+    renderSpeechDeviceSelections([], []);
+    setSpeechDeviceStatus("Audio device selection is not supported by this browser.", "error");
+    setRealtimeControlsLocked(state.realtimeListening);
+    return;
+  }
+  let permissionStream = null;
+  try {
+    if (requestPermission) {
+      permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputDevices = devices.filter((device) => device.kind === "audioinput");
+    const outputDevices = devices.filter((device) => device.kind === "audiooutput");
+    renderSpeechDeviceSelections(inputDevices, outputDevices);
+    speechDevices.devicesLoaded = true;
+    if (!silent) {
+      const outputNote = speechOutputSelectionSupported() ? "" : " Speaker selection is not supported by this browser.";
+      setSpeechDeviceStatus(`Audio devices refreshed.${outputNote}`, speechOutputSelectionSupported() ? "ready" : "");
+    } else if (!speechOutputSelectionSupported()) {
+      setSpeechDeviceStatus("Speaker selection is not supported by this browser; using browser default output.");
+    }
+  } catch (error) {
+    setSpeechDeviceStatus(`Audio device refresh failed: ${error.message}`, "error");
+    appendLog("realtime", `audio device refresh failed: ${error.message}`);
+  } finally {
+    if (permissionStream) {
+      permissionStream.getTracks().forEach((track) => track.stop());
+    }
+    setRealtimeControlsLocked(state.realtimeListening);
+  }
+}
+
+function renderSpeechDeviceSelections(inputDevices, outputDevices) {
+  renderSpeechDeviceSelect(
+    document.getElementById("speech_input_device_select"),
+    inputDevices,
+    "audioinput",
+    "System / browser default",
+    speechDevices.inputDeviceId
+  );
+  renderSpeechDeviceSelect(
+    document.getElementById("speech_output_device_select"),
+    outputDevices,
+    "audiooutput",
+    "System / browser default",
+    speechDevices.outputDeviceId
+  );
+}
+
+function renderSpeechDeviceSelect(select, devices, kind, defaultLabel, selectedDeviceId) {
+  if (!select) {
+    return;
+  }
+  select.replaceChildren(new Option(defaultLabel, ""));
+  const seen = new Set([""]);
+  devices.forEach((device, index) => {
+    if (!device.deviceId || device.deviceId === "default" || seen.has(device.deviceId)) {
+      return;
+    }
+    const label = device.label || `${kind === "audioinput" ? "Microphone" : "Speaker"} ${index + 1}`;
+    select.appendChild(new Option(label, device.deviceId));
+    seen.add(device.deviceId);
+  });
+  select.value = seen.has(selectedDeviceId) ? selectedDeviceId : "";
+}
+
+function selectedSpeechInputDeviceId() {
+  return document.getElementById("speech_input_device_select").value || "";
+}
+
+function selectedSpeechOutputDeviceId() {
+  return document.getElementById("speech_output_device_select").value || "";
+}
+
+function speechInputConstraints() {
+  const constraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+  const deviceId = selectedSpeechInputDeviceId();
+  if (deviceId) {
+    constraints.deviceId = { exact: deviceId };
+  }
+  return constraints;
+}
+
+async function applySelectedSpeechOutputDevice() {
+  const audio = activeAssistantAudioElement();
+  const deviceId = selectedSpeechOutputDeviceId();
+  if (!speechOutputSelectionSupported()) {
+    const message = deviceId
+      ? "Selected speaker cannot be applied because this browser does not support speaker selection."
+      : "Speaker selection is not supported by this browser; using browser default output.";
+    setSpeechDeviceStatus(message, deviceId ? "error" : "");
+    appendLog("realtime", message);
+    return false;
+  }
+  try {
+    await audio.setSinkId(deviceId);
+    setSpeechDeviceStatus(`Speaker output: ${selectedSpeechDeviceLabel(document.getElementById("speech_output_device_select"))}.`, "ready");
+    return true;
+  } catch (error) {
+    const message = `Speaker selection failed: ${error.message}`;
+    setSpeechDeviceStatus(message, "error");
+    appendLog("realtime", message);
+    return false;
+  }
+}
+
+function selectedSpeechDeviceLabel(select) {
+  const selected = select && select.options[select.selectedIndex];
+  return selected ? selected.textContent : "System / browser default";
+}
+
+function setSpeechDeviceStatus(text, mode = "") {
+  const el = document.getElementById("speech_device_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.classList.toggle("text-danger", mode === "error");
+  el.classList.toggle("text-success", mode === "ready");
+  el.classList.toggle("text-muted", mode !== "error" && mode !== "ready");
+}
+
+function wireRealtimePeerDiagnostics(peerConnection) {
+  if (!peerConnection) {
+    return;
+  }
+  setRealtimeTransportStatus("Transport Starting", "idle", "");
+  peerConnection.addEventListener("iceconnectionstatechange", () => {
+    handleRealtimeIceConnectionState(peerConnection.iceConnectionState);
+  });
+  peerConnection.addEventListener("connectionstatechange", () => {
+    handleRealtimeConnectionState(peerConnection.connectionState);
+  });
+  peerConnection.addEventListener("icegatheringstatechange", () => {
+    handleRealtimeIceGatheringState(peerConnection.iceGatheringState);
+  });
+  peerConnection.addEventListener("icecandidateerror", handleRealtimeIceCandidateError);
+}
+
+function handleRealtimeIceConnectionState(iceState) {
+  appendLog("realtime", `ICE connection state: ${iceState}.`);
+  if (iceState === "checking") {
+    setRealtimeTransportStatus("ICE Checking", "idle", "");
+  } else if (iceState === "connected" || iceState === "completed") {
+    setRealtimeTransportStatus("Transport Connected", "live", "");
+  } else if (iceState === "disconnected") {
+    setRealtimeTransportStatus("Transport Interrupted", "error", "Realtime WebRTC ICE disconnected; speech may recover or may need a restart.");
+  } else if (iceState === "failed") {
+    appendLog("realtime", REALTIME_ICE_FAILURE_MESSAGE);
+    setRealtimeTransportStatus("Transport Failed", "error", REALTIME_ICE_FAILURE_MESSAGE);
+    setRealtimeGlobalStatus("Realtime ICE Failed", "error");
+  } else if (iceState === "closed") {
+    setRealtimeTransportStatus("Transport Idle", "idle", "");
+  }
+}
+
+function handleRealtimeConnectionState(connectionState) {
+  appendLog("realtime", `Peer connection state: ${connectionState}.`);
+  if (connectionState === "connecting") {
+    setRealtimeTransportStatus("Transport Connecting", "idle", "");
+  } else if (connectionState === "connected") {
+    setRealtimeTransportStatus("Transport Connected", "live", "");
+  } else if (connectionState === "disconnected") {
+    setRealtimeTransportStatus("Transport Interrupted", "error", "Realtime WebRTC connection disconnected; speech may recover or may need a restart.");
+  } else if (connectionState === "failed") {
+    appendLog("realtime", REALTIME_CONNECTION_FAILURE_MESSAGE);
+    setRealtimeTransportStatus("Transport Failed", "error", REALTIME_CONNECTION_FAILURE_MESSAGE);
+    setRealtimeGlobalStatus("Realtime Failed", "error");
+  } else if (connectionState === "closed") {
+    setRealtimeTransportStatus("Transport Idle", "idle", "");
+  }
+}
+
+function handleRealtimeIceGatheringState(gatheringState) {
+  appendLog("realtime", `ICE gathering state: ${gatheringState}.`);
+  if (gatheringState === "gathering") {
+    setRealtimeTransportStatus("ICE Gathering", "idle", "");
+  }
+}
+
+function handleRealtimeIceCandidateError(event) {
+  const details = realtimeIceCandidateErrorDetails(event);
+  const message = `Realtime WebRTC ICE candidate error${details}. Check network/STUN/TURN if speech cannot connect.`;
+  appendLog("realtime", message);
+  setRealtimeTransportStatus("ICE Candidate Error", "error", message);
+}
+
+function realtimeIceCandidateErrorDetails(event) {
+  const parts = [];
+  if (event.errorCode) {
+    parts.push(`code ${event.errorCode}`);
+  }
+  if (event.errorText) {
+    parts.push(event.errorText);
+  }
+  if (event.url) {
+    parts.push(event.url);
+  }
+  return parts.length ? ` (${parts.join("; ")})` : "";
+}
+
+function setRealtimeTransportStatus(text, mode = "idle", detail = "") {
+  const status = document.getElementById("realtime_transport_status");
+  if (status) {
+    status.textContent = text;
+    status.className = `status-pill is-${mode || "idle"}`;
+  }
+  const detailEl = document.getElementById("realtime_transport_detail");
+  if (detailEl) {
+    detailEl.textContent = detail;
+    detailEl.classList.toggle("text-danger", mode === "error");
+    detailEl.classList.toggle("text-muted", mode !== "error");
+  }
+}
+
+function setRealtimeGlobalStatus(text, mode = "idle") {
+  const status = document.getElementById("realtime_status");
+  if (!status) {
+    return;
+  }
+  status.textContent = text;
+  status.className = `status-pill is-${mode || "idle"}`;
 }
 
 function currentRealtimeSettings() {
@@ -3022,12 +3313,21 @@ function setRealtimeControlsLocked(locked) {
     "voice_select",
     "turn_detection_select",
     "generate_side_behaviour",
+    "speech_input_device_select",
   ].forEach((id) => {
     const element = document.getElementById(id);
     if (element) {
       element.disabled = locked;
     }
   });
+  const outputSelect = document.getElementById("speech_output_device_select");
+  if (outputSelect) {
+    outputSelect.disabled = !speechAudioSelectionSupported() || !speechOutputSelectionSupported();
+  }
+  const refreshButton = document.getElementById("refresh_audio_devices");
+  if (refreshButton) {
+    refreshButton.disabled = !speechAudioSelectionSupported();
+  }
 }
 
 function setCameraStatus(text, mode) {

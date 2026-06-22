@@ -38,6 +38,8 @@ For the complete list including multilateral endpoints, see `All Client Endpoint
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Continuous Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- The Continuous Speech tab lets operators refresh and choose browser microphone and speaker devices; unsupported speaker routing falls back to the browser/system default output.
+- The same tab exposes browser-side Realtime WebRTC transport diagnostics, including ICE connection failures and candidate errors, so operators can distinguish speech-session transport problems from agent or robot-side issues.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.

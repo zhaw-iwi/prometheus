@@ -96,6 +96,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 90: Compact shared TDSR core outcome extraction prompts
 - [x] Milestone 91: Valerian Admin access-code presets
 - [x] Milestone 92: Valerian Admin package accordion manual collapse fix
+- [x] Milestone 93: Valerian speech audio device selection
+- [x] Milestone 94: Valerian Realtime ICE diagnostics
 
 ## Milestone 1
 ### Date
@@ -4243,3 +4245,79 @@ Fix Valerian Admin agent-type package accordions so packages with selected agent
 
 ### Next steps
 1. Live-check the Admin cockpit package tree with assigned SHHD preset codes and confirm selected packages can be manually collapsed.
+
+## Milestone 93
+### Date
+2026-06-22
+
+### Goal
+Let Valerian cockpit operators explicitly choose the browser microphone and speaker used for scoped PROMETHEUS Realtime speech sessions.
+
+### What changed
+- Added Microphone and Speaker selectors to the Continuous Speech tab, plus a Refresh Audio Devices action.
+- Added browser media-device enumeration for audioinput and audiooutput devices, with labels unlocked through an operator-initiated microphone permission request when needed.
+- Persisted selected microphone and speaker device IDs in localStorage.
+- Applied the selected microphone through Realtime getUserMedia audio constraints when starting a speech session.
+- Applied the selected speaker to the assistant audio element through HTMLMediaElement.setSinkId(...) when supported by the browser.
+- Added clear fallback status text when speaker routing is not supported and browser/system default output is used.
+- Kept the existing scoped Realtime endpoint, SDP flow, voice selection, VAD selection, backend complement behavior, and transcript gating unchanged.
+- Updated Valerian static contract coverage and README documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect a scoped agent, open the Continuous Speech tab, click Refresh Audio Devices, select the desired microphone and speaker, then start speech.
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfilePersistenceUnitTest,AgentInteractionProfileUnitTest" test`
+  - `.\mvnw.cmd -q test` (72 suites, 301 tests, 0 failures, 0 errors, 0 skipped)
+
+### Known issues and decisions
+- Microphone changes apply to the next Realtime speech session; restart speech after changing input devices.
+- Browser speaker routing depends on setSinkId support and browser permissions. When unsupported, the cockpit keeps using browser/system default output.
+- This milestone does not add audio level meters, speaker test tones, STUN/TURN configuration, or robot-side audio.
+
+### Next steps
+1. Live-test with the demo laptop's headset, conference microphone, and speaker devices in the target browser.
+
+## Milestone 94
+### Date
+2026-06-22
+
+### Goal
+Expose browser-side Realtime WebRTC ICE/STUN diagnostics in the PROMETHEUS Valerian cockpit without changing backend Realtime or robot-server behavior.
+
+### What changed
+- Added a Realtime transport status pill and detail line to the Continuous Speech tab.
+- Wired the browser RTCPeerConnection diagnostics for iceconnectionstatechange, connectionstatechange, icegatheringstatechange, and icecandidateerror.
+- Logged ICE/peer/gathering transitions to the existing realtime activity log.
+- Surfaced explicit operator messages for ICE failure, peer connection failure, disconnection, and ICE candidate errors.
+- Kept the scoped Realtime call endpoint, SDP exchange, VAD behavior, audio device selection, and backend complement flow unchanged.
+- Updated Valerian static contract coverage and README documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect a scoped agent, open the Continuous Speech tab, start speech, and watch the transport pill/detail while testing normal and failing network conditions.
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `.\mvnw.cmd -q "-Dtest=TransitionDecisionActionReplayIntegrationTest" test`
+  - `.\mvnw.cmd -q test` (72 suites, 301 tests, 0 failures, 0 errors, 0 skipped)
+
+### Known issues and decisions
+- This is a pure cockpit UI diagnostic change. It does not add STUN/TURN configuration, TURN credentials, or backend-side WebRTC inspection.
+- Browser ICE candidate error details depend on what the browser exposes through RTCPeerConnectionIceErrorEvent.
+- The failure message intentionally tells operators to restart speech first, then investigate network/STUN/TURN if failures repeat.
+
+### Next steps
+1. Live-test the diagnostic while reproducing the laptop/demo ICE failure and compare the cockpit status with browser about:webrtc details.

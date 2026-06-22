@@ -767,7 +767,11 @@
                   aria-labelledby="continuous_speech_tab" tabindex="0">
                   <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="metric-label">Continuous Speech Session</span>
-                    <span id="listen_status" class="status-pill is-idle">Idle</span>
+                    <div class="d-flex gap-2 align-items-center">
+                      <span id="realtime_transport_status" class="status-pill is-idle"
+                        data-testid="realtime-transport-status">Transport Idle</span>
+                      <span id="listen_status" class="status-pill is-idle">Idle</span>
+                    </div>
                   </div>
                   <div class="row g-2">
                     <div class="col-6">
@@ -801,6 +805,26 @@
                         <label class="form-check-label" for="generate_side_behaviour">Backend complement</label>
                       </div>
                     </div>
+                    <div class="col-6">
+                      <label class="form-label metric-label" for="speech_input_device_select">Microphone</label>
+                      <select id="speech_input_device_select" class="form-select form-select-sm"
+                        data-testid="speech-input-device">
+                        <option value="">System / browser default</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label metric-label" for="speech_output_device_select">Speaker</label>
+                      <select id="speech_output_device_select" class="form-select form-select-sm"
+                        data-testid="speech-output-device">
+                        <option value="">System / browser default</option>
+                      </select>
+                    </div>
+                    <div class="col-12 d-grid">
+                      <button id="refresh_audio_devices" class="btn btn-outline-ink btn-sm" type="button"
+                        data-testid="refresh-audio-devices">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh Audio Devices
+                      </button>
+                    </div>
                   </div>
                   <div class="d-grid gap-2 mt-3">
                     <button id="toggle_realtime" class="btn btn-primary" type="button" data-testid="toggle-realtime">
@@ -809,6 +833,11 @@
                   </div>
                   <audio id="assistant_audio" class="mt-3 w-100" controls autoplay
                     data-testid="assistant-audio"></audio>
+                  <div id="speech_device_status" class="text-muted small mt-2" data-testid="speech-device-status">
+                    Audio devices use browser defaults.
+                  </div>
+                  <div id="realtime_transport_detail" class="text-muted small mt-1"
+                    data-testid="realtime-transport-detail"></div>
                   <div id="continuous_speech_sensing_panel" class="surface-panel mt-3"
                     data-profile-observations="obs.user_utterance" data-testid="continuous-speech-sensing-panel">
                     <div class="sensing-panel-title">
