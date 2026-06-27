@@ -387,6 +387,14 @@
       margin-bottom: 0.25rem;
     }
 
+    .setting-default {
+      color: var(--demo-muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-left: 0.25rem;
+      white-space: nowrap;
+    }
+
     .range-value {
       color: var(--demo-muted);
       font-size: 0.82rem;
@@ -736,6 +744,188 @@
                     </div>
                   </div>
                 </div>
+                <div class="accordion-item" data-profile-observations="obs.user_utterance"
+                  data-testid="advanced-speech-settings">
+                  <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#advanced_speech_settings" aria-expanded="false">
+                      Advanced Speech Settings
+                      <span class="setting-default ms-2">voice, VAD, realtime</span>
+                    </button>
+                  </h2>
+                  <div id="advanced_speech_settings" class="accordion-collapse collapse"
+                    data-bs-parent="#sensing_accordion">
+                    <div class="accordion-body">
+                      <div class="row g-2">
+                        <div class="col-12">
+                          <label class="form-label metric-label" for="speechVoiceInput">
+                            Voice <span class="setting-default">default alloy</span>
+                          </label>
+                          <select id="speechVoiceInput" class="form-select form-select-sm"
+                            data-storage-key="speechVoice" data-testid="speech-voice">
+                            <option value="">default</option>
+                            <option value="alloy" selected>alloy</option>
+                            <option value="ash">ash</option>
+                            <option value="ballad">ballad</option>
+                            <option value="cedar">cedar</option>
+                            <option value="coral">coral</option>
+                            <option value="echo">echo</option>
+                            <option value="marin">marin</option>
+                            <option value="sage">sage</option>
+                            <option value="shimmer">shimmer</option>
+                            <option value="verse">verse</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label metric-label" for="speechVadSelect">
+                            VAD Mode <span class="setting-default">default server_vad</span>
+                          </label>
+                          <select id="speechVadSelect" class="form-select form-select-sm"
+                            data-storage-key="speechVadMode" data-testid="speech-vad">
+                            <option value="server_vad">server_vad</option>
+                            <option value="semantic_vad">semantic_vad</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check">
+                            <input id="speechComplementToggle" class="form-check-input" type="checkbox" checked
+                              data-storage-key="speechComplement" data-testid="speech-complement">
+                            <label class="form-check-label" for="speechComplementToggle">
+                              Backend complement <span class="setting-default">default on</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check">
+                            <input id="speechTranscriptionLogprobsToggle" class="form-check-input" type="checkbox"
+                              data-storage-key="speechTranscriptionLogprobs"
+                              data-testid="speech-transcription-logprobs">
+                            <label class="form-check-label" for="speechTranscriptionLogprobsToggle">
+                              Transcript logprobs <span class="setting-default">default off</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check">
+                            <input id="speechBargeInCancelToggle" class="form-check-input" type="checkbox" checked
+                              data-testid="speech-barge-in-cancel">
+                            <label class="form-check-label" for="speechBargeInCancelToggle">
+                              Barge-in cancellation <span class="setting-default">local, default on</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check">
+                            <input id="speechEchoGuardToggle" class="form-check-input" type="checkbox"
+                              data-testid="speech-echo-guard">
+                            <label class="form-check-label" for="speechEchoGuardToggle">
+                              Half-duplex fallback <span class="setting-default">default off</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadThresholdInput">
+                            VAD threshold <span class="setting-default">default 0.5</span>
+                          </label>
+                          <input id="speechVadThresholdInput" class="form-control form-control-sm" type="number"
+                            min="0" max="1" step="0.05" inputmode="decimal" placeholder="0.5"
+                            data-storage-key="speechVadThreshold" data-testid="speech-vad-threshold">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadPrefixInput">
+                            VAD prefix ms <span class="setting-default">default 300</span>
+                          </label>
+                          <input id="speechVadPrefixInput" class="form-control form-control-sm" type="number"
+                            min="0" max="2000" step="50" inputmode="numeric" placeholder="300"
+                            data-storage-key="speechVadPrefixPaddingMs" data-testid="speech-vad-prefix">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadSilenceInput">
+                            VAD silence ms <span class="setting-default">default 500</span>
+                          </label>
+                          <input id="speechVadSilenceInput" class="form-control form-control-sm" type="number"
+                            min="0" max="3000" step="50" inputmode="numeric" placeholder="500"
+                            data-storage-key="speechVadSilenceDurationMs" data-testid="speech-vad-silence">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadEagernessSelect">
+                            VAD eagerness <span class="setting-default">default auto</span>
+                          </label>
+                          <select id="speechVadEagernessSelect" class="form-select form-select-sm"
+                            data-storage-key="speechVadEagerness" data-testid="speech-vad-eagerness">
+                            <option value="">default auto</option>
+                            <option value="low">low</option>
+                            <option value="auto">auto</option>
+                            <option value="medium">medium</option>
+                            <option value="high">high</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadCreateResponseSelect">
+                            VAD creates <span class="setting-default">unsupported</span>
+                          </label>
+                          <select id="speechVadCreateResponseSelect" class="form-select form-select-sm"
+                            data-storage-key="speechVadCreateResponse" data-testid="speech-vad-create-response">
+                            <option value="">backend default</option>
+                            <option value="true" disabled>on (unsupported)</option>
+                            <option value="false">off</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechVadInterruptResponseSelect">
+                            VAD interrupts <span class="setting-default">backend</span>
+                          </label>
+                          <select id="speechVadInterruptResponseSelect" class="form-select form-select-sm"
+                            data-storage-key="speechVadInterruptResponse" data-testid="speech-vad-interrupt-response">
+                            <option value="">backend default</option>
+                            <option value="true">on</option>
+                            <option value="false">off</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechInputNoiseReductionSelect">
+                            Input NR <span class="setting-default">backend default</span>
+                          </label>
+                          <select id="speechInputNoiseReductionSelect" class="form-select form-select-sm"
+                            data-storage-key="speechInputNoiseReduction" data-testid="speech-input-noise-reduction">
+                            <option value="">backend default</option>
+                            <option value="near_field">near_field</option>
+                            <option value="far_field">far_field</option>
+                            <option value="off">off</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechOutputSpeedInput">
+                            Speed <span class="setting-default">default 1.0</span>
+                          </label>
+                          <input id="speechOutputSpeedInput" class="form-control form-control-sm" type="number"
+                            min="0.25" max="1.5" step="0.05" inputmode="decimal" placeholder="1.0"
+                            data-storage-key="speechOutputSpeed" data-testid="speech-output-speed">
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechReasoningEffortSelect">
+                            Reasoning <span class="setting-default">model default</span>
+                          </label>
+                          <select id="speechReasoningEffortSelect" class="form-select form-select-sm"
+                            data-storage-key="speechReasoningEffort" data-testid="speech-reasoning-effort">
+                            <option value="">model default</option>
+                            <option value="low">low</option>
+                            <option value="medium">medium</option>
+                            <option value="high">high</option>
+                          </select>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label metric-label" for="speechMaxOutputTokensInput">
+                            Max tokens <span class="setting-default">default inf</span>
+                          </label>
+                          <input id="speechMaxOutputTokensInput" class="form-control form-control-sm" type="number"
+                            min="1" max="4096" step="1" inputmode="numeric" placeholder="inf"
+                            data-storage-key="speechMaxOutputTokens" data-testid="speech-max-output-tokens">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="accordion-item" data-profile-observations="obs.emotion.face">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -944,37 +1134,6 @@
                     </div>
                   </div>
                   <div class="row g-2">
-                    <div class="col-6">
-                      <label class="form-label metric-label" for="voice_select">Voice</label>
-                      <select id="voice_select" class="form-select form-select-sm" data-testid="voice-select">
-                        <option value="">Default</option>
-                        <option value="alloy">Alloy</option>
-                        <option value="ash">Ash</option>
-                        <option value="ballad">Ballad</option>
-                        <option value="cedar">Cedar</option>
-                        <option value="coral">Coral</option>
-                        <option value="echo">Echo</option>
-                        <option value="marin">Marin</option>
-                        <option value="sage">Sage</option>
-                        <option value="shimmer">Shimmer</option>
-                        <option value="verse">Verse</option>
-                      </select>
-                    </div>
-                    <div class="col-6">
-                      <label class="form-label metric-label" for="turn_detection_select">VAD</label>
-                      <select id="turn_detection_select" class="form-select form-select-sm"
-                        data-testid="turn-detection-select">
-                        <option value="server_vad" selected>Server VAD</option>
-                        <option value="semantic_vad">Semantic VAD</option>
-                      </select>
-                    </div>
-                    <div class="col-12">
-                      <div class="form-check">
-                        <input id="generate_side_behaviour" class="form-check-input" type="checkbox" checked
-                          data-testid="generate-side-behaviour">
-                        <label class="form-check-label" for="generate_side_behaviour">Backend complement</label>
-                      </div>
-                    </div>
                     <div class="col-6">
                       <label class="form-label metric-label" for="speech_input_device_select">Microphone</label>
                       <select id="speech_input_device_select" class="form-select form-select-sm"

@@ -102,6 +102,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 96: Valerian camera device selection
 - [x] Milestone 97: Valerian shared light/dark cockpit themes
 - [x] Milestone 98: PROMETHEUS Realtime tuning backend contract
+- [x] Milestone 99: Valerian cockpit Realtime audio tuning
 
 ## Milestone 1
 ### Date
@@ -4476,3 +4477,40 @@ Expose the Realtime audio tuning controls needed by Valerian while preserving PR
 
 ### Next steps
 1. Milestone 99: adopt Marc Styger's Valerian cockpit audio tuning UI and wire it to these backend query parameters.
+
+## Milestone 99
+### Date
+2026-06-27
+
+### Goal
+Adopt Marc Styger's Valerian cockpit Realtime audio tuning updates in the bundled PROMETHEUS Valerian cockpit.
+
+### What changed
+- Moved routine voice, VAD, backend complement, and advanced Realtime speech controls into an Advanced Speech Settings accordion in the Sensing column.
+- Wired the cockpit to send the Milestone 98 backend query parameters for VAD timing/eagerness/interruption, input noise reduction, output speed, reasoning effort, max output tokens, and input transcription logprob inclusion.
+- Kept `vadCreateResponse=true` unavailable in the cockpit because PROMETHEUS remains responsible for creating assistant responses before OpenAI speaks them.
+- Made continuous speech full-duplex by default, with local barge-in cancellation sending `response.cancel` when OpenAI reports `input_audio_buffer.speech_started` during active assistant audio.
+- Added an opt-in half-duplex fallback that mutes existing microphone tracks during assistant playback without stopping or recreating the media stream.
+- Added assistant-echo transcript suppression, remote audio playback/track diagnostics, Realtime inbound-audio stats warnings, and active microphone processing logging.
+- Updated the Valerian static resource contract test and README documentation.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect an agent, open Sensing > Advanced Speech Settings, tune the speech controls, then start Continuous Speech.
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- Live full-duplex quality still depends on the target browser, microphone, speaker, and room acoustics; the new half-duplex fallback is intentionally operator-controlled.
+- Browser-side `response.cancel` remains a data-channel event sent by the cockpit, not a backend REST endpoint.
+- The Realtime audio stats diagnostics are advisory and depend on browser getStats fields that vary between browsers.
+
+### Next steps
+1. Live-test the bundled cockpit on the demo laptop with the target microphone and speaker setup.
+2. Tune default VAD/noise-reduction values only after live rehearsal shows a repeatable need.
