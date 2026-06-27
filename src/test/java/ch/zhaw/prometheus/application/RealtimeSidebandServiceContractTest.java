@@ -99,6 +99,52 @@ class RealtimeSidebandServiceContractTest {
     }
 
     @Test
+    void sidebandSessionUpdatePreservesRealtimeTuningOptions() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        RealtimeCallSettings settings = new RealtimeCallSettings("Cedar", "server_vad", false,
+                "0.6", "120", "800", null, null, "true", "near_field", "1.1", "medium", "256", "true");
+        RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(),
+                mock(AgentApplicationService.class));
+        Object session = newSidebandSession(service, agentId, settings);
+        WebSocket socket = mock(WebSocket.class);
+        try {
+            setWebSocket(session, socket);
+
+            Method sendSessionUpdate = session.getClass().getDeclaredMethod("sendSessionUpdate", String.class);
+            sendSessionUpdate.setAccessible(true);
+            sendSessionUpdate.invoke(session, "PROMETHEUS instructions");
+
+            ArgumentCaptor<CharSequence> payload = ArgumentCaptor.forClass(CharSequence.class);
+            verify(socket).sendText(payload.capture(), eq(true));
+            JsonObject event = JsonParser.parseString(payload.getValue().toString()).getAsJsonObject();
+            JsonObject updatedSession = event.getAsJsonObject("session");
+            JsonObject audio = updatedSession.getAsJsonObject("audio");
+            JsonObject audioInput = audio.getAsJsonObject("input");
+            JsonObject turnDetection = audioInput.getAsJsonObject("turn_detection");
+
+            assertEquals("session.update", event.get("type").getAsString());
+            assertEquals("realtime", updatedSession.get("type").getAsString());
+            assertEquals("PROMETHEUS instructions", updatedSession.get("instructions").getAsString());
+            assertEquals("audio", updatedSession.getAsJsonArray("output_modalities").get(0).getAsString());
+            assertEquals("server_vad", turnDetection.get("type").getAsString());
+            assertEquals(0.6, turnDetection.get("threshold").getAsDouble(), 0.0001);
+            assertEquals(120, turnDetection.get("prefix_padding_ms").getAsInt());
+            assertEquals(800, turnDetection.get("silence_duration_ms").getAsInt());
+            assertFalse(turnDetection.get("create_response").getAsBoolean());
+            assertTrue(turnDetection.get("interrupt_response").getAsBoolean());
+            assertEquals("near_field", audioInput.getAsJsonObject("noise_reduction").get("type").getAsString());
+            assertEquals("cedar", audio.getAsJsonObject("output").get("voice").getAsString());
+            assertEquals(1.1, audio.getAsJsonObject("output").get("speed").getAsDouble(), 0.0001);
+            assertEquals("medium", updatedSession.getAsJsonObject("reasoning").get("effort").getAsString());
+            assertEquals(256, updatedSession.get("max_output_tokens").getAsInt());
+            assertEquals("item.input_audio_transcription.logprobs",
+                    updatedSession.getAsJsonArray("include").get(0).getAsString());
+        } finally {
+            service.closeAll();
+        }
+    }
+
+    @Test
     void activeSidebandSpeaksPublishedAssistantBehaviourSpeech() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
@@ -288,6 +334,11 @@ class RealtimeSidebandServiceContractTest {
     }
 
     private static Object newSidebandSession(RealtimeSidebandService service, UUID agentId) throws Exception {
+        return newSidebandSession(service, agentId, new RealtimeCallSettings("marin", "server_vad", false));
+    }
+
+    private static Object newSidebandSession(RealtimeSidebandService service, UUID agentId,
+            RealtimeCallSettings settings) throws Exception {
         Class<?> sidebandSession = null;
         for (Class<?> candidate : RealtimeSidebandService.class.getDeclaredClasses()) {
             if ("SidebandSession".equals(candidate.getSimpleName())) {
@@ -301,7 +352,7 @@ class RealtimeSidebandServiceContractTest {
         constructor.setAccessible(true);
         RealtimeSidebandSessionConfig config = new RealtimeSidebandSessionConfig(
                 "call_test", "wss://example.test/realtime", agentId, "instructions", null,
-                new RealtimeCallSettings("marin", "server_vad", false));
+                settings);
         return constructor.newInstance(service, config);
     }
 

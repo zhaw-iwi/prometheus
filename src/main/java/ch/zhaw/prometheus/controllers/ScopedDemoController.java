@@ -256,11 +256,25 @@ public class ScopedDemoController {
             @RequestBody(required = false) String offerSdp,
             @RequestParam(required = false) String voice,
             @RequestParam(required = false) String turnDetection,
-            @RequestParam(defaultValue = "true") boolean generateComplement) {
+            @RequestParam(defaultValue = "true") boolean generateComplement,
+            @RequestParam(required = false) String vadThreshold,
+            @RequestParam(required = false) String vadPrefixPaddingMs,
+            @RequestParam(required = false) String vadSilenceDurationMs,
+            @RequestParam(required = false) String vadEagerness,
+            @RequestParam(required = false) String vadCreateResponse,
+            @RequestParam(required = false) String vadInterruptResponse,
+            @RequestParam(required = false) String inputNoiseReduction,
+            @RequestParam(required = false) String outputSpeed,
+            @RequestParam(required = false) String reasoningEffort,
+            @RequestParam(required = false) String maxOutputTokens,
+            @RequestParam(required = false) String includeInputTranscriptionLogprobs) {
         if (agentId == null || offerSdp == null || offerSdp.isBlank()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        RealtimeCallSettings settings = new RealtimeCallSettings(voice, turnDetection, generateComplement);
+        RealtimeCallSettings settings = new RealtimeCallSettings(voice, turnDetection, generateComplement,
+                vadThreshold, vadPrefixPaddingMs, vadSilenceDurationMs, vadEagerness, vadCreateResponse,
+                vadInterruptResponse, inputNoiseReduction, outputSpeed, reasoningEffort, maxOutputTokens,
+                includeInputTranscriptionLogprobs);
         Optional<RealtimeCallInfo> call = this.realtimeCallService.createScopedCall(
                 accessCode(headerAccessCode, queryAccessCode), agentId, offerSdp, settings);
         return call.map(ScopedDemoController::toRealtimeCallView)

@@ -100,6 +100,83 @@ class RealtimeSessionClientTest {
     }
 
     @Test
+    void createCallMapsServerVadAndRealtimeTuningOptions() throws Exception {
+        AtomicReference<String> requestBody = new AtomicReference<>();
+        startServer(exchange -> {
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            exchange.getResponseHeaders().set("Location", "/v1/realtime/calls/rtc_tuned_call");
+            writeResponse(exchange, 200, "answer-sdp");
+        }, "/calls");
+
+        OpenAIProperties props = new OpenAIProperties();
+        props.setOpenaivsazureopenai("openai");
+        props.setKey("test-api-key");
+        props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
+        props.setRealtimeCallsUrl(serverUrl("/calls"));
+
+        new RealtimeSessionClient(props).createCall("offer-sdp",
+                new RealtimeCallConfig("instructions", "cedar", "server_vad", "en",
+                        0.65, 250, 700, null, true, "near_field", 0.9, "low", 512, true));
+
+        JsonObject session = sessionFromMultipartBody(requestBody.get());
+        JsonObject audio = session.getAsJsonObject("audio");
+        JsonObject audioInput = audio.getAsJsonObject("input");
+        JsonObject turnDetection = audioInput.getAsJsonObject("turn_detection");
+
+        assertEquals("server_vad", turnDetection.get("type").getAsString());
+        assertEquals(0.65, turnDetection.get("threshold").getAsDouble(), 0.0001);
+        assertEquals(250, turnDetection.get("prefix_padding_ms").getAsInt());
+        assertEquals(700, turnDetection.get("silence_duration_ms").getAsInt());
+        assertFalse(turnDetection.get("create_response").getAsBoolean());
+        assertTrue(turnDetection.get("interrupt_response").getAsBoolean());
+        assertEquals("near_field", audioInput.getAsJsonObject("noise_reduction").get("type").getAsString());
+        assertEquals("cedar", audio.getAsJsonObject("output").get("voice").getAsString());
+        assertEquals(0.9, audio.getAsJsonObject("output").get("speed").getAsDouble(), 0.0001);
+        assertEquals("low", session.getAsJsonObject("reasoning").get("effort").getAsString());
+        assertEquals(512, session.get("max_output_tokens").getAsInt());
+        assertEquals("item.input_audio_transcription.logprobs",
+                session.getAsJsonArray("include").get(0).getAsString());
+    }
+
+    @Test
+    void createCallMapsSemanticVadAndDisabledNoiseReduction() throws Exception {
+        AtomicReference<String> requestBody = new AtomicReference<>();
+        startServer(exchange -> {
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            exchange.getResponseHeaders().set("Location", "/v1/realtime/calls/rtc_semantic_call");
+            writeResponse(exchange, 200, "answer-sdp");
+        }, "/calls");
+
+        OpenAIProperties props = new OpenAIProperties();
+        props.setOpenaivsazureopenai("openai");
+        props.setKey("test-api-key");
+        props.setRealtimeClientSecretUrl(serverUrl("/client_secrets"));
+        props.setRealtimeCallsUrl(serverUrl("/calls"));
+
+        new RealtimeSessionClient(props).createCall("offer-sdp",
+                new RealtimeCallConfig("instructions", null, "semantic_vad", null,
+                        0.2, 100, 500, "high", false, "off", null, null, null, false));
+
+        JsonObject session = sessionFromMultipartBody(requestBody.get());
+        JsonObject audio = session.getAsJsonObject("audio");
+        JsonObject audioInput = audio.getAsJsonObject("input");
+        JsonObject turnDetection = audioInput.getAsJsonObject("turn_detection");
+
+        assertEquals("semantic_vad", turnDetection.get("type").getAsString());
+        assertEquals("high", turnDetection.get("eagerness").getAsString());
+        assertFalse(turnDetection.has("threshold"));
+        assertFalse(turnDetection.has("prefix_padding_ms"));
+        assertFalse(turnDetection.has("silence_duration_ms"));
+        assertFalse(turnDetection.get("create_response").getAsBoolean());
+        assertFalse(turnDetection.get("interrupt_response").getAsBoolean());
+        assertTrue(audioInput.get("noise_reduction").isJsonNull());
+        assertFalse(audio.has("output"));
+        assertFalse(session.has("reasoning"));
+        assertFalse(session.has("max_output_tokens"));
+        assertFalse(session.has("include"));
+    }
+
+    @Test
     void createTranscriptionSessionUsesGaTranscriptionPayload() throws Exception {
         AtomicReference<String> requestBody = new AtomicReference<>();
         startServer(exchange -> {
@@ -194,6 +271,12 @@ class RealtimeSessionClientTest {
 
     private String serverUrl(String path) {
         return "http://127.0.0.1:" + server.getAddress().getPort() + path;
+    }
+
+    private static JsonObject sessionFromMultipartBody(String body) {
+        String sessionJson = body.substring(body.indexOf("{\"type\":\"realtime\""));
+        sessionJson = sessionJson.substring(0, sessionJson.indexOf("\r\n--"));
+        return JsonParser.parseString(sessionJson).getAsJsonObject();
     }
 
     private static void writeResponse(HttpExchange exchange, int status, String body) throws IOException {

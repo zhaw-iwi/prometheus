@@ -1,5 +1,12 @@
 package ch.zhaw.prometheus.controllers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -10,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -41,9 +49,7 @@ class RealtimeControllerWebMvcTest {
     @Test
     void createsAgentBoundRealtimeCallView() throws Exception {
         UUID agentId = UUID.randomUUID();
-        when(this.realtimeCallService.createCall(org.mockito.ArgumentMatchers.eq(agentId),
-                org.mockito.ArgumentMatchers.eq("offer-sdp"),
-                org.mockito.ArgumentMatchers.any(RealtimeCallSettings.class)))
+        when(this.realtimeCallService.createCall(eq(agentId), eq("offer-sdp"), any(RealtimeCallSettings.class)))
                 .thenReturn(Optional.of(new RealtimeCallInfo("answer-sdp", "gpt-realtime-2", "rtc_123",
                         "wss://example.test/v1/realtime?call_id=rtc_123")));
 
@@ -56,6 +62,59 @@ class RealtimeControllerWebMvcTest {
                 .andExpect(jsonPath("$.sdp").value("answer-sdp"))
                 .andExpect(jsonPath("$.model").value("gpt-realtime-2"))
                 .andExpect(jsonPath("$.callId").value("rtc_123"));
+    }
+
+    @Test
+    void mapsRealtimeTuningQueryOptionsToCallSettings() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        when(this.realtimeCallService.createCall(eq(agentId), eq("offer-sdp"), any(RealtimeCallSettings.class)))
+                .thenReturn(Optional.of(new RealtimeCallInfo("answer-sdp", "gpt-realtime-2", "rtc_456",
+                        "wss://example.test/v1/realtime?call_id=rtc_456")));
+
+        this.mockMvc.perform(post("/" + agentId + "/realtime/call")
+                .contentType(MediaType.valueOf("application/sdp"))
+                .queryParam("voice", "Cedar")
+                .queryParam("turnDetection", "server_vad")
+                .queryParam("generateComplement", "false")
+                .queryParam("vadThreshold", "0.7")
+                .queryParam("vadPrefixPaddingMs", "140")
+                .queryParam("vadSilenceDurationMs", "900")
+                .queryParam("vadInterruptResponse", "true")
+                .queryParam("inputNoiseReduction", "near_field")
+                .queryParam("outputSpeed", "1.15")
+                .queryParam("reasoningEffort", "high")
+                .queryParam("maxOutputTokens", "768")
+                .queryParam("includeInputTranscriptionLogprobs", "true")
+                .content("offer-sdp"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<RealtimeCallSettings> settings = ArgumentCaptor.forClass(RealtimeCallSettings.class);
+        verify(this.realtimeCallService).createCall(eq(agentId), eq("offer-sdp"), settings.capture());
+        assertEquals("cedar", settings.getValue().getVoice());
+        assertEquals("server_vad", settings.getValue().getTurnDetection());
+        assertFalse(settings.getValue().isGenerateComplement());
+        assertEquals(0.7, settings.getValue().getVadThreshold(), 0.0001);
+        assertEquals(140, settings.getValue().getVadPrefixPaddingMs());
+        assertEquals(900, settings.getValue().getVadSilenceDurationMs());
+        assertTrue(settings.getValue().isVadInterruptResponse());
+        assertEquals("near_field", settings.getValue().getInputNoiseReduction());
+        assertEquals(1.15, settings.getValue().getOutputSpeed(), 0.0001);
+        assertEquals("high", settings.getValue().getReasoningEffort());
+        assertEquals(768, settings.getValue().getMaxOutputTokens());
+        assertTrue(settings.getValue().isIncludeInputTranscriptionLogprobs());
+    }
+
+    @Test
+    void rejectsRealtimeCallWhenVadCreateResponseIsEnabled() throws Exception {
+        UUID agentId = UUID.randomUUID();
+
+        this.mockMvc.perform(post("/" + agentId + "/realtime/call")
+                .contentType(MediaType.valueOf("application/sdp"))
+                .queryParam("vadCreateResponse", "true")
+                .content("offer-sdp"))
+                .andExpect(status().isBadRequest());
+
+        verify(this.realtimeCallService, never()).createCall(any(), any(), any());
     }
 
     @Test

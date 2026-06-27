@@ -63,7 +63,13 @@ public class RealtimeCallOrchestrationService {
         String instructions = RealtimePromptInstructions.systemInstructions(prompt);
         RealtimeCallInfo call = this.realtimeSessionClient.createCall(offerSdp,
                 new RealtimeCallConfig(instructions, resolvedSettings.getVoice(),
-                        resolvedSettings.getTurnDetection(), languageCode));
+                        resolvedSettings.getTurnDetection(), languageCode,
+                        resolvedSettings.getVadThreshold(), resolvedSettings.getVadPrefixPaddingMs(),
+                        resolvedSettings.getVadSilenceDurationMs(), resolvedSettings.getVadEagerness(),
+                        resolvedSettings.isVadInterruptResponse(), resolvedSettings.getInputNoiseReduction(),
+                        resolvedSettings.getOutputSpeed(), resolvedSettings.getReasoningEffort(),
+                        resolvedSettings.getMaxOutputTokens(),
+                        resolvedSettings.isIncludeInputTranscriptionLogprobs()));
         this.sidebandService.attach(new RealtimeSidebandSessionConfig(
                 call.getCallId(),
                 call.getSidebandUrl(),

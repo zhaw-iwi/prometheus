@@ -101,6 +101,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 95: TDSR tour and SHHD concise micro-humor prompt accent
 - [x] Milestone 96: Valerian camera device selection
 - [x] Milestone 97: Valerian shared light/dark cockpit themes
+- [x] Milestone 98: PROMETHEUS Realtime tuning backend contract
 
 ## Milestone 1
 ### Date
@@ -4403,6 +4404,7 @@ Let Valerian cockpit operators refresh and select the browser camera used for vi
 ### Next steps
 1. Live-test with the demo laptop's built-in camera and a USB camera in the target browser.
 2. If operators need more control, add explicit resolution/frame-rate choices beside the camera selector.
+
 ## Milestone 97
 ### Date
 2026-06-23
@@ -4440,3 +4442,37 @@ Add a persistent light/dark theme switch to both the Valerian cockpit and Valeri
 ### Next steps
 1. Live-check both cockpits on the target browser in light and dark mode.
 2. If operators use both pages side by side, decide whether a future shared static CSS/JS asset is worth extracting from the two page-local implementations.
+
+## Milestone 98
+### Date
+2026-06-27
+
+### Goal
+Expose the Realtime audio tuning controls needed by Valerian while preserving PROMETHEUS-owned speech generation.
+
+### What changed
+- Extended `RealtimeCallSettings` and `RealtimeCallConfig` with optional Realtime tuning fields for server VAD, semantic VAD, interruption, input noise reduction, output speed, reasoning effort, max output tokens, and input transcription logprob inclusion.
+- Mapped the tuning fields into both the initial OpenAI `/v1/realtime/calls` session payload and later backend sideband `session.update` messages so instruction refreshes keep the same audio contract.
+- Kept Realtime turn detection under PROMETHEUS authority: `create_response=false` is always sent, `vadCreateResponse=true` is rejected with `400 Bad Request`, and `vadInterruptResponse` maps only to OpenAI `interrupt_response`.
+- Added explicit `inputNoiseReduction=off` support by sending OpenAI `audio.input.noise_reduction=null`.
+- Added global and scoped controller coverage for the query contract plus serialization/orchestration coverage for the OpenAI payloads.
+- Updated README Realtime notes with the new query parameters and backend authority rules.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Start a scoped Realtime speech call once Milestone 99 adds the cockpit-side controls.
+
+### How to test
+- Targeted tests run:
+  - `.\mvnw.cmd -q "-Dtest=RealtimeSessionClientTest,RealtimeSidebandServiceContractTest,RealtimeControllerWebMvcTest,ScopedDemoControllerWebMvcTest,RealtimeCallOrchestrationServiceUnitTest" test`
+
+### Known issues and decisions
+- Browser Realtime events such as `input_audio_buffer.speech_started` and browser-side `response.cancel` remain client/OpenAI data-channel concerns in the current WebRTC architecture; this milestone changes backend session configuration only.
+- `vadCreateResponse=true` remains unsupported because assistant speech must be generated and persisted by PROMETHEUS before OpenAI speaks it.
+- The tuning ranges are backend validation choices aligned with expected OpenAI field ranges, but live values still need rehearsal on the target microphone/speaker setup.
+
+### Next steps
+1. Milestone 99: adopt Marc Styger's Valerian cockpit audio tuning UI and wire it to these backend query parameters.

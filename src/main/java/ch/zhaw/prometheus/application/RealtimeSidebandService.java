@@ -25,6 +25,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -40,7 +42,7 @@ import jakarta.annotation.PreDestroy;
 @Service
 public class RealtimeSidebandService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RealtimeSidebandService.class);
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
     private static final long TRANSCRIPT_BATCH_DELAY_MS = 900;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -370,6 +372,9 @@ public class RealtimeSidebandService {
         }
 
         private void sendSessionUpdate(String instructions) {
+            RealtimeCallSettings settings = this.config.getSettings() == null
+                    ? new RealtimeCallSettings(null, null, true)
+                    : this.config.getSettings();
             JsonObject session = new JsonObject();
             session.addProperty("type", "realtime");
             if (isPresent(instructions)) {
@@ -378,19 +383,29 @@ public class RealtimeSidebandService {
             session.add("output_modalities", GSON.toJsonTree(new String[] { "audio" }));
             JsonObject audio = new JsonObject();
             JsonObject input = new JsonObject();
-            String turnDetection = this.config.getSettings().getTurnDetection();
+            String turnDetection = settings.getTurnDetection();
             JsonObject vad = new JsonObject();
             vad.addProperty("type", turnDetection);
+            if ("server_vad".equals(turnDetection)) {
+                addOptionalNumber(vad, "threshold", settings.getVadThreshold());
+                addOptionalNumber(vad, "prefix_padding_ms", settings.getVadPrefixPaddingMs());
+                addOptionalNumber(vad, "silence_duration_ms", settings.getVadSilenceDurationMs());
+            } else if ("semantic_vad".equals(turnDetection)) {
+                addOptionalProperty(vad, "eagerness", settings.getVadEagerness());
+            }
             vad.addProperty("create_response", false);
-            vad.addProperty("interrupt_response", false);
+            vad.addProperty("interrupt_response", settings.isVadInterruptResponse());
             input.add("turn_detection", vad);
+            addInputNoiseReduction(input, settings);
             audio.add("input", input);
-            if (isPresent(this.config.getSettings().getVoice())) {
+            if (isPresent(settings.getVoice()) || settings.getOutputSpeed() != null) {
                 JsonObject output = new JsonObject();
-                output.addProperty("voice", this.config.getSettings().getVoice());
+                addOptionalProperty(output, "voice", settings.getVoice());
+                addOptionalNumber(output, "speed", settings.getOutputSpeed());
                 audio.add("output", output);
             }
             session.add("audio", audio);
+            addSessionTuning(session, settings);
             JsonObject event = new JsonObject();
             event.addProperty("type", "session.update");
             event.add("session", session);
@@ -481,6 +496,47 @@ public class RealtimeSidebandService {
             return "";
         }
         return object.get(member).getAsString();
+    }
+
+    private static void addOptionalProperty(JsonObject object, String name, String value) {
+        if (isPresent(value)) {
+            object.addProperty(name, value.trim());
+        }
+    }
+
+    private static void addOptionalNumber(JsonObject object, String name, Number value) {
+        if (value != null) {
+            object.addProperty(name, value);
+        }
+    }
+
+    private static void addInputNoiseReduction(JsonObject audioInput, RealtimeCallSettings settings) {
+        if (settings == null || !isPresent(settings.getInputNoiseReduction())) {
+            return;
+        }
+        String noiseReduction = settings.getInputNoiseReduction().trim();
+        if ("off".equals(noiseReduction)) {
+            audioInput.add("noise_reduction", JsonNull.INSTANCE);
+            return;
+        }
+        JsonObject inputNoiseReduction = new JsonObject();
+        inputNoiseReduction.addProperty("type", noiseReduction);
+        audioInput.add("noise_reduction", inputNoiseReduction);
+    }
+
+    private static void addSessionTuning(JsonObject session, RealtimeCallSettings settings) {
+        if (settings == null) {
+            return;
+        }
+        if (isPresent(settings.getReasoningEffort())) {
+            JsonObject reasoning = new JsonObject();
+            reasoning.addProperty("effort", settings.getReasoningEffort().trim());
+            session.add("reasoning", reasoning);
+        }
+        addOptionalNumber(session, "max_output_tokens", settings.getMaxOutputTokens());
+        if (settings.isIncludeInputTranscriptionLogprobs()) {
+            session.add("include", GSON.toJsonTree(new String[] { "item.input_audio_transcription.logprobs" }));
+        }
     }
 
     private static boolean isPresent(String value) {

@@ -623,8 +623,14 @@ Notes:
 - Continuous speech browsers no longer obtain OpenAI client secrets. They create a WebRTC offer and post the raw SDP to PROMETHEUS:
   - global client: `POST /{agentID}/realtime/call`
   - Valerian scoped client: `POST /demo/agents/{agentId}/realtime/call`
-  - query options: `voice`, `turnDetection=server_vad|semantic_vad`, `generateComplement=true|false`
+  - query options: `voice`, `turnDetection=server_vad|semantic_vad`, `generateComplement=true|false`,
+    `vadThreshold`, `vadPrefixPaddingMs`, `vadSilenceDurationMs`, `vadEagerness`,
+    `vadInterruptResponse=true|false`, `inputNoiseReduction=near_field|far_field|off`,
+    `outputSpeed`, `reasoningEffort=low|medium|high`, `maxOutputTokens`, and
+    `includeInputTranscriptionLogprobs=true|false`.
 - PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
+- Realtime tuning query options are applied both to the initial OpenAI session payload and to later sideband `session.update` messages. Server VAD-only options are `vadThreshold`, `vadPrefixPaddingMs`, and `vadSilenceDurationMs`; semantic VAD uses `vadEagerness`. `inputNoiseReduction=off` sends OpenAI `audio.input.noise_reduction=null`.
+- PROMETHEUS remains authoritative for assistant speech generation: Realtime turn detection always sends `create_response=false`, and `vadCreateResponse=true` is rejected with `400 Bad Request`. `vadInterruptResponse` only maps to OpenAI `interrupt_response`.
 - Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
 - Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. This is the built-in ASR model for the Realtime call, not the response-generation model. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
 - PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers an out-of-band `response.create` with `conversation=none`, empty input context, and an exact-speech instruction.

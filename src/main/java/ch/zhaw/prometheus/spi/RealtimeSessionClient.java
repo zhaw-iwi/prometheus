@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +25,7 @@ public class RealtimeSessionClient {
     private static final String DEFAULT_REALTIME_TRANSCRIPTION_MODEL = "gpt-realtime-whisper";
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new GsonBuilder().serializeNulls().create();
     private final OpenAIProperties properties;
 
     public RealtimeSessionClient(OpenAIProperties properties) {
@@ -98,17 +100,30 @@ public class RealtimeSessionClient {
         if (isPresent(turnDetection)) {
             JsonObject vad = new JsonObject();
             vad.addProperty("type", turnDetection.trim());
+            if ("server_vad".equals(turnDetection.trim())) {
+                addOptionalNumber(vad, "threshold", config == null ? null : config.getVadThreshold());
+                addOptionalNumber(vad, "prefix_padding_ms", config == null ? null : config.getVadPrefixPaddingMs());
+                addOptionalNumber(vad, "silence_duration_ms", config == null ? null
+                        : config.getVadSilenceDurationMs());
+            } else if ("semantic_vad".equals(turnDetection.trim())) {
+                addOptionalProperty(vad, "eagerness", config == null ? null : config.getVadEagerness());
+            }
             vad.addProperty("create_response", false);
-            vad.addProperty("interrupt_response", false);
+            vad.addProperty("interrupt_response", config != null && config.isVadInterruptResponse());
             audioInput.add("turn_detection", vad);
         }
+        addInputNoiseReduction(audioInput, config);
         JsonObject audio = new JsonObject();
         audio.add("input", audioInput);
-        if (config != null && isPresent(config.getVoice())) {
+        if (config != null && (isPresent(config.getVoice()) || config.getOutputSpeed() != null)) {
             JsonObject audioOutput = new JsonObject();
-            audioOutput.addProperty("voice", config.getVoice().trim());
+            if (isPresent(config.getVoice())) {
+                audioOutput.addProperty("voice", config.getVoice().trim());
+            }
+            addOptionalNumber(audioOutput, "speed", config.getOutputSpeed());
             audio.add("output", audioOutput);
         }
+        addSessionTuning(payload, config);
         payload.add("audio", audio);
         return payload;
     }
@@ -182,6 +197,41 @@ public class RealtimeSessionClient {
     private static void addOptionalProperty(JsonObject object, String name, String value) {
         if (isPresent(value)) {
             object.addProperty(name, value.trim());
+        }
+    }
+
+    private static void addOptionalNumber(JsonObject object, String name, Number value) {
+        if (value != null) {
+            object.addProperty(name, value);
+        }
+    }
+
+    private static void addInputNoiseReduction(JsonObject audioInput, RealtimeCallConfig config) {
+        if (config == null || !isPresent(config.getInputNoiseReduction())) {
+            return;
+        }
+        String noiseReduction = config.getInputNoiseReduction().trim();
+        if ("off".equals(noiseReduction)) {
+            audioInput.add("noise_reduction", JsonNull.INSTANCE);
+            return;
+        }
+        JsonObject inputNoiseReduction = new JsonObject();
+        inputNoiseReduction.addProperty("type", noiseReduction);
+        audioInput.add("noise_reduction", inputNoiseReduction);
+    }
+
+    private static void addSessionTuning(JsonObject payload, RealtimeCallConfig config) {
+        if (config == null) {
+            return;
+        }
+        if (isPresent(config.getReasoningEffort())) {
+            JsonObject reasoning = new JsonObject();
+            reasoning.addProperty("effort", config.getReasoningEffort().trim());
+            payload.add("reasoning", reasoning);
+        }
+        addOptionalNumber(payload, "max_output_tokens", config.getMaxOutputTokens());
+        if (config.isIncludeInputTranscriptionLogprobs()) {
+            payload.add("include", GSON.toJsonTree(new String[] { "item.input_audio_transcription.logprobs" }));
         }
     }
 

@@ -57,7 +57,8 @@ class RealtimeCallOrchestrationServiceUnitTest {
                 scopedDemoService, realtimeClient, sidebandService);
 
         Optional<RealtimeCallInfo> created = service.createCall(agentId, "offer-sdp",
-                new RealtimeCallSettings("Marin", "server_vad", false));
+                new RealtimeCallSettings("Marin", "server_vad", false,
+                        "0.7", "150", "850", null, null, "true", "near_field", "1.2", "high", "1024", "true"));
 
         assertTrue(created.isPresent());
         assertSame(call, created.get());
@@ -68,6 +69,15 @@ class RealtimeCallOrchestrationServiceUnitTest {
         assertEquals("marin", callConfig.getValue().getVoice());
         assertEquals("server_vad", callConfig.getValue().getTurnDetection());
         assertEquals("de", callConfig.getValue().getLanguageCode());
+        assertEquals(0.7, callConfig.getValue().getVadThreshold(), 0.0001);
+        assertEquals(150, callConfig.getValue().getVadPrefixPaddingMs());
+        assertEquals(850, callConfig.getValue().getVadSilenceDurationMs());
+        assertTrue(callConfig.getValue().isVadInterruptResponse());
+        assertEquals("near_field", callConfig.getValue().getInputNoiseReduction());
+        assertEquals(1.2, callConfig.getValue().getOutputSpeed(), 0.0001);
+        assertEquals("high", callConfig.getValue().getReasoningEffort());
+        assertEquals(1024, callConfig.getValue().getMaxOutputTokens());
+        assertTrue(callConfig.getValue().isIncludeInputTranscriptionLogprobs());
 
         ArgumentCaptor<RealtimeSidebandSessionConfig> sidebandConfig = ArgumentCaptor
                 .forClass(RealtimeSidebandSessionConfig.class);
@@ -78,6 +88,9 @@ class RealtimeCallOrchestrationServiceUnitTest {
         assertEquals(agentId, sidebandConfig.getValue().getAgentId());
         assertEquals("Previous assistant speech.", sidebandConfig.getValue().getInitialExactSpeech());
         assertFalse(sidebandConfig.getValue().getSettings().isGenerateComplement());
+        assertEquals(0.7, sidebandConfig.getValue().getSettings().getVadThreshold(), 0.0001);
+        assertTrue(sidebandConfig.getValue().getSettings().isVadInterruptResponse());
+        assertEquals("near_field", sidebandConfig.getValue().getSettings().getInputNoiseReduction());
     }
 
     @Test
