@@ -3,7 +3,7 @@ name: deployment
 on:
   push:
     branches:
-      - feature/{branch-to-be-published}
+      - branch-to-be-published
 
 jobs:
   build:
@@ -16,6 +16,6 @@ jobs:
       - uses: akhileshns/heroku-deploy@v3.12.14
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "{heroku app name}"
+          heroku_app_name: "heroku app name"
           heroku_email: ${{secrets.HEROKU_EMAIL}}
           usedocker: true
