@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.model.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -96,6 +97,62 @@ class PromptPolicyGestureUnitTest {
         assertEquals("forward", plan.getNonVerbal().getAsJsonObject().getAsJsonObject("gaze").get("direction")
                 .getAsString());
         assertEquals(2, gateway.completeCallCount);
+    }
+
+    @Test
+    void onRespondKeepsTopLevelHandSignFromStructuredComplement() {
+        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
+
+        SequencedGateway gateway = new SequencedGateway(List.of(
+                "I choose scissors, very dramatically.",
+                """
+                        {
+                          "nonVerbal":{
+                            "gesture":"ACKNOWLEDGE",
+                            "facialExpression":{"type":"playful","intensity":0.5},
+                            "gaze":{"direction":"forward","focus":"user"},
+                            "motion":{"stillness":0.8,"energy":0.2,"move":"forward","turn":"left"}
+                          },
+                          "motion":{"handSign":"scissors","move":"forward","turn":"left"}
+                        }
+                        """));
+        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), new EventHistory(),
+                new PromptMessageAssembler(), gateway);
+
+        assertNotNull(plan);
+        assertNotNull(plan.getNonVerbal());
+        assertEquals("ACKNOWLEDGE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("playful",
+                plan.getNonVerbal().getAsJsonObject().getAsJsonObject("facialExpression").get("type").getAsString());
+        assertEquals("forward",
+                plan.getNonVerbal().getAsJsonObject().getAsJsonObject("gaze").get("direction").getAsString());
+        assertFalse(plan.getNonVerbal().getAsJsonObject().getAsJsonObject("motion").has("move"));
+        assertFalse(plan.getNonVerbal().getAsJsonObject().getAsJsonObject("motion").has("turn"));
+        assertNotNull(plan.getMotion());
+        assertEquals("scissor", plan.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertFalse(plan.getMotion().getAsJsonObject().has("move"));
+        assertFalse(plan.getMotion().getAsJsonObject().has("turn"));
+    }
+
+    @Test
+    void backendComplementProfileCanProduceTopLevelHandSign() {
+        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
+        EventHistory history = new EventHistory();
+        history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"I choose rock.\"}"));
+
+        SequencedGateway gateway = new SequencedGateway(List.of(
+                "{\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"},\"motion\":{\"handSign\":\"rock\"}}"));
+        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), history,
+                new PromptMessageAssembler(), gateway, OutputProfile.BACKEND_COMPLEMENT);
+
+        assertNotNull(plan);
+        assertNull(plan.getSpeech());
+        assertEquals("ACKNOWLEDGE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("rock", plan.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertEquals(1, gateway.completeCallCount);
     }
 
     @Test

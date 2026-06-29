@@ -230,7 +230,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
-        plan.setNonVerbal(resolveNonVerbal(speech, languageModelGateway));
+        applyNonSpeechPlan(plan, resolveNonSpeechPlan(speech, languageModelGateway));
         return plan;
     }
 
@@ -240,7 +240,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         BehaviourPlan plan = new BehaviourPlan();
-        plan.setNonVerbal(resolveNonVerbal(assistantSpeech, languageModelGateway));
+        applyNonSpeechPlan(plan, resolveNonSpeechPlan(assistantSpeech, languageModelGateway));
         return plan.isEmpty() ? null : plan;
     }
 
@@ -380,15 +380,23 @@ public class PromptPolicy extends Policy {
         this.nonVerbalPlanPrompt = nonVerbalPlanPrompt;
     }
 
-    private JsonElement resolveNonVerbal(String speech, LanguageModelGateway languageModelGateway) {
-        JsonElement plan = resolveNonVerbalPlan(speech, languageModelGateway);
+    private static void applyNonSpeechPlan(BehaviourPlan plan, NonSpeechPlan nonSpeechPlan) {
+        if (plan == null || nonSpeechPlan == null) {
+            return;
+        }
+        plan.setNonVerbal(nonSpeechPlan.nonVerbal());
+        plan.setMotion(nonSpeechPlan.motion());
+    }
+
+    private NonSpeechPlan resolveNonSpeechPlan(String speech, LanguageModelGateway languageModelGateway) {
+        NonSpeechPlan plan = resolveStructuredNonSpeechPlan(speech, languageModelGateway);
         if (plan != null) {
             return plan;
         }
-        return resolveNonVerbalGesture(speech, languageModelGateway);
+        return resolveGestureOnlyNonSpeechPlan(speech, languageModelGateway);
     }
 
-    private JsonElement resolveNonVerbalPlan(String speech, LanguageModelGateway languageModelGateway) {
+    private NonSpeechPlan resolveStructuredNonSpeechPlan(String speech, LanguageModelGateway languageModelGateway) {
         if (this.nonVerbalPlanPrompt == null || this.nonVerbalPlanPrompt.isBlank()) {
             return null;
         }
@@ -408,8 +416,9 @@ public class PromptPolicy extends Policy {
                 return null;
             }
             JsonObject candidate = parsed.getAsJsonObject();
+            boolean wrapped = candidate.has("nonVerbal") && candidate.get("nonVerbal").isJsonObject();
             JsonObject nonVerbal = candidate;
-            if (candidate.has("nonVerbal") && candidate.get("nonVerbal").isJsonObject()) {
+            if (wrapped) {
                 nonVerbal = candidate.getAsJsonObject("nonVerbal");
             }
             JsonObject normalized = nonVerbal.deepCopy();
@@ -422,13 +431,14 @@ public class PromptPolicy extends Policy {
             }
             normalized.addProperty("gesture", gesture);
             removeUnsupportedLocomotion(normalized);
-            return normalized;
+            JsonElement motion = wrapped ? normalizeTopLevelMotion(candidate.get("motion")) : null;
+            return new NonSpeechPlan(normalized, motion);
         } catch (Exception ignored) {
             return null;
         }
     }
 
-    private JsonElement resolveNonVerbalGesture(String speech, LanguageModelGateway languageModelGateway) {
+    private NonSpeechPlan resolveGestureOnlyNonSpeechPlan(String speech, LanguageModelGateway languageModelGateway) {
         if (this.nonVerbalGesturePrompt == null || this.nonVerbalGesturePrompt.isBlank()) {
             return null;
         }
@@ -445,7 +455,7 @@ public class PromptPolicy extends Policy {
         }
         JsonObject nonVerbal = new JsonObject();
         nonVerbal.addProperty("gesture", gesture);
-        return nonVerbal;
+        return new NonSpeechPlan(nonVerbal, null);
     }
 
     private static String normalizeGestureLabel(String raw) {
@@ -477,6 +487,38 @@ public class PromptPolicy extends Policy {
         motion.remove("turn");
     }
 
+    private static JsonElement normalizeTopLevelMotion(JsonElement rawMotion) {
+        if (rawMotion == null || !rawMotion.isJsonObject()) {
+            return null;
+        }
+        JsonObject motion = new JsonObject();
+        JsonObject source = rawMotion.getAsJsonObject();
+        if (source.has("handSign") && !source.get("handSign").isJsonNull()) {
+            String handSign = normalizeHandSign(source.get("handSign").getAsString());
+            if (handSign != null) {
+                motion.addProperty("handSign", handSign);
+            }
+        }
+        return motion.size() == 0 ? null : motion;
+    }
+
+    private static String normalizeHandSign(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String normalized = raw.trim()
+                .replace("\"", "")
+                .replace("'", "")
+                .toLowerCase(Locale.ROOT)
+                .replace("-", "_")
+                .replace(" ", "_");
+        return switch (normalized) {
+            case "rock", "paper" -> normalized;
+            case "scissor", "scissors" -> "scissor";
+            default -> null;
+        };
+    }
+
     private static String parseGestureFromJson(String raw) {
         try {
             JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
@@ -487,6 +529,9 @@ public class PromptPolicy extends Policy {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private record NonSpeechPlan(JsonElement nonVerbal, JsonElement motion) {
     }
 }
 

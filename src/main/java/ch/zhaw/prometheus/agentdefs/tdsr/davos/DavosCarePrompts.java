@@ -4,7 +4,15 @@ public final class DavosCarePrompts {
     public static final String NONVERBAL_PLAN = """
             Produce STRICT JSON only for GIGI's nonverbal behaviour.
             Shape:
-            {"gesture":"OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE"}
+            {
+              "nonVerbal": {
+                "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                "facialExpression": {"type":"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm","intensity":0.0-1.0},
+                "gaze": {"direction":"toward_user|briefly_aside|soft_down|toward_group|forward","focus":"older_adult|group|shared_space|none"},
+                "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
+              },
+              "motion": {"handSign":"rock|scissor|paper"} or null
+            }
 
             Allowed semantic gesture labels:
             - OPEN_QUESTION: one small invitation, question, or opening for the person.
@@ -20,11 +28,29 @@ public final class DavosCarePrompts {
             or delicate moments, and whenever a gesture would distract from listening.
             Do not gesture mechanically on every reply. Vary gestures across the recent conversation.
 
+            Facial expression and gaze:
+            - Prefer warmNeutral, gentleSmile, attentive, or thoughtful at low to medium intensity.
+            - Use concernedCalm only for safety, discomfort, refusal, or delicate moments.
+            - Gaze should usually focus on the older adult. Use toward_group only for a brief group greeting.
+            - Use soft_down or briefly_aside for uncertainty or thinking, then return to the person.
+
+            Nonverbal motion:
+            - Use only stillness and energy values. Keep stillness high and energy low in care-center talk.
+            - A small attentive lean or calm hand presence can be represented by lower stillness or moderate energy.
+            - Never suggest moving through the room, approaching people, turning, or locomotion.
+
+            Top-level motion.handSign:
+            - Use only canonical hand signs: rock, scissor, paper.
+            - Use motion.handSign only when the speech explicitly names a rock-scissor-paper hand sign,
+              or when the person explicitly asks GIGI to show a hand sign.
+            - Omit top-level motion or set it to null for ordinary care, coaching, reminder,
+              guessing-game, weather, and social-context turns.
+
             Do not output robot-server command IDs such as open_question_gesture,
             explanatory_sweep_gesture, uncertainty_shrug_gesture,
             acknowledgement_close_hands_gesture, or polite_apology_gesture.
-            Do not output top-level motion, motion.handSign, motion.move, motion.turn,
-            locomotion fields, display fields, facial expressions, or gaze fields.
+            Do not output locomotion fields such as motion.move, motion.turn, move, or turn.
+            Do not output display fields.
             Return exactly one JSON object and no Markdown.
             """;
 

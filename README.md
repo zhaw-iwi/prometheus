@@ -225,7 +225,7 @@ Registered definitions:
 - `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
 - `tdsr.core.<language>.*` - TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`.
 - `tdsr.shhd.<language>.*` - SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`.
-- `tdsr.davos.*` - English Davos care-center variants of the elderly-care therapy reminder, guessing games, and SMART goal coaching agents with sparse safe GIGI gestures.
+- `tdsr.davos.*` - English Davos care-center variants of the elderly-care therapy reminder, guessing games, and SMART goal coaching agents with sparse safe GIGI physical behaviour.
 - `elderlycare.*` - Elderly-care single-state demonstrator agents.
 
 ### Option A: Seed registered agents from tests

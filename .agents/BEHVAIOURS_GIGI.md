@@ -10,7 +10,10 @@ must be a JSON string containing a `BehaviourPlan`.
 {
   "speech": "Text to say/render in cockpit.",
   "nonVerbal": {
-    "gesture": "EXPLAIN"
+    "gesture": "EXPLAIN",
+    "facialExpression": {"type": "warmNeutral", "intensity": 0.4},
+    "gaze": {"direction": "toward_user", "focus": "older_adult"},
+    "motion": {"stillness": 0.9, "energy": 0.1}
   },
   "motion": {
     "handSign": "rock"
@@ -22,6 +25,10 @@ must be a JSON string containing a `BehaviourPlan`.
 Rules:
 - Emit semantic labels in `nonVerbal.gesture`, not robot-server command IDs.
 - Unknown gesture labels are not dispatched by Valerian.
+- Use `nonVerbal.facialExpression`, `nonVerbal.gaze`, and
+  `nonVerbal.motion` as semantic descriptors only.
+- Use `nonVerbal.motion` for small expressive qualities such as stillness and
+  energy, not locomotion.
 - Do not emit locomotion fields such as `motion.move` or `motion.turn`.
 - Use `motion.handSign` only for hand signs such as Schere-Stein-Papier.
 - Keep `payload` as a valid JSON string for `resp.behaviour_plan`.
@@ -43,6 +50,57 @@ Do not emit robot-server IDs such as `open_question_gesture`,
 `explanatory_sweep_gesture`, `uncertainty_shrug_gesture`,
 `acknowledgement_close_hands_gesture`, or `polite_apology_gesture` directly in
 `nonVerbal.gesture`.
+
+## Facial Expression, Gaze, and Nonverbal Motion
+
+Use these fields as semantic descriptors that Valerian can render, inspect, or
+map later. Keep them small and socially safe.
+
+Recommended `nonVerbal.facialExpression` shape:
+
+```json
+{"type": "warmNeutral", "intensity": 0.4}
+```
+
+Recommended care-safe `type` values:
+- `warmNeutral`
+- `gentleSmile`
+- `attentive`
+- `thoughtful`
+- `concernedCalm`
+
+Recommended `nonVerbal.gaze` shape:
+
+```json
+{"direction": "toward_user", "focus": "older_adult"}
+```
+
+Recommended care-safe `direction` values:
+- `toward_user`
+- `briefly_aside`
+- `soft_down`
+- `toward_group`
+- `forward`
+
+Recommended care-safe `focus` values:
+- `older_adult`
+- `group`
+- `shared_space`
+- `none`
+
+Recommended `nonVerbal.motion` shape:
+
+```json
+{"stillness": 0.9, "energy": 0.1}
+```
+
+Rules:
+- Prefer high `stillness` and low `energy` in care, coaching, reminder, and
+  delicate conversation.
+- Do not emit nested locomotion fields such as `nonVerbal.motion.move` or
+  `nonVerbal.motion.turn`.
+- Do not use `nonVerbal.motion` for hand signs. Use top-level
+  `motion.handSign`.
 
 ## Hand Signs
 

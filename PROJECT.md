@@ -108,6 +108,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 102: Remove SHHD acronym from scene prompts
 - [x] Milestone 103: English TDSR Davos care agents
 - [x] Milestone 104: Davos care-agent safe gestures
+- [x] Milestone 105: Davos expanded physical behaviour
 
 ## Milestone 1
 ### Date
@@ -4724,3 +4725,41 @@ Extend all `tdsr.davos.*` care agents with sparse safe GIGI nonverbal gestures w
 ### Next steps
 1. Live-test each `tdsr.davos.*` agent in Valerian with GIGI gesture dispatch enabled.
 2. Check that serious care moments stay still or use very restrained gestures only when helpful.
+
+## Milestone 105
+### Date
+2026-06-29
+
+### Goal
+Extend the `tdsr.davos.*` care agents beyond sparse gestures to meaningful GIGI physical behaviour: facial expression, gaze, nonverbal motion descriptors, and top-level hand signs.
+
+### What changed
+- Updated the Davos interaction profile to advertise `nonVerbal.facialExpression`, `nonVerbal.gaze`, `nonVerbal.motion`, and `motion.handSign` in addition to speech and `nonVerbal.gesture`.
+- Expanded the Davos nonverbal prompt to emit a wrapped `nonVerbal` object with safe gesture labels, care-safe facial-expression values, gaze descriptors, and low-energy nonverbal motion descriptors.
+- Allowed top-level `motion.handSign` only for explicit rock-scissor-paper hand-sign moments or direct hand-sign requests, using the canonical `rock`, `scissor`, and `paper` values from `.agents/BEHVAIOURS_GIGI.md`.
+- Extended `PromptPolicy` structured complement parsing so generated non-speech plans can preserve top-level `motion.handSign` while still normalizing gesture labels and stripping locomotion fields.
+- Updated `.agents/BEHVAIOURS_GIGI.md` with the supported facial-expression, gaze, and nonverbal-motion shapes for GIGI agents.
+- Added prompt-policy and Davos contract tests for the expanded physical-behaviour contract.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and connect any Davos agent such as:
+   - `tdsr.davos.guessing_game`
+   - `tdsr.davos.smart_goal_coaching`
+
+### How to test
+- Focused runtime and Davos contract suite run:
+  - `.\mvnw.cmd -q "-Dtest=PromptPolicyGestureUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+- Targeted discovery suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dtest=PromptPolicyGestureUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone supersedes the Milestone 104 decision to keep Davos gesture-only; Davos now advertises richer physical behaviour deliberately.
+- `nonVerbal.motion` remains a semantic expressive descriptor with `stillness` and `energy`; locomotion such as `move` and `turn` is still stripped and forbidden.
+- `motion.handSign` remains top-level and is only for canonical hand signs, not ordinary care-center turns.
+- Display output is still not part of the Davos profile.
+
+### Next steps
+1. Live-test Davos agents in Valerian and confirm the cockpit renders the added physical-behaviour fields as expected.
+2. Verify on GIGI that hand signs appear only when explicitly warranted and that care-oriented turns stay calm.

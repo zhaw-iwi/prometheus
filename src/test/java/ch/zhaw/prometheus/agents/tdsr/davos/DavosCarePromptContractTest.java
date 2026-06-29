@@ -67,7 +67,7 @@ class DavosCarePromptContractTest {
     }
 
     @Test
-    void davosProfilesExposeWeatherSocialContextAndGestureOutput() {
+    void davosProfilesExposeWeatherSocialContextAndPhysicalBehaviourOutput() {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             AgentInteractionProfile profile = definitionCase.definition().createAgent().getInteractionProfile();
 
@@ -79,8 +79,12 @@ class DavosCarePromptContractTest {
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
             assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
             assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
-            assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
-            assertEquals(2, profile.getSupportedBehaviourModalities().size());
+            assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
+            assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));
+            assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
+            assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
+            assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
+            assertEquals(6, profile.getSupportedBehaviourModalities().size());
         }
     }
 
@@ -139,12 +143,23 @@ class DavosCarePromptContractTest {
     }
 
     @Test
-    void davosAgentsUseOnlySupportedGigiGestureContract() throws Exception {
+    void davosAgentsUseSupportedGigiPhysicalBehaviourContract() throws Exception {
         Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosCarePrompts.class);
         String prompt = sharedPrompts.get("NONVERBAL_PLAN");
 
+        assertContains(prompt, "\"nonVerbal\"");
+        assertContains(prompt, "\"gesture\"");
+        assertContains(prompt, "\"facialExpression\"");
+        assertContains(prompt, "\"gaze\"");
+        assertContains(prompt, "\"motion\"");
+        assertContains(prompt, "\"handSign\"");
+        assertContains(prompt, "stillness");
+        assertContains(prompt, "energy");
         for (String safeGesture : List.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE")) {
             assertContains(prompt, safeGesture);
+        }
+        for (String handSign : List.of("rock", "scissor", "paper")) {
+            assertContains(prompt, handSign);
         }
         for (String robotServerId : List.of(
                 "open_question_gesture",
@@ -155,12 +170,11 @@ class DavosCarePromptContractTest {
             assertContains(prompt, robotServerId);
         }
         assertContains(prompt, "Do not output robot-server command IDs");
-        assertContains(prompt, "Do not output top-level motion");
+        assertContains(prompt, "Do not output locomotion fields");
         assertContains(prompt, "motion.handSign");
         assertContains(prompt, "motion.move");
         assertContains(prompt, "motion.turn");
-        assertContains(prompt, "facial expressions");
-        assertContains(prompt, "gaze fields");
+        assertContains(prompt, "Do not output display fields");
 
         for (DefinitionCase definitionCase : DEFINITIONS) {
             Agent agent = definitionCase.definition().createAgent();

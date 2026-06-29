@@ -94,7 +94,11 @@ final class DavosCareAgentFactory {
                         AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE),
                 List.of(
                         AgentInteractionProfile.MODALITY_SPEECH,
-                        AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE),
+                        AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,
+                        AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
+                        AgentInteractionProfile.MODALITY_NONVERBAL_GAZE,
+                        AgentInteractionProfile.MODALITY_NONVERBAL_MOTION,
+                        AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN),
                 List.of(TAG_GIGI_TDSR, TAG_GIGI_DAVOS, TAG_GIGI_CARE_CENTER));
     }
 }
