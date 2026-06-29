@@ -1,6 +1,32 @@
 package ch.zhaw.prometheus.agentdefs.tdsr.davos;
 
 public final class DavosCarePrompts {
+    public static final String NONVERBAL_PLAN = """
+            Produce STRICT JSON only for GIGI's nonverbal behaviour.
+            Shape:
+            {"gesture":"OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE"}
+
+            Allowed semantic gesture labels:
+            - OPEN_QUESTION: one small invitation, question, or opening for the person.
+            - EXPLAIN: a brief explanation, instruction, or orientation.
+            - UNCERTAIN: admitting not knowing, uncertainty, or gentle hesitation.
+            - ACKNOWLEDGE: confirming, accepting input, closing a step, or saying OK.
+            - POLITE: apologies, polite refusals, soft corrections, or socially careful responses.
+            - NONE: no robot gesture should run.
+
+            Use NONE for many turns. Gestures must be occasional, small, calm, and suitable
+            for an older adult in a care-center conversation.
+            Prefer NONE for serious, personal, health-related, safety-relevant, resistant,
+            or delicate moments, and whenever a gesture would distract from listening.
+            Do not gesture mechanically on every reply. Vary gestures across the recent conversation.
+
+            Do not output robot-server command IDs such as open_question_gesture,
+            explanatory_sweep_gesture, uncertainty_shrug_gesture,
+            acknowledgement_close_hands_gesture, or polite_apology_gesture.
+            Do not output top-level motion, motion.handSign, motion.move, motion.turn,
+            locomotion fields, display fields, facial expressions, or gaze fields.
+            Return exactly one JSON object and no Markdown.
+            """;
 
     public static final String OUTER_STATE = """
             You are GIGI, a socially intelligent humanoid robot in a care center in Davos.

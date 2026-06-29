@@ -18,6 +18,7 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 
 class DavosCarePromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
@@ -66,7 +67,7 @@ class DavosCarePromptContractTest {
     }
 
     @Test
-    void davosProfilesExposeWeatherSocialContextAndSpeechOnlyOutput() {
+    void davosProfilesExposeWeatherSocialContextAndGestureOutput() {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             AgentInteractionProfile profile = definitionCase.definition().createAgent().getInteractionProfile();
 
@@ -77,8 +78,9 @@ class DavosCarePromptContractTest {
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
             assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
+            assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
             assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_MOTION));
-            assertEquals(1, profile.getSupportedBehaviourModalities().size());
+            assertEquals(2, profile.getSupportedBehaviourModalities().size());
         }
     }
 
@@ -136,6 +138,41 @@ class DavosCarePromptContractTest {
         }
     }
 
+    @Test
+    void davosAgentsUseOnlySupportedGigiGestureContract() throws Exception {
+        Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosCarePrompts.class);
+        String prompt = sharedPrompts.get("NONVERBAL_PLAN");
+
+        for (String safeGesture : List.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE")) {
+            assertContains(prompt, safeGesture);
+        }
+        for (String robotServerId : List.of(
+                "open_question_gesture",
+                "explanatory_sweep_gesture",
+                "uncertainty_shrug_gesture",
+                "acknowledgement_close_hands_gesture",
+                "polite_apology_gesture")) {
+            assertContains(prompt, robotServerId);
+        }
+        assertContains(prompt, "Do not output robot-server command IDs");
+        assertContains(prompt, "Do not output top-level motion");
+        assertContains(prompt, "motion.handSign");
+        assertContains(prompt, "motion.move");
+        assertContains(prompt, "motion.turn");
+        assertContains(prompt, "facial expressions");
+        assertContains(prompt, "gaze fields");
+
+        for (DefinitionCase definitionCase : DEFINITIONS) {
+            Agent agent = definitionCase.definition().createAgent();
+            OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
+            PromptPolicy interactionPolicy = assertInstanceOf(PromptPolicy.class, policy(outerState.getInnerCurrent()));
+
+            assertEquals(prompt, interactionPolicy.getNonVerbalPlanPrompt(), definitionCase.key());
+            assertEquals(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT,
+                    interactionPolicy.getNonVerbalGesturePrompt(), definitionCase.key());
+        }
+    }
+
     private static void assertContains(String value, String expected) {
         assertTrue(value.contains(expected), "missing: " + expected);
     }
@@ -150,6 +187,12 @@ class DavosCarePromptContractTest {
             prompts.put(field.getName(), (String) field.get(null));
         }
         return prompts;
+    }
+
+    private static Object policy(State state) throws Exception {
+        Field policyField = State.class.getDeclaredField("policy");
+        policyField.setAccessible(true);
+        return policyField.get(state);
     }
 
     @SuppressWarnings("unchecked")

@@ -107,6 +107,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 101: Clean agents branch rebase
 - [x] Milestone 102: Remove SHHD acronym from scene prompts
 - [x] Milestone 103: English TDSR Davos care agents
+- [x] Milestone 104: Davos care-agent safe gestures
 
 ## Milestone 1
 ### Date
@@ -4645,6 +4646,7 @@ Remove the internal SHHD acronym from TDSR scene-agent prompts so GIGI refers to
 ### Next steps
 1. Live-test at least one German and one multilingual/Babylon scene agent in Valerian to verify the spoken output no longer mentions the acronym.
 2. Continue reviewing TDSR scene prompts for other internal labels that could leak into assistant utterances.
+
 ## Milestone 103
 ### Date
 2026-06-29
@@ -4685,3 +4687,40 @@ Add English TDSR Davos variants of the four elderly-care demonstrator agents whi
 ### Next steps
 1. Live-test each `tdsr.davos.*` agent in Valerian with English Realtime speech.
 2. Exercise manual weather and social-context events during a live session to check that GIGI uses them only when helpful and briefly.
+
+## Milestone 104
+### Date
+2026-06-29
+
+### Goal
+Extend all `tdsr.davos.*` care agents with sparse safe GIGI nonverbal gestures while preserving the care-center interaction goals.
+
+### What changed
+- Added a shared Davos nonverbal plan prompt that emits only the safe semantic gesture labels from `.agents/BEHVAIOURS_GIGI.md`: `OPEN_QUESTION`, `EXPLAIN`, `UNCERTAIN`, `ACKNOWLEDGE`, `POLITE`, and `NONE`.
+- Wired the Davos prompt into every Davos care-agent interaction policy through `DavosCareAgentFactory`.
+- Updated the Davos interaction profile from speech-only to speech plus `nonVerbal.gesture`.
+- Kept the profile deliberately narrower than SHHD by not advertising facial expression, gaze, hand signs, display, or locomotion fields.
+- Added tests proving the Davos agents expose gesture output, reject `nonVerbal.motion`, and use the shared safe-gesture prompt plus the default gesture-normalization prompt.
+- Updated README to describe the Davos agents as gesture-capable.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and connect a Davos agent such as:
+   - `tdsr.davos.therapy_appointment_reminder`
+   - `tdsr.davos.smart_goal_coaching`
+
+### How to test
+- Focused Davos prompt/profile suite run:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+- Targeted discovery suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- Gestures are intentionally sparse and use `NONE` for many care-center turns, especially serious, health-related, resistant, or delicate moments.
+- The implementation does not use robot-server command IDs directly. Valerian remains responsible for mapping semantic gesture labels to robot commands.
+- No `motion.handSign`, locomotion, display, facial-expression, or gaze output was added for Davos agents.
+
+### Next steps
+1. Live-test each `tdsr.davos.*` agent in Valerian with GIGI gesture dispatch enabled.
+2. Check that serious care moments stay still or use very restrained gestures only when helpful.

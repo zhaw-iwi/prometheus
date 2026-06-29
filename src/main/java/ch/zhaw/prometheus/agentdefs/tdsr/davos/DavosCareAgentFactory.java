@@ -33,13 +33,14 @@ final class DavosCareAgentFactory {
         State sessionFinal = new Final(finalStateName, prompts.finalPrompt(), DavosCarePrompts.FINAL_STARTER);
         sessionFinal.setEventSelectorSpec(EventSelectorSpec.any());
 
-        State interactionState = new State(
-                stateName,
-                new PromptPolicy(
-                        prompts.state(),
-                        prompts.starter(),
-                        PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
+        PromptPolicy interactionPolicy = new PromptPolicy(
+                prompts.state(),
+                prompts.starter(),
+                PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        interactionPolicy.setNonVerbalPlanPrompt(DavosCarePrompts.NONVERBAL_PLAN);
+        interactionPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+
+        State interactionState = new State(stateName, interactionPolicy, List.of());
 
         Transition innerToFinal = new Transition(
                 List.of(
@@ -91,7 +92,9 @@ final class DavosCareAgentFactory {
                         AgentInteractionProfile.OBS_HUMAN_PRESENCE,
                         AgentInteractionProfile.OBS_SOCIAL_GROUPING,
                         AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE),
-                List.of(AgentInteractionProfile.MODALITY_SPEECH),
+                List.of(
+                        AgentInteractionProfile.MODALITY_SPEECH,
+                        AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE),
                 List.of(TAG_GIGI_TDSR, TAG_GIGI_DAVOS, TAG_GIGI_CARE_CENTER));
     }
 }
