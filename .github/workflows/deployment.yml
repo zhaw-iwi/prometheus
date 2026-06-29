@@ -3,7 +3,7 @@ name: deployment
 on:
   push:
     branches:
-      - feature/valerian-access-codes
+      - feature/agents
 
 jobs:
   build:
