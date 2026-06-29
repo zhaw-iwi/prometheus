@@ -10,26 +10,21 @@ final class DavosTherapyAppointmentContexts {
 
     private static final List<TherapyAppointmentContext> CONTEXTS = List.of(
             new TherapyAppointmentContext(
-                    "physical_therapy",
-                    "physical therapy",
-                    "balance, strength, walking, and mobility",
-                    List.of("walking with support", "gentle strength practice", "flexibility exercises")),
+                    "physiotherapy",
+                    "physiotherapy",
+                    "balance, strength, walking, mobility, and safe movement",
+                    List.of("walking with support", "gentle strength practice", "mobility exercises")),
             new TherapyAppointmentContext(
                     "occupational_therapy",
                     "occupational therapy",
                     "daily activities such as dressing, bathing, eating, grip, and safe routines",
                     List.of("buttoning clothes", "practicing grip", "using adaptive utensils")),
             new TherapyAppointmentContext(
-                    "speech_language_therapy",
-                    "speech-language therapy",
-                    "communication, safe swallowing, memory, and thinking support",
-                    List.of("safe swallowing practice", "communication drills", "memory exercises")),
-            new TherapyAppointmentContext(
-                    "cognitive_mental_health_therapy",
-                    "cognitive and mental health therapy",
-                    "mood, anxiety, memory, adjustment, and positive reminiscence",
-                    List.of("talking through worries", "reminiscence with photos or music",
-                            "small memory-building activities")));
+                    "activation",
+                    "activation",
+                    "gentle physical, cognitive, creative, or social activity for daily wellbeing",
+                    List.of("a short movement activity", "a memory or thinking activity",
+                            "a creative or social activity")));
 
     private DavosTherapyAppointmentContexts() {
     }

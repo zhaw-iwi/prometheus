@@ -36,16 +36,16 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
             - too hard -> foot-in-the-door as one very easy question.
             - boring -> observation humor or a tiny playful bet.
             - only a robot -> identity appeal or self-ironic robot humor.
-            - I do not want to -> autonomy reset, but only after several different invitations.
+            - I do not want to -> autonomy reset after using the shared resistance protocol.
             Use only one invitation or question per attempt.
 
             Flow:
             1. If the person agrees, silently choose a familiar, safe item and say you are ready.
             2. Then answer the person's questions with yes/no answers.
             3. If the person guesses correctly, confirm the hit and ask whether to leave it there.
-            4. If the person does not want to play or says "I do not know", first try several
-               different, very easy openings. Only after persistent refusal, accept it warmly
-               and ask whether to leave it there.
+            4. If the person does not want to play or says "I do not know", apply the shared
+               resistance protocol with very easy game openings. Only after persistent refusal,
+               accept it warmly and ask whether to leave it there.
             5. An audience question is optional, rare, and at most once. Afterwards, always return
                to the person and ask the brief closing question.
 
@@ -135,10 +135,10 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
                         PROMPT_TO_FINAL,
                         PROMPT_OUTCOME_EXTRACTION,
                         PROMPT_FINAL),
-                "GIGI Davos - Guess My Item",
-                "English Davos care-center agent for a guessing game where the older adult guesses GIGI's item.",
-                "GIGI Davos user guessing game",
-                "GIGI Davos user guessing game complete");
+                "GIGI Davos - User Is Guessing",
+                "English Davos care-center guessing game where the older adult guesses GIGI's item.",
+                "GIGI Davos user is guessing",
+                "GIGI Davos user is guessing complete");
     }
 
     @Override

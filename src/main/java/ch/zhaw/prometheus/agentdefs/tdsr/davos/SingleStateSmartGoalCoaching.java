@@ -37,7 +37,7 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
             - it will not help -> connect to today's or tomorrow's wellbeing.
             - too exhausting -> foot-in-the-door as one very small thought, not immediately a task.
             - only a robot -> self-ironic robot humor.
-            - I do not want to -> autonomy reset, but only after several different coaching invitations.
+            - I do not want to -> autonomy reset after using the shared resistance protocol.
             Use only one question per attempt.
 
             Flow:
@@ -47,7 +47,7 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
             3. Ask for a clear confirmation that the person wants to try the first step.
             4. When commitment is present, acknowledge it briefly and ask whether to hold it that way.
             5. If the person does not want coaching, a goal, or a first step, or says "I do not know",
-               first try several different, very easy openings. Only after persistent refusal,
+               apply the shared resistance protocol with very easy coaching openings. Only after persistent refusal,
                accept it warmly and ask whether to leave it there.
             6. An audience question is optional, rare, and at most once. Afterwards, always return
                to the person and ask the brief closing question.

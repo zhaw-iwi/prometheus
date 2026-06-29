@@ -89,6 +89,19 @@ class DavosCarePromptContractTest {
     }
 
     @Test
+    void guessingGameDisplayNamesMakeTheGuesserExplicit() {
+        Agent agentGuesses = new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateGuessingGame().createAgent();
+        Agent userGuesses = new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateGuessingGameUserGuess()
+                .createAgent();
+
+        assertEquals("GIGI Davos - Agent Is Guessing", agentGuesses.getName());
+        assertContains(agentGuesses.getDescription(), "GIGI guesses the older adult's item");
+
+        assertEquals("GIGI Davos - User Is Guessing", userGuesses.getName());
+        assertContains(userGuesses.getDescription(), "older adult guesses GIGI's item");
+    }
+
+    @Test
     void promptsKeepOriginalCareTasksButUseEnglishDavosContext() throws Exception {
         Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosCarePrompts.class);
         String outerState = sharedPrompts.get("OUTER_STATE");
@@ -98,6 +111,11 @@ class DavosCarePromptContractTest {
         assertContains(outerState, "Answer very briefly: usually one sentence, often only 3-10 words");
         assertContains(outerState, "Use warm micro-humor regularly in ordinary moments");
         assertContains(outerState, "normally include one small");
+        assertContains(outerState, "Do not accept a first \"no\", \"maybe\", \"not in the mood\"");
+        assertContains(outerState, "first understand the reason");
+        assertContains(outerState, "choose one reason-sensitive");
+        assertContains(outerState, "Small steps are task-specific bridges");
+        assertContains(outerState, "not automatic final successes");
         assertContains(outerState, "Your name GIGI is roughly pronounced");
         assertContains(outerState, "obs.weather.current");
         assertContains(outerState, "obs.weather.forecast");
@@ -110,6 +128,7 @@ class DavosCarePromptContractTest {
             String allPrompts = String.join("\n", prompts.values()) + "\n" + String.join("\n", sharedPrompts.values());
 
             assertContains(prompts.get("PROMPT_STATE"), definitionCase.taskAnchor());
+            assertContains(prompts.get("PROMPT_STATE"), "shared resistance protocol");
             for (String anchor : definitionCase.intentAnchors()) {
                 assertContains(prompts.get("PROMPT_STATE"), anchor);
             }
@@ -143,9 +162,9 @@ class DavosCarePromptContractTest {
         assertContains(statePrompt, "preselected for this interaction");
         assertContains(statePrompt, "Do not change to another therapy type");
         assertContains(statePrompt, "Do not claim to access live medical records");
-        assertContains(statePrompt, "Small steps are bridges, not final successes");
+        assertContains(statePrompt, "Therapy-specific small-step rule");
         assertContains(statePrompt, "do not immediately offer a smaller deal");
-        assertContains(statePrompt, "Do not accept a first \"no\", \"maybe\", \"not in the mood\"");
+        assertContains(statePrompt, "Apply the shared resistance protocol");
         assertContains(statePrompt, "first understand the reason");
         assertContains(statePrompt, "then choose one reason-sensitive");
         assertContains(statePrompt, "then offer a smaller foot-in-the-door step only if");
@@ -168,10 +187,9 @@ class DavosCarePromptContractTest {
         assertTrue(storage.containsKey("therapyAppointmentContext"));
         String selectedType = storage.get("therapyAppointmentContext").getAsJsonObject().get("type").getAsString();
         assertTrue(List.of(
-                "physical_therapy",
+                "physiotherapy",
                 "occupational_therapy",
-                "speech_language_therapy",
-                "cognitive_mental_health_therapy").contains(selectedType), selectedType);
+                "activation").contains(selectedType), selectedType);
     }
 
     @Test

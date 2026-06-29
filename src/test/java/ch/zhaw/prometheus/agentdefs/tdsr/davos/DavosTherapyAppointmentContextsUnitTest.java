@@ -16,16 +16,15 @@ import ch.zhaw.prometheus.model.Storage;
 class DavosTherapyAppointmentContextsUnitTest {
 
     @Test
-    void exposesFourTherapyContextsForUniformSelection() {
+    void exposesThreeTherapyContextsForUniformSelection() {
         List<String> types = DavosTherapyAppointmentContexts.all().stream()
                 .map(DavosTherapyAppointmentContexts.TherapyAppointmentContext::type)
                 .toList();
 
         assertEquals(List.of(
-                "physical_therapy",
+                "physiotherapy",
                 "occupational_therapy",
-                "speech_language_therapy",
-                "cognitive_mental_health_therapy"), types);
+                "activation"), types);
     }
 
     @Test
@@ -35,9 +34,9 @@ class DavosTherapyAppointmentContextsUnitTest {
         DavosTherapyAppointmentContexts.preselect(storage, new FixedIndexRandom(2));
 
         assertTrue(storage.containsKey(DavosTherapyAppointmentContexts.STORAGE_KEY));
-        assertEquals("speech_language_therapy",
+        assertEquals("activation",
                 storage.get(DavosTherapyAppointmentContexts.STORAGE_KEY).getAsJsonObject().get("type").getAsString());
-        assertEquals("speech-language therapy",
+        assertEquals("activation",
                 storage.get(DavosTherapyAppointmentContexts.STORAGE_KEY).getAsJsonObject().get("label").getAsString());
     }
 
@@ -66,15 +65,14 @@ class DavosTherapyAppointmentContextsUnitTest {
             }
         };
 
-        List<String> selected = java.util.stream.IntStream.range(0, 4)
+        List<String> selected = java.util.stream.IntStream.range(0, 3)
                 .mapToObj(ignored -> DavosTherapyAppointmentContexts.select(random).type())
                 .toList();
 
         assertEquals(List.of(
-                "physical_therapy",
+                "physiotherapy",
                 "occupational_therapy",
-                "speech_language_therapy",
-                "cognitive_mental_health_therapy"), selected);
+                "activation"), selected);
     }
 
     private static final class FixedIndexRandom implements RandomGenerator {

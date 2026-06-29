@@ -111,6 +111,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 105: Davos expanded physical behaviour
 - [x] Milestone 106: Davos care humour and therapy-reminder persistence tuning
 - [x] Milestone 107: Davos therapy-reminder preselected therapy context
+- [x] Milestone 108: Shared Davos care humour and resistance protocol
+- [x] Milestone 109: Davos therapy context set reduced to physiotherapy, occupational therapy, and activation
+- [x] Milestone 110: Explicit Davos guessing-game display names
 
 ## Milestone 1
 ### Date
@@ -4833,3 +4836,97 @@ Give each new `tdsr.davos.therapy_appointment_reminder` agent instance a presele
 ### Next steps
 1. Live-test the therapy reminder by asking about the therapy type early and later in the same interaction to confirm GIGI stays consistent.
 2. Decide whether a future operator UI should allow setting the therapy type explicitly instead of using demo randomization.
+## Milestone 108
+### Date
+2026-06-30
+
+### Goal
+Move the generic Davos care humour, resistance handling, and small-step momentum behaviour into the shared outer-state prompt so all four `tdsr.davos.*` care agents use the same social-motivation protocol while preserving task-specific goals and completion semantics.
+
+### What changed
+- Strengthened `DavosCarePrompts.OUTER_STATE` so the common care context owns the first-refusal rule, reason assessment, reason-sensitive strategy selection, non-repetition of strategies, and small-step momentum guidance.
+- Kept therapy-specific attendance semantics in `SingleStateTherapyAppointmentReminder`, including attendance as the target outcome, therapy-specific mini-steps, and foot-in-the-door timing.
+- Trimmed duplicated generic refusal wording from the guessing-game, user-guessing, and SMART-goal prompts so they reference the shared resistance protocol and keep only task-specific engagement examples.
+- Updated Davos prompt contract tests to assert that the shared outer prompt owns the common resistance/momentum rules and every Davos task prompt references the shared protocol.
+- Updated README wording for shared Davos humour and resistance handling.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and connect any Davos care agent:
+   - `tdsr.davos.therapy_appointment_reminder`
+   - `tdsr.davos.guessing_game`
+   - `tdsr.davos.guessing_game_user_guess`
+   - `tdsr.davos.smart_goal_coaching`
+
+### How to test
+- Focused Davos prompt/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosTherapyAppointmentContextsUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- This milestone intentionally moves only generic social-motivation behaviour into the outer prompt. Therapy-specific attendance, mini-step, and completion rules remain local to the therapy reminder.
+- Exact humour frequency and persistence remain probabilistic and need live Valerian/GIGI rehearsal.
+
+### Next steps
+1. Live-test all four Davos care agents with first refusals, hesitation, and "I do not know" to verify the shared protocol feels consistent but task-appropriate.
+2. Watch that non-therapy agents do not sound like therapy persuasion; their task prompts should keep the shared protocol grounded in their own task examples.
+## Milestone 109
+### Date
+2026-06-30
+
+### Goal
+Adapt the `tdsr.davos.therapy_appointment_reminder` demo therapy context randomization to choose uniformly among physiotherapy, occupational therapy, and activation instead of the previous four broader therapy categories.
+
+### What changed
+- Replaced the four Davos therapy appointment contexts with three canonical demo contexts: `physiotherapy`, `occupational_therapy`, and `activation`.
+- Kept the existing `therapyAppointmentContext` storage shape so the therapy reminder prompt continues to answer therapy-type questions from the preselected instance context.
+- Updated the therapy context selector unit test and Davos prompt contract test for the new three-choice set.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Create a new Davos therapy reminder instance:
+   - `tdsr.davos.therapy_appointment_reminder`
+3. Ask what therapy the appointment is for; GIGI should answer with physiotherapy, occupational therapy, or activation and keep that choice stable.
+
+### How to test
+- Focused Davos therapy context suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosTherapyAppointmentContextsUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- The context remains a demo simulation of patient-information lookup. Production should use real scheduling/operator data when available.
+- Selection remains random per new agent instance and fixed in `therapyAppointmentContext` afterward.
+
+### Next steps
+1. Live-test several newly created Davos therapy reminder instances and verify the observed distribution includes all three contexts over repeated creations.
+2. Check whether "activation" needs more specific spoken examples after live rehearsal.
+## Milestone 110
+### Date
+2026-06-30
+
+### Goal
+Rename the two Davos guessing-game agent display names so Valerian/Admin users can immediately see whether GIGI or the older adult is guessing.
+
+### What changed
+- Renamed `tdsr.davos.guessing_game` display metadata to `GIGI Davos - Agent Is Guessing` with a description that says GIGI guesses the older adult's item.
+- Renamed `tdsr.davos.guessing_game_user_guess` display metadata to `GIGI Davos - User Is Guessing` with a description that says the older adult guesses GIGI's item.
+- Kept the public agent keys unchanged to avoid access-code and routing churn.
+- Added Davos prompt contract assertions for the clearer display names.
+- Updated README wording for the Davos guessing-game labels.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and inspect the Davos package agent list:
+   - `tdsr.davos.guessing_game`
+   - `tdsr.davos.guessing_game_user_guess`
+
+### How to test
+- Focused Davos prompt/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosTherapyAppointmentContextsUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- This milestone changes display metadata only. Public keys remain `tdsr.davos.guessing_game` and `tdsr.davos.guessing_game_user_guess`.
+
+### Next steps
+1. Confirm in Valerian Admin that the two labels are clear enough for operators assigning access codes.
