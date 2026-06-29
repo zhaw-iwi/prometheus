@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.agentdefs.tdsr.davos;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
@@ -15,6 +16,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.PromptValueShape;
 
 final class DavosCareAgentFactory {
     private static final String TAG_GIGI_TDSR = "demo.gigi.tdsr";
@@ -29,14 +31,38 @@ final class DavosCareAgentFactory {
 
     static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
             String stateName, String finalStateName) {
+        return singleStateCareAgent(prompts, agentName, agentDescription, stateName, finalStateName, storage -> {
+        });
+    }
+
+    static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
+            String stateName, String finalStateName, Consumer<Storage> storageInitializer) {
+        return singleStateCareAgent(prompts, agentName, agentDescription, stateName, finalStateName,
+                storageInitializer, List.of());
+    }
+
+    static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
+            String stateName, String finalStateName, Consumer<Storage> storageInitializer,
+            List<String> stateStorageKeysFrom) {
         Storage storage = new Storage();
+        if (storageInitializer != null) {
+            storageInitializer.accept(storage);
+        }
         State sessionFinal = new Final(finalStateName, prompts.finalPrompt(), DavosCarePrompts.FINAL_STARTER);
         sessionFinal.setEventSelectorSpec(EventSelectorSpec.any());
 
-        PromptPolicy interactionPolicy = new PromptPolicy(
-                prompts.state(),
-                prompts.starter(),
-                PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        PromptPolicy interactionPolicy = stateStorageKeysFrom == null || stateStorageKeysFrom.isEmpty()
+                ? new PromptPolicy(
+                        prompts.state(),
+                        prompts.starter(),
+                        PromptPolicy.DEFAULT_SUMMARISE_PROMPT)
+                : new PromptPolicy(
+                        prompts.state(),
+                        prompts.starter(),
+                        PromptPolicy.DEFAULT_SUMMARISE_PROMPT,
+                        storage,
+                        stateStorageKeysFrom,
+                        PromptValueShape.OBJECT);
         interactionPolicy.setNonVerbalPlanPrompt(DavosCarePrompts.NONVERBAL_PLAN);
         interactionPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
 

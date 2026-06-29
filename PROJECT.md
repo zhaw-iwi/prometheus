@@ -109,6 +109,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 103: English TDSR Davos care agents
 - [x] Milestone 104: Davos care-agent safe gestures
 - [x] Milestone 105: Davos expanded physical behaviour
+- [x] Milestone 106: Davos care humour and therapy-reminder persistence tuning
+- [x] Milestone 107: Davos therapy-reminder preselected therapy context
 
 ## Milestone 1
 ### Date
@@ -4763,3 +4765,71 @@ Extend the `tdsr.davos.*` care agents beyond sparse gestures to meaningful GIGI 
 ### Next steps
 1. Live-test Davos agents in Valerian and confirm the cockpit renders the added physical-behaviour fields as expected.
 2. Verify on GIGI that hand signs appear only when explicitly warranted and that care-oriented turns stay calm.
+
+## Milestone 106
+### Date
+2026-06-29
+
+### Goal
+Tune the English `tdsr.davos.*` care agents so ordinary exchanges use warm micro-humor more often, and make the Davos therapy reminder behave more like the elderly-care variant by assessing resistance, varying persuasion strategies, and treating mini-steps as momentum toward attending therapy.
+
+### What changed
+- Strengthened the shared Davos care prompt so warm micro-humor is expected regularly in ordinary moments, especially after resistance, hesitation, boredom, uncertainty, or robot skepticism, while preserving serious, medical, safety, and delicate-moment exclusions.
+- Reframed the Davos therapy reminder from neutral decision support toward gentle voluntary persuasion for actually attending the appointment.
+- Added explicit therapy-reminder guidance to assess resistance before offering a smaller deal, choose a reason-sensitive first strategy, avoid repeating strategies, delay foot-in-the-door until burden/size/tiredness/effort is the issue, and avoid reduced participation as the first response to simple low motivation.
+- Changed therapy mini-step semantics so talking about it, looking briefly, going to the door, trying five minutes, an if-then plan, or a reminder are bridges toward attendance rather than final successes by themselves.
+- Tightened the therapy completion and outcome-extraction prompts so `completed=true` means agreement to attend or an attendance-equivalent plan, while standalone mini-steps remain incomplete progress.
+- Updated Davos prompt contract tests and README wording.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and connect a Davos care agent, especially:
+   - `tdsr.davos.therapy_appointment_reminder`
+
+### How to test
+- Focused Davos prompt/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- This is prompt-contract tuning; exact humour frequency and persistence still need live Valerian/robot rehearsal.
+- The therapy reminder still preserves safety boundaries: medical reasons, pain, overload, safety uncertainty, or explicit stop requests override persuasion.
+- Persistent refusal can still close the interaction after several clearly different gentle approaches and a respectful closure confirmation.
+
+### Next steps
+1. Live-test the Davos therapy reminder against common refusal patterns: no motivation, tiredness, boredom, too hard, only-a-robot skepticism, and "I do not know".
+2. Check whether the stronger humour guidance improves warmth without disturbing serious care moments.
+## Milestone 107
+### Date
+2026-06-29
+
+### Goal
+Give each new `tdsr.davos.therapy_appointment_reminder` agent instance a preselected demo therapy context, chosen uniformly from four common elderly-care therapy categories when the instance is created, so GIGI can answer therapy-type questions consistently without switching therapies mid-interaction.
+
+### What changed
+- Added Davos-local therapy appointment contexts for physical therapy, occupational therapy, speech-language therapy, and cognitive/mental-health therapy.
+- Added `DavosTherapyAppointmentContexts` to select one context via `RandomGenerator#nextInt(4)` and store it under `therapyAppointmentContext`.
+- Wired the Davos therapy reminder factory call so new therapy-reminder instances preselect and persist one therapy context at creation time.
+- Injected `therapyAppointmentContext` into the Davos therapy prompt and instructed GIGI to answer therapy-type questions from that stored context, not change therapies during the interaction, and not claim live medical-record access.
+- Added unit tests for the selector/storage behavior and extended the Davos prompt contract test for stored therapy context and prompt wording.
+- Updated README wording for the Davos therapy-reminder behavior.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Create a new Davos therapy reminder instance through Valerian Admin/Valerian:
+   - `tdsr.davos.therapy_appointment_reminder`
+3. Ask what therapy the appointment is for; the answer should use the instance's stored therapy context.
+
+### How to test
+- Focused Davos therapy context suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosTherapyAppointmentContextsUnitTest,DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+
+### Known issues and decisions
+- The selected therapy context is a demo simulation of patient-information lookup. It must not be represented as verified medical scheduling data.
+- Selection is random at instance creation and remains fixed in storage for that agent instance. Reusing the same agent instance for multiple older adults will reuse the same therapy context.
+- Production deployment should prefer an operator- or scheduling-system-provided therapy type over random demo assignment.
+
+### Next steps
+1. Live-test the therapy reminder by asking about the therapy type early and later in the same interaction to confirm GIGI stays consistent.
+2. Decide whether a future operator UI should allow setting the therapy type explicitly instead of using demo randomization.

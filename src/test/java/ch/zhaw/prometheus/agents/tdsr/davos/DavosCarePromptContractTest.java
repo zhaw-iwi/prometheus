@@ -96,7 +96,8 @@ class DavosCarePromptContractTest {
         assertContains(outerState, "care center in Davos");
         assertContains(outerState, "Answer only in English");
         assertContains(outerState, "Answer very briefly: usually one sentence, often only 3-10 words");
-        assertContains(outerState, "Use warm micro-humor where appropriate");
+        assertContains(outerState, "Use warm micro-humor regularly in ordinary moments");
+        assertContains(outerState, "normally include one small");
         assertContains(outerState, "Your name GIGI is roughly pronounced");
         assertContains(outerState, "obs.weather.current");
         assertContains(outerState, "obs.weather.forecast");
@@ -126,6 +127,51 @@ class DavosCarePromptContractTest {
                         definitionCase.definitionClass().getSimpleName() + "." + prompt.getKey());
             }
         }
+    }
+
+    @Test
+    void therapyReminderKeepsElderlyCarePersuasionStrategyAndUsesSmallStepsAsMomentum() throws Exception {
+        Map<String, String> prompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder.class);
+        String statePrompt = prompts.get("PROMPT_STATE");
+        String toFinalPrompt = prompts.get("PROMPT_TO_FINAL");
+        String outcomePrompt = prompts.get("PROMPT_OUTCOME_EXTRACTION");
+
+        assertContains(statePrompt, "Gently persuade");
+        assertContains(statePrompt, "Appointment therapy context:");
+        assertContains(statePrompt, "${therapyAppointmentContext}");
+        assertContains(statePrompt, "preselected for this interaction");
+        assertContains(statePrompt, "Do not change to another therapy type");
+        assertContains(statePrompt, "Do not claim to access live medical records");
+        assertContains(statePrompt, "Small steps are bridges, not final successes");
+        assertContains(statePrompt, "do not immediately offer a smaller deal");
+        assertContains(statePrompt, "Do not accept a first \"no\", \"maybe\", \"not in the mood\"");
+        assertContains(statePrompt, "first understand the reason");
+        assertContains(statePrompt, "then choose one reason-sensitive");
+        assertContains(statePrompt, "then offer a smaller foot-in-the-door step only if");
+        assertContains(statePrompt, "Do not use reduced participation as the first strategy");
+        assertContains(statePrompt, "Do not repeat the same strategy");
+        assertContains(statePrompt, "After a mini-step yes, do not close");
+        assertContains(statePrompt, "Do not end the interaction just to stay brief");
+
+        assertContains(toFinalPrompt, "attendance-equivalent plan such as going there now with support");
+        assertContains(toFinalPrompt, "at least three");
+        assertContains(toFinalPrompt, "intermediate mini-steps such as talking about it");
+        assertContains(toFinalPrompt, "assistant has already used that step to invite attendance");
+
+        assertContains(outcomePrompt, "completed is true only when the person agreed to attend");
+        assertContains(outcomePrompt, "completed is false for a standalone mini-step");
+
+        Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder()
+                .createAgent();
+        Map<String, com.google.gson.JsonElement> storage = agent.getStorage();
+        assertTrue(storage.containsKey("therapyAppointmentContext"));
+        String selectedType = storage.get("therapyAppointmentContext").getAsJsonObject().get("type").getAsString();
+        assertTrue(List.of(
+                "physical_therapy",
+                "occupational_therapy",
+                "speech_language_therapy",
+                "cognitive_mental_health_therapy").contains(selectedType), selectedType);
     }
 
     @Test

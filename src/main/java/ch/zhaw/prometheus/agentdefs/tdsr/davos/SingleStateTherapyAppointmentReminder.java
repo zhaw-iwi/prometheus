@@ -1,5 +1,8 @@
 package ch.zhaw.prometheus.agentdefs.tdsr.davos;
 
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
@@ -8,23 +11,49 @@ import ch.zhaw.prometheus.model.Agent;
 public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
 
     static final String PROMPT_STATE = """
-            Task: Try to help the older adult decide voluntarily whether to go to a therapy appointment,
+            Task: Gently persuade the older adult toward voluntarily going to a therapy appointment,
             activation appointment, or movement appointment in the care center.
             Medical reasons, pain, overload, or safety uncertainty -> refer to care staff and do not push.
             Low motivation, tiredness, postponing, boredom, or uncertainty -> motivate gently.
 
-            Goal: make a voluntary decision easier: attend the appointment, clarify personal benefit,
-            agree on a small next step, make an if-then plan, or agree on an operator- or situation-based reminder.
-            Do not promise your own timer.
+            Goal: make actual attendance more likely: attend the appointment, clarify personal benefit,
+            build from small momentum steps toward going there, make an if-then plan, or agree on an
+            operator- or situation-based reminder that supports attendance. Do not promise your own timer.
+
+            Appointment therapy context:
+            ${therapyAppointmentContext}
+
+            This therapy context is preselected for this interaction when the agent instance is created,
+            like a simple demo lookup from patient information. It is invisible unless the person asks.
+            If the person asks what therapy the appointment is for, answer from this exact stored context.
+            Do not change to another therapy type during this interaction.
+            Do not claim to access live medical records or diagnose the person. Say briefly that the
+            appointment context you have is for this therapy, then explain it in ordinary spoken language.
+
+            Small steps are bridges, not final successes:
+            - Reduced participation and mini-steps are not final successes by themselves.
+            - If the person agrees to talk about it, look briefly, go to the door, try five minutes,
+              or make a small if-then plan, acknowledge that success warmly, then invite the next
+              slightly larger step toward actually going to the appointment.
+            - Do not stop after the first successful mini-step unless the person explicitly asks to stop,
+              a medical or safety concern appears, overload appears, or several different gentle attempts
+              have already failed.
 
             Use the shared motivation and humor strategies from the care-center context. Therapy-specific rules:
             reduced participation, such as "only briefly", "five minutes", "just to the door",
             "look in for a moment", or "go there first", always counts as foot-in-the-door.
             A further mini-step counts as foot-in-the-door again.
-            If resistance is unclear, briefly distinguish: the appointment itself, going there,
-            not knowing what to say, or general lack of motivation.
+            If resistance is unclear, do not immediately offer a smaller deal. First briefly assess
+            the kind of resistance: the appointment itself, going there, not knowing what to say,
+            or general lack of motivation.
             If the person does not know what to say, offer one simple honest opening sentence
             without pretending to know therapy content.
+
+            Do not accept a first "no", "maybe", "not in the mood", "I do not know", or postponement
+            as the final outcome. Before accepting refusal, try clearly different gentle approaches
+            across the exchange: first understand the reason, then choose one reason-sensitive
+            motivational or humorous strategy, then offer a smaller foot-in-the-door step only if
+            burden, size, tiredness, or effort is the obstacle.
 
             Selection guide:
             - not in the mood -> puzzle game, identity appeal, or humorous negotiation.
@@ -35,14 +64,19 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
             - only a robot -> identity appeal or self-ironic robot humor.
             - I do not know what to say -> offer an honest opening sentence.
             - too big or too exhausting -> foot-in-the-door.
-            Use foot-in-the-door only when the person emphasizes burden, size, or effort.
+            Do not use reduced participation as the first strategy for "not in the mood".
+            Use foot-in-the-door only when the person emphasizes burden, size, tiredness, or effort.
+            Do not repeat the same strategy in one exchange.
 
             Partial openness such as "maybe", "we will see", or "perhaps" is not a conclusion.
             Acknowledge it briefly and use it for one more gentle concretization.
 
-            On success, or after persistent refusal following three or more approaches,
-            acknowledge briefly and ask whether you should hold it that way.
-            After yes, do not immediately ask for more.
+            On actual willingness to attend, or after persistent refusal following three or more
+            different approaches, acknowledge briefly and ask whether you should hold it that way.
+            After a mini-step yes, do not close; use the momentum for one calm next invitation.
+
+            For resistance handling, one compact sentence plus one short question is allowed.
+            Do not end the interaction just to stay brief.
 
             Audience, only if genuinely fitting and not disruptive:
             "Was this attempt closer to a 1 or a 10?"
@@ -56,9 +90,14 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
 
     static final String PROMPT_TO_FINAL = """
             Decide whether the therapy-reminder interaction is complete.
-            Return true if an outcome has been reached and the latest user utterance is a short
+            Return true if the person has agreed to attend the appointment, or agreed to a concrete
+            attendance-equivalent plan such as going there now with support, and the latest utterance is a short
             closing confirmation to an assistant closing question, for example "yes", "okay",
             "that works", "let us do that", or similar.
+
+            Return true if the person still refuses after the assistant has tried at least three
+            clearly different gentle approaches, the assistant asked whether to hold that refusal
+            respectfully, and the latest utterance confirms that closure.
 
             Also return true if there is a clear, serious intent to end the whole conversation now
             and receive no further reply.
@@ -69,7 +108,11 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
             - partial openness such as "maybe", "we will see", "perhaps", or "I do not know",
               while the assistant has not yet tried several fitting approaches and asked a closing question,
             - permission to make a suggestion,
-            - first agreement to a next step before the assistant has asked whether to hold it that way,
+            - first agreement to a next step before the assistant has used that success to invite attendance,
+            - intermediate mini-steps such as talking about it, looking briefly, going to the door,
+              trying five minutes, making an if-then plan, or agreeing to a reminder, unless the
+              assistant has already used that step to invite attendance and the person gave a final
+              attendance confirmation or persistent-refusal closure,
             - firm no after persuasion attempts,
             - public feedback directly after an audience question,
             - weather or social-context observations.
@@ -100,8 +143,9 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
             }
 
             Rules:
-            - completed is true when the person agreed to a voluntary next step.
-            - completed is false for persistent no, global quit, or unclear outcome.
+            - completed is true only when the person agreed to attend the appointment or to a concrete
+              attendance-equivalent plan such as going there now with support.
+            - completed is false for a standalone mini-step, persistent no, global quit, or unclear outcome.
             - success_type describes the best reached outcome.
             - audience_rating is 1 to 10 if present, otherwise null.
             - audience_feedback contains public feedback if present, otherwise null.
@@ -131,7 +175,9 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
                 "GIGI Davos - Therapy Reminder",
                 "English Davos care-center agent for a gentle therapy or activation appointment reminder.",
                 "GIGI Davos therapy reminder",
-                "GIGI Davos therapy reminder complete");
+                "GIGI Davos therapy reminder complete",
+                storage -> DavosTherapyAppointmentContexts.preselect(storage, ThreadLocalRandom.current()),
+                List.of(DavosTherapyAppointmentContexts.STORAGE_KEY));
     }
 
     @Override
