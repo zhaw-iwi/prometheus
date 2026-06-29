@@ -104,6 +104,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 98: PROMETHEUS Realtime tuning backend contract
 - [x] Milestone 99: Valerian cockpit Realtime audio tuning
 - [x] Milestone 100: Framework/application agent repository split
+- [x] Milestone 101: Clean agents branch rebase
 
 ## Milestone 1
 ### Date
@@ -4564,3 +4565,50 @@ Preserve the current application agent catalog on a separate `agents` branch, th
 1. Review the `main` cleanup diff and commit it.
 2. Push `main` after review.
 3. Decide whether the preserved `agents` branch should become a Maven application module, a separate repository, or remain a branch while the framework/application split settles.
+
+## Milestone 101
+### Date
+2026-06-29
+
+### Goal
+Rewrite the `agents` branch so it is based on current clean `main` and contains the application agents as the focused branch addition, instead of preserving the whole pre-cleanup feature snapshot.
+
+### What changed
+- Reset local `agents` to `origin/main` at the framework/application split commit.
+- Restored the TDSR and elderly-care application agent definitions, TDSR prompt docs, RPS application support, app replay scripts, and matching app-specific tests from `feature/valerian-access-codes`.
+- Kept `main`'s `AgentDefinitionRegistry` and registered restored application agents through `ApplicationAgentDefinitionConfiguration` as Spring `AgentDefinition` beans.
+- Moved the TDSR-specific interaction profile factories into app-local `TdsrInteractionProfiles` instead of reintroducing app-specific helpers to the framework interaction model.
+- Restored SHHD access-code presets for the application branch and restored the RPS redirect/client contract.
+- Updated README branch wording so `agents` describes its app-agent additions and SHHD presets directly.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open Valerian Admin and apply the SHHD preset if needed:
+   - `http://localhost:8080/valerian-admin/`
+4. Open the RPS manual client for RPS-capable agents:
+   - `http://localhost:8080/rps/?agentId=<uuid>`
+
+### How to test
+- JavaScript syntax checks run:
+  - `node --check src/main/resources/public/rps/script.js`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+- Compile check run:
+  - `.\mvnw.cmd -q "-DskipTests" compile`
+- Targeted branch-specific suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest,AdminAccessCodeControllerWebMvcTest,ScopedDemoControllerIntegrationTest,StaticRedirectControllerWebMvcTest,RpsClientStaticResourceContractTest" test`
+- Full clean-schema suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dlogging.level.root=ERROR" "-Dlogging.level.org=ERROR" "-Dlogging.level.com=ERROR" "-Dlogging.level.ch.zhaw.prometheus=ERROR" "-Dlogging.level.org.hibernate.SQL=ERROR" test`
+  - Result from fresh Surefire XML reports: 289 tests, 0 failures, 0 errors, 0 skipped.
+
+### Known issues and decisions
+- This milestone intentionally rewrites `origin/agents`; the old full snapshot remains reachable through `feature/valerian-access-codes` at `d428b5e`.
+- The `agents` branch still keeps app-specific RPS support because the TDSR RPS agents depend on it.
+- SHHD presets belong to this application branch; clean framework `main` remains preset-empty.
+
+### Next steps
+1. Review the focused `agents` branch diff after the force-push.
+2. Decide later whether this app-agent line should become a Maven module, separate repository, or remain a branch while the split settles.

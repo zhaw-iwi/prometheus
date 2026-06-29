@@ -207,10 +207,11 @@ class. The current migrated definitions call `Agent.start(...)` inside
 `createInstance(...)`, preserving the former seed-test startup behaviour as
 developer-written code.
 
-This `main` branch keeps only framework demo definitions. Application-specific
-TDSR and elderly-care agents are preserved on the `agents` branch and should be
-added to framework deployments as separate application code, modules, or
-dependencies.
+This `agents` branch is based on the clean framework `main` line and adds the
+TDSR and elderly-care application agents as Spring `AgentDefinition` beans via
+`ApplicationAgentDefinitionConfiguration`. The branch also carries the
+application-specific RPS support code, TDSR prompt/docs, app replay tests, and
+SHHD access-code presets.
 
 Registered definitions:
 
@@ -222,6 +223,9 @@ Registered definitions:
 - `multimodal.single_state_in` - Single-state micro-coaching with multimodal sensing inputs.
 - `multimodal.single_state_out` - Single-state interaction with deterministic multimodal behaviour output.
 - `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
+- `tdsr.core.<language>.*` - TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`.
+- `tdsr.shhd.<language>.*` - SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`.
+- `elderlycare.*` - Elderly-care single-state demonstrator agents.
 
 ### Option A: Seed registered agents from tests
 
@@ -248,6 +252,7 @@ Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code se
 - Visual multifacial detector: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
 - Visual social detector: `http://localhost:8080/visual/social/?agentId=<uuid>`
 - Nonverbal behaviour renderer: `http://localhost:8080/nonverbal/?agentId=<uuid>`
+- RPS manual client: `http://localhost:8080/rps/?agentId=<uuid>`
 - Multilateral listen: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/?agentId=<uuid>`
 
@@ -270,9 +275,11 @@ agent expects and the behaviour modalities it can emit, for example
 `obs.hand.sign`, `obs.social.grouping`, `speech`, `nonVerbal.gesture`,
 `motion.handSign`, and `display`. It is persisted with the `Agent` aggregate
 and is metadata, not runtime `Storage`.
-Seed agent templates declare profiles through `AgentInteractionProfiles`
+Seed agent templates declare generic profiles through `AgentInteractionProfiles`
 factories such as `speechOnly()`, `multimodalOutput()`, and
-`multimodalInputOutput()`.
+`multimodalInputOutput()`. TDSR application agents keep their specialized
+profile tags and capability bundles in the app-local `TdsrInteractionProfiles`
+helper rather than adding TDSR-specific API to the framework interaction model.
 
 ### Agent runtime
 
@@ -340,8 +347,8 @@ explicit access-code-to-agent-type-key assignments so the admin cockpit does not
 need to infer package contents. Applying a preset creates all requested access
 codes and assignments transactionally; if any code already exists or a submitted
 agent type is not part of that preset entry, the request fails without creating
-partial data. The framework `main` branch ships with an empty preset catalog;
-application branches or modules can provide presets for their own agent bundles.
+partial data. This `agents` branch ships the `shhd_scene_agents` preset for the
+TDSR SHHD scene-agent bundles.
 
 Create body:
 

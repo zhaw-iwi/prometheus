@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="de">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GIGI RPS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    @import url("/style.css");
+
+    .rps-stage {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .rps-stage {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .sign-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 1rem;
+      min-height: 210px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 0.6rem;
+    }
+
+    .sign-symbol {
+      width: min(42vw, 160px);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 1px solid rgba(12, 22, 24, 0.16);
+      background: rgba(255, 255, 255, 0.94);
+      display: grid;
+      place-items: center;
+      font-size: clamp(3.5rem, 9vw, 6rem);
+      line-height: 1;
+    }
+
+    .sign-label {
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 992px) {
+      .motion-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    .motion-fact {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      padding: 0.7rem;
+      min-height: 74px;
+    }
+
+    .motion-fact .metric-label {
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .motion-fact strong {
+      display: block;
+      font-size: 0.95rem;
+      overflow-wrap: anywhere;
+    }
+
+    .speech-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      min-height: 72px;
+      padding: 0.85rem 1rem;
+    }
+
+    .sign-button {
+      min-height: 72px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 0.7rem;
+      text-align: left;
+    }
+
+    .button-symbol {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+
+    .video-shell {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: rgba(12, 22, 24, 0.08);
+      aspect-ratio: 4 / 3;
+    }
+
+    #camera_video,
+    #gesture_overlay_canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #camera_video {
+      transform: scaleX(-1);
+    }
+
+    .camera-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .camera-fact {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      padding: 0.65rem;
+      min-height: 66px;
+    }
+
+    .camera-fact strong {
+      display: block;
+      font-size: 0.95rem;
+      overflow-wrap: anywhere;
+    }
+
+    .mono-log {
+      background: #0b1316;
+      color: #f7f3ea;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      height: 210px;
+      overflow: auto;
+      padding: 0.9rem;
+      font-family: "Spline Sans Mono", "Cascadia Mono", ui-monospace, monospace;
+      font-size: 0.83rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <section class="page-shell py-4">
+    <div class="container content-layer">
+      <header class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end mb-4 reveal">
+        <div>
+          <div id="agent_name" class="page-title">GIGI RPS</div>
+          <div class="page-subtitle">Schere, Stein, Papier</div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+          <button id="show_agent_info" class="btn btn-outline-ink btn-sm" type="button" title="Agent info">
+            <i class="bi bi-info-circle"></i>
+          </button>
+          <span id="active_status" class="status-pill is-unknown">Unknown</span>
+          <span id="stream_status" class="status-pill is-idle">Stream Idle</span>
+        </div>
+      </header>
+
+      <div class="row g-4">
+        <div class="col-12 col-xl-8">
+          <div class="card reveal delay-1">
+            <div class="card-header">Runde</div>
+            <div class="card-body">
+              <div class="rps-stage">
+                <section class="sign-panel" aria-label="GIGI Zeichen">
+                  <div class="metric-label">GIGI</div>
+                  <div id="agent_sign_symbol" class="sign-symbol" data-testid="agent-sign-symbol">-</div>
+                  <div id="agent_sign_label" class="sign-label" data-testid="agent-sign-label">Kein Zeichen</div>
+                </section>
+                <section class="sign-panel" aria-label="Nutzer Zeichen">
+                  <div class="metric-label">Du</div>
+                  <div id="user_sign_symbol" class="sign-symbol" data-testid="user-sign-symbol">-</div>
+                  <div id="user_sign_label" class="sign-label" data-testid="user-sign-label">Kein Zeichen</div>
+                </section>
+              </div>
+
+              <div class="motion-grid mt-3">
+                <div class="motion-fact">
+                  <span class="metric-label">Runde</span>
+                  <strong id="round_value" data-testid="round-value">-</strong>
+                </div>
+                <div class="motion-fact">
+                  <span class="metric-label">Gewinner</span>
+                  <strong id="winner_value" data-testid="winner-value">-</strong>
+                </div>
+                <div class="motion-fact">
+                  <span class="metric-label">Effektor</span>
+                  <strong id="effector_value" data-testid="effector-value">-</strong>
+                </div>
+                <div class="motion-fact">
+                  <span class="metric-label">Timing</span>
+                  <strong id="timing_value" data-testid="timing-value">-</strong>
+                </div>
+              </div>
+
+              <div class="metric-label mt-3">GIGI sagt</div>
+              <div id="speech_preview" class="speech-box" data-testid="speech-preview">Noch kein Verhalten.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+          <div class="card reveal delay-2">
+            <div class="card-header">Spielsteuerung</div>
+            <div class="card-body">
+              <div class="d-grid gap-2">
+                <button id="start_game" class="btn btn-primary" type="button" data-testid="start-game">
+                  <i class="bi bi-play-fill me-2"></i>Start
+                </button>
+                <button id="ready_round" class="btn btn-outline-ink" type="button" data-testid="ready-round">
+                  <i class="bi bi-broadcast me-2"></i>Bereit
+                </button>
+              </div>
+
+              <hr />
+
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-ink sign-button" type="button" data-sign="scissor"
+                  data-testid="manual-sign-scissor">
+                  <span class="button-symbol">&#9996;</span><span>Schere</span>
+                </button>
+                <button class="btn btn-outline-ink sign-button" type="button" data-sign="rock"
+                  data-testid="manual-sign-rock">
+                  <span class="button-symbol">&#9994;</span><span>Stein</span>
+                </button>
+                <button class="btn btn-outline-ink sign-button" type="button" data-sign="paper"
+                  data-testid="manual-sign-paper">
+                  <span class="button-symbol">&#9995;</span><span>Papier</span>
+                </button>
+              </div>
+
+              <hr />
+
+              <div class="d-grid gap-2">
+                <button id="play_again" class="btn btn-outline-ink" type="button" data-testid="play-again">
+                  <i class="bi bi-arrow-repeat me-2"></i>Noch einmal
+                </button>
+                <button id="stop_game" class="btn btn-outline-ink" type="button" data-testid="stop-game">
+                  <i class="bi bi-stop-circle me-2"></i>Beenden
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal delay-3 mt-4">
+            <div class="card-header">Handkamera</div>
+            <div class="card-body">
+              <div class="video-shell mb-3">
+                <video id="camera_video" autoplay playsinline muted></video>
+                <canvas id="gesture_overlay_canvas"></canvas>
+              </div>
+
+              <div class="d-flex gap-2 flex-wrap">
+                <button id="start_camera" class="btn btn-primary" type="button" data-testid="start-camera">
+                  <i class="bi bi-camera-video me-2"></i>Kamera
+                </button>
+                <button id="stop_camera" class="btn btn-outline-ink" type="button" data-testid="stop-camera" disabled>
+                  <i class="bi bi-camera-video-off me-2"></i>Stop
+                </button>
+                <span id="camera_status" class="status-pill is-idle align-self-center">Kamera Idle</span>
+              </div>
+
+              <div class="camera-metrics mt-3">
+                <div class="camera-fact">
+                  <span class="metric-label">Erkannt</span>
+                  <strong id="camera_sign_value" data-testid="camera-sign-value">-</strong>
+                </div>
+                <div class="camera-fact">
+                  <span class="metric-label">Confidence</span>
+                  <strong id="camera_confidence_value" data-testid="camera-confidence-value">0.00</strong>
+                </div>
+                <div class="camera-fact">
+                  <span class="metric-label">Stabil</span>
+                  <strong id="camera_stability_value" data-testid="camera-stability-value">0/3</strong>
+                </div>
+              </div>
+
+              <div class="mt-3">
+                <label class="form-label metric-label" for="camera_confidence_threshold">
+                  Confidence <span id="camera_threshold_value">0.70</span>
+                </label>
+                <input id="camera_confidence_threshold" class="form-range" type="range" min="0" max="1" step="0.05"
+                  value="0.70" data-testid="camera-confidence-threshold" />
+              </div>
+
+              <div class="row g-2 mt-2">
+                <div class="col-6">
+                  <label class="form-label metric-label" for="camera_emit_interval_ms">Intervall (ms)</label>
+                  <input id="camera_emit_interval_ms" class="form-control form-control-sm" type="number" min="500"
+                    step="250" value="1800" data-testid="camera-emit-interval" />
+                </div>
+                <div class="col-6 d-flex align-items-end">
+                  <div class="form-check">
+                    <input id="camera_emit_enabled" class="form-check-input" type="checkbox"
+                      data-testid="camera-emit-enabled" />
+                    <label class="form-check-label" for="camera_emit_enabled">Auto senden</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card reveal delay-3 mt-4">
+            <div class="card-header">Aktivitaet</div>
+            <div class="card-body">
+              <div id="activity_log" class="mono-log" data-testid="activity-log"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
