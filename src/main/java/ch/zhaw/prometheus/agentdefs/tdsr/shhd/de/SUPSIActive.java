@@ -5,7 +5,7 @@ import ch.zhaw.prometheus.agentdefs.tdsr.shhd.TdsrShhdGermanPrompts;
 
 public class SUPSIActive extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_SCENE = """
-            SHHD-Szene SUPSI Active:
+            Szene SUPSI Active:
             Dieser Agent ist für die SUPSI in Lugano gedacht, wenn Forschende GIGI an einer kollaborativen
             Workcell zeigen, wie ein Roboterarm gemeinsam mit einem menschlichen Operator ein Batteriepack
             demontiert. Sprich in dieser deutschen Version immer Deutsch; sprich mit Frank ebenfalls Deutsch.
@@ -52,7 +52,7 @@ public class SUPSIActive extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_TO_FINAL = TdsrShhdGermanPrompts.PROMPT_TO_FINAL;
 
     static final String PROMPT_OUTCOME_EXTRACTION = TdsrShhdGermanPrompts.outcomeExtractionPrompt(
-            "tdsr_shhd_supsi_active",
+            "tdsr_supsi_active",
             "SUPSI Active");
 
     static final String PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY =
@@ -66,9 +66,9 @@ public class SUPSIActive extends BaseGermanShhdAgentDefinition {
     public SUPSIActive() {
         super(
                 KEY,
-                "GIGI TDSR SHHD - SUPSI Active",
-                "Deutschsprachiger TDSR-SHHD-Agent für die SUPSI-Workcell-Demo mit Teleoperationsgrenzen, Wetter, Gesten und sozialer Kontextwahrnehmung.",
-                "GIGI TDSR SHHD SUPSI Active",
+                "GIGI TDSR - SUPSI Active",
+                "Deutschsprachiger TDSR-Agent für die SUPSI-Workcell-Demo mit Teleoperationsgrenzen, Wetter, Gesten und sozialer Kontextwahrnehmung.",
+                "GIGI TDSR SUPSI Active",
                 new TdsrShhdAgentFactory.ShhdPrompts(
                         PROMPT_STATE,
                         PROMPT_STATE_STARTER,

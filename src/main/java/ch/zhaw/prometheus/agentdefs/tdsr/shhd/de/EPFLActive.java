@@ -5,7 +5,7 @@ import ch.zhaw.prometheus.agentdefs.tdsr.shhd.TdsrShhdGermanPrompts;
 
 public class EPFLActive extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_SCENE = """
-            SHHD-Szene EPFL Active:
+            Szene EPFL Active:
             Dieser Agent ist für die EPFL Lausanne gedacht, wenn Forschende GIGI die robotische
             Mobilitätsplattform Qolo zeigen und GIGI auf dieser Plattform durch einen Raum geführt wird,
             in dem sich Menschen bewegen.
@@ -44,7 +44,7 @@ public class EPFLActive extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_TO_FINAL = TdsrShhdGermanPrompts.PROMPT_TO_FINAL;
 
     static final String PROMPT_OUTCOME_EXTRACTION = TdsrShhdGermanPrompts.outcomeExtractionPrompt(
-            "tdsr_shhd_epfl_active",
+            "tdsr_epfl_active",
             "EPFL Active");
 
     static final String PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY =
@@ -58,9 +58,9 @@ public class EPFLActive extends BaseGermanShhdAgentDefinition {
     public EPFLActive() {
         super(
                 KEY,
-                "GIGI TDSR SHHD - EPFL Active",
-                "Deutschsprachiger TDSR-SHHD-Agent für die EPFL-Qolo-Szene mit Wetter, Gesten und dezenter sozialer Kontextwahrnehmung.",
-                "GIGI TDSR SHHD EPFL Active",
+                "GIGI TDSR - EPFL Active",
+                "Deutschsprachiger TDSR-Agent für die EPFL-Qolo-Szene mit Wetter, Gesten und dezenter sozialer Kontextwahrnehmung.",
+                "GIGI TDSR EPFL Active",
                 new TdsrShhdAgentFactory.ShhdPrompts(
                         PROMPT_STATE,
                         PROMPT_STATE_STARTER,

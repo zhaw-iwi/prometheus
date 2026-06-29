@@ -105,6 +105,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 99: Valerian cockpit Realtime audio tuning
 - [x] Milestone 100: Framework/application agent repository split
 - [x] Milestone 101: Clean agents branch rebase
+- [x] Milestone 102: Remove SHHD acronym from scene prompts
+- [x] Milestone 103: English TDSR Davos care agents
 
 ## Milestone 1
 ### Date
@@ -4612,3 +4614,74 @@ Rewrite the `agents` branch so it is based on current clean `main` and contains 
 ### Next steps
 1. Review the focused `agents` branch diff after the force-push.
 2. Decide later whether this app-agent line should become a Maven module, separate repository, or remain a branch while the split settles.
+
+## Milestone 102
+### Date
+2026-06-29
+
+### Goal
+Remove the internal SHHD acronym from TDSR scene-agent prompts so GIGI refers to scenes by their regular names, such as Furka, EPFL Active, SUPSI Active, Interviewing People, and Unis Student.
+
+### What changed
+- Removed `SHHD` from generation-facing SHHD scene prompts, stop-intent prompts, final prompts, and outcome-extraction prompts.
+- Renamed prompt-facing outcome `interaction_type` values from `tdsr_shhd_*` to `tdsr_*` so extracted JSON prompts do not contain the acronym.
+- Removed `SHHD` from SHHD scene-agent display names, descriptions, and state names while preserving internal Java packages, keys, package paths, and access-code routing identifiers such as `tdsr.shhd.de.furka`.
+- Added prompt contract assertions that every SHHD scene-agent `PROMPT_*` field is free of the `shhd` acronym case-insensitively.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and connect a TDSR scene agent:
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Focused SHHD prompt contract suite run:
+  - `.\mvnw.cmd -q "-Dtest=TdsrShhdGermanPromptContractTest,TdsrShhdLocalizedPromptContractTest" test`
+
+### Known issues and decisions
+- The internal package, class, key, preset, and branch terminology still uses `shhd` where it identifies the application-agent group. The cleanup target is prompt text and user-facing agent labels, not routing identifiers.
+- No README update was needed because README documents the branch/catalog taxonomy rather than the prompt wording.
+
+### Next steps
+1. Live-test at least one German and one multilingual/Babylon scene agent in Valerian to verify the spoken output no longer mentions the acronym.
+2. Continue reviewing TDSR scene prompts for other internal labels that could leak into assistant utterances.
+## Milestone 103
+### Date
+2026-06-29
+
+### Goal
+Add English TDSR Davos variants of the four elderly-care demonstrator agents while leaving the original `elderlycare.*` agents unchanged.
+
+### What changed
+- Added `tdsr.davos.*` agent definitions for therapy appointment reminder, GIGI-guesses guessing game, user-guesses guessing game, and SMART goal coaching.
+- Added a shared Davos care prompt/factory layer that adapts the elderly-care outer-state goal to English, brief spoken replies, warm micro-humor, and GIGI's collaboration-not-replacement persona.
+- Set the Davos agents to English Realtime language code and English-only prompt contracts.
+- Added weather and social-context observations to the Davos interaction profile: `obs.weather.current`, `obs.weather.forecast`, `obs.human.presence`, `obs.social.grouping`, and `obs.social.situation_change`.
+- Added prompt-gated social situation-change self-transitions so social context can create a short fitting interjection without taking over the original task.
+- Registered the Davos definitions as Spring `AgentDefinition` beans, documented the new key family, and added prompt/profile/admin discovery tests.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign a Davos agent key such as:
+   - `tdsr.davos.therapy_appointment_reminder`
+   - `tdsr.davos.guessing_game`
+   - `tdsr.davos.guessing_game_user_guess`
+   - `tdsr.davos.smart_goal_coaching`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Focused Davos prompt/profile suite run:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest" test`
+- Targeted discovery suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The package and public keys use `tdsr.davos` because these are TDSR application agents; the `tdsar.davos` spelling in the request was treated as a typo.
+- The Davos agents keep speech-only output so the new context awareness does not interfere with the original elderly-care task goals.
+- The original `elderlycare.*` Java package, prompts, keys, and agent behavior are intentionally unchanged.
+
+### Next steps
+1. Live-test each `tdsr.davos.*` agent in Valerian with English Realtime speech.
+2. Exercise manual weather and social-context events during a live session to check that GIGI uses them only when helpful and briefly.

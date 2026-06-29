@@ -66,7 +66,10 @@ class TdsrShhdGermanPromptContractTest {
             assertEquals(List.of("tdsr", "shhd", "de"), definition.packagePath());
             assertEquals(AgentDefinition.LANGUAGE_GERMAN, definition.languageCode());
             assertEquals(AgentDefinition.LANGUAGE_GERMAN, agent.getLanguageCode());
-            assertTrue(agent.getName().contains("GIGI TDSR SHHD"));
+            assertTrue(agent.getName().contains("GIGI TDSR"));
+            assertFalse(agent.getName().contains("SHHD"));
+            assertFalse(agent.getDescription().contains("SHHD"));
+            assertFalse(agent.getCurrentState().getName().contains("SHHD"));
             assertTrue(agent.getName().contains(definitionCase.displayToken()));
             assertTrue(agent.getDescription().contains("Deutschsprachiger"));
             assertTrue(agent.getDescription().contains("sozialer Kontextwahrnehmung")
@@ -156,7 +159,7 @@ class TdsrShhdGermanPromptContractTest {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             String prompt = prompt(definitionCase.definitionClass(), "PROMPT_OUTCOME_EXTRACTION");
 
-            assertTrue(prompt.startsWith("Extract the ended TDSR SHHD interaction"), definitionCase.key());
+            assertTrue(prompt.startsWith("Extract the ended TDSR interaction"), definitionCase.key());
             assertTrue(prompt.contains("\"flow_type\":\"single_state\""), definitionCase.key());
             assertTrue(prompt.contains("\"social_context_used\":true|false"), definitionCase.key());
             assertTrue(prompt.contains("Rules: exactly one outcome"), definitionCase.key());
@@ -185,12 +188,22 @@ class TdsrShhdGermanPromptContractTest {
     }
 
     @Test
+    void promptFieldsDoNotExposeShhdAcronym() throws Exception {
+        for (DefinitionCase definitionCase : DEFINITIONS) {
+            for (Map.Entry<String, String> promptField : promptFields(definitionCase.definitionClass()).entrySet()) {
+                assertFalse(promptField.getValue().toLowerCase(java.util.Locale.ROOT).contains("shhd"),
+                        definitionCase.definitionClass().getName() + "." + promptField.getKey());
+            }
+        }
+    }
+
+    @Test
     void finalPromptsTieBackToSceneWithoutOpeningNewTopic() throws Exception {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             String prompt = prompt(definitionCase.definitionClass(), "PROMPT_FINAL");
 
             assertTrue(prompt.contains("Antworte ausnahmslos auf Deutsch"));
-            assertTrue(prompt.contains("Diese SHHD-Unterhaltung ist beendet"));
+            assertTrue(prompt.contains("Diese Unterhaltung ist beendet"));
             assertTrue(prompt.contains("Verabschiede dich in einem kurzen Satz"));
             assertTrue(prompt.contains("beginne kein neues Thema"));
         }

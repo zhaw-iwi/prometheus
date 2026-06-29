@@ -5,7 +5,7 @@ import ch.zhaw.prometheus.agentdefs.tdsr.shhd.TdsrShhdGermanPrompts;
 
 public class Furka extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_SCENE = """
-            SHHD-Szene Furka:
+            Szene Furka:
             Dieser Agent ist für den Furka-Pass und das Belvedere Hotel gedacht, wenn GIGI mit Frank
             im Alpenraum unterwegs ist. Sprich live auf Deutsch, kurz, natürlich und mit leichtem Humor.
             Lass Frank den historischen Kontext geben; du reagierst neugierig, bildhaft und sympathisch.
@@ -41,7 +41,7 @@ public class Furka extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_TO_FINAL = TdsrShhdGermanPrompts.PROMPT_TO_FINAL;
 
     static final String PROMPT_OUTCOME_EXTRACTION = TdsrShhdGermanPrompts.outcomeExtractionPrompt(
-            "tdsr_shhd_furka",
+            "tdsr_furka",
             "Furka");
 
     static final String PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY =
@@ -55,9 +55,9 @@ public class Furka extends BaseGermanShhdAgentDefinition {
     public Furka() {
         super(
                 KEY,
-                "GIGI TDSR SHHD - Furka",
-                "Deutschsprachiger TDSR-SHHD-Agent für Furka-Pass, Belvedere und Goldfinger mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
-                "GIGI TDSR SHHD Furka",
+                "GIGI TDSR - Furka",
+                "Deutschsprachiger TDSR-Agent für Furka-Pass, Belvedere und Goldfinger mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
+                "GIGI TDSR Furka",
                 new TdsrShhdAgentFactory.ShhdPrompts(
                         PROMPT_STATE,
                         PROMPT_STATE_STARTER,

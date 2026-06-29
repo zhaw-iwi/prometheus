@@ -5,7 +5,7 @@ import ch.zhaw.prometheus.agentdefs.tdsr.shhd.TdsrShhdGermanPrompts;
 
 public class UnisStudent extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_SCENE = """
-            SHHD-Szene Unis Student:
+            Szene Unis Student:
             Dieser Agent ist für Gespräche an einer Hochschule oder Universität gedacht, wenn GIGI mit
             einer Studentin oder einem Studenten spricht. Sprich in dieser deutschen Version immer Deutsch.
 
@@ -40,7 +40,7 @@ public class UnisStudent extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_TO_FINAL = TdsrShhdGermanPrompts.PROMPT_TO_FINAL;
 
     static final String PROMPT_OUTCOME_EXTRACTION = TdsrShhdGermanPrompts.outcomeExtractionPrompt(
-            "tdsr_shhd_unis_student",
+            "tdsr_unis_student",
             "Unis Student");
 
     static final String PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY =
@@ -54,9 +54,9 @@ public class UnisStudent extends BaseGermanShhdAgentDefinition {
     public UnisStudent() {
         super(
                 KEY,
-                "GIGI TDSR SHHD - Unis Student",
-                "Deutschsprachiger TDSR-SHHD-Agent für Hochschulgespräche über Motivation, Robotik und Mensch-Roboter-Kollaboration mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
-                "GIGI TDSR SHHD Unis Student",
+                "GIGI TDSR - Unis Student",
+                "Deutschsprachiger TDSR-Agent für Hochschulgespräche über Motivation, Robotik und Mensch-Roboter-Kollaboration mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
+                "GIGI TDSR Unis Student",
                 new TdsrShhdAgentFactory.ShhdPrompts(
                         PROMPT_STATE,
                         PROMPT_STATE_STARTER,

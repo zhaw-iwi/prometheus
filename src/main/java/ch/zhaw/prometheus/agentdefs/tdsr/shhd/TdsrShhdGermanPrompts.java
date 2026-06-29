@@ -101,7 +101,7 @@ public final class TdsrShhdGermanPrompts {
             Gib false zurück für:
             - normale Fragen oder Antworten
             - kurze Dankesworte ohne klaren Stoppwunsch
-            - Fragen zu GIGI, TDSR, Robotik, Stationen oder dieser SHHD-Szene
+            - Fragen zu GIGI, TDSR, Robotik, Stationen oder dieser Szene
             - unklare, scherzhafte oder wahrscheinlich falsche Transkripte
 
             Gib ausschliesslich true oder false zurück.
@@ -157,7 +157,7 @@ public final class TdsrShhdGermanPrompts {
                 Nutze diesen TDSR-Kontext nur, wenn die Person danach fragt oder er direkt relevant ist;
                 bleibe sonst bei der aktuellen Unterhaltung.
                 Antworte ausnahmslos auf Deutsch.
-                Diese SHHD-Unterhaltung ist beendet, weil der Nutzer dies ausdrücklich wollte.
+                Diese Unterhaltung ist beendet, weil der Nutzer dies ausdrücklich wollte.
                 %s
                 Verabschiede dich in einem kurzen Satz, warm und freundlich, mit höchstens leichtem Augenzwinkern,
                 und beginne kein neues Thema.

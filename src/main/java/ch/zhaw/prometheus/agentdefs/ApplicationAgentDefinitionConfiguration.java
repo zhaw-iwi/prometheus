@@ -256,6 +256,26 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrDavosTherapyAppointmentReminder() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder();
+    }
+
+    @Bean
+    AgentDefinition tdsrDavosGuessingGame() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateGuessingGame();
+    }
+
+    @Bean
+    AgentDefinition tdsrDavosGuessingGameUserGuess() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateGuessingGameUserGuess();
+    }
+
+    @Bean
+    AgentDefinition tdsrDavosSmartGoalCoaching() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateSmartGoalCoaching();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }

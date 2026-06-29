@@ -92,6 +92,9 @@ class TdsrShhdLocalizedPromptContractTest {
             assertEquals(List.of("tdsr", "shhd", localized.languageCode()), definition.packagePath());
             assertEquals(localized.languageCode(), definition.languageCode(), definition.key());
             assertEquals(localized.languageCode(), agent.getLanguageCode(), definition.key());
+            assertFalse(agent.getName().contains("SHHD"), definition.key());
+            assertFalse(agent.getDescription().contains("SHHD"), definition.key());
+            assertFalse(agent.getCurrentState().getName().contains("SHHD"), definition.key());
             assertSocialTourProfile(agent.getInteractionProfile());
         }
     }
@@ -106,6 +109,9 @@ class TdsrShhdLocalizedPromptContractTest {
             assertEquals(List.of("tdsr", "shhd", "babylon"), definition.packagePath());
             assertNull(definition.languageCode(), definition.key());
             assertNull(agent.getLanguageCode(), definition.key());
+            assertFalse(agent.getName().contains("SHHD"), definition.key());
+            assertFalse(agent.getDescription().contains("SHHD"), definition.key());
+            assertFalse(agent.getCurrentState().getName().contains("SHHD"), definition.key());
             assertSocialTourProfile(agent.getInteractionProfile());
         }
     }
@@ -168,6 +174,16 @@ class TdsrShhdLocalizedPromptContractTest {
     }
 
     @Test
+    void promptFieldsDoNotExposeShhdAcronym() throws Exception {
+        for (Class<?> definitionClass : allDefinitionClasses()) {
+            for (Map.Entry<String, String> promptField : promptFields(definitionClass).entrySet()) {
+                assertFalse(promptField.getValue().toLowerCase(java.util.Locale.ROOT).contains("shhd"),
+                        definitionClass.getName() + "." + promptField.getKey());
+            }
+        }
+    }
+
+    @Test
     void promptsUseBriefMicroHumorAccentAcrossLanguages() throws Exception {
         for (Class<?> definitionClass : allDefinitionClasses()) {
             Map<String, String> prompts = promptFields(definitionClass);
@@ -190,7 +206,7 @@ class TdsrShhdLocalizedPromptContractTest {
         for (Class<?> definitionClass : allDefinitionClasses()) {
             String prompt = promptFields(definitionClass).get("PROMPT_OUTCOME_EXTRACTION");
 
-            assertTrue(prompt.startsWith("Extract the ended TDSR SHHD interaction"), definitionClass.getName());
+            assertTrue(prompt.startsWith("Extract the ended TDSR interaction"), definitionClass.getName());
             assertTrue(prompt.contains("\"flow_type\":\"single_state\""), definitionClass.getName());
             assertTrue(prompt.contains("\"social_context_used\":true|false"), definitionClass.getName());
             assertTrue(prompt.contains("Rules: exactly one outcome"), definitionClass.getName());

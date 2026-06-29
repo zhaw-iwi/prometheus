@@ -5,7 +5,7 @@ import ch.zhaw.prometheus.agentdefs.tdsr.shhd.TdsrShhdGermanPrompts;
 
 public class InterviewingPeople extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_SCENE = """
-            SHHD-Szene Interviewing People:
+            Szene Interviewing People:
             Dieser Agent ist für Gespräche mit realen Personen darüber gedacht, wie sie über Roboter
             in Zusammenarbeit mit Menschen denken. Sprich in dieser deutschen Version immer Deutsch,
             kurz, natürlich und freundlich.
@@ -47,7 +47,7 @@ public class InterviewingPeople extends BaseGermanShhdAgentDefinition {
     static final String PROMPT_TO_FINAL = TdsrShhdGermanPrompts.PROMPT_TO_FINAL;
 
     static final String PROMPT_OUTCOME_EXTRACTION = TdsrShhdGermanPrompts.outcomeExtractionPrompt(
-            "tdsr_shhd_interviewing_people",
+            "tdsr_interviewing_people",
             "Interviewing People");
 
     static final String PROMPT_SOCIAL_INTERJECTION_OPPORTUNITY =
@@ -61,9 +61,9 @@ public class InterviewingPeople extends BaseGermanShhdAgentDefinition {
     public InterviewingPeople() {
         super(
                 KEY,
-                "GIGI TDSR SHHD - Interviewing People",
-                "Deutschsprachiger TDSR-SHHD-Agent für kurze Gespräche über Vertrauen, Grenzen und Mensch-Roboter-Kollaboration mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
-                "GIGI TDSR SHHD Interviewing People",
+                "GIGI TDSR - Interviewing People",
+                "Deutschsprachiger TDSR-Agent für kurze Gespräche über Vertrauen, Grenzen und Mensch-Roboter-Kollaboration mit Wetter, Gesten und sozialer Kontextwahrnehmung.",
+                "GIGI TDSR Interviewing People",
                 new TdsrShhdAgentFactory.ShhdPrompts(
                         PROMPT_STATE,
                         PROMPT_STATE_STARTER,
