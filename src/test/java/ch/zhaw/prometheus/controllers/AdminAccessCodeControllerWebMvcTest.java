@@ -64,7 +64,7 @@ class AdminAccessCodeControllerWebMvcTest {
                 .andExpect(status().isUnauthorized());
         this.mockMvc.perform(get("/admin/access-code-presets"))
                 .andExpect(status().isUnauthorized());
-        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+        this.mockMvc.perform(post("/admin/access-code-presets/starter_agents/apply")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
@@ -106,34 +106,33 @@ class AdminAccessCodeControllerWebMvcTest {
     @Test
     void acceptsValidAdminTokenForAgentTypes() throws Exception {
         when(this.service.listAgentTypes()).thenReturn(List.of(
-                new AdminAgentTypeView("tdsr.core.de.rock_scissor_paper", "RPS", "Rock scissor paper",
-                        List.of("tdsr", "core", "de"))));
+                new AdminAgentTypeView("basic.single_state_micro_coaching", "Micro Coach", "Micro coaching",
+                        List.of("basic"))));
 
         this.mockMvc.perform(get("/admin/agent-types")
                 .header(HEADER, TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].key").value("tdsr.core.de.rock_scissor_paper"))
-                .andExpect(jsonPath("$[0].displayName").value("RPS"))
-                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
-                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
-                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
+                .andExpect(jsonPath("$[0].key").value("basic.single_state_micro_coaching"))
+                .andExpect(jsonPath("$[0].displayName").value("Micro Coach"))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("basic"));
     }
 
     @Test
     void acceptsValidAdminTokenForAccessCodePresets() throws Exception {
         when(this.service.listAccessCodePresets()).thenReturn(List.of(
-                new AccessCodePresetView("shhd_scene_agents", "SHHD scene access codes", List.of(
-                        new AccessCodePresetEntryView("shhde", List.of(
-                                "tdsr.shhd.de.epfl_active",
-                                "tdsr.shhd.de.furka"))))));
+                new AccessCodePresetView("starter_agents", "Starter agent access codes", List.of(
+                        new AccessCodePresetEntryView("start", List.of(
+                                "basic.single_state_micro_coaching",
+                                "multimodal.single_state_in"))))));
 
         this.mockMvc.perform(get("/admin/access-code-presets")
                 .header(HEADER, TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].key").value("shhd_scene_agents"))
-                .andExpect(jsonPath("$[0].displayName").value("SHHD scene access codes"))
-                .andExpect(jsonPath("$[0].entries[0].code").value("shhde"))
-                .andExpect(jsonPath("$[0].entries[0].agentTypeKeys[0]").value("tdsr.shhd.de.epfl_active"));
+                .andExpect(jsonPath("$[0].key").value("starter_agents"))
+                .andExpect(jsonPath("$[0].displayName").value("Starter agent access codes"))
+                .andExpect(jsonPath("$[0].entries[0].code").value("start"))
+                .andExpect(jsonPath("$[0].entries[0].agentTypeKeys[0]")
+                        .value("basic.single_state_micro_coaching"));
     }
 
     @Test
@@ -161,41 +160,42 @@ class AdminAccessCodeControllerWebMvcTest {
     void appliesAccessCodePresetWithValidAdminToken() throws Exception {
         UUID firstId = UUID.fromString("55555555-5555-5555-5555-555555555555");
         UUID secondId = UUID.fromString("66666666-6666-6666-6666-666666666666");
-        when(this.service.applyAccessCodePreset(eq("shhd_scene_agents"), any()))
+        when(this.service.applyAccessCodePreset(eq("starter_agents"), any()))
                 .thenReturn(Optional.of(List.of(
-                        new AccessCodeView(firstId, "shhde", true, List.of("tdsr.shhd.de.epfl_active")),
-                        new AccessCodeView(secondId, "shhen", true, List.of("tdsr.shhd.en.epfl_active")))));
+                        new AccessCodeView(firstId, "start", true, List.of("basic.single_state_micro_coaching")),
+                        new AccessCodeView(secondId, "multi", true, List.of("multimodal.single_state_in")))));
 
-        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+        this.mockMvc.perform(post("/admin/access-code-presets/starter_agents/apply")
                 .header(HEADER, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
                           "entries": [
                             {
-                              "code": "shhde",
-                              "agentTypeKeys": ["tdsr.shhd.de.epfl_active"]
+                              "code": "start",
+                              "agentTypeKeys": ["basic.single_state_micro_coaching"]
                             },
                             {
-                              "code": "shhen",
-                              "agentTypeKeys": ["tdsr.shhd.en.epfl_active"]
+                              "code": "multi",
+                              "agentTypeKeys": ["multimodal.single_state_in"]
                             }
                           ]
                         }
                         """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value(firstId.toString()))
-                .andExpect(jsonPath("$[0].code").value("shhde"))
-                .andExpect(jsonPath("$[0].allowedAgentTypeKeys[0]").value("tdsr.shhd.de.epfl_active"))
-                .andExpect(jsonPath("$[1].code").value("shhen"));
+                .andExpect(jsonPath("$[0].code").value("start"))
+                .andExpect(jsonPath("$[0].allowedAgentTypeKeys[0]")
+                        .value("basic.single_state_micro_coaching"))
+                .andExpect(jsonPath("$[1].code").value("multi"));
     }
 
     @Test
     void mapsDuplicateAndInvalidCreateRequests() throws Exception {
         when(this.service.createAccessCode("duP77", true)).thenThrow(new DuplicateAccessCodeException("duP77"));
         when(this.service.createAccessCode(eq("bad!!"), any())).thenThrow(new IllegalArgumentException("invalid"));
-        when(this.service.applyAccessCodePreset(eq("shhd_scene_agents"), any()))
-                .thenThrow(new DuplicateAccessCodeException("shhde"));
+        when(this.service.applyAccessCodePreset(eq("starter_agents"), any()))
+                .thenThrow(new DuplicateAccessCodeException("start"));
         when(this.service.applyAccessCodePreset(eq("invalid_preset"), any()))
                 .thenThrow(new IllegalArgumentException("invalid"));
 
@@ -220,7 +220,7 @@ class AdminAccessCodeControllerWebMvcTest {
                         """))
                 .andExpect(status().isBadRequest());
 
-        this.mockMvc.perform(post("/admin/access-code-presets/shhd_scene_agents/apply")
+        this.mockMvc.perform(post("/admin/access-code-presets/starter_agents/apply")
                 .header(HEADER, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""

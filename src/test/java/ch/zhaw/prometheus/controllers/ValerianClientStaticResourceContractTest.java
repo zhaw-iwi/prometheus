@@ -474,9 +474,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("sendWeatherCurrent"));
         assertTrue(script.contains("sendWeatherForecast"));
         assertTrue(script.contains("normalizeOpenMeteoWeather"));
-        assertTrue(script.contains("source: \"rps.web.camera\""));
+        assertTrue(script.contains("source: \"valerian.hand.camera\""));
         assertTrue(script.contains("detectionMode: \"client_camera\""));
-        assertTrue(script.contains("source: \"rps.web\""));
+        assertTrue(script.contains("source: \"valerian.hand.manual\""));
         assertTrue(script.contains("detectionMode: \"manual\""));
     }
 

@@ -37,11 +37,6 @@ public class StaticRedirectController {
         return redirectWithQuery("/visual/social/index.html", request);
     }
 
-    @GetMapping({ "/rps", "/rps/" })
-    public String rps(HttpServletRequest request) {
-        return redirectWithQuery("/rps/index.html", request);
-    }
-
     @GetMapping({ "/valerian", "/valerian/" })
     public String valerian(HttpServletRequest request) {
         return redirectWithQuery("/valerian/index.html", request);

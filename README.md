@@ -106,11 +106,6 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 
 ![Nonverbal behaviour renderer screenshot](.readme/client-nonverbal-renderer.png)
 
-### RPS Manual Client
-
-- URL: `http://localhost:8080/rps/?agentId=<uuid>`
-- Purpose: Schere-Stein-Papier demo surface that renders the agent's `motion.handSign` and emits manual or camera-detected `obs.hand.sign` events.
-
 ## Core Concepts
 
 - `Event`: unified input and internal signal model (observations, responses, control events).
@@ -205,12 +200,17 @@ used as a bearer-style client credential.
 
 Reusable agent type definitions live in `src/main/java/ch/zhaw/prometheus/agentdefs`.
 Each production definition implements `AgentDefinition`, exposes a stable `key()`, builds an unsaved `Agent` through `createAgent()`, and may define its startup path in `createInstance(...)`.
-The current migrated definitions call `Agent.start(...)` inside `createInstance(...)`, preserving the former seed-test startup behaviour as developer-written code.
-The elderly-care definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/elderlycare` and use `elderlycare.<agent>` keys.
-The GIGI TDSR core definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/core/<language>`.
-Their Valerian/Admin keys follow the same structure: `tdsr.core.<language>.<agent>`.
-The TDSR SHHD scene definitions live under `src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/<language>`
-and use `tdsr.shhd.<language>.<agent>` keys.
+Definitions are discovered from Spring-managed `AgentDefinition` beans, so new
+definition packages can be added without editing `AgentDefinitionRegistry`.
+Annotate a definition with `@Component` or expose it from a Spring configuration
+class. The current migrated definitions call `Agent.start(...)` inside
+`createInstance(...)`, preserving the former seed-test startup behaviour as
+developer-written code.
+
+This `main` branch keeps only framework demo definitions. Application-specific
+TDSR and elderly-care agents are preserved on the `agents` branch and should be
+added to framework deployments as separate application code, modules, or
+dependencies.
 
 Registered definitions:
 
@@ -222,86 +222,6 @@ Registered definitions:
 - `multimodal.single_state_in` - Single-state micro-coaching with multimodal sensing inputs.
 - `multimodal.single_state_out` - Single-state interaction with deterministic multimodal behaviour output.
 - `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
-- `elderlycare.therapy_appointment_reminder` - GIGI elderly-care therapy appointment reminder with resistance-aware coaching.
-- `elderlycare.guessing_game` - GIGI elderly-care guessing game where GIGI gives clues.
-- `elderlycare.guessing_game_user_guess` - GIGI elderly-care yes/no guessing game where the user guesses GIGI's secret item.
-- `elderlycare.smart_goal_coaching` - GIGI elderly-care SMART goal coaching for small wellbeing steps.
-- `tdsr.core.de.guessing_game_with_gestures` - GIGI TDSR German yes/no guessing game with structured nonverbal gesture output.
-- `tdsr.core.de.social_context_sensitivity` - GIGI TDSR German social context demo that reacts to computed visual-social situation changes.
-- `tdsr.core.de.rock_scissor_paper` - GIGI TDSR German Schere-Stein-Papier demo with deterministic `motion.handSign` output and manual or camera-detected `obs.hand.sign` input via the `/rps` client.
-- `tdsr.core.de.tour_conversation` - GIGI TDSR German general-purpose station conversation agent with TDSR route/persona grounding, manual weather context, and occasional nonverbal gestures.
-- `tdsr.core.de.tour_conversation_social_context` - GIGI TDSR German station conversation agent with manual weather context, occasional nonverbal gestures, and sparse social-context-aware interjections.
-- `tdsr.core.fr.guessing_game_with_gestures` - GIGI TDSR French yes/no guessing game with structured nonverbal gesture output.
-- `tdsr.core.fr.social_context_sensitivity` - GIGI TDSR French social context demo that reacts to computed visual-social situation changes.
-- `tdsr.core.fr.rock_scissor_paper` - GIGI TDSR French pierre-feuille-ciseaux demo with deterministic `motion.handSign` output.
-- `tdsr.core.fr.tour_conversation` - GIGI TDSR French general-purpose station conversation agent.
-- `tdsr.core.fr.tour_conversation_social_context` - GIGI TDSR French station conversation agent with sparse social-context-aware interjections.
-- `tdsr.core.it.guessing_game_with_gestures` - GIGI TDSR Italian yes/no guessing game with structured nonverbal gesture output.
-- `tdsr.core.it.social_context_sensitivity` - GIGI TDSR Italian social context demo that reacts to computed visual-social situation changes.
-- `tdsr.core.it.rock_scissor_paper` - GIGI TDSR Italian sasso-carta-forbici demo with deterministic `motion.handSign` output.
-- `tdsr.core.it.tour_conversation` - GIGI TDSR Italian general-purpose station conversation agent.
-- `tdsr.core.it.tour_conversation_social_context` - GIGI TDSR Italian station conversation agent with sparse social-context-aware interjections.
-- `tdsr.core.en.guessing_game_with_gestures` - GIGI TDSR English yes/no guessing game with structured nonverbal gesture output.
-- `tdsr.core.en.social_context_sensitivity` - GIGI TDSR English social context demo that reacts to computed visual-social situation changes.
-- `tdsr.core.en.rock_scissor_paper` - GIGI TDSR English rock-scissor-paper demo with deterministic `motion.handSign` output.
-- `tdsr.core.en.tour_conversation` - GIGI TDSR English general-purpose station conversation agent.
-- `tdsr.core.en.tour_conversation_social_context` - GIGI TDSR English station conversation agent with sparse social-context-aware interjections.
-- `tdsr.core.babylon.guessing_game_with_gestures` - GIGI TDSR multilingual yes/no guessing game that starts in English and then answers in the user's language.
-- `tdsr.core.babylon.social_context_sensitivity` - GIGI TDSR multilingual social context demo that starts in English and can react in German, French, Italian, or English.
-- `tdsr.core.babylon.rock_scissor_paper` - GIGI TDSR multilingual rock-scissor-paper demo with deterministic `motion.handSign` output.
-- `tdsr.core.babylon.tour_conversation` - GIGI TDSR multilingual general-purpose station conversation agent.
-- `tdsr.core.babylon.tour_conversation_social_context` - GIGI TDSR multilingual station conversation agent with sparse social-context-aware interjections.
-- `tdsr.shhd.de.epfl_active` - GIGI TDSR SHHD German EPFL/Qolo scene agent for learning safe, socially aware navigation among people.
-- `tdsr.shhd.de.furka` - GIGI TDSR SHHD German Furka/Belvedere scene agent for pass history, mobility, Goldfinger, landscape change, and memory.
-- `tdsr.shhd.de.interviewing_people` - GIGI TDSR SHHD German interview agent for public views on robot collaboration, trust, boundaries, and social acceptance.
-- `tdsr.shhd.de.supsi_active` - GIGI TDSR SHHD German SUPSI workcell agent for teleoperated, safety-conscious battery-pack collaboration.
-- `tdsr.shhd.de.unis_student` - GIGI TDSR SHHD German university-student conversation agent for motivation, robotics, and human meaning behind research.
-- `tdsr.shhd.en.epfl_active`, `tdsr.shhd.it.epfl_active`, `tdsr.shhd.fr.epfl_active`, `tdsr.shhd.babylon.epfl_active` - English, Italian, French, and multilingual Babylon variants of the EPFL/Qolo scene agent.
-- `tdsr.shhd.en.furka`, `tdsr.shhd.it.furka`, `tdsr.shhd.fr.furka`, `tdsr.shhd.babylon.furka` - English, Italian, French, and multilingual Babylon variants of the Furka/Belvedere scene agent.
-- `tdsr.shhd.en.interviewing_people`, `tdsr.shhd.it.interviewing_people`, `tdsr.shhd.fr.interviewing_people`, `tdsr.shhd.babylon.interviewing_people` - English, Italian, French, and multilingual Babylon variants of the robot-collaboration interview agent.
-- `tdsr.shhd.en.supsi_active`, `tdsr.shhd.it.supsi_active`, `tdsr.shhd.fr.supsi_active`, `tdsr.shhd.babylon.supsi_active` - English, Italian, French, and multilingual Babylon variants of the SUPSI workcell agent.
-- `tdsr.shhd.en.unis_student`, `tdsr.shhd.it.unis_student`, `tdsr.shhd.fr.unis_student`, `tdsr.shhd.babylon.unis_student` - English, Italian, French, and multilingual Babylon variants of the university-student conversation agent.
-
-The GIGI TDSR definitions include concise Tour de Suisse Robotique persona
-context and keep it guarded as background knowledge, so normal demo turns stay
-focused on the active game or sensing capability. The German, French, Italian,
-and English variants translate all model-facing language guards, starter,
-decision, extraction, final, and social-interjection prompts while preserving
-JSON schemas, event names, gesture labels, and `motion.handSign` protocol values.
-The Babylon variants are copied from the English core agents, start their opening
-turns in English, do not set a fixed Realtime language code, and instruct GIGI to
-answer in German, French, Italian, or English according to the user's language.
-The SHHD definitions reuse the social tour-conversation architecture: one
-interaction state, the same explicit stop-to-final guard, manual weather context,
-sparse social-context interjections, and structured nonverbal gesture prompting.
-The fixed-language SHHD variants set Realtime language metadata; the Babylon
-variants intentionally do not set a fixed language code and instruct GIGI to
-answer in German, French, Italian, or English according to the user's language.
-The TDSR tour-conversation and SHHD scene agents are instructed to answer very
-briefly: usually one sentence, often only a few words, with two compact sentences
-only when a direct explanation truly needs it. They are also guided toward warmer
-micro-humor: light irony, self-irony, playful understatement, and small callbacks
-to earlier turns, while avoiding jokes in serious, personal, safety-relevant, or
-delicate factual moments. The guessing-game, Schere-Stein-Papier, and dedicated
-social-context-sensitivity agents keep their task-specific prompt cadence.
-The GIGI TDSR agents share a warmer learning-companion persona with
-Frank as an occasional travel/context reference while preserving their
-language-specific speech contracts and task-specific focus. The tour conversation
-agent carries concrete station grounding; the task agents keep a short route
-capsule so games and social-event reactions stay focused.
-The social-context tour conversation variant keeps the open station-conversation
-flow but declares social sensing observations and gates social remarks so
-changes in group presence are acknowledged only when a short aside is fitting.
-All GIGI TDSR agents declare manual weather observations and treat the latest
-weather location as operator-provided current-location context when relevant.
-The guessing-game and tour-conversation agents also instruct speech and
-nonverbal planning to avoid repeated `OPEN_QUESTION` gestures and to emit
-`NONE` on ordinary turns when a gesture would be distracting.
-Valerian-facing GIGI physical behaviour vocabulary is documented in
-`.agents/BEHVAIOURS_GIGI.md`. TDSR gesture agents emit only semantic
-`nonVerbal.gesture` labels from `OPEN_QUESTION`, `EXPLAIN`, `UNCERTAIN`,
-`ACKNOWLEDGE`, `POLITE`, and `NONE`; Schere-Stein-Papier hand signs use
-top-level `motion.handSign` values `rock`, `scissor`, or `paper`.
 
 ### Option A: Seed registered agents from tests
 
@@ -328,7 +248,6 @@ Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code se
 - Visual multifacial detector: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
 - Visual social detector: `http://localhost:8080/visual/social/?agentId=<uuid>`
 - Nonverbal behaviour renderer: `http://localhost:8080/nonverbal/?agentId=<uuid>`
-- RPS manual sensing client: `http://localhost:8080/rps/?agentId=<uuid>`
 - Multilateral listen: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/?agentId=<uuid>`
 
@@ -405,10 +324,10 @@ Agent type views include package metadata derived from the Java package below
 
 ```json
 {
-  "key": "tdsr.core.de.rock_scissor_paper",
-  "displayName": "GIGI TDSR - Schere, Stein, Papier",
-  "description": "German TDSR rock-scissor-paper demo",
-  "packagePath": ["tdsr", "core", "de"]
+  "key": "basic.single_state_micro_coaching",
+  "displayName": "Gigi on Prometheus (Single State Micro Coach)",
+  "description": "Single-state micro-coaching demo with outcome extraction and final summary.",
+  "packagePath": ["basic"]
 }
 ```
 
@@ -421,13 +340,8 @@ explicit access-code-to-agent-type-key assignments so the admin cockpit does not
 need to infer package contents. Applying a preset creates all requested access
 codes and assignments transactionally; if any code already exists or a submitted
 agent type is not part of that preset entry, the request fails without creating
-partial data. The built-in `shhd_scene_agents` preset creates:
-
-- `shhde` with the five `tdsr.shhd.de.*` scene agents.
-- `shhen` with the five `tdsr.shhd.en.*` scene agents.
-- `shhfr` with the five `tdsr.shhd.fr.*` scene agents.
-- `shhit` with the five `tdsr.shhd.it.*` scene agents.
-- `shhba` with the five `tdsr.shhd.babylon.*` scene agents.
+partial data. The framework `main` branch ships with an empty preset catalog;
+application branches or modules can provide presets for their own agent bundles.
 
 Create body:
 
@@ -442,7 +356,7 @@ Allowed-type replacement body:
 
 ```json
 {
-  "agentTypeKeys": ["tdsr.core.de.rock_scissor_paper"]
+  "agentTypeKeys": ["basic.single_state_micro_coaching"]
 }
 ```
 
@@ -452,10 +366,10 @@ Preset apply body:
 {
   "entries": [
     {
-      "code": "shhde",
+      "code": "start",
       "agentTypeKeys": [
-        "tdsr.shhd.de.epfl_active",
-        "tdsr.shhd.de.furka"
+        "basic.single_state_micro_coaching",
+        "multimodal.single_state_in"
       ]
     }
   ]
@@ -505,7 +419,7 @@ Agent creation body:
 
 ```json
 {
-  "agentDefinitionKey": "tdsr.core.de.rock_scissor_paper"
+  "agentDefinitionKey": "basic.single_state_micro_coaching"
 }
 ```
 
@@ -522,7 +436,7 @@ remain.
 3. Use `Storage` keys for extracted values consumed by later states.
 4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
 5. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
-6. Implement `AgentDefinition`, choose a stable key, and register the definition in `AgentDefinitionRegistry`.
+6. Implement `AgentDefinition`, choose a stable key, and expose the definition as a Spring bean, usually with `@Component`.
 7. Put startup behavior directly in `createInstance(...)`; call `Agent.start(...)` there only when this agent type should be started during creation.
 8. Add a thin test wrapper only when manual database seeding is useful.
 9. Seed the agent, run app, then iterate using the Prometheus demo cockpit, Monitor, and behaviour streams.
@@ -565,7 +479,7 @@ social event:
 - `payload.changeType`: `arrival`, `departure`, `crowd_detected`,
   `now_alone`, `single_person_nearby`, or `group_size_changed`
 
-Schere-Stein-Papier hand-sign observations use:
+Hand-sign observations use:
 
 - `type`: `obs.hand.sign`
 - `actor`: `user`
@@ -573,12 +487,12 @@ Schere-Stein-Papier hand-sign observations use:
 - `payload.sign`: `rock`, `scissor`, or `paper`
 - optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
 
-The RPS client at `/rps/?agentId=<uuid>` and the Prometheus demo cockpit at
-`/valerian/?agentId=<uuid>` emit this event shape from manual sign buttons
-with `source=rps.web` and `detectionMode=manual`. Their optional camera mode
-uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
+The Valerian cockpit emits this event shape from manual sign buttons with
+`source=valerian.hand.manual` and `detectionMode=manual`. Its optional camera
+mode uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
 follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
-Camera events use `source=rps.web.camera` and `detectionMode=client_camera`.
+Camera events use `source=valerian.hand.camera` and
+`detectionMode=client_camera`.
 
 Weather observations use:
 
@@ -593,11 +507,9 @@ Weather observations use:
 The Valerian cockpit exposes weather controls only for agents that declare
 weather observations. It resolves a manually entered location through
 Open-Meteo in the browser, normalizes the result, and sends current weather or a
-short forecast only when the operator presses the corresponding button. For
-GIGI TDSR agents, the latest weather event location is also
-treated as operator-provided current-location context.
+short forecast only when the operator presses the corresponding button.
 
-Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
+Hand-sign reveal behaviours use top-level `BehaviourPlan.motion`:
 
 ```json
 {
@@ -605,7 +517,7 @@ Schere-Stein-Papier reveal behaviours use top-level `BehaviourPlan.motion`:
   "armPose": "present_forward",
   "handSign": "rock",
   "timing": {
-    "synchronizeWithSpeech": "Schere, Stein, Papier",
+    "synchronizeWithSpeech": "spoken reveal phrase",
     "revealAt": "phrase_end"
   },
   "confidence": 1.0

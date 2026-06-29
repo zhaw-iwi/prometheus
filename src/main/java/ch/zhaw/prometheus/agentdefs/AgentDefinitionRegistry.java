@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.agentdefs;
 
+import java.util.Comparator;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,101 +9,22 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
-import ch.zhaw.prometheus.agentdefs.basic.FourStatesCircular;
-import ch.zhaw.prometheus.agentdefs.basic.FourStatesLinear;
-import ch.zhaw.prometheus.agentdefs.basic.SingleStateCoCreation;
-import ch.zhaw.prometheus.agentdefs.basic.SingleStateGuessingGame;
-import ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching;
-import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGameUserGuess;
-import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateSmartGoalCoaching;
-import ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder;
-import ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures;
-import ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper;
-import ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity;
-import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation;
-import ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity;
-import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.EPFLActive;
-import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.Furka;
-import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.InterviewingPeople;
-import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.SUPSIActive;
-import ch.zhaw.prometheus.agentdefs.tdsr.shhd.de.UnisStudent;
-
 @Component
 public class AgentDefinitionRegistry {
     private final Map<String, AgentDefinition> definitions;
 
-    public AgentDefinitionRegistry() {
-        this(List.of(
-                new SingleStateGuessingGame(),
-                new SingleStateMicroCoaching(),
-                new SingleStateCoCreation(),
-                new FourStatesCircular(),
-                new FourStatesLinear(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalIn(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalOut(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalInOut(),
-                new GuessingGameWithGestures(),
-                new SocialContextSensitivity(),
-                new RockScissorPaper(),
-                new TourConversation(),
-                new TourConversationSocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.GuessingGameWithGestures(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.SocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.RockScissorPaper(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.TourConversation(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.fr.TourConversationSocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.GuessingGameWithGestures(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.SocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.RockScissorPaper(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.TourConversation(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.it.TourConversationSocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.GuessingGameWithGestures(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.SocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.RockScissorPaper(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.TourConversation(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.en.TourConversationSocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.GuessingGameWithGestures(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.SocialContextSensitivity(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.RockScissorPaper(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversation(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.core.babylon.TourConversationSocialContextSensitivity(),
-                new EPFLActive(),
-                new Furka(),
-                new InterviewingPeople(),
-                new SUPSIActive(),
-                new UnisStudent(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.en.EPFLActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.en.Furka(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.en.InterviewingPeople(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.en.SUPSIActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.en.UnisStudent(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.it.EPFLActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.it.Furka(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.it.InterviewingPeople(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.it.SUPSIActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.it.UnisStudent(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.fr.EPFLActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.fr.Furka(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.fr.InterviewingPeople(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.fr.SUPSIActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.fr.UnisStudent(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.babylon.EPFLActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.babylon.Furka(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.babylon.InterviewingPeople(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.babylon.SUPSIActive(),
-                new ch.zhaw.prometheus.agentdefs.tdsr.shhd.babylon.UnisStudent(),
-                new SingleStateTherapyAppointmentReminder(),
-                new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateGuessingGame(),
-                new SingleStateGuessingGameUserGuess(),
-                new SingleStateSmartGoalCoaching()));
-    }
-
-    AgentDefinitionRegistry(List<AgentDefinition> definitions) {
+    public AgentDefinitionRegistry(List<AgentDefinition> definitions) {
         LinkedHashMap<String, AgentDefinition> indexed = new LinkedHashMap<>();
-        for (AgentDefinition definition : definitions) {
+        List<AgentDefinition> suppliedDefinitions = definitions == null ? List.of() : definitions;
+        for (AgentDefinition definition : suppliedDefinitions) {
             if (definition == null) {
                 throw new IllegalArgumentException("agent definition must not be null");
             }
+        }
+        List<AgentDefinition> sortedDefinitions = suppliedDefinitions.stream()
+                .sorted(Comparator.comparing(AgentDefinition::key))
+                .toList();
+        for (AgentDefinition definition : sortedDefinitions) {
             AgentDefinition previous = indexed.putIfAbsent(definition.key(), definition);
             if (previous != null) {
                 throw new IllegalArgumentException("duplicate agent definition key: " + definition.key());

@@ -46,8 +46,6 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class ScopedDemoControllerIntegrationTest {
     private static final String HEADER = ScopedDemoController.ACCESS_CODE_HEADER;
     private static final String TYPE_KEY = "basic.single_state_micro_coaching";
-    private static final String TDSR_TOUR_TYPE_KEY = "tdsr.core.de.tour_conversation";
-    private static final String TDSR_TOUR_SOCIAL_TYPE_KEY = "tdsr.core.de.tour_conversation_social_context";
 
     @Autowired
     private MockMvc mockMvc;
@@ -173,73 +171,10 @@ class ScopedDemoControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "agentDefinitionKey": "tdsr.core.de.rock_scissor_paper"
+                          "agentDefinitionKey": "multimodal.single_state_out"
                         }
                         """))
                 .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void tdsrTourConversationCanBeAllowedCreatedAndConnectedThroughScopedDemoApi() throws Exception {
-        this.allowType("G49g9", TDSR_TOUR_TYPE_KEY);
-
-        this.mockMvc.perform(get("/demo/agent-types")
-                .header(HEADER, "G49g9"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].key").value(TDSR_TOUR_TYPE_KEY))
-                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation"))
-                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
-                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
-                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
-
-        UUID agentId = this.createAgent("G49g9", TDSR_TOUR_TYPE_KEY);
-
-        this.mockMvc.perform(get("/demo/agents/" + agentId + "/info")
-                .header(HEADER, "G49g9"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("GIGI TDSR - Tour Conversation"))
-                .andExpect(jsonPath("$.languageCode").value("de"))
-                .andExpect(jsonPath("$.interactionProfile.supportedObservations[0]").value("obs.user_utterance"))
-                .andExpect(jsonPath("$.interactionProfile.supportedBehaviourModalities[0]").value("speech"))
-                .andExpect(jsonPath("$.interactionProfile.supportedBehaviourModalities[1]")
-                        .value("nonVerbal.gesture"))
-                .andExpect(jsonPath("$.interactionProfile.profileTags[0]").value("demo.gigi.tdsr"))
-                .andExpect(jsonPath("$.interactionProfile.profileTags[1]").value("demo.gigi.tour_conversation"));
-    }
-
-    @Test
-    void tdsrTourConversationSocialContextCanBeAllowedCreatedAndConnectedThroughScopedDemoApi() throws Exception {
-        this.allowType("H49h1", TDSR_TOUR_SOCIAL_TYPE_KEY);
-
-        this.mockMvc.perform(get("/demo/agent-types")
-                .header(HEADER, "H49h1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].key").value(TDSR_TOUR_SOCIAL_TYPE_KEY))
-                .andExpect(jsonPath("$[0].displayName").value("GIGI TDSR - Tour Conversation Social Context"))
-                .andExpect(jsonPath("$[0].packagePath[0]").value("tdsr"))
-                .andExpect(jsonPath("$[0].packagePath[1]").value("core"))
-                .andExpect(jsonPath("$[0].packagePath[2]").value("de"));
-
-        UUID agentId = this.createAgent("H49h1", TDSR_TOUR_SOCIAL_TYPE_KEY);
-
-        this.mockMvc.perform(get("/demo/agents/" + agentId + "/info")
-                .header(HEADER, "H49h1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("GIGI TDSR - Tour Conversation Social Context"))
-                .andExpect(jsonPath("$.languageCode").value("de"))
-                .andExpect(jsonPath("$.interactionProfile.supportedObservations[0]").value("obs.user_utterance"))
-                .andExpect(jsonPath("$.interactionProfile.supportedObservations[1]").value("obs.human.presence"))
-                .andExpect(jsonPath("$.interactionProfile.supportedObservations[2]").value("obs.social.grouping"))
-                .andExpect(jsonPath("$.interactionProfile.supportedObservations[3]")
-                        .value("obs.social.situation_change"))
-                .andExpect(jsonPath("$.interactionProfile.supportedBehaviourModalities[0]").value("speech"))
-                .andExpect(jsonPath("$.interactionProfile.supportedBehaviourModalities[1]")
-                        .value("nonVerbal.gesture"))
-                .andExpect(jsonPath("$.interactionProfile.profileTags[0]").value("demo.gigi.tdsr"))
-                .andExpect(jsonPath("$.interactionProfile.profileTags[1]").value("demo.gigi.tour_conversation"))
-                .andExpect(jsonPath("$.interactionProfile.profileTags[2]").value("demo.gigi.social_context"));
     }
 
     @Test

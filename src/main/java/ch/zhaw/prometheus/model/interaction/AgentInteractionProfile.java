@@ -28,12 +28,6 @@ public class AgentInteractionProfile {
     public static final String MODALITY_MOTION_HAND_SIGN = "motion.handSign";
     public static final String MODALITY_DISPLAY = "display";
 
-    public static final String TAG_GIGI_TDSR = "demo.gigi.tdsr";
-    public static final String TAG_GIGI_GUESSING_GAME = "demo.gigi.guessing_game";
-    public static final String TAG_GIGI_SOCIAL_CONTEXT = "demo.gigi.social_context";
-    public static final String TAG_GIGI_RPS = "demo.gigi.rps";
-    public static final String TAG_GIGI_TOUR_CONVERSATION = "demo.gigi.tour_conversation";
-
     private List<String> supportedObservations;
     private List<String> supportedBehaviourModalities;
     private List<String> profileTags;

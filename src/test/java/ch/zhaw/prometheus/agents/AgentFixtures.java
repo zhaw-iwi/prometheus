@@ -25,24 +25,4 @@ public final class AgentFixtures {
     public static Agent singleStateMicroCoaching() {
         return new ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching().createAgent();
     }
-
-    public static Agent gigiTdsrGuessingGameWithGestures() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures().createAgent();
-    }
-
-    public static Agent gigiTdsrSocialContextSensitivity() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.SocialContextSensitivity().createAgent();
-    }
-
-    public static Agent gigiTdsrRockScissorPaper() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.RockScissorPaper().createAgent();
-    }
-
-    public static Agent gigiTdsrTourConversation() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation().createAgent();
-    }
-
-    public static Agent gigiTdsrTourConversationSocialContextSensitivity() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversationSocialContextSensitivity().createAgent();
-    }
 }

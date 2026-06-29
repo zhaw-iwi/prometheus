@@ -15,8 +15,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
-import ch.zhaw.prometheus.controllers.views.AccessCodePresetEntryView;
-import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.model.Agent;
@@ -62,29 +60,15 @@ class AccessCodeAdminServiceIntegrationTest {
                 .map(AdminAgentTypeView::getKey)
                 .toList();
 
+        assertTrue(keys.contains("basic.single_state_guessing_game"));
         assertTrue(keys.contains("basic.single_state_micro_coaching"));
-        assertTrue(keys.contains("tdsr.core.de.rock_scissor_paper"));
-        assertTrue(keys.contains("tdsr.core.de.tour_conversation"));
-        assertTrue(keys.contains("tdsr.core.de.tour_conversation_social_context"));
-        assertTrue(keys.contains("tdsr.core.fr.tour_conversation"));
-        assertTrue(keys.contains("tdsr.core.it.rock_scissor_paper"));
-        assertTrue(keys.contains("tdsr.core.en.tour_conversation_social_context"));
-        assertTrue(keys.contains("tdsr.shhd.de.epfl_active"));
-        assertTrue(keys.contains("tdsr.shhd.en.epfl_active"));
-        assertTrue(keys.contains("tdsr.shhd.it.supsi_active"));
-        assertTrue(keys.contains("tdsr.shhd.fr.interviewing_people"));
-        assertTrue(keys.contains("tdsr.shhd.babylon.unis_student"));
+        assertTrue(keys.contains("basic.four_states_linear"));
+        assertTrue(keys.contains("multimodal.single_state_in"));
+        assertTrue(keys.contains("multimodal.single_state_out"));
+        assertTrue(keys.contains("multimodal.single_state_in_out"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
         assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
-        assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
-        assertEquals(List.of("tdsr", "core", "de"),
-                packagePath(agentTypes, "tdsr.core.de.rock_scissor_paper"));
-        assertEquals(List.of("tdsr", "core", "babylon"),
-                packagePath(agentTypes, "tdsr.core.babylon.tour_conversation"));
-        assertEquals(List.of("tdsr", "shhd", "de"),
-                packagePath(agentTypes, "tdsr.shhd.de.epfl_active"));
-        assertEquals(List.of("tdsr", "shhd", "babylon"),
-                packagePath(agentTypes, "tdsr.shhd.babylon.unis_student"));
+        assertEquals(List.of("multimodal"), packagePath(agentTypes, "multimodal.single_state_in_out"));
     }
 
     @Test
@@ -102,84 +86,8 @@ class AccessCodeAdminServiceIntegrationTest {
     }
 
     @Test
-    void listsShhdAccessCodePresetWithExplicitAssignments() {
-        AccessCodePresetView preset = this.service.listAccessCodePresets().stream()
-                .filter(candidate -> "shhd_scene_agents".equals(candidate.getKey()))
-                .findFirst()
-                .orElseThrow();
-
-        assertEquals("SHHD scene access codes", preset.getDisplayName());
-        assertEquals(List.of("shhde", "shhen", "shhfr", "shhit", "shhba"), preset.getEntries().stream()
-                .map(AccessCodePresetEntryView::getCode)
-                .toList());
-        assertEquals(List.of(
-                "tdsr.shhd.de.epfl_active",
-                "tdsr.shhd.de.furka",
-                "tdsr.shhd.de.interviewing_people",
-                "tdsr.shhd.de.supsi_active",
-                "tdsr.shhd.de.unis_student"), presetEntry(preset, "shhde").getAgentTypeKeys());
-        assertEquals(List.of(
-                "tdsr.shhd.babylon.epfl_active",
-                "tdsr.shhd.babylon.furka",
-                "tdsr.shhd.babylon.interviewing_people",
-                "tdsr.shhd.babylon.supsi_active",
-                "tdsr.shhd.babylon.unis_student"), presetEntry(preset, "shhba").getAgentTypeKeys());
-    }
-
-    @Test
-    void appliesAccessCodePresetWithReviewedAssignments() {
-        List<AccessCodeView> created = this.service.applyAccessCodePreset("shhd_scene_agents", List.of(
-                new AccessCodePresetEntrySpec("shhde", List.of(
-                        "tdsr.shhd.de.epfl_active",
-                        "tdsr.shhd.de.furka",
-                        "tdsr.shhd.de.interviewing_people",
-                        "tdsr.shhd.de.supsi_active")),
-                new AccessCodePresetEntrySpec("shhen", List.of(
-                        "tdsr.shhd.en.epfl_active",
-                        "tdsr.shhd.en.furka",
-                        "tdsr.shhd.en.interviewing_people",
-                        "tdsr.shhd.en.supsi_active",
-                        "tdsr.shhd.en.unis_student")),
-                new AccessCodePresetEntrySpec("shhfr", List.of(
-                        "tdsr.shhd.fr.epfl_active",
-                        "tdsr.shhd.fr.furka",
-                        "tdsr.shhd.fr.interviewing_people",
-                        "tdsr.shhd.fr.supsi_active",
-                        "tdsr.shhd.fr.unis_student")),
-                new AccessCodePresetEntrySpec("shhit", List.of(
-                        "tdsr.shhd.it.epfl_active",
-                        "tdsr.shhd.it.furka",
-                        "tdsr.shhd.it.interviewing_people",
-                        "tdsr.shhd.it.supsi_active",
-                        "tdsr.shhd.it.unis_student")),
-                new AccessCodePresetEntrySpec("shhba", List.of(
-                        "tdsr.shhd.babylon.epfl_active",
-                        "tdsr.shhd.babylon.furka",
-                        "tdsr.shhd.babylon.interviewing_people",
-                        "tdsr.shhd.babylon.supsi_active",
-                        "tdsr.shhd.babylon.unis_student")))).orElseThrow();
-
-        assertEquals(5, created.size());
-        assertEquals(5, this.accessCodes.findAll().size());
-        assertTrue(accessCode(created, "shhde").isEnabled());
-        assertEquals(List.of(
-                "tdsr.shhd.de.epfl_active",
-                "tdsr.shhd.de.furka",
-                "tdsr.shhd.de.interviewing_people",
-                "tdsr.shhd.de.supsi_active"), accessCode(created, "shhde").getAllowedAgentTypeKeys());
-        assertEquals(24, this.allowedAgentTypes.findAll().size());
-    }
-
-    @Test
-    void rejectsConflictingOrEditedAccessCodePresetRequests() {
-        this.service.createAccessCode("shhde", true);
-
-        assertThrows(DuplicateAccessCodeException.class, () -> this.service.applyAccessCodePreset("shhd_scene_agents",
-                this.service.listAccessCodePresets().get(0).getEntries().stream()
-                        .map(entry -> new AccessCodePresetEntrySpec(entry.getCode(), entry.getAgentTypeKeys()))
-                        .toList()));
-        assertThrows(IllegalArgumentException.class, () -> this.service.applyAccessCodePreset("shhd_scene_agents",
-                List.of(new AccessCodePresetEntrySpec("shhde", List.of("basic.single_state_micro_coaching")))));
+    void frameworkLineHasNoBuiltInAccessCodePresets() {
+        assertTrue(this.service.listAccessCodePresets().isEmpty());
         assertTrue(this.service.applyAccessCodePreset("missing", List.of()).isEmpty());
     }
 
@@ -213,29 +121,29 @@ class AccessCodeAdminServiceIntegrationTest {
         AccessCodeView created = this.service.createAccessCode("typ48", true);
 
         AccessCodeView assigned = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.guessing_game_with_gestures")).orElseThrow();
+                "basic.single_state_micro_coaching",
+                "basic.single_state_guessing_game")).orElseThrow();
 
-        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.rock_scissor_paper"),
+        assertEquals(List.of("basic.single_state_guessing_game", "basic.single_state_micro_coaching"),
                 assigned.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView added = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.tour_conversation")).orElseThrow();
+                "basic.single_state_guessing_game",
+                "basic.single_state_micro_coaching",
+                "multimodal.single_state_out")).orElseThrow();
 
         assertEquals(List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.tour_conversation"), added.getAllowedAgentTypeKeys());
+                "basic.single_state_guessing_game",
+                "basic.single_state_micro_coaching",
+                "multimodal.single_state_out"), added.getAllowedAgentTypeKeys());
         assertEquals(3, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView removed = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.tour_conversation")).orElseThrow();
+                "basic.single_state_guessing_game",
+                "multimodal.single_state_out")).orElseThrow();
 
-        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.tour_conversation"),
+        assertEquals(List.of("basic.single_state_guessing_game", "multimodal.single_state_out"),
                 removed.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
@@ -287,17 +195,4 @@ class AccessCodeAdminServiceIntegrationTest {
                 .orElseThrow();
     }
 
-    private static AccessCodePresetEntryView presetEntry(AccessCodePresetView preset, String code) {
-        return preset.getEntries().stream()
-                .filter(entry -> code.equals(entry.getCode()))
-                .findFirst()
-                .orElseThrow();
-    }
-
-    private static AccessCodeView accessCode(List<AccessCodeView> accessCodes, String code) {
-        return accessCodes.stream()
-                .filter(accessCode -> code.equals(accessCode.getCode()))
-                .findFirst()
-                .orElseThrow();
-    }
 }

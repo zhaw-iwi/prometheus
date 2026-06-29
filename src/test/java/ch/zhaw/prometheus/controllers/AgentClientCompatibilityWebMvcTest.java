@@ -35,7 +35,6 @@ import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
-import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
@@ -92,7 +91,14 @@ class AgentClientCompatibilityWebMvcTest {
         when(this.agentService.getAgentInfo(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentInfoView(TEST_AGENT_ID, "Example Conversational Agent",
                         "Test fixture agent for chat, realtime, and monitor compatibility checks.", true,
-                        AgentInteractionProfiles.gigiTdsrRockScissorPaper())));
+                        AgentInteractionProfile.of(
+                                List.of(
+                                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                                        AgentInteractionProfile.OBS_HAND_SIGN),
+                                List.of(
+                                        AgentInteractionProfile.MODALITY_SPEECH,
+                                        AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN),
+                                List.of("demo.hand_sign")))));
         when(this.agentService.getAgentState(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentStateInfoView("conversation", null, List.of())));
         when(this.agentService.getAgentStorage(TEST_AGENT_ID)).thenReturn(Optional.of(List.of()));

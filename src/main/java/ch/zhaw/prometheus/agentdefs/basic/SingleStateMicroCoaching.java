@@ -4,6 +4,8 @@ package ch.zhaw.prometheus.agentdefs.basic;
 import java.util.List;
 
 
+import org.springframework.stereotype.Component;
+
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
@@ -16,6 +18,7 @@ import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+@Component
 public class SingleStateMicroCoaching implements AgentDefinition {
 
         private static final String PROMPT_COACH = """

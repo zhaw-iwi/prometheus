@@ -103,6 +103,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 97: Valerian shared light/dark cockpit themes
 - [x] Milestone 98: PROMETHEUS Realtime tuning backend contract
 - [x] Milestone 99: Valerian cockpit Realtime audio tuning
+- [x] Milestone 100: Framework/application agent repository split
 
 ## Milestone 1
 ### Date
@@ -4514,3 +4515,52 @@ Adopt Marc Styger's Valerian cockpit Realtime audio tuning updates in the bundle
 ### Next steps
 1. Live-test the bundled cockpit on the demo laptop with the target microphone and speaker setup.
 2. Tune default VAD/noise-reduction values only after live rehearsal shows a repeatable need.
+
+## Milestone 100
+### Date
+2026-06-29
+
+### Goal
+Preserve the current application agent catalog on a separate `agents` branch, then make `main` the clean PROMETHEUS framework line without static dependencies on TDSR or elderly-care agent applications.
+
+### What changed
+- Created and pushed the `agents` branch from the current Valerian/access-code feature head so the full TDSR and elderly-care application catalog remains available unchanged.
+- Fast-forwarded local `main` to the Valerian/access-code/runtime work before cleanup.
+- Removed TDSR and elderly-care application agent definitions, prompt docs, RPS-specific model/client code, app replay scripts, and matching app-specific tests from `main`.
+- Refactored `AgentDefinitionRegistry` to consume Spring-managed `AgentDefinition` beans, validate and sort them by key, and avoid direct construction or imports of application agents.
+- Registered the remaining framework demo definitions as Spring components under `basic.*` and `multimodal.*`.
+- Removed SHHD access-code presets from the framework line; `main` now ships with an empty built-in preset catalog.
+- Removed app-specific interaction-profile tags/factories while keeping generic observations and modalities such as hand sign, weather, motion hand sign, and display.
+- Renamed Valerian hand-sign observation sources from RPS-specific names to Valerian/manual-camera source names.
+- Updated README and framework tests to describe bean-based agent registration and the branch/module boundary for application agents.
+- Narrowed `RealtimeBrowserClientContractTest` so it still forbids browser-owned response creation while allowing the Valerian Milestone 99 `response.cancel` barge-in behavior.
+
+### How to run
+1. Start the framework app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open Valerian Admin:
+   - `http://localhost:8080/valerian-admin/`
+
+### How to test
+- Targeted checks run:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `.\mvnw.cmd -q "-Dtest=RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- Full clean-schema suite run:
+  - `.\mvnw.cmd -q "-Dspring.jpa.hibernate.ddl-auto=create-drop" "-Dlogging.level.org=ERROR" "-Dlogging.level.com=ERROR" "-Dlogging.level.ch.zhaw.prometheus=ERROR" "-Dlogging.level.org.hibernate.SQL=ERROR" test`
+  - Result from fresh Surefire XML reports: 214 tests, 0 failures, 0 errors.
+
+### Known issues and decisions
+- Local `main` is not pushed yet; stop here for review and commit before publishing the cleaned framework line.
+- The `agents` branch is the preserved application-agent line. A future extraction can turn that branch into a Maven module or separate repository that contributes `AgentDefinition` beans.
+- Framework `main` intentionally has no built-in access-code presets after removing SHHD/TDSR application presets.
+- The remaining basic/multimodal demo agents still use their existing Gigi demo persona; this milestone separates application catalogs, not all demo copy.
+- A plain `.\mvnw.cmd -q test` initially hit an obsolete local MySQL `agent.start_response_pending` column left from an older schema. Use a clean schema or the `create-drop` override above if the local database still contains removed columns.
+- The full clean-schema run exits successfully but still prints the existing Surefire fork-shutdown warning caused by open async/SSE test contexts.
+
+### Next steps
+1. Review the `main` cleanup diff and commit it.
+2. Push `main` after review.
+3. Decide whether the preserved `agents` branch should become a Maven application module, a separate repository, or remain a branch while the framework/application split settles.

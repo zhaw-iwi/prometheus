@@ -59,7 +59,6 @@ class RealtimeBrowserClientContractTest {
             assertDoesNotContain(script, "type: \"response.create\"");
             assertDoesNotContain(script, "type: \"input_audio_buffer.commit\"");
             assertDoesNotContain(script, "type: \"input_audio_buffer.clear\"");
-            assertDoesNotContain(script, "type: \"response.cancel\"");
             assertDoesNotContain(script, "type: \"output_audio_buffer.clear\"");
             assertDoesNotContain(script, "output_modalities: [\"audio\"]");
             assertDoesNotContain(script, "sessionPayload.turn_detection");
@@ -68,6 +67,9 @@ class RealtimeBrowserClientContractTest {
             assertDoesNotContain(script, "interrupt_response: false");
             assertDoesNotMatch(script, "(?m)^\\s*modalities\\s*:");
         }
+
+        String realtimeScript = Files.readString(REALTIME_SCRIPT);
+        assertDoesNotContain(realtimeScript, "type: \"response.cancel\"");
     }
 
     @Test

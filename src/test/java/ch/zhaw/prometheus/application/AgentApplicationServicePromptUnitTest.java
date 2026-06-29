@@ -20,7 +20,6 @@ import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
-import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.PromptContextAugmenter;
 import ch.zhaw.prometheus.model.policy.PromptEventContentAdapter;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -100,7 +99,13 @@ class AgentApplicationServicePromptUnitTest {
         State state = new State("s", new PromptPolicy("system-policy", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
                 List.of());
         Agent agent = new Agent("a", "d", state);
-        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrSocialContextSensitivity());
+        agent.setInteractionProfile(AgentInteractionProfile.of(
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_SOCIAL_GROUPING,
+                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE),
+                List.of(AgentInteractionProfile.MODALITY_SPEECH),
+                List.of("demo.social_context")));
         agent.setLanguageCode("DE");
 
         AgentRepository repository = mock(AgentRepository.class);
@@ -121,7 +126,7 @@ class AgentApplicationServicePromptUnitTest {
         assertTrue(info.getInteractionProfile().supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
         assertTrue(info.getInteractionProfile().supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
         assertTrue(listed.getInteractionProfile().getProfileTags()
-                .contains(AgentInteractionProfile.TAG_GIGI_SOCIAL_CONTEXT));
+                .contains("demo.social_context"));
         assertEquals("de", info.getLanguageCode());
         assertEquals("de", listed.getLanguageCode());
     }

@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
-import ch.zhaw.prometheus.model.interaction.AgentInteractionProfiles;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 
@@ -24,7 +23,17 @@ class AgentInteractionProfilePersistenceUnitTest {
     void interactionProfilePersistsAcrossSaveAndReload() {
         State start = new State("start", new NoOpPolicy(), List.of());
         Agent agent = new Agent("profiled", "interaction profile persistence", start);
-        agent.setInteractionProfile(AgentInteractionProfiles.gigiTdsrRockScissorPaper());
+        agent.setInteractionProfile(AgentInteractionProfile.of(
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_HAND_SIGN,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
+                List.of(
+                        AgentInteractionProfile.MODALITY_SPEECH,
+                        AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,
+                        AgentInteractionProfile.MODALITY_DISPLAY),
+                List.of("demo.hand_sign")));
 
         Agent saved = this.repository.save(agent);
         Agent loaded = this.repository.findById(saved.getId()).orElseThrow();
@@ -39,7 +48,7 @@ class AgentInteractionProfilePersistenceUnitTest {
                 AgentInteractionProfile.MODALITY_SPEECH,
                 AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,
                 AgentInteractionProfile.MODALITY_DISPLAY), profile.getSupportedBehaviourModalities());
-        assertTrue(profile.getProfileTags().contains(AgentInteractionProfile.TAG_GIGI_RPS));
+        assertTrue(profile.getProfileTags().contains("demo.hand_sign"));
     }
 
     @Test

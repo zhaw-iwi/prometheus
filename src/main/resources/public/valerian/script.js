@@ -320,7 +320,7 @@ function wireUi() {
   });
   document.querySelectorAll("[data-sign]").forEach((button) => {
     button.addEventListener("click", () => submitHandSign(button.dataset.sign, {
-      source: "rps.web",
+      source: "valerian.hand.manual",
       detectionMode: "manual",
       confidence: 1.0,
     }));
@@ -3445,7 +3445,7 @@ async function maybeEmitCameraSign(candidate) {
     return;
   }
   const ok = await submitHandSign(candidate.sign, {
-    source: "rps.web.camera",
+    source: "valerian.hand.camera",
     detectionMode: "client_camera",
     confidence: round(candidate.confidence, 3),
     cannedGesture: candidate.cannedGesture,
@@ -3460,12 +3460,12 @@ async function maybeEmitCameraSign(candidate) {
 async function submitHandSign(sign, options = {}) {
   const normalized = normalizeSign(sign);
   if (!normalized) {
-    appendLog("rps", "unknown hand sign.");
+    appendLog("hand", "unknown hand sign.");
     return false;
   }
   renderUserSign(normalized);
   const payload = {
-    source: options.source || "rps.web",
+    source: options.source || "valerian.hand.manual",
     hand: options.hand || "unknown",
     sign: normalized,
     confidence: typeof options.confidence === "number" ? options.confidence : 1.0,

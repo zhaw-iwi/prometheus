@@ -65,13 +65,6 @@ class StaticRedirectControllerWebMvcTest {
     }
 
     @Test
-    void redirectsRpsToStaticIndexPreservingQuery() throws Exception {
-        this.mockMvc.perform(get("/rps?agentId=uuid"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/rps/index.html?agentId=uuid"));
-    }
-
-    @Test
     void redirectsValerianToStaticIndexPreservingQuery() throws Exception {
         this.mockMvc.perform(get("/valerian?agentId=uuid"))
                 .andExpect(status().is3xxRedirection())
