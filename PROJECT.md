@@ -115,6 +115,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 109: Davos therapy context set reduced to physiotherapy, occupational therapy, and activation
 - [x] Milestone 110: Explicit Davos guessing-game display names
 - [x] Milestone 111: Verbal-turn latency reduction path
+- [x] Milestone 112: Valerian cockpit speedup transfer specification
 
 ## Milestone 1
 ### Date
@@ -4967,3 +4968,34 @@ Reduce perceived latency for verbal text and speech interactions while preservin
 ### Next steps
 1. Live-test Davos text and speech turns and compare average response time before/after this milestone.
 2. Add per-turn timing aggregation if live testing shows the remaining latency is still hard to localize.
+
+## Milestone 112
+### Date
+2026-06-30
+
+### Goal
+Create a self-contained transfer specification for updating the sibling `zhaw-iwi/valerian` cockpit so it can benefit from the PROMETHEUS verbal-turn latency improvements from Milestone 111.
+
+### What changed
+- Added `.agents/SPEEDUP.md` with the PROMETHEUS source commit, backend prerequisites, target Valerian files, expected text-turn changes, Realtime speech notes, tests, smoke-script updates, documentation requirements, manual acceptance steps, risks, and completion checklist.
+- Documented that external Valerian text input should use `acknowledge-and-generate?profile=realtime_speech`, render returned speech immediately, and request `backend_complement` afterward.
+- Documented that observation-only manual/weather/camera/RPS paths should stay on plain `/acknowledge`.
+- Documented that the external cockpit should keep Realtime speech on `/realtime/call` and rely on the upgraded PROMETHEUS sideband for speech-turn speedups.
+- Updated README repository notes so the transfer specification is discoverable.
+
+### How to run
+No runtime change in PROMETHEUS. Use `.agents/SPEEDUP.md` as the instruction file for a Codex session in the sibling Valerian repository.
+
+### How to test
+- Documentation checks run:
+  - `Test-Path .agents/SPEEDUP.md`
+  - `Select-String -Path .agents/SPEEDUP.md -Pattern "acknowledge-and-generate","backend_complement","TRANSCRIPT_BATCH_DELAY_MS = 400"`
+
+### Known issues and decisions
+- This milestone creates a transfer guide only; it does not modify the sibling Valerian repository.
+- The guide assumes Valerian is updated against PROMETHEUS commit `670b515` or newer because older backends do not expose the combined turn endpoint.
+- The guide deliberately preserves plain `/acknowledge` for observation-only sensing flows.
+
+### Next steps
+1. Start a Codex session in `../valerian`, read `.agents/SPEEDUP.md`, and implement the described cockpit milestone there.
+2. Run Valerian cockpit tests and smoke syntax checks after the transfer.

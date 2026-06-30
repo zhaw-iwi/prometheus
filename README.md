@@ -634,4 +634,5 @@ Container command uses:
 
 - `.agents/CONTEXT.MD` defines the PROMETHEUS framework context for agentic development: purpose, canonical use cases, requirements, and architectural specifications.
 - `.agents/CODEX.md` defines the engineering workflow and execution discipline coding agents must follow in this repository.
+- `.agents/SPEEDUP.md` specifies how to transfer the latest PROMETHEUS verbal-turn latency improvements to the sibling Valerian cockpit repository.
 - `.agents/humandevhowto.txt` provides example prompts for starting a coding-agent session.
