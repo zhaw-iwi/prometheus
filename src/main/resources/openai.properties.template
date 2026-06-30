@@ -18,6 +18,8 @@ openai.realtimeTranscriptionModel = gpt-realtime-whisper
 openai.realtimeTranscriptionLanguage =
 # Optional gpt-realtime-whisper delay: minimal, low, medium, high, xhigh
 openai.realtimeTranscriptionDelay =
+# Optional backend sideband transcript-batch delay for speech-to-speech, in ms
+openai.realtimeTranscriptBatchDelayMs = 400
 # Optional stable, privacy-preserving user/application identifier
 openai.realtimeSafetyIdentifier =
 openai.realtimeClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets

@@ -101,7 +101,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("demoAgentPath(\"/storage\")"));
         assertTrue(script.contains("demoAgentPath(\"/start\")"));
         assertTrue(script.contains("demoAgentPath(\"/reset\")"));
-        assertTrue(script.contains("demoAgentPath(`/acknowledge${profile}`)"));
+        assertTrue(script.contains("options.generateIfNoResponse ? \"/acknowledge-and-generate\" : \"/acknowledge\""));
+        assertTrue(script.contains("demoAgentPath(`${endpoint}${profile}`)"));
         assertTrue(script.contains("demoAgentPath(\"/behaviour/generate\")"));
         assertTrue(script.contains("demoAgentPath(\"/behaviour/stream\")"));
         assertTrue(script.contains("demoAgentPath(\"/monitor/stream\")"));
@@ -191,6 +192,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("input_audio_buffer.speech_started"));
         assertTrue(script.contains("input_audio_buffer.speech_stopped"));
         assertTrue(script.contains("TRANSCRIPT_BATCH_DELAY_MS"));
+        assertTrue(script.contains("TRANSCRIPT_BATCH_DELAY_MS = 400"));
         assertTrue(script.contains("isLikelyAsrHallucination"));
         assertTrue(script.contains("isProbableAssistantEcho"));
         assertTrue(script.contains("transcriptTokenSimilarity"));

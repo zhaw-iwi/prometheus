@@ -45,7 +45,7 @@ class RealtimeSidebandServiceContractTest {
     @Test
     void userSpeechAcknowledgementUsesRealtimeSpeechProfile() throws IOException {
         String source = Files.readString(SIDEBAND_SERVICE);
-        int callStart = source.indexOf("Optional<ResponseView> acknowledged = agentService.acknowledge");
+        int callStart = source.indexOf("Optional<ResponseView> acknowledged = agentService.acknowledgeAndGenerate");
         assertTrue(callStart >= 0);
         int profileIndex = source.indexOf("OutputProfile.REALTIME_SPEECH", callStart);
         assertTrue(profileIndex > callStart);
@@ -145,6 +145,28 @@ class RealtimeSidebandServiceContractTest {
     }
 
     @Test
+    void transcriptBatchDelayDefaultsLowAndCanBeConfigured() throws Exception {
+        AgentApplicationService agentService = mock(AgentApplicationService.class);
+        RealtimeSidebandService defaultService = new RealtimeSidebandService(new OpenAIProperties(), agentService);
+        try {
+            Field delay = RealtimeSidebandService.class.getDeclaredField("transcriptBatchDelayMs");
+            delay.setAccessible(true);
+            assertEquals(RealtimeSidebandService.DEFAULT_TRANSCRIPT_BATCH_DELAY_MS, delay.getLong(defaultService));
+
+            OpenAIProperties properties = new OpenAIProperties();
+            properties.setRealtimeTranscriptBatchDelayMs(125L);
+            RealtimeSidebandService configuredService = new RealtimeSidebandService(properties, agentService);
+            try {
+                assertEquals(125L, delay.getLong(configuredService));
+            } finally {
+                configuredService.closeAll();
+            }
+        } finally {
+            defaultService.closeAll();
+        }
+    }
+
+    @Test
     void activeSidebandSpeaksPublishedAssistantBehaviourSpeech() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
@@ -227,7 +249,8 @@ class RealtimeSidebandServiceContractTest {
     void sidebandBatchesTranscriptCompletionsAndIgnoresKnownAsrHallucination() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
-        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
+        when(agentService.acknowledgeAndGenerate(eq(agentId), any(EventRequest.class),
+                eq(OutputProfile.REALTIME_SPEECH)))
                 .thenReturn(Optional.<ResponseView>empty());
         RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
         Object session = newSidebandSession(service, agentId);
@@ -239,7 +262,7 @@ class RealtimeSidebandServiceContractTest {
 
             ArgumentCaptor<EventRequest> event = ArgumentCaptor.forClass(EventRequest.class);
             verify(agentService, timeout(2500).times(1))
-                    .acknowledge(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
+                    .acknowledgeAndGenerate(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
             assertEquals("Bereit?", event.getValue().getPayload());
         } finally {
             service.closeAll();
@@ -247,18 +270,14 @@ class RealtimeSidebandServiceContractTest {
     }
 
     @Test
-    void sidebandGeneratesRealtimeSpeechWhenInactiveFinalAckReturnsNoResponse() throws Exception {
+    void sidebandUsesCombinedBackendTurnForRealtimeSpeech() throws Exception {
         UUID agentId = UUID.randomUUID();
-        Event finalSpeech = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+        Event speech = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 "{\"speech\":\"Die Runde ist beendet. Starte bitte eine neue Sitzung, wenn du weiterspielen moechtest.\"}");
         AgentApplicationService agentService = mock(AgentApplicationService.class);
-        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
-                .thenReturn(Optional.of(new ResponseView(null, false)));
-        when(agentService.getAgentEventHistory(agentId))
-                .thenReturn(Optional.of(List.of()))
-                .thenReturn(Optional.of(List.of(finalSpeech)));
-        when(agentService.generate(eq(agentId), isNull(), eq(OutputProfile.REALTIME_SPEECH)))
-                .thenReturn(BehaviourGenerationOutcome.GENERATED);
+        when(agentService.acknowledgeAndGenerate(eq(agentId), any(EventRequest.class),
+                eq(OutputProfile.REALTIME_SPEECH)))
+                .thenReturn(Optional.of(new ResponseView(speech, false)));
         RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
         Object session = newSidebandSession(service, agentId);
         try {
@@ -266,7 +285,8 @@ class RealtimeSidebandServiceContractTest {
             emit(session, completed("item_final", "event_final", "Koennen wir nochmals spielen?"));
 
             verify(agentService, timeout(2500))
-                    .generate(eq(agentId), isNull(), eq(OutputProfile.REALTIME_SPEECH));
+                    .acknowledgeAndGenerate(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH));
+            verify(agentService, times(0)).generate(eq(agentId), isNull(), eq(OutputProfile.REALTIME_SPEECH));
         } finally {
             service.closeAll();
         }
@@ -276,7 +296,8 @@ class RealtimeSidebandServiceContractTest {
     void sidebandProcessesDuplicateTranscriptItemOnlyOnce() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
-        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
+        when(agentService.acknowledgeAndGenerate(eq(agentId), any(EventRequest.class),
+                eq(OutputProfile.REALTIME_SPEECH)))
                 .thenReturn(Optional.<ResponseView>empty());
         RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
         Object session = newSidebandSession(service, agentId);
@@ -287,7 +308,7 @@ class RealtimeSidebandServiceContractTest {
 
             ArgumentCaptor<EventRequest> event = ArgumentCaptor.forClass(EventRequest.class);
             verify(agentService, timeout(2500).times(1))
-                    .acknowledge(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
+                    .acknowledgeAndGenerate(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
             assertEquals("Nein.", event.getValue().getPayload());
         } finally {
             service.closeAll();
@@ -298,7 +319,8 @@ class RealtimeSidebandServiceContractTest {
     void sidebandDoesNotDropCompletedTranscriptWhenInputBufferIsClearedBeforeBatchFlush() throws Exception {
         UUID agentId = UUID.randomUUID();
         AgentApplicationService agentService = mock(AgentApplicationService.class);
-        when(agentService.acknowledge(eq(agentId), any(EventRequest.class), eq(OutputProfile.REALTIME_SPEECH)))
+        when(agentService.acknowledgeAndGenerate(eq(agentId), any(EventRequest.class),
+                eq(OutputProfile.REALTIME_SPEECH)))
                 .thenReturn(Optional.<ResponseView>empty());
         RealtimeSidebandService service = new RealtimeSidebandService(new OpenAIProperties(), agentService);
         Object session = newSidebandSession(service, agentId);
@@ -309,7 +331,7 @@ class RealtimeSidebandServiceContractTest {
 
             ArgumentCaptor<EventRequest> event = ArgumentCaptor.forClass(EventRequest.class);
             verify(agentService, timeout(2500).times(1))
-                    .acknowledge(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
+                    .acknowledgeAndGenerate(eq(agentId), event.capture(), eq(OutputProfile.REALTIME_SPEECH));
             assertEquals("Nein.", event.getValue().getPayload());
         } finally {
             service.closeAll();

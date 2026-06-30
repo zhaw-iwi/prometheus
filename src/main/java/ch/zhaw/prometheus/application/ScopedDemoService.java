@@ -171,6 +171,14 @@ public class ScopedDemoService {
         return this.agentService.acknowledge(agentId, request, outputProfile);
     }
 
+    public Optional<ResponseView> acknowledgeAndGenerate(String accessCodeValue, UUID agentId, EventRequest request,
+            OutputProfile outputProfile) {
+        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
+            return Optional.empty();
+        }
+        return this.agentService.acknowledgeAndGenerate(agentId, request, outputProfile);
+    }
+
     public BehaviourGenerationOutcome generate(String accessCodeValue, UUID agentId, List<String> omitModalities,
             OutputProfile outputProfile) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {

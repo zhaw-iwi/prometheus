@@ -221,6 +221,41 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
     }
 
     @Test
+    void acknowledgeAndGenerateUsesOneLoadedAggregateAndPublishesGeneratedResponse() {
+        UUID agentId = UUID.fromString("45454545-4545-4545-4545-454545454545");
+        AgentRepository repository = mock(AgentRepository.class);
+        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
+        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
+        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
+        PromptMessageAssembler assembler = new PromptMessageAssembler();
+
+        PromptPolicy policy = new PromptPolicy("Respond naturally.", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
+        State state = new State("conversation", policy, List.of());
+        Agent agent = new Agent("agent", "desc", state);
+
+        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
+        when(repository.save(agent)).thenReturn(agent);
+        when(languageModelGateway.complete(any())).thenReturn("Fast-path response.");
+
+        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
+                behaviourBroadcaster, assembler, languageModelGateway);
+
+        var response = service.acknowledgeAndGenerate(agentId,
+                new ch.zhaw.prometheus.controllers.views.EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER,
+                        Event.KIND_OBSERVATION, "Hello"),
+                OutputProfile.REALTIME_SPEECH)
+                .orElseThrow();
+
+        assertNotNull(response.getResponseEvent());
+        BehaviourPlan plan = BehaviourPlan.fromJson(response.getResponseEvent().getPayload());
+        assertNotNull(plan);
+        assertEquals("Fast-path response.", plan.getSpeech());
+        assertEquals(2, agent.getEventHistory().toList().size());
+        verify(repository).save(agent);
+        verify(behaviourBroadcaster).publish(isNull(), same(response.getResponseEvent()));
+    }
+
+    @Test
     void generatePassesRequestedOutputProfileIntoRuntime() {
         UUID agentId = UUID.fromString("77777777-7777-7777-7777-777777777777");
         Event response = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,

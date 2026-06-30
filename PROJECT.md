@@ -114,6 +114,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 108: Shared Davos care humour and resistance protocol
 - [x] Milestone 109: Davos therapy context set reduced to physiotherapy, occupational therapy, and activation
 - [x] Milestone 110: Explicit Davos guessing-game display names
+- [x] Milestone 111: Verbal-turn latency reduction path
 
 ## Milestone 1
 ### Date
@@ -4930,3 +4931,39 @@ Rename the two Davos guessing-game agent display names so Valerian/Admin users c
 
 ### Next steps
 1. Confirm in Valerian Admin that the two labels are clear enough for operators assigning access codes.
+
+## Milestone 111
+### Date
+2026-06-30
+
+### Goal
+Reduce perceived latency for verbal text and speech interactions while preserving PROMETHEUS' event-driven, backend-authoritative behaviour-plan model.
+
+### What changed
+- Added `LatestUserUtteranceIntentPreGuard`, a cheap deterministic transition pre-guard that lets Davos care agents skip prompt-based final/completion decisions on ordinary non-final user turns.
+- Wired the Davos outer global-finish transition and inner task-completion transition through the new pre-guard before their prompt-based `StaticDecision` calls.
+- Added `acknowledgeAndGenerate(...)` service flow plus global and scoped `acknowledge-and-generate` endpoints so verbal clients can acknowledge user input and generate a fallback behaviour in one loaded aggregate and one persistence cycle.
+- Updated Valerian text input to use speech-first `REALTIME_SPEECH` through `acknowledge-and-generate`, render speech immediately, and request `BACKEND_COMPLEMENT` nonverbal output afterward.
+- Updated the Realtime sideband to process accepted transcripts through the combined backend turn instead of calling acknowledge and then generating realtime speech in a second service path.
+- Reduced the default Realtime sideband transcript batch delay to 400 ms and exposed it as `openai.realtimeTranscriptBatchDelayMs`.
+- Added debug timing logs around backend acknowledge/combined turns and Realtime transcript processing.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian and use text or continuous speech with a Davos agent.
+3. Optionally tune the sideband transcript delay:
+   - `openai.realtimeTranscriptBatchDelayMs=400`
+
+### How to test
+- Focused speedup suite:
+  - `.\mvnw.cmd -q "-Dtest=LatestUserUtteranceIntentPreGuardUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,AgentClientCompatibilityWebMvcTest,ScopedDemoControllerWebMvcTest,RealtimeSidebandServiceContractTest,ValerianClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The deterministic pre-guard is intentionally conservative: prompt-based final decisions still run for explicit stop/closure language and for short confirmations after a likely assistant closing question.
+- Text turns now prioritize speech latency over a single all-in-one `FULL_PLAN`; nonverbal behaviour arrives as a backend complement event afterward.
+- The sideband transcript delay remains a noise/latency tradeoff. Lower values may admit more duplicate or unstable transcripts in noisy rooms.
+
+### Next steps
+1. Live-test Davos text and speech turns and compare average response time before/after this milestone.
+2. Add per-turn timing aggregation if live testing shows the remaining latency is still hard to localize.

@@ -27,6 +27,7 @@ public class OpenAIProperties {
     private String realtimeTranscriptionModel;
     private String realtimeTranscriptionLanguage;
     private String realtimeTranscriptionDelay;
+    private Long realtimeTranscriptBatchDelayMs;
     private String realtimeClientSecretUrl;
     private String realtimeCallsUrl;
     private String realtimeSafetyIdentifier;
@@ -93,6 +94,14 @@ public class OpenAIProperties {
 
     public void setRealtimeTranscriptionDelay(String realtimeTranscriptionDelay) {
         this.realtimeTranscriptionDelay = realtimeTranscriptionDelay;
+    }
+
+    public Long getRealtimeTranscriptBatchDelayMs() {
+        return this.realtimeTranscriptBatchDelayMs;
+    }
+
+    public void setRealtimeTranscriptBatchDelayMs(Long realtimeTranscriptBatchDelayMs) {
+        this.realtimeTranscriptBatchDelayMs = realtimeTranscriptBatchDelayMs;
     }
 
     public String getRealtimeClientSecretUrl() {

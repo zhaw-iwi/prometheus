@@ -43,7 +43,7 @@ import jakarta.annotation.PreDestroy;
 public class RealtimeSidebandService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RealtimeSidebandService.class);
     private static final Gson GSON = new GsonBuilder().serializeNulls().create();
-    private static final long TRANSCRIPT_BATCH_DELAY_MS = 900;
+    static final long DEFAULT_TRANSCRIPT_BATCH_DELAY_MS = 400;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ScheduledExecutorService transcriptExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
@@ -53,12 +53,16 @@ public class RealtimeSidebandService {
     });
     private final OpenAIProperties properties;
     private final AgentApplicationService agentService;
+    private final long transcriptBatchDelayMs;
     private final ConcurrentMap<String, SidebandSession> sessions = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, String> callIdsByAgent = new ConcurrentHashMap<>();
 
     public RealtimeSidebandService(OpenAIProperties properties, AgentApplicationService agentService) {
         this.properties = properties;
         this.agentService = agentService;
+        this.transcriptBatchDelayMs = properties == null || properties.getRealtimeTranscriptBatchDelayMs() == null
+                ? DEFAULT_TRANSCRIPT_BATCH_DELAY_MS
+                : Math.max(0, properties.getRealtimeTranscriptBatchDelayMs());
     }
 
     public void attach(RealtimeSidebandSessionConfig config) {
@@ -266,7 +270,7 @@ public class RealtimeSidebandService {
                 this.pendingTranscriptCandidates.add(new TranscriptCandidate(itemId, eventId, transcript.trim()));
                 if (this.pendingTranscriptFlush == null || this.pendingTranscriptFlush.isDone()) {
                     this.pendingTranscriptFlush = transcriptExecutor.schedule(this::flushQueuedTranscripts,
-                            TRANSCRIPT_BATCH_DELAY_MS, TimeUnit.MILLISECONDS);
+                            transcriptBatchDelayMs, TimeUnit.MILLISECONDS);
                 }
             }
         }
@@ -331,9 +335,10 @@ public class RealtimeSidebandService {
             if (!isPresent(transcript)) {
                 return;
             }
+            long startNanos = System.nanoTime();
             LOGGER.debug("Realtime sideband accepting user transcript; callId={} agentId={} itemId={}",
                     this.config.getCallId(), this.config.getAgentId(), itemId);
-            Optional<ResponseView> acknowledged = agentService.acknowledge(this.config.getAgentId(),
+            Optional<ResponseView> acknowledged = agentService.acknowledgeAndGenerate(this.config.getAgentId(),
                     new EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, Event.KIND_OBSERVATION,
                             transcript.trim()),
                     OutputProfile.REALTIME_SPEECH);
@@ -344,9 +349,6 @@ public class RealtimeSidebandService {
             }
             ResponseView ack = acknowledged.get();
             boolean speechPublished = isPresent(speechFromEvent(ack.getResponseEvent()));
-            if (!speechPublished) {
-                speechPublished = generateRealtimeSpeech();
-            }
             if (speechPublished && this.config.getSettings().isGenerateComplement()) {
                 agentService.generate(this.config.getAgentId(), List.of("speech"), OutputProfile.BACKEND_COMPLEMENT);
             }
@@ -355,20 +357,11 @@ public class RealtimeSidebandService {
                         .orElse(null);
                 sendSessionUpdate(RealtimePromptInstructions.systemInstructions(prompt));
             }
-        }
-
-        private boolean generateRealtimeSpeech() {
-            int historySizeBefore = agentService.getAgentEventHistory(this.config.getAgentId())
-                    .map(List::size)
-                    .orElse(0);
-            BehaviourGenerationOutcome outcome = agentService.generate(this.config.getAgentId(), null,
-                    OutputProfile.REALTIME_SPEECH);
-            if (outcome != BehaviourGenerationOutcome.GENERATED) {
-                return false;
-            }
-            return agentService.getAgentEventHistory(this.config.getAgentId())
-                    .map(history -> isPresent(latestAssistantSpeechAfter(history, historySizeBefore)))
-                    .orElse(false);
+            LOGGER.debug("Realtime sideband processed transcript; callId={} agentId={} took={}ms speechPublished={}",
+                    this.config.getCallId(),
+                    this.config.getAgentId(),
+                    (System.nanoTime() - startNanos) / 1_000_000,
+                    speechPublished);
         }
 
         private void sendSessionUpdate(String instructions) {
@@ -465,20 +458,6 @@ public class RealtimeSidebandService {
         }
         BehaviourPlan plan = BehaviourPlan.fromJson(event.getPayload());
         return plan == null ? null : plan.getSpeech();
-    }
-
-    private static String latestAssistantSpeechAfter(List<Event> history, int firstIndex) {
-        if (history == null || history.isEmpty()) {
-            return null;
-        }
-        int start = Math.max(0, firstIndex);
-        for (int i = history.size() - 1; i >= start; i--) {
-            String speech = speechFromEvent(history.get(i));
-            if (isPresent(speech)) {
-                return speech;
-            }
-        }
-        return null;
     }
 
     private static String behaviourEventKey(Event event) {

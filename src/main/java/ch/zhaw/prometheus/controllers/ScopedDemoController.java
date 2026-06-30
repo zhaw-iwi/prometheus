@@ -176,12 +176,30 @@ public class ScopedDemoController {
             @PathVariable @NonNull UUID agentId,
             @RequestBody EventRequest request,
             @RequestParam(required = false) String profile) {
+        return this.acknowledge(headerAccessCode, queryAccessCode, agentId, request, profile, false);
+    }
+
+    @PostMapping("/demo/agents/{agentId}/acknowledge-and-generate")
+    public ResponseEntity<ResponseView> acknowledgeAndGenerate(
+            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable @NonNull UUID agentId,
+            @RequestBody EventRequest request,
+            @RequestParam(required = false) String profile) {
+        return this.acknowledge(headerAccessCode, queryAccessCode, agentId, request, profile, true);
+    }
+
+    private ResponseEntity<ResponseView> acknowledge(String headerAccessCode, String queryAccessCode, UUID agentId,
+            EventRequest request, String profile, boolean generateIfNoResponse) {
         OutputProfile outputProfile = OutputProfile.fromNullable(profile);
         if (outputProfile == null || !isValidEventRequest(request)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return this.demoService.acknowledge(accessCode(headerAccessCode, queryAccessCode), agentId, request,
-                outputProfile)
+        String resolvedAccessCode = accessCode(headerAccessCode, queryAccessCode);
+        Optional<ResponseView> response = generateIfNoResponse
+                ? this.demoService.acknowledgeAndGenerate(resolvedAccessCode, agentId, request, outputProfile)
+                : this.demoService.acknowledge(resolvedAccessCode, agentId, request, outputProfile);
+        return response
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

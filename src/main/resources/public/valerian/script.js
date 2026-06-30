@@ -108,7 +108,7 @@ const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
 const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
-const TRANSCRIPT_BATCH_DELAY_MS = 900;
+const TRANSCRIPT_BATCH_DELAY_MS = 400;
 const REALTIME_MODE_CONTINUOUS = "continuous";
 const ACTIVITY_LOG_LIMIT = 300;
 const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
@@ -1412,12 +1412,12 @@ async function sendUserUtterance(text, options = {}) {
     actor: "user",
     kind: "observation",
     payload: text,
-  }, { renderResponse: true });
+  }, { renderResponse: true, generateIfNoResponse: true, profile: "realtime_speech" });
   if (!data) {
     return false;
   }
-  if (!data.responseEvent) {
-    await generateBehaviour("full_plan");
+  if (eventHasSpeech(data.responseEvent)) {
+    generateBehaviour("backend_complement");
   }
   await loadStorage();
   await loadAgentState();
@@ -1430,8 +1430,9 @@ async function acknowledgeEvent(request, options = {}) {
     return null;
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
+  const endpoint = options.generateIfNoResponse ? "/acknowledge-and-generate" : "/acknowledge";
   try {
-    const response = await scopedFetch(demoAgentPath(`/acknowledge${profile}`), {
+    const response = await scopedFetch(demoAgentPath(`${endpoint}${profile}`), {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(request),
@@ -1453,6 +1454,18 @@ async function acknowledgeEvent(request, options = {}) {
   } catch (error) {
     appendLog("ack", `${request.type} failed: ${error.message}`);
     return null;
+  }
+}
+
+function eventHasSpeech(event) {
+  if (!event || event.type !== "resp.behaviour_plan" || !event.payload) {
+    return false;
+  }
+  try {
+    const plan = JSON.parse(event.payload);
+    return typeof plan.speech === "string" && plan.speech.trim().length > 0;
+  } catch (_) {
+    return false;
   }
 }
 

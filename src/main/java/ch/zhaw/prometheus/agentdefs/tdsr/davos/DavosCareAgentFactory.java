@@ -11,6 +11,7 @@ import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
+import ch.zhaw.prometheus.model.commons.decisions.LatestUserUtteranceIntentPreGuard;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
@@ -71,6 +72,8 @@ final class DavosCareAgentFactory {
         Transition innerToFinal = new Transition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new LatestUserUtteranceIntentPreGuard(
+                                LatestUserUtteranceIntentPreGuard.Mode.TASK_OUTCOME),
                         new StaticDecision(prompts.toFinal())),
                 List.of(
                         new StaticExtractionAction(
@@ -90,6 +93,8 @@ final class DavosCareAgentFactory {
         Transition outerToFinal = new Transition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new LatestUserUtteranceIntentPreGuard(
+                                LatestUserUtteranceIntentPreGuard.Mode.SESSION_CLOSURE),
                         new StaticDecision(DavosCarePrompts.OUTER_STATE_TO_FINAL)),
                 List.of(
                         new StaticExtractionAction(

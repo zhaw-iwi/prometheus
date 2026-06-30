@@ -44,6 +44,7 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - Speech is full-duplex by default: the microphone stays live while assistant audio plays. Barge-in cancellation is enabled by default and sends `response.cancel` on the Realtime data channel when user speech starts during active assistant audio. Half-duplex fallback is disabled by default and only mutes microphone tracks during assistant playback when difficult speaker-to-microphone echo makes that preferable.
 - The same tab exposes browser-side Realtime WebRTC transport and inbound-audio diagnostics, including ICE connection failures, candidate errors, playback stalls/buffering, remote audio track interruptions, packet loss, jitter, jitter-buffer delay, concealed samples, and high RTT, so operators can distinguish speech-session transport problems from agent or robot-side issues.
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
+- Text turns use a speech-first backend path: Valerian calls `acknowledge-and-generate` with `REALTIME_SPEECH`, renders the returned speech immediately, then requests `BACKEND_COMPLEMENT` for nonverbal behaviour.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
 - Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
@@ -151,7 +152,8 @@ Minimum local fields:
   `prometheus.cors.allowed-origin-patterns`
 - Optional realtime: `openai.realtimeModel`, `openai.realtimeInputTranscriptionModel`,
   `openai.realtimeTranscriptionModel`, `openai.realtimeTranscriptionLanguage`,
-  `openai.realtimeTranscriptionDelay`, `openai.realtimeSafetyIdentifier`,
+  `openai.realtimeTranscriptionDelay`, `openai.realtimeTranscriptBatchDelayMs`,
+  `openai.realtimeSafetyIdentifier`,
   `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
 
 ### 3. Run
@@ -296,6 +298,7 @@ helper rather than adding TDSR-specific API to the framework interaction model.
 
 - `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
 - `POST /{agentID}/acknowledge` returns `ResponseView` (`responseEvent`, `active`)
+- `POST /{agentID}/acknowledge-and-generate` acknowledges the event and generates a behaviour in the same backend turn when acknowledge itself produced no `responseEvent`
 - `POST /{agentID}/realtime/call` with raw SDP body (`Content-Type: application/sdp`)
 - `DELETE /realtime/calls/{callId}`
 - `POST /realtime/transcription/session`
@@ -409,6 +412,7 @@ headers.
 - `POST /demo/agents/{agentId}/start`
 - `DELETE /demo/agents/{agentId}/reset`
 - `POST /demo/agents/{agentId}/acknowledge`
+- `POST /demo/agents/{agentId}/acknowledge-and-generate`
 - `POST /demo/agents/{agentId}/behaviour/generate`
 - `GET /demo/agents/{agentId}/behaviour/stream`
 - `GET /demo/agents/{agentId}/monitor/stream`
@@ -555,9 +559,10 @@ Notes:
 - PROMETHEUS remains authoritative for assistant speech generation: Realtime turn detection always sends `create_response=false`, and `vadCreateResponse=true` is rejected with `400 Bad Request`. `vadInterruptResponse` only maps to OpenAI `interrupt_response`.
 - Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
 - Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. This is the built-in ASR model for the Realtime call, not the response-generation model. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
-- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers an out-of-band `response.create` with `conversation=none`, empty input context, and an exact-speech instruction.
+- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, processes accepted user utterances through combined `acknowledge-and-generate` with `REALTIME_SPEECH`, refreshes session instructions after state transitions, and only then triggers an out-of-band `response.create` with `conversation=none`, empty input context, and an exact-speech instruction.
 - PROMETHEUS persists the canonical assistant speech as `resp.behaviour_plan` before Realtime speaks it. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
   - Server default: `openai.realtimeModel=gpt-realtime-2`.
+  - Sideband transcript batching default: `openai.realtimeTranscriptBatchDelayMs=400`.
   - Voice controls include the GA voice options `cedar` and `marin`.
   - Optional endpoint override: `openai.realtimeCallsUrl`.
 - The multilateral listening client obtains a transcription-only client secret from

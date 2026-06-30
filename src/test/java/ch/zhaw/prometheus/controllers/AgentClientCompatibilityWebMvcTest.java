@@ -66,6 +66,8 @@ class AgentClientCompatibilityWebMvcTest {
         when(this.agentService.reset(TEST_AGENT_ID)).thenReturn(Optional.of(new ResponseView(startEvent, true)));
         when(this.agentService.acknowledge(eq(TEST_AGENT_ID), any(), any()))
                 .thenReturn(Optional.of(new ResponseView(null, true)));
+        when(this.agentService.acknowledgeAndGenerate(eq(TEST_AGENT_ID), any(), any()))
+                .thenReturn(Optional.of(new ResponseView(generatedEvent, true)));
         when(this.agentService.generate(eq(TEST_AGENT_ID), isNull(), eq(OutputProfile.FULL_PLAN)))
                 .thenReturn(BehaviourGenerationOutcome.GENERATED);
         when(this.agentService.generate(eq(TEST_AGENT_ID), any(), any()))
@@ -257,6 +259,26 @@ class AgentClientCompatibilityWebMvcTest {
 
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate"))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    void acknowledgeAndGenerateReturnsGeneratedBehaviourPlan() throws Exception {
+        this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/acknowledge-and-generate?profile=realtime_speech")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type":"obs.user_utterance",
+                          "actor":"user",
+                          "kind":"observation",
+                          "payload":"Hello there"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
+                .andExpect(jsonPath("$.responseEvent.payload", containsString("Thanks, please tell me more.")));
+
+        verify(this.agentService).acknowledgeAndGenerate(eq(TEST_AGENT_ID), any(), eq(OutputProfile.REALTIME_SPEECH));
     }
 
     @Test

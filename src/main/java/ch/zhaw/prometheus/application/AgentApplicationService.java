@@ -183,6 +183,16 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
+        return this.acknowledgeInternal(agentID, request, outputProfile, false);
+    }
+
+    public Optional<ResponseView> acknowledgeAndGenerate(UUID agentID, EventRequest request, OutputProfile outputProfile) {
+        return this.acknowledgeInternal(agentID, request, outputProfile, true);
+    }
+
+    private Optional<ResponseView> acknowledgeInternal(UUID agentID, EventRequest request, OutputProfile outputProfile,
+            boolean generateIfNoResponse) {
+        long startNanos = System.nanoTime();
         Optional<Agent> agentMaybe = this.findAgent(agentID);
         if (agentMaybe.isEmpty()) {
             return Optional.empty();
@@ -194,11 +204,19 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
         Event response = agent.acknowledge(event, runtime);
         Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
         Event responseToReturn = computedResponse == null ? response : computedResponse;
+        if (responseToReturn == null && generateIfNoResponse) {
+            responseToReturn = agent.generate(runtime);
+        }
         if (resolvedProfile == OutputProfile.BACKEND_COMPLEMENT) {
             this.applyOmittedModalities(responseToReturn, List.of("speech"));
         }
         Agent saved = this.persistAndPublishMonitor(agent);
         this.publishBehaviour(saved, responseToReturn);
+        LOGGER.debug("Agent {} acknowledge{} took {} ms; responseGenerated={}",
+                agentID,
+                generateIfNoResponse ? "+generate" : "",
+                (System.nanoTime() - startNanos) / 1_000_000,
+                responseToReturn != null);
         return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
     }
 

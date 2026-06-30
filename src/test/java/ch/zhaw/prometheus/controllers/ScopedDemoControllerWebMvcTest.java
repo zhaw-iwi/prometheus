@@ -26,6 +26,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
 import ch.zhaw.prometheus.application.RealtimeCallSettings;
 import ch.zhaw.prometheus.application.ScopedDemoService;
+import ch.zhaw.prometheus.controllers.views.ResponseView;
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.spi.RealtimeCallInfo;
 
 @WebMvcTest(controllers = ScopedDemoController.class)
@@ -94,5 +97,32 @@ class ScopedDemoControllerWebMvcTest {
                 .andExpect(status().isBadRequest());
 
         verify(this.realtimeCallService, never()).createScopedCall(any(), any(), any(), any());
+    }
+
+    @Test
+    void acknowledgeAndGenerateUsesScopedFastPath() throws Exception {
+        UUID agentId = UUID.randomUUID();
+        Event response = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"speech\":\"Fast response.\"}");
+        when(this.demoService.acknowledgeAndGenerate(eq("abc12"), eq(agentId), any(), eq(OutputProfile.REALTIME_SPEECH)))
+                .thenReturn(Optional.of(new ResponseView(response, true)));
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge-and-generate")
+                .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
+                .queryParam("profile", "realtime_speech")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "type":"obs.user_utterance",
+                          "actor":"user",
+                          "kind":"observation",
+                          "payload":"Hello"
+                        }
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN));
+
+        verify(this.demoService).acknowledgeAndGenerate(eq("abc12"), eq(agentId), any(),
+                eq(OutputProfile.REALTIME_SPEECH));
     }
 }

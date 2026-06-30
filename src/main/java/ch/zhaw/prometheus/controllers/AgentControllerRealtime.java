@@ -45,6 +45,18 @@ public class AgentControllerRealtime {
     @PostMapping("{agentID}/acknowledge")
     public ResponseEntity<ResponseView> acknowledge(@PathVariable UUID agentID, @RequestBody EventRequest request,
             @RequestParam(required = false) String profile) {
+        return this.acknowledge(agentID, request, profile, false);
+    }
+
+    @PostMapping("{agentID}/acknowledge-and-generate")
+    public ResponseEntity<ResponseView> acknowledgeAndGenerate(@PathVariable UUID agentID,
+            @RequestBody EventRequest request,
+            @RequestParam(required = false) String profile) {
+        return this.acknowledge(agentID, request, profile, true);
+    }
+
+    private ResponseEntity<ResponseView> acknowledge(UUID agentID, EventRequest request, String profile,
+            boolean generateIfNoResponse) {
         if (agentID == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -61,7 +73,9 @@ public class AgentControllerRealtime {
         if (!hasPayload) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        var acknowledged = this.agentService.acknowledge(agentID, request, outputProfile);
+        var acknowledged = generateIfNoResponse
+                ? this.agentService.acknowledgeAndGenerate(agentID, request, outputProfile)
+                : this.agentService.acknowledge(agentID, request, outputProfile);
         if (acknowledged.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
