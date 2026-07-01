@@ -81,8 +81,8 @@ public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
             """;
 
     static final String PROMPT_STATE_STARTER = """
-            Say something like this, but not word for word:
-            "Hello, I am GIGI. I wanted to gently remind you about your upcoming appointment.
+            Say something like this:
+            "Hello. I wanted to gently remind you about your physiotherapy appointment.
             How does that feel right now?"
             """;
 

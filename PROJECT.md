@@ -114,6 +114,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 108: Shared Davos care humour and resistance protocol
 - [x] Milestone 109: Davos therapy context set reduced to physiotherapy, occupational therapy, and activation
 - [x] Milestone 110: Explicit Davos guessing-game display names
+- [x] Milestone 111: Two-state Davos therapy reminder with GIGI introduction
 
 ## Milestone 1
 ### Date
@@ -4930,3 +4931,39 @@ Rename the two Davos guessing-game agent display names so Valerian/Admin users c
 
 ### Next steps
 1. Confirm in Valerian Admin that the two labels are clear enough for operators assigning access codes.
+
+## Milestone 111
+### Date
+2026-07-02
+
+### Goal
+Add a cloned Davos therapy-reminder agent that introduces GIGI in a separate first state before starting the existing therapy-reminder use case with isolated use-case history.
+
+### What changed
+- Added `TwoStateTherapyAppointmentReminder` with key `tdsr.davos.therapy_appointment_reminder_intro` and display name `GIGI Davos - Therapy Reminder (w. Intro)`.
+- The new intro state starts with GIGI's collaboration-not-replacement framing and asks whether the user wants more about GIGI or wants to move on to the therapy-reminder demonstration.
+- Added a prompt-gated transition from the intro state to the therapy use-case state for clear move-on/start-demo user intent.
+- Reused the existing Davos therapy-reminder task, final, outcome-extraction, therapy-context storage, and physical-behaviour prompts for the use-case state.
+- Registered the new agent definition as a Spring bean and documented the key in README.
+- Added tests for prompt contract, admin discovery, interaction profile source coverage, and state-scoped history isolation when moving from intro to use case.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign the intro variant:
+   - `tdsr.davos.therapy_appointment_reminder_intro`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+
+### How to test
+- Focused Davos/admin/profile suite run:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The original `tdsr.davos.therapy_appointment_reminder` key remains separate; the intro flow is additive under a new key.
+- The therapy use-case state keeps its default state-name event selector, so it starts without intro conversation history. The agent-level event history still retains intro events for monitoring and diagnostics.
+- This milestone was verified with deterministic tests but not live-tested in Valerian or on GIGI.
+
+### Next steps
+1. Live-test the intro variant in Valerian and confirm the transition feels natural before the therapy reminder begins.
+2. Decide whether operators need a Davos access-code preset or UI copy highlighting the intro variant.

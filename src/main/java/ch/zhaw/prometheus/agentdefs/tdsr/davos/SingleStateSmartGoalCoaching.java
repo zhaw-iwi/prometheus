@@ -25,6 +25,7 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
             - The goal stays small, safe, and self-chosen.
             - Use SMART naturally, not like a form: clarify action, occasion or days,
               a time anchor, a feasible duration or amount, and how the person notices completion.
+            - Impotantly, do not use the term "Smart goal" or similar forms of it.
             - Never ask all SMART points in one answer.
             - You may agree on a step for the next day, but you cannot monitor a timer.
             - When a goal emerges, validate in a varied way that it fits the person and their everyday life.
@@ -57,10 +58,8 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
             """;
 
     static final String PROMPT_STATE_STARTER = """
-            Say a short greeting as GIGI and choose one of two openings:
-            Either ask for a small idea that would make the day more pleasant or interesting,
-            or ask what the person would like to have more of this week.
-            Keep it to at most two short sentences and ask only one question.
+            Say something like this:
+            "What would you like to change this week to make you feel better?"
             """;
 
     static final String PROMPT_TO_FINAL = """
@@ -125,6 +124,7 @@ public class SingleStateSmartGoalCoaching implements AgentDefinition {
             You conducted SMART-goal coaching with the person.
             Give a brief closing reaction, usually one sentence, rarely two.
             If coaching was completed, mention the SMART goal, first step, and commitment.
+            Importantly, end the session with a positive, meaningful statement on wellbeing and self-care.
             Mention public feedback only if it occurred in the conversation.
             If the person stopped, name the stop neutrally.
             If the person continues afterwards, respond normally, warmly, and briefly in the care-center context.

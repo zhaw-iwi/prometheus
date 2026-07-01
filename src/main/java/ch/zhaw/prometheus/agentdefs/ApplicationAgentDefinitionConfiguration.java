@@ -261,6 +261,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrDavosTherapyAppointmentReminderWithIntro() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder();
+    }
+
+    @Bean
     AgentDefinition tdsrDavosGuessingGame() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateGuessingGame();
     }

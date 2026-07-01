@@ -11,6 +11,9 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.OuterState;
@@ -18,7 +21,11 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Transition;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class DavosCarePromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
@@ -28,6 +35,12 @@ class DavosCarePromptContractTest {
                     new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder(),
                     ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder.class,
                     "tdsr.davos.therapy_appointment_reminder",
+                    "therapy appointment",
+                    List.of("foot-in-the-door", "appointment", "care staff")),
+            new DefinitionCase(
+                    new ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder(),
+                    ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder.class,
+                    "tdsr.davos.therapy_appointment_reminder_intro",
                     "therapy appointment",
                     List.of("foot-in-the-door", "appointment", "care staff")),
             new DefinitionCase(
@@ -193,11 +206,55 @@ class DavosCarePromptContractTest {
     }
 
     @Test
+    void therapyReminderWithIntroStartsUseCaseWithStateScopedHistory() {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder()
+                .createAgent();
+        RecordingGateway gateway = new RecordingGateway();
+        PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
+
+        OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
+        assertEquals(List.of(
+                "GIGI Davos care context",
+                "GIGI Davos therapy reminder introduction"), outerState.getActiveStatePath());
+        assertEquals("GIGI Davos - Therapy Reminder (w. Intro)", agent.getName());
+        assertTrue(agent.listStates().contains("GIGI Davos therapy reminder use case"));
+
+        agent.start(runtime);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "move on"), runtime);
+
+        assertEquals(List.of(
+                "GIGI Davos care context",
+                "GIGI Davos therapy reminder use case"), outerState.getActiveStatePath());
+        assertEquals(2, agent.getEventsForState("GIGI Davos therapy reminder introduction").size());
+        assertEquals(1, agent.getEventsForState("GIGI Davos therapy reminder use case").size());
+        assertTrue(agent.getEventsForState("GIGI Davos therapy reminder use case").get(0).getPayload()
+                .contains("Hello, I am GIGI"));
+
+        assertTrue(gateway.therapyStartPrompt().contains("Task: Gently persuade"));
+        assertFalse(gateway.therapyStartPrompt().contains("Introduce GIGI before an optional"));
+        assertFalse(gateway.therapyStartPrompt().contains("move on"));
+    }
+
+    @Test
+    void therapyReminderWithIntroPromptSeparatesIntroductionFromUseCase() throws Exception {
+        Map<String, String> prompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder.class);
+
+        assertContains(prompts.get("PROMPT_INTRO_STATE"), "Introduce GIGI before an optional");
+        assertContains(prompts.get("PROMPT_INTRO_STATE"), "ask for a clear confirmation");
+        assertContains(prompts.get("PROMPT_INTRO_STATE"), "Do not announce that the state is changing");
+        assertContains(prompts.get("PROMPT_INTRO_STATE_STARTER"), "I am not here to replace care");
+        assertContains(prompts.get("PROMPT_INTRO_TO_THERAPY_REMINDER"), "Return true only if the person clearly wants");
+        assertContains(prompts.get("PROMPT_INTRO_TO_THERAPY_REMINDER"), "Return false for a bare \"yes\"");
+        assertContains(prompts.get("PROMPT_STATE_STARTER"), "Hello, I am GIGI");
+    }
+
+    @Test
     void socialSituationChangesHavePromptGatedSelfTransition() throws Exception {
         for (DefinitionCase definitionCase : DEFINITIONS) {
             Agent agent = definitionCase.definition().createAgent();
             OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
-            State interactionState = outerState.getInnerCurrent();
+            State interactionState = therapyInteractionState(definitionCase, outerState.getInnerCurrent());
 
             assertTrue(transitions(interactionState).stream()
                     .flatMap(transition -> transition.getDecisions().stream())
@@ -273,6 +330,19 @@ class DavosCarePromptContractTest {
         return policyField.get(state);
     }
 
+    private static State therapyInteractionState(DefinitionCase definitionCase, State initialInnerState)
+            throws Exception {
+        if (!ch.zhaw.prometheus.agentdefs.tdsr.davos.TwoStateTherapyAppointmentReminder.KEY
+                .equals(definitionCase.key())) {
+            return initialInnerState;
+        }
+        return transitions(initialInnerState).stream()
+                .map(Transition::getSubsequentState)
+                .filter(state -> "GIGI Davos therapy reminder use case".equals(state.getName()))
+                .findFirst()
+                .orElseThrow();
+    }
+
     @SuppressWarnings("unchecked")
     private static List<Transition> transitions(State state) throws Exception {
         Field transitionsField = State.class.getDeclaredField("transitions");
@@ -282,5 +352,62 @@ class DavosCarePromptContractTest {
 
     private record DefinitionCase(AgentDefinition definition, Class<?> definitionClass, String key,
             String taskAnchor, List<String> intentAnchors) {
+    }
+
+    private static final class RecordingGateway implements LanguageModelGateway {
+        private String therapyStartPrompt = "";
+
+        @Override
+        public String complete(List<PromptMessage> messages) {
+            String prompt = join(messages);
+            if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
+                return """
+                        {
+                          "nonVerbal": {
+                            "gesture": "NONE",
+                            "facialExpression": {"type": "warmNeutral", "intensity": 0.1},
+                            "gaze": {"direction": "toward_user", "focus": "older_adult"},
+                            "motion": {"stillness": 1.0, "energy": 0.0}
+                          },
+                          "motion": null
+                        }
+                        """;
+            }
+            if (prompt.contains("Task: Gently persuade")) {
+                this.therapyStartPrompt = prompt;
+                return "Hello, I am GIGI. I wanted to gently remind you about your upcoming appointment. How does that feel right now?";
+            }
+            return "Hello, I am GIGI. I am not here to replace care; I am here to make your next step feel a little less lonely.";
+        }
+
+        @Override
+        public boolean decide(List<PromptMessage> messages) {
+            return join(messages).contains("leave the GIGI introduction state");
+        }
+
+        @Override
+        public JsonElement extract(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public JsonElement summarise(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public String summariseOffline(List<PromptMessage> messages) {
+            return "";
+        }
+
+        String therapyStartPrompt() {
+            return this.therapyStartPrompt;
+        }
+
+        private static String join(List<PromptMessage> messages) {
+            return messages.stream()
+                    .map(PromptMessage::getContent)
+                    .reduce("", (left, right) -> left + "\n" + right);
+        }
     }
 }

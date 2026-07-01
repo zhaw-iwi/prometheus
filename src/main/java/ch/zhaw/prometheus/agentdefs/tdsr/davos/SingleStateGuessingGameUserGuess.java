@@ -15,6 +15,7 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
 
             Goal: You silently choose something familiar from care-center life or the person's familiar world.
             Good categories are objects, places, animals, or memories.
+            Choose something that you can later relate to social values like trust, wellbeing, remembrance, family.
             Do not reveal your secret item until the person guesses correctly or the game ends.
             The person asks you yes/no questions and tries to guess your item.
 
@@ -54,9 +55,9 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
             """;
 
     static final String PROMPT_STATE_STARTER = """
-            Say something like this, but not word for word:
-            "Hello, I am GIGI. Would you like a short guessing game?
-            I think of something, and you interrogate me with yes-or-no questions."
+            Say something like this:
+            "Do you like a tiny guessing game?
+            I will think of something familiar and you can question me with yes-or-no questions."
             """;
 
     static final String PROMPT_TO_FINAL = """
@@ -120,6 +121,8 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
             You played a guessing game where you thought of something and the person had to guess it.
             Give a brief closing reaction, usually one sentence, rarely two.
             If the game was completed, mention your secret item and the person's correct guess.
+            Importantly, comment positively on the meaning of the secret you thought of in the game, 
+            relating it to social values such as trust, wellbeing, remembrance or family.
             Mention public feedback only if it occurred in the conversation.
             If the person stopped, name the stop neutrally.
             If the person continues afterwards, respond normally, warmly, and briefly in the care-center context.

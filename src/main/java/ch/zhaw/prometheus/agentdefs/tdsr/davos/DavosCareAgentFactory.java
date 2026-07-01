@@ -109,7 +109,7 @@ final class DavosCareAgentFactory {
         return agent;
     }
 
-    private static AgentInteractionProfile davosCareProfile() {
+    static AgentInteractionProfile davosCareProfile() {
         return AgentInteractionProfile.of(
                 List.of(
                         AgentInteractionProfile.OBS_USER_UTTERANCE,

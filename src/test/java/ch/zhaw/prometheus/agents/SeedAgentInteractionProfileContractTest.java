@@ -75,6 +75,7 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/babylon/SUPSIActive.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/shhd/babylon/UnisStudent.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateTherapyAppointmentReminder.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/TwoStateTherapyAppointmentReminder.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateGuessingGame.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateGuessingGameUserGuess.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateSmartGoalCoaching.java"),
