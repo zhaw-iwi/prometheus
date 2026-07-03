@@ -122,7 +122,6 @@ const SPEECH_VAD_THRESHOLD_STORAGE_KEY = "prometheus.valerian.speechVadThreshold
 const SPEECH_VAD_PREFIX_PADDING_MS_STORAGE_KEY = "prometheus.valerian.speechVadPrefixPaddingMs";
 const SPEECH_VAD_SILENCE_DURATION_MS_STORAGE_KEY = "prometheus.valerian.speechVadSilenceDurationMs";
 const SPEECH_VAD_EAGERNESS_STORAGE_KEY = "prometheus.valerian.speechVadEagerness";
-const SPEECH_VAD_CREATE_RESPONSE_STORAGE_KEY = "prometheus.valerian.speechVadCreateResponse";
 const SPEECH_VAD_INTERRUPT_RESPONSE_STORAGE_KEY = "prometheus.valerian.speechVadInterruptResponse";
 const SPEECH_INPUT_NOISE_REDUCTION_STORAGE_KEY = "prometheus.valerian.speechInputNoiseReduction";
 const SPEECH_OUTPUT_SPEED_STORAGE_KEY = "prometheus.valerian.speechOutputSpeed";
@@ -1788,7 +1787,6 @@ async function createRealtimeCall(offerSdp, settings = currentRealtimeSettings()
   appendRealtimeCallParam(params, "vadPrefixPaddingMs", settings.vadPrefixPaddingMs);
   appendRealtimeCallParam(params, "vadSilenceDurationMs", settings.vadSilenceDurationMs);
   appendRealtimeCallParam(params, "vadEagerness", settings.vadEagerness);
-  appendRealtimeCallParam(params, "vadCreateResponse", settings.vadCreateResponse);
   appendRealtimeCallParam(params, "vadInterruptResponse", settings.vadInterruptResponse);
   appendRealtimeCallParam(params, "inputNoiseReduction", settings.inputNoiseReduction);
   appendRealtimeCallParam(params, "outputSpeed", settings.outputSpeed);
@@ -2113,7 +2111,6 @@ function speechSessionSettingControls() {
     "speechVadPrefixInput",
     "speechVadSilenceInput",
     "speechVadEagernessSelect",
-    "speechVadCreateResponseSelect",
     "speechVadInterruptResponseSelect",
     "speechInputNoiseReductionSelect",
     "speechOutputSpeedInput",
@@ -2132,7 +2129,6 @@ function speechSettingStorageKey(storageName) {
     speechVadPrefixPaddingMs: SPEECH_VAD_PREFIX_PADDING_MS_STORAGE_KEY,
     speechVadSilenceDurationMs: SPEECH_VAD_SILENCE_DURATION_MS_STORAGE_KEY,
     speechVadEagerness: SPEECH_VAD_EAGERNESS_STORAGE_KEY,
-    speechVadCreateResponse: SPEECH_VAD_CREATE_RESPONSE_STORAGE_KEY,
     speechVadInterruptResponse: SPEECH_VAD_INTERRUPT_RESPONSE_STORAGE_KEY,
     speechInputNoiseReduction: SPEECH_INPUT_NOISE_REDUCTION_STORAGE_KEY,
     speechOutputSpeed: SPEECH_OUTPUT_SPEED_STORAGE_KEY,
@@ -2150,10 +2146,6 @@ function loadStoredSpeechSettings() {
     }
     const storedValue = localStorage.getItem(storageKey);
     if (storedValue === null) {
-      return;
-    }
-    if (control.id === "speechVadCreateResponseSelect" && storedValue === "true") {
-      localStorage.removeItem(storageKey);
       return;
     }
     if (control.type === "checkbox") {
@@ -2597,7 +2589,6 @@ function currentRealtimeSettings() {
     vadPrefixPaddingMs: parseIntegerRange(document.getElementById("speechVadPrefixInput").value, 0, 2000),
     vadSilenceDurationMs: parseIntegerRange(document.getElementById("speechVadSilenceInput").value, 0, 3000),
     vadEagerness: document.getElementById("speechVadEagernessSelect").value || "",
-    vadCreateResponse: parseUnsupportedVadCreateResponse(document.getElementById("speechVadCreateResponseSelect").value),
     vadInterruptResponse: parseOptionalBoolean(document.getElementById("speechVadInterruptResponseSelect").value),
     inputNoiseReduction: document.getElementById("speechInputNoiseReductionSelect").value || "",
     outputSpeed: parseNumberRange(document.getElementById("speechOutputSpeedInput").value, 0.25, 1.5),
@@ -2636,10 +2627,6 @@ function parseOptionalBoolean(value) {
     return value;
   }
   return "";
-}
-
-function parseUnsupportedVadCreateResponse(value) {
-  return value === "false" ? "false" : "";
 }
 
 function activeAssistantAudioElement() {

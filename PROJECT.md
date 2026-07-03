@@ -115,6 +115,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 109: Davos therapy context set reduced to physiotherapy, occupational therapy, and activation
 - [x] Milestone 110: Explicit Davos guessing-game display names
 - [x] Milestone 111: Two-state Davos therapy reminder with GIGI introduction
+- [x] Milestone 112: Remove cockpit VAD create-response control
 
 ## Milestone 1
 ### Date
@@ -4967,3 +4968,34 @@ Add a cloned Davos therapy-reminder agent that introduces GIGI in a separate fir
 ### Next steps
 1. Live-test the intro variant in Valerian and confirm the transition feels natural before the therapy reminder begins.
 2. Decide whether operators need a Davos access-code preset or UI copy highlighting the intro variant.
+
+## Milestone 112
+### Date
+2026-07-03
+
+### Goal
+Remove the Valerian cockpit's obsolete Realtime VAD create-response control so operators cannot configure a setting that conflicts with PROMETHEUS-owned assistant speech generation.
+
+### What changed
+- Removed the `VAD creates` dropdown from the embedded Valerian cockpit advanced speech settings.
+- Removed the corresponding browser storage key, settings parsing, and `vadCreateResponse` Realtime call query parameter emission.
+- Updated the cockpit static contract test to assert the create-response control and query parameter are absent.
+- Kept backend validation that rejects older clients sending `vadCreateResponse=true`, and clarified README wording that browser cockpits do not expose response creation as a user setting.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open Advanced Speech Settings and confirm VAD mode/timing/eagerness and VAD interrupts remain, while VAD create-response is no longer shown.
+
+### How to test
+- Focused cockpit/realtime contract suite:
+  - `./mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest,RealtimeControllerWebMvcTest,ScopedDemoControllerWebMvcTest" test`
+
+### Known issues and decisions
+- The server-side `vadCreateResponse=true` rejection remains intentionally as a compatibility guard for stale or external clients.
+- No runtime Realtime authority semantics changed: PROMETHEUS still sends OpenAI `create_response=false`.
+
+### Next steps
+1. Live-test both cockpit surfaces against the current PROMETHEUS backend with continuous speech and barge-in enabled.
