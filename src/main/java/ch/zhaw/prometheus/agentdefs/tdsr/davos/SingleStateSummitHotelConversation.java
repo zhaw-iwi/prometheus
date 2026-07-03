@@ -67,9 +67,7 @@ public class SingleStateSummitHotelConversation implements AgentDefinition {
             """;
 
     static final String PROMPT_STATE_STARTER = """
-            Sage sinngemäss:
-            "Hallo, ich bin GIGI. Ich teste hier im Hotel Grischa, wie Roboter Menschen nützlich sein können.
-            Wobei darf ich es versuchen?"
+            Eröffne das Gespräch mit einer spontanen, kurzen Begrüssung. Frage z.B. nach dem Wohlbefinden, etwasigen Ausflugspvorhaben, oder nach der Meinung zu Roboter.
             """;
 
     static final String PROMPT_TO_FINAL = """
