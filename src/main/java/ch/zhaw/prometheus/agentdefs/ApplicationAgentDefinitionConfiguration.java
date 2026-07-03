@@ -281,6 +281,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrDavosSummitHotelConversation() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateSummitHotelConversation();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }

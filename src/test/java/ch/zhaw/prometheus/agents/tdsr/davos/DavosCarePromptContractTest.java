@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +31,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class DavosCarePromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
 
-    private static final List<DefinitionCase> DEFINITIONS = List.of(
+    private static final List<DefinitionCase> CARE_DEFINITIONS = List.of(
             new DefinitionCase(
                     new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder(),
                     ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateTherapyAppointmentReminder.class,
@@ -61,10 +62,19 @@ class DavosCarePromptContractTest {
                     "tdsr.davos.smart_goal_coaching",
                     "SMART goal coaching",
                     List.of("SMART goal", "first step", "wellbeing wishes")));
+    private static final DefinitionCase SUMMIT_HOTEL_DEFINITION = new DefinitionCase(
+            new ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateSummitHotelConversation(),
+            ch.zhaw.prometheus.agentdefs.tdsr.davos.SingleStateSummitHotelConversation.class,
+            "tdsr.davos.summit_hotel_conversation",
+            "freie deutschsprachige Demo-Begegnung",
+            List.of("Davos Tech Summit", "Hotel Grischa", "Mountainbike-Socken"));
+    private static final List<DefinitionCase> ALL_DEFINITIONS = Stream
+            .concat(CARE_DEFINITIONS.stream(), Stream.of(SUMMIT_HOTEL_DEFINITION))
+            .toList();
 
     @Test
     void definitionsUseDavosKeysPackagePathAndEnglishRealtimeLanguage() {
-        for (DefinitionCase definitionCase : DEFINITIONS) {
+        for (DefinitionCase definitionCase : CARE_DEFINITIONS) {
             AgentDefinition definition = definitionCase.definition();
             Agent agent = definition.createAgent();
 
@@ -81,7 +91,7 @@ class DavosCarePromptContractTest {
 
     @Test
     void davosProfilesExposeWeatherSocialContextAndPhysicalBehaviourOutput() {
-        for (DefinitionCase definitionCase : DEFINITIONS) {
+        for (DefinitionCase definitionCase : ALL_DEFINITIONS) {
             AgentInteractionProfile profile = definitionCase.definition().createAgent().getInteractionProfile();
 
             assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
@@ -115,6 +125,22 @@ class DavosCarePromptContractTest {
     }
 
     @Test
+    void summitHotelConversationUsesGermanRealtimeLanguageAndPublicDavosContext() {
+        AgentDefinition definition = SUMMIT_HOTEL_DEFINITION.definition();
+        Agent agent = definition.createAgent();
+
+        assertEquals("tdsr.davos.summit_hotel_conversation", definition.key());
+        assertEquals(List.of("tdsr", "davos"), definition.packagePath());
+        assertEquals(AgentDefinition.LANGUAGE_GERMAN, definition.languageCode());
+        assertEquals(AgentDefinition.LANGUAGE_GERMAN, agent.getLanguageCode());
+        assertEquals("GIGI Davos - Summit Hotel Conversation", agent.getName());
+        assertContains(agent.getDescription(), "German");
+        assertContains(agent.getDescription(), "Hotel Grischa");
+        assertFalse(agent.getName().contains("Care"));
+        assertFalse(agent.getDescription().contains("care-center"));
+    }
+
+    @Test
     void promptsKeepOriginalCareTasksButUseEnglishDavosContext() throws Exception {
         Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosCarePrompts.class);
         String outerState = sharedPrompts.get("OUTER_STATE");
@@ -136,7 +162,7 @@ class DavosCarePromptContractTest {
         assertContains(outerState, "obs.social.grouping");
         assertContains(outerState, "obs.social.situation_change");
 
-        for (DefinitionCase definitionCase : DEFINITIONS) {
+        for (DefinitionCase definitionCase : CARE_DEFINITIONS) {
             Map<String, String> prompts = stringFields(definitionCase.definitionClass());
             String allPrompts = String.join("\n", prompts.values()) + "\n" + String.join("\n", sharedPrompts.values());
 
@@ -158,6 +184,51 @@ class DavosCarePromptContractTest {
                 assertTrue(prompt.getValue().length() <= MAX_PERSISTED_PROMPT_LENGTH,
                         definitionCase.definitionClass().getSimpleName() + "." + prompt.getKey());
             }
+        }
+    }
+
+    @Test
+    void summitHotelConversationPromptUsesGermanSummitHotelAndMerchContext() throws Exception {
+        Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosGeneralPrompts.class);
+        Map<String, String> prompts = stringFields(SUMMIT_HOTEL_DEFINITION.definitionClass());
+        String outerState = sharedPrompts.get("OUTER_STATE");
+        String statePrompt = prompts.get("PROMPT_STATE");
+        String allPrompts = String.join("\n", prompts.values()) + "\n" + String.join("\n", sharedPrompts.values());
+
+        assertContains(outerState, "Antworte nur auf Deutsch");
+        assertContains(outerState, "Hotel Grischa in Davos");
+        assertContains(outerState, "wie Roboter Menschen sinnvoll unterstützen können");
+        assertContains(outerState, "obs.weather.current");
+        assertContains(outerState, "obs.social.situation_change");
+
+        assertContains(statePrompt, "freie deutschsprachige Demo-Begegnung");
+        assertContains(statePrompt, "keinen festen Use Case");
+        assertContains(statePrompt, "Davos Tech Summit");
+        assertContains(statePrompt, "1. bis 4. Juli 2026");
+        assertContains(statePrompt, "Physical AI");
+        assertContains(statePrompt, "Hotel Grischa");
+        assertContains(statePrompt, "Talstrasse 3");
+        assertContains(statePrompt, "Mountainbike-Socken");
+        assertContains(statePrompt, "Trinkflaschen");
+        assertContains(statePrompt, "Kerzen");
+        assertContains(statePrompt, "Tücher");
+        assertContains(statePrompt, "Rezeption");
+        assertContains(statePrompt, "Vertrauen schaffen würde");
+        assertContains(statePrompt, "Zusammenarbeit");
+        assertContains(prompts.get("PROMPT_STATE_STARTER"), "wie Roboter Menschen nützlich sein können");
+        assertContains(prompts.get("PROMPT_OUTCOME_EXTRACTION"),
+                "\"interaction_type\": \"davos_summit_hotel_conversation\"");
+        assertContains(prompts.get("PROMPT_FINAL"), "Antworte nur auf Deutsch");
+
+        assertFalse(allPrompts.contains("care center"));
+        assertFalse(allPrompts.contains("older adult"));
+        assertFalse(allPrompts.contains("care-center"));
+        assertFalse(allPrompts.contains("Pflegezentrum"));
+        assertFalse(allPrompts.contains("Answer only in English"));
+
+        for (Map.Entry<String, String> prompt : prompts.entrySet()) {
+            assertTrue(prompt.getValue().length() <= MAX_PERSISTED_PROMPT_LENGTH,
+                    SUMMIT_HOTEL_DEFINITION.definitionClass().getSimpleName() + "." + prompt.getKey());
         }
     }
 
@@ -251,7 +322,7 @@ class DavosCarePromptContractTest {
 
     @Test
     void socialSituationChangesHavePromptGatedSelfTransition() throws Exception {
-        for (DefinitionCase definitionCase : DEFINITIONS) {
+        for (DefinitionCase definitionCase : ALL_DEFINITIONS) {
             Agent agent = definitionCase.definition().createAgent();
             OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
             State interactionState = therapyInteractionState(definitionCase, outerState.getInnerCurrent());
@@ -267,6 +338,9 @@ class DavosCarePromptContractTest {
     void davosAgentsUseSupportedGigiPhysicalBehaviourContract() throws Exception {
         Map<String, String> sharedPrompts = stringFields(ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosCarePrompts.class);
         String prompt = sharedPrompts.get("NONVERBAL_PLAN");
+        Map<String, String> generalPrompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.davos.DavosGeneralPrompts.class);
+        String generalPrompt = generalPrompts.get("NONVERBAL_PLAN");
 
         assertContains(prompt, "\"nonVerbal\"");
         assertContains(prompt, "\"gesture\"");
@@ -297,7 +371,18 @@ class DavosCarePromptContractTest {
         assertContains(prompt, "motion.turn");
         assertContains(prompt, "Do not output display fields");
 
-        for (DefinitionCase definitionCase : DEFINITIONS) {
+        assertContains(generalPrompt, "\"nonVerbal\"");
+        assertContains(generalPrompt, "\"gesture\"");
+        assertContains(generalPrompt, "\"facialExpression\"");
+        assertContains(generalPrompt, "\"gaze\"");
+        assertContains(generalPrompt, "\"motion\"");
+        assertContains(generalPrompt, "\"handSign\"");
+        assertContains(generalPrompt, "public hotel or summit demonstration");
+        assertContains(generalPrompt, "Do not output robot-server command IDs");
+        assertFalse(generalPrompt.contains("older adult"));
+        assertFalse(generalPrompt.contains("care-center"));
+
+        for (DefinitionCase definitionCase : CARE_DEFINITIONS) {
             Agent agent = definitionCase.definition().createAgent();
             OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
             PromptPolicy interactionPolicy = assertInstanceOf(PromptPolicy.class, policy(outerState.getInnerCurrent()));
@@ -306,6 +391,14 @@ class DavosCarePromptContractTest {
             assertEquals(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT,
                     interactionPolicy.getNonVerbalGesturePrompt(), definitionCase.key());
         }
+
+        Agent summitAgent = SUMMIT_HOTEL_DEFINITION.definition().createAgent();
+        OuterState summitOuterState = assertInstanceOf(OuterState.class, summitAgent.getCurrentState());
+        PromptPolicy summitInteractionPolicy = assertInstanceOf(PromptPolicy.class,
+                policy(summitOuterState.getInnerCurrent()));
+        assertEquals(generalPrompt, summitInteractionPolicy.getNonVerbalPlanPrompt());
+        assertEquals(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT,
+                summitInteractionPolicy.getNonVerbalGesturePrompt());
     }
 
     private static void assertContains(String value, String expected) {

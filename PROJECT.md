@@ -116,6 +116,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 110: Explicit Davos guessing-game display names
 - [x] Milestone 111: Two-state Davos therapy reminder with GIGI introduction
 - [x] Milestone 112: Remove cockpit VAD create-response control
+- [x] Milestone 113: German Davos Summit Hotel conversation agent
 
 ## Milestone 1
 ### Date
@@ -4999,3 +5000,45 @@ Remove the Valerian cockpit's obsolete Realtime VAD create-response control so o
 
 ### Next steps
 1. Live-test both cockpit surfaces against the current PROMETHEUS backend with continuous speech and barge-in enabled.
+
+## Milestone 113
+### Date
+2026-07-03
+
+### Goal
+Add a German-only Davos Tech Summit / Hotel Grischa open-conversation agent that keeps the existing Davos social-context, weather, and GIGI physical-behaviour capabilities while removing care-center and elderly-care framing.
+
+### What changed
+- Added `tdsr.davos.summit_hotel_conversation` as a new Spring-registered Davos agent definition.
+- Added a non-care `DavosGeneralPrompts` outer context and nonverbal JSON prompt for public Hotel Grischa / Davos Tech Summit demo conversations.
+- Extended `DavosCareAgentFactory` with a general Davos factory path and profile tags while preserving the existing care-agent path unchanged.
+- The new agent speaks German via `AgentDefinition.LANGUAGE_GERMAN`, uses the same weather and social-context observations as the Davos care agents, and exposes the same GIGI behaviour modalities: speech, gesture, facial expression, gaze, nonverbal motion, and hand sign.
+- The inner prompt includes official-context facts from Davos Tech Summit and Hotel Grischa plus deployment-local merch-store context for socks, drinking bottles, candles, and towels.
+- Tightened the new general Davos and summit-hotel prompt literals to remove repeated rhythm, resistance, and flow guidance while preserving the behavioural contract.
+- Updated Davos prompt/profile/admin/source-list tests and README registered-definition documentation.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign the new German demo agent:
+   - `tdsr.davos.summit_hotel_conversation`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use German speech interaction and try hotel, Davos, Summit, robot-trust, and merch-store prompts.
+
+### How to test
+- Focused Davos prompt contract run:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest" test`
+- Focused milestone suite:
+  - `.\mvnw.cmd -q "-Dtest=DavosCarePromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The new agent is intentionally in the existing `tdsr.davos` package, but it is not a care-center agent and does not use the care-center prompt or profile tag.
+- Hotel Grischa and Davos Tech Summit facts are static prompt context from the official websites and should not be treated as live availability, schedules, prices, or bookings.
+- The merch-store product references are deployment-local context supplied for this demo, not claims scraped from the hotel website.
+- This milestone was verified with the focused Davos prompt/profile/admin suite but not yet live-tested in Valerian or on GIGI.
+
+### Next steps
+1. Live-test the German agent in Valerian with Realtime speech and barge-in enabled.
+2. Try realistic visitor turns about robot usefulness, hotel services, Davos activities, cold/thirst/biking/ambience merch hooks, and skepticism about robots.
+3. Decide whether a Davos Tech Summit access-code preset should include this agent for quicker operator setup.
