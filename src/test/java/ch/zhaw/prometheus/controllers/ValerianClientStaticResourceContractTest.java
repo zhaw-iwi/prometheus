@@ -141,7 +141,6 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"speech-vad-prefix\""));
         assertTrue(index.contains("data-testid=\"speech-vad-silence\""));
         assertTrue(index.contains("data-testid=\"speech-vad-eagerness\""));
-        assertTrue(index.contains("data-testid=\"speech-vad-create-response\""));
         assertTrue(index.contains("data-testid=\"speech-vad-interrupt-response\""));
         assertTrue(index.contains("data-testid=\"speech-input-noise-reduction\""));
         assertTrue(index.contains("data-testid=\"speech-output-speed\""));
@@ -167,6 +166,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("value=\"off\""));
         assertTrue(index.contains("Half-duplex fallback"));
         assertTrue(index.contains("Barge-in cancellation"));
+        assertFalse(index.contains("data-testid=\"speech-vad-create-response\""));
+        assertFalse(index.contains("speechVadCreateResponseSelect"));
         assertFalse(index.contains("<option value=\"none\""));
         assertTrue(index.indexOf("data-testid=\"advanced-speech-settings\"")
                 < index.indexOf("id=\"continuous_speech_panel\""));
@@ -258,6 +259,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("sendRealtimeClientEvent({ type: \"response.cancel\" }"));
         assertTrue(script.contains("track.enabled = enabled;"));
         assertTrue(script.contains("speechSettings.echoGuardEnabled"));
+        assertFalse(script.contains("speechVadCreateResponse"));
+        assertFalse(script.contains("vadCreateResponse"));
 
         assertFalse(script.contains("/realtime/session"));
         assertFalse(script.contains("REALTIME_MODE_PUSH_TO_TALK"));
