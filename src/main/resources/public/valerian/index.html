@@ -512,6 +512,30 @@
       padding: 0.12rem 0.38rem;
     }
 
+    .social-context-token[data-activity-state="stationary"] {
+      background: rgba(15, 118, 110, 0.1);
+      border-color: rgba(15, 118, 110, 0.26);
+      color: #0f766e;
+    }
+
+    .social-context-token[data-activity-state="moving"] {
+      background: rgba(29, 78, 216, 0.1);
+      border-color: rgba(29, 78, 216, 0.26);
+      color: #1d4ed8;
+    }
+
+    .social-context-token[data-activity-state="approaching"] {
+      background: rgba(4, 120, 87, 0.12);
+      border-color: rgba(4, 120, 87, 0.28);
+      color: #047857;
+    }
+
+    .social-context-token[data-activity-state="receding"] {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #92400e;
+    }
+
     .social-context-empty {
       border: 1px dashed var(--demo-line);
       border-radius: 8px;

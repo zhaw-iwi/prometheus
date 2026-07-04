@@ -42,9 +42,9 @@ const SAMPLE_SOCIAL = {
   ],
 };
 const SAMPLE_TRACKED_PEOPLE = [
-  { id: 1, score: 0.92, activity: "unknown" },
-  { id: 2, score: 0.86, activity: "unknown" },
-  { id: 3, score: 0.78, activity: "unknown" },
+  { id: 1, score: 0.92, activity: "moving", movementConfidence: 0.72 },
+  { id: 2, score: 0.86, activity: "approaching", movementConfidence: 0.81 },
+  { id: 3, score: 0.78, activity: "stationary", movementConfidence: 0.64 },
 ];
 
 test.beforeAll(async ({ request }) => {
@@ -66,6 +66,7 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   await expect(page.locator("#continuous_speech_panel")).toHaveClass(/active/);
 
   await renderSampleEmotion(page);
+  await verifyTrackMovementHeuristic(page);
   await renderSampleSocial(page);
   await openSensedSignals(page);
   await verifyEmotionReport(page);
@@ -92,6 +93,8 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
       await expect(panelInModal.getByTestId("social-context-group-count")).toHaveText("1");
       await expect(panelInModal.getByTestId("social-group-1-size")).toHaveText("size 2");
       await expect(panelInModal.getByTestId("social-person-2-confidence")).toHaveText("conf 86%");
+      await expect(panelInModal.getByTestId("social-person-2-activity")).toHaveText("activity approaching");
+      await expect(panelInModal.getByTestId("social-person-2-movement-confidence")).toHaveText("movement 81%");
     },
   });
   await verifyColumnExpansion(page, testInfo, {
@@ -191,6 +194,21 @@ async function renderSampleSocial(page) {
   }, { social: SAMPLE_SOCIAL, people: SAMPLE_TRACKED_PEOPLE });
 }
 
+async function verifyTrackMovementHeuristic(page) {
+  const movement = await page.evaluate(async () => {
+    if (typeof window.updateTracks !== "function") {
+      throw new Error("updateTracks is not available on the Valerian page.");
+    }
+    window.updateTracks([{ x: 0.1, y: 0.1, w: 0.25, h: 0.5, score: 0.91, cx: 0.225, cy: 0.35 }]);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const tracked = window.updateTracks([{ x: 0.17, y: 0.1, w: 0.25, h: 0.5, score: 0.93, cx: 0.295, cy: 0.35 }]);
+    return tracked[0];
+  });
+  expect(movement.movementState).toBe("moving");
+  expect(movement.activity).toBe("moving");
+  expect(movement.movementConfidence).toBeGreaterThan(0.35);
+}
+
 async function openSensedSignals(page) {
   const panel = page.locator("#sensed_signals");
   const className = await panel.getAttribute("class");
@@ -237,8 +255,11 @@ async function verifySocialContextReport(page) {
   await expect(page.getByTestId("social-group-1")).toContainText("ID 2");
   await expect(page.getByTestId("social-group-2")).toContainText("Singleton 2");
   await expect(page.getByTestId("social-group-2")).toContainText("ID 3");
-  await expect(page.getByTestId("social-person-1")).toContainText("activity unknown");
+  await expect(page.getByTestId("social-person-1")).toContainText("activity moving");
   await expect(page.getByTestId("social-person-1-confidence")).toHaveText("conf 92%");
+  await expect(page.getByTestId("social-person-1-movement-confidence")).toHaveText("movement 72%");
+  await expect(page.getByTestId("social-person-2-activity")).toHaveText("activity approaching");
+  await expect(page.getByTestId("social-person-3-activity")).toHaveText("activity stationary");
 }
 
 async function verifyBehaviourVisualState(page) {

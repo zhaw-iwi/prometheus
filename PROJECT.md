@@ -109,6 +109,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 103: Valerian visual behaviour board
 - [x] Milestone 104: Valerian real-time facial emotion report
 - [x] Milestone 105: Valerian social context report
+- [x] Milestone 106: Valerian social movement states
 
 ## Milestone 1
 ### Date
@@ -4757,3 +4758,41 @@ Rename Valerian's social detector controls to Social context and make the curren
 ### Next steps
 1. Milestone 106: derive stationary/moving/approaching/receding movement states from the existing person tracker.
 2. Milestone 107: add the first cheap attentiveness heuristic using person visibility, face visibility, near-frontal/centered cues, and confidence.
+
+## Milestone 106
+### Date
+2026-07-04
+
+### Goal
+Derive first-pass client-side movement activities for tracked people in Valerian's Social Context Report without adding GPT calls or changing the raw social observation contracts.
+
+### What changed
+- Added tracker-level movement heuristics based on consecutive person box center displacement and bounding-box area change.
+- Classified tracked people as `stationary`, `moving`, `approaching`, `receding`, or `unknown` once a track has enough history.
+- Added movement confidence and colored activity tokens to the Social Context Report's tracked-person rows.
+- Kept new tracks as `unknown` until a second detection frame exists, avoiding false movement labels on first sighting.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify movement-state rendering and the in-browser `updateTracks` movement heuristic.
+- Updated README documentation for movement states in the social context report.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing, start the camera, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This remains browser-only sensing and UI rendering. The emitted `obs.human.presence` and `obs.social.grouping` payload shapes are unchanged pending a separate contract-hardening decision.
+- Movement labels are cheap heuristics, not semantic action recognition. Camera jitter, partial boxes, occlusion, and detector box scale changes can produce noisy labels.
+- Approaching/receding is inferred from bounding-box area changes, so lateral movement toward the image edge can be misread under perspective distortion.
+
+### Next steps
+1. Milestone 107: add a first cheap attentiveness signal using person visibility, face visibility, near-frontal/centered cues, and confidence.
+2. Decide in Milestone 108 how these richer client-side social context signals should be emitted as stable PROMETHEUS observation payloads.

@@ -151,6 +151,10 @@ const REALTIME_ECHO_TRANSCRIPT_SIMILARITY = 0.78;
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
+const TRACK_STATIONARY_DISTANCE_NORM = 0.008;
+const TRACK_MOVING_DISTANCE_NORM = 0.018;
+const TRACK_STATIONARY_AREA_DELTA = 0.06;
+const TRACK_DEPTH_AREA_DELTA = 0.12;
 const PERSON_SCORE_THRESHOLD = 0.45;
 const REQUIRED_STABLE_GESTURE_FRAMES = 3;
 const FACE_MODEL_URI = "https://justadudewhohacks.github.io/face-api.js/models";
@@ -3453,10 +3457,16 @@ function updateTracks(detections) {
     const best = findBestTrack(detection, frameDiag, assigned);
     if (best) {
       const track = camera.tracks.get(best.id);
+      const movement = deriveTrackMovement(track, detection, frameDiag);
       track.cx = detection.cx;
       track.cy = detection.cy;
       track.box = [detection.x, detection.y, detection.w, detection.h];
       track.score = detection.score;
+      track.movementState = movement.state;
+      track.activity = movement.state;
+      track.movementConfidence = movement.confidence;
+      track.speedNorm = movement.speedNorm;
+      track.areaDelta = movement.areaDelta;
       track.lastSeenAt = now;
       assigned.add(track.id);
       tracked.push(trackToView(track));
@@ -3468,6 +3478,11 @@ function updateTracks(detections) {
         cy: detection.cy,
         box: [detection.x, detection.y, detection.w, detection.h],
         score: detection.score,
+        movementState: "unknown",
+        activity: "unknown",
+        movementConfidence: 0,
+        speedNorm: 0,
+        areaDelta: 0,
         firstSeenAt: now,
         lastSeenAt: now,
       };
@@ -3498,8 +3513,53 @@ function findBestTrack(detection, frameDiag, assigned) {
   return best;
 }
 
+function deriveTrackMovement(track, detection, frameDiag) {
+  if (!track || !track.box || !detection) {
+    return { state: "unknown", confidence: 0, speedNorm: 0, areaDelta: 0 };
+  }
+  const speedNorm = Math.hypot(detection.cx - track.cx, detection.cy - track.cy) / Math.max(1, frameDiag);
+  const previousArea = trackArea(track.box);
+  const nextArea = Math.max(0, Number(detection.w || 0) * Number(detection.h || 0));
+  const areaDelta = previousArea > 0 ? (nextArea - previousArea) / previousArea : 0;
+  const absAreaDelta = Math.abs(areaDelta);
+  if (!Number.isFinite(speedNorm) || !Number.isFinite(areaDelta)) {
+    return { state: "unknown", confidence: 0, speedNorm: 0, areaDelta: 0 };
+  }
+  if (absAreaDelta >= TRACK_DEPTH_AREA_DELTA) {
+    return {
+      state: areaDelta > 0 ? "approaching" : "receding",
+      confidence: clamp(absAreaDelta / 0.35, 0.35, 1),
+      speedNorm,
+      areaDelta,
+    };
+  }
+  if (speedNorm >= TRACK_MOVING_DISTANCE_NORM) {
+    return { state: "moving", confidence: clamp(speedNorm / 0.08, 0.35, 1), speedNorm, areaDelta };
+  }
+  if (speedNorm <= TRACK_STATIONARY_DISTANCE_NORM && absAreaDelta <= TRACK_STATIONARY_AREA_DELTA) {
+    const motionShare = Math.max(speedNorm / TRACK_MOVING_DISTANCE_NORM, absAreaDelta / TRACK_DEPTH_AREA_DELTA);
+    return { state: "stationary", confidence: clamp(1 - motionShare, 0.35, 1), speedNorm, areaDelta };
+  }
+  return { state: "unknown", confidence: 0, speedNorm, areaDelta };
+}
+
+function trackArea(box) {
+  return Math.max(0, Number(box[2] || 0) * Number(box[3] || 0));
+}
+
 function trackToView(track) {
-  return { id: track.id, cx: track.cx, cy: track.cy, box: track.box, score: track.score };
+  return {
+    id: track.id,
+    cx: track.cx,
+    cy: track.cy,
+    box: track.box,
+    score: track.score,
+    activity: track.activity || track.movementState || "unknown",
+    movementState: track.movementState || "unknown",
+    movementConfidence: Number(track.movementConfidence || 0),
+    speedNorm: Number(track.speedNorm || 0),
+    areaDelta: Number(track.areaDelta || 0),
+  };
 }
 
 function deriveSocialSituation(tracked) {
@@ -3627,15 +3687,42 @@ function renderSocialPeople(people) {
     head.append(title, confidence);
     const tokenRow = document.createElement("div");
     tokenRow.className = "social-context-token-row";
-    tokenRow.appendChild(socialToken(`activity ${asText(person.activity || person.movementState || "unknown")}`));
+    const activity = normalizeActivityState(person.activity || person.movementState);
+    tokenRow.appendChild(socialToken(`activity ${activityLabel(activity)}`, {
+      testId: `social-person-${person.id}-activity`,
+      activityState: activity,
+    }));
+    const movementConfidence = asUnitNumber(person.movementConfidence);
+    if (movementConfidence > 0) {
+      tokenRow.appendChild(socialToken(`movement ${formatPercent(movementConfidence)}`, {
+        testId: `social-person-${person.id}-movement-confidence`,
+      }));
+    }
     item.append(head, tokenRow);
     list.appendChild(item);
   });
 }
 
-function socialToken(text) {
+function normalizeActivityState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["stationary", "moving", "approaching", "receding", "attending", "not_attending"].includes(token)
+    ? token
+    : "unknown";
+}
+
+function activityLabel(value) {
+  return normalizeActivityState(value).replace(/_/g, " ");
+}
+
+function socialToken(text, options = {}) {
   const token = document.createElement("span");
   token.className = "social-context-token";
+  if (options.testId) {
+    token.dataset.testid = options.testId;
+  }
+  if (options.activityState) {
+    token.dataset.activityState = options.activityState;
+  }
   token.textContent = text;
   return token;
 }

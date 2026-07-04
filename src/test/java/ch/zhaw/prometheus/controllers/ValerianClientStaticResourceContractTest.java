@@ -523,6 +523,14 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function renderSocialMetrics(social, tracked = [])"));
         assertTrue(script.contains("renderSocialGroups(view.groups || [])"));
         assertTrue(script.contains("renderSocialPeople(people)"));
+        assertTrue(script.contains("const TRACK_MOVING_DISTANCE_NORM"));
+        assertTrue(script.contains("const TRACK_DEPTH_AREA_DELTA"));
+        assertTrue(script.contains("function deriveTrackMovement(track, detection, frameDiag)"));
+        assertTrue(script.contains("function trackArea(box)"));
+        assertTrue(script.contains("movementConfidence: Number(track.movementConfidence || 0)"));
+        assertTrue(script.contains("function normalizeActivityState(value)"));
+        assertTrue(index.contains("data-activity-state=\"moving\""));
+        assertTrue(script.contains("token.dataset.activityState = options.activityState;"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
