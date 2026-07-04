@@ -193,6 +193,8 @@ const MANUAL_EMOTIONS = {
   surprised: { valence: 0.2, arousal: 0.8 },
 };
 
+const EMOTION_EXPRESSION_KEYS = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"];
+
 const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.emotion.face",
   "obs.human.presence",
@@ -3201,12 +3203,12 @@ async function detectEmotion() {
     .detectSingleFace(camera.video, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
     .withFaceExpressions();
   if (!detection) {
-    setText("emotion_value", "-");
+    renderEmotionMetrics(null);
     return;
   }
   drawFaceBox(detection.detection.box);
   const emotion = deriveEmotion(detection.expressions);
-  renderEmotionMetrics(emotion);
+  renderEmotionMetrics(emotion, detection.detection.score);
   await maybeEmitEmotion(emotion, detection.detection.score);
 }
 
@@ -3262,15 +3264,22 @@ function deriveEmotion(expressions) {
 
 async function maybeEmitEmotion(emotion, faceScore) {
   if (!document.getElementById("sensor_emit_enabled").checked || !emotion) {
+    setEmotionEmitStatus("Live only", "idle");
     return;
   }
   const threshold = Number(document.getElementById("face_confidence_threshold").value || 0.55);
-  if (emotion.confidence < threshold || !passesSensorEmitInterval("emotion")) {
+  if (emotion.confidence < threshold) {
+    setEmotionEmitStatus("Below threshold", "idle");
+    return;
+  }
+  if (!passesSensorEmitInterval("emotion")) {
+    setEmotionEmitStatus("Cooldown", "idle");
     return;
   }
   if (camera.lastEmotion && camera.lastEmotion.emotion === emotion.emotion &&
     Math.abs(camera.lastEmotion.valence - emotion.valence) < 0.08 &&
     Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08) {
+    setEmotionEmitStatus("Stable", "idle");
     return;
   }
   const ok = await acknowledgeEvent({
@@ -3282,6 +3291,9 @@ async function maybeEmitEmotion(emotion, faceScore) {
   if (ok) {
     markSensorEmitted("emotion");
     camera.lastEmotion = emotion;
+    setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, "live");
+  } else {
+    setEmotionEmitStatus("Emit failed", "error");
   }
 }
 
@@ -3299,7 +3311,7 @@ async function submitEmotionSample(label) {
     expressions: manualEmotionExpressions(label),
     facePresent: true,
   };
-  renderEmotionMetrics(emotion);
+  renderEmotionMetrics(emotion, 1);
   const data = await acknowledgeEvent({
     type: "obs.emotion.face",
     actor: "user",
@@ -3309,16 +3321,96 @@ async function submitEmotionSample(label) {
   if (data) {
     camera.lastEmotion = emotion;
     markSensorEmitted("emotion");
+    setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, "live");
+  } else {
+    setEmotionEmitStatus("Emit failed", "error");
   }
   return !!data;
 }
 
-function renderEmotionMetrics(emotion) {
+function renderEmotionMetrics(emotion, faceScore = 0) {
   if (!emotion) {
-    setText("emotion_value", "-");
+    resetEmotionReport();
     return;
   }
-  setText("emotion_value", `${emotion.emotion} ${Number(emotion.confidence || 0).toFixed(2)}`);
+  const label = asText(emotion.emotion);
+  const confidence = asUnitNumber(emotion.confidence);
+  const valence = clamp(Number(emotion.valence || 0), -1, 1);
+  const arousal = asUnitNumber(emotion.arousal);
+  const faceConfidence = asUnitNumber(faceScore);
+  setText("emotion_value", `${label} ${confidence.toFixed(2)}`);
+  setText("emotion_valence_value", formatSignedDecimal(valence));
+  setText("emotion_arousal_value", arousal.toFixed(2));
+  setText("emotion_confidence_value", confidence.toFixed(2));
+  setText("emotion_face_confidence_value", faceConfidence.toFixed(2));
+  setEmotionAffectMarker(valence, arousal, label);
+  setEmotionMeter("emotion_valence_meter", (valence + 1) / 2);
+  setEmotionMeter("emotion_arousal_meter", arousal);
+  setEmotionMeter("emotion_confidence_meter", confidence);
+  setEmotionMeter("emotion_face_confidence_meter", faceConfidence);
+  renderExpressionBars(emotion.expressions);
+  setEmotionEmitStatus("Live", "live");
+}
+
+function resetEmotionReport() {
+  setText("emotion_value", "-");
+  setText("emotion_valence_value", "0.00");
+  setText("emotion_arousal_value", "0.00");
+  setText("emotion_confidence_value", "0.00");
+  setText("emotion_face_confidence_value", "0.00");
+  setEmotionAffectMarker(0, 0, "neutral");
+  setEmotionMeter("emotion_valence_meter", 0.5);
+  setEmotionMeter("emotion_arousal_meter", 0);
+  setEmotionMeter("emotion_confidence_meter", 0);
+  setEmotionMeter("emotion_face_confidence_meter", 0);
+  renderExpressionBars({});
+  setEmotionEmitStatus("No face", "idle");
+}
+
+function setEmotionAffectMarker(valence, arousal, emotion) {
+  const marker = document.getElementById("emotion_affect_marker");
+  if (!marker) {
+    return;
+  }
+  const x = round((clamp(Number(valence || 0), -1, 1) + 1) * 50, 1);
+  const y = round(asUnitNumber(arousal) * 100, 1);
+  marker.style.left = `${x}%`;
+  marker.style.bottom = `${y}%`;
+  marker.dataset.emotion = normalizeEmotionTone(emotion);
+  marker.setAttribute("aria-label", `Valence ${formatSignedDecimal(valence)}, arousal ${asUnitNumber(arousal).toFixed(2)}`);
+}
+
+function normalizeEmotionTone(emotion) {
+  const token = String(emotion || "neutral").trim().toLowerCase();
+  return EMOTION_EXPRESSION_KEYS.includes(token) ? token : "neutral";
+}
+
+function setEmotionMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  const percent = formatPercent(unitValue);
+  el.style.width = percent;
+  el.setAttribute("aria-valuenow", String(Math.round(asUnitNumber(unitValue) * 100)));
+  el.title = percent;
+}
+
+function renderExpressionBars(expressions) {
+  for (const key of EMOTION_EXPRESSION_KEYS) {
+    const value = asUnitNumber(expressions && expressions[key]);
+    setText(`emotion_expression_${key}_value`, formatPercent(value));
+    setEmotionMeter(`emotion_expression_${key}_meter`, value);
+  }
+}
+
+function setEmotionEmitStatus(text, mode = "idle") {
+  const el = document.getElementById("emotion_emit_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.className = `status-pill is-${mode || "idle"}`;
 }
 
 function emotionPayload(emotion, source, faceScore, extra = {}) {
@@ -4052,7 +4144,7 @@ function resetCameraEmissionGate() {
 
 function resetDisabledSensorState() {
   if (!isSensorModeEnabled("emotion")) {
-    setText("emotion_value", "-");
+    resetEmotionReport();
     camera.lastEmotion = null;
     camera.lastEmotionEmitAt = 0;
   }
@@ -4540,6 +4632,11 @@ function asUnitNumber(value) {
 
 function formatPercent(unitValue) {
   return `${Math.round(asUnitNumber(unitValue) * 100)}%`;
+}
+
+function formatSignedDecimal(value) {
+  const rounded = round(Number(value || 0), 2);
+  return `${rounded > 0 ? "+" : ""}${rounded.toFixed(2)}`;
 }
 
 function round(value, digits) {

@@ -454,6 +454,21 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("Weather"));
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("data-testid=\"manual-emotion-happy\""));
+        assertTrue(index.contains("data-testid=\"emotion-report\""));
+        assertTrue(index.contains("data-testid=\"emotion-affect-plane\""));
+        assertTrue(index.contains("data-testid=\"emotion-affect-marker\""));
+        assertTrue(index.contains("data-testid=\"emotion-valence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-arousal-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-confidence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-face-confidence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-emit-status\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-list\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-happy-meter\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-surprised-value\""));
+        assertTrue(index.indexOf("data-testid=\"emotion-value\"")
+                < index.indexOf("data-testid=\"emotion-report\""));
+        assertTrue(index.indexOf("data-testid=\"emotion-report\"")
+                < index.indexOf("data-testid=\"human-count\""));
         assertTrue(index.contains("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"no-visual-sensing-state\""));
 
@@ -478,6 +493,18 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("camera.canvas.width - ((x + width) * scale.scaleX)"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(box.x, box.y, box.width, box.height, scale);"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(x, y, w, h, scale);"));
+        assertTrue(script.contains("const EMOTION_EXPRESSION_KEYS = [\"neutral\", \"happy\", \"sad\", \"angry\", \"fearful\", \"disgusted\", \"surprised\"]"));
+        assertTrue(script.contains("renderEmotionMetrics(emotion, detection.detection.score);"));
+        assertTrue(script.contains("function renderEmotionMetrics(emotion, faceScore = 0)"));
+        assertTrue(script.contains("function resetEmotionReport()"));
+        assertTrue(script.contains("function setEmotionAffectMarker(valence, arousal, emotion)"));
+        assertTrue(script.contains("marker.style.left = `${x}%`;"));
+        assertTrue(script.contains("marker.style.bottom = `${y}%`;"));
+        assertTrue(script.contains("function renderExpressionBars(expressions)"));
+        assertTrue(script.contains("function setEmotionEmitStatus(text, mode = \"idle\")"));
+        assertTrue(script.contains("setEmotionEmitStatus(\"Below threshold\", \"idle\");"));
+        assertTrue(script.contains("setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, \"live\");"));
+        assertTrue(script.contains("function formatSignedDecimal(value)"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));

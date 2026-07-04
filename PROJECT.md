@@ -107,6 +107,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 101: Remove cockpit VAD create-response control
 - [x] Milestone 102: Valerian maximizable cockpit columns
 - [x] Milestone 103: Valerian visual behaviour board
+- [x] Milestone 104: Valerian real-time facial emotion report
 
 ## Milestone 1
 ### Date
@@ -4679,3 +4680,42 @@ Make the Valerian Behaviour column show BehaviourPlan multiplicity and current m
 ### Next steps
 1. Live-test the board with framework demo agents that emit sparse and multi-channel behaviour plans.
 2. Add additional visual scales if future agents emit more numeric nonverbal fields such as posture openness or prosody intensity.
+
+## Milestone 104
+### Date
+2026-07-04
+
+### Goal
+Add a richer real-time facial emotion sensing report to Valerian so operators can inspect valence, arousal, confidence, expression distribution, and observation emission status directly in the cockpit.
+
+### What changed
+- Added a `Facial Emotion Report` panel under `Signals Sensed`, directly after the compact Emotion row and before social grouping readouts.
+- Added a valence/arousal affect plane with a live marker whose x-position is valence and y-position is arousal.
+- Added numeric readouts and meters for valence, arousal, dominant-emotion confidence, and face-detection confidence.
+- Added fixed expression distribution bars for neutral, happy, sad, angry, fearful, disgusted, and surprised scores.
+- Updated live camera and manual-emotion rendering to use the same report path, reset stale state when no face is detected or face sensing is disabled, and show whether the current live state was emitted, skipped by threshold/cooldown/stability, or live-only.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify the affect plane, marker position, meters, expression bars, and expanded Sensing modal rendering.
+- Updated README documentation for the richer real-time facial emotion report.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Face emotion sensing, start the camera, then open Sensing > Signals Sensed.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a Valerian UI-only change; the `obs.emotion.face` payload contract is unchanged and already carries emotion, confidence, valence, arousal, face-detection confidence, and expression scores.
+- The affect-plane marker reports live detection state, while the emission status separately describes whether an observation was sent to PROMETHEUS.
+- Browser camera detection still depends on target lighting, camera quality, and face-api model behavior.
+
+### Next steps
+1. Live-test the report with the target camera and lighting conditions.
+2. Consider extending backend prompt adapters or snapshot facts if agents should reason explicitly over arousal as well as emotion and valence.

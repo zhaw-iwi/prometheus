@@ -14,6 +14,23 @@ const SAMPLE_BEHAVIOUR_PLAN = {
   motion: { effector: "right_hand", handSign: "rock", energy: 0.64, stillness: 0.28 },
   display: { agentSign: "rock", userSign: "paper", round: 2, winner: "user", note: "visual test" },
 };
+const SAMPLE_EMOTION = {
+  emotion: "surprised",
+  confidence: 0.87,
+  valence: 0.32,
+  arousal: 0.74,
+  expressions: {
+    neutral: 0.04,
+    happy: 0.22,
+    sad: 0.01,
+    angry: 0.02,
+    fearful: 0.05,
+    disgusted: 0.01,
+    surprised: 0.87,
+  },
+  facePresent: true,
+};
+const SAMPLE_FACE_SCORE = 0.91;
 
 test.beforeAll(async ({ request }) => {
   await ensureAccessCode(request, ACCESS_CODE);
@@ -33,6 +50,10 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   await page.getByTestId("continuous-speech-tab").click();
   await expect(page.locator("#continuous_speech_panel")).toHaveClass(/active/);
 
+  await renderSampleEmotion(page);
+  await openSensedSignals(page);
+  await verifyEmotionReport(page);
+
   await renderSampleBehaviour(page);
   await verifyBehaviourVisualState(page);
 
@@ -40,6 +61,15 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
     key: "sensing",
     title: "Sensing",
     buttonTestId: "maximize-sensing-column",
+    inModal: async (panelInModal) => {
+      await panelInModal.getByTestId("emotion-report").scrollIntoViewIfNeeded();
+      await expect(panelInModal.getByTestId("emotion-report")).toBeVisible();
+      await expect(panelInModal.getByTestId("emotion-affect-marker"))
+        .toHaveAttribute("aria-label", "Valence +0.32, arousal 0.74");
+      await expect(panelInModal.getByTestId("emotion-valence-meter")).toHaveAttribute("aria-valuenow", "66");
+      await expect(panelInModal.getByTestId("emotion-arousal-meter")).toHaveAttribute("aria-valuenow", "74");
+      await expect(panelInModal.getByTestId("emotion-expression-surprised-value")).toHaveText("87%");
+    },
   });
   await verifyColumnExpansion(page, testInfo, {
     key: "interaction",
@@ -118,6 +148,46 @@ async function renderSampleBehaviour(page) {
     }
     window.renderBehaviourPlan(plan);
   }, SAMPLE_BEHAVIOUR_PLAN);
+}
+
+async function renderSampleEmotion(page) {
+  await page.evaluate(({ emotion, faceScore }) => {
+    if (typeof window.renderEmotionMetrics !== "function") {
+      throw new Error("renderEmotionMetrics is not available on the Valerian page.");
+    }
+    window.renderEmotionMetrics(emotion, faceScore);
+  }, { emotion: SAMPLE_EMOTION, faceScore: SAMPLE_FACE_SCORE });
+}
+
+async function openSensedSignals(page) {
+  const panel = page.locator("#sensed_signals");
+  const className = await panel.getAttribute("class");
+  if (!className || !className.includes("show")) {
+    await page.locator("[data-bs-target=\"#sensed_signals\"]").click();
+  }
+  await expect(panel).toHaveClass(/show/);
+}
+
+async function verifyEmotionReport(page) {
+  await expect(page.getByTestId("emotion-report")).toBeVisible();
+  await expect(page.getByTestId("emotion-value")).toHaveText("surprised 0.87");
+  await expect(page.getByTestId("emotion-valence-value")).toHaveText("+0.32");
+  await expect(page.getByTestId("emotion-arousal-value")).toHaveText("0.74");
+  await expect(page.getByTestId("emotion-confidence-value")).toHaveText("0.87");
+  await expect(page.getByTestId("emotion-face-confidence-value")).toHaveText("0.91");
+  await expect(page.getByTestId("emotion-emit-status")).toHaveText("Live");
+  await expect(page.getByTestId("emotion-affect-marker"))
+    .toHaveAttribute("aria-label", "Valence +0.32, arousal 0.74");
+  await expect(page.getByTestId("emotion-affect-marker")).toHaveAttribute("data-emotion", "surprised");
+  await expect(page.getByTestId("emotion-affect-marker")).toHaveAttribute("style", /left: 66%; bottom: 74%;/);
+  await expect(page.getByTestId("emotion-valence-meter")).toHaveAttribute("aria-valuenow", "66");
+  await expect(page.getByTestId("emotion-arousal-meter")).toHaveAttribute("aria-valuenow", "74");
+  await expect(page.getByTestId("emotion-confidence-meter")).toHaveAttribute("aria-valuenow", "87");
+  await expect(page.getByTestId("emotion-face-confidence-meter")).toHaveAttribute("aria-valuenow", "91");
+  await expect(page.getByTestId("emotion-expression-happy-value")).toHaveText("22%");
+  await expect(page.getByTestId("emotion-expression-happy-meter")).toHaveAttribute("aria-valuenow", "22");
+  await expect(page.getByTestId("emotion-expression-surprised-value")).toHaveText("87%");
+  await expect(page.getByTestId("emotion-expression-surprised-meter")).toHaveAttribute("aria-valuenow", "87");
 }
 
 async function verifyBehaviourVisualState(page) {

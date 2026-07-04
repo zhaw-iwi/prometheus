@@ -254,6 +254,187 @@
       overflow-wrap: anywhere;
     }
 
+    .emotion-report-panel {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .emotion-report-head,
+    .emotion-report-row,
+    .emotion-expression-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .emotion-report-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .emotion-report-grid {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.86fr) minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .emotion-affect-plane {
+      position: relative;
+      min-height: 164px;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(190, 18, 60, 0.22), rgba(255, 255, 255, 0.68) 50%, rgba(4, 120, 87, 0.2)),
+        linear-gradient(0deg, rgba(29, 78, 216, 0.08), rgba(245, 158, 11, 0.18));
+    }
+
+    .emotion-plane-axis {
+      position: absolute;
+      background: rgba(12, 22, 24, 0.2);
+      pointer-events: none;
+    }
+
+    .emotion-plane-axis-x {
+      left: 0;
+      right: 0;
+      bottom: 50%;
+      height: 1px;
+    }
+
+    .emotion-plane-axis-y {
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+    }
+
+    .emotion-plane-label {
+      position: absolute;
+      color: var(--demo-muted);
+      font-size: 0.66rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .emotion-plane-label-left {
+      left: 0.45rem;
+      bottom: calc(50% + 0.25rem);
+    }
+
+    .emotion-plane-label-right {
+      right: 0.45rem;
+      bottom: calc(50% + 0.25rem);
+    }
+
+    .emotion-plane-label-bottom {
+      left: calc(50% + 0.3rem);
+      bottom: 0.35rem;
+    }
+
+    .emotion-plane-label-top {
+      left: calc(50% + 0.3rem);
+      top: 0.35rem;
+    }
+
+    .emotion-affect-marker {
+      position: absolute;
+      left: 50%;
+      bottom: 0%;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      background: #0f766e;
+      box-shadow: 0 0 0 2px rgba(12, 22, 24, 0.25), 0 8px 20px rgba(12, 22, 24, 0.18);
+      transform: translate(-50%, 50%);
+      transition: left 160ms ease, bottom 160ms ease, background-color 160ms ease;
+    }
+
+    .emotion-affect-marker[data-emotion="sad"],
+    .emotion-affect-marker[data-emotion="fearful"],
+    .emotion-affect-marker[data-emotion="angry"],
+    .emotion-affect-marker[data-emotion="disgusted"] {
+      background: #be123c;
+    }
+
+    .emotion-affect-marker[data-emotion="surprised"] {
+      background: #f59e0b;
+    }
+
+    .emotion-affect-marker[data-emotion="neutral"] {
+      background: #64748b;
+    }
+
+    .emotion-report-values {
+      display: grid;
+      gap: 0.45rem;
+      align-content: start;
+    }
+
+    .emotion-report-value {
+      font-weight: 800;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .emotion-meter {
+      height: 0.48rem;
+      border-radius: 999px;
+      background: rgba(12, 22, 24, 0.12);
+      overflow: hidden;
+    }
+
+    .emotion-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+      transition: width 160ms ease;
+    }
+
+    .emotion-meter-fill.is-valence {
+      background: linear-gradient(90deg, #be123c, #f8fafc 50%, #047857);
+    }
+
+    .emotion-meter-fill.is-arousal {
+      background: linear-gradient(90deg, #1d4ed8, #f59e0b);
+    }
+
+    .emotion-expression-list {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .emotion-expression-row {
+      display: grid;
+      grid-template-columns: 5.4rem minmax(0, 1fr) 2.7rem;
+      font-size: 0.78rem;
+    }
+
+    .emotion-expression-value {
+      color: var(--demo-muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    @media (max-width: 991px) {
+      .emotion-report-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .behaviour-state-board {
       display: grid;
       gap: 0.75rem;
@@ -746,6 +927,8 @@
     [data-theme="dark"] .message-list,
     [data-theme="dark"] .demo-bubble,
     [data-theme="dark"] .metric-row,
+    [data-theme="dark"] .emotion-report-panel,
+    [data-theme="dark"] .emotion-affect-plane,
     [data-theme="dark"] .behaviour-visual-card,
     [data-theme="dark"] .behaviour-speech-preview,
     [data-theme="dark"] .behaviour-gesture-stage,
@@ -760,6 +943,14 @@
       background: var(--demo-panel-soft);
       border-color: var(--demo-line);
       color: var(--ink);
+    }
+
+    [data-theme="dark"] .emotion-meter {
+      background: rgba(226, 232, 240, 0.14);
+    }
+
+    [data-theme="dark"] .emotion-plane-axis {
+      background: rgba(226, 232, 240, 0.24);
     }
 
     [data-theme="dark"] .demo-card .card-header,
@@ -1334,6 +1525,133 @@
                         <div class="metric-row" data-profile-observations="obs.emotion.face">
                           <span class="metric-label">Emotion</span>
                           <strong id="emotion_value" data-testid="emotion-value">-</strong>
+                        </div>
+                        <div class="emotion-report-panel" data-profile-observations="obs.emotion.face"
+                          data-testid="emotion-report">
+                          <div class="emotion-report-head">
+                            <span class="emotion-report-title">
+                              <i class="bi bi-emoji-smile"></i>
+                              Facial Emotion Report
+                            </span>
+                            <span id="emotion_emit_status" class="status-pill is-idle"
+                              data-testid="emotion-emit-status">Not emitted</span>
+                          </div>
+                          <div class="emotion-report-grid">
+                            <div class="emotion-affect-plane" aria-label="Valence arousal affect plane"
+                              data-testid="emotion-affect-plane">
+                              <div class="emotion-plane-axis emotion-plane-axis-x"></div>
+                              <div class="emotion-plane-axis emotion-plane-axis-y"></div>
+                              <span class="emotion-plane-label emotion-plane-label-left">Negative</span>
+                              <span class="emotion-plane-label emotion-plane-label-right">Positive</span>
+                              <span class="emotion-plane-label emotion-plane-label-bottom">Calm</span>
+                              <span class="emotion-plane-label emotion-plane-label-top">Activated</span>
+                              <div id="emotion_affect_marker" class="emotion-affect-marker" data-emotion="neutral"
+                                data-testid="emotion-affect-marker"></div>
+                            </div>
+                            <div class="emotion-report-values">
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Valence</span>
+                                <strong id="emotion_valence_value" class="emotion-report-value"
+                                  data-testid="emotion-valence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Valence">
+                                <div id="emotion_valence_meter" class="emotion-meter-fill is-valence"
+                                  data-testid="emotion-valence-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Arousal</span>
+                                <strong id="emotion_arousal_value" class="emotion-report-value"
+                                  data-testid="emotion-arousal-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Arousal">
+                                <div id="emotion_arousal_meter" class="emotion-meter-fill is-arousal"
+                                  data-testid="emotion-arousal-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Confidence</span>
+                                <strong id="emotion_confidence_value" class="emotion-report-value"
+                                  data-testid="emotion-confidence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Emotion confidence">
+                                <div id="emotion_confidence_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-confidence-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Face Confidence</span>
+                                <strong id="emotion_face_confidence_value" class="emotion-report-value"
+                                  data-testid="emotion-face-confidence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Face detection confidence">
+                                <div id="emotion_face_confidence_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-face-confidence-meter"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="emotion-expression-list" data-testid="emotion-expression-list">
+                            <div class="emotion-expression-row" data-emotion-expression="neutral">
+                              <span class="metric-label">Neutral</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_neutral_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-neutral-meter"></div>
+                              </div>
+                              <span id="emotion_expression_neutral_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-neutral-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="happy">
+                              <span class="metric-label">Happy</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_happy_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-happy-meter"></div>
+                              </div>
+                              <span id="emotion_expression_happy_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-happy-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="sad">
+                              <span class="metric-label">Sad</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_sad_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-sad-meter"></div>
+                              </div>
+                              <span id="emotion_expression_sad_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-sad-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="angry">
+                              <span class="metric-label">Angry</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_angry_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-angry-meter"></div>
+                              </div>
+                              <span id="emotion_expression_angry_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-angry-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="fearful">
+                              <span class="metric-label">Fearful</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_fearful_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-fearful-meter"></div>
+                              </div>
+                              <span id="emotion_expression_fearful_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-fearful-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="disgusted">
+                              <span class="metric-label">Disgusted</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_disgusted_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-disgusted-meter"></div>
+                              </div>
+                              <span id="emotion_expression_disgusted_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-disgusted-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="surprised">
+                              <span class="metric-label">Surprised</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_surprised_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-surprised-meter"></div>
+                              </div>
+                              <span id="emotion_expression_surprised_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-surprised-value">0%</span>
+                            </div>
+                          </div>
                         </div>
                         <div class="metric-row" data-profile-observations="obs.human.presence obs.social.grouping">
                           <span class="metric-label">Humans</span>
