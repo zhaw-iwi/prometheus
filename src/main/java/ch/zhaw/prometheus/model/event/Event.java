@@ -28,6 +28,7 @@ public class Event {
     public static final String TYPE_FACE_EMOTION = "obs.emotion.face";
     public static final String TYPE_HUMAN_PRESENCE = "obs.human.presence";
     public static final String TYPE_SOCIAL_GROUPING = "obs.social.grouping";
+    public static final String TYPE_SOCIAL_CONTEXT = "obs.social.context";
     public static final String TYPE_SOCIAL_SITUATION_CHANGE = "obs.social.situation_change";
     public static final String TYPE_HAND_SIGN = "obs.hand.sign";
     public static final String TYPE_WEATHER_CURRENT = "obs.weather.current";

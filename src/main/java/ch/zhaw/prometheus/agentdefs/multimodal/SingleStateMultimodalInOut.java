@@ -25,7 +25,7 @@ public class SingleStateMultimodalInOut implements AgentDefinition {
         private static final String PROMPT_OUTERSTATE = """
                         Multimodale Ein-/Ausgabevorgaben für dieses Story-Co-Creation-Spiel:
                         - Berücksichtige visuelle Beobachtungsereignisse aus /acknowledge, falls vorhanden:
-                          obs.emotion.face, obs.human.presence, obs.social.grouping.
+                          obs.emotion.face, obs.human.presence, obs.social.grouping, obs.social.context.
                         - Diese Signale sind nur kontextuelle Hinweise. Explizite verbale Nutzeräusserungen haben bei Konflikt immer Vorrang.
                         - Wenn keine visuellen Signale vorhanden sind, führe die Story-Co-Creation vollwertig auf Textbasis.
                         - Erfinde niemals Wahrnehmungen. Nenne Unsicherheit/Konfidenz klar, wenn du auf Beobachtungen Bezug nimmst.

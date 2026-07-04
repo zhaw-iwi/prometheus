@@ -91,6 +91,7 @@ const camera = {
   lastEmotion: null,
   lastPresenceSignature: null,
   lastGroupingSignature: null,
+  lastSocialContextSignature: null,
   lastGestureVideoTime: -1,
   stableGestureKey: null,
   stableGestureCount: 0,
@@ -102,6 +103,11 @@ const weather = {
   current: null,
   forecast: null,
   locationQuery: "",
+};
+
+const columnExpansion = {
+  modal: null,
+  active: null,
 };
 
 const RECONNECT_MIN_MS = 1000;
@@ -146,6 +152,11 @@ const REALTIME_ECHO_TRANSCRIPT_SIMILARITY = 0.78;
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
+const TRACK_STATIONARY_DISTANCE_NORM = 0.008;
+const TRACK_MOVING_DISTANCE_NORM = 0.018;
+const TRACK_STATIONARY_AREA_DELTA = 0.06;
+const TRACK_DEPTH_AREA_DELTA = 0.12;
+const ATTENTION_CONFIDENCE_THRESHOLD = 0.62;
 const PERSON_SCORE_THRESHOLD = 0.45;
 const REQUIRED_STABLE_GESTURE_FRAMES = 3;
 const FACE_MODEL_URI = "https://justadudewhohacks.github.io/face-api.js/models";
@@ -168,6 +179,17 @@ const SIGNS = {
   paper: { label: "Papier", symbol: "\u270B" },
 };
 
+const GESTURE_UI = {
+  OPEN_QUESTION: { icon: "bi-question-diamond", label: "Open Question", hint: "Inviting response" },
+  EXPLAIN: { icon: "bi-hand-index-thumb", label: "Explanatory Sweep", hint: "Supporting explanation" },
+  UNCERTAIN: { icon: "bi-question-circle", label: "Uncertainty", hint: "Low certainty" },
+  ACKNOWLEDGE: { icon: "bi-check2-circle", label: "Acknowledgement", hint: "Closing acknowledgement" },
+  POLITE: { icon: "bi-heart", label: "Polite", hint: "Softening social tone" },
+  NONE: { icon: "bi-dash-lg", label: "NONE", hint: "No gesture" },
+};
+
+const BEHAVIOUR_CHANNELS = ["speech", "gesture", "face", "gaze", "motion", "display"];
+
 const MANUAL_EMOTIONS = {
   neutral: { valence: 0, arousal: 0.2 },
   happy: { valence: 0.8, arousal: 0.55 },
@@ -177,10 +199,13 @@ const MANUAL_EMOTIONS = {
   surprised: { valence: 0.2, arousal: 0.8 },
 };
 
+const EMOTION_EXPRESSION_KEYS = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"];
+
 const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.emotion.face",
   "obs.human.presence",
   "obs.social.grouping",
+  "obs.social.context",
   "obs.hand.sign",
 ];
 
@@ -191,7 +216,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
-  social: ["obs.human.presence", "obs.social.grouping"],
+  social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
   hand: ["obs.hand.sign"],
 };
 
@@ -246,6 +271,7 @@ function wireUi() {
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
     button.addEventListener("click", toggleTheme);
   });
+  wireColumnExpansion();
   document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
@@ -333,6 +359,83 @@ function wireUi() {
   document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
   document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
   document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
+}
+
+function wireColumnExpansion() {
+  const modalElement = document.getElementById("column_expansion_modal");
+  if (!modalElement || !window.bootstrap) {
+    return;
+  }
+  columnExpansion.modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+  document.querySelectorAll("[data-column-maximize]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openColumnExpansion(button.dataset.columnMaximize, button.dataset.columnTitle || "Panel");
+    });
+  });
+  modalElement.addEventListener("hidden.bs.modal", restoreExpandedColumn);
+  modalElement.addEventListener("shown.bs.modal", refreshExpandedColumnLayout);
+}
+
+function openColumnExpansion(columnKey, title) {
+  if (!columnKey) {
+    return;
+  }
+  const panel = document.querySelector(`[data-column-panel="${columnKey}"]`);
+  const placeholder = document.querySelector(`[data-column-placeholder="${columnKey}"]`);
+  const modalBody = document.getElementById("column_expansion_body");
+  const modalTitle = document.getElementById("column_expansion_title");
+  if (!panel || !modalBody || !columnExpansion.modal) {
+    return;
+  }
+  if (columnExpansion.active && columnExpansion.active.panel === panel) {
+    columnExpansion.modal.show();
+    return;
+  }
+  if (columnExpansion.active) {
+    restoreExpandedColumn();
+  }
+  columnExpansion.active = {
+    panel,
+    originalParent: panel.parentNode,
+    nextSibling: panel.nextSibling,
+    placeholder,
+  };
+  if (modalTitle) {
+    modalTitle.textContent = title;
+  }
+  setColumnPlaceholderVisible(placeholder, true);
+  modalBody.replaceChildren(panel);
+  columnExpansion.modal.show();
+  refreshExpandedColumnLayout();
+}
+
+function restoreExpandedColumn() {
+  const active = columnExpansion.active;
+  if (!active) {
+    return;
+  }
+  if (active.nextSibling && active.nextSibling.parentNode === active.originalParent) {
+    active.originalParent.insertBefore(active.panel, active.nextSibling);
+  } else {
+    active.originalParent.appendChild(active.panel);
+  }
+  setColumnPlaceholderVisible(active.placeholder, false);
+  columnExpansion.active = null;
+  refreshExpandedColumnLayout();
+}
+
+function setColumnPlaceholderVisible(placeholder, visible) {
+  if (!placeholder) {
+    return;
+  }
+  placeholder.hidden = !visible;
+  placeholder.classList.toggle("d-none", !visible);
+}
+
+function refreshExpandedColumnLayout() {
+  window.requestAnimationFrame(() => {
+    clearOverlay();
+  });
 }
 
 function applyStoredTheme() {
@@ -885,6 +988,15 @@ function resetUnsupportedSensorModes(capabilities) {
     resetWeatherState();
   }
   resetDisabledSensorState();
+}
+
+function currentInteractionCapabilities() {
+  return resolveInteractionCapabilities(state.agentInfo && state.agentInfo.interactionProfile);
+}
+
+function currentProfileSupportsObservation(observation) {
+  const capabilities = currentInteractionCapabilities();
+  return capabilities.fallbackAll || profileListIntersects(capabilities.supportedObservations, [observation]);
 }
 
 function updateSelectedAgentStatus() {
@@ -1585,8 +1697,10 @@ function renderBehaviourPlan(plan) {
   if (!plan || typeof plan !== "object") {
     return;
   }
+  resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
+    setBehaviourChannelActive("speech", true);
   }
   renderNonVerbal(plan.nonVerbal);
   renderMotion(plan.motion);
@@ -1596,25 +1710,39 @@ function renderBehaviourPlan(plan) {
 
 function renderNonVerbal(nonVerbal) {
   if (!nonVerbal || typeof nonVerbal !== "object") {
-    setText("gesture_value", "NONE");
+    setGestureVisual("NONE");
     return;
   }
-  setText("gesture_value", asText(nonVerbal.gesture || "NONE"));
+  setGestureVisual(nonVerbal.gesture || "NONE");
   const face = nonVerbal.facialExpression;
   if (typeof face === "string") {
     setText("face_value", face);
+    setBehaviourChannelActive("face", !!face.trim());
   } else if (face && typeof face === "object") {
-    setText("face_value", asText(face.type || face.expression));
+    const faceLabel = asText(face.type || face.expression);
+    const hasIntensity = face.intensity !== undefined && face.intensity !== null;
+    setText("face_value", faceLabel);
+    if (hasIntensity) {
+      const intensity = asUnitNumber(face.intensity);
+      setText("face_intensity_value", formatPercent(intensity));
+      setBehaviourMeter("face_intensity_meter", intensity);
+    }
+    setBehaviourChannelActive("face", faceLabel !== "-" || hasIntensity);
   }
   const gaze = nonVerbal.gaze;
   if (typeof gaze === "string") {
     setText("gaze_value", gaze);
+    setBehaviourChannelActive("gaze", !!gaze.trim());
   } else if (gaze && typeof gaze === "object") {
-    setText("gaze_value", asText(gaze.direction || gaze.focus));
+    const direction = asText(gaze.direction);
+    const focus = asText(gaze.focus);
+    setText("gaze_value", direction !== "-" ? direction : focus);
+    setText("gaze_focus_value", `Focus ${focus}`);
+    setBehaviourChannelActive("gaze", direction !== "-" || focus !== "-");
   }
   const motion = nonVerbal.motion;
   if (motion && typeof motion === "object") {
-    setText("motion_value", `energy ${round(Number(motion.energy || 0), 2)}`);
+    renderMotionEnergyState(motion);
   }
 }
 
@@ -1622,11 +1750,13 @@ function renderMotion(motion) {
   if (!motion || typeof motion !== "object") {
     return;
   }
+  setBehaviourChannelActive("motion", true);
   const sign = normalizeSign(motion.handSign);
   if (sign) {
     renderAgentSign(sign);
     resetCameraEmissionGate();
   }
+  renderMotionEnergyState(motion);
   if (motion.effector) {
     setText("motion_value", asText(motion.effector));
   } else if (sign) {
@@ -1634,10 +1764,37 @@ function renderMotion(motion) {
   }
 }
 
+function renderMotionEnergyState(motion) {
+  const hasEnergy = motion.energy !== undefined && motion.energy !== null;
+  const hasStillness = motion.stillness !== undefined && motion.stillness !== null;
+  if (hasEnergy) {
+    const energy = asUnitNumber(motion.energy);
+    setText("motion_energy_value", formatPercent(energy));
+    setBehaviourMeter("motion_energy_meter", energy);
+  }
+  if (hasStillness) {
+    const stillness = asUnitNumber(motion.stillness);
+    setText("motion_stillness_value", formatPercent(stillness));
+    setBehaviourMeter("motion_stillness_meter", stillness);
+  }
+  if (hasEnergy || hasStillness) {
+    setBehaviourChannelActive("motion", true);
+    const summary = [];
+    if (hasEnergy) {
+      summary.push(`energy ${formatPercent(motion.energy)}`);
+    }
+    if (hasStillness) {
+      summary.push(`stillness ${formatPercent(motion.stillness)}`);
+    }
+    setText("motion_value", summary.join(" / "));
+  }
+}
+
 function renderDisplay(display) {
   if (!display || typeof display !== "object") {
     return;
   }
+  setBehaviourChannelActive("display", true);
   setText("display_value", JSON.stringify(display, null, 2));
   if (display.agentSign) {
     const agentSign = normalizeSign(display.agentSign);
@@ -3062,12 +3219,12 @@ async function detectEmotion() {
     .detectSingleFace(camera.video, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
     .withFaceExpressions();
   if (!detection) {
-    setText("emotion_value", "-");
+    renderEmotionMetrics(null);
     return;
   }
   drawFaceBox(detection.detection.box);
   const emotion = deriveEmotion(detection.expressions);
-  renderEmotionMetrics(emotion);
+  renderEmotionMetrics(emotion, detection.detection.score);
   await maybeEmitEmotion(emotion, detection.detection.score);
 }
 
@@ -3079,7 +3236,7 @@ async function detectSocial() {
   const tracked = updateTracks(people);
   const social = deriveSocialSituation(tracked);
   drawSocialOverlay(tracked, social);
-  renderSocialMetrics(social);
+  renderSocialMetrics(social, tracked);
   await maybeEmitSocial(social, tracked);
 }
 
@@ -3123,15 +3280,22 @@ function deriveEmotion(expressions) {
 
 async function maybeEmitEmotion(emotion, faceScore) {
   if (!document.getElementById("sensor_emit_enabled").checked || !emotion) {
+    setEmotionEmitStatus("Live only", "idle");
     return;
   }
   const threshold = Number(document.getElementById("face_confidence_threshold").value || 0.55);
-  if (emotion.confidence < threshold || !passesSensorEmitInterval("emotion")) {
+  if (emotion.confidence < threshold) {
+    setEmotionEmitStatus("Below threshold", "idle");
+    return;
+  }
+  if (!passesSensorEmitInterval("emotion")) {
+    setEmotionEmitStatus("Cooldown", "idle");
     return;
   }
   if (camera.lastEmotion && camera.lastEmotion.emotion === emotion.emotion &&
     Math.abs(camera.lastEmotion.valence - emotion.valence) < 0.08 &&
     Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08) {
+    setEmotionEmitStatus("Stable", "idle");
     return;
   }
   const ok = await acknowledgeEvent({
@@ -3143,6 +3307,9 @@ async function maybeEmitEmotion(emotion, faceScore) {
   if (ok) {
     markSensorEmitted("emotion");
     camera.lastEmotion = emotion;
+    setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, "live");
+  } else {
+    setEmotionEmitStatus("Emit failed", "error");
   }
 }
 
@@ -3160,7 +3327,7 @@ async function submitEmotionSample(label) {
     expressions: manualEmotionExpressions(label),
     facePresent: true,
   };
-  renderEmotionMetrics(emotion);
+  renderEmotionMetrics(emotion, 1);
   const data = await acknowledgeEvent({
     type: "obs.emotion.face",
     actor: "user",
@@ -3170,16 +3337,96 @@ async function submitEmotionSample(label) {
   if (data) {
     camera.lastEmotion = emotion;
     markSensorEmitted("emotion");
+    setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, "live");
+  } else {
+    setEmotionEmitStatus("Emit failed", "error");
   }
   return !!data;
 }
 
-function renderEmotionMetrics(emotion) {
+function renderEmotionMetrics(emotion, faceScore = 0) {
   if (!emotion) {
-    setText("emotion_value", "-");
+    resetEmotionReport();
     return;
   }
-  setText("emotion_value", `${emotion.emotion} ${Number(emotion.confidence || 0).toFixed(2)}`);
+  const label = asText(emotion.emotion);
+  const confidence = asUnitNumber(emotion.confidence);
+  const valence = clamp(Number(emotion.valence || 0), -1, 1);
+  const arousal = asUnitNumber(emotion.arousal);
+  const faceConfidence = asUnitNumber(faceScore);
+  setText("emotion_value", `${label} ${confidence.toFixed(2)}`);
+  setText("emotion_valence_value", formatSignedDecimal(valence));
+  setText("emotion_arousal_value", arousal.toFixed(2));
+  setText("emotion_confidence_value", confidence.toFixed(2));
+  setText("emotion_face_confidence_value", faceConfidence.toFixed(2));
+  setEmotionAffectMarker(valence, arousal, label);
+  setEmotionMeter("emotion_valence_meter", (valence + 1) / 2);
+  setEmotionMeter("emotion_arousal_meter", arousal);
+  setEmotionMeter("emotion_confidence_meter", confidence);
+  setEmotionMeter("emotion_face_confidence_meter", faceConfidence);
+  renderExpressionBars(emotion.expressions);
+  setEmotionEmitStatus("Live", "live");
+}
+
+function resetEmotionReport() {
+  setText("emotion_value", "-");
+  setText("emotion_valence_value", "0.00");
+  setText("emotion_arousal_value", "0.00");
+  setText("emotion_confidence_value", "0.00");
+  setText("emotion_face_confidence_value", "0.00");
+  setEmotionAffectMarker(0, 0, "neutral");
+  setEmotionMeter("emotion_valence_meter", 0.5);
+  setEmotionMeter("emotion_arousal_meter", 0);
+  setEmotionMeter("emotion_confidence_meter", 0);
+  setEmotionMeter("emotion_face_confidence_meter", 0);
+  renderExpressionBars({});
+  setEmotionEmitStatus("No face", "idle");
+}
+
+function setEmotionAffectMarker(valence, arousal, emotion) {
+  const marker = document.getElementById("emotion_affect_marker");
+  if (!marker) {
+    return;
+  }
+  const x = round((clamp(Number(valence || 0), -1, 1) + 1) * 50, 1);
+  const y = round(asUnitNumber(arousal) * 100, 1);
+  marker.style.left = `${x}%`;
+  marker.style.bottom = `${y}%`;
+  marker.dataset.emotion = normalizeEmotionTone(emotion);
+  marker.setAttribute("aria-label", `Valence ${formatSignedDecimal(valence)}, arousal ${asUnitNumber(arousal).toFixed(2)}`);
+}
+
+function normalizeEmotionTone(emotion) {
+  const token = String(emotion || "neutral").trim().toLowerCase();
+  return EMOTION_EXPRESSION_KEYS.includes(token) ? token : "neutral";
+}
+
+function setEmotionMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  const percent = formatPercent(unitValue);
+  el.style.width = percent;
+  el.setAttribute("aria-valuenow", String(Math.round(asUnitNumber(unitValue) * 100)));
+  el.title = percent;
+}
+
+function renderExpressionBars(expressions) {
+  for (const key of EMOTION_EXPRESSION_KEYS) {
+    const value = asUnitNumber(expressions && expressions[key]);
+    setText(`emotion_expression_${key}_value`, formatPercent(value));
+    setEmotionMeter(`emotion_expression_${key}_meter`, value);
+  }
+}
+
+function setEmotionEmitStatus(text, mode = "idle") {
+  const el = document.getElementById("emotion_emit_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.className = `status-pill is-${mode || "idle"}`;
 }
 
 function emotionPayload(emotion, source, faceScore, extra = {}) {
@@ -3217,15 +3464,25 @@ function updateTracks(detections) {
   const now = Date.now();
   const assigned = new Set();
   const tracked = [];
+  const frameWidth = Math.max(1, camera.video.videoWidth || 1);
+  const frameHeight = Math.max(1, camera.video.videoHeight || 1);
   const frameDiag = Math.max(1, Math.hypot(camera.video.videoWidth || 1, camera.video.videoHeight || 1));
   for (const detection of detections) {
     const best = findBestTrack(detection, frameDiag, assigned);
+    const attention = deriveAttentionSignal(detection, frameWidth, frameHeight);
     if (best) {
       const track = camera.tracks.get(best.id);
+      const movement = deriveTrackMovement(track, detection, frameDiag);
       track.cx = detection.cx;
       track.cy = detection.cy;
       track.box = [detection.x, detection.y, detection.w, detection.h];
       track.score = detection.score;
+      track.movementState = movement.state;
+      track.activity = movement.state;
+      track.movementConfidence = movement.confidence;
+      track.speedNorm = movement.speedNorm;
+      track.areaDelta = movement.areaDelta;
+      track.attention = attention;
       track.lastSeenAt = now;
       assigned.add(track.id);
       tracked.push(trackToView(track));
@@ -3237,6 +3494,12 @@ function updateTracks(detections) {
         cy: detection.cy,
         box: [detection.x, detection.y, detection.w, detection.h],
         score: detection.score,
+        movementState: "unknown",
+        activity: "unknown",
+        movementConfidence: 0,
+        speedNorm: 0,
+        areaDelta: 0,
+        attention,
         firstSeenAt: now,
         lastSeenAt: now,
       };
@@ -3267,8 +3530,101 @@ function findBestTrack(detection, frameDiag, assigned) {
   return best;
 }
 
+function deriveTrackMovement(track, detection, frameDiag) {
+  if (!track || !track.box || !detection) {
+    return { state: "unknown", confidence: 0, speedNorm: 0, areaDelta: 0 };
+  }
+  const speedNorm = Math.hypot(detection.cx - track.cx, detection.cy - track.cy) / Math.max(1, frameDiag);
+  const previousArea = trackArea(track.box);
+  const nextArea = Math.max(0, Number(detection.w || 0) * Number(detection.h || 0));
+  const areaDelta = previousArea > 0 ? (nextArea - previousArea) / previousArea : 0;
+  const absAreaDelta = Math.abs(areaDelta);
+  if (!Number.isFinite(speedNorm) || !Number.isFinite(areaDelta)) {
+    return { state: "unknown", confidence: 0, speedNorm: 0, areaDelta: 0 };
+  }
+  if (absAreaDelta >= TRACK_DEPTH_AREA_DELTA) {
+    return {
+      state: areaDelta > 0 ? "approaching" : "receding",
+      confidence: clamp(absAreaDelta / 0.35, 0.35, 1),
+      speedNorm,
+      areaDelta,
+    };
+  }
+  if (speedNorm >= TRACK_MOVING_DISTANCE_NORM) {
+    return { state: "moving", confidence: clamp(speedNorm / 0.08, 0.35, 1), speedNorm, areaDelta };
+  }
+  if (speedNorm <= TRACK_STATIONARY_DISTANCE_NORM && absAreaDelta <= TRACK_STATIONARY_AREA_DELTA) {
+    const motionShare = Math.max(speedNorm / TRACK_MOVING_DISTANCE_NORM, absAreaDelta / TRACK_DEPTH_AREA_DELTA);
+    return { state: "stationary", confidence: clamp(1 - motionShare, 0.35, 1), speedNorm, areaDelta };
+  }
+  return { state: "unknown", confidence: 0, speedNorm, areaDelta };
+}
+
+function trackArea(box) {
+  return Math.max(0, Number(box[2] || 0) * Number(box[3] || 0));
+}
+
+function deriveAttentionSignal(detection, frameWidth, frameHeight) {
+  if (!detection) {
+    return emptyAttentionSignal();
+  }
+  const width = Math.max(1, frameWidth);
+  const height = Math.max(1, frameHeight);
+  const score = asUnitNumber(detection.score);
+  const boxWidthShare = clamp(Number(detection.w || 0) / width, 0, 1);
+  const boxHeightShare = clamp(Number(detection.h || 0) / height, 0, 1);
+  const aspectRatio = Number(detection.h || 0) / Math.max(0.0001, Number(detection.w || 0));
+  const centerDistance = clamp(Math.abs(Number(detection.cx || 0) - width / 2) / (width / 2), 0, 1);
+  const personVisible = score >= PERSON_SCORE_THRESHOLD;
+  const faceVisible = personVisible && boxHeightShare >= 0.16 && boxWidthShare >= 0.04 && Number(detection.y || 0) <= height * 0.62;
+  const nearFrontal = aspectRatio >= 1.2 && aspectRatio <= 4.8;
+  const centered = centerDistance <= 0.45;
+  const frontalCentered = nearFrontal && centered;
+  const centeredScore = clamp(1 - centerDistance, 0, 1);
+  const scaleScore = clamp(boxHeightShare / 0.55, 0, 1);
+  const confidence = clamp(
+    score * 0.36 +
+    (faceVisible ? 0.24 : 0) +
+    centeredScore * 0.2 +
+    (frontalCentered ? 0.14 : nearFrontal ? 0.07 : 0) +
+    scaleScore * 0.06,
+    0,
+    1
+  );
+  const state = personVisible
+    ? (faceVisible && frontalCentered && confidence >= ATTENTION_CONFIDENCE_THRESHOLD ? "attending" : "not_attending")
+    : "unknown";
+  return { state, confidence, personVisible, faceVisible, nearFrontal, centered, frontalCentered };
+}
+
+function emptyAttentionSignal() {
+  return {
+    state: "unknown",
+    confidence: 0,
+    personVisible: false,
+    faceVisible: false,
+    nearFrontal: false,
+    centered: false,
+    frontalCentered: false,
+  };
+}
+
 function trackToView(track) {
-  return { id: track.id, cx: track.cx, cy: track.cy, box: track.box, score: track.score };
+  const attention = normalizeAttentionSignal(track.attention, track);
+  return {
+    id: track.id,
+    cx: track.cx,
+    cy: track.cy,
+    box: track.box,
+    score: track.score,
+    activity: track.activity || track.movementState || "unknown",
+    movementState: track.movementState || "unknown",
+    movementConfidence: Number(track.movementConfidence || 0),
+    speedNorm: Number(track.speedNorm || 0),
+    areaDelta: Number(track.areaDelta || 0),
+    attention,
+    attentionState: attention.state,
+  };
 }
 
 function deriveSocialSituation(tracked) {
@@ -3307,9 +3663,184 @@ function deriveSocialSituation(tracked) {
   };
 }
 
-function renderSocialMetrics(social) {
-  setText("human_count", String((social && social.humanCount) || 0));
-  setText("group_count", String((social && social.groupCount) || 0));
+function renderSocialMetrics(social, tracked = []) {
+  const view = social || { humanCount: 0, groupCount: 0, singletonCount: 0, largestGroupSize: 0, groups: [] };
+  const people = Array.isArray(tracked) ? tracked : [];
+  const humanCount = Number(view.humanCount || 0);
+  const groupCount = Number(view.groupCount || 0);
+  const singletonCount = Number(view.singletonCount || 0);
+  const largestGroupSize = Number(view.largestGroupSize || 0);
+  setText("human_count", String(humanCount));
+  setText("group_count", String(groupCount));
+  setText("social_context_human_count", String(humanCount));
+  setText("social_context_group_count", String(groupCount));
+  setText("social_context_largest_group", String(largestGroupSize));
+  setText("social_context_singleton_count", String(singletonCount));
+  setSocialContextStatus(humanCount);
+  renderSocialGroups(view.groups || []);
+  renderSocialPeople(people);
+}
+
+function setSocialContextStatus(humanCount) {
+  const el = document.getElementById("social_context_status");
+  if (!el) {
+    return;
+  }
+  if (humanCount <= 0) {
+    el.textContent = "No people";
+    el.className = "status-pill is-idle";
+    return;
+  }
+  el.textContent = humanCount === 1 ? "1 person" : `${humanCount} people`;
+  el.className = "status-pill is-live";
+}
+
+function renderSocialGroups(groups) {
+  const list = document.getElementById("social_group_list");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  if (!groups || groups.length === 0) {
+    list.appendChild(socialEmptyState("No groups", "social-group-empty"));
+    return;
+  }
+  groups.forEach((group, index) => {
+    const members = Array.isArray(group.members) ? group.members : [];
+    const item = document.createElement("div");
+    item.className = "social-context-item";
+    item.dataset.testid = `social-group-${index + 1}`;
+    const head = document.createElement("div");
+    head.className = "social-context-item-head";
+    const title = document.createElement("span");
+    title.textContent = members.length >= 2 ? `Group ${index + 1}` : `Singleton ${index + 1}`;
+    const size = document.createElement("span");
+    size.className = "social-context-token";
+    size.dataset.testid = `social-group-${index + 1}-size`;
+    size.textContent = `size ${members.length}`;
+    head.append(title, size);
+    const tokenRow = document.createElement("div");
+    tokenRow.className = "social-context-token-row";
+    members.forEach((id) => tokenRow.appendChild(socialToken(`ID ${id}`)));
+    item.append(head, tokenRow);
+    list.appendChild(item);
+  });
+}
+
+function renderSocialPeople(people) {
+  const list = document.getElementById("social_person_list");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  if (!people || people.length === 0) {
+    list.appendChild(socialEmptyState("No tracked people", "social-person-empty"));
+    return;
+  }
+  people.forEach((person) => {
+    const item = document.createElement("div");
+    item.className = "social-context-item";
+    item.dataset.testid = `social-person-${person.id}`;
+    const head = document.createElement("div");
+    head.className = "social-context-item-head";
+    const title = document.createElement("span");
+    title.textContent = `Person ${person.id}`;
+    const confidence = document.createElement("span");
+    confidence.className = "social-context-token";
+    confidence.dataset.testid = `social-person-${person.id}-confidence`;
+    confidence.textContent = `conf ${formatPercent(person.score || 0)}`;
+    head.append(title, confidence);
+    const tokenRow = document.createElement("div");
+    tokenRow.className = "social-context-token-row";
+    const activity = normalizeActivityState(person.activity || person.movementState);
+    tokenRow.appendChild(socialToken(`activity ${activityLabel(activity)}`, {
+      testId: `social-person-${person.id}-activity`,
+      activityState: activity,
+    }));
+    const movementConfidence = asUnitNumber(person.movementConfidence);
+    if (movementConfidence > 0) {
+      tokenRow.appendChild(socialToken(`movement ${formatPercent(movementConfidence)}`, {
+        testId: `social-person-${person.id}-movement-confidence`,
+      }));
+    }
+    const attention = normalizeAttentionSignal(person.attention, person);
+    tokenRow.appendChild(socialToken(`attention ${attentionLabel(attention.state)}`, {
+      testId: `social-person-${person.id}-attention`,
+      attentionState: attention.state,
+    }));
+    tokenRow.appendChild(socialToken(`attention ${formatPercent(attention.confidence)}`, {
+      testId: `social-person-${person.id}-attention-confidence`,
+    }));
+    tokenRow.appendChild(socialToken(attention.personVisible ? "person visible" : "person hidden", {
+      testId: `social-person-${person.id}-person-visible`,
+    }));
+    tokenRow.appendChild(socialToken(attention.faceVisible ? "face likely" : "face unclear", {
+      testId: `social-person-${person.id}-face-visible`,
+    }));
+    tokenRow.appendChild(socialToken(attention.frontalCentered ? "centered yes" : "centered no", {
+      testId: `social-person-${person.id}-centered`,
+    }));
+    item.append(head, tokenRow);
+    list.appendChild(item);
+  });
+}
+
+function normalizeActivityState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["stationary", "moving", "approaching", "receding", "attending", "not_attending"].includes(token)
+    ? token
+    : "unknown";
+}
+
+function activityLabel(value) {
+  return normalizeActivityState(value).replace(/_/g, " ");
+}
+
+function normalizeAttentionSignal(raw, fallback = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const state = normalizeAttentionState(source.state || fallback.attentionState);
+  return {
+    state,
+    confidence: asUnitNumber(source.confidence),
+    personVisible: source.personVisible === true,
+    faceVisible: source.faceVisible === true,
+    nearFrontal: source.nearFrontal === true,
+    centered: source.centered === true,
+    frontalCentered: source.frontalCentered === true,
+  };
+}
+
+function normalizeAttentionState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["attending", "not_attending"].includes(token) ? token : "unknown";
+}
+
+function attentionLabel(value) {
+  return normalizeAttentionState(value).replace(/_/g, " ");
+}
+
+function socialToken(text, options = {}) {
+  const token = document.createElement("span");
+  token.className = "social-context-token";
+  if (options.testId) {
+    token.dataset.testid = options.testId;
+  }
+  if (options.activityState) {
+    token.dataset.activityState = options.activityState;
+  }
+  if (options.attentionState) {
+    token.dataset.attentionState = options.attentionState;
+  }
+  token.textContent = text;
+  return token;
+}
+
+function socialEmptyState(text, testId) {
+  const el = document.createElement("div");
+  el.className = "social-context-empty";
+  el.dataset.testid = testId;
+  el.textContent = text;
+  return el;
 }
 
 async function maybeEmitSocial(social, tracked) {
@@ -3330,17 +3861,21 @@ async function submitSocialSample(kind) {
   if (!social) {
     return;
   }
-  renderSocialMetrics(social);
-  await submitSocialPayloads(social, social.groups.flatMap((g) => g.members).map((id) => ({ id, score: 1 })), "visual.social.manual");
+  const tracked = social.groups.flatMap((g) => g.members)
+    .map((id) => ({ id, score: 1, activity: "unknown", attention: { ...emptyAttentionSignal(), personVisible: true } }));
+  renderSocialMetrics(social, tracked);
+  await submitSocialPayloads(social, tracked, "visual.social.manual");
 }
 
 async function submitSocialPayloads(social, tracked, source) {
+  const people = Array.isArray(tracked) ? tracked : [];
+  const groups = Array.isArray(social.groups) ? social.groups : [];
   const presencePayload = {
     source,
     humanCount: social.humanCount,
-    trackedCount: tracked.length,
-    trackedIds: tracked.map((p) => p.id),
-    avgDetectionConfidence: round(average(tracked.map((p) => p.score || 1)), 3),
+    trackedCount: people.length,
+    trackedIds: people.map((p) => p.id),
+    avgDetectionConfidence: round(average(people.map((p) => p.score || 1)), 3),
     ts: new Date().toISOString(),
   };
   const groupingPayload = {
@@ -3349,31 +3884,113 @@ async function submitSocialPayloads(social, tracked, source) {
     groupCount: social.groupCount,
     singletonCount: social.singletonCount,
     largestGroupSize: social.largestGroupSize,
-    groupSizes: social.groups.map((g) => g.members.length),
-    groups: social.groups.map((g) => ({ memberIds: g.members })),
+    groupSizes: groups.map((g) => g.members.length),
+    groups: groups.map((g) => ({ memberIds: g.members })),
     ts: new Date().toISOString(),
   };
+  const socialContextSupported = currentProfileSupportsObservation("obs.social.context");
+  const contextPayload = socialContextPayload(social, people, source);
   const presenceSignature = `${presencePayload.humanCount}|${presencePayload.trackedCount}`;
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
-  if (presenceSignature === camera.lastPresenceSignature && groupingSignature === camera.lastGroupingSignature) {
+  const contextSignature = socialContextSignature(contextPayload);
+  const emitPresence = presenceSignature !== camera.lastPresenceSignature;
+  const emitGrouping = groupingSignature !== camera.lastGroupingSignature;
+  const emitContext = socialContextSupported && contextSignature !== camera.lastSocialContextSignature;
+  if (!emitPresence && !emitGrouping && !emitContext) {
     appendLog("social", "duplicate social sample skipped.");
     return;
   }
-  await acknowledgeEvent({
-    type: "obs.human.presence",
-    actor: "user",
-    kind: "observation",
-    payload: JSON.stringify(presencePayload),
-  }, { renderResponse: false });
-  await acknowledgeEvent({
-    type: "obs.social.grouping",
-    actor: "user",
-    kind: "observation",
-    payload: JSON.stringify(groupingPayload),
-  }, { renderResponse: true });
+  if (emitPresence) {
+    await acknowledgeEvent({
+      type: "obs.human.presence",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(presencePayload),
+    }, { renderResponse: false });
+    camera.lastPresenceSignature = presenceSignature;
+  }
+  if (emitGrouping) {
+    await acknowledgeEvent({
+      type: "obs.social.grouping",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(groupingPayload),
+    }, { renderResponse: !emitContext });
+    camera.lastGroupingSignature = groupingSignature;
+  }
+  if (emitContext) {
+    await acknowledgeEvent({
+      type: "obs.social.context",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(contextPayload),
+    }, { renderResponse: true });
+    camera.lastSocialContextSignature = contextSignature;
+  }
   markSensorEmitted("social");
-  camera.lastPresenceSignature = presenceSignature;
-  camera.lastGroupingSignature = groupingSignature;
+}
+
+function socialContextPayload(social, tracked, source) {
+  const groups = Array.isArray(social.groups) ? social.groups : [];
+  const people = Array.isArray(tracked) ? tracked : [];
+  return {
+    schemaVersion: 1,
+    source,
+    humanCount: Number(social.humanCount || 0),
+    groupCount: Number(social.groupCount || 0),
+    singletonCount: Number(social.singletonCount || 0),
+    largestGroupSize: Number(social.largestGroupSize || 0),
+    groupSizes: groups.map((group) => Array.isArray(group.members) ? group.members.length : 0),
+    groups: groups.map((group) => {
+      const members = Array.isArray(group.members) ? group.members : [];
+      return { memberIds: members, size: members.length };
+    }),
+    people: people.map(socialContextPerson),
+    ts: new Date().toISOString(),
+  };
+}
+
+function socialContextPerson(person) {
+  const attention = normalizeAttentionSignal(person.attention, person);
+  return {
+    id: person.id,
+    detectionConfidence: round(asUnitNumber(person.score || 0), 3),
+    movement: {
+      state: normalizeMovementState(person.movementState || person.activity),
+      confidence: round(asUnitNumber(person.movementConfidence), 3),
+    },
+    attention: {
+      state: attention.state,
+      confidence: round(attention.confidence, 3),
+      personVisible: attention.personVisible,
+      faceVisible: attention.faceVisible,
+      nearFrontal: attention.nearFrontal,
+      centered: attention.centered,
+      frontalCentered: attention.frontalCentered,
+    },
+  };
+}
+
+function normalizeMovementState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["stationary", "moving", "approaching", "receding"].includes(token) ? token : "unknown";
+}
+
+function socialContextSignature(payload) {
+  return JSON.stringify({
+    humanCount: payload.humanCount,
+    groupCount: payload.groupCount,
+    singletonCount: payload.singletonCount,
+    largestGroupSize: payload.largestGroupSize,
+    groupSizes: payload.groupSizes,
+    groups: payload.groups.map((group) => group.memberIds),
+    people: payload.people.map((person) => ({
+      id: person.id,
+      detectionConfidence: person.detectionConfidence,
+      movement: person.movement,
+      attention: person.attention,
+    })),
+  });
 }
 
 function selectCameraGesture(result) {
@@ -3913,16 +4530,16 @@ function resetCameraEmissionGate() {
 
 function resetDisabledSensorState() {
   if (!isSensorModeEnabled("emotion")) {
-    setText("emotion_value", "-");
+    resetEmotionReport();
     camera.lastEmotion = null;
     camera.lastEmotionEmitAt = 0;
   }
   if (!isSensorModeEnabled("social")) {
-    setText("human_count", "0");
-    setText("group_count", "0");
+    renderSocialMetrics(null, []);
     camera.tracks.clear();
     camera.lastPresenceSignature = null;
     camera.lastGroupingSignature = null;
+    camera.lastSocialContextSignature = null;
     camera.lastSocialEmitAt = 0;
   }
   if (!isSensorModeEnabled("hand")) {
@@ -3970,7 +4587,8 @@ function renderUserSign(sign) {
 function renderSign(prefix, sign) {
   const normalized = normalizeSign(sign);
   const ui = normalized ? SIGNS[normalized] : null;
-  setText(`${prefix}_sign_label`, ui ? `${ui.symbol} ${ui.label}` : "-");
+  setText(`${prefix}_sign_label`, ui ? ui.label : "-");
+  setText(`${prefix}_sign_visual`, ui ? ui.symbol : "-");
 }
 
 function renderLatestEvent(event) {
@@ -4034,13 +4652,21 @@ function renderActivityLog() {
 }
 
 function resetBehaviourPanels() {
+  BEHAVIOUR_CHANNELS.forEach((channel) => setBehaviourChannelActive(channel, false));
   setText("speech_preview", "-");
-  setText("gesture_value", "-");
+  setGestureVisual("NONE");
   setText("face_value", "-");
+  setText("face_intensity_value", "0%");
+  setBehaviourMeter("face_intensity_meter", 0);
   setText("gaze_value", "-");
+  setText("gaze_focus_value", "Focus -");
   setText("motion_value", "-");
-  setText("agent_sign_label", "-");
-  setText("user_sign_label", "-");
+  setText("motion_energy_value", "0%");
+  setBehaviourMeter("motion_energy_meter", 0);
+  setText("motion_stillness_value", "0%");
+  setBehaviourMeter("motion_stillness_meter", 0);
+  renderSign("agent", null);
+  renderSign("user", null);
   setText("round_value", "-");
   setText("winner_value", "-");
   setText("display_value", "-");
@@ -4069,7 +4695,8 @@ function setControlsEnabled(enabled) {
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
     if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.classList.contains("btn-close") ||
-      el.dataset.bsDismiss === "offcanvas" || el.dataset.bsToggle === "collapse") {
+      el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
+      el.dataset.bsToggle === "collapse") {
       return;
     }
     el.disabled = !enabled;
@@ -4291,6 +4918,15 @@ function prometheusFacingText(value) {
     .trim();
 }
 
+function normalizeGestureToken(value) {
+  const token = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+  return GESTURE_UI[token] ? token : "NONE";
+}
+
 function normalizeSign(value) {
   if (typeof value !== "string") {
     return null;
@@ -4372,6 +5008,23 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function asUnitNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return clamp(parsed, 0, 1);
+}
+
+function formatPercent(unitValue) {
+  return `${Math.round(asUnitNumber(unitValue) * 100)}%`;
+}
+
+function formatSignedDecimal(value) {
+  const rounded = round(Number(value || 0), 2);
+  return `${rounded > 0 ? "+" : ""}${rounded.toFixed(2)}`;
+}
+
 function round(value, digits) {
   const factor = Math.pow(10, digits || 0);
   return Math.round(Number(value || 0) * factor) / factor;
@@ -4389,6 +5042,38 @@ function setText(id, value) {
   if (el) {
     el.textContent = value;
   }
+}
+
+function setBehaviourChannelActive(channel, active) {
+  const el = document.getElementById(`behaviour_chip_${channel}`);
+  if (!el) {
+    return;
+  }
+  el.classList.toggle("is-active", !!active);
+  el.classList.toggle("is-inactive", !active);
+}
+
+function setBehaviourMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  const percent = formatPercent(unitValue);
+  el.style.width = percent;
+  el.setAttribute("aria-valuenow", String(Math.round(asUnitNumber(unitValue) * 100)));
+  el.title = percent;
+}
+
+function setGestureVisual(value) {
+  const token = normalizeGestureToken(value);
+  const ui = GESTURE_UI[token] || GESTURE_UI.NONE;
+  const icon = document.getElementById("gesture_icon");
+  if (icon) {
+    icon.className = `bi ${ui.icon}`;
+  }
+  setText("gesture_value", ui.label);
+  setText("gesture_hint", ui.hint);
+  setBehaviourChannelActive("gesture", token !== "NONE");
 }
 
 class UnionFind {

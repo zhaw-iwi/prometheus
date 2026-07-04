@@ -94,6 +94,12 @@
       letter-spacing: 0;
     }
 
+    .card-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
     .surface-panel {
       border: 1px solid var(--demo-line);
       border-radius: 8px;
@@ -115,6 +121,37 @@
       display: inline-grid;
       place-items: center;
       padding: 0;
+    }
+
+    .column-expanded-placeholder {
+      min-height: 8rem;
+      display: grid;
+      place-items: center;
+      gap: 0.35rem;
+      color: var(--demo-muted);
+      text-align: center;
+    }
+
+    .column-expanded-placeholder i {
+      font-size: 1.35rem;
+    }
+
+    .column-expansion-dialog {
+      max-width: min(1280px, calc(100vw - 2rem));
+    }
+
+    .column-expansion-body {
+      background: var(--demo-bg);
+      max-height: calc(100vh - 8rem);
+      overflow: auto;
+    }
+
+    .column-expansion-body>.demo-card {
+      width: 100%;
+    }
+
+    .column-expansion-body [data-column-maximize] {
+      display: none;
     }
 
     .message-list {
@@ -215,6 +252,550 @@
     .metric-row div,
     .metric-row pre {
       overflow-wrap: anywhere;
+    }
+
+    .emotion-report-panel {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .emotion-report-head,
+    .emotion-report-row,
+    .emotion-expression-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .emotion-report-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .emotion-report-grid {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.86fr) minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .emotion-affect-plane {
+      position: relative;
+      min-height: 164px;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(190, 18, 60, 0.22), rgba(255, 255, 255, 0.68) 50%, rgba(4, 120, 87, 0.2)),
+        linear-gradient(0deg, rgba(29, 78, 216, 0.08), rgba(245, 158, 11, 0.18));
+    }
+
+    .emotion-plane-axis {
+      position: absolute;
+      background: rgba(12, 22, 24, 0.2);
+      pointer-events: none;
+    }
+
+    .emotion-plane-axis-x {
+      left: 0;
+      right: 0;
+      bottom: 50%;
+      height: 1px;
+    }
+
+    .emotion-plane-axis-y {
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+    }
+
+    .emotion-plane-label {
+      position: absolute;
+      color: var(--demo-muted);
+      font-size: 0.66rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .emotion-plane-label-left {
+      left: 0.45rem;
+      bottom: calc(50% + 0.25rem);
+    }
+
+    .emotion-plane-label-right {
+      right: 0.45rem;
+      bottom: calc(50% + 0.25rem);
+    }
+
+    .emotion-plane-label-bottom {
+      left: calc(50% + 0.3rem);
+      bottom: 0.35rem;
+    }
+
+    .emotion-plane-label-top {
+      left: calc(50% + 0.3rem);
+      top: 0.35rem;
+    }
+
+    .emotion-affect-marker {
+      position: absolute;
+      left: 50%;
+      bottom: 0%;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      background: #0f766e;
+      box-shadow: 0 0 0 2px rgba(12, 22, 24, 0.25), 0 8px 20px rgba(12, 22, 24, 0.18);
+      transform: translate(-50%, 50%);
+      transition: left 160ms ease, bottom 160ms ease, background-color 160ms ease;
+    }
+
+    .emotion-affect-marker[data-emotion="sad"],
+    .emotion-affect-marker[data-emotion="fearful"],
+    .emotion-affect-marker[data-emotion="angry"],
+    .emotion-affect-marker[data-emotion="disgusted"] {
+      background: #be123c;
+    }
+
+    .emotion-affect-marker[data-emotion="surprised"] {
+      background: #f59e0b;
+    }
+
+    .emotion-affect-marker[data-emotion="neutral"] {
+      background: #64748b;
+    }
+
+    .emotion-report-values {
+      display: grid;
+      gap: 0.45rem;
+      align-content: start;
+    }
+
+    .emotion-report-value {
+      font-weight: 800;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .emotion-meter {
+      height: 0.48rem;
+      border-radius: 999px;
+      background: rgba(12, 22, 24, 0.12);
+      overflow: hidden;
+    }
+
+    .emotion-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+      transition: width 160ms ease;
+    }
+
+    .emotion-meter-fill.is-valence {
+      background: linear-gradient(90deg, #be123c, #f8fafc 50%, #047857);
+    }
+
+    .emotion-meter-fill.is-arousal {
+      background: linear-gradient(90deg, #1d4ed8, #f59e0b);
+    }
+
+    .emotion-expression-list {
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .emotion-expression-row {
+      display: grid;
+      grid-template-columns: 5.4rem minmax(0, 1fr) 2.7rem;
+      font-size: 0.78rem;
+    }
+
+    .emotion-expression-value {
+      color: var(--demo-muted);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .social-context-panel {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .social-context-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .social-context-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .social-context-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .social-context-stat,
+    .social-context-item {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      padding: 0.55rem;
+    }
+
+    .social-context-stat strong {
+      display: block;
+      color: var(--ink);
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
+
+    .social-context-list {
+      display: grid;
+      gap: 0.45rem;
+      margin-top: 0.35rem;
+    }
+
+    .social-context-item {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .social-context-item-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .social-context-token-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+
+    .social-context-token {
+      border: 1px solid var(--demo-line);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.64);
+      color: var(--demo-muted);
+      font-size: 0.74rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      padding: 0.12rem 0.38rem;
+    }
+
+    .social-context-token[data-activity-state="stationary"] {
+      background: rgba(15, 118, 110, 0.1);
+      border-color: rgba(15, 118, 110, 0.26);
+      color: #0f766e;
+    }
+
+    .social-context-token[data-activity-state="moving"] {
+      background: rgba(29, 78, 216, 0.1);
+      border-color: rgba(29, 78, 216, 0.26);
+      color: #1d4ed8;
+    }
+
+    .social-context-token[data-activity-state="approaching"] {
+      background: rgba(4, 120, 87, 0.12);
+      border-color: rgba(4, 120, 87, 0.28);
+      color: #047857;
+    }
+
+    .social-context-token[data-activity-state="receding"] {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #92400e;
+    }
+
+    .social-context-token[data-attention-state="attending"] {
+      background: rgba(4, 120, 87, 0.12);
+      border-color: rgba(4, 120, 87, 0.28);
+      color: #047857;
+    }
+
+    .social-context-token[data-attention-state="not_attending"] {
+      background: rgba(190, 18, 60, 0.1);
+      border-color: rgba(190, 18, 60, 0.24);
+      color: #be123c;
+    }
+
+    .social-context-empty {
+      border: 1px dashed var(--demo-line);
+      border-radius: 8px;
+      color: var(--demo-muted);
+      font-size: 0.8rem;
+      padding: 0.55rem;
+    }
+
+    @media (max-width: 991px) {
+      .emotion-report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .social-context-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .behaviour-state-board {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .behaviour-channel-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(5.6rem, 1fr));
+      gap: 0.45rem;
+    }
+
+    .behaviour-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.15rem;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      color: var(--demo-muted);
+      padding: 0.35rem 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-chip.is-active {
+      color: var(--ink);
+      background: rgba(0, 176, 162, 0.12);
+      border-color: rgba(0, 176, 162, 0.34);
+    }
+
+    .behaviour-visual-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.65rem;
+    }
+
+    .behaviour-visual-card {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      min-height: 128px;
+      display: grid;
+      gap: 0.55rem;
+      align-content: start;
+    }
+
+    .behaviour-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .behaviour-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      color: var(--demo-muted);
+      font-size: 0.77rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .behaviour-card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .behaviour-icon {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--demo-line);
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--ink);
+      flex: 0 0 auto;
+    }
+
+    .behaviour-card-value,
+    .behaviour-card-subvalue {
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-card-value {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .behaviour-card-subvalue {
+      color: var(--demo-muted);
+      font-size: 0.84rem;
+    }
+
+    .behaviour-speech-preview {
+      min-height: 3.5rem;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.68);
+      padding: 0.7rem;
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-gesture-stage {
+      min-height: 4.25rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      font-size: 2.3rem;
+      color: var(--ink);
+    }
+
+    .behaviour-meter-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .behaviour-meter {
+      height: 0.55rem;
+      border-radius: 999px;
+      background: rgba(12, 22, 24, 0.12);
+      overflow: hidden;
+    }
+
+    .behaviour-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #f59e0b);
+      transition: width 160ms ease;
+    }
+
+    .behaviour-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .behaviour-mini-state {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 0.45rem;
+      min-height: 3.1rem;
+    }
+
+    .behaviour-mini-state .metric-label {
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    .behaviour-detail-block {
+      max-height: 134px;
+      overflow: auto;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      padding: 0.55rem;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    [data-behaviour-tone="speech"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
+    [data-behaviour-tone="speech"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
+    [data-behaviour-tone="gesture"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #b45309, #f59e0b);
+    }
+
+    [data-behaviour-tone="gesture"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #b45309, #f59e0b);
+    }
+
+    [data-behaviour-tone="face"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #be123c, #fb7185);
+    }
+
+    [data-behaviour-tone="face"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #be123c, #fb7185);
+    }
+
+    [data-behaviour-tone="gaze"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+    }
+
+    [data-behaviour-tone="gaze"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+    }
+
+    [data-behaviour-tone="motion"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #047857, #84cc16);
+    }
+
+    [data-behaviour-tone="motion"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #047857, #84cc16);
+    }
+
+    [data-behaviour-tone="display"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #6d28d9, #f97316);
+    }
+
+    [data-behaviour-tone="display"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #6d28d9, #f97316);
     }
 
     .video-shell {
@@ -477,6 +1058,18 @@
     [data-theme="dark"] .message-list,
     [data-theme="dark"] .demo-bubble,
     [data-theme="dark"] .metric-row,
+    [data-theme="dark"] .emotion-report-panel,
+    [data-theme="dark"] .emotion-affect-plane,
+    [data-theme="dark"] .social-context-panel,
+    [data-theme="dark"] .social-context-stat,
+    [data-theme="dark"] .social-context-item,
+    [data-theme="dark"] .social-context-token,
+    [data-theme="dark"] .social-context-empty,
+    [data-theme="dark"] .behaviour-visual-card,
+    [data-theme="dark"] .behaviour-speech-preview,
+    [data-theme="dark"] .behaviour-gesture-stage,
+    [data-theme="dark"] .behaviour-mini-state,
+    [data-theme="dark"] .behaviour-detail-block,
     [data-theme="dark"] .profile-token,
     [data-theme="dark"] .diagnostics-current-state,
     [data-theme="dark"] .storage-list .list-group-item,
@@ -486,6 +1079,14 @@
       background: var(--demo-panel-soft);
       border-color: var(--demo-line);
       color: var(--ink);
+    }
+
+    [data-theme="dark"] .emotion-meter {
+      background: rgba(226, 232, 240, 0.14);
+    }
+
+    [data-theme="dark"] .emotion-plane-axis {
+      background: rgba(226, 232, 240, 0.24);
     }
 
     [data-theme="dark"] .demo-card .card-header,
@@ -553,6 +1154,29 @@
     [data-theme="dark"] .interaction-tabs .nav-link.active,
     [data-theme="dark"] .drawer-tabs .nav-link.active {
       background: rgba(0, 176, 162, 0.16);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .behaviour-chip {
+      background: rgba(226, 232, 240, 0.06);
+      border-color: var(--demo-line);
+      color: var(--demo-muted);
+    }
+
+    [data-theme="dark"] .behaviour-chip.is-active {
+      background: rgba(0, 176, 162, 0.16);
+      border-color: rgba(20, 184, 166, 0.42);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .behaviour-meter {
+      background: rgba(226, 232, 240, 0.14);
+    }
+
+    [data-theme="dark"] .modal-content,
+    [data-theme="dark"] .column-expansion-body {
+      background: var(--demo-bg);
+      border-color: var(--demo-line);
       color: var(--ink);
     }
 
@@ -624,19 +1248,24 @@
       </header>
 
       <main class="cockpit-grid">
-        <aside class="left-column">
-          <div class="demo-card card">
+        <aside class="left-column cockpit-column" data-column-key="sensing">
+          <div class="demo-card card" data-column-panel="sensing">
             <div class="card-header">
               <span><i class="bi bi-radar me-2"></i>Sensing</span>
+              <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Sensing"
+                aria-label="Expand Sensing" data-column-maximize="sensing" data-column-title="Sensing"
+                data-testid="maximize-sensing-column">
+                <i class="bi bi-arrows-fullscreen"></i>
+              </button>
             </div>
             <div class="card-body">
               <div class="video-shell mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                 <video id="camera_video" autoplay playsinline muted data-testid="camera-video"></video>
                 <canvas id="overlay_canvas" data-testid="overlay-canvas"></canvas>
               </div>
               <div class="mb-2"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                 <label class="form-label metric-label" for="camera_device_select">Camera</label>
                 <div class="input-group input-group-sm" data-testid="camera-device-input-group">
                   <select id="camera_device_select" class="form-select" data-testid="camera-device">
@@ -650,12 +1279,12 @@
                 </div>
               </div>
               <div id="camera_device_status" class="text-muted small mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign"
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign"
                 data-testid="camera-device-status">
                 Camera uses browser default.
               </div>
               <div class="d-flex gap-2 mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                 <button id="start_camera" class="btn btn-primary flex-fill" type="button" data-testid="start-camera">
                   <i class="bi bi-camera-video me-2"></i>Start
                 </button>
@@ -673,7 +1302,7 @@
 
               <div class="accordion" id="sensing_accordion">
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                   <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensor_toggles" aria-expanded="true">
@@ -683,7 +1312,7 @@
                   <div id="sensor_toggles" class="accordion-collapse collapse show" data-bs-parent="#sensing_accordion">
                     <div class="accordion-body">
                       <div class="form-check form-switch"
-                        data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                        data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                         <input id="sensor_emit_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-emit-enabled">
                         <label class="form-check-label" for="sensor_emit_enabled">Emit camera observations</label>
@@ -694,10 +1323,10 @@
                         <label class="form-check-label" for="sensor_emotion_enabled">Face emotion</label>
                       </div>
                       <div class="form-check form-switch"
-                        data-profile-observations="obs.human.presence obs.social.grouping">
+                        data-profile-observations="obs.human.presence obs.social.grouping obs.social.context">
                         <input id="sensor_social_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-social-enabled">
-                        <label class="form-check-label" for="sensor_social_enabled">Social grouping</label>
+                        <label class="form-check-label" for="sensor_social_enabled">Social context</label>
                       </div>
                       <div class="form-check form-switch" data-profile-observations="obs.hand.sign">
                         <input id="sensor_hand_enabled" class="form-check-input" type="checkbox"
@@ -708,7 +1337,7 @@
                   </div>
                 </div>
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensor_config">
@@ -719,7 +1348,7 @@
                     <div class="accordion-body">
                       <div class="row g-2">
                         <div class="col-6"
-                          data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign">
+                          data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
                           <label class="form-label metric-label" for="emit_interval_ms">Emit ms</label>
                           <input id="emit_interval_ms" class="form-control form-control-sm" type="number" min="250"
                             step="250" value="2500" data-testid="emit-interval-ms">
@@ -729,7 +1358,7 @@
                           <input id="face_confidence_threshold" class="form-control form-control-sm" type="number"
                             min="0" max="1" step="0.05" value="0.55" data-testid="face-confidence-threshold">
                         </div>
-                        <div class="col-6" data-profile-observations="obs.human.presence obs.social.grouping">
+                        <div class="col-6" data-profile-observations="obs.human.presence obs.social.grouping obs.social.context">
                           <label class="form-label metric-label" for="group_distance_threshold">Group dist</label>
                           <input id="group_distance_threshold" class="form-control form-control-sm" type="number"
                             min="0.05" max="0.5" step="0.01" value="0.16"
@@ -942,11 +1571,11 @@
                     </div>
                   </div>
                 </div>
-                <div class="accordion-item" data-profile-observations="obs.human.presence obs.social.grouping">
+                <div class="accordion-item" data-profile-observations="obs.human.presence obs.social.grouping obs.social.context">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#manual_social_events">
-                      Manual Social
+                      Manual Social Context
                     </button>
                   </h2>
                   <div id="manual_social_events" class="accordion-collapse collapse"
@@ -1019,7 +1648,7 @@
                   </div>
                 </div>
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.hand.sign obs.weather.current obs.weather.forecast">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.weather.current obs.weather.forecast">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensed_signals">
@@ -1033,13 +1662,186 @@
                           <span class="metric-label">Emotion</span>
                           <strong id="emotion_value" data-testid="emotion-value">-</strong>
                         </div>
-                        <div class="metric-row" data-profile-observations="obs.human.presence obs.social.grouping">
+                        <div class="emotion-report-panel" data-profile-observations="obs.emotion.face"
+                          data-testid="emotion-report">
+                          <div class="emotion-report-head">
+                            <span class="emotion-report-title">
+                              <i class="bi bi-emoji-smile"></i>
+                              Facial Emotion Report
+                            </span>
+                            <span id="emotion_emit_status" class="status-pill is-idle"
+                              data-testid="emotion-emit-status">Not emitted</span>
+                          </div>
+                          <div class="emotion-report-grid">
+                            <div class="emotion-affect-plane" aria-label="Valence arousal affect plane"
+                              data-testid="emotion-affect-plane">
+                              <div class="emotion-plane-axis emotion-plane-axis-x"></div>
+                              <div class="emotion-plane-axis emotion-plane-axis-y"></div>
+                              <span class="emotion-plane-label emotion-plane-label-left">Negative</span>
+                              <span class="emotion-plane-label emotion-plane-label-right">Positive</span>
+                              <span class="emotion-plane-label emotion-plane-label-bottom">Calm</span>
+                              <span class="emotion-plane-label emotion-plane-label-top">Activated</span>
+                              <div id="emotion_affect_marker" class="emotion-affect-marker" data-emotion="neutral"
+                                data-testid="emotion-affect-marker"></div>
+                            </div>
+                            <div class="emotion-report-values">
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Valence</span>
+                                <strong id="emotion_valence_value" class="emotion-report-value"
+                                  data-testid="emotion-valence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Valence">
+                                <div id="emotion_valence_meter" class="emotion-meter-fill is-valence"
+                                  data-testid="emotion-valence-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Arousal</span>
+                                <strong id="emotion_arousal_value" class="emotion-report-value"
+                                  data-testid="emotion-arousal-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Arousal">
+                                <div id="emotion_arousal_meter" class="emotion-meter-fill is-arousal"
+                                  data-testid="emotion-arousal-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Confidence</span>
+                                <strong id="emotion_confidence_value" class="emotion-report-value"
+                                  data-testid="emotion-confidence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Emotion confidence">
+                                <div id="emotion_confidence_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-confidence-meter"></div>
+                              </div>
+                              <div class="emotion-report-row">
+                                <span class="metric-label">Face Confidence</span>
+                                <strong id="emotion_face_confidence_value" class="emotion-report-value"
+                                  data-testid="emotion-face-confidence-value">0.00</strong>
+                              </div>
+                              <div class="emotion-meter" aria-label="Face detection confidence">
+                                <div id="emotion_face_confidence_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-face-confidence-meter"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="emotion-expression-list" data-testid="emotion-expression-list">
+                            <div class="emotion-expression-row" data-emotion-expression="neutral">
+                              <span class="metric-label">Neutral</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_neutral_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-neutral-meter"></div>
+                              </div>
+                              <span id="emotion_expression_neutral_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-neutral-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="happy">
+                              <span class="metric-label">Happy</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_happy_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-happy-meter"></div>
+                              </div>
+                              <span id="emotion_expression_happy_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-happy-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="sad">
+                              <span class="metric-label">Sad</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_sad_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-sad-meter"></div>
+                              </div>
+                              <span id="emotion_expression_sad_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-sad-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="angry">
+                              <span class="metric-label">Angry</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_angry_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-angry-meter"></div>
+                              </div>
+                              <span id="emotion_expression_angry_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-angry-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="fearful">
+                              <span class="metric-label">Fearful</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_fearful_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-fearful-meter"></div>
+                              </div>
+                              <span id="emotion_expression_fearful_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-fearful-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="disgusted">
+                              <span class="metric-label">Disgusted</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_disgusted_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-disgusted-meter"></div>
+                              </div>
+                              <span id="emotion_expression_disgusted_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-disgusted-value">0%</span>
+                            </div>
+                            <div class="emotion-expression-row" data-emotion-expression="surprised">
+                              <span class="metric-label">Surprised</span>
+                              <div class="emotion-meter">
+                                <div id="emotion_expression_surprised_meter" class="emotion-meter-fill"
+                                  data-testid="emotion-expression-surprised-meter"></div>
+                              </div>
+                              <span id="emotion_expression_surprised_value" class="emotion-expression-value"
+                                data-testid="emotion-expression-surprised-value">0%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="metric-row" data-profile-observations="obs.human.presence obs.social.grouping obs.social.context">
                           <span class="metric-label">Humans</span>
                           <strong id="human_count" data-testid="human-count">0</strong>
                         </div>
-                        <div class="metric-row" data-profile-observations="obs.social.grouping">
+                        <div class="metric-row" data-profile-observations="obs.social.grouping obs.social.context">
                           <span class="metric-label">Groups</span>
                           <strong id="group_count" data-testid="group-count">0</strong>
+                        </div>
+                        <div class="social-context-panel"
+                          data-profile-observations="obs.human.presence obs.social.grouping obs.social.context"
+                          data-testid="social-context-report">
+                          <div class="social-context-head">
+                            <span class="social-context-title">
+                              <i class="bi bi-diagram-3"></i>
+                              Social Context Report
+                            </span>
+                            <span id="social_context_status" class="status-pill is-idle"
+                              data-testid="social-context-status">No people</span>
+                          </div>
+                          <div class="social-context-stat-grid">
+                            <div class="social-context-stat">
+                              <span class="metric-label">Humans</span>
+                              <strong id="social_context_human_count"
+                                data-testid="social-context-human-count">0</strong>
+                            </div>
+                            <div class="social-context-stat">
+                              <span class="metric-label">Groups</span>
+                              <strong id="social_context_group_count"
+                                data-testid="social-context-group-count">0</strong>
+                            </div>
+                            <div class="social-context-stat">
+                              <span class="metric-label">Largest</span>
+                              <strong id="social_context_largest_group"
+                                data-testid="social-context-largest-group">0</strong>
+                            </div>
+                            <div class="social-context-stat">
+                              <span class="metric-label">Singletons</span>
+                              <strong id="social_context_singleton_count"
+                                data-testid="social-context-singleton-count">0</strong>
+                            </div>
+                          </div>
+                          <div>
+                            <span class="metric-label">Groups and members</span>
+                            <div id="social_group_list" class="social-context-list" data-testid="social-group-list">
+                              <div class="social-context-empty" data-testid="social-group-empty">No groups</div>
+                            </div>
+                          </div>
+                          <div>
+                            <span class="metric-label">Tracked people</span>
+                            <div id="social_person_list" class="social-context-list" data-testid="social-person-list">
+                              <div class="social-context-empty" data-testid="social-person-empty">No tracked people</div>
+                            </div>
+                          </div>
                         </div>
                         <div class="metric-row" data-profile-observations="obs.hand.sign">
                           <span class="metric-label">Hand Sign</span>
@@ -1056,16 +1858,28 @@
               </div>
             </div>
           </div>
+          <div class="column-expanded-placeholder surface-panel d-none" data-column-placeholder="sensing"
+            data-testid="sensing-column-placeholder" hidden>
+            <i class="bi bi-arrows-fullscreen"></i>
+            <span>Sensing expanded</span>
+          </div>
         </aside>
 
-        <section class="main-column">
-          <div class="demo-card card">
+        <section class="main-column cockpit-column" data-column-key="interaction">
+          <div class="demo-card card" data-column-panel="interaction">
             <div class="card-header">
               <span><i class="bi bi-chat-dots me-2"></i>Interaction</span>
-              <button id="clear_messages" class="btn btn-outline-ink toolbar-button" type="button"
-                title="Clear messages">
-                <i class="bi bi-eraser"></i>
-              </button>
+              <div class="card-header-actions">
+                <button id="clear_messages" class="btn btn-outline-ink toolbar-button" type="button"
+                  title="Clear messages">
+                  <i class="bi bi-eraser"></i>
+                </button>
+                <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Interaction"
+                  aria-label="Expand Interaction" data-column-maximize="interaction"
+                  data-column-title="Interaction" data-testid="maximize-interaction-column">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <ul class="nav nav-tabs interaction-tabs mb-3" id="interaction_tabs" role="tablist">
@@ -1171,67 +1985,211 @@
               </div>
             </div>
           </div>
+          <div class="column-expanded-placeholder surface-panel d-none" data-column-placeholder="interaction"
+            data-testid="interaction-column-placeholder" hidden>
+            <i class="bi bi-arrows-fullscreen"></i>
+            <span>Interaction expanded</span>
+          </div>
         </section>
 
-        <aside class="right-column">
-          <div class="demo-card card">
+        <aside class="right-column cockpit-column" data-column-key="behaviour">
+          <div class="demo-card card" data-column-panel="behaviour">
             <div class="card-header">
               <span><i class="bi bi-send-fill me-2"></i>Behaviour</span>
+              <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Behaviour"
+                aria-label="Expand Behaviour" data-column-maximize="behaviour" data-column-title="Behaviour"
+                data-testid="maximize-behaviour-column">
+                <i class="bi bi-arrows-fullscreen"></i>
+              </button>
             </div>
             <div class="card-body">
-              <div class="metric-row-list">
-                <div class="metric-row" data-profile-behaviours="speech">
-                  <span class="metric-label">Speech</span>
-                  <div id="speech_preview" data-testid="speech-preview">-</div>
+              <div class="behaviour-state-board" data-testid="behaviour-state-board">
+                <div class="behaviour-channel-strip" data-testid="behaviour-channel-strip">
+                  <div id="behaviour_chip_speech" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="speech" data-testid="behaviour-chip-speech">
+                    <i class="bi bi-chat-quote"></i><span>Speech</span>
+                  </div>
+                  <div id="behaviour_chip_gesture" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.gesture" data-testid="behaviour-chip-gesture">
+                    <i class="bi bi-hand-index-thumb"></i><span>Gesture</span>
+                  </div>
+                  <div id="behaviour_chip_face" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.facialExpression" data-testid="behaviour-chip-face">
+                    <i class="bi bi-emoji-smile"></i><span>Face</span>
+                  </div>
+                  <div id="behaviour_chip_gaze" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.gaze" data-testid="behaviour-chip-gaze">
+                    <i class="bi bi-eye"></i><span>Gaze</span>
+                  </div>
+                  <div id="behaviour_chip_motion" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="motion nonVerbal.motion" data-testid="behaviour-chip-motion">
+                    <i class="bi bi-activity"></i><span>Motion</span>
+                  </div>
+                  <div id="behaviour_chip_display" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="display" data-testid="behaviour-chip-display">
+                    <i class="bi bi-window"></i><span>Display</span>
+                  </div>
                 </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.gesture">
-                  <span class="metric-label">Gesture</span>
-                  <strong id="gesture_value" data-testid="gesture-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.facialExpression">
-                  <span class="metric-label">Face</span>
-                  <strong id="face_value" data-testid="face-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.gaze">
-                  <span class="metric-label">Gaze</span>
-                  <strong id="gaze_value" data-testid="gaze-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="motion nonVerbal.motion">
-                  <span class="metric-label">Motion</span>
-                  <strong id="motion_value" data-testid="motion-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="motion.handSign display">
-                  <span class="metric-label">Agent Sign</span>
-                  <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
-                </div>
-                <div class="metric-row" data-profile-observations="obs.hand.sign" data-profile-behaviours="display">
-                  <span class="metric-label">User Sign</span>
-                  <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Round</span>
-                  <strong id="round_value" data-testid="round-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Winner</span>
-                  <strong id="winner_value" data-testid="winner-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Display</span>
-                  <pre id="display_value" class="compact-json mb-0" data-testid="display-value">-</pre>
-                </div>
-                <div class="metric-row" data-profile-behaviours="speech nonVerbal motion display">
-                  <span class="metric-label">Latest Behaviour Event</span>
-                  <div id="latest_behaviour_event" data-testid="latest-behaviour-event">-</div>
+
+                <div class="behaviour-visual-grid" data-testid="behaviour-visual-grid">
+                  <section class="behaviour-visual-card behaviour-card-wide" data-profile-behaviours="speech"
+                    data-behaviour-tone="speech">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-chat-quote"></i></span>
+                        Speech
+                      </span>
+                    </div>
+                    <div id="speech_preview" class="behaviour-speech-preview" data-testid="speech-preview">-</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gesture"
+                    data-behaviour-tone="gesture">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-hand-index-thumb"></i></span>
+                        Gesture
+                      </span>
+                    </div>
+                    <div id="gesture_stage" class="behaviour-gesture-stage" data-testid="gesture-stage">
+                      <i id="gesture_icon" class="bi bi-dash-lg" data-testid="gesture-icon"></i>
+                    </div>
+                    <strong id="gesture_value" class="behaviour-card-value" data-testid="gesture-value">NONE</strong>
+                    <div id="gesture_hint" class="behaviour-card-subvalue" data-testid="gesture-hint">No gesture</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.facialExpression"
+                    data-behaviour-tone="face">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-emoji-smile"></i></span>
+                        Face
+                      </span>
+                      <span id="face_intensity_value" data-testid="face-intensity-value">0%</span>
+                    </div>
+                    <strong id="face_value" class="behaviour-card-value" data-testid="face-value">-</strong>
+                    <div class="behaviour-meter-row">
+                      <div class="behaviour-meter" aria-label="Face intensity">
+                        <div id="face_intensity_meter" class="behaviour-meter-fill"
+                          data-testid="face-intensity-meter"></div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gaze"
+                    data-behaviour-tone="gaze">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-eye"></i></span>
+                        Gaze
+                      </span>
+                    </div>
+                    <strong id="gaze_value" class="behaviour-card-value" data-testid="gaze-value">-</strong>
+                    <div id="gaze_focus_value" class="behaviour-card-subvalue" data-testid="gaze-focus-value">Focus -</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="motion nonVerbal.motion"
+                    data-behaviour-tone="motion">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-activity"></i></span>
+                        Motion
+                      </span>
+                    </div>
+                    <strong id="motion_value" class="behaviour-card-value" data-testid="motion-value">-</strong>
+                    <div class="behaviour-meter-row">
+                      <span class="metric-label">Energy</span>
+                      <span id="motion_energy_value" data-testid="motion-energy-value">0%</span>
+                    </div>
+                    <div class="behaviour-meter" aria-label="Motion energy">
+                      <div id="motion_energy_meter" class="behaviour-meter-fill"
+                        data-testid="motion-energy-meter"></div>
+                    </div>
+                    <div class="behaviour-meter-row">
+                      <span class="metric-label">Stillness</span>
+                      <span id="motion_stillness_value" data-testid="motion-stillness-value">0%</span>
+                    </div>
+                    <div class="behaviour-meter" aria-label="Motion stillness">
+                      <div id="motion_stillness_meter" class="behaviour-meter-fill"
+                        data-testid="motion-stillness-meter"></div>
+                    </div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="display"
+                    data-behaviour-tone="display">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-window"></i></span>
+                        Display
+                      </span>
+                    </div>
+                    <div class="behaviour-mini-grid">
+                      <div class="behaviour-mini-state" data-profile-behaviours="motion.handSign display">
+                        <span class="metric-label">Agent Sign</span>
+                        <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
+                        <div id="agent_sign_visual" class="behaviour-card-subvalue"
+                          data-testid="agent-sign-visual">-</div>
+                      </div>
+                      <div class="behaviour-mini-state" data-profile-observations="obs.hand.sign"
+                        data-profile-behaviours="display">
+                        <span class="metric-label">User Sign</span>
+                        <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
+                        <div id="user_sign_visual" class="behaviour-card-subvalue" data-testid="user-sign-visual">-</div>
+                      </div>
+                      <div class="behaviour-mini-state">
+                        <span class="metric-label">Round</span>
+                        <strong id="round_value" data-testid="round-value">-</strong>
+                      </div>
+                      <div class="behaviour-mini-state">
+                        <span class="metric-label">Winner</span>
+                        <strong id="winner_value" data-testid="winner-value">-</strong>
+                      </div>
+                    </div>
+                    <span class="metric-label">Display Details</span>
+                    <pre id="display_value" class="behaviour-detail-block mb-0" data-testid="display-value">-</pre>
+                  </section>
+
+                  <section class="behaviour-visual-card behaviour-card-wide"
+                    data-profile-behaviours="speech nonVerbal motion display" data-behaviour-tone="display">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-braces"></i></span>
+                        Latest Behaviour Event
+                      </span>
+                    </div>
+                    <div id="latest_behaviour_event" class="behaviour-detail-block"
+                      data-testid="latest-behaviour-event">-</div>
+                  </section>
                 </div>
               </div>
             </div>
+          </div>
+          <div class="column-expanded-placeholder surface-panel d-none" data-column-placeholder="behaviour"
+            data-testid="behaviour-column-placeholder" hidden>
+            <i class="bi bi-arrows-fullscreen"></i>
+            <span>Behaviour expanded</span>
           </div>
         </aside>
       </main>
       </div>
     </div>
   </section>
+
+  <div class="modal fade column-expansion-modal" id="column_expansion_modal" tabindex="-1"
+    aria-labelledby="column_expansion_title" aria-hidden="true" data-testid="column-expansion-modal">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down modal-dialog-scrollable column-expansion-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="column_expansion_title" class="modal-title fs-5" data-testid="column-expansion-title">
+            Expanded Panel
+          </h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div id="column_expansion_body" class="modal-body column-expansion-body"
+          data-testid="column-expansion-body"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="offcanvas offcanvas-end" tabindex="-1" id="diagnostics_drawer" aria-labelledby="diagnostics_title">
     <div class="offcanvas-header">

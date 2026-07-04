@@ -39,6 +39,7 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Continuous Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- The Sensing, Interaction, and Behaviour columns can each be expanded into a wider modal viewport while preserving the live panel state.
 - The Continuous Speech tab lets operators refresh and choose browser microphone and speaker devices; unsupported speaker routing falls back to the browser/system default output.
 - Routine speech controls stay in the Continuous Speech tab. Advanced Speech Settings live in the Sensing accordion and include voice, VAD mode/timing/eagerness, backend complement, transcript logprobs, input noise reduction, output speed, reasoning effort, max output tokens, VAD interruption, local barge-in cancellation, and half-duplex fallback.
 - Speech is full-duplex by default: the microphone stays live while assistant audio plays. Barge-in cancellation is enabled by default and sends `response.cancel` on the Realtime data channel when user speech starts during active assistant audio. Half-duplex fallback is disabled by default and only mutes microphone tracks during assistant playback when difficult speaker-to-microphone echo makes that preferable.
@@ -46,9 +47,9 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
-- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
-- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social/hand inputs, and sensed visual signal readouts. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as full-width rows.
-- After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour rows. Agents without a declared profile keep the full cockpit visible as a fallback.
+- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social context, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
+- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social-context/hand inputs, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status. The social context report shows humans, groups, group sizes, member IDs, tracked-person confidence, cheap movement states such as stationary, moving, approaching, and receding, and a first-pass attentiveness signal from person visibility, likely face visibility, centered/frontal geometry, and confidence. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
+- After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour board cards/chips. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
 ### Prometheus Admin Cockpit
@@ -168,7 +169,30 @@ PowerShell:
 
 App default URL: `http://localhost:8080`
 
-### 4. External browser clients and CORS
+### 4. Test
+
+Run the Java regression suite:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Run the Valerian Playwright visual smoke check:
+
+```powershell
+npm install
+npx playwright install chromium
+npm run test:valerian:visual
+```
+
+The Playwright check starts or reuses `http://127.0.0.1:8080`, uses the configured
+database, creates or re-enables access code `VX102` through the admin API,
+validates the facial emotion report, social context report, and Behaviour board
+visuals in expanded modals, and captures expanded-column screenshots as test artifacts. Set
+`PROMETHEUS_ADMIN_TOKEN` if your local `prometheus.admin.token` is not `laure`.
+Set `PROMETHEUS_SKIP_WEBSERVER=true` when you already started the app yourself.
+
+### 5. External browser clients and CORS
 
 The bundled PROMETHEUS clients are same-origin and do not need CORS. If a
 separate browser client such as `zhaw-iwi/valerian.git` runs on another origin
@@ -273,9 +297,9 @@ agent metadata used as a Realtime transcription language hint; custom
 `POST /agent/singlestate` requests may include it and otherwise default to
 `en`. The profile declares the observation event types an
 agent expects and the behaviour modalities it can emit, for example
-`obs.hand.sign`, `obs.social.grouping`, `speech`, `nonVerbal.gesture`,
-`motion.handSign`, and `display`. It is persisted with the `Agent` aggregate
-and is metadata, not runtime `Storage`.
+`obs.hand.sign`, `obs.social.grouping`, `obs.social.context`, `speech`,
+`nonVerbal.gesture`, `motion.handSign`, and `display`. It is persisted with the
+`Agent` aggregate and is metadata, not runtime `Storage`.
 Seed agent templates declare generic profiles through `AgentInteractionProfiles`
 factories such as `speechOnly()`, `multimodalOutput()`, and
 `multimodalInputOutput()`. TDSR application agents keep their specialized
@@ -472,11 +496,22 @@ Visual social observations use raw event types:
 
 - `obs.human.presence`
 - `obs.social.grouping`
+- `obs.social.context`
 
-The visual social client and the Prometheus demo cockpit can emit these raw events
-from camera detection. The Prometheus demo cockpit also includes manual social
-scenario buttons that emit the same raw event contract for rehearsal without a
-camera.
+The visual social client emits the presence/grouping pair from camera detection.
+The Valerian cockpit can emit the same pair and, when supported by the active
+profile, the richer `obs.social.context` event. The Valerian cockpit also includes
+manual social scenario buttons that emit the same social contracts for rehearsal
+without a camera.
+
+`obs.social.context` is the richer optional Valerian social sensing event. It is
+emitted alongside the existing presence/grouping events only for agents that
+declare `obs.social.context` or for unprofiled fallback cockpits. Its payload has
+`schemaVersion: 1`, aggregate human/group counts, group member IDs, and per-person
+`detectionConfidence`, `movement.state/confidence`, and
+`attention.state/confidence` plus boolean attention cues such as `personVisible`,
+`faceVisible`, `nearFrontal`, `centered`, and `frontalCentered`. It does not carry
+camera frames or raw bounding boxes.
 
 When `obs.social.grouping` is acknowledged, PROMETHEUS may persist a computed
 social event:

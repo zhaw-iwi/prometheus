@@ -11,6 +11,8 @@ class PromptEventContentAdapterUnitTest {
     private final BehaviourPlanPromptEventContentAdapter behaviourPlanAdapter = new BehaviourPlanPromptEventContentAdapter();
     private final SocialSituationChangePromptEventContentAdapter socialChangeAdapter =
             new SocialSituationChangePromptEventContentAdapter();
+    private final SocialContextPromptEventContentAdapter socialContextAdapter =
+            new SocialContextPromptEventContentAdapter();
     private final WeatherPromptEventContentAdapter weatherAdapter = new WeatherPromptEventContentAdapter();
 
     @Test
@@ -73,6 +75,35 @@ class PromptEventContentAdapterUnitTest {
         Event change = Event.observation(Event.TYPE_SOCIAL_SITUATION_CHANGE, Event.ACTOR_SYSTEM, "{invalid-json");
 
         assertEquals("Social situation changed.", this.socialChangeAdapter.toPromptContent(change));
+    }
+
+    @Test
+    void mapsSocialContextToReadablePromptContent() {
+        Event context = Event.observation(Event.TYPE_SOCIAL_CONTEXT, Event.ACTOR_USER,
+                "{\"schemaVersion\":1,\"humanCount\":3,\"groupCount\":1,\"singletonCount\":1,"
+                        + "\"largestGroupSize\":2,\"groups\":[{\"memberIds\":[1,2],\"size\":2},"
+                        + "{\"memberIds\":[3],\"size\":1}],\"people\":["
+                        + "{\"id\":1,\"detectionConfidence\":0.92,"
+                        + "\"movement\":{\"state\":\"moving\",\"confidence\":0.72},"
+                        + "\"attention\":{\"state\":\"attending\",\"confidence\":0.76,"
+                        + "\"personVisible\":true,\"faceVisible\":true,\"nearFrontal\":true,"
+                        + "\"centered\":true,\"frontalCentered\":true}},"
+                        + "{\"id\":2,\"detectionConfidence\":0.86,"
+                        + "\"movement\":{\"state\":\"approaching\",\"confidence\":0.81},"
+                        + "\"attention\":{\"state\":\"not_attending\",\"confidence\":0.44,"
+                        + "\"personVisible\":true,\"faceVisible\":true,\"nearFrontal\":true,"
+                        + "\"centered\":false,\"frontalCentered\":false}}]}");
+
+        assertEquals(
+                "Social context: 3 people visible; 1 group, largest 2, singletons 1. Groups: size 2 (members 1, 2); size 1 (members 3). People: person 1 detection 0.92, movement moving 0.72, attention attending 0.76 (person visible, face likely, centered/frontal); person 2 detection 0.86, movement approaching 0.81, attention not attending 0.44 (person visible, face likely, near frontal)",
+                this.socialContextAdapter.toPromptContent(context));
+    }
+
+    @Test
+    void mapsInvalidSocialContextConservatively() {
+        Event context = Event.observation(Event.TYPE_SOCIAL_CONTEXT, Event.ACTOR_USER, "{invalid-json");
+
+        assertEquals("Social context observed.", this.socialContextAdapter.toPromptContent(context));
     }
 
     @Test

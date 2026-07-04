@@ -117,6 +117,13 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 111: Two-state Davos therapy reminder with GIGI introduction
 - [x] Milestone 112: Remove cockpit VAD create-response control
 - [x] Milestone 113: German Davos Summit Hotel conversation agent
+- [x] Mainline Milestone 102: Valerian maximizable cockpit columns
+- [x] Mainline Milestone 103: Valerian visual behaviour board
+- [x] Mainline Milestone 104: Valerian real-time facial emotion report
+- [x] Mainline Milestone 105: Valerian social context report
+- [x] Mainline Milestone 106: Valerian social movement states
+- [x] Mainline Milestone 107: Valerian social attentiveness signal
+- [x] Mainline Milestone 108: Valerian social context observation contract
 
 ## Milestone 1
 ### Date
@@ -4985,14 +4992,14 @@ Remove the Valerian cockpit's obsolete Realtime VAD create-response control so o
 
 ### How to run
 1. Start the agents branch app:
-   - `./mvnw.cmd spring-boot:run`
+   - `.\mvnw.cmd spring-boot:run`
 2. Open Valerian:
    - `http://localhost:8080/valerian/`
 3. Open Advanced Speech Settings and confirm VAD mode/timing/eagerness and VAD interrupts remain, while VAD create-response is no longer shown.
 
 ### How to test
 - Focused cockpit/realtime contract suite:
-  - `./mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest,RealtimeControllerWebMvcTest,ScopedDemoControllerWebMvcTest" test`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest,RealtimeControllerWebMvcTest,ScopedDemoControllerWebMvcTest" test`
 
 ### Known issues and decisions
 - The server-side `vadCreateResponse=true` rejection remains intentionally as a compatibility guard for stale or external clients.
@@ -5042,3 +5049,281 @@ Add a German-only Davos Tech Summit / Hotel Grischa open-conversation agent that
 1. Live-test the German agent in Valerian with Realtime speech and barge-in enabled.
 2. Try realistic visitor turns about robot usefulness, hotel services, Davos activities, cold/thirst/biking/ambience merch hooks, and skepticism about robots.
 3. Decide whether a Davos Tech Summit access-code preset should include this agent for quicker operator setup.
+
+## Mainline Valerian Cockpit Milestones Merged Into Agents
+The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
+
+### Mainline Milestone 102
+### Date
+2026-07-04
+
+### Goal
+Let Valerian cockpit operators expand any of the three cockpit columns into a wider modal viewport without duplicating or resetting the live panel content.
+
+### What changed
+- Added icon-only expand controls to the Sensing, Interaction, and Behaviour column headers.
+- Added a shared Bootstrap modal that temporarily moves the selected column's existing card into the modal body and restores it to the original column when the modal closes.
+- Added per-column placeholders so the three-column layout remains stable while a panel is expanded.
+- Kept existing event listeners, media elements, transcript state, accordion/tab state, Realtime/audio controls, and behaviour render targets attached to the same DOM nodes.
+- Refreshed the camera overlay sizing after modal open/close so moved visual sensing content can realign to its new viewport.
+- Kept the shared expansion modal at body level so Bootstrap backdrops do not cover the modal controls.
+- Added a Playwright visual smoke test that runs against the real Spring app, seeds access code `VX102`, expands all three columns, captures modal screenshots, validates wider layout, and verifies restore behavior.
+- Updated Valerian static resource contract coverage, Playwright project configuration, and README documentation.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, then use the expand icon in any Sensing, Interaction, or Behaviour column header.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm install`
+  - `npx playwright install chromium`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a pure cockpit UI change; backend APIs, Realtime orchestration, profile filtering, access-code scoping, and event contracts are unchanged.
+- The implementation moves the live DOM node instead of cloning it so existing listeners and state remain intact.
+- The Playwright visual test uses the configured local database and admin API; set `PROMETHEUS_ADMIN_TOKEN` when the local admin token differs from `laure`.
+- Live camera and Realtime sessions should still be tested on the demo laptop because browser media behavior can vary by device.
+
+### Next steps
+1. Live-test expanded Sensing while the camera is running and expanded Interaction while continuous speech is active on the target browser.
+
+### Mainline Milestone 103
+### Date
+2026-07-04
+
+### Goal
+Make the Valerian Behaviour column show BehaviourPlan multiplicity and current modality state more visually, including in the maximized Behaviour modal.
+
+### What changed
+- Replaced the Behaviour column's raw row list with a visual state board that keeps Speech, Gesture, Face, Gaze, Motion, Display, and latest-event content visible as distinct cards.
+- Added active modality chips so operators can quickly see which behaviour channels are present in the latest plan.
+- Added a gesture stage with Bootstrap icon rendering for the existing nonverbal gesture vocabulary.
+- Added coloured progress-meter visuals for facial intensity, motion energy, and motion stillness, plus sign symbols for agent/user display state.
+- Updated the Valerian renderer to reset stale modality state before rendering each new plan, clamp numeric values into 0-100 percent meters, and keep the same visuals when the Behaviour column is moved into the maximized modal.
+- Extended Valerian static resource contract coverage and the Playwright visual smoke test to assert the board, icon, active chips, meters, sign visuals, and expanded Behaviour modal rendering.
+- Updated README documentation for the new Behaviour board and Playwright visual coverage.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent, and inspect the Behaviour column or maximize it with the expand icon.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a cockpit UI and renderer change only; backend behaviour-plan contracts, profile filtering, access-code scoping, and Realtime orchestration are unchanged.
+- The renderer treats each behaviour plan as the current state snapshot and resets absent modalities to neutral values so stale chips or meters do not remain visible.
+- Gesture rendering mirrors the existing nonverbal renderer's vocabulary but uses Bootstrap icons to fit the cockpit tool surface.
+- The meters currently cover the numeric fields available in existing plans: face intensity, motion energy, and motion stillness.
+
+### Next steps
+1. Live-test the board with framework demo agents that emit sparse and multi-channel behaviour plans.
+2. Add additional visual scales if future agents emit more numeric nonverbal fields such as posture openness or prosody intensity.
+
+### Mainline Milestone 104
+### Date
+2026-07-04
+
+### Goal
+Add a richer real-time facial emotion sensing report to Valerian so operators can inspect valence, arousal, confidence, expression distribution, and observation emission status directly in the cockpit.
+
+### What changed
+- Added a `Facial Emotion Report` panel under `Signals Sensed`, directly after the compact Emotion row and before social grouping readouts.
+- Added a valence/arousal affect plane with a live marker whose x-position is valence and y-position is arousal.
+- Added numeric readouts and meters for valence, arousal, dominant-emotion confidence, and face-detection confidence.
+- Added fixed expression distribution bars for neutral, happy, sad, angry, fearful, disgusted, and surprised scores.
+- Updated live camera and manual-emotion rendering to use the same report path, reset stale state when no face is detected or face sensing is disabled, and show whether the current live state was emitted, skipped by threshold/cooldown/stability, or live-only.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify the affect plane, marker position, meters, expression bars, and expanded Sensing modal rendering.
+- Updated README documentation for the richer real-time facial emotion report.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Face emotion sensing, start the camera, then open Sensing > Signals Sensed.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a Valerian UI-only change; the `obs.emotion.face` payload contract is unchanged and already carries emotion, confidence, valence, arousal, face-detection confidence, and expression scores.
+- The affect-plane marker reports live detection state, while the emission status separately describes whether an observation was sent to PROMETHEUS.
+- Browser camera detection still depends on target lighting, camera quality, and face-api model behavior.
+
+### Next steps
+1. Live-test the report with the target camera and lighting conditions.
+2. Consider extending backend prompt adapters or snapshot facts if agents should reason explicitly over arousal as well as emotion and valence.
+
+### Mainline Milestone 105
+### Date
+2026-07-04
+
+### Goal
+Rename Valerian's social detector controls to Social context and make the current social sensing state easier to inspect without changing the existing PROMETHEUS observation contracts.
+
+### What changed
+- Renamed the Valerian social sensing control language from Social grouping to Social context while keeping the underlying `obs.human.presence` and `obs.social.grouping` event types stable.
+- Added a `Social Context Report` panel under `Signals Sensed` with humans, groups, largest group size, singleton count, group/member lists, and tracked-person confidence.
+- Updated live camera detections, manual social-context samples, and disabled-sensor reset handling to render through the same report path.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify the social context report in the normal Sensing column and the maximized Sensing modal.
+- Updated README documentation for the richer social context readout and visual smoke coverage.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing or use Manual Social Context, then open Sensing > Signals Sensed.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This milestone is Valerian UI-only: raw social observations remain `obs.human.presence` and `obs.social.grouping` for backend compatibility.
+- Person activity is currently shown as `unknown`; track-derived movement states are planned for Milestone 106.
+- The report quality still depends on browser-side COCO-SSD person detection and camera conditions.
+
+### Next steps
+1. Milestone 106: derive stationary/moving/approaching/receding movement states from the existing person tracker.
+2. Milestone 107: add the first cheap attentiveness heuristic using person visibility, face visibility, near-frontal/centered cues, and confidence.
+
+### Mainline Milestone 106
+### Date
+2026-07-04
+
+### Goal
+Derive first-pass client-side movement activities for tracked people in Valerian's Social Context Report without adding GPT calls or changing the raw social observation contracts.
+
+### What changed
+- Added tracker-level movement heuristics based on consecutive person box center displacement and bounding-box area change.
+- Classified tracked people as `stationary`, `moving`, `approaching`, `receding`, or `unknown` once a track has enough history.
+- Added movement confidence and colored activity tokens to the Social Context Report's tracked-person rows.
+- Kept new tracks as `unknown` until a second detection frame exists, avoiding false movement labels on first sighting.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify movement-state rendering and the in-browser `updateTracks` movement heuristic.
+- Updated README documentation for movement states in the social context report.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing, start the camera, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This remains browser-only sensing and UI rendering. The emitted `obs.human.presence` and `obs.social.grouping` payload shapes are unchanged pending a separate contract-hardening decision.
+- Movement labels are cheap heuristics, not semantic action recognition. Camera jitter, partial boxes, occlusion, and detector box scale changes can produce noisy labels.
+- Approaching/receding is inferred from bounding-box area changes, so lateral movement toward the image edge can be misread under perspective distortion.
+
+### Next steps
+1. Milestone 107: add a first cheap attentiveness signal using person visibility, face visibility, near-frontal/centered cues, and confidence.
+2. Decide in Milestone 108 how these richer client-side social context signals should be emitted as stable PROMETHEUS observation payloads.
+
+### Mainline Milestone 107
+### Date
+2026-07-04
+
+### Goal
+Add a first cheap attentiveness signal to Valerian's Social Context Report using only browser-side person detection geometry and confidence, without GPT calls or social observation payload changes.
+
+### What changed
+- Added a per-person attention heuristic derived from person visibility, likely face-region visibility, upright/frontal geometry, center alignment, box scale, and detector confidence.
+- Classified tracked people as `attending`, `not_attending`, or `unknown` with a displayed attention confidence.
+- Added Social Context Report tokens for attention state, attention confidence, person visibility, likely face visibility, and centered/frontal geometry.
+- Kept manual social-context samples explicit as unknown attention while still marking the manually declared person as visible.
+- Extended Valerian static resource coverage and the Playwright visual smoke test to verify attentiveness rendering and the in-browser tracker-derived attention result.
+- Updated README documentation for the attentiveness signal.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing, start the camera, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is still a cheap client-side heuristic. `faceVisible` means likely face-region visibility inferred from a person box, not a dedicated per-person face detector.
+- The emitted `obs.human.presence` and `obs.social.grouping` payload shapes remain unchanged. A later contract decision is still needed before these richer social context signals are sent as stable PROMETHEUS observation fields.
+- Centered/frontal geometry is a proxy for attentiveness toward the camera or embodied agent. It can be wrong when the camera is off-axis relative to the robot, when people stand sideways near the center, or when groups overlap.
+
+### Next steps
+1. Decide how to evolve the social observation payload contract for humans, groups, movement, and attentiveness.
+2. Consider using a lightweight pose or face-landmark model only if the geometric heuristic is too noisy in target deployment conditions.
+
+### Mainline Milestone 108
+### Date
+2026-07-04
+
+### Goal
+Promote Valerian's richer social context sensing into a stable optional PROMETHEUS observation contract while preserving the existing `obs.human.presence` and `obs.social.grouping` flows.
+
+### What changed
+- Added `obs.social.context` as a first-class event/profile constant.
+- Added `obs.social.context` to common visual input interaction profiles so multimodal visual agents can declare the richer social signal.
+- Added a prompt adapter that summarizes the social context payload for LLM prompts without exposing camera boxes or frames.
+- Updated Valerian profile gating so social controls are visible for agents declaring either the existing social observations or `obs.social.context`.
+- Updated Valerian social emission to build a schema-versioned context payload with counts, group member IDs, movement state/confidence, and attention state/confidence/cues.
+- Kept old presence/grouping payload shapes unchanged and independently deduplicated them from the richer context event.
+- Emitted `obs.social.context` only when the active profile declares it or when the cockpit is in fallback-all mode for unprofiled agents.
+- Extended Java profile/prompt tests, Valerian static contract tests, and the Playwright visual smoke test to cover the new contract.
+- Updated multimodal seed prompt text that enumerates supported visual observation event types.
+- Updated README observation documentation.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Use an agent profile that declares `obs.social.context`, enable Social context sensing, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,PromptEventContentAdapterUnitTest,ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- Existing social situation-change computation still listens to `obs.social.grouping`, not `obs.social.context`, to avoid changing current agent behavior.
+- `obs.social.context` is profile-gated in Valerian. Existing agents that declare only grouping continue receiving only the old social event pair.
+- The attention and movement values are still browser-side heuristics and should be treated as uncertain sensing facts, not ground truth.
+
+### Next steps
+1. Decide which production agents should declare `obs.social.context` and update their prompts/replay tests accordingly.
+2. Live-test the new contract with the target camera and embodied-agent placement.

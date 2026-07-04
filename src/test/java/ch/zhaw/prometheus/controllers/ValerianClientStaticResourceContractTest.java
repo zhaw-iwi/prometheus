@@ -73,6 +73,55 @@ class ValerianClientStaticResourceContractTest {
     }
 
     @Test
+    void valerianClientSupportsMaximizableCockpitColumns() throws IOException {
+        String index = Files.readString(INDEX);
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(index.contains("data-column-panel=\"sensing\""));
+        assertTrue(index.contains("data-column-panel=\"interaction\""));
+        assertTrue(index.contains("data-column-panel=\"behaviour\""));
+        assertTrue(index.contains("data-testid=\"maximize-sensing-column\""));
+        assertTrue(index.contains("data-testid=\"maximize-interaction-column\""));
+        assertTrue(index.contains("data-testid=\"maximize-behaviour-column\""));
+        assertTrue(index.contains("data-column-maximize=\"sensing\""));
+        assertTrue(index.contains("data-column-maximize=\"interaction\""));
+        assertTrue(index.contains("data-column-maximize=\"behaviour\""));
+        assertTrue(index.contains("data-testid=\"sensing-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"interaction-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"behaviour-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-modal\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-title\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-body\""));
+        assertTrue(index.contains("modal-fullscreen-lg-down"));
+        assertTrue(index.contains("column-expansion-dialog"));
+        assertTrue(index.contains("column-expansion-body [data-column-maximize]"));
+        assertTrue(index.contains("bi bi-arrows-fullscreen"));
+
+        assertTrue(script.contains("const columnExpansion = {"));
+        assertTrue(script.contains("wireColumnExpansion();"));
+        assertTrue(script.contains("function wireColumnExpansion()"));
+        assertTrue(script.contains("window.bootstrap.Modal.getOrCreateInstance(modalElement);"));
+        assertTrue(script.contains("document.querySelectorAll(\"[data-column-maximize]\")"));
+        assertTrue(script.contains("openColumnExpansion(button.dataset.columnMaximize"));
+        assertTrue(script.contains("modalElement.addEventListener(\"hidden.bs.modal\", restoreExpandedColumn);"));
+        assertTrue(script.contains("modalElement.addEventListener(\"shown.bs.modal\", refreshExpandedColumnLayout);"));
+        assertTrue(script.contains("function openColumnExpansion(columnKey, title)"));
+        assertTrue(script.contains("const panel = document.querySelector(`[data-column-panel=\"${columnKey}\"]`);"));
+        assertTrue(script.contains("originalParent: panel.parentNode"));
+        assertTrue(script.contains("nextSibling: panel.nextSibling"));
+        assertTrue(script.contains("modalBody.replaceChildren(panel);"));
+        assertTrue(script.contains("function restoreExpandedColumn()"));
+        assertTrue(script.contains("active.originalParent.insertBefore(active.panel, active.nextSibling);"));
+        assertTrue(script.contains("active.originalParent.appendChild(active.panel);"));
+        assertTrue(script.contains("function setColumnPlaceholderVisible(placeholder, visible)"));
+        assertTrue(script.contains("placeholder.hidden = !visible;"));
+        assertTrue(script.contains("placeholder.classList.toggle(\"d-none\", !visible);"));
+        assertTrue(script.contains("function refreshExpandedColumnLayout()"));
+        assertTrue(script.contains("clearOverlay();"));
+        assertTrue(script.contains("el.hasAttribute(\"data-column-maximize\")"));
+    }
+
+    @Test
     void valerianClientUsesAccessCodeScopedDemoApi() throws IOException {
         String script = Files.readString(SCRIPT);
 
@@ -176,9 +225,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.indexOf("data-testid=\"assistant-audio\"")
                 < index.indexOf("data-testid=\"continuous-speech-sensing-panel\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
-                < index.indexOf("<aside class=\"right-column\">"));
+                < index.indexOf("<aside class=\"right-column cockpit-column\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
-                > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column\">")));
+                > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column cockpit-column\"")));
         assertFalse(index.contains("Push to Talk"));
         assertFalse(index.contains("push_to_talk"));
         assertFalse(index.contains("push-to-talk"));
@@ -399,12 +448,41 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"weather-value\""));
         assertTrue(index.contains("Camera uses browser default."));
         assertTrue(index.contains("Emit camera observations"));
+        assertTrue(index.contains("for=\"sensor_social_enabled\">Social context</label>"));
+        assertFalse(index.contains("for=\"sensor_social_enabled\">Social grouping</label>"));
         assertTrue(index.contains("Manual Emotion"));
-        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Manual Social Context"));
         assertTrue(index.contains("Manual Hand Sign"));
         assertTrue(index.contains("Weather"));
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("data-testid=\"manual-emotion-happy\""));
+        assertTrue(index.contains("data-testid=\"emotion-report\""));
+        assertTrue(index.contains("data-testid=\"emotion-affect-plane\""));
+        assertTrue(index.contains("data-testid=\"emotion-affect-marker\""));
+        assertTrue(index.contains("data-testid=\"emotion-valence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-arousal-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-confidence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-face-confidence-value\""));
+        assertTrue(index.contains("data-testid=\"emotion-emit-status\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-list\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-happy-meter\""));
+        assertTrue(index.contains("data-testid=\"emotion-expression-surprised-value\""));
+        assertTrue(index.contains("data-testid=\"social-context-report\""));
+        assertTrue(index.contains("data-testid=\"social-context-status\""));
+        assertTrue(index.contains("data-testid=\"social-context-human-count\""));
+        assertTrue(index.contains("data-testid=\"social-context-group-count\""));
+        assertTrue(index.contains("data-testid=\"social-context-largest-group\""));
+        assertTrue(index.contains("data-testid=\"social-context-singleton-count\""));
+        assertTrue(index.contains("data-testid=\"social-group-list\""));
+        assertTrue(index.contains("data-testid=\"social-person-list\""));
+        assertTrue(index.indexOf("data-testid=\"emotion-value\"")
+                < index.indexOf("data-testid=\"emotion-report\""));
+        assertTrue(index.indexOf("data-testid=\"emotion-report\"")
+                < index.indexOf("data-testid=\"human-count\""));
+        assertTrue(index.indexOf("data-testid=\"group-count\"")
+                < index.indexOf("data-testid=\"social-context-report\""));
+        assertTrue(index.indexOf("data-testid=\"social-context-report\"")
+                < index.indexOf("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"no-visual-sensing-state\""));
 
@@ -429,6 +507,38 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("camera.canvas.width - ((x + width) * scale.scaleX)"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(box.x, box.y, box.width, box.height, scale);"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(x, y, w, h, scale);"));
+        assertTrue(script.contains("const EMOTION_EXPRESSION_KEYS = [\"neutral\", \"happy\", \"sad\", \"angry\", \"fearful\", \"disgusted\", \"surprised\"]"));
+        assertTrue(script.contains("renderEmotionMetrics(emotion, detection.detection.score);"));
+        assertTrue(script.contains("function renderEmotionMetrics(emotion, faceScore = 0)"));
+        assertTrue(script.contains("function resetEmotionReport()"));
+        assertTrue(script.contains("function setEmotionAffectMarker(valence, arousal, emotion)"));
+        assertTrue(script.contains("marker.style.left = `${x}%`;"));
+        assertTrue(script.contains("marker.style.bottom = `${y}%`;"));
+        assertTrue(script.contains("function renderExpressionBars(expressions)"));
+        assertTrue(script.contains("function setEmotionEmitStatus(text, mode = \"idle\")"));
+        assertTrue(script.contains("setEmotionEmitStatus(\"Below threshold\", \"idle\");"));
+        assertTrue(script.contains("setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, \"live\");"));
+        assertTrue(script.contains("function formatSignedDecimal(value)"));
+        assertTrue(script.contains("renderSocialMetrics(social, tracked);"));
+        assertTrue(script.contains("function renderSocialMetrics(social, tracked = [])"));
+        assertTrue(script.contains("renderSocialGroups(view.groups || [])"));
+        assertTrue(script.contains("renderSocialPeople(people)"));
+        assertTrue(script.contains("const TRACK_MOVING_DISTANCE_NORM"));
+        assertTrue(script.contains("const TRACK_DEPTH_AREA_DELTA"));
+        assertTrue(script.contains("function deriveTrackMovement(track, detection, frameDiag)"));
+        assertTrue(script.contains("function trackArea(box)"));
+        assertTrue(script.contains("movementConfidence: Number(track.movementConfidence || 0)"));
+        assertTrue(script.contains("function normalizeActivityState(value)"));
+        assertTrue(index.contains("data-activity-state=\"moving\""));
+        assertTrue(script.contains("token.dataset.activityState = options.activityState;"));
+        assertTrue(script.contains("const ATTENTION_CONFIDENCE_THRESHOLD"));
+        assertTrue(script.contains("function deriveAttentionSignal(detection, frameWidth, frameHeight)"));
+        assertTrue(script.contains("function emptyAttentionSignal()"));
+        assertTrue(script.contains("function normalizeAttentionSignal(raw, fallback = {})"));
+        assertTrue(script.contains("function normalizeAttentionState(value)"));
+        assertTrue(script.contains("attentionState: attention.state"));
+        assertTrue(index.contains("data-attention-state=\"attending\""));
+        assertTrue(script.contains("token.dataset.attentionState = options.attentionState;"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
@@ -466,6 +576,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("type: \"obs.emotion.face\""));
         assertTrue(script.contains("type: \"obs.human.presence\""));
         assertTrue(script.contains("type: \"obs.social.grouping\""));
+        assertTrue(script.contains("type: \"obs.social.context\""));
         assertTrue(script.contains("type: \"obs.hand.sign\""));
         assertTrue(script.contains("type: \"obs.weather.current\""));
         assertTrue(script.contains("type: \"obs.weather.forecast\""));
@@ -481,6 +592,12 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("detectionMode: \"client_camera\""));
         assertTrue(script.contains("source: \"valerian.hand.manual\""));
         assertTrue(script.contains("detectionMode: \"manual\""));
+        assertTrue(script.contains("schemaVersion: 1"));
+        assertTrue(script.contains("function socialContextPayload(social, tracked, source)"));
+        assertTrue(script.contains("function socialContextPerson(person)"));
+        assertTrue(script.contains("function socialContextSignature(payload)"));
+        assertTrue(script.contains("currentProfileSupportsObservation(\"obs.social.context\")"));
+        assertTrue(script.contains("lastSocialContextSignature"));
     }
 
     @Test
@@ -491,16 +608,38 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("Manual Emotion"));
         assertTrue(index.contains("Manual Hand Sign"));
-        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Manual Social Context"));
         assertTrue(index.contains("Conversation Shortcuts"));
+        assertTrue(index.contains("data-testid=\"behaviour-state-board\""));
+        assertTrue(index.contains("data-testid=\"behaviour-channel-strip\""));
+        assertTrue(index.contains("data-testid=\"behaviour-visual-grid\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-speech\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-gesture\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-face\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-gaze\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-motion\""));
+        assertTrue(index.contains("data-testid=\"behaviour-chip-display\""));
         assertTrue(index.contains("data-testid=\"speech-preview\""));
+        assertTrue(index.contains("data-testid=\"gesture-stage\""));
+        assertTrue(index.contains("data-testid=\"gesture-icon\""));
+        assertTrue(index.contains("data-testid=\"gesture-hint\""));
         assertTrue(index.contains("data-testid=\"gesture-value\""));
         assertTrue(index.contains("data-testid=\"face-value\""));
+        assertTrue(index.contains("data-testid=\"face-intensity-value\""));
+        assertTrue(index.contains("data-testid=\"face-intensity-meter\""));
         assertTrue(index.contains("data-testid=\"gaze-value\""));
+        assertTrue(index.contains("data-testid=\"gaze-focus-value\""));
         assertTrue(index.contains("data-testid=\"motion-value\""));
+        assertTrue(index.contains("data-testid=\"motion-energy-value\""));
+        assertTrue(index.contains("data-testid=\"motion-energy-meter\""));
+        assertTrue(index.contains("data-testid=\"motion-stillness-value\""));
+        assertTrue(index.contains("data-testid=\"motion-stillness-meter\""));
+        assertTrue(index.contains("data-testid=\"agent-sign-visual\""));
+        assertTrue(index.contains("data-testid=\"user-sign-visual\""));
         assertTrue(index.contains("data-testid=\"display-value\""));
         assertTrue(index.contains("data-testid=\"latest-behaviour-event\""));
-        assertTrue(index.contains("class=\"metric-row-list\""));
+        assertTrue(index.contains("data-behaviour-tone=\"gesture\""));
+        assertTrue(index.contains("data-behaviour-tone=\"motion\""));
         assertTrue(index.contains("data-testid=\"manual-sign-rock\""));
         assertTrue(index.contains("data-testid=\"social-sample-crowd\""));
         assertFalse(index.contains("<span><i class=\"bi bi-lightning-charge me-2\"></i>Scenario</span>"));
@@ -514,8 +653,24 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("plan.nonVerbal"));
         assertTrue(script.contains("plan.motion"));
         assertTrue(script.contains("plan.display"));
-        assertTrue(script.contains("setText(\"gesture_value\", \"NONE\");"));
-        assertTrue(script.contains("setText(\"gesture_value\", asText(nonVerbal.gesture || \"NONE\"));"));
+        assertTrue(script.contains("const GESTURE_UI = {"));
+        assertTrue(script.contains("const BEHAVIOUR_CHANNELS = [\"speech\", \"gesture\", \"face\", \"gaze\", \"motion\", \"display\"]"));
+        assertTrue(script.contains("resetBehaviourPanels();"));
+        assertTrue(script.contains("setGestureVisual(nonVerbal.gesture || \"NONE\")"));
+        assertTrue(script.contains("function normalizeGestureToken(value)"));
+        assertTrue(script.contains("function asUnitNumber(value)"));
+        assertTrue(script.contains("function formatPercent(unitValue)"));
+        assertTrue(script.contains("function setBehaviourChannelActive(channel, active)"));
+        assertTrue(script.contains("function setBehaviourMeter(id, unitValue)"));
+        assertTrue(script.contains("function setGestureVisual(value)"));
+        assertTrue(script.contains("icon.className = `bi ${ui.icon}`;"));
+        assertTrue(script.contains("el.classList.toggle(\"is-active\", !!active);"));
+        assertTrue(script.contains("el.style.width = percent;"));
+        assertTrue(script.contains("setText(\"face_intensity_value\", formatPercent(intensity));"));
+        assertTrue(script.contains("setBehaviourMeter(\"motion_energy_meter\", energy);"));
+        assertTrue(script.contains("setBehaviourMeter(\"motion_stillness_meter\", stillness);"));
+        assertTrue(script.contains("setText(`${prefix}_sign_label`, ui ? ui.label : \"-\");"));
+        assertTrue(script.contains("setText(`${prefix}_sign_visual`, ui ? ui.symbol : \"-\");"));
         assertTrue(script.contains("motion.handSign"));
         assertTrue(script.contains("renderAgentSign(sign)"));
         assertTrue(script.contains("renderUserSign(sign)"));
@@ -564,7 +719,8 @@ class ValerianClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(index.contains("data-profile-observations=\"obs.emotion.face\""));
-        assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping obs.social.context\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.social.grouping obs.social.context\""));
         assertTrue(index.contains("data-profile-observations=\"obs.hand.sign\""));
         assertTrue(index.contains("data-profile-observations=\"obs.weather.current obs.weather.forecast\""));
         assertTrue(index.contains("data-profile-observations=\"obs.user_utterance\""));
@@ -591,6 +747,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function updateVisualSensingEmptyState"));
         assertTrue(script.contains("PROFILE_WEATHER_OBSERVATIONS"));
         assertTrue(script.contains("function profileTokenMatches"));
+        assertTrue(script.contains("function currentProfileSupportsObservation(observation)"));
         assertTrue(script.contains("function resetUnsupportedSensorModes"));
         assertTrue(script.contains("PROFILE_SENSOR_OBSERVATIONS"));
 
