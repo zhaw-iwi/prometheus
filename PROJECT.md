@@ -108,6 +108,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 102: Valerian maximizable cockpit columns
 - [x] Milestone 103: Valerian visual behaviour board
 - [x] Milestone 104: Valerian real-time facial emotion report
+- [x] Milestone 105: Valerian social context report
 
 ## Milestone 1
 ### Date
@@ -4719,3 +4720,40 @@ Add a richer real-time facial emotion sensing report to Valerian so operators ca
 ### Next steps
 1. Live-test the report with the target camera and lighting conditions.
 2. Consider extending backend prompt adapters or snapshot facts if agents should reason explicitly over arousal as well as emotion and valence.
+
+## Milestone 105
+### Date
+2026-07-04
+
+### Goal
+Rename Valerian's social detector controls to Social context and make the current social sensing state easier to inspect without changing the existing PROMETHEUS observation contracts.
+
+### What changed
+- Renamed the Valerian social sensing control language from Social grouping to Social context while keeping the underlying `obs.human.presence` and `obs.social.grouping` event types stable.
+- Added a `Social Context Report` panel under `Signals Sensed` with humans, groups, largest group size, singleton count, group/member lists, and tracked-person confidence.
+- Updated live camera detections, manual social-context samples, and disabled-sensor reset handling to render through the same report path.
+- Extended the Valerian static resource contract and Playwright visual smoke test to verify the social context report in the normal Sensing column and the maximized Sensing modal.
+- Updated README documentation for the richer social context readout and visual smoke coverage.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing or use Manual Social Context, then open Sensing > Signals Sensed.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This milestone is Valerian UI-only: raw social observations remain `obs.human.presence` and `obs.social.grouping` for backend compatibility.
+- Person activity is currently shown as `unknown`; track-derived movement states are planned for Milestone 106.
+- The report quality still depends on browser-side COCO-SSD person detection and camera conditions.
+
+### Next steps
+1. Milestone 106: derive stationary/moving/approaching/receding movement states from the existing person tracker.
+2. Milestone 107: add the first cheap attentiveness heuristic using person visibility, face visibility, near-frontal/centered cues, and confidence.

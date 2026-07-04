@@ -3220,7 +3220,7 @@ async function detectSocial() {
   const tracked = updateTracks(people);
   const social = deriveSocialSituation(tracked);
   drawSocialOverlay(tracked, social);
-  renderSocialMetrics(social);
+  renderSocialMetrics(social, tracked);
   await maybeEmitSocial(social, tracked);
 }
 
@@ -3538,9 +3538,114 @@ function deriveSocialSituation(tracked) {
   };
 }
 
-function renderSocialMetrics(social) {
-  setText("human_count", String((social && social.humanCount) || 0));
-  setText("group_count", String((social && social.groupCount) || 0));
+function renderSocialMetrics(social, tracked = []) {
+  const view = social || { humanCount: 0, groupCount: 0, singletonCount: 0, largestGroupSize: 0, groups: [] };
+  const people = Array.isArray(tracked) ? tracked : [];
+  const humanCount = Number(view.humanCount || 0);
+  const groupCount = Number(view.groupCount || 0);
+  const singletonCount = Number(view.singletonCount || 0);
+  const largestGroupSize = Number(view.largestGroupSize || 0);
+  setText("human_count", String(humanCount));
+  setText("group_count", String(groupCount));
+  setText("social_context_human_count", String(humanCount));
+  setText("social_context_group_count", String(groupCount));
+  setText("social_context_largest_group", String(largestGroupSize));
+  setText("social_context_singleton_count", String(singletonCount));
+  setSocialContextStatus(humanCount);
+  renderSocialGroups(view.groups || []);
+  renderSocialPeople(people);
+}
+
+function setSocialContextStatus(humanCount) {
+  const el = document.getElementById("social_context_status");
+  if (!el) {
+    return;
+  }
+  if (humanCount <= 0) {
+    el.textContent = "No people";
+    el.className = "status-pill is-idle";
+    return;
+  }
+  el.textContent = humanCount === 1 ? "1 person" : `${humanCount} people`;
+  el.className = "status-pill is-live";
+}
+
+function renderSocialGroups(groups) {
+  const list = document.getElementById("social_group_list");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  if (!groups || groups.length === 0) {
+    list.appendChild(socialEmptyState("No groups", "social-group-empty"));
+    return;
+  }
+  groups.forEach((group, index) => {
+    const members = Array.isArray(group.members) ? group.members : [];
+    const item = document.createElement("div");
+    item.className = "social-context-item";
+    item.dataset.testid = `social-group-${index + 1}`;
+    const head = document.createElement("div");
+    head.className = "social-context-item-head";
+    const title = document.createElement("span");
+    title.textContent = members.length >= 2 ? `Group ${index + 1}` : `Singleton ${index + 1}`;
+    const size = document.createElement("span");
+    size.className = "social-context-token";
+    size.dataset.testid = `social-group-${index + 1}-size`;
+    size.textContent = `size ${members.length}`;
+    head.append(title, size);
+    const tokenRow = document.createElement("div");
+    tokenRow.className = "social-context-token-row";
+    members.forEach((id) => tokenRow.appendChild(socialToken(`ID ${id}`)));
+    item.append(head, tokenRow);
+    list.appendChild(item);
+  });
+}
+
+function renderSocialPeople(people) {
+  const list = document.getElementById("social_person_list");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  if (!people || people.length === 0) {
+    list.appendChild(socialEmptyState("No tracked people", "social-person-empty"));
+    return;
+  }
+  people.forEach((person) => {
+    const item = document.createElement("div");
+    item.className = "social-context-item";
+    item.dataset.testid = `social-person-${person.id}`;
+    const head = document.createElement("div");
+    head.className = "social-context-item-head";
+    const title = document.createElement("span");
+    title.textContent = `Person ${person.id}`;
+    const confidence = document.createElement("span");
+    confidence.className = "social-context-token";
+    confidence.dataset.testid = `social-person-${person.id}-confidence`;
+    confidence.textContent = `conf ${formatPercent(person.score || 0)}`;
+    head.append(title, confidence);
+    const tokenRow = document.createElement("div");
+    tokenRow.className = "social-context-token-row";
+    tokenRow.appendChild(socialToken(`activity ${asText(person.activity || person.movementState || "unknown")}`));
+    item.append(head, tokenRow);
+    list.appendChild(item);
+  });
+}
+
+function socialToken(text) {
+  const token = document.createElement("span");
+  token.className = "social-context-token";
+  token.textContent = text;
+  return token;
+}
+
+function socialEmptyState(text, testId) {
+  const el = document.createElement("div");
+  el.className = "social-context-empty";
+  el.dataset.testid = testId;
+  el.textContent = text;
+  return el;
 }
 
 async function maybeEmitSocial(social, tracked) {
@@ -3561,8 +3666,9 @@ async function submitSocialSample(kind) {
   if (!social) {
     return;
   }
-  renderSocialMetrics(social);
-  await submitSocialPayloads(social, social.groups.flatMap((g) => g.members).map((id) => ({ id, score: 1 })), "visual.social.manual");
+  const tracked = social.groups.flatMap((g) => g.members).map((id) => ({ id, score: 1, activity: "unknown" }));
+  renderSocialMetrics(social, tracked);
+  await submitSocialPayloads(social, tracked, "visual.social.manual");
 }
 
 async function submitSocialPayloads(social, tracked, source) {
@@ -4149,8 +4255,7 @@ function resetDisabledSensorState() {
     camera.lastEmotionEmitAt = 0;
   }
   if (!isSensorModeEnabled("social")) {
-    setText("human_count", "0");
-    setText("group_count", "0");
+    renderSocialMetrics(null, []);
     camera.tracks.clear();
     camera.lastPresenceSignature = null;
     camera.lastGroupingSignature = null;

@@ -31,6 +31,21 @@ const SAMPLE_EMOTION = {
   facePresent: true,
 };
 const SAMPLE_FACE_SCORE = 0.91;
+const SAMPLE_SOCIAL = {
+  humanCount: 3,
+  groupCount: 1,
+  singletonCount: 1,
+  largestGroupSize: 2,
+  groups: [
+    { members: [1, 2] },
+    { members: [3] },
+  ],
+};
+const SAMPLE_TRACKED_PEOPLE = [
+  { id: 1, score: 0.92, activity: "unknown" },
+  { id: 2, score: 0.86, activity: "unknown" },
+  { id: 3, score: 0.78, activity: "unknown" },
+];
 
 test.beforeAll(async ({ request }) => {
   await ensureAccessCode(request, ACCESS_CODE);
@@ -51,8 +66,10 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   await expect(page.locator("#continuous_speech_panel")).toHaveClass(/active/);
 
   await renderSampleEmotion(page);
+  await renderSampleSocial(page);
   await openSensedSignals(page);
   await verifyEmotionReport(page);
+  await verifySocialContextReport(page);
 
   await renderSampleBehaviour(page);
   await verifyBehaviourVisualState(page);
@@ -69,6 +86,12 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
       await expect(panelInModal.getByTestId("emotion-valence-meter")).toHaveAttribute("aria-valuenow", "66");
       await expect(panelInModal.getByTestId("emotion-arousal-meter")).toHaveAttribute("aria-valuenow", "74");
       await expect(panelInModal.getByTestId("emotion-expression-surprised-value")).toHaveText("87%");
+      await panelInModal.getByTestId("social-context-report").scrollIntoViewIfNeeded();
+      await expect(panelInModal.getByTestId("social-context-report")).toBeVisible();
+      await expect(panelInModal.getByTestId("social-context-human-count")).toHaveText("3");
+      await expect(panelInModal.getByTestId("social-context-group-count")).toHaveText("1");
+      await expect(panelInModal.getByTestId("social-group-1-size")).toHaveText("size 2");
+      await expect(panelInModal.getByTestId("social-person-2-confidence")).toHaveText("conf 86%");
     },
   });
   await verifyColumnExpansion(page, testInfo, {
@@ -159,6 +182,15 @@ async function renderSampleEmotion(page) {
   }, { emotion: SAMPLE_EMOTION, faceScore: SAMPLE_FACE_SCORE });
 }
 
+async function renderSampleSocial(page) {
+  await page.evaluate(({ social, people }) => {
+    if (typeof window.renderSocialMetrics !== "function") {
+      throw new Error("renderSocialMetrics is not available on the Valerian page.");
+    }
+    window.renderSocialMetrics(social, people);
+  }, { social: SAMPLE_SOCIAL, people: SAMPLE_TRACKED_PEOPLE });
+}
+
 async function openSensedSignals(page) {
   const panel = page.locator("#sensed_signals");
   const className = await panel.getAttribute("class");
@@ -188,6 +220,25 @@ async function verifyEmotionReport(page) {
   await expect(page.getByTestId("emotion-expression-happy-meter")).toHaveAttribute("aria-valuenow", "22");
   await expect(page.getByTestId("emotion-expression-surprised-value")).toHaveText("87%");
   await expect(page.getByTestId("emotion-expression-surprised-meter")).toHaveAttribute("aria-valuenow", "87");
+}
+
+async function verifySocialContextReport(page) {
+  await expect(page.getByTestId("social-context-report")).toBeVisible();
+  await expect(page.getByTestId("human-count")).toHaveText("3");
+  await expect(page.getByTestId("group-count")).toHaveText("1");
+  await expect(page.getByTestId("social-context-status")).toHaveText("3 people");
+  await expect(page.getByTestId("social-context-human-count")).toHaveText("3");
+  await expect(page.getByTestId("social-context-group-count")).toHaveText("1");
+  await expect(page.getByTestId("social-context-largest-group")).toHaveText("2");
+  await expect(page.getByTestId("social-context-singleton-count")).toHaveText("1");
+  await expect(page.getByTestId("social-group-1")).toContainText("Group 1");
+  await expect(page.getByTestId("social-group-1-size")).toHaveText("size 2");
+  await expect(page.getByTestId("social-group-1")).toContainText("ID 1");
+  await expect(page.getByTestId("social-group-1")).toContainText("ID 2");
+  await expect(page.getByTestId("social-group-2")).toContainText("Singleton 2");
+  await expect(page.getByTestId("social-group-2")).toContainText("ID 3");
+  await expect(page.getByTestId("social-person-1")).toContainText("activity unknown");
+  await expect(page.getByTestId("social-person-1-confidence")).toHaveText("conf 92%");
 }
 
 async function verifyBehaviourVisualState(page) {

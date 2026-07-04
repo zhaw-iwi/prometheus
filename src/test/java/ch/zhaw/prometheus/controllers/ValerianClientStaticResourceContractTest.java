@@ -448,8 +448,10 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"weather-value\""));
         assertTrue(index.contains("Camera uses browser default."));
         assertTrue(index.contains("Emit camera observations"));
+        assertTrue(index.contains("for=\"sensor_social_enabled\">Social context</label>"));
+        assertFalse(index.contains("for=\"sensor_social_enabled\">Social grouping</label>"));
         assertTrue(index.contains("Manual Emotion"));
-        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Manual Social Context"));
         assertTrue(index.contains("Manual Hand Sign"));
         assertTrue(index.contains("Weather"));
         assertTrue(index.contains("Signals Sensed"));
@@ -465,10 +467,22 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"emotion-expression-list\""));
         assertTrue(index.contains("data-testid=\"emotion-expression-happy-meter\""));
         assertTrue(index.contains("data-testid=\"emotion-expression-surprised-value\""));
+        assertTrue(index.contains("data-testid=\"social-context-report\""));
+        assertTrue(index.contains("data-testid=\"social-context-status\""));
+        assertTrue(index.contains("data-testid=\"social-context-human-count\""));
+        assertTrue(index.contains("data-testid=\"social-context-group-count\""));
+        assertTrue(index.contains("data-testid=\"social-context-largest-group\""));
+        assertTrue(index.contains("data-testid=\"social-context-singleton-count\""));
+        assertTrue(index.contains("data-testid=\"social-group-list\""));
+        assertTrue(index.contains("data-testid=\"social-person-list\""));
         assertTrue(index.indexOf("data-testid=\"emotion-value\"")
                 < index.indexOf("data-testid=\"emotion-report\""));
         assertTrue(index.indexOf("data-testid=\"emotion-report\"")
                 < index.indexOf("data-testid=\"human-count\""));
+        assertTrue(index.indexOf("data-testid=\"group-count\"")
+                < index.indexOf("data-testid=\"social-context-report\""));
+        assertTrue(index.indexOf("data-testid=\"social-context-report\"")
+                < index.indexOf("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"no-visual-sensing-state\""));
 
@@ -505,6 +519,10 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("setEmotionEmitStatus(\"Below threshold\", \"idle\");"));
         assertTrue(script.contains("setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, \"live\");"));
         assertTrue(script.contains("function formatSignedDecimal(value)"));
+        assertTrue(script.contains("renderSocialMetrics(social, tracked);"));
+        assertTrue(script.contains("function renderSocialMetrics(social, tracked = [])"));
+        assertTrue(script.contains("renderSocialGroups(view.groups || [])"));
+        assertTrue(script.contains("renderSocialPeople(people)"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
@@ -567,7 +585,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("Manual Emotion"));
         assertTrue(index.contains("Manual Hand Sign"));
-        assertTrue(index.contains("Manual Social"));
+        assertTrue(index.contains("Manual Social Context"));
         assertTrue(index.contains("Conversation Shortcuts"));
         assertTrue(index.contains("data-testid=\"behaviour-state-board\""));
         assertTrue(index.contains("data-testid=\"behaviour-channel-strip\""));

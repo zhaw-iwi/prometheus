@@ -47,8 +47,8 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
-- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social grouping, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
-- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social/hand inputs, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
+- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social context, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
+- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social-context/hand inputs, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status. The social context report shows humans, groups, group sizes, member IDs, and tracked-person confidence. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour board cards/chips. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
@@ -187,8 +187,8 @@ npm run test:valerian:visual
 
 The Playwright check starts or reuses `http://127.0.0.1:8080`, uses the configured
 database, creates or re-enables access code `VX102` through the admin API,
-validates the facial emotion report and Behaviour board visuals in expanded
-modals, and captures expanded-column screenshots as test artifacts. Set
+validates the facial emotion report, social context report, and Behaviour board
+visuals in expanded modals, and captures expanded-column screenshots as test artifacts. Set
 `PROMETHEUS_ADMIN_TOKEN` if your local `prometheus.admin.token` is not `laure`.
 Set `PROMETHEUS_SKIP_WEBSERVER=true` when you already started the app yourself.
 
