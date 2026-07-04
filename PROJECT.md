@@ -111,6 +111,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 105: Valerian social context report
 - [x] Milestone 106: Valerian social movement states
 - [x] Milestone 107: Valerian social attentiveness signal
+- [x] Milestone 108: Valerian social context observation contract
 
 ## Milestone 1
 ### Date
@@ -4835,3 +4836,45 @@ Add a first cheap attentiveness signal to Valerian's Social Context Report using
 ### Next steps
 1. Decide how to evolve the social observation payload contract for humans, groups, movement, and attentiveness.
 2. Consider using a lightweight pose or face-landmark model only if the geometric heuristic is too noisy in target deployment conditions.
+
+## Milestone 108
+### Date
+2026-07-04
+
+### Goal
+Promote Valerian's richer social context sensing into a stable optional PROMETHEUS observation contract while preserving the existing `obs.human.presence` and `obs.social.grouping` flows.
+
+### What changed
+- Added `obs.social.context` as a first-class event/profile constant.
+- Added `obs.social.context` to common visual input interaction profiles so multimodal visual agents can declare the richer social signal.
+- Added a prompt adapter that summarizes the social context payload for LLM prompts without exposing camera boxes or frames.
+- Updated Valerian profile gating so social controls are visible for agents declaring either the existing social observations or `obs.social.context`.
+- Updated Valerian social emission to build a schema-versioned context payload with counts, group member IDs, movement state/confidence, and attention state/confidence/cues.
+- Kept old presence/grouping payload shapes unchanged and independently deduplicated them from the richer context event.
+- Emitted `obs.social.context` only when the active profile declares it or when the cockpit is in fallback-all mode for unprofiled agents.
+- Extended Java profile/prompt tests, Valerian static contract tests, and the Playwright visual smoke test to cover the new contract.
+- Updated multimodal seed prompt text that enumerates supported visual observation event types.
+- Updated README observation documentation.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Use an agent profile that declares `obs.social.context`, enable Social context sensing, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=AgentInteractionProfileUnitTest,PromptEventContentAdapterUnitTest,ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- Existing social situation-change computation still listens to `obs.social.grouping`, not `obs.social.context`, to avoid changing current agent behavior.
+- `obs.social.context` is profile-gated in Valerian. Existing agents that declare only grouping continue receiving only the old social event pair.
+- The attention and movement values are still browser-side heuristics and should be treated as uncertain sensing facts, not ground truth.
+
+### Next steps
+1. Decide which production agents should declare `obs.social.context` and update their prompts/replay tests accordingly.
+2. Live-test the new contract with the target camera and embodied-agent placement.

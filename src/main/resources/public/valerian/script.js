@@ -91,6 +91,7 @@ const camera = {
   lastEmotion: null,
   lastPresenceSignature: null,
   lastGroupingSignature: null,
+  lastSocialContextSignature: null,
   lastGestureVideoTime: -1,
   stableGestureKey: null,
   stableGestureCount: 0,
@@ -204,6 +205,7 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.emotion.face",
   "obs.human.presence",
   "obs.social.grouping",
+  "obs.social.context",
   "obs.hand.sign",
 ];
 
@@ -214,7 +216,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
-  social: ["obs.human.presence", "obs.social.grouping"],
+  social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
   hand: ["obs.hand.sign"],
 };
 
@@ -986,6 +988,15 @@ function resetUnsupportedSensorModes(capabilities) {
     resetWeatherState();
   }
   resetDisabledSensorState();
+}
+
+function currentInteractionCapabilities() {
+  return resolveInteractionCapabilities(state.agentInfo && state.agentInfo.interactionProfile);
+}
+
+function currentProfileSupportsObservation(observation) {
+  const capabilities = currentInteractionCapabilities();
+  return capabilities.fallbackAll || profileListIntersects(capabilities.supportedObservations, [observation]);
 }
 
 function updateSelectedAgentStatus() {
@@ -3857,12 +3868,14 @@ async function submitSocialSample(kind) {
 }
 
 async function submitSocialPayloads(social, tracked, source) {
+  const people = Array.isArray(tracked) ? tracked : [];
+  const groups = Array.isArray(social.groups) ? social.groups : [];
   const presencePayload = {
     source,
     humanCount: social.humanCount,
-    trackedCount: tracked.length,
-    trackedIds: tracked.map((p) => p.id),
-    avgDetectionConfidence: round(average(tracked.map((p) => p.score || 1)), 3),
+    trackedCount: people.length,
+    trackedIds: people.map((p) => p.id),
+    avgDetectionConfidence: round(average(people.map((p) => p.score || 1)), 3),
     ts: new Date().toISOString(),
   };
   const groupingPayload = {
@@ -3871,31 +3884,113 @@ async function submitSocialPayloads(social, tracked, source) {
     groupCount: social.groupCount,
     singletonCount: social.singletonCount,
     largestGroupSize: social.largestGroupSize,
-    groupSizes: social.groups.map((g) => g.members.length),
-    groups: social.groups.map((g) => ({ memberIds: g.members })),
+    groupSizes: groups.map((g) => g.members.length),
+    groups: groups.map((g) => ({ memberIds: g.members })),
     ts: new Date().toISOString(),
   };
+  const socialContextSupported = currentProfileSupportsObservation("obs.social.context");
+  const contextPayload = socialContextPayload(social, people, source);
   const presenceSignature = `${presencePayload.humanCount}|${presencePayload.trackedCount}`;
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
-  if (presenceSignature === camera.lastPresenceSignature && groupingSignature === camera.lastGroupingSignature) {
+  const contextSignature = socialContextSignature(contextPayload);
+  const emitPresence = presenceSignature !== camera.lastPresenceSignature;
+  const emitGrouping = groupingSignature !== camera.lastGroupingSignature;
+  const emitContext = socialContextSupported && contextSignature !== camera.lastSocialContextSignature;
+  if (!emitPresence && !emitGrouping && !emitContext) {
     appendLog("social", "duplicate social sample skipped.");
     return;
   }
-  await acknowledgeEvent({
-    type: "obs.human.presence",
-    actor: "user",
-    kind: "observation",
-    payload: JSON.stringify(presencePayload),
-  }, { renderResponse: false });
-  await acknowledgeEvent({
-    type: "obs.social.grouping",
-    actor: "user",
-    kind: "observation",
-    payload: JSON.stringify(groupingPayload),
-  }, { renderResponse: true });
+  if (emitPresence) {
+    await acknowledgeEvent({
+      type: "obs.human.presence",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(presencePayload),
+    }, { renderResponse: false });
+    camera.lastPresenceSignature = presenceSignature;
+  }
+  if (emitGrouping) {
+    await acknowledgeEvent({
+      type: "obs.social.grouping",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(groupingPayload),
+    }, { renderResponse: !emitContext });
+    camera.lastGroupingSignature = groupingSignature;
+  }
+  if (emitContext) {
+    await acknowledgeEvent({
+      type: "obs.social.context",
+      actor: "user",
+      kind: "observation",
+      payload: JSON.stringify(contextPayload),
+    }, { renderResponse: true });
+    camera.lastSocialContextSignature = contextSignature;
+  }
   markSensorEmitted("social");
-  camera.lastPresenceSignature = presenceSignature;
-  camera.lastGroupingSignature = groupingSignature;
+}
+
+function socialContextPayload(social, tracked, source) {
+  const groups = Array.isArray(social.groups) ? social.groups : [];
+  const people = Array.isArray(tracked) ? tracked : [];
+  return {
+    schemaVersion: 1,
+    source,
+    humanCount: Number(social.humanCount || 0),
+    groupCount: Number(social.groupCount || 0),
+    singletonCount: Number(social.singletonCount || 0),
+    largestGroupSize: Number(social.largestGroupSize || 0),
+    groupSizes: groups.map((group) => Array.isArray(group.members) ? group.members.length : 0),
+    groups: groups.map((group) => {
+      const members = Array.isArray(group.members) ? group.members : [];
+      return { memberIds: members, size: members.length };
+    }),
+    people: people.map(socialContextPerson),
+    ts: new Date().toISOString(),
+  };
+}
+
+function socialContextPerson(person) {
+  const attention = normalizeAttentionSignal(person.attention, person);
+  return {
+    id: person.id,
+    detectionConfidence: round(asUnitNumber(person.score || 0), 3),
+    movement: {
+      state: normalizeMovementState(person.movementState || person.activity),
+      confidence: round(asUnitNumber(person.movementConfidence), 3),
+    },
+    attention: {
+      state: attention.state,
+      confidence: round(attention.confidence, 3),
+      personVisible: attention.personVisible,
+      faceVisible: attention.faceVisible,
+      nearFrontal: attention.nearFrontal,
+      centered: attention.centered,
+      frontalCentered: attention.frontalCentered,
+    },
+  };
+}
+
+function normalizeMovementState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["stationary", "moving", "approaching", "receding"].includes(token) ? token : "unknown";
+}
+
+function socialContextSignature(payload) {
+  return JSON.stringify({
+    humanCount: payload.humanCount,
+    groupCount: payload.groupCount,
+    singletonCount: payload.singletonCount,
+    largestGroupSize: payload.largestGroupSize,
+    groupSizes: payload.groupSizes,
+    groups: payload.groups.map((group) => group.memberIds),
+    people: payload.people.map((person) => ({
+      id: person.id,
+      detectionConfidence: person.detectionConfidence,
+      movement: person.movement,
+      attention: person.attention,
+    })),
+  });
 }
 
 function selectCameraGesture(result) {
@@ -4444,6 +4539,7 @@ function resetDisabledSensorState() {
     camera.tracks.clear();
     camera.lastPresenceSignature = null;
     camera.lastGroupingSignature = null;
+    camera.lastSocialContextSignature = null;
     camera.lastSocialEmitAt = 0;
   }
   if (!isSensorModeEnabled("hand")) {

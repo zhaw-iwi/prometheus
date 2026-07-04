@@ -15,6 +15,7 @@ public class AgentInteractionProfile {
     public static final String OBS_FACE_EMOTION = Event.TYPE_FACE_EMOTION;
     public static final String OBS_HUMAN_PRESENCE = Event.TYPE_HUMAN_PRESENCE;
     public static final String OBS_SOCIAL_GROUPING = Event.TYPE_SOCIAL_GROUPING;
+    public static final String OBS_SOCIAL_CONTEXT = Event.TYPE_SOCIAL_CONTEXT;
     public static final String OBS_SOCIAL_SITUATION_CHANGE = Event.TYPE_SOCIAL_SITUATION_CHANGE;
     public static final String OBS_HAND_SIGN = Event.TYPE_HAND_SIGN;
     public static final String OBS_WEATHER_CURRENT = Event.TYPE_WEATHER_CURRENT;

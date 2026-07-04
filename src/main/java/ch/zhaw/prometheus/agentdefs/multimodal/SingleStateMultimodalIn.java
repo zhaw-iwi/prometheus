@@ -47,7 +47,7 @@ public class SingleStateMultimodalIn implements AgentDefinition {
         private static final String PROMPT_OUTERSTATE = """
                         Multimodale Eingabevorgaben für dieses Mikro-Coaching:
                         - Berücksichtige visuelle Beobachtungsereignisse aus /acknowledge, falls vorhanden:
-                          obs.emotion.face, obs.human.presence, obs.social.grouping.
+                          obs.emotion.face, obs.human.presence, obs.social.grouping, obs.social.context.
                         - Diese Signale sind nur kontextuelle Hinweise. Explizite verbale Nutzeräusserungen haben bei Konflikt immer Vorrang.
                         - Nutze visuelle Hinweise behutsam und nur dann explizit, wenn es den Coaching-Nutzen erhöht.
                         - Wenn keine visuellen Signale vorhanden sind, führe das Coaching normal und vollwertig nur auf Textbasis.

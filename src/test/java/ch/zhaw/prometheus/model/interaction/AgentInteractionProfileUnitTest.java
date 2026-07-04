@@ -59,6 +59,7 @@ class AgentInteractionProfileUnitTest {
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GAZE));

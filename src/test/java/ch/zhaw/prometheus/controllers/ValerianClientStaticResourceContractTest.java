@@ -576,6 +576,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("type: \"obs.emotion.face\""));
         assertTrue(script.contains("type: \"obs.human.presence\""));
         assertTrue(script.contains("type: \"obs.social.grouping\""));
+        assertTrue(script.contains("type: \"obs.social.context\""));
         assertTrue(script.contains("type: \"obs.hand.sign\""));
         assertTrue(script.contains("type: \"obs.weather.current\""));
         assertTrue(script.contains("type: \"obs.weather.forecast\""));
@@ -591,6 +592,12 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("detectionMode: \"client_camera\""));
         assertTrue(script.contains("source: \"valerian.hand.manual\""));
         assertTrue(script.contains("detectionMode: \"manual\""));
+        assertTrue(script.contains("schemaVersion: 1"));
+        assertTrue(script.contains("function socialContextPayload(social, tracked, source)"));
+        assertTrue(script.contains("function socialContextPerson(person)"));
+        assertTrue(script.contains("function socialContextSignature(payload)"));
+        assertTrue(script.contains("currentProfileSupportsObservation(\"obs.social.context\")"));
+        assertTrue(script.contains("lastSocialContextSignature"));
     }
 
     @Test
@@ -712,7 +719,8 @@ class ValerianClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(index.contains("data-profile-observations=\"obs.emotion.face\""));
-        assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.human.presence obs.social.grouping obs.social.context\""));
+        assertTrue(index.contains("data-profile-observations=\"obs.social.grouping obs.social.context\""));
         assertTrue(index.contains("data-profile-observations=\"obs.hand.sign\""));
         assertTrue(index.contains("data-profile-observations=\"obs.weather.current obs.weather.forecast\""));
         assertTrue(index.contains("data-profile-observations=\"obs.user_utterance\""));
@@ -739,6 +747,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function updateVisualSensingEmptyState"));
         assertTrue(script.contains("PROFILE_WEATHER_OBSERVATIONS"));
         assertTrue(script.contains("function profileTokenMatches"));
+        assertTrue(script.contains("function currentProfileSupportsObservation(observation)"));
         assertTrue(script.contains("function resetUnsupportedSensorModes"));
         assertTrue(script.contains("PROFILE_SENSOR_OBSERVATIONS"));
 

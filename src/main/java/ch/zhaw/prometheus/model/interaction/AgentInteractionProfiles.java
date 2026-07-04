@@ -47,7 +47,8 @@ public final class AgentInteractionProfiles {
                 AgentInteractionProfile.OBS_USER_UTTERANCE,
                 AgentInteractionProfile.OBS_FACE_EMOTION,
                 AgentInteractionProfile.OBS_HUMAN_PRESENCE,
-                AgentInteractionProfile.OBS_SOCIAL_GROUPING);
+                AgentInteractionProfile.OBS_SOCIAL_GROUPING,
+                AgentInteractionProfile.OBS_SOCIAL_CONTEXT);
     }
 
     private static List<String> speechAndNonverbalModalities() {

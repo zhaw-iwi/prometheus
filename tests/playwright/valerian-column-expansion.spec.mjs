@@ -109,6 +109,7 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
 
   await renderSampleEmotion(page);
   await verifyTrackMovementHeuristic(page);
+  await verifySocialContextPayloadContract(page);
   await renderSampleSocial(page);
   await openSensedSignals(page);
   await verifyEmotionReport(page);
@@ -262,6 +263,24 @@ async function verifyTrackMovementHeuristic(page) {
   expect(movement.attention.state).toBe("attending");
   expect(movement.attention.personVisible).toBe(true);
   expect(movement.attention.confidence).toBeGreaterThan(0.6);
+}
+
+async function verifySocialContextPayloadContract(page) {
+  const payload = await page.evaluate(({ social, people }) => {
+    if (typeof window.socialContextPayload !== "function") {
+      throw new Error("socialContextPayload is not available on the Valerian page.");
+    }
+    return window.socialContextPayload(social, people, "visual.social");
+  }, { social: SAMPLE_SOCIAL, people: SAMPLE_TRACKED_PEOPLE });
+  expect(payload.schemaVersion).toBe(1);
+  expect(payload.source).toBe("visual.social");
+  expect(payload.humanCount).toBe(3);
+  expect(payload.groups[0]).toEqual({ memberIds: [1, 2], size: 2 });
+  expect(payload.people[0].detectionConfidence).toBe(0.92);
+  expect(payload.people[0].movement).toEqual({ state: "moving", confidence: 0.72 });
+  expect(payload.people[0].attention.state).toBe("attending");
+  expect(payload.people[0].attention.faceVisible).toBe(true);
+  expect(payload.people[1].attention.state).toBe("not_attending");
 }
 
 async function openSensedSignals(page) {

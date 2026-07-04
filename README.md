@@ -291,9 +291,9 @@ agent metadata used as a Realtime transcription language hint; custom
 `POST /agent/singlestate` requests may include it and otherwise default to
 `en`. The profile declares the observation event types an
 agent expects and the behaviour modalities it can emit, for example
-`obs.hand.sign`, `obs.social.grouping`, `speech`, `nonVerbal.gesture`,
-`motion.handSign`, and `display`. It is persisted with the `Agent` aggregate
-and is metadata, not runtime `Storage`.
+`obs.hand.sign`, `obs.social.grouping`, `obs.social.context`, `speech`,
+`nonVerbal.gesture`, `motion.handSign`, and `display`. It is persisted with the
+`Agent` aggregate and is metadata, not runtime `Storage`.
 Seed agent templates declare profiles through `AgentInteractionProfiles`
 factories such as `speechOnly()`, `multimodalOutput()`, and
 `multimodalInputOutput()`.
@@ -488,11 +488,22 @@ Visual social observations use raw event types:
 
 - `obs.human.presence`
 - `obs.social.grouping`
+- `obs.social.context`
 
-The visual social client and the Prometheus demo cockpit can emit these raw events
-from camera detection. The Prometheus demo cockpit also includes manual social
-scenario buttons that emit the same raw event contract for rehearsal without a
-camera.
+The visual social client emits the presence/grouping pair from camera detection.
+The Valerian cockpit can emit the same pair and, when supported by the active
+profile, the richer `obs.social.context` event. The Valerian cockpit also includes
+manual social scenario buttons that emit the same social contracts for rehearsal
+without a camera.
+
+`obs.social.context` is the richer optional Valerian social sensing event. It is
+emitted alongside the existing presence/grouping events only for agents that
+declare `obs.social.context` or for unprofiled fallback cockpits. Its payload has
+`schemaVersion: 1`, aggregate human/group counts, group member IDs, and per-person
+`detectionConfidence`, `movement.state/confidence`, and
+`attention.state/confidence` plus boolean attention cues such as `personVisible`,
+`faceVisible`, `nearFrontal`, `centered`, and `frontalCentered`. It does not carry
+camera frames or raw bounding boxes.
 
 When `obs.social.grouping` is acknowledged, PROMETHEUS may persist a computed
 social event:
