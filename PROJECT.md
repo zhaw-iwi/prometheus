@@ -106,6 +106,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 100: Framework/application agent repository split
 - [x] Milestone 101: Remove cockpit VAD create-response control
 - [x] Milestone 102: Valerian maximizable cockpit columns
+- [x] Milestone 103: Valerian visual behaviour board
 
 ## Milestone 1
 ### Date
@@ -4638,3 +4639,43 @@ Let Valerian cockpit operators expand any of the three cockpit columns into a wi
 
 ### Next steps
 1. Live-test expanded Sensing while the camera is running and expanded Interaction while continuous speech is active on the target browser.
+
+## Milestone 103
+### Date
+2026-07-04
+
+### Goal
+Make the Valerian Behaviour column show BehaviourPlan multiplicity and current modality state more visually, including in the maximized Behaviour modal.
+
+### What changed
+- Replaced the Behaviour column's raw row list with a visual state board that keeps Speech, Gesture, Face, Gaze, Motion, Display, and latest-event content visible as distinct cards.
+- Added active modality chips so operators can quickly see which behaviour channels are present in the latest plan.
+- Added a gesture stage with Bootstrap icon rendering for the existing nonverbal gesture vocabulary.
+- Added coloured progress-meter visuals for facial intensity, motion energy, and motion stillness, plus sign symbols for agent/user display state.
+- Updated the Valerian renderer to reset stale modality state before rendering each new plan, clamp numeric values into 0-100 percent meters, and keep the same visuals when the Behaviour column is moved into the maximized modal.
+- Extended Valerian static resource contract coverage and the Playwright visual smoke test to assert the board, icon, active chips, meters, sign visuals, and expanded Behaviour modal rendering.
+- Updated README documentation for the new Behaviour board and Playwright visual coverage.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent, and inspect the Behaviour column or maximize it with the expand icon.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a cockpit UI and renderer change only; backend behaviour-plan contracts, profile filtering, access-code scoping, and Realtime orchestration are unchanged.
+- The renderer treats each behaviour plan as the current state snapshot and resets absent modalities to neutral values so stale chips or meters do not remain visible.
+- Gesture rendering mirrors the existing nonverbal renderer's vocabulary but uses Bootstrap icons to fit the cockpit tool surface.
+- The meters currently cover the numeric fields available in existing plans: face intensity, motion energy, and motion stillness.
+
+### Next steps
+1. Live-test the board with framework demo agents that emit sparse and multi-channel behaviour plans.
+2. Add additional visual scales if future agents emit more numeric nonverbal fields such as posture openness or prosody intensity.

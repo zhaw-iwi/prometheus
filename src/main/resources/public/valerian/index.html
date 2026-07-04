@@ -254,6 +254,238 @@
       overflow-wrap: anywhere;
     }
 
+    .behaviour-state-board {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .behaviour-channel-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(5.6rem, 1fr));
+      gap: 0.45rem;
+    }
+
+    .behaviour-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-height: 2.15rem;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      color: var(--demo-muted);
+      padding: 0.35rem 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-chip.is-active {
+      color: var(--ink);
+      background: rgba(0, 176, 162, 0.12);
+      border-color: rgba(0, 176, 162, 0.34);
+    }
+
+    .behaviour-visual-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 0.65rem;
+    }
+
+    .behaviour-visual-card {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      padding: 0.75rem;
+      min-height: 128px;
+      display: grid;
+      gap: 0.55rem;
+      align-content: start;
+    }
+
+    .behaviour-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .behaviour-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      color: var(--demo-muted);
+      font-size: 0.77rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .behaviour-card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .behaviour-icon {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--demo-line);
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--ink);
+      flex: 0 0 auto;
+    }
+
+    .behaviour-card-value,
+    .behaviour-card-subvalue {
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-card-value {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .behaviour-card-subvalue {
+      color: var(--demo-muted);
+      font-size: 0.84rem;
+    }
+
+    .behaviour-speech-preview {
+      min-height: 3.5rem;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.68);
+      padding: 0.7rem;
+      overflow-wrap: anywhere;
+    }
+
+    .behaviour-gesture-stage {
+      min-height: 4.25rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      font-size: 2.3rem;
+      color: var(--ink);
+    }
+
+    .behaviour-meter-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.6rem;
+      align-items: center;
+    }
+
+    .behaviour-meter {
+      height: 0.55rem;
+      border-radius: 999px;
+      background: rgba(12, 22, 24, 0.12);
+      overflow: hidden;
+    }
+
+    .behaviour-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #f59e0b);
+      transition: width 160ms ease;
+    }
+
+    .behaviour-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .behaviour-mini-state {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 0.45rem;
+      min-height: 3.1rem;
+    }
+
+    .behaviour-mini-state .metric-label {
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    .behaviour-detail-block {
+      max-height: 134px;
+      overflow: auto;
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      padding: 0.55rem;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    [data-behaviour-tone="speech"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
+    [data-behaviour-tone="speech"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+    }
+
+    [data-behaviour-tone="gesture"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #b45309, #f59e0b);
+    }
+
+    [data-behaviour-tone="gesture"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #b45309, #f59e0b);
+    }
+
+    [data-behaviour-tone="face"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #be123c, #fb7185);
+    }
+
+    [data-behaviour-tone="face"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #be123c, #fb7185);
+    }
+
+    [data-behaviour-tone="gaze"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+    }
+
+    [data-behaviour-tone="gaze"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #1d4ed8, #38bdf8);
+    }
+
+    [data-behaviour-tone="motion"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #047857, #84cc16);
+    }
+
+    [data-behaviour-tone="motion"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #047857, #84cc16);
+    }
+
+    [data-behaviour-tone="display"] .behaviour-icon {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(90deg, #6d28d9, #f97316);
+    }
+
+    [data-behaviour-tone="display"] .behaviour-meter-fill {
+      background: linear-gradient(90deg, #6d28d9, #f97316);
+    }
+
     .video-shell {
       position: relative;
       overflow: hidden;
@@ -514,6 +746,11 @@
     [data-theme="dark"] .message-list,
     [data-theme="dark"] .demo-bubble,
     [data-theme="dark"] .metric-row,
+    [data-theme="dark"] .behaviour-visual-card,
+    [data-theme="dark"] .behaviour-speech-preview,
+    [data-theme="dark"] .behaviour-gesture-stage,
+    [data-theme="dark"] .behaviour-mini-state,
+    [data-theme="dark"] .behaviour-detail-block,
     [data-theme="dark"] .profile-token,
     [data-theme="dark"] .diagnostics-current-state,
     [data-theme="dark"] .storage-list .list-group-item,
@@ -591,6 +828,22 @@
     [data-theme="dark"] .drawer-tabs .nav-link.active {
       background: rgba(0, 176, 162, 0.16);
       color: var(--ink);
+    }
+
+    [data-theme="dark"] .behaviour-chip {
+      background: rgba(226, 232, 240, 0.06);
+      border-color: var(--demo-line);
+      color: var(--demo-muted);
+    }
+
+    [data-theme="dark"] .behaviour-chip.is-active {
+      background: rgba(0, 176, 162, 0.16);
+      border-color: rgba(20, 184, 166, 0.42);
+      color: var(--ink);
+    }
+
+    [data-theme="dark"] .behaviour-meter {
+      background: rgba(226, 232, 240, 0.14);
     }
 
     [data-theme="dark"] .modal-content,
@@ -1250,50 +1503,163 @@
               </button>
             </div>
             <div class="card-body">
-              <div class="metric-row-list">
-                <div class="metric-row" data-profile-behaviours="speech">
-                  <span class="metric-label">Speech</span>
-                  <div id="speech_preview" data-testid="speech-preview">-</div>
+              <div class="behaviour-state-board" data-testid="behaviour-state-board">
+                <div class="behaviour-channel-strip" data-testid="behaviour-channel-strip">
+                  <div id="behaviour_chip_speech" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="speech" data-testid="behaviour-chip-speech">
+                    <i class="bi bi-chat-quote"></i><span>Speech</span>
+                  </div>
+                  <div id="behaviour_chip_gesture" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.gesture" data-testid="behaviour-chip-gesture">
+                    <i class="bi bi-hand-index-thumb"></i><span>Gesture</span>
+                  </div>
+                  <div id="behaviour_chip_face" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.facialExpression" data-testid="behaviour-chip-face">
+                    <i class="bi bi-emoji-smile"></i><span>Face</span>
+                  </div>
+                  <div id="behaviour_chip_gaze" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="nonVerbal.gaze" data-testid="behaviour-chip-gaze">
+                    <i class="bi bi-eye"></i><span>Gaze</span>
+                  </div>
+                  <div id="behaviour_chip_motion" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="motion nonVerbal.motion" data-testid="behaviour-chip-motion">
+                    <i class="bi bi-activity"></i><span>Motion</span>
+                  </div>
+                  <div id="behaviour_chip_display" class="behaviour-chip is-inactive"
+                    data-profile-behaviours="display" data-testid="behaviour-chip-display">
+                    <i class="bi bi-window"></i><span>Display</span>
+                  </div>
                 </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.gesture">
-                  <span class="metric-label">Gesture</span>
-                  <strong id="gesture_value" data-testid="gesture-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.facialExpression">
-                  <span class="metric-label">Face</span>
-                  <strong id="face_value" data-testid="face-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="nonVerbal.gaze">
-                  <span class="metric-label">Gaze</span>
-                  <strong id="gaze_value" data-testid="gaze-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="motion nonVerbal.motion">
-                  <span class="metric-label">Motion</span>
-                  <strong id="motion_value" data-testid="motion-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="motion.handSign display">
-                  <span class="metric-label">Agent Sign</span>
-                  <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
-                </div>
-                <div class="metric-row" data-profile-observations="obs.hand.sign" data-profile-behaviours="display">
-                  <span class="metric-label">User Sign</span>
-                  <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Round</span>
-                  <strong id="round_value" data-testid="round-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Winner</span>
-                  <strong id="winner_value" data-testid="winner-value">-</strong>
-                </div>
-                <div class="metric-row" data-profile-behaviours="display">
-                  <span class="metric-label">Display</span>
-                  <pre id="display_value" class="compact-json mb-0" data-testid="display-value">-</pre>
-                </div>
-                <div class="metric-row" data-profile-behaviours="speech nonVerbal motion display">
-                  <span class="metric-label">Latest Behaviour Event</span>
-                  <div id="latest_behaviour_event" data-testid="latest-behaviour-event">-</div>
+
+                <div class="behaviour-visual-grid" data-testid="behaviour-visual-grid">
+                  <section class="behaviour-visual-card behaviour-card-wide" data-profile-behaviours="speech"
+                    data-behaviour-tone="speech">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-chat-quote"></i></span>
+                        Speech
+                      </span>
+                    </div>
+                    <div id="speech_preview" class="behaviour-speech-preview" data-testid="speech-preview">-</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gesture"
+                    data-behaviour-tone="gesture">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-hand-index-thumb"></i></span>
+                        Gesture
+                      </span>
+                    </div>
+                    <div id="gesture_stage" class="behaviour-gesture-stage" data-testid="gesture-stage">
+                      <i id="gesture_icon" class="bi bi-dash-lg" data-testid="gesture-icon"></i>
+                    </div>
+                    <strong id="gesture_value" class="behaviour-card-value" data-testid="gesture-value">NONE</strong>
+                    <div id="gesture_hint" class="behaviour-card-subvalue" data-testid="gesture-hint">No gesture</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.facialExpression"
+                    data-behaviour-tone="face">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-emoji-smile"></i></span>
+                        Face
+                      </span>
+                      <span id="face_intensity_value" data-testid="face-intensity-value">0%</span>
+                    </div>
+                    <strong id="face_value" class="behaviour-card-value" data-testid="face-value">-</strong>
+                    <div class="behaviour-meter-row">
+                      <div class="behaviour-meter" aria-label="Face intensity">
+                        <div id="face_intensity_meter" class="behaviour-meter-fill"
+                          data-testid="face-intensity-meter"></div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gaze"
+                    data-behaviour-tone="gaze">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-eye"></i></span>
+                        Gaze
+                      </span>
+                    </div>
+                    <strong id="gaze_value" class="behaviour-card-value" data-testid="gaze-value">-</strong>
+                    <div id="gaze_focus_value" class="behaviour-card-subvalue" data-testid="gaze-focus-value">Focus -</div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="motion nonVerbal.motion"
+                    data-behaviour-tone="motion">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-activity"></i></span>
+                        Motion
+                      </span>
+                    </div>
+                    <strong id="motion_value" class="behaviour-card-value" data-testid="motion-value">-</strong>
+                    <div class="behaviour-meter-row">
+                      <span class="metric-label">Energy</span>
+                      <span id="motion_energy_value" data-testid="motion-energy-value">0%</span>
+                    </div>
+                    <div class="behaviour-meter" aria-label="Motion energy">
+                      <div id="motion_energy_meter" class="behaviour-meter-fill"
+                        data-testid="motion-energy-meter"></div>
+                    </div>
+                    <div class="behaviour-meter-row">
+                      <span class="metric-label">Stillness</span>
+                      <span id="motion_stillness_value" data-testid="motion-stillness-value">0%</span>
+                    </div>
+                    <div class="behaviour-meter" aria-label="Motion stillness">
+                      <div id="motion_stillness_meter" class="behaviour-meter-fill"
+                        data-testid="motion-stillness-meter"></div>
+                    </div>
+                  </section>
+
+                  <section class="behaviour-visual-card" data-profile-behaviours="display"
+                    data-behaviour-tone="display">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-window"></i></span>
+                        Display
+                      </span>
+                    </div>
+                    <div class="behaviour-mini-grid">
+                      <div class="behaviour-mini-state" data-profile-behaviours="motion.handSign display">
+                        <span class="metric-label">Agent Sign</span>
+                        <strong id="agent_sign_label" data-testid="agent-sign-label">-</strong>
+                        <div id="agent_sign_visual" class="behaviour-card-subvalue"
+                          data-testid="agent-sign-visual">-</div>
+                      </div>
+                      <div class="behaviour-mini-state" data-profile-observations="obs.hand.sign"
+                        data-profile-behaviours="display">
+                        <span class="metric-label">User Sign</span>
+                        <strong id="user_sign_label" data-testid="user-sign-label">-</strong>
+                        <div id="user_sign_visual" class="behaviour-card-subvalue" data-testid="user-sign-visual">-</div>
+                      </div>
+                      <div class="behaviour-mini-state">
+                        <span class="metric-label">Round</span>
+                        <strong id="round_value" data-testid="round-value">-</strong>
+                      </div>
+                      <div class="behaviour-mini-state">
+                        <span class="metric-label">Winner</span>
+                        <strong id="winner_value" data-testid="winner-value">-</strong>
+                      </div>
+                    </div>
+                    <span class="metric-label">Display Details</span>
+                    <pre id="display_value" class="behaviour-detail-block mb-0" data-testid="display-value">-</pre>
+                  </section>
+
+                  <section class="behaviour-visual-card behaviour-card-wide"
+                    data-profile-behaviours="speech nonVerbal motion display" data-behaviour-tone="display">
+                    <div class="behaviour-card-head">
+                      <span class="behaviour-card-title">
+                        <span class="behaviour-icon"><i class="bi bi-braces"></i></span>
+                        Latest Behaviour Event
+                      </span>
+                    </div>
+                    <div id="latest_behaviour_event" class="behaviour-detail-block"
+                      data-testid="latest-behaviour-event">-</div>
+                  </section>
                 </div>
               </div>
             </div>

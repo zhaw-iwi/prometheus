@@ -173,6 +173,17 @@ const SIGNS = {
   paper: { label: "Papier", symbol: "\u270B" },
 };
 
+const GESTURE_UI = {
+  OPEN_QUESTION: { icon: "bi-question-diamond", label: "Open Question", hint: "Inviting response" },
+  EXPLAIN: { icon: "bi-hand-index-thumb", label: "Explanatory Sweep", hint: "Supporting explanation" },
+  UNCERTAIN: { icon: "bi-question-circle", label: "Uncertainty", hint: "Low certainty" },
+  ACKNOWLEDGE: { icon: "bi-check2-circle", label: "Acknowledgement", hint: "Closing acknowledgement" },
+  POLITE: { icon: "bi-heart", label: "Polite", hint: "Softening social tone" },
+  NONE: { icon: "bi-dash-lg", label: "NONE", hint: "No gesture" },
+};
+
+const BEHAVIOUR_CHANNELS = ["speech", "gesture", "face", "gaze", "motion", "display"];
+
 const MANUAL_EMOTIONS = {
   neutral: { valence: 0, arousal: 0.2 },
   happy: { valence: 0.8, arousal: 0.55 },
@@ -1668,8 +1679,10 @@ function renderBehaviourPlan(plan) {
   if (!plan || typeof plan !== "object") {
     return;
   }
+  resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
+    setBehaviourChannelActive("speech", true);
   }
   renderNonVerbal(plan.nonVerbal);
   renderMotion(plan.motion);
@@ -1679,25 +1692,39 @@ function renderBehaviourPlan(plan) {
 
 function renderNonVerbal(nonVerbal) {
   if (!nonVerbal || typeof nonVerbal !== "object") {
-    setText("gesture_value", "NONE");
+    setGestureVisual("NONE");
     return;
   }
-  setText("gesture_value", asText(nonVerbal.gesture || "NONE"));
+  setGestureVisual(nonVerbal.gesture || "NONE");
   const face = nonVerbal.facialExpression;
   if (typeof face === "string") {
     setText("face_value", face);
+    setBehaviourChannelActive("face", !!face.trim());
   } else if (face && typeof face === "object") {
-    setText("face_value", asText(face.type || face.expression));
+    const faceLabel = asText(face.type || face.expression);
+    const hasIntensity = face.intensity !== undefined && face.intensity !== null;
+    setText("face_value", faceLabel);
+    if (hasIntensity) {
+      const intensity = asUnitNumber(face.intensity);
+      setText("face_intensity_value", formatPercent(intensity));
+      setBehaviourMeter("face_intensity_meter", intensity);
+    }
+    setBehaviourChannelActive("face", faceLabel !== "-" || hasIntensity);
   }
   const gaze = nonVerbal.gaze;
   if (typeof gaze === "string") {
     setText("gaze_value", gaze);
+    setBehaviourChannelActive("gaze", !!gaze.trim());
   } else if (gaze && typeof gaze === "object") {
-    setText("gaze_value", asText(gaze.direction || gaze.focus));
+    const direction = asText(gaze.direction);
+    const focus = asText(gaze.focus);
+    setText("gaze_value", direction !== "-" ? direction : focus);
+    setText("gaze_focus_value", `Focus ${focus}`);
+    setBehaviourChannelActive("gaze", direction !== "-" || focus !== "-");
   }
   const motion = nonVerbal.motion;
   if (motion && typeof motion === "object") {
-    setText("motion_value", `energy ${round(Number(motion.energy || 0), 2)}`);
+    renderMotionEnergyState(motion);
   }
 }
 
@@ -1705,11 +1732,13 @@ function renderMotion(motion) {
   if (!motion || typeof motion !== "object") {
     return;
   }
+  setBehaviourChannelActive("motion", true);
   const sign = normalizeSign(motion.handSign);
   if (sign) {
     renderAgentSign(sign);
     resetCameraEmissionGate();
   }
+  renderMotionEnergyState(motion);
   if (motion.effector) {
     setText("motion_value", asText(motion.effector));
   } else if (sign) {
@@ -1717,10 +1746,37 @@ function renderMotion(motion) {
   }
 }
 
+function renderMotionEnergyState(motion) {
+  const hasEnergy = motion.energy !== undefined && motion.energy !== null;
+  const hasStillness = motion.stillness !== undefined && motion.stillness !== null;
+  if (hasEnergy) {
+    const energy = asUnitNumber(motion.energy);
+    setText("motion_energy_value", formatPercent(energy));
+    setBehaviourMeter("motion_energy_meter", energy);
+  }
+  if (hasStillness) {
+    const stillness = asUnitNumber(motion.stillness);
+    setText("motion_stillness_value", formatPercent(stillness));
+    setBehaviourMeter("motion_stillness_meter", stillness);
+  }
+  if (hasEnergy || hasStillness) {
+    setBehaviourChannelActive("motion", true);
+    const summary = [];
+    if (hasEnergy) {
+      summary.push(`energy ${formatPercent(motion.energy)}`);
+    }
+    if (hasStillness) {
+      summary.push(`stillness ${formatPercent(motion.stillness)}`);
+    }
+    setText("motion_value", summary.join(" / "));
+  }
+}
+
 function renderDisplay(display) {
   if (!display || typeof display !== "object") {
     return;
   }
+  setBehaviourChannelActive("display", true);
   setText("display_value", JSON.stringify(display, null, 2));
   if (display.agentSign) {
     const agentSign = normalizeSign(display.agentSign);
@@ -4053,7 +4109,8 @@ function renderUserSign(sign) {
 function renderSign(prefix, sign) {
   const normalized = normalizeSign(sign);
   const ui = normalized ? SIGNS[normalized] : null;
-  setText(`${prefix}_sign_label`, ui ? `${ui.symbol} ${ui.label}` : "-");
+  setText(`${prefix}_sign_label`, ui ? ui.label : "-");
+  setText(`${prefix}_sign_visual`, ui ? ui.symbol : "-");
 }
 
 function renderLatestEvent(event) {
@@ -4117,13 +4174,21 @@ function renderActivityLog() {
 }
 
 function resetBehaviourPanels() {
+  BEHAVIOUR_CHANNELS.forEach((channel) => setBehaviourChannelActive(channel, false));
   setText("speech_preview", "-");
-  setText("gesture_value", "-");
+  setGestureVisual("NONE");
   setText("face_value", "-");
+  setText("face_intensity_value", "0%");
+  setBehaviourMeter("face_intensity_meter", 0);
   setText("gaze_value", "-");
+  setText("gaze_focus_value", "Focus -");
   setText("motion_value", "-");
-  setText("agent_sign_label", "-");
-  setText("user_sign_label", "-");
+  setText("motion_energy_value", "0%");
+  setBehaviourMeter("motion_energy_meter", 0);
+  setText("motion_stillness_value", "0%");
+  setBehaviourMeter("motion_stillness_meter", 0);
+  renderSign("agent", null);
+  renderSign("user", null);
   setText("round_value", "-");
   setText("winner_value", "-");
   setText("display_value", "-");
@@ -4375,6 +4440,15 @@ function prometheusFacingText(value) {
     .trim();
 }
 
+function normalizeGestureToken(value) {
+  const token = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_")
+    .replace(/-/g, "_");
+  return GESTURE_UI[token] ? token : "NONE";
+}
+
 function normalizeSign(value) {
   if (typeof value !== "string") {
     return null;
@@ -4456,6 +4530,18 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function asUnitNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+  return clamp(parsed, 0, 1);
+}
+
+function formatPercent(unitValue) {
+  return `${Math.round(asUnitNumber(unitValue) * 100)}%`;
+}
+
 function round(value, digits) {
   const factor = Math.pow(10, digits || 0);
   return Math.round(Number(value || 0) * factor) / factor;
@@ -4473,6 +4559,38 @@ function setText(id, value) {
   if (el) {
     el.textContent = value;
   }
+}
+
+function setBehaviourChannelActive(channel, active) {
+  const el = document.getElementById(`behaviour_chip_${channel}`);
+  if (!el) {
+    return;
+  }
+  el.classList.toggle("is-active", !!active);
+  el.classList.toggle("is-inactive", !active);
+}
+
+function setBehaviourMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  const percent = formatPercent(unitValue);
+  el.style.width = percent;
+  el.setAttribute("aria-valuenow", String(Math.round(asUnitNumber(unitValue) * 100)));
+  el.title = percent;
+}
+
+function setGestureVisual(value) {
+  const token = normalizeGestureToken(value);
+  const ui = GESTURE_UI[token] || GESTURE_UI.NONE;
+  const icon = document.getElementById("gesture_icon");
+  if (icon) {
+    icon.className = `bi ${ui.icon}`;
+  }
+  setText("gesture_value", ui.label);
+  setText("gesture_hint", ui.hint);
+  setBehaviourChannelActive("gesture", token !== "NONE");
 }
 
 class UnionFind {

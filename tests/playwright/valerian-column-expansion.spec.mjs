@@ -3,6 +3,17 @@ import { expect, test } from "@playwright/test";
 const ACCESS_CODE = "VX102";
 const ADMIN_TOKEN = process.env.PROMETHEUS_ADMIN_TOKEN || "laure";
 const ADMIN_TOKEN_HEADER = "X-Prometheus-Admin-Token";
+const SAMPLE_BEHAVIOUR_PLAN = {
+  speech: "Ich zeige kurz, worauf ich achte.",
+  nonVerbal: {
+    gesture: "OPEN_QUESTION",
+    facialExpression: { type: "warm_smile", intensity: 0.72 },
+    gaze: { direction: "toward_user", focus: "speaker" },
+    motion: { energy: 0.64, stillness: 0.28 },
+  },
+  motion: { effector: "right_hand", handSign: "rock", energy: 0.64, stillness: 0.28 },
+  display: { agentSign: "rock", userSign: "paper", round: 2, winner: "user", note: "visual test" },
+};
 
 test.beforeAll(async ({ request }) => {
   await ensureAccessCode(request, ACCESS_CODE);
@@ -22,6 +33,9 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   await page.getByTestId("continuous-speech-tab").click();
   await expect(page.locator("#continuous_speech_panel")).toHaveClass(/active/);
 
+  await renderSampleBehaviour(page);
+  await verifyBehaviourVisualState(page);
+
   await verifyColumnExpansion(page, testInfo, {
     key: "sensing",
     title: "Sensing",
@@ -39,11 +53,21 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
     key: "behaviour",
     title: "Behaviour",
     buttonTestId: "maximize-behaviour-column",
+    inModal: async (panelInModal) => {
+      await expect(panelInModal.getByTestId("behaviour-state-board")).toBeVisible();
+      await expect(panelInModal.getByTestId("behaviour-chip-gesture")).toHaveClass(/is-active/);
+      await expect(panelInModal.getByTestId("gesture-icon")).toHaveClass(/bi-question-diamond/);
+      await expect(panelInModal.getByTestId("face-intensity-meter")).toHaveAttribute("aria-valuenow", "72");
+      await expect(panelInModal.getByTestId("motion-energy-meter")).toHaveAttribute("aria-valuenow", "64");
+      await expect(panelInModal.getByTestId("motion-stillness-meter")).toHaveAttribute("aria-valuenow", "28");
+      await expect(panelInModal.getByTestId("agent-sign-visual")).toHaveText("\u270A");
+      await expect(panelInModal.getByTestId("user-sign-visual")).toHaveText("\u270B");
+    },
   });
 });
 
 async function verifyColumnExpansion(page, testInfo, options) {
-  const { key, title, buttonTestId, afterRestore } = options;
+  const { key, title, buttonTestId, afterRestore, inModal } = options;
   const column = page.locator(`[data-column-key="${key}"]`);
   const panelInColumn = page.locator(`[data-column-key="${key}"] > [data-column-panel="${key}"]`);
   const panelInModal = page.locator(`#column_expansion_body [data-column-panel="${key}"]`);
@@ -67,6 +91,10 @@ async function verifyColumnExpansion(page, testInfo, options) {
   expect(modalBodyBox.width).toBeGreaterThan(originalBox.width + 240);
   expect(expandedPanelBox.width).toBeGreaterThan(originalBox.width + 220);
 
+  if (inModal) {
+    await inModal(panelInModal);
+  }
+
   const screenshot = await modal.screenshot({
     path: testInfo.outputPath(`${key}-expanded.png`),
   });
@@ -81,6 +109,42 @@ async function verifyColumnExpansion(page, testInfo, options) {
   if (afterRestore) {
     await afterRestore();
   }
+}
+
+async function renderSampleBehaviour(page) {
+  await page.evaluate((plan) => {
+    if (typeof window.renderBehaviourPlan !== "function") {
+      throw new Error("renderBehaviourPlan is not available on the Valerian page.");
+    }
+    window.renderBehaviourPlan(plan);
+  }, SAMPLE_BEHAVIOUR_PLAN);
+}
+
+async function verifyBehaviourVisualState(page) {
+  await expect(page.getByTestId("behaviour-state-board")).toBeVisible();
+  await expect(page.getByTestId("speech-preview")).toContainText(SAMPLE_BEHAVIOUR_PLAN.speech);
+  await expect(page.getByTestId("gesture-icon")).toHaveClass(/bi-question-diamond/);
+  await expect(page.getByTestId("gesture-value")).toHaveText("Open Question");
+  await expect(page.getByTestId("gesture-hint")).toHaveText("Inviting response");
+  await expect(page.getByTestId("face-value")).toHaveText("warm_smile");
+  await expect(page.getByTestId("face-intensity-value")).toHaveText("72%");
+  await expect(page.getByTestId("face-intensity-meter")).toHaveAttribute("aria-valuenow", "72");
+  await expect(page.getByTestId("gaze-value")).toHaveText("toward_user");
+  await expect(page.getByTestId("gaze-focus-value")).toHaveText("Focus speaker");
+  await expect(page.getByTestId("motion-energy-value")).toHaveText("64%");
+  await expect(page.getByTestId("motion-energy-meter")).toHaveAttribute("aria-valuenow", "64");
+  await expect(page.getByTestId("motion-stillness-value")).toHaveText("28%");
+  await expect(page.getByTestId("motion-stillness-meter")).toHaveAttribute("aria-valuenow", "28");
+  await expect(page.getByTestId("agent-sign-label")).toHaveText("Stein");
+  await expect(page.getByTestId("user-sign-label")).toHaveText("Papier");
+  await expect(page.getByTestId("round-value")).toHaveText("2");
+  await expect(page.getByTestId("winner-value")).toHaveText("User");
+  await expect(page.getByTestId("behaviour-chip-speech")).toHaveClass(/is-active/);
+  await expect(page.getByTestId("behaviour-chip-gesture")).toHaveClass(/is-active/);
+  await expect(page.getByTestId("behaviour-chip-face")).toHaveClass(/is-active/);
+  await expect(page.getByTestId("behaviour-chip-gaze")).toHaveClass(/is-active/);
+  await expect(page.getByTestId("behaviour-chip-motion")).toHaveClass(/is-active/);
+  await expect(page.getByTestId("behaviour-chip-display")).toHaveClass(/is-active/);
 }
 
 async function requiredBox(locator, name) {
