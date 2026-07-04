@@ -456,6 +456,13 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("Weather"));
         assertTrue(index.contains("Signals Sensed"));
         assertTrue(index.contains("data-testid=\"manual-emotion-happy\""));
+        assertTrue(index.contains("data-testid=\"manual-emotion-disgusted\""));
+        assertTrue(index.contains("data-testid=\"manual-social-editor\""));
+        assertTrue(index.contains("data-testid=\"manual-social-people-count\""));
+        assertTrue(index.contains("data-testid=\"manual-social-group-preset\""));
+        assertTrue(index.contains("data-testid=\"manual-social-group-sizes\""));
+        assertTrue(index.contains("data-testid=\"manual-social-people-editor\""));
+        assertTrue(index.contains("data-testid=\"send-manual-social-context\""));
         assertTrue(index.contains("data-testid=\"emotion-report\""));
         assertTrue(index.contains("data-testid=\"emotion-affect-plane\""));
         assertTrue(index.contains("data-testid=\"emotion-affect-marker\""));
@@ -484,6 +491,27 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.indexOf("data-testid=\"social-context-report\"")
                 < index.indexOf("data-testid=\"hand-sign-value\""));
         assertTrue(index.contains("data-testid=\"hand-sign-value\""));
+        assertTrue(index.contains("data-testid=\"hand-sign-report\""));
+        assertTrue(index.contains("data-testid=\"hand-report-visual\""));
+        assertTrue(index.contains("data-testid=\"hand-report-label\""));
+        assertTrue(index.contains("data-testid=\"hand-report-confidence\""));
+        assertTrue(index.contains("data-testid=\"hand-report-confidence-meter\""));
+        assertTrue(index.contains("data-testid=\"hand-report-source\""));
+        assertTrue(index.contains("data-testid=\"hand-report-mode\""));
+        assertTrue(index.contains("data-testid=\"hand-report-canned\""));
+        assertTrue(index.contains("data-testid=\"hand-report-stability\""));
+        assertTrue(index.indexOf("data-testid=\"hand-sign-value\"")
+                < index.indexOf("data-testid=\"hand-sign-report\""));
+        assertTrue(index.indexOf("data-testid=\"hand-sign-report\"")
+                < index.indexOf("data-testid=\"weather-value\""));
+        assertTrue(index.contains("data-testid=\"weather-report\""));
+        assertTrue(index.contains("data-testid=\"weather-report-location\""));
+        assertTrue(index.contains("data-testid=\"weather-report-condition\""));
+        assertTrue(index.contains("data-testid=\"weather-report-temperature\""));
+        assertTrue(index.contains("data-testid=\"weather-report-precipitation\""));
+        assertTrue(index.contains("data-testid=\"weather-report-wind\""));
+        assertTrue(index.contains("data-testid=\"weather-report-light\""));
+        assertTrue(index.contains("data-testid=\"weather-forecast-strip\""));
         assertTrue(index.contains("data-testid=\"no-visual-sensing-state\""));
 
         assertTrue(script.contains("faceapi.nets.tinyFaceDetector"));
@@ -507,6 +535,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("camera.canvas.width - ((x + width) * scale.scaleX)"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(box.x, box.y, box.width, box.height, scale);"));
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(x, y, w, h, scale);"));
+        assertTrue(script.contains("disgusted: { valence: -0.72, arousal: 0.58 }"));
         assertTrue(script.contains("const EMOTION_EXPRESSION_KEYS = [\"neutral\", \"happy\", \"sad\", \"angry\", \"fearful\", \"disgusted\", \"surprised\"]"));
         assertTrue(script.contains("renderEmotionMetrics(emotion, detection.detection.score);"));
         assertTrue(script.contains("function renderEmotionMetrics(emotion, faceScore = 0)"));
@@ -539,6 +568,18 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("attentionState: attention.state"));
         assertTrue(index.contains("data-attention-state=\"attending\""));
         assertTrue(script.contains("token.dataset.attentionState = options.attentionState;"));
+        assertTrue(script.contains("const MANUAL_SOCIAL_MOVEMENT_STATES = [\"unknown\", \"stationary\", \"moving\", \"approaching\", \"receding\"]"));
+        assertTrue(script.contains("const MANUAL_SOCIAL_ATTENTION_STATES = [\"unknown\", \"attending\", \"not_attending\"]"));
+        assertTrue(script.contains("function renderManualSocialPeopleEditor()"));
+        assertTrue(script.contains("function manualSocialSnapshot()"));
+        assertTrue(script.contains("function submitManualSocialDetails()"));
+        assertTrue(script.contains("frontalCentered: person.nearFrontal === true && person.centered === true"));
+        assertTrue(script.contains("function renderHandSignReport(sign, options = {})"));
+        assertTrue(script.contains("function resetHandSignReport(statusText = \"No sign\")"));
+        assertTrue(script.contains("setSignalMeter(\"hand_report_confidence_meter\", confidence);"));
+        assertTrue(script.contains("function renderWeatherReport(payload)"));
+        assertTrue(script.contains("function renderWeatherForecastStrip(days)"));
+        assertTrue(script.contains("function weatherConditionLabel(condition)"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
@@ -585,6 +626,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("\"open-meteo.client\""));
         assertTrue(script.contains("submitEmotionSample"));
         assertTrue(script.contains("manualEmotionExpressions"));
+        assertTrue(script.contains("submitManualSocialDetails"));
+        assertTrue(script.contains("manualSocialGroups"));
         assertTrue(script.contains("sendWeatherCurrent"));
         assertTrue(script.contains("sendWeatherForecast"));
         assertTrue(script.contains("normalizeOpenMeteoWeather"));

@@ -196,10 +196,13 @@ const MANUAL_EMOTIONS = {
   sad: { valence: -0.7, arousal: 0.35 },
   angry: { valence: -0.65, arousal: 0.75 },
   fearful: { valence: -0.75, arousal: 0.7 },
+  disgusted: { valence: -0.72, arousal: 0.58 },
   surprised: { valence: 0.2, arousal: 0.8 },
 };
 
 const EMOTION_EXPRESSION_KEYS = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"];
+const MANUAL_SOCIAL_MOVEMENT_STATES = ["unknown", "stationary", "moving", "approaching", "receding"];
+const MANUAL_SOCIAL_ATTENTION_STATES = ["unknown", "attending", "not_attending"];
 
 const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.emotion.face",
@@ -353,6 +356,11 @@ function wireUi() {
   document.querySelectorAll("[data-social-sample]").forEach((button) => {
     button.addEventListener("click", () => submitSocialSample(button.dataset.socialSample));
   });
+  document.getElementById("manual_social_people_count").addEventListener("input", handleManualSocialShapeChange);
+  document.getElementById("manual_social_group_preset").addEventListener("change", handleManualSocialShapeChange);
+  document.getElementById("manual_social_group_sizes").addEventListener("input", handleManualSocialCustomGroupSizes);
+  document.getElementById("send_manual_social_context").addEventListener("click", submitManualSocialDetails);
+  renderManualSocialPeopleEditor();
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
     input.addEventListener("change", handleSensorModeChange);
   });
@@ -3251,8 +3259,18 @@ async function detectHandSign() {
   drawGestureOverlay(candidate);
   if (candidate) {
     setText("hand_sign_value", `${SIGNS[candidate.sign].label} ${candidate.confidence.toFixed(2)}`);
+    renderHandSignReport(candidate.sign, {
+      source: "valerian.hand.camera",
+      detectionMode: "client_camera",
+      confidence: candidate.confidence,
+      cannedGesture: candidate.cannedGesture,
+      stabilityFrames: camera.stableGestureCount,
+      statusText: "Live",
+      statusMode: "live",
+    });
   } else {
     setText("hand_sign_value", "-");
+    resetHandSignReport("No sign");
   }
   await maybeEmitCameraSign(candidate);
   camera.lastGestureVideoTime = camera.video.currentTime;
@@ -3449,6 +3467,312 @@ function manualEmotionExpressions(label) {
     ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"]
       .map((emotion) => [emotion, emotion === label ? 1 : 0])
   );
+}
+
+function handleManualSocialShapeChange() {
+  syncManualSocialGroupSizes();
+  renderManualSocialPeopleEditor();
+}
+
+function handleManualSocialCustomGroupSizes() {
+  const preset = document.getElementById("manual_social_group_preset");
+  if (preset) {
+    preset.value = "custom";
+  }
+}
+
+function manualSocialPeopleCount() {
+  const input = document.getElementById("manual_social_people_count");
+  const count = clamp(Math.round(Number(input?.value || 0)), 0, 6);
+  if (input && String(count) !== input.value) {
+    input.value = String(count);
+  }
+  return count;
+}
+
+function setManualSocialPreset(kind) {
+  const countInput = document.getElementById("manual_social_people_count");
+  const presetInput = document.getElementById("manual_social_group_preset");
+  const groupSizesInput = document.getElementById("manual_social_group_sizes");
+  const presets = {
+    alone: { count: 0, preset: "singletons", sizes: "" },
+    single: { count: 1, preset: "singletons", sizes: "1" },
+    pair: { count: 2, preset: "pair", sizes: "2" },
+    crowd: { count: 3, preset: "group", sizes: "3" },
+  };
+  const selected = presets[kind];
+  if (!selected) {
+    return false;
+  }
+  if (countInput) {
+    countInput.value = String(selected.count);
+  }
+  if (presetInput) {
+    presetInput.value = selected.preset;
+  }
+  if (groupSizesInput) {
+    groupSizesInput.value = selected.sizes;
+  }
+  renderManualSocialPeopleEditor();
+  return true;
+}
+
+function syncManualSocialGroupSizes() {
+  const input = document.getElementById("manual_social_group_sizes");
+  const preset = document.getElementById("manual_social_group_preset")?.value || "singletons";
+  if (!input || preset === "custom") {
+    return;
+  }
+  const count = manualSocialPeopleCount();
+  input.value = manualSocialGroupSizesForPreset(count, preset).join(",");
+}
+
+function manualSocialGroupSizesForPreset(count, preset) {
+  if (count <= 0) {
+    return [];
+  }
+  if (preset === "group") {
+    return [count];
+  }
+  if (preset === "pair") {
+    const sizes = [Math.min(2, count)];
+    for (let remaining = count - sizes[0]; remaining > 0; remaining--) {
+      sizes.push(1);
+    }
+    return sizes;
+  }
+  return Array.from({ length: count }, () => 1);
+}
+
+function renderManualSocialPeopleEditor() {
+  const list = document.getElementById("manual_social_people_editor");
+  if (!list) {
+    return;
+  }
+  const existing = readManualSocialPeopleControls();
+  const count = manualSocialPeopleCount();
+  list.replaceChildren();
+  if (count <= 0) {
+    list.appendChild(socialEmptyState("No manual people", "manual-social-empty"));
+    return;
+  }
+  for (let id = 1; id <= count; id++) {
+    list.appendChild(manualSocialPersonCard(id, existing.get(id)));
+  }
+}
+
+function manualSocialPersonCard(id, existing = {}) {
+  const card = document.createElement("div");
+  card.className = "manual-social-person-card";
+  card.dataset.manualSocialPerson = String(id);
+  card.dataset.testid = `manual-social-person-${id}`;
+
+  const head = document.createElement("div");
+  head.className = "manual-social-person-head";
+  const title = document.createElement("span");
+  title.textContent = `Person ${id}`;
+  const confidence = document.createElement("span");
+  confidence.className = "social-context-token";
+  confidence.textContent = "conf 100%";
+  head.append(title, confidence);
+
+  const row = document.createElement("div");
+  row.className = "row g-2";
+  row.append(
+    manualSocialSelectField(id, "movement", "Movement", MANUAL_SOCIAL_MOVEMENT_STATES, existing.movement || "unknown"),
+    manualSocialRangeField(id, "movement_confidence", "Move conf", existing.movementConfidence ?? 0),
+    manualSocialSelectField(id, "attention", "Attention", MANUAL_SOCIAL_ATTENTION_STATES, existing.attention || "unknown"),
+    manualSocialRangeField(id, "attention_confidence", "Attention conf", existing.attentionConfidence ?? 0)
+  );
+
+  const cues = document.createElement("div");
+  cues.className = "manual-social-cue-row";
+  cues.append(
+    manualSocialCheckbox(id, "person_visible", "Person visible", existing.personVisible !== false),
+    manualSocialCheckbox(id, "face_visible", "Face visible", existing.faceVisible === true),
+    manualSocialCheckbox(id, "near_frontal", "Near frontal", existing.nearFrontal === true),
+    manualSocialCheckbox(id, "centered", "Centered", existing.centered === true)
+  );
+
+  card.append(head, row, cues);
+  return card;
+}
+
+function manualSocialSelectField(id, key, label, values, selected) {
+  const wrap = document.createElement("div");
+  wrap.className = "col-6";
+  const inputId = `manual_social_person_${id}_${key}`;
+  const labelEl = document.createElement("label");
+  labelEl.className = "form-label metric-label";
+  labelEl.setAttribute("for", inputId);
+  labelEl.textContent = label;
+  const select = document.createElement("select");
+  select.id = inputId;
+  select.className = "form-select form-select-sm";
+  select.dataset.manualSocialField = key;
+  select.dataset.testid = inputId.replaceAll("_", "-");
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value.replace(/_/g, " ");
+    select.appendChild(option);
+  });
+  select.value = values.includes(selected) ? selected : "unknown";
+  wrap.append(labelEl, select);
+  return wrap;
+}
+
+function manualSocialRangeField(id, key, label, value) {
+  const wrap = document.createElement("div");
+  wrap.className = "col-6";
+  const inputId = `manual_social_person_${id}_${key}`;
+  const labelEl = document.createElement("label");
+  labelEl.className = "form-label metric-label";
+  labelEl.setAttribute("for", inputId);
+  labelEl.textContent = label;
+  const output = document.createElement("span");
+  output.className = "ms-1";
+  output.id = `${inputId}_value`;
+  output.dataset.testid = `${inputId.replaceAll("_", "-")}-value`;
+  const input = document.createElement("input");
+  input.id = inputId;
+  input.className = "form-range";
+  input.type = "range";
+  input.min = "0";
+  input.max = "1";
+  input.step = "0.05";
+  input.value = String(asUnitNumber(value));
+  input.dataset.manualSocialField = key;
+  input.dataset.testid = inputId.replaceAll("_", "-");
+  const update = () => {
+    output.textContent = formatPercent(input.value);
+  };
+  input.addEventListener("input", update);
+  update();
+  labelEl.appendChild(output);
+  wrap.append(labelEl, input);
+  return wrap;
+}
+
+function manualSocialCheckbox(id, key, label, checked) {
+  const wrap = document.createElement("div");
+  wrap.className = "form-check";
+  const inputId = `manual_social_person_${id}_${key}`;
+  const input = document.createElement("input");
+  input.id = inputId;
+  input.className = "form-check-input";
+  input.type = "checkbox";
+  input.checked = !!checked;
+  input.dataset.manualSocialField = key;
+  input.dataset.testid = inputId.replaceAll("_", "-");
+  const labelEl = document.createElement("label");
+  labelEl.className = "form-check-label";
+  labelEl.setAttribute("for", inputId);
+  labelEl.textContent = label;
+  wrap.append(input, labelEl);
+  return wrap;
+}
+
+function readManualSocialPeopleControls() {
+  const people = new Map();
+  document.querySelectorAll("[data-manual-social-person]").forEach((card) => {
+    const id = Number(card.dataset.manualSocialPerson || 0);
+    if (!id) {
+      return;
+    }
+    people.set(id, {
+      movement: card.querySelector("[data-manual-social-field='movement']")?.value || "unknown",
+      movementConfidence: asUnitNumber(card.querySelector("[data-manual-social-field='movement_confidence']")?.value),
+      attention: card.querySelector("[data-manual-social-field='attention']")?.value || "unknown",
+      attentionConfidence: asUnitNumber(card.querySelector("[data-manual-social-field='attention_confidence']")?.value),
+      personVisible: card.querySelector("[data-manual-social-field='person_visible']")?.checked === true,
+      faceVisible: card.querySelector("[data-manual-social-field='face_visible']")?.checked === true,
+      nearFrontal: card.querySelector("[data-manual-social-field='near_frontal']")?.checked === true,
+      centered: card.querySelector("[data-manual-social-field='centered']")?.checked === true,
+    });
+  });
+  return people;
+}
+
+function manualSocialTrackedPeople() {
+  const existing = readManualSocialPeopleControls();
+  const count = manualSocialPeopleCount();
+  const people = [];
+  for (let id = 1; id <= count; id++) {
+    const person = existing.get(id) || {};
+    people.push({
+      id,
+      score: 1,
+      activity: normalizeMovementState(person.movement),
+      movementState: normalizeMovementState(person.movement),
+      movementConfidence: asUnitNumber(person.movementConfidence),
+      attention: {
+        state: normalizeAttentionState(person.attention),
+        confidence: asUnitNumber(person.attentionConfidence),
+        personVisible: person.personVisible !== false,
+        faceVisible: person.faceVisible === true,
+        nearFrontal: person.nearFrontal === true,
+        centered: person.centered === true,
+        frontalCentered: person.nearFrontal === true && person.centered === true,
+      },
+    });
+  }
+  return people;
+}
+
+function manualSocialGroups(count) {
+  const input = document.getElementById("manual_social_group_sizes");
+  const preset = document.getElementById("manual_social_group_preset")?.value || "singletons";
+  const sizes = preset === "custom"
+    ? parseManualSocialGroupSizes(input?.value, count)
+    : manualSocialGroupSizesForPreset(count, preset);
+  const groups = [];
+  let nextId = 1;
+  for (const size of sizes) {
+    if (nextId > count) {
+      break;
+    }
+    const actualSize = Math.min(size, count - nextId + 1);
+    if (actualSize <= 0) {
+      continue;
+    }
+    groups.push({ members: Array.from({ length: actualSize }, (_, index) => nextId + index) });
+    nextId += actualSize;
+  }
+  while (nextId <= count) {
+    groups.push({ members: [nextId] });
+    nextId += 1;
+  }
+  return groups;
+}
+
+function parseManualSocialGroupSizes(value, count) {
+  const sizes = String(value || "")
+    .split(",")
+    .map((item) => Math.max(0, Math.round(Number(item.trim()))))
+    .filter((size) => size > 0);
+  return sizes.length > 0 ? sizes : manualSocialGroupSizesForPreset(count, "singletons");
+}
+
+function manualSocialSnapshot() {
+  const people = manualSocialTrackedPeople();
+  const groups = manualSocialGroups(people.length);
+  return {
+    social: {
+      humanCount: people.length,
+      groupCount: groups.filter((group) => group.members.length >= 2).length,
+      singletonCount: groups.filter((group) => group.members.length === 1).length,
+      largestGroupSize: groups.reduce((max, group) => Math.max(max, group.members.length), 0),
+      groups,
+    },
+    people,
+  };
+}
+
+async function submitManualSocialDetails() {
+  const snapshot = manualSocialSnapshot();
+  renderSocialMetrics(snapshot.social, snapshot.people);
+  await submitSocialPayloads(snapshot.social, snapshot.people, "visual.social.manual");
 }
 
 function normalizePersonDetection(detection) {
@@ -3851,20 +4175,10 @@ async function maybeEmitSocial(social, tracked) {
 }
 
 async function submitSocialSample(kind) {
-  const samples = {
-    alone: { humanCount: 0, groupCount: 0, singletonCount: 0, largestGroupSize: 0, groups: [] },
-    single: { humanCount: 1, groupCount: 0, singletonCount: 1, largestGroupSize: 1, groups: [{ members: [1] }] },
-    pair: { humanCount: 2, groupCount: 1, singletonCount: 0, largestGroupSize: 2, groups: [{ members: [1, 2] }] },
-    crowd: { humanCount: 3, groupCount: 1, singletonCount: 0, largestGroupSize: 3, groups: [{ members: [1, 2, 3] }] },
-  };
-  const social = samples[kind];
-  if (!social) {
+  if (!setManualSocialPreset(kind)) {
     return;
   }
-  const tracked = social.groups.flatMap((g) => g.members)
-    .map((id) => ({ id, score: 1, activity: "unknown", attention: { ...emptyAttentionSignal(), personVisible: true } }));
-  renderSocialMetrics(social, tracked);
-  await submitSocialPayloads(social, tracked, "visual.social.manual");
+  await submitManualSocialDetails();
 }
 
 async function submitSocialPayloads(social, tracked, source) {
@@ -4058,6 +4372,15 @@ async function maybeEmitCameraSign(candidate) {
   if (ok) {
     camera.lastCameraEmitKey = emitKey;
     markSensorEmitted("hand");
+    renderHandSignReport(candidate.sign, {
+      source: "valerian.hand.camera",
+      detectionMode: "client_camera",
+      confidence: candidate.confidence,
+      cannedGesture: candidate.cannedGesture,
+      stabilityFrames: camera.stableGestureCount,
+      statusText: `Emitted ${new Date().toLocaleTimeString()}`,
+      statusMode: "live",
+    });
   }
 }
 
@@ -4068,6 +4391,15 @@ async function submitHandSign(sign, options = {}) {
     return false;
   }
   renderUserSign(normalized);
+  renderHandSignReport(normalized, {
+    source: options.source || "valerian.hand.manual",
+    detectionMode: options.detectionMode || "manual",
+    confidence: typeof options.confidence === "number" ? options.confidence : 1.0,
+    cannedGesture: options.cannedGesture,
+    stabilityFrames: options.stabilityFrames,
+    statusText: "Sending",
+    statusMode: "idle",
+  });
   const payload = {
     source: options.source || "valerian.hand.manual",
     hand: options.hand || "unknown",
@@ -4088,6 +4420,19 @@ async function submitHandSign(sign, options = {}) {
     kind: "observation",
     payload: JSON.stringify(payload),
   }, { renderResponse: true });
+  if (data) {
+    renderHandSignReport(normalized, {
+      source: payload.source,
+      detectionMode: payload.detectionMode,
+      confidence: payload.confidence,
+      cannedGesture: payload.cannedGesture,
+      stabilityFrames: payload.stabilityFrames,
+      statusText: `Emitted ${new Date().toLocaleTimeString()}`,
+      statusMode: "live",
+    });
+  } else {
+    setHandSignStatus("Emit failed", "error");
+  }
   return !!data;
 }
 
@@ -4098,6 +4443,7 @@ async function fetchWeatherCurrent() {
     weather.forecast = payloads.forecast;
     weather.locationQuery = weatherLocationQuery();
     renderWeatherPayload(weather.current);
+    setWeatherReportStatus("Fetched current", "live");
     appendLog("weather", "current weather fetched.");
     return true;
   } catch (error) {
@@ -4125,6 +4471,7 @@ async function sendWeatherCurrent() {
     payload: JSON.stringify(weather.current),
   }, { renderResponse: false });
   if (data) {
+    setWeatherReportStatus(`Sent current ${new Date().toLocaleTimeString()}`, "live");
     appendLog("weather", "current weather sent.");
   }
   return !!data;
@@ -4142,6 +4489,7 @@ async function sendWeatherForecast() {
       weather.forecast = payloads.forecast;
       weather.locationQuery = weatherLocationQuery();
       renderWeatherPayload(weather.forecast);
+      setWeatherReportStatus("Fetched forecast", "live");
     } catch (error) {
       renderWeatherStatus("Weather unavailable");
       appendLog("weather", errorMessage(error));
@@ -4155,6 +4503,7 @@ async function sendWeatherForecast() {
     payload: JSON.stringify(weather.forecast),
   }, { renderResponse: false });
   if (data) {
+    setWeatherReportStatus(`Sent forecast ${new Date().toLocaleTimeString()}`, "live");
     appendLog("weather", "weather forecast sent.");
   }
   return !!data;
@@ -4387,8 +4736,10 @@ function renderWeatherFromPayload(type, payload) {
 function renderWeatherPayload(payload) {
   if (!payload || typeof payload !== "object") {
     renderWeatherStatus("-");
+    resetWeatherReport();
     return;
   }
+  renderWeatherReport(payload);
   if (payload.kind === "forecast") {
     const first = Array.isArray(payload.days) ? payload.days[0] : null;
     const location = payload.location_label || "Weather";
@@ -4404,11 +4755,133 @@ function renderWeatherStatus(value) {
   setText("weather_value", value || "-");
 }
 
+function renderWeatherReport(payload) {
+  const kind = payload.kind === "forecast" ? "forecast" : "current";
+  const location = payload.location_label || payload.location_name || payload.location_query || "-";
+  setText("weather_report_location", location);
+  if (kind === "forecast") {
+    const days = Array.isArray(payload.days) ? payload.days : [];
+    const first = days[0] || {};
+    setText("weather_report_condition", weatherConditionLabel(first.condition));
+    setText("weather_report_temperature", weatherDayTemperature(first));
+    setText("weather_report_precipitation", weatherPrecipitationLabel(first));
+    setText("weather_report_wind", weatherWindLabel(first.wind));
+    setText("weather_report_light", "Forecast");
+    renderWeatherForecastStrip(days);
+    setWeatherReportStatus("Forecast", "live");
+    return;
+  }
+  setText("weather_report_condition", weatherConditionLabel(payload.condition));
+  setText("weather_report_temperature", typeof payload.temperature_c === "number" ? `${payload.temperature_c} C` : "-");
+  setText("weather_report_precipitation", weatherPrecipitationLabel(payload));
+  setText("weather_report_wind", weatherWindLabel(payload.wind));
+  setText("weather_report_light", payload.is_day === true ? "Day" : payload.is_day === false ? "Night" : "-");
+  renderWeatherForecastStrip(weather.forecast && Array.isArray(weather.forecast.days) ? weather.forecast.days : []);
+  setWeatherReportStatus("Current", "live");
+}
+
+function resetWeatherReport() {
+  setText("weather_report_location", "-");
+  setText("weather_report_condition", "-");
+  setText("weather_report_temperature", "-");
+  setText("weather_report_precipitation", "-");
+  setText("weather_report_wind", "-");
+  setText("weather_report_light", "-");
+  renderWeatherForecastStrip([]);
+  setWeatherReportStatus("No weather", "idle");
+}
+
+function setWeatherReportStatus(text, mode = "idle") {
+  const el = document.getElementById("weather_report_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.className = `status-pill is-${mode || "idle"}`;
+}
+
+function renderWeatherForecastStrip(days) {
+  const list = document.getElementById("weather_forecast_strip");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  const visibleDays = Array.isArray(days) ? days.slice(0, 3) : [];
+  if (visibleDays.length === 0) {
+    list.appendChild(socialEmptyState("No forecast", "weather-forecast-empty"));
+    return;
+  }
+  visibleDays.forEach((day, index) => {
+    const card = document.createElement("div");
+    card.className = "weather-day-card";
+    card.dataset.testid = `weather-forecast-day-${index + 1}`;
+    const date = document.createElement("strong");
+    date.dataset.testid = `weather-forecast-day-${index + 1}-date`;
+    date.textContent = shortWeatherDate(day.date);
+    const condition = document.createElement("span");
+    condition.dataset.testid = `weather-forecast-day-${index + 1}-condition`;
+    condition.textContent = weatherConditionLabel(day.condition);
+    const temp = document.createElement("span");
+    temp.dataset.testid = `weather-forecast-day-${index + 1}-temperature`;
+    temp.textContent = weatherDayTemperature(day);
+    card.append(date, condition, temp);
+    list.appendChild(card);
+  });
+}
+
+function weatherConditionLabel(condition) {
+  const token = String(condition || "").trim().toLowerCase();
+  const labels = {
+    clear: "Clear",
+    cloudy: "Cloudy",
+    fog: "Fog",
+    rain: "Rain",
+    snow: "Snow",
+    storm: "Storm",
+  };
+  return labels[token] || (token ? token : "-");
+}
+
+function weatherWindLabel(wind) {
+  const token = String(wind || "").trim().toLowerCase();
+  if (token === "windy") {
+    return "Windy";
+  }
+  if (token === "calm") {
+    return "Calm";
+  }
+  return token || "-";
+}
+
+function weatherPrecipitationLabel(payload) {
+  const intensity = payload && payload.intensity ? String(payload.intensity) : "";
+  const amount = typeof payload?.precipitation_mm === "number" ? `${payload.precipitation_mm} mm` : "";
+  if (intensity && intensity !== "none" && amount) {
+    return `${intensity} (${amount})`;
+  }
+  return amount || (intensity ? intensity : "-");
+}
+
+function weatherDayTemperature(day) {
+  if (typeof day?.temperature_min_c === "number" || typeof day?.temperature_max_c === "number") {
+    const min = typeof day.temperature_min_c === "number" ? day.temperature_min_c : "?";
+    const max = typeof day.temperature_max_c === "number" ? day.temperature_max_c : "?";
+    return `${min}-${max} C`;
+  }
+  return "-";
+}
+
+function shortWeatherDate(value) {
+  const token = String(value || "").trim();
+  return token.length > 5 ? token.slice(5) : token || "-";
+}
+
 function resetWeatherState() {
   weather.current = null;
   weather.forecast = null;
   weather.locationQuery = "";
   renderWeatherStatus("-");
+  resetWeatherReport();
 }
 
 function drawFaceBox(box) {
@@ -4544,6 +5017,7 @@ function resetDisabledSensorState() {
   }
   if (!isSensorModeEnabled("hand")) {
     setText("hand_sign_value", "-");
+    resetHandSignReport("Detector off");
     camera.stableGestureKey = null;
     camera.stableGestureCount = 0;
     camera.lastCameraEmitKey = null;
@@ -4570,6 +5044,15 @@ function renderUserSignFromPayload(payload) {
     const sign = normalizeSign(parsed.sign);
     if (sign) {
       renderUserSign(sign);
+      renderHandSignReport(sign, {
+        source: parsed.source,
+        detectionMode: parsed.detectionMode,
+        confidence: parsed.confidence,
+        cannedGesture: parsed.cannedGesture,
+        stabilityFrames: parsed.stabilityFrames,
+        statusText: "From history",
+        statusMode: "idle",
+      });
     }
   } catch (_) {
     return;
@@ -4589,6 +5072,78 @@ function renderSign(prefix, sign) {
   const ui = normalized ? SIGNS[normalized] : null;
   setText(`${prefix}_sign_label`, ui ? ui.label : "-");
   setText(`${prefix}_sign_visual`, ui ? ui.symbol : "-");
+}
+
+function renderHandSignReport(sign, options = {}) {
+  const normalized = normalizeSign(sign);
+  const ui = normalized ? SIGNS[normalized] : null;
+  if (!ui) {
+    resetHandSignReport("No sign");
+    return;
+  }
+  const confidence = asUnitNumber(options.confidence ?? 1);
+  setText("hand_report_visual", ui.symbol);
+  setText("hand_report_label", ui.label);
+  setText("hand_report_confidence", formatPercent(confidence));
+  setSignalMeter("hand_report_confidence_meter", confidence);
+  setText("hand_report_source", sourceLabel(options.source));
+  setText("hand_report_mode", modeLabel(options.detectionMode));
+  setText("hand_report_canned", options.cannedGesture || "-");
+  setText("hand_report_stability", options.stabilityFrames ? `${options.stabilityFrames} frames` : "-");
+  setHandSignStatus(options.statusText || "Live", options.statusMode || "live");
+}
+
+function resetHandSignReport(statusText = "No sign") {
+  setText("hand_report_visual", "-");
+  setText("hand_report_label", "-");
+  setText("hand_report_confidence", "0%");
+  setSignalMeter("hand_report_confidence_meter", 0);
+  setText("hand_report_source", "-");
+  setText("hand_report_mode", "-");
+  setText("hand_report_canned", "-");
+  setText("hand_report_stability", "-");
+  setHandSignStatus(statusText, "idle");
+}
+
+function setHandSignStatus(text, mode = "idle") {
+  const el = document.getElementById("hand_sign_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text;
+  el.className = `status-pill is-${mode || "idle"}`;
+}
+
+function sourceLabel(value) {
+  const token = String(value || "").trim();
+  if (!token) {
+    return "-";
+  }
+  if (token.includes(".manual")) {
+    return "Manual";
+  }
+  if (token.includes(".camera")) {
+    return "Camera";
+  }
+  if (token.includes("open-meteo")) {
+    return "Open-Meteo";
+  }
+  return token;
+}
+
+function modeLabel(value) {
+  const token = String(value || "").trim();
+  return token ? token.replace(/_/g, " ") : "-";
+}
+
+function setSignalMeter(id, unitValue) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  const value = asUnitNumber(unitValue);
+  el.style.width = formatPercent(value);
+  el.setAttribute("aria-valuenow", String(Math.round(value * 100)));
 }
 
 function renderLatestEvent(event) {

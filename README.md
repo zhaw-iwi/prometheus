@@ -48,7 +48,7 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
 - The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
 - Camera sensing modes are independently toggleable while the camera is running. Face emotion, social context, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles.
-- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social-context/hand inputs, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status. The social context report shows humans, groups, group sizes, member IDs, tracked-person confidence, cheap movement states such as stationary, moving, approaching, and receding, and a first-pass attentiveness signal from person visibility, likely face visibility, centered/frontal geometry, and confidence. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
+- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social-context/hand inputs, weather context, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status, with matching manual buttons for the supported expression labels. The social context report shows humans, groups, group sizes, member IDs, tracked-person confidence, cheap movement states such as stationary, moving, approaching, and receding, and a first-pass attentiveness signal from person visibility, likely face visibility, centered/frontal geometry, and confidence; manual social context can set the same movement and attention fields. Hand signs and weather have dedicated report panels with source/mode/confidence or location/condition/forecast details. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour board cards/chips. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
@@ -501,8 +501,9 @@ Visual social observations use raw event types:
 The visual social client emits the presence/grouping pair from camera detection.
 The Valerian cockpit can emit the same pair and, when supported by the active
 profile, the richer `obs.social.context` event. The Valerian cockpit also includes
-manual social scenario buttons that emit the same social contracts for rehearsal
-without a camera.
+manual social scenario buttons and a compact detail editor for people, group
+sizes, movement state/confidence, attentiveness state/confidence, and attention
+cues; both paths emit the same social contracts for rehearsal without a camera.
 
 `obs.social.context` is the richer optional Valerian social sensing event. It is
 emitted alongside the existing presence/grouping events only for agents that
@@ -535,7 +536,9 @@ The Valerian cockpit emits this event shape from manual sign buttons with
 mode uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
 follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
 Camera events use `source=valerian.hand.camera` and
-`detectionMode=client_camera`.
+`detectionMode=client_camera`. The Signals Sensed accordion shows the latest hand
+sign as a report with the sign symbol, confidence meter, source, detection mode,
+canned MediaPipe gesture, and stability-frame count when available.
 
 Weather observations use:
 
@@ -550,7 +553,10 @@ Weather observations use:
 The Valerian cockpit exposes weather controls only for agents that declare
 weather observations. It resolves a manually entered location through
 Open-Meteo in the browser, normalizes the result, and sends current weather or a
-short forecast only when the operator presses the corresponding button.
+short forecast only when the operator presses the corresponding button. The
+Signals Sensed accordion shows the latest weather context as a report with
+location, condition, temperature, precipitation/intensity, wind, light state, and
+a compact three-day forecast strip when forecast data is present.
 
 Hand-sign reveal behaviours use top-level `BehaviourPlan.motion`:
 

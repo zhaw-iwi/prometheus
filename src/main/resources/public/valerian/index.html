@@ -556,6 +556,147 @@
       padding: 0.55rem;
     }
 
+    .manual-social-editor {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    .manual-social-person-list {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .manual-social-person-card {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.68);
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.65rem;
+    }
+
+    .manual-social-person-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .manual-social-cue-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.4rem 0.65rem;
+    }
+
+    .signal-report-panel {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.76);
+      display: grid;
+      gap: 0.75rem;
+      padding: 0.75rem;
+    }
+
+    .signal-report-head,
+    .signal-report-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+
+    .signal-report-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .signal-report-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .signal-report-stat {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      min-height: 3.2rem;
+      padding: 0.55rem;
+    }
+
+    .signal-report-value {
+      display: block;
+      color: var(--ink);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .signal-meter {
+      height: 0.55rem;
+      border-radius: 999px;
+      background: rgba(12, 22, 24, 0.12);
+      overflow: hidden;
+    }
+
+    .signal-meter-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #14b8a6);
+      transition: width 160ms ease;
+    }
+
+    .hand-report-main {
+      display: grid;
+      grid-template-columns: 5.2rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+
+    .hand-report-stage {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      font-size: 2.4rem;
+      min-height: 5.2rem;
+    }
+
+    .weather-forecast-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .weather-day-card {
+      border: 1px solid var(--demo-line);
+      border-radius: 8px;
+      background: rgba(12, 22, 24, 0.04);
+      display: grid;
+      gap: 0.18rem;
+      min-height: 4.2rem;
+      padding: 0.5rem;
+    }
+
+    .weather-day-card strong,
+    .weather-day-card span {
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 991px) {
       .emotion-report-grid {
         grid-template-columns: 1fr;
@@ -563,6 +704,12 @@
 
       .social-context-stat-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .signal-report-grid,
+      .weather-forecast-strip,
+      .manual-social-cue-row {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -1565,6 +1712,8 @@
                           data-testid="manual-emotion-angry">Angry</button>
                         <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="fearful"
                           data-testid="manual-emotion-fearful">Fearful</button>
+                        <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="disgusted"
+                          data-testid="manual-emotion-disgusted">Disgusted</button>
                         <button class="btn btn-outline-ink btn-sm" type="button" data-emotion="surprised"
                           data-testid="manual-emotion-surprised">Surprised</button>
                       </div>
@@ -1590,6 +1739,34 @@
                           data-testid="social-sample-crowd">Group</button>
                         <button class="btn btn-outline-ink btn-sm" type="button" data-social-sample="pair"
                           data-testid="social-sample-pair">Pair</button>
+                      </div>
+                      <div class="manual-social-editor" data-testid="manual-social-editor">
+                        <div class="row g-2">
+                          <div class="col-6">
+                            <label class="form-label metric-label" for="manual_social_people_count">People</label>
+                            <input id="manual_social_people_count" class="form-control form-control-sm" type="number"
+                              min="0" max="6" step="1" value="1" data-testid="manual-social-people-count">
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label metric-label" for="manual_social_group_preset">Groups</label>
+                            <select id="manual_social_group_preset" class="form-select form-select-sm"
+                              data-testid="manual-social-group-preset">
+                              <option value="singletons">Singletons</option>
+                              <option value="pair">Pair plus singletons</option>
+                              <option value="group">One group</option>
+                              <option value="custom">Custom sizes</option>
+                            </select>
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label metric-label" for="manual_social_group_sizes">Group sizes</label>
+                            <input id="manual_social_group_sizes" class="form-control form-control-sm" type="text"
+                              value="1" maxlength="24" placeholder="2,1" data-testid="manual-social-group-sizes">
+                          </div>
+                        </div>
+                        <div id="manual_social_people_editor" class="manual-social-person-list"
+                          data-testid="manual-social-people-editor"></div>
+                        <button id="send_manual_social_context" class="btn btn-outline-ink btn-sm" type="button"
+                          data-testid="send-manual-social-context">Send Social Context</button>
                       </div>
                     </div>
                   </div>
@@ -1847,9 +2024,112 @@
                           <span class="metric-label">Hand Sign</span>
                           <strong id="hand_sign_value" data-testid="hand-sign-value">-</strong>
                         </div>
+                        <div class="signal-report-panel" data-profile-observations="obs.hand.sign"
+                          data-testid="hand-sign-report">
+                          <div class="signal-report-head">
+                            <span class="signal-report-title">
+                              <i class="bi bi-hand-index-thumb"></i>
+                              Hand Sign Report
+                            </span>
+                            <span id="hand_sign_status" class="status-pill is-idle"
+                              data-testid="hand-sign-status">No sign</span>
+                          </div>
+                          <div class="hand-report-main">
+                            <div id="hand_report_visual" class="hand-report-stage"
+                              data-testid="hand-report-visual">-</div>
+                            <div class="emotion-report-values">
+                              <div class="signal-report-row">
+                                <span class="metric-label">Sign</span>
+                                <strong id="hand_report_label" class="signal-report-value"
+                                  data-testid="hand-report-label">-</strong>
+                              </div>
+                              <div class="signal-report-row">
+                                <span class="metric-label">Confidence</span>
+                                <strong id="hand_report_confidence" class="signal-report-value"
+                                  data-testid="hand-report-confidence">0%</strong>
+                              </div>
+                              <div class="signal-meter" aria-label="Hand sign confidence">
+                                <div id="hand_report_confidence_meter" class="signal-meter-fill"
+                                  data-testid="hand-report-confidence-meter"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="signal-report-grid">
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Source</span>
+                              <strong id="hand_report_source" class="signal-report-value"
+                                data-testid="hand-report-source">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Mode</span>
+                              <strong id="hand_report_mode" class="signal-report-value"
+                                data-testid="hand-report-mode">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">MediaPipe</span>
+                              <strong id="hand_report_canned" class="signal-report-value"
+                                data-testid="hand-report-canned">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Stability</span>
+                              <strong id="hand_report_stability" class="signal-report-value"
+                                data-testid="hand-report-stability">-</strong>
+                            </div>
+                          </div>
+                        </div>
                         <div class="metric-row" data-profile-observations="obs.weather.current obs.weather.forecast">
                           <span class="metric-label">Weather</span>
                           <strong id="weather_value" data-testid="weather-value">-</strong>
+                        </div>
+                        <div class="signal-report-panel" data-profile-observations="obs.weather.current obs.weather.forecast"
+                          data-testid="weather-report">
+                          <div class="signal-report-head">
+                            <span class="signal-report-title">
+                              <i class="bi bi-cloud-sun"></i>
+                              Weather Report
+                            </span>
+                            <span id="weather_report_status" class="status-pill is-idle"
+                              data-testid="weather-report-status">No weather</span>
+                          </div>
+                          <div class="signal-report-grid">
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Location</span>
+                              <strong id="weather_report_location" class="signal-report-value"
+                                data-testid="weather-report-location">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Condition</span>
+                              <strong id="weather_report_condition" class="signal-report-value"
+                                data-testid="weather-report-condition">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Temperature</span>
+                              <strong id="weather_report_temperature" class="signal-report-value"
+                                data-testid="weather-report-temperature">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Precipitation</span>
+                              <strong id="weather_report_precipitation" class="signal-report-value"
+                                data-testid="weather-report-precipitation">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Wind</span>
+                              <strong id="weather_report_wind" class="signal-report-value"
+                                data-testid="weather-report-wind">-</strong>
+                            </div>
+                            <div class="signal-report-stat">
+                              <span class="metric-label">Light</span>
+                              <strong id="weather_report_light" class="signal-report-value"
+                                data-testid="weather-report-light">-</strong>
+                            </div>
+                          </div>
+                          <div>
+                            <span class="metric-label">3-day forecast</span>
+                            <div id="weather_forecast_strip" class="weather-forecast-strip"
+                              data-testid="weather-forecast-strip">
+                              <div class="social-context-empty" data-testid="weather-forecast-empty">No forecast</div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
