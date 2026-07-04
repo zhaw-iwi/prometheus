@@ -112,6 +112,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 106: Valerian social movement states
 - [x] Milestone 107: Valerian social attentiveness signal
 - [x] Milestone 108: Valerian social context observation contract
+- [x] Milestone 109: Valerian sensing column completeness pass
 
 ## Milestone 1
 ### Date
@@ -4878,3 +4879,44 @@ Promote Valerian's richer social context sensing into a stable optional PROMETHE
 ### Next steps
 1. Decide which production agents should declare `obs.social.context` and update their prompts/replay tests accordingly.
 2. Live-test the new contract with the target camera and embodied-agent placement.
+
+## Milestone 109
+### Date
+2026-07-04
+
+### Goal
+Complete the Valerian Sensing column coverage so manual inputs and Signals Sensed reports reflect the richer sensing vocabulary added during the recent cockpit milestones.
+
+### What changed
+- Added a manual `Disgusted` emotion shortcut so the manual emotion controls match the detector/report expression vocabulary.
+- Replaced coarse-only manual social context emission with a detail editor for people count, group sizes, per-person movement state/confidence, attentiveness state/confidence, and attention cues while keeping the existing quick scenario buttons.
+- Kept manual social context on the existing `obs.human.presence`, `obs.social.grouping`, and optional `obs.social.context` event path; no backend event contract changed.
+- Added a Hand Sign Report under Signals Sensed with sign visual, label, confidence meter, source, detection mode, MediaPipe canned gesture, stability frames, and emission/live status.
+- Added a Weather Report under Signals Sensed with location, condition, temperature, precipitation/intensity, wind, light state, and a compact three-day forecast strip.
+- Extended Valerian static resource contract coverage and the Playwright visual smoke test for the new sensing controls and report panels.
+- Updated README documentation for the completed sensing column coverage.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, open Sensing, and inspect Manual Emotion, Manual Social Context, Weather, and Signals Sensed.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `git diff --check`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- `obs.social.situation_change` remains out of Signals Sensed because it is a backend-computed event, not a client-sensed signal.
+- `obs.user_utterance` remains in the Interaction/Realtime speech UI rather than Signals Sensed.
+- Weather remains manually fetched/sent context, not a continuous detector.
+- Manual social context details are intended for rehearsal and debugging; camera-derived movement and attention remain heuristic and should not be treated as ground truth.
+
+### Next steps
+1. Live-test the full Sensing column with target camera, hand gestures, and representative weather locations.
+2. Consider whether specific production agents should declare and use `obs.social.context` now that the cockpit can emit and display the richer signal consistently.

@@ -88,6 +88,24 @@ const SAMPLE_TRACKED_PEOPLE = [
     },
   },
 ];
+const SAMPLE_HAND_SIGN = {
+  sign: "paper",
+  source: "valerian.hand.camera",
+  detectionMode: "client_camera",
+  confidence: 0.88,
+  cannedGesture: "Open_Palm",
+  stabilityFrames: 4,
+};
+const SAMPLE_WEATHER_FORECAST = {
+  source: "open-meteo.client",
+  kind: "forecast",
+  location_label: "Zurich, Switzerland",
+  days: [
+    { date: "2026-07-04", condition: "rain", intensity: "medium", wind: "windy", temperature_min_c: 15.2, temperature_max_c: 22.4, precipitation_mm: 4.6 },
+    { date: "2026-07-05", condition: "cloudy", intensity: "none", wind: "calm", temperature_min_c: 14.8, temperature_max_c: 24.1, precipitation_mm: 0 },
+    { date: "2026-07-06", condition: "clear", intensity: "none", wind: "calm", temperature_min_c: 16.1, temperature_max_c: 26.7, precipitation_mm: 0 },
+  ],
+};
 
 test.beforeAll(async ({ request }) => {
   await ensureAccessCode(request, ACCESS_CODE);
@@ -108,12 +126,17 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   await expect(page.locator("#continuous_speech_panel")).toHaveClass(/active/);
 
   await renderSampleEmotion(page);
+  await verifyManualSocialDetailEditor(page);
   await verifyTrackMovementHeuristic(page);
   await verifySocialContextPayloadContract(page);
   await renderSampleSocial(page);
+  await renderSampleHandSign(page);
+  await renderSampleWeather(page);
   await openSensedSignals(page);
   await verifyEmotionReport(page);
   await verifySocialContextReport(page);
+  await verifyHandSignReport(page);
+  await verifyWeatherReport(page);
 
   await renderSampleBehaviour(page);
   await verifyBehaviourVisualState(page);
@@ -140,6 +163,15 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
       await expect(panelInModal.getByTestId("social-person-2-movement-confidence")).toHaveText("movement 81%");
       await expect(panelInModal.getByTestId("social-person-2-attention")).toHaveText("attention not attending");
       await expect(panelInModal.getByTestId("social-person-2-attention-confidence")).toHaveText("attention 44%");
+      await panelInModal.getByTestId("hand-sign-report").scrollIntoViewIfNeeded();
+      await expect(panelInModal.getByTestId("hand-report-visual")).toHaveText("\u270B");
+      await expect(panelInModal.getByTestId("hand-report-label")).toHaveText("Papier");
+      await expect(panelInModal.getByTestId("hand-report-confidence-meter")).toHaveAttribute("aria-valuenow", "88");
+      await expect(panelInModal.getByTestId("hand-report-source")).toHaveText("Camera");
+      await panelInModal.getByTestId("weather-report").scrollIntoViewIfNeeded();
+      await expect(panelInModal.getByTestId("weather-report-location")).toHaveText("Zurich, Switzerland");
+      await expect(panelInModal.getByTestId("weather-report-condition")).toHaveText("Rain");
+      await expect(panelInModal.getByTestId("weather-forecast-day-1-temperature")).toHaveText("15.2-22.4 C");
     },
   });
   await verifyColumnExpansion(page, testInfo, {
@@ -237,6 +269,73 @@ async function renderSampleSocial(page) {
     }
     window.renderSocialMetrics(social, people);
   }, { social: SAMPLE_SOCIAL, people: SAMPLE_TRACKED_PEOPLE });
+}
+
+async function verifyManualSocialDetailEditor(page) {
+  await page.locator("[data-bs-target=\"#manual_social_events\"]").click();
+  await expect(page.locator("#manual_social_events")).toHaveClass(/show/);
+  await page.evaluate(() => {
+    document
+      .querySelectorAll("#manual_social_events input,#manual_social_events select,#manual_social_events button")
+      .forEach((control) => {
+        control.disabled = false;
+      });
+  });
+  await page.getByTestId("manual-social-people-count").fill("2");
+  await page.getByTestId("manual-social-group-preset").selectOption("pair");
+  await expect(page.getByTestId("manual-social-person-2")).toBeVisible();
+  await page.getByTestId("manual-social-person-1-movement").selectOption("moving");
+  await page.getByTestId("manual-social-person-1-movement-confidence").fill("0.7");
+  await page.getByTestId("manual-social-person-1-attention").selectOption("attending");
+  await page.getByTestId("manual-social-person-1-attention-confidence").fill("0.8");
+  await page.getByTestId("manual-social-person-1-face-visible").check();
+  await page.getByTestId("manual-social-person-1-near-frontal").check();
+  await page.getByTestId("manual-social-person-1-centered").check();
+  await page.getByTestId("manual-social-person-2-movement").selectOption("receding");
+  await page.getByTestId("manual-social-person-2-attention").selectOption("not_attending");
+  const snapshot = await page.evaluate(() => {
+    if (typeof window.manualSocialSnapshot !== "function") {
+      throw new Error("manualSocialSnapshot is not available on the Valerian page.");
+    }
+    return window.manualSocialSnapshot();
+  });
+  expect(snapshot.social.humanCount).toBe(2);
+  expect(snapshot.social.groupCount).toBe(1);
+  expect(snapshot.social.groups[0]).toEqual({ members: [1, 2] });
+  expect(snapshot.people[0].movementState).toBe("moving");
+  expect(snapshot.people[0].movementConfidence).toBe(0.7);
+  expect(snapshot.people[0].attention.state).toBe("attending");
+  expect(snapshot.people[0].attention.confidence).toBe(0.8);
+  expect(snapshot.people[0].attention.frontalCentered).toBe(true);
+  expect(snapshot.people[1].movementState).toBe("receding");
+  expect(snapshot.people[1].attention.state).toBe("not_attending");
+}
+
+async function renderSampleHandSign(page) {
+  await page.evaluate((sample) => {
+    if (typeof window.renderHandSignReport !== "function") {
+      throw new Error("renderHandSignReport is not available on the Valerian page.");
+    }
+    window.renderHandSignReport(sample.sign, {
+      source: sample.source,
+      detectionMode: sample.detectionMode,
+      confidence: sample.confidence,
+      cannedGesture: sample.cannedGesture,
+      stabilityFrames: sample.stabilityFrames,
+      statusText: "Live",
+      statusMode: "live",
+    });
+    document.getElementById("hand_sign_value").textContent = "Papier 0.88";
+  }, SAMPLE_HAND_SIGN);
+}
+
+async function renderSampleWeather(page) {
+  await page.evaluate((forecast) => {
+    if (typeof window.renderWeatherPayload !== "function") {
+      throw new Error("renderWeatherPayload is not available on the Valerian page.");
+    }
+    window.renderWeatherPayload(forecast);
+  }, SAMPLE_WEATHER_FORECAST);
 }
 
 async function verifyTrackMovementHeuristic(page) {
@@ -341,6 +440,36 @@ async function verifySocialContextReport(page) {
   await expect(page.getByTestId("social-person-3-activity")).toHaveText("activity stationary");
   await expect(page.getByTestId("social-person-3-attention")).toHaveText("attention unknown");
   await expect(page.getByTestId("social-person-3-face-visible")).toHaveText("face unclear");
+}
+
+async function verifyHandSignReport(page) {
+  await expect(page.getByTestId("hand-sign-report")).toBeVisible();
+  await expect(page.getByTestId("hand-sign-value")).toHaveText("Papier 0.88");
+  await expect(page.getByTestId("hand-sign-status")).toHaveText("Live");
+  await expect(page.getByTestId("hand-report-visual")).toHaveText("\u270B");
+  await expect(page.getByTestId("hand-report-label")).toHaveText("Papier");
+  await expect(page.getByTestId("hand-report-confidence")).toHaveText("88%");
+  await expect(page.getByTestId("hand-report-confidence-meter")).toHaveAttribute("aria-valuenow", "88");
+  await expect(page.getByTestId("hand-report-source")).toHaveText("Camera");
+  await expect(page.getByTestId("hand-report-mode")).toHaveText("client camera");
+  await expect(page.getByTestId("hand-report-canned")).toHaveText("Open_Palm");
+  await expect(page.getByTestId("hand-report-stability")).toHaveText("4 frames");
+}
+
+async function verifyWeatherReport(page) {
+  await expect(page.getByTestId("weather-report")).toBeVisible();
+  await expect(page.getByTestId("weather-value")).toHaveText("Forecast Zurich, Switzerland: rain, 15.2-22.4 C");
+  await expect(page.getByTestId("weather-report-status")).toHaveText("Forecast");
+  await expect(page.getByTestId("weather-report-location")).toHaveText("Zurich, Switzerland");
+  await expect(page.getByTestId("weather-report-condition")).toHaveText("Rain");
+  await expect(page.getByTestId("weather-report-temperature")).toHaveText("15.2-22.4 C");
+  await expect(page.getByTestId("weather-report-precipitation")).toHaveText("medium (4.6 mm)");
+  await expect(page.getByTestId("weather-report-wind")).toHaveText("Windy");
+  await expect(page.getByTestId("weather-report-light")).toHaveText("Forecast");
+  await expect(page.getByTestId("weather-forecast-day-1-date")).toHaveText("07-04");
+  await expect(page.getByTestId("weather-forecast-day-1-condition")).toHaveText("Rain");
+  await expect(page.getByTestId("weather-forecast-day-2-condition")).toHaveText("Cloudy");
+  await expect(page.getByTestId("weather-forecast-day-3-condition")).toHaveText("Clear");
 }
 
 async function verifyBehaviourVisualState(page) {
