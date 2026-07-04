@@ -42,9 +42,51 @@ const SAMPLE_SOCIAL = {
   ],
 };
 const SAMPLE_TRACKED_PEOPLE = [
-  { id: 1, score: 0.92, activity: "moving", movementConfidence: 0.72 },
-  { id: 2, score: 0.86, activity: "approaching", movementConfidence: 0.81 },
-  { id: 3, score: 0.78, activity: "stationary", movementConfidence: 0.64 },
+  {
+    id: 1,
+    score: 0.92,
+    activity: "moving",
+    movementConfidence: 0.72,
+    attention: {
+      state: "attending",
+      confidence: 0.76,
+      personVisible: true,
+      faceVisible: true,
+      nearFrontal: true,
+      centered: true,
+      frontalCentered: true,
+    },
+  },
+  {
+    id: 2,
+    score: 0.86,
+    activity: "approaching",
+    movementConfidence: 0.81,
+    attention: {
+      state: "not_attending",
+      confidence: 0.44,
+      personVisible: true,
+      faceVisible: true,
+      nearFrontal: true,
+      centered: false,
+      frontalCentered: false,
+    },
+  },
+  {
+    id: 3,
+    score: 0.78,
+    activity: "stationary",
+    movementConfidence: 0.64,
+    attention: {
+      state: "unknown",
+      confidence: 0.18,
+      personVisible: true,
+      faceVisible: false,
+      nearFrontal: false,
+      centered: false,
+      frontalCentered: false,
+    },
+  },
 ];
 
 test.beforeAll(async ({ request }) => {
@@ -95,6 +137,8 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
       await expect(panelInModal.getByTestId("social-person-2-confidence")).toHaveText("conf 86%");
       await expect(panelInModal.getByTestId("social-person-2-activity")).toHaveText("activity approaching");
       await expect(panelInModal.getByTestId("social-person-2-movement-confidence")).toHaveText("movement 81%");
+      await expect(panelInModal.getByTestId("social-person-2-attention")).toHaveText("attention not attending");
+      await expect(panelInModal.getByTestId("social-person-2-attention-confidence")).toHaveText("attention 44%");
     },
   });
   await verifyColumnExpansion(page, testInfo, {
@@ -199,14 +243,25 @@ async function verifyTrackMovementHeuristic(page) {
     if (typeof window.updateTracks !== "function") {
       throw new Error("updateTracks is not available on the Valerian page.");
     }
-    window.updateTracks([{ x: 0.1, y: 0.1, w: 0.25, h: 0.5, score: 0.91, cx: 0.225, cy: 0.35 }]);
+    const video = document.getElementById("camera_video");
+    const width = video && video.videoWidth ? video.videoWidth : 1;
+    const height = video && video.videoHeight ? video.videoHeight : 1;
+    const w = width * 0.22;
+    const h = height * 0.55;
+    const y = height * 0.12;
+    const firstCx = width * 0.5;
+    const secondCx = width * 0.56;
+    window.updateTracks([{ x: firstCx - w / 2, y, w, h, score: 0.91, cx: firstCx, cy: y + h / 2 }]);
     await new Promise((resolve) => setTimeout(resolve, 5));
-    const tracked = window.updateTracks([{ x: 0.17, y: 0.1, w: 0.25, h: 0.5, score: 0.93, cx: 0.295, cy: 0.35 }]);
+    const tracked = window.updateTracks([{ x: secondCx - w / 2, y, w, h, score: 0.93, cx: secondCx, cy: y + h / 2 }]);
     return tracked[0];
   });
   expect(movement.movementState).toBe("moving");
   expect(movement.activity).toBe("moving");
   expect(movement.movementConfidence).toBeGreaterThan(0.35);
+  expect(movement.attention.state).toBe("attending");
+  expect(movement.attention.personVisible).toBe(true);
+  expect(movement.attention.confidence).toBeGreaterThan(0.6);
 }
 
 async function openSensedSignals(page) {
@@ -258,8 +313,15 @@ async function verifySocialContextReport(page) {
   await expect(page.getByTestId("social-person-1")).toContainText("activity moving");
   await expect(page.getByTestId("social-person-1-confidence")).toHaveText("conf 92%");
   await expect(page.getByTestId("social-person-1-movement-confidence")).toHaveText("movement 72%");
+  await expect(page.getByTestId("social-person-1-attention")).toHaveText("attention attending");
+  await expect(page.getByTestId("social-person-1-attention-confidence")).toHaveText("attention 76%");
+  await expect(page.getByTestId("social-person-1-face-visible")).toHaveText("face likely");
+  await expect(page.getByTestId("social-person-1-centered")).toHaveText("centered yes");
   await expect(page.getByTestId("social-person-2-activity")).toHaveText("activity approaching");
+  await expect(page.getByTestId("social-person-2-attention")).toHaveText("attention not attending");
   await expect(page.getByTestId("social-person-3-activity")).toHaveText("activity stationary");
+  await expect(page.getByTestId("social-person-3-attention")).toHaveText("attention unknown");
+  await expect(page.getByTestId("social-person-3-face-visible")).toHaveText("face unclear");
 }
 
 async function verifyBehaviourVisualState(page) {

@@ -110,6 +110,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 104: Valerian real-time facial emotion report
 - [x] Milestone 105: Valerian social context report
 - [x] Milestone 106: Valerian social movement states
+- [x] Milestone 107: Valerian social attentiveness signal
 
 ## Milestone 1
 ### Date
@@ -4796,3 +4797,41 @@ Derive first-pass client-side movement activities for tracked people in Valerian
 ### Next steps
 1. Milestone 107: add a first cheap attentiveness signal using person visibility, face visibility, near-frontal/centered cues, and confidence.
 2. Decide in Milestone 108 how these richer client-side social context signals should be emitted as stable PROMETHEUS observation payloads.
+
+## Milestone 107
+### Date
+2026-07-04
+
+### Goal
+Add a first cheap attentiveness signal to Valerian's Social Context Report using only browser-side person detection geometry and confidence, without GPT calls or social observation payload changes.
+
+### What changed
+- Added a per-person attention heuristic derived from person visibility, likely face-region visibility, upright/frontal geometry, center alignment, box scale, and detector confidence.
+- Classified tracked people as `attending`, `not_attending`, or `unknown` with a displayed attention confidence.
+- Added Social Context Report tokens for attention state, attention confidence, person visibility, likely face visibility, and centered/frontal geometry.
+- Kept manual social-context samples explicit as unknown attention while still marking the manually declared person as visible.
+- Extended Valerian static resource coverage and the Playwright visual smoke test to verify attentiveness rendering and the in-browser tracker-derived attention result.
+- Updated README documentation for the attentiveness signal.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable Social context sensing, start the camera, and inspect Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is still a cheap client-side heuristic. `faceVisible` means likely face-region visibility inferred from a person box, not a dedicated per-person face detector.
+- The emitted `obs.human.presence` and `obs.social.grouping` payload shapes remain unchanged. A later contract decision is still needed before these richer social context signals are sent as stable PROMETHEUS observation fields.
+- Centered/frontal geometry is a proxy for attentiveness toward the camera or embodied agent. It can be wrong when the camera is off-axis relative to the robot, when people stand sideways near the center, or when groups overlap.
+
+### Next steps
+1. Decide how to evolve the social observation payload contract for humans, groups, movement, and attentiveness.
+2. Consider using a lightweight pose or face-landmark model only if the geometric heuristic is too noisy in target deployment conditions.

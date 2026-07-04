@@ -155,6 +155,7 @@ const TRACK_STATIONARY_DISTANCE_NORM = 0.008;
 const TRACK_MOVING_DISTANCE_NORM = 0.018;
 const TRACK_STATIONARY_AREA_DELTA = 0.06;
 const TRACK_DEPTH_AREA_DELTA = 0.12;
+const ATTENTION_CONFIDENCE_THRESHOLD = 0.62;
 const PERSON_SCORE_THRESHOLD = 0.45;
 const REQUIRED_STABLE_GESTURE_FRAMES = 3;
 const FACE_MODEL_URI = "https://justadudewhohacks.github.io/face-api.js/models";
@@ -3452,9 +3453,12 @@ function updateTracks(detections) {
   const now = Date.now();
   const assigned = new Set();
   const tracked = [];
+  const frameWidth = Math.max(1, camera.video.videoWidth || 1);
+  const frameHeight = Math.max(1, camera.video.videoHeight || 1);
   const frameDiag = Math.max(1, Math.hypot(camera.video.videoWidth || 1, camera.video.videoHeight || 1));
   for (const detection of detections) {
     const best = findBestTrack(detection, frameDiag, assigned);
+    const attention = deriveAttentionSignal(detection, frameWidth, frameHeight);
     if (best) {
       const track = camera.tracks.get(best.id);
       const movement = deriveTrackMovement(track, detection, frameDiag);
@@ -3467,6 +3471,7 @@ function updateTracks(detections) {
       track.movementConfidence = movement.confidence;
       track.speedNorm = movement.speedNorm;
       track.areaDelta = movement.areaDelta;
+      track.attention = attention;
       track.lastSeenAt = now;
       assigned.add(track.id);
       tracked.push(trackToView(track));
@@ -3483,6 +3488,7 @@ function updateTracks(detections) {
         movementConfidence: 0,
         speedNorm: 0,
         areaDelta: 0,
+        attention,
         firstSeenAt: now,
         lastSeenAt: now,
       };
@@ -3547,7 +3553,53 @@ function trackArea(box) {
   return Math.max(0, Number(box[2] || 0) * Number(box[3] || 0));
 }
 
+function deriveAttentionSignal(detection, frameWidth, frameHeight) {
+  if (!detection) {
+    return emptyAttentionSignal();
+  }
+  const width = Math.max(1, frameWidth);
+  const height = Math.max(1, frameHeight);
+  const score = asUnitNumber(detection.score);
+  const boxWidthShare = clamp(Number(detection.w || 0) / width, 0, 1);
+  const boxHeightShare = clamp(Number(detection.h || 0) / height, 0, 1);
+  const aspectRatio = Number(detection.h || 0) / Math.max(0.0001, Number(detection.w || 0));
+  const centerDistance = clamp(Math.abs(Number(detection.cx || 0) - width / 2) / (width / 2), 0, 1);
+  const personVisible = score >= PERSON_SCORE_THRESHOLD;
+  const faceVisible = personVisible && boxHeightShare >= 0.16 && boxWidthShare >= 0.04 && Number(detection.y || 0) <= height * 0.62;
+  const nearFrontal = aspectRatio >= 1.2 && aspectRatio <= 4.8;
+  const centered = centerDistance <= 0.45;
+  const frontalCentered = nearFrontal && centered;
+  const centeredScore = clamp(1 - centerDistance, 0, 1);
+  const scaleScore = clamp(boxHeightShare / 0.55, 0, 1);
+  const confidence = clamp(
+    score * 0.36 +
+    (faceVisible ? 0.24 : 0) +
+    centeredScore * 0.2 +
+    (frontalCentered ? 0.14 : nearFrontal ? 0.07 : 0) +
+    scaleScore * 0.06,
+    0,
+    1
+  );
+  const state = personVisible
+    ? (faceVisible && frontalCentered && confidence >= ATTENTION_CONFIDENCE_THRESHOLD ? "attending" : "not_attending")
+    : "unknown";
+  return { state, confidence, personVisible, faceVisible, nearFrontal, centered, frontalCentered };
+}
+
+function emptyAttentionSignal() {
+  return {
+    state: "unknown",
+    confidence: 0,
+    personVisible: false,
+    faceVisible: false,
+    nearFrontal: false,
+    centered: false,
+    frontalCentered: false,
+  };
+}
+
 function trackToView(track) {
+  const attention = normalizeAttentionSignal(track.attention, track);
   return {
     id: track.id,
     cx: track.cx,
@@ -3559,6 +3611,8 @@ function trackToView(track) {
     movementConfidence: Number(track.movementConfidence || 0),
     speedNorm: Number(track.speedNorm || 0),
     areaDelta: Number(track.areaDelta || 0),
+    attention,
+    attentionState: attention.state,
   };
 }
 
@@ -3698,6 +3752,23 @@ function renderSocialPeople(people) {
         testId: `social-person-${person.id}-movement-confidence`,
       }));
     }
+    const attention = normalizeAttentionSignal(person.attention, person);
+    tokenRow.appendChild(socialToken(`attention ${attentionLabel(attention.state)}`, {
+      testId: `social-person-${person.id}-attention`,
+      attentionState: attention.state,
+    }));
+    tokenRow.appendChild(socialToken(`attention ${formatPercent(attention.confidence)}`, {
+      testId: `social-person-${person.id}-attention-confidence`,
+    }));
+    tokenRow.appendChild(socialToken(attention.personVisible ? "person visible" : "person hidden", {
+      testId: `social-person-${person.id}-person-visible`,
+    }));
+    tokenRow.appendChild(socialToken(attention.faceVisible ? "face likely" : "face unclear", {
+      testId: `social-person-${person.id}-face-visible`,
+    }));
+    tokenRow.appendChild(socialToken(attention.frontalCentered ? "centered yes" : "centered no", {
+      testId: `social-person-${person.id}-centered`,
+    }));
     item.append(head, tokenRow);
     list.appendChild(item);
   });
@@ -3714,6 +3785,29 @@ function activityLabel(value) {
   return normalizeActivityState(value).replace(/_/g, " ");
 }
 
+function normalizeAttentionSignal(raw, fallback = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const state = normalizeAttentionState(source.state || fallback.attentionState);
+  return {
+    state,
+    confidence: asUnitNumber(source.confidence),
+    personVisible: source.personVisible === true,
+    faceVisible: source.faceVisible === true,
+    nearFrontal: source.nearFrontal === true,
+    centered: source.centered === true,
+    frontalCentered: source.frontalCentered === true,
+  };
+}
+
+function normalizeAttentionState(value) {
+  const token = String(value || "unknown").trim().toLowerCase();
+  return ["attending", "not_attending"].includes(token) ? token : "unknown";
+}
+
+function attentionLabel(value) {
+  return normalizeAttentionState(value).replace(/_/g, " ");
+}
+
 function socialToken(text, options = {}) {
   const token = document.createElement("span");
   token.className = "social-context-token";
@@ -3722,6 +3816,9 @@ function socialToken(text, options = {}) {
   }
   if (options.activityState) {
     token.dataset.activityState = options.activityState;
+  }
+  if (options.attentionState) {
+    token.dataset.attentionState = options.attentionState;
   }
   token.textContent = text;
   return token;
@@ -3753,7 +3850,8 @@ async function submitSocialSample(kind) {
   if (!social) {
     return;
   }
-  const tracked = social.groups.flatMap((g) => g.members).map((id) => ({ id, score: 1, activity: "unknown" }));
+  const tracked = social.groups.flatMap((g) => g.members)
+    .map((id) => ({ id, score: 1, activity: "unknown", attention: { ...emptyAttentionSignal(), personVisible: true } }));
   renderSocialMetrics(social, tracked);
   await submitSocialPayloads(social, tracked, "visual.social.manual");
 }

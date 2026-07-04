@@ -531,6 +531,14 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function normalizeActivityState(value)"));
         assertTrue(index.contains("data-activity-state=\"moving\""));
         assertTrue(script.contains("token.dataset.activityState = options.activityState;"));
+        assertTrue(script.contains("const ATTENTION_CONFIDENCE_THRESHOLD"));
+        assertTrue(script.contains("function deriveAttentionSignal(detection, frameWidth, frameHeight)"));
+        assertTrue(script.contains("function emptyAttentionSignal()"));
+        assertTrue(script.contains("function normalizeAttentionSignal(raw, fallback = {})"));
+        assertTrue(script.contains("function normalizeAttentionState(value)"));
+        assertTrue(script.contains("attentionState: attention.state"));
+        assertTrue(index.contains("data-attention-state=\"attending\""));
+        assertTrue(script.contains("token.dataset.attentionState = options.attentionState;"));
 
         assertFalse(index.contains("data-testid=\"hand-auto-send\""));
         assertFalse(index.contains("Auto-send hand sign"));
