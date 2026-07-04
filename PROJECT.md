@@ -105,6 +105,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 99: Valerian cockpit Realtime audio tuning
 - [x] Milestone 100: Framework/application agent repository split
 - [x] Milestone 101: Remove cockpit VAD create-response control
+- [x] Milestone 102: Valerian maximizable cockpit columns
 
 ## Milestone 1
 ### Date
@@ -4596,3 +4597,44 @@ Remove the Valerian cockpit's obsolete Realtime VAD create-response control so o
 
 ### Next steps
 1. Live-test both cockpit surfaces against the current PROMETHEUS backend with continuous speech and barge-in enabled.
+
+## Milestone 102
+### Date
+2026-07-04
+
+### Goal
+Let Valerian cockpit operators expand any of the three cockpit columns into a wider modal viewport without duplicating or resetting the live panel content.
+
+### What changed
+- Added icon-only expand controls to the Sensing, Interaction, and Behaviour column headers.
+- Added a shared Bootstrap modal that temporarily moves the selected column's existing card into the modal body and restores it to the original column when the modal closes.
+- Added per-column placeholders so the three-column layout remains stable while a panel is expanded.
+- Kept existing event listeners, media elements, transcript state, accordion/tab state, Realtime/audio controls, and behaviour render targets attached to the same DOM nodes.
+- Refreshed the camera overlay sizing after modal open/close so moved visual sensing content can realign to its new viewport.
+- Kept the shared expansion modal at body level so Bootstrap backdrops do not cover the modal controls.
+- Added a Playwright visual smoke test that runs against the real Spring app, seeds access code `VX102`, expands all three columns, captures modal screenshots, validates wider layout, and verifies restore behavior.
+- Updated Valerian static resource contract coverage, Playwright project configuration, and README documentation.
+
+### How to run
+1. Start the main branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, then use the expand icon in any Sensing, Interaction, or Behaviour column header.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm install`
+  - `npx playwright install chromium`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a pure cockpit UI change; backend APIs, Realtime orchestration, profile filtering, access-code scoping, and event contracts are unchanged.
+- The implementation moves the live DOM node instead of cloning it so existing listeners and state remain intact.
+- The Playwright visual test uses the configured local database and admin API; set `PROMETHEUS_ADMIN_TOKEN` when the local admin token differs from `laure`.
+- Live camera and Realtime sessions should still be tested on the demo laptop because browser media behavior can vary by device.
+
+### Next steps
+1. Live-test expanded Sensing while the camera is running and expanded Interaction while continuous speech is active on the target browser.

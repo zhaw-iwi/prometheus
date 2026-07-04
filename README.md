@@ -39,6 +39,7 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
 - Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
 - The center column has separate Text and Continuous Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
+- The Sensing, Interaction, and Behaviour columns can each be expanded into a wider modal viewport while preserving the live panel state.
 - The Continuous Speech tab lets operators refresh and choose browser microphone and speaker devices; unsupported speaker routing falls back to the browser/system default output.
 - Routine speech controls stay in the Continuous Speech tab. Advanced Speech Settings live in the Sensing accordion and include voice, VAD mode/timing/eagerness, backend complement, transcript logprobs, input noise reduction, output speed, reasoning effort, max output tokens, VAD interruption, local barge-in cancellation, and half-duplex fallback.
 - Speech is full-duplex by default: the microphone stays live while assistant audio plays. Barge-in cancellation is enabled by default and sends `response.cancel` on the Realtime data channel when user speech starts during active assistant audio. Half-duplex fallback is disabled by default and only mutes microphone tracks during assistant playback when difficult speaker-to-microphone echo makes that preferable.
@@ -168,7 +169,29 @@ PowerShell:
 
 App default URL: `http://localhost:8080`
 
-### 4. External browser clients and CORS
+### 4. Test
+
+Run the Java regression suite:
+
+```powershell
+.\mvnw.cmd test
+```
+
+Run the Valerian Playwright visual smoke check:
+
+```powershell
+npm install
+npx playwright install chromium
+npm run test:valerian:visual
+```
+
+The Playwright check starts or reuses `http://127.0.0.1:8080`, uses the configured
+database, creates or re-enables access code `VX102` through the admin API, and
+captures expanded-column screenshots as test artifacts. Set
+`PROMETHEUS_ADMIN_TOKEN` if your local `prometheus.admin.token` is not `laure`.
+Set `PROMETHEUS_SKIP_WEBSERVER=true` when you already started the app yourself.
+
+### 5. External browser clients and CORS
 
 The bundled PROMETHEUS clients are same-origin and do not need CORS. If a
 separate browser client such as `zhaw-iwi/valerian.git` runs on another origin

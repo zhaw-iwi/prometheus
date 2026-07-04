@@ -104,6 +104,11 @@ const weather = {
   locationQuery: "",
 };
 
+const columnExpansion = {
+  modal: null,
+  active: null,
+};
+
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
@@ -246,6 +251,7 @@ function wireUi() {
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
     button.addEventListener("click", toggleTheme);
   });
+  wireColumnExpansion();
   document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
@@ -333,6 +339,83 @@ function wireUi() {
   document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
   document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
   document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
+}
+
+function wireColumnExpansion() {
+  const modalElement = document.getElementById("column_expansion_modal");
+  if (!modalElement || !window.bootstrap) {
+    return;
+  }
+  columnExpansion.modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+  document.querySelectorAll("[data-column-maximize]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openColumnExpansion(button.dataset.columnMaximize, button.dataset.columnTitle || "Panel");
+    });
+  });
+  modalElement.addEventListener("hidden.bs.modal", restoreExpandedColumn);
+  modalElement.addEventListener("shown.bs.modal", refreshExpandedColumnLayout);
+}
+
+function openColumnExpansion(columnKey, title) {
+  if (!columnKey) {
+    return;
+  }
+  const panel = document.querySelector(`[data-column-panel="${columnKey}"]`);
+  const placeholder = document.querySelector(`[data-column-placeholder="${columnKey}"]`);
+  const modalBody = document.getElementById("column_expansion_body");
+  const modalTitle = document.getElementById("column_expansion_title");
+  if (!panel || !modalBody || !columnExpansion.modal) {
+    return;
+  }
+  if (columnExpansion.active && columnExpansion.active.panel === panel) {
+    columnExpansion.modal.show();
+    return;
+  }
+  if (columnExpansion.active) {
+    restoreExpandedColumn();
+  }
+  columnExpansion.active = {
+    panel,
+    originalParent: panel.parentNode,
+    nextSibling: panel.nextSibling,
+    placeholder,
+  };
+  if (modalTitle) {
+    modalTitle.textContent = title;
+  }
+  setColumnPlaceholderVisible(placeholder, true);
+  modalBody.replaceChildren(panel);
+  columnExpansion.modal.show();
+  refreshExpandedColumnLayout();
+}
+
+function restoreExpandedColumn() {
+  const active = columnExpansion.active;
+  if (!active) {
+    return;
+  }
+  if (active.nextSibling && active.nextSibling.parentNode === active.originalParent) {
+    active.originalParent.insertBefore(active.panel, active.nextSibling);
+  } else {
+    active.originalParent.appendChild(active.panel);
+  }
+  setColumnPlaceholderVisible(active.placeholder, false);
+  columnExpansion.active = null;
+  refreshExpandedColumnLayout();
+}
+
+function setColumnPlaceholderVisible(placeholder, visible) {
+  if (!placeholder) {
+    return;
+  }
+  placeholder.hidden = !visible;
+  placeholder.classList.toggle("d-none", !visible);
+}
+
+function refreshExpandedColumnLayout() {
+  window.requestAnimationFrame(() => {
+    clearOverlay();
+  });
 }
 
 function applyStoredTheme() {
@@ -4069,7 +4152,8 @@ function setControlsEnabled(enabled) {
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
     if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.classList.contains("btn-close") ||
-      el.dataset.bsDismiss === "offcanvas" || el.dataset.bsToggle === "collapse") {
+      el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
+      el.dataset.bsToggle === "collapse") {
       return;
     }
     el.disabled = !enabled;

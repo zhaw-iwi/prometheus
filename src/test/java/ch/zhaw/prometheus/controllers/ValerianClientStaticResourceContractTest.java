@@ -73,6 +73,55 @@ class ValerianClientStaticResourceContractTest {
     }
 
     @Test
+    void valerianClientSupportsMaximizableCockpitColumns() throws IOException {
+        String index = Files.readString(INDEX);
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(index.contains("data-column-panel=\"sensing\""));
+        assertTrue(index.contains("data-column-panel=\"interaction\""));
+        assertTrue(index.contains("data-column-panel=\"behaviour\""));
+        assertTrue(index.contains("data-testid=\"maximize-sensing-column\""));
+        assertTrue(index.contains("data-testid=\"maximize-interaction-column\""));
+        assertTrue(index.contains("data-testid=\"maximize-behaviour-column\""));
+        assertTrue(index.contains("data-column-maximize=\"sensing\""));
+        assertTrue(index.contains("data-column-maximize=\"interaction\""));
+        assertTrue(index.contains("data-column-maximize=\"behaviour\""));
+        assertTrue(index.contains("data-testid=\"sensing-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"interaction-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"behaviour-column-placeholder\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-modal\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-title\""));
+        assertTrue(index.contains("data-testid=\"column-expansion-body\""));
+        assertTrue(index.contains("modal-fullscreen-lg-down"));
+        assertTrue(index.contains("column-expansion-dialog"));
+        assertTrue(index.contains("column-expansion-body [data-column-maximize]"));
+        assertTrue(index.contains("bi bi-arrows-fullscreen"));
+
+        assertTrue(script.contains("const columnExpansion = {"));
+        assertTrue(script.contains("wireColumnExpansion();"));
+        assertTrue(script.contains("function wireColumnExpansion()"));
+        assertTrue(script.contains("window.bootstrap.Modal.getOrCreateInstance(modalElement);"));
+        assertTrue(script.contains("document.querySelectorAll(\"[data-column-maximize]\")"));
+        assertTrue(script.contains("openColumnExpansion(button.dataset.columnMaximize"));
+        assertTrue(script.contains("modalElement.addEventListener(\"hidden.bs.modal\", restoreExpandedColumn);"));
+        assertTrue(script.contains("modalElement.addEventListener(\"shown.bs.modal\", refreshExpandedColumnLayout);"));
+        assertTrue(script.contains("function openColumnExpansion(columnKey, title)"));
+        assertTrue(script.contains("const panel = document.querySelector(`[data-column-panel=\"${columnKey}\"]`);"));
+        assertTrue(script.contains("originalParent: panel.parentNode"));
+        assertTrue(script.contains("nextSibling: panel.nextSibling"));
+        assertTrue(script.contains("modalBody.replaceChildren(panel);"));
+        assertTrue(script.contains("function restoreExpandedColumn()"));
+        assertTrue(script.contains("active.originalParent.insertBefore(active.panel, active.nextSibling);"));
+        assertTrue(script.contains("active.originalParent.appendChild(active.panel);"));
+        assertTrue(script.contains("function setColumnPlaceholderVisible(placeholder, visible)"));
+        assertTrue(script.contains("placeholder.hidden = !visible;"));
+        assertTrue(script.contains("placeholder.classList.toggle(\"d-none\", !visible);"));
+        assertTrue(script.contains("function refreshExpandedColumnLayout()"));
+        assertTrue(script.contains("clearOverlay();"));
+        assertTrue(script.contains("el.hasAttribute(\"data-column-maximize\")"));
+    }
+
+    @Test
     void valerianClientUsesAccessCodeScopedDemoApi() throws IOException {
         String script = Files.readString(SCRIPT);
 
@@ -176,9 +225,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.indexOf("data-testid=\"assistant-audio\"")
                 < index.indexOf("data-testid=\"continuous-speech-sensing-panel\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
-                < index.indexOf("<aside class=\"right-column\">"));
+                < index.indexOf("<aside class=\"right-column cockpit-column\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
-                > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column\">")));
+                > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column cockpit-column\"")));
         assertFalse(index.contains("Push to Talk"));
         assertFalse(index.contains("push_to_talk"));
         assertFalse(index.contains("push-to-talk"));
