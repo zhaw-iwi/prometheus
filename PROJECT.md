@@ -121,6 +121,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 115: SIRA Lab game demonstrator agents
 - [x] Milestone 116: SIRA Lab multimodal behaviour demonstrator
 - [x] Milestone 117: Valerian facial emotion camera-loop diagnostics
+- [x] Milestone 118: Valerian facial emotion overlay and script-order alignment
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5206,6 +5207,47 @@ Double-check Valerian's client-side facial emotion camera path and make detector
 ### Next steps
 1. Re-test live facial sensing on the target machine and note whether the report shows live values, `No face`, or a model error.
 2. If model/CDN loading is the live blocker, consider vendoring the required face-api model files into the static resources for offline/demo reliability.
+
+## Milestone 118
+### Date
+2026-07-05
+
+### Goal
+Make Valerian's live facial emotion sensing visibly inspectable in the camera preview and align its face-api loading with the standalone facial client that is known to sense facial signals.
+
+### What changed
+- Changed the Valerian static script order so `face-api.js` executes before the TFJS/COCO stack used by social context detection, matching the standalone facial client more closely and avoiding face-api initializing against the later TFJS global environment.
+- Added explicit face-emotion overlay drawing in the camera preview:
+  - labelled orange face bounding box when a face is detected
+  - `No face` badge when the detector is running but no face is detected
+  - `Model not ready`, `Model unavailable`, or `Face detection error` badge for detector/model problems
+- Scoped face detection errors to the facial detector branch so social context and hand-sign detection can continue running in the shared Valerian camera loop.
+- Extended the static Valerian client contract to pin the face-api script order and the overlay/status helpers.
+- Extended the Playwright visual smoke so the mocked face camera path verifies both the Facial Emotion Report values and nonblank overlay canvas pixels after detection.
+- Updated README documentation for the new camera-preview face overlay.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent that declares `obs.emotion.face`, enable `Face emotion`, start the camera, and inspect both the camera preview overlay and Sensing > Signals Sensed > Facial Emotion Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is still a Valerian cockpit client change only; backend observation contracts, event processing, agent definitions, and prompts are unchanged.
+- The Playwright test proves the Valerian browser wiring and overlay rendering with a mocked face-api detection; live webcam sensing still depends on real camera placement, lighting, browser media behavior, and face-api model behavior.
+- The camera overlay now makes detector state visible even when no observation is emitted because `Emit camera observations` is off or the confidence/change gates suppress emission.
+
+### Next steps
+1. Live-test face emotion again on the target machine and compare the preview overlay state with the Facial Emotion Report status.
+2. If the overlay remains on `No face` despite a clear face in frame, lower the TinyFaceDetector threshold or expose it as an operator tuning control.
 
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
