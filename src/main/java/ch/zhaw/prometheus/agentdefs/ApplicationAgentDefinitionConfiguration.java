@@ -286,6 +286,16 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrLabSocialContextSensitivity() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.lab.SocialContextSensitivity();
+    }
+
+    @Bean
+    AgentDefinition tdsrLabFacialExpressionSensitivity() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.lab.FacialExpressionSensitivity();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }

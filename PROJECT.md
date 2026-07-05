@@ -117,6 +117,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 111: Two-state Davos therapy reminder with GIGI introduction
 - [x] Milestone 112: Remove cockpit VAD create-response control
 - [x] Milestone 113: German Davos Summit Hotel conversation agent
+- [x] Milestone 114: SIRA Lab sensing demonstrator agents
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5051,6 +5052,44 @@ Add a German-only Davos Tech Summit / Hotel Grischa open-conversation agent that
 2. Try realistic visitor turns about robot usefulness, hotel services, Davos activities, cold/thirst/biking/ambience merch hooks, and skepticism about robots.
 3. Decide whether a Davos Tech Summit access-code preset should include this agent for quicker operator setup.
 
+## Milestone 114
+### Date
+2026-07-05
+
+### Goal
+Add a new English-only `tdsr.lab` package with SIRA Lab GIGI sensing demonstrators for social context and facial expression signals.
+
+### What changed
+- Added shared SIRA Lab prompt context for GIGI as a home-lab demonstrator developed by ZHAW SIRA Lab researchers and powered by PROMETHEUS.
+- Added a shared lab nonverbal behaviour contract covering speech support, gesture, facial expression, gaze, nonverbal motion, and optional hand signs without locomotion commands.
+- Added `tdsr.lab.social_context_sensitivity`, an English lab agent that reacts to rich `obs.social.context` and computed `obs.social.situation_change` events while declaring the full social context observation set.
+- Added `tdsr.lab.facial_expression_sensitivity`, an English lab agent that reacts to `obs.emotion.face` with valence, arousal, expression, and confidence framing.
+- Registered both lab agents as Spring `AgentDefinition` beans and documented the new `tdsr.lab.*` package in README.
+- Added focused lab prompt/profile/state-machine tests plus admin/source-list coverage for the new registered definitions.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign one of the new lab agents:
+   - `tdsr.lab.social_context_sensitivity`
+   - `tdsr.lab.facial_expression_sensitivity`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Enable the matching detector under Sensing and inspect the Signals Sensed and Behaviour columns.
+
+### How to test
+- Focused lab/admin/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=TdsrLabPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone adds application-agent definitions only; no event schema, backend controller, Realtime, or Valerian UI contract changed.
+- The social context agent reacts to the rich `obs.social.context` event and the computed `obs.social.situation_change` event, while still declaring legacy presence/grouping observations so Valerian can expose the complete social context sensing surface.
+- The facial expression agent treats valence, arousal, dominant emotion, and confidence as uncertain lab signals, not as claims about a person's private internal state.
+- This milestone was verified with deterministic tests but not yet live-tested in Valerian or on GIGI.
+
+### Next steps
+1. Milestone 115: add the lab game agents, including a humorous RPS variant and a role-clarification guessing game.
+2. Live-test both sensing agents with representative social-context and facial-expression detector inputs.
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
 

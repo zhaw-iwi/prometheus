@@ -80,6 +80,8 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateGuessingGameUserGuess.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateSmartGoalCoaching.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateSummitHotelConversation.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/SocialContextSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/FacialExpressionSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -148,7 +150,8 @@ class SeedAgentInteractionProfileContractTest {
         for (Path seedAgentFile : SEED_AGENT_FILES) {
             String source = Files.readString(seedAgentFile);
             assertTrue(source.contains("setInteractionProfile(") || source.contains("TdsrCoreAgentFactory.")
-                    || source.contains("TdsrShhdAgentFactory.") || source.contains("DavosCareAgentFactory."),
+                    || source.contains("TdsrShhdAgentFactory.") || source.contains("DavosCareAgentFactory.")
+                    || source.contains("TdsrLabAgentFactory."),
                     "missing interaction profile declaration in " + seedAgentFile);
         }
     }

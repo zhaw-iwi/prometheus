@@ -77,6 +77,8 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.davos.therapy_appointment_reminder_intro"));
         assertTrue(keys.contains("tdsr.davos.smart_goal_coaching"));
         assertTrue(keys.contains("tdsr.davos.summit_hotel_conversation"));
+        assertTrue(keys.contains("tdsr.lab.social_context_sensitivity"));
+        assertTrue(keys.contains("tdsr.lab.facial_expression_sensitivity"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
         assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
         assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
@@ -94,6 +96,10 @@ class AccessCodeAdminServiceIntegrationTest {
                 packagePath(agentTypes, "tdsr.davos.smart_goal_coaching"));
         assertEquals(List.of("tdsr", "davos"),
                 packagePath(agentTypes, "tdsr.davos.summit_hotel_conversation"));
+        assertEquals(List.of("tdsr", "lab"),
+                packagePath(agentTypes, "tdsr.lab.social_context_sensitivity"));
+        assertEquals(List.of("tdsr", "lab"),
+                packagePath(agentTypes, "tdsr.lab.facial_expression_sensitivity"));
     }
 
     @Test
