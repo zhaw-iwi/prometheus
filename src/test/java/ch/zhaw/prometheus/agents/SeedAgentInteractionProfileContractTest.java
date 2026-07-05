@@ -82,6 +82,8 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/davos/SingleStateSummitHotelConversation.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/SocialContextSensitivity.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/FacialExpressionSensitivity.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RockScissorPaper.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RoleClarificationGuessingGame.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));

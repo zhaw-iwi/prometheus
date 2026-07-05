@@ -296,6 +296,16 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrLabRockScissorPaper() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper();
+    }
+
+    @Bean
+    AgentDefinition tdsrLabRoleClarificationGuessingGame() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }

@@ -11,14 +11,22 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.OuterState;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Transition;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class TdsrLabPromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
@@ -31,7 +39,15 @@ class TdsrLabPromptContractTest {
             new DefinitionCase(
                     new ch.zhaw.prometheus.agentdefs.tdsr.lab.FacialExpressionSensitivity(),
                     ch.zhaw.prometheus.agentdefs.tdsr.lab.FacialExpressionSensitivity.class,
-                    "tdsr.lab.facial_expression_sensitivity"));
+                    "tdsr.lab.facial_expression_sensitivity"),
+            new DefinitionCase(
+                    new ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper(),
+                    ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper.class,
+                    "tdsr.lab.rock_scissor_paper"),
+            new DefinitionCase(
+                    new ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame(),
+                    ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame.class,
+                    "tdsr.lab.role_clarification_guessing_game"));
 
     @Test
     void definitionsUseLabKeysPackagePathAndEnglishRealtimeLanguage() {
@@ -68,6 +84,22 @@ class TdsrLabPromptContractTest {
         assertTrue(facialProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertFalse(facialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertLabPhysicalOutput(facialProfile);
+
+        AgentInteractionProfile rpsProfile = new ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper()
+                .createAgent()
+                .getInteractionProfile();
+        assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+        assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
+        assertEquals(7, rpsProfile.getSupportedBehaviourModalities().size());
+
+        AgentInteractionProfile roleProfile = new ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame()
+                .createAgent()
+                .getInteractionProfile();
+        assertTrue(roleProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+        assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertLabPhysicalOutput(roleProfile);
     }
 
     @Test
@@ -120,6 +152,24 @@ class TdsrLabPromptContractTest {
         assertContains(facialState, "disgusted");
         assertContains(facialState, "Comment on the signal, not the soul");
 
+        Map<String, String> rpsPrompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper.class);
+        String rpsState = rpsPrompts.get("PROMPT_START");
+        assertContains(rpsState, "obs.hand.sign");
+        assertContains(rpsState, "deterministic");
+        assertContains(rpsState, "display output");
+        assertContains(rpsState, "Answer only in English");
+
+        Map<String, String> rolePrompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame.class);
+        String roleState = rolePrompts.get("PROMPT_ROLE_CLARIFICATION_STATE");
+        assertContains(roleState, "role clarification");
+        assertContains(roleState, "GIGI guesses");
+        assertContains(roleState, "User guesses");
+        assertContains(roleState, "These roles need to be specified precisely");
+        assertContains(rolePrompts.get("PROMPT_ROLE_TO_GIGI_GUESSES"), "GIGI guesses the person's secret item");
+        assertContains(rolePrompts.get("PROMPT_ROLE_TO_USER_GUESSES"), "the user guesses GIGI's secret item");
+
         for (DefinitionCase definitionCase : DEFINITIONS) {
             for (Map.Entry<String, String> prompt : stringFields(definitionCase.definitionClass()).entrySet()) {
                 assertTrue(prompt.getValue().length() <= MAX_PERSISTED_PROMPT_LENGTH,
@@ -140,6 +190,49 @@ class TdsrLabPromptContractTest {
         State facialState = innerState(facialAgent);
         assertTransitionDecision(facialState, Event.TYPE_FACE_EMOTION);
         assertSharedNonverbalPrompt(facialState);
+    }
+
+    @Test
+    void roleClarificationGuessingGameStartsInClarificationAndCanEnterEitherRoleState() throws Exception {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame().createAgent();
+        OuterState outerState = assertInstanceOf(OuterState.class, agent.getCurrentState());
+        State roleState = outerState.getInnerCurrent();
+
+        assertEquals(List.of(
+                "GIGI SIRA Lab context",
+                "GIGI SIRA Lab guessing game role clarification"), outerState.getActiveStatePath());
+        assertTrue(agent.listStates().contains("GIGI SIRA Lab guessing game - GIGI guesses"));
+        assertTrue(agent.listStates().contains("GIGI SIRA Lab guessing game - user guesses"));
+        assertTransitionToState(roleState, "GIGI SIRA Lab guessing game - GIGI guesses");
+        assertTransitionToState(roleState, "GIGI SIRA Lab guessing game - user guesses");
+        assertSharedNonverbalPrompt(roleState);
+    }
+
+    @Test
+    void labRpsUsesEnglishDeterministicRevealAndResultPolicies() {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.lab.RockScissorPaper().createAgent();
+        RecordingGateway gateway = new RecordingGateway();
+        PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
+
+        agent.start(runtime);
+        Event reveal = agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "ready"),
+                runtime);
+        BehaviourPlan revealPlan = BehaviourPlan.fromJson(reveal.getPayload());
+
+        assertEquals("Rock, scissor, paper", revealPlan.getSpeech());
+        assertEquals("rock", revealPlan.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertEquals("Rock, Scissor, Paper",
+                revealPlan.getDisplay().getAsJsonObject().get("title").getAsString());
+
+        Event result = agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, Event.ACTOR_USER,
+                "{\"sign\":\"scissor\",\"confidence\":1.0}"), runtime);
+        BehaviourPlan resultPlan = BehaviourPlan.fromJson(result.getPayload());
+
+        assertContains(resultPlan.getSpeech(), "I win");
+        assertContains(resultPlan.getSpeech(), "rock beats scissor");
+        assertFalse(resultPlan.getSpeech().contains("Ich"));
+        assertEquals("rock beats scissor",
+                resultPlan.getDisplay().getAsJsonObject().get("reason").getAsString());
     }
 
     private static void assertLabPhysicalOutput(AgentInteractionProfile profile) {
@@ -173,6 +266,13 @@ class TdsrLabPromptContractTest {
                 "missing transition decision for " + eventType);
     }
 
+    private static void assertTransitionToState(State state, String stateName) throws Exception {
+        assertTrue(transitions(state).stream()
+                .map(transition -> transition.getSubsequentState().getName())
+                .anyMatch(stateName::equals),
+                "missing transition to " + stateName);
+    }
+
     private static Object policy(State state) throws Exception {
         Field policyField = State.class.getDeclaredField("policy");
         policyField.setAccessible(true);
@@ -203,5 +303,53 @@ class TdsrLabPromptContractTest {
     }
 
     private record DefinitionCase(AgentDefinition definition, Class<?> definitionClass, String key) {
+    }
+
+    private static final class RecordingGateway implements LanguageModelGateway {
+        @Override
+        public String complete(List<PromptMessage> messages) {
+            String prompt = join(messages);
+            if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
+                return """
+                        {
+                          "nonVerbal": {
+                            "gesture": "NONE",
+                            "facialExpression": {"type": "warmNeutral", "intensity": 0.2},
+                            "gaze": {"direction": "toward_user", "focus": "person"},
+                            "motion": {"stillness": 0.8, "energy": 0.2}
+                          },
+                          "motion": null
+                        }
+                        """;
+            }
+            return "Hello, I am GIGI. The lab game is ready.";
+        }
+
+        @Override
+        public boolean decide(List<PromptMessage> messages) {
+            String prompt = join(messages);
+            return prompt.contains("ready to start a round of rock-scissor-paper");
+        }
+
+        @Override
+        public JsonElement extract(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public JsonElement summarise(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public String summariseOffline(List<PromptMessage> messages) {
+            return "";
+        }
+
+        private static String join(List<PromptMessage> messages) {
+            return messages.stream()
+                    .map(PromptMessage::getContent)
+                    .reduce("", (left, right) -> left + "\n" + right);
+        }
     }
 }

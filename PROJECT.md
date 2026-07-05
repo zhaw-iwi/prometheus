@@ -118,6 +118,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 112: Remove cockpit VAD create-response control
 - [x] Milestone 113: German Davos Summit Hotel conversation agent
 - [x] Milestone 114: SIRA Lab sensing demonstrator agents
+- [x] Milestone 115: SIRA Lab game demonstrator agents
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5090,6 +5091,46 @@ Add a new English-only `tdsr.lab` package with SIRA Lab GIGI sensing demonstrato
 ### Next steps
 1. Milestone 115: add the lab game agents, including a humorous RPS variant and a role-clarification guessing game.
 2. Live-test both sensing agents with representative social-context and facial-expression detector inputs.
+
+## Milestone 115
+### Date
+2026-07-05
+
+### Goal
+Add English SIRA Lab game demonstrators: a humorous rock-scissor-paper variant and a role-clarification guessing game that can enter either guessing role after explicit clarification.
+
+### What changed
+- Added `tdsr.lab.rock_scissor_paper`, an English SIRA Lab RPS agent with deterministic sign selection, hand-sign sensing, robot hand-sign motion, display state, and playful lab reactions.
+- Added lab-local English RPS reveal/result policies so the new lab variant does not inherit the existing German reveal/result speech.
+- Added `tdsr.lab.role_clarification_guessing_game`, a two-role guessing-game agent with an introductory role-clarification state before either the GIGI-guesses or user-guesses play state.
+- The role-clarification state deliberately over-clarifies ambiguous role choices in a warm, naive, lightly humorous way, and transitions only after the user clearly specifies who thinks and who guesses.
+- Registered both game agents as Spring `AgentDefinition` beans and updated README/admin/source-list coverage.
+- Extended the lab prompt contract test to cover game profiles, role state transitions, and a deterministic English RPS reveal/result round.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign one of the new lab game agents:
+   - `tdsr.lab.rock_scissor_paper`
+   - `tdsr.lab.role_clarification_guessing_game`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. For RPS, enable/send hand-sign observations. For the role-clarification game, answer the role question clearly or ambiguously to inspect the clarification behavior.
+
+### How to test
+- Focused lab/admin/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=TdsrLabPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone keeps RPS sign selection and winner evaluation deterministic; the language model only handles the prompt-based start/play-again decisions and ordinary speech in the start state.
+- The new English lab RPS policies are local to `tdsr.lab` so existing TDSR RPS agents keep their current behaviour.
+- The role-clarification game uses prompt decisions for role routing; unclear utterances intentionally remain in the clarification state.
+- This milestone was verified with deterministic tests but not yet live-tested in Valerian or on GIGI.
+
+### Next steps
+1. Milestone 116: add the lab multimodal behaviour demonstrator focused on visible BehaviourPlan variation.
+2. Live-test RPS hand-sign detection and the role-clarification game with real speech input.
+
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
 
