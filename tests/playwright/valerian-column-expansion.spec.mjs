@@ -244,6 +244,7 @@ test("Valerian face emotion detector updates the report from the camera loop", a
     .toHaveAttribute("aria-label", "Valence +0.90, arousal 0.37");
   await expect(page.getByTestId("emotion-affect-marker")).toHaveAttribute("data-emotion", "happy");
   await expect(page.getByTestId("emotion-expression-happy-value")).toHaveText("92%");
+  expect(await overlayPixelCount(page)).toBeGreaterThan(100);
 
   await page.evaluate(() => window.stopCamera({ silent: true }));
 });
@@ -358,6 +359,24 @@ async function enableEmotionDetectorForSmoke(page) {
     input.disabled = false;
     input.checked = true;
     await window.handleSensorModeChange();
+  });
+}
+
+async function overlayPixelCount(page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("overlay_canvas");
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      return 0;
+    }
+    const context = canvas.getContext("2d");
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let visible = 0;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) {
+        visible += 1;
+      }
+    }
+    return visible;
   });
 }
 

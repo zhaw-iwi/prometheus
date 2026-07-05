@@ -429,6 +429,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"camera-video\""));
         assertTrue(index.contains("data-testid=\"camera-status\""));
         assertTrue(index.contains("data-testid=\"overlay-canvas\""));
+        assertTrue(index.indexOf("face-api.js@0.22.2") < index.indexOf("@tensorflow/tfjs@4.22.0"));
+        assertFalse(index.contains("defer src=\"https://cdn.jsdelivr.net/npm/face-api.js"));
         assertTrue(index.contains("data-testid=\"camera-device-input-group\""));
         assertTrue(index.contains("class=\"input-group input-group-sm\""));
         assertTrue(index.contains("data-testid=\"camera-device\""));
@@ -538,9 +540,14 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("const displayBox = mirroredOverlayBox(x, y, w, h, scale);"));
         assertTrue(script.contains("disgusted: { valence: -0.72, arousal: 0.58 }"));
         assertTrue(script.contains("const EMOTION_EXPRESSION_KEYS = [\"neutral\", \"happy\", \"sad\", \"angry\", \"fearful\", \"disgusted\", \"surprised\"]"));
-        assertTrue(script.contains("renderEmotionMetrics(emotion, detection.detection.score);"));
+        assertTrue(script.contains("renderEmotionMetrics(emotion, faceScore);"));
         assertTrue(script.contains("function renderEmotionMetrics(emotion, faceScore = 0)"));
         assertTrue(script.contains("function resetEmotionReport(options = {})"));
+        assertTrue(script.contains("function drawFaceBox(box, emotion, faceScore)"));
+        assertTrue(script.contains("function drawFaceStatus(text, mode = \"idle\")"));
+        assertTrue(script.contains("function drawOverlayLabel(x, y, text, color)"));
+        assertTrue(script.contains("drawFaceStatus(\"No face\", \"idle\");"));
+        assertTrue(script.contains("drawFaceStatus(\"Face detection error\", \"error\");"));
         assertTrue(script.contains("faceModelsError"));
         assertTrue(script.contains("Model unavailable"));
         assertTrue(script.contains("Model load failed"));

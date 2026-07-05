@@ -3246,10 +3246,12 @@ async function runCameraLoop() {
     if (isSensorModeEnabled("emotion") && camera.faceModelsReady) {
       await detectEmotion();
     } else if (isSensorModeEnabled("emotion")) {
+      const statusText = camera.faceModelsError ? "Model unavailable" : "Model not ready";
       resetEmotionReport({
-        statusText: camera.faceModelsError ? "Model unavailable" : "Model not ready",
+        statusText,
         statusMode: camera.faceModelsError ? "error" : "idle",
       });
+      drawFaceStatus(statusText, camera.faceModelsError ? "error" : "idle");
     }
     if (isSensorModeEnabled("hand") && camera.handDetectorReady) {
       await detectHandSign();
@@ -3261,17 +3263,27 @@ async function runCameraLoop() {
 }
 
 async function detectEmotion() {
-  const detection = await window.faceapi
-    .detectSingleFace(camera.video, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
-    .withFaceExpressions();
-  if (!detection) {
-    renderEmotionMetrics(null);
+  let detection = null;
+  try {
+    detection = await window.faceapi
+      .detectSingleFace(camera.video, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
+      .withFaceExpressions();
+  } catch (error) {
+    resetEmotionReport({ statusText: "Detection error", statusMode: "error" });
+    drawFaceStatus("Face detection error", "error");
+    appendLog("camera", "face detection failed: " + errorMessage(error));
     return;
   }
-  drawFaceBox(detection.detection.box);
+  if (!detection) {
+    renderEmotionMetrics(null);
+    drawFaceStatus("No face", "idle");
+    return;
+  }
   const emotion = deriveEmotion(detection.expressions);
-  renderEmotionMetrics(emotion, detection.detection.score);
-  await maybeEmitEmotion(emotion, detection.detection.score);
+  const faceScore = detection.detection.score;
+  drawFaceBox(detection.detection.box, emotion, faceScore);
+  renderEmotionMetrics(emotion, faceScore);
+  await maybeEmitEmotion(emotion, faceScore);
 }
 
 async function detectSocial() {
@@ -4922,7 +4934,7 @@ function resetWeatherState() {
   resetWeatherReport();
 }
 
-function drawFaceBox(box) {
+function drawFaceBox(box, emotion, faceScore) {
   if (!box) {
     return;
   }
@@ -4931,6 +4943,36 @@ function drawFaceBox(box) {
   camera.ctx.lineWidth = 3;
   camera.ctx.strokeStyle = "#ff7a00";
   camera.ctx.strokeRect(displayBox.x, displayBox.y, displayBox.width, displayBox.height);
+  const label = emotion
+    ? `Face ${asText(emotion.emotion)} ${asUnitNumber(faceScore).toFixed(2)}`
+    : "Face";
+  drawOverlayLabel(displayBox.x, Math.max(8, displayBox.y - 24), label, "#ff7a00");
+}
+
+function drawFaceStatus(text, mode = "idle") {
+  if (!text || !camera.ctx) {
+    return;
+  }
+  overlayScale();
+  drawOverlayLabel(8, 8, text, mode === "error" ? "#dc2626" : "#ff7a00");
+}
+
+function drawOverlayLabel(x, y, text, color) {
+  if (!camera.ctx || !text) {
+    return;
+  }
+  const paddingX = 7;
+  const height = 22;
+  camera.ctx.save();
+  camera.ctx.font = "600 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+  const width = Math.ceil(camera.ctx.measureText(text).width + paddingX * 2);
+  const clampedX = clamp(Number(x || 0), 4, Math.max(4, camera.canvas.width - width - 4));
+  const clampedY = clamp(Number(y || 0), 4, Math.max(4, camera.canvas.height - height - 4));
+  camera.ctx.fillStyle = color || "#111827";
+  camera.ctx.fillRect(clampedX, clampedY, width, height);
+  camera.ctx.fillStyle = "#ffffff";
+  camera.ctx.fillText(text, clampedX + paddingX, clampedY + 15);
+  camera.ctx.restore();
 }
 
 function drawSocialOverlay(tracked, social) {

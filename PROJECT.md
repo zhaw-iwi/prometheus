@@ -114,6 +114,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 108: Valerian social context observation contract
 - [x] Milestone 109: Valerian sensing column completeness pass
 - [x] Milestone 110: Valerian facial emotion camera-loop diagnostics
+- [x] Milestone 111: Valerian facial emotion overlay diagnostics
 
 ## Milestone 1
 ### Date
@@ -4955,3 +4956,38 @@ Bring Valerian's facial emotion camera-loop diagnostics from the agents branch b
 
 ### Next steps
 1. Continue cherry-picking the remaining Valerian overlay/runtime compatibility fixes from agents.
+
+## Milestone 111
+### Date
+2026-07-05
+
+### Goal
+Make Valerian's facial emotion detector visibly diagnosable in the shared camera preview so users can see whether face detection is active before relying on emitted observations.
+
+### What changed
+- Drew a labelled face box in the shared camera preview when the facial emotion detector finds a face.
+- Added explicit preview overlay states for `No face` and face detection errors.
+- Routed face detector exceptions into the Facial Emotion Report without disabling unrelated visual detectors.
+- Extended the Playwright visual checks to verify the face overlay and the no-face diagnostic path.
+- Updated README documentation for the visible face-detection overlay.
+
+### How to run
+1. Start the app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, enable `Face emotion`, start the camera, and inspect both the camera preview overlay and Sensing > Signals Sensed > Facial Emotion Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- The overlay is a client-side diagnostic only. It does not change `obs.emotion.face` payloads or backend processing.
+- The preview now distinguishes no face from detector/model failure so live testing can separate camera positioning from runtime problems.
+
+### Next steps
+1. Continue cherry-picking the shared visual detector runtime compatibility fix from agents.
