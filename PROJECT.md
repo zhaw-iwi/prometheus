@@ -115,6 +115,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 109: Valerian sensing column completeness pass
 - [x] Milestone 110: Valerian facial emotion camera-loop diagnostics
 - [x] Milestone 111: Valerian facial emotion overlay diagnostics
+- [x] Milestone 112: Valerian shared visual detector TFJS compatibility
 
 ## Milestone 1
 ### Date
@@ -4991,3 +4992,41 @@ Make Valerian's facial emotion detector visibly diagnosable in the shared camera
 
 ### Next steps
 1. Continue cherry-picking the shared visual detector runtime compatibility fix from agents.
+
+## Milestone 112
+### Date
+2026-07-05
+
+### Goal
+Stabilize Valerian's shared visual detector runtime on main so face emotion, social context, and hand-sign sensing can be started across agent reconnects without face-api/COCO TensorFlow.js conflicts.
+
+### What changed
+- Pinned the Valerian visual stack to a TFJS runtime version compatible with both `face-api.js@0.22.2` and `coco-ssd@2.2.3`.
+- Kept all visual detector scripts loaded in a deterministic order before the cockpit script initializes.
+- Added explicit Social Context Report status/error rows when the people detector model is unavailable or detection fails.
+- Added camera-preview social context diagnostics for model load and detection errors while keeping face and hand detectors isolated from those failures.
+- Added a Playwright regression that simulates the prior face-api runtime error and verifies social context sensing still reports people.
+- Updated README documentation for the shared detector runtime dependency and visual diagnostics.
+
+### How to run
+1. Start the app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enable Face emotion and Social context in different combinations, start the camera, and inspect both the camera preview overlays and Sensing > Signals Sensed reports.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- The compatibility fix is client-only; backend event contracts and agent definitions are unchanged.
+- This keeps the existing browser-side model set instead of replacing face/social detection with GPT calls.
+- Real webcam accuracy still depends on lighting, camera placement, and model limitations.
+
+### Next steps
+1. Live-test detector toggling across multiple agent connect/disconnect cycles on the target browser and camera.
+2. Revisit the model stack only if future detector additions require a newer shared TFJS runtime.

@@ -249,6 +249,39 @@ test("Valerian face emotion detector updates the report from the camera loop", a
   await page.evaluate(() => window.stopCamera({ silent: true }));
 });
 
+test("Valerian social detector keeps reporting when face detector fails", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto("/valerian/");
+  await expect(page.getByTestId("access-screen")).toBeVisible();
+  await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+
+  await installMockSocialCameraWithThrowingFace(page);
+  await enableVisualDetectorsForSmoke(page, ["social", "emotion"]);
+  await openSensedSignals(page);
+
+  await page.evaluate(async () => {
+    if (typeof window.startCamera !== "function") {
+      throw new Error("startCamera is not available on the Valerian page.");
+    }
+    await window.startCamera();
+  });
+
+  await expect(page.getByTestId("camera-status")).toHaveText("Camera Live");
+  await expect(page.getByTestId("human-count")).toHaveText("1");
+  await expect(page.getByTestId("social-context-status")).toHaveText("1 person");
+  await expect(page.getByTestId("social-context-human-count")).toHaveText("1");
+  await expect(page.getByTestId("social-context-singleton-count")).toHaveText("1");
+  await expect(page.getByTestId("social-person-1-confidence")).toHaveText("conf 93%");
+  await expect(page.getByTestId("emotion-emit-status")).toHaveText("Detection error");
+  expect(await overlayPixelCount(page)).toBeGreaterThan(100);
+  expect(pageErrors).toEqual([]);
+
+  await page.evaluate(() => window.stopCamera({ silent: true }));
+});
+
 async function verifyColumnExpansion(page, testInfo, options) {
   const { key, title, buttonTestId, afterRestore, inModal } = options;
   const column = page.locator(`[data-column-key="${key}"]`);
@@ -351,15 +384,80 @@ async function installMockFaceCamera(page) {
 }
 
 async function enableEmotionDetectorForSmoke(page) {
-  await page.evaluate(async () => {
-    const input = document.getElementById("sensor_emotion_enabled");
-    if (!input || typeof window.handleSensorModeChange !== "function") {
-      throw new Error("Emotion detector controls are not available on the Valerian page.");
-    }
-    input.disabled = false;
-    input.checked = true;
-    await window.handleSensorModeChange();
+  await enableVisualDetectorsForSmoke(page, ["emotion"]);
+}
+
+async function installMockSocialCameraWithThrowingFace(page) {
+  await page.evaluate(() => {
+    const stream = new MediaStream();
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: async () => stream,
+        enumerateDevices: async () => [{
+          kind: "videoinput",
+          deviceId: "mock-camera",
+          groupId: "mock",
+          label: "Mock camera",
+        }],
+        addEventListener: () => {},
+      },
+    });
+    const video = document.getElementById("camera_video");
+    Object.defineProperty(video, "videoWidth", { configurable: true, get: () => 640 });
+    Object.defineProperty(video, "videoHeight", { configurable: true, get: () => 480 });
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      get: () => HTMLMediaElement.HAVE_ENOUGH_DATA,
+    });
+    video.play = async () => {};
+    window.cocoSsd = {
+      load: async () => ({
+        detect: async () => [{
+          class: "person",
+          score: 0.93,
+          bbox: [140, 70, 170, 320],
+        }],
+      }),
+    };
+    window.faceapi = {
+      nets: {
+        tinyFaceDetector: { loadFromUri: async () => true },
+        faceExpressionNet: { loadFromUri: async () => true },
+      },
+      TinyFaceDetectorOptions: class TinyFaceDetectorOptions {
+        constructor(options) {
+          this.options = options;
+        }
+      },
+      detectSingleFace: () => ({
+        withFaceExpressions: async () => {
+          throw new TypeError("d is not a function");
+        },
+      }),
+    };
   });
+}
+
+async function enableVisualDetectorsForSmoke(page, modes) {
+  await page.evaluate(async (selectedModes) => {
+    if (typeof window.handleSensorModeChange !== "function") {
+      throw new Error("Detector controls are not available on the Valerian page.");
+    }
+    const modeIds = {
+      emotion: "sensor_emotion_enabled",
+      social: "sensor_social_enabled",
+      hand: "sensor_hand_enabled",
+    };
+    for (const [mode, id] of Object.entries(modeIds)) {
+      const input = document.getElementById(id);
+      if (input) {
+        input.disabled = false;
+        input.checked = selectedModes.includes(mode);
+      }
+    }
+    await window.handleSensorModeChange();
+  }, modes);
 }
 
 async function overlayPixelCount(page) {
