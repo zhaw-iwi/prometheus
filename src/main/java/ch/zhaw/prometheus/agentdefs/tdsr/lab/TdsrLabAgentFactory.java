@@ -27,6 +27,7 @@ final class TdsrLabAgentFactory {
     private static final String TAG_RPS = "demo.gigi.rps";
     private static final String TAG_GUESSING_GAME = "demo.gigi.guessing_game";
     private static final String TAG_ROLE_CLARIFICATION = "demo.gigi.role_clarification";
+    private static final String TAG_MULTIMODAL_BEHAVIOUR = "demo.gigi.multimodal_behaviour";
 
     private TdsrLabAgentFactory() {
     }
@@ -236,6 +237,26 @@ final class TdsrLabAgentFactory {
                         TAG_GIGI_SIRA,
                         TAG_GUESSING_GAME,
                         TAG_ROLE_CLARIFICATION));
+    }
+
+    static AgentInteractionProfile multimodalBehaviourProfile() {
+        return AgentInteractionProfile.of(
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_FACE_EMOTION,
+                        AgentInteractionProfile.OBS_HUMAN_PRESENCE,
+                        AgentInteractionProfile.OBS_SOCIAL_GROUPING,
+                        AgentInteractionProfile.OBS_SOCIAL_CONTEXT,
+                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
+                        AgentInteractionProfile.OBS_HAND_SIGN,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
+                physicalBehaviourModalities(),
+                List.of(
+                        TAG_GIGI_TDSR,
+                        TAG_GIGI_LAB,
+                        TAG_GIGI_SIRA,
+                        TAG_MULTIMODAL_BEHAVIOUR));
     }
 
     static PromptPolicy labPromptPolicy(String prompt, String starter) {

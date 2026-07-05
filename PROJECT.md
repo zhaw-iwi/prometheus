@@ -119,6 +119,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 113: German Davos Summit Hotel conversation agent
 - [x] Milestone 114: SIRA Lab sensing demonstrator agents
 - [x] Milestone 115: SIRA Lab game demonstrator agents
+- [x] Milestone 116: SIRA Lab multimodal behaviour demonstrator
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5130,6 +5131,42 @@ Add English SIRA Lab game demonstrators: a humorous rock-scissor-paper variant a
 ### Next steps
 1. Milestone 116: add the lab multimodal behaviour demonstrator focused on visible BehaviourPlan variation.
 2. Live-test RPS hand-sign detection and the role-clarification game with real speech input.
+
+## Milestone 116
+### Date
+2026-07-05
+
+### Goal
+Add an English SIRA Lab multimodal behaviour demonstrator that makes GIGI's current BehaviourPlan visibly varied across speech, gesture, facial expression, gaze, motion, and optional hand signs.
+
+### What changed
+- Added `tdsr.lab.multimodal_behaviour`, an English lab agent focused on one vivid multimodal behaviour beat per turn.
+- The prompt explicitly documents the current runtime constraint that this agent emits one current BehaviourPlan per generation rather than a hidden timed choreography.
+- Added a broad lab behaviour interaction profile that can consume user utterances plus face, social, hand-sign, and weather context while advertising GIGI's speech, gesture, facial expression, gaze, nonverbal motion, and hand-sign behaviour channels.
+- Registered the new agent as a Spring `AgentDefinition` bean and updated README/admin/source-list coverage.
+- Extended the lab prompt contract test to cover the multimodal profile and prompt anchors for speech rhythm, gesture, facial expression, gaze, motion stillness/energy, and optional hand sign output.
+
+### How to run
+1. Start the agents branch app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Admin and assign the new lab agent:
+   - `tdsr.lab.multimodal_behaviour`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Ask for moods, contrasts, or tiny scenes such as curious, cautious, proud, confused, or theatrical, then inspect the Behaviour column.
+
+### How to test
+- Focused lab/admin/profile suite:
+  - `.\mvnw.cmd -q "-Dtest=TdsrLabPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone intentionally does not add timed multi-step behaviour choreography. The current agent demonstrates one current BehaviourPlan per generation.
+- The shared prompt policy can generate speech, nonverbal gesture, facial expression, gaze, nonverbal motion, and optional hand signs; display output remains demonstrated by the lab RPS agent.
+- This milestone was verified with deterministic tests but not yet live-tested in Valerian or on GIGI.
+
+### Next steps
+1. Live-test the full `tdsr.lab.*` set in Valerian with Realtime speech and representative detector/manual inputs.
+2. Decide later whether PROMETHEUS needs first-class timed behaviour sequences for true rapid mood choreography.
 
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.

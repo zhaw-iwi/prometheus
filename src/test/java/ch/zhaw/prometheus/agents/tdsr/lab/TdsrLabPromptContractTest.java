@@ -47,7 +47,11 @@ class TdsrLabPromptContractTest {
             new DefinitionCase(
                     new ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame(),
                     ch.zhaw.prometheus.agentdefs.tdsr.lab.RoleClarificationGuessingGame.class,
-                    "tdsr.lab.role_clarification_guessing_game"));
+                    "tdsr.lab.role_clarification_guessing_game"),
+            new DefinitionCase(
+                    new ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour(),
+                    ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour.class,
+                    "tdsr.lab.multimodal_behaviour"));
 
     @Test
     void definitionsUseLabKeysPackagePathAndEnglishRealtimeLanguage() {
@@ -100,6 +104,20 @@ class TdsrLabPromptContractTest {
         assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertLabPhysicalOutput(roleProfile);
+
+        AgentInteractionProfile multimodalProfile = new ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour()
+                .createAgent()
+                .getInteractionProfile();
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
+        assertLabPhysicalOutput(multimodalProfile);
     }
 
     @Test
@@ -170,6 +188,17 @@ class TdsrLabPromptContractTest {
         assertContains(rolePrompts.get("PROMPT_ROLE_TO_GIGI_GUESSES"), "GIGI guesses the person's secret item");
         assertContains(rolePrompts.get("PROMPT_ROLE_TO_USER_GUESSES"), "the user guesses GIGI's secret item");
 
+        Map<String, String> multimodalPrompts = stringFields(
+                ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour.class);
+        String multimodalState = multimodalPrompts.get("PROMPT_STATE");
+        assertContains(multimodalState, "one current BehaviourPlan per generation");
+        assertContains(multimodalState, "speech content and rhythm");
+        assertContains(multimodalState, "nonverbal gesture");
+        assertContains(multimodalState, "facial expression type and intensity");
+        assertContains(multimodalState, "gaze direction and focus");
+        assertContains(multimodalState, "motion stillness and energy");
+        assertContains(multimodalState, "optional hand sign");
+
         for (DefinitionCase definitionCase : DEFINITIONS) {
             for (Map.Entry<String, String> prompt : stringFields(definitionCase.definitionClass()).entrySet()) {
                 assertTrue(prompt.getValue().length() <= MAX_PERSISTED_PROMPT_LENGTH,
@@ -190,6 +219,9 @@ class TdsrLabPromptContractTest {
         State facialState = innerState(facialAgent);
         assertTransitionDecision(facialState, Event.TYPE_FACE_EMOTION);
         assertSharedNonverbalPrompt(facialState);
+
+        Agent multimodalAgent = new ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour().createAgent();
+        assertSharedNonverbalPrompt(innerState(multimodalAgent));
     }
 
     @Test

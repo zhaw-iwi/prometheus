@@ -306,6 +306,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrLabMultimodalBehaviour() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.lab.MultimodalBehaviour();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }
