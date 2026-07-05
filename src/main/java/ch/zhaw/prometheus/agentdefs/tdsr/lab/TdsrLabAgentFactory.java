@@ -192,7 +192,9 @@ final class TdsrLabAgentFactory {
                         AgentInteractionProfile.OBS_HUMAN_PRESENCE,
                         AgentInteractionProfile.OBS_SOCIAL_GROUPING,
                         AgentInteractionProfile.OBS_SOCIAL_CONTEXT,
-                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE),
+                        AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 physicalBehaviourModalities(),
                 List.of(
                         TAG_GIGI_TDSR,
@@ -205,7 +207,9 @@ final class TdsrLabAgentFactory {
         return AgentInteractionProfile.of(
                 List.of(
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
-                        AgentInteractionProfile.OBS_FACE_EMOTION),
+                        AgentInteractionProfile.OBS_FACE_EMOTION,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 physicalBehaviourModalities(),
                 List.of(
                         TAG_GIGI_TDSR,
@@ -218,7 +222,9 @@ final class TdsrLabAgentFactory {
         return AgentInteractionProfile.of(
                 List.of(
                         AgentInteractionProfile.OBS_USER_UTTERANCE,
-                        AgentInteractionProfile.OBS_HAND_SIGN),
+                        AgentInteractionProfile.OBS_HAND_SIGN,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 physicalBehaviourModalitiesWithDisplay(),
                 List.of(
                         TAG_GIGI_TDSR,
@@ -229,7 +235,10 @@ final class TdsrLabAgentFactory {
 
     static AgentInteractionProfile roleClarificationGuessingGameProfile() {
         return AgentInteractionProfile.of(
-                List.of(AgentInteractionProfile.OBS_USER_UTTERANCE),
+                List.of(
+                        AgentInteractionProfile.OBS_USER_UTTERANCE,
+                        AgentInteractionProfile.OBS_WEATHER_CURRENT,
+                        AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 physicalBehaviourModalities(),
                 List.of(
                         TAG_GIGI_TDSR,

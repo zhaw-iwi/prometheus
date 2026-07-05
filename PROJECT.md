@@ -123,6 +123,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 117: Valerian facial emotion camera-loop diagnostics
 - [x] Milestone 118: Valerian facial emotion overlay and script-order alignment
 - [x] Milestone 119: Valerian shared visual detector TFJS compatibility
+- [x] Milestone 120: SIRA Lab weather context support
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5611,3 +5612,37 @@ Complete the Valerian Sensing column coverage so manual inputs and Signals Sense
 ### Next steps
 1. Live-test the full Sensing column with target camera, hand gestures, and representative weather locations.
 2. Consider whether specific production agents should declare and use `obs.social.context` now that the cockpit can emit and display the richer signal consistently.
+
+## Milestone 120
+### Date
+2026-07-05
+
+### Goal
+Let all English SIRA Lab demonstrator agents optionally receive weather observations and use weather/location context only when the user asks or when it is directly relevant.
+
+### What changed
+- Added shared lab outer-prompt guidance for `obs.weather.current` and `obs.weather.forecast`.
+- Treated the location in weather events as team-provided current geographic location context until newer weather/location context replaces it.
+- Kept weather use guarded: no proactive weather commentary, no claim that GIGI senses the weather itself, and no claim that GIGI determined the location itself.
+- Added current and forecast weather observations to the social-context, facial-expression, rock-scissor-paper, and role-clarification lab profiles; the multimodal behaviour profile already declared them.
+- Extended the lab prompt contract test so every lab profile must expose weather input and the shared prompt must retain the weather guardrails.
+- Updated README package documentation for the optional lab weather/current-location context.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Assign any `tdsr.lab.*` agent, send current weather or a forecast from the Weather controls, then ask a weather- or location-relevant question.
+
+### How to test
+- Focused prompt/profile check:
+  - `./mvnw -q "-Dtest=TdsrLabPromptContractTest" test`
+
+### Known issues and decisions
+- Weather remains manual context, not a continuous detector loop.
+- Weather observations do not trigger proactive lab-agent reactions; they become available context for later user questions or directly relevant turns.
+- The weather event location is treated as operator/team-provided geographic context, not robot self-localization.
+
+### Next steps
+1. Live-test heat, rain, and location questions with each `tdsr.lab.*` agent in Valerian.

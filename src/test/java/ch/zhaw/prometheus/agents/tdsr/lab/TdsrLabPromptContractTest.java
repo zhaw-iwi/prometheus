@@ -78,6 +78,7 @@ class TdsrLabPromptContractTest {
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
+        assertLabWeatherInput(socialProfile);
         assertFalse(socialProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertLabPhysicalOutput(socialProfile);
 
@@ -86,6 +87,7 @@ class TdsrLabPromptContractTest {
                 .getInteractionProfile();
         assertTrue(facialProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
         assertTrue(facialProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertLabWeatherInput(facialProfile);
         assertFalse(facialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertLabPhysicalOutput(facialProfile);
 
@@ -94,6 +96,7 @@ class TdsrLabPromptContractTest {
                 .getInteractionProfile();
         assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
         assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
+        assertLabWeatherInput(rpsProfile);
         assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
         assertEquals(7, rpsProfile.getSupportedBehaviourModalities().size());
 
@@ -101,6 +104,7 @@ class TdsrLabPromptContractTest {
                 .createAgent()
                 .getInteractionProfile();
         assertTrue(roleProfile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertLabWeatherInput(roleProfile);
         assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertFalse(roleProfile.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
         assertLabPhysicalOutput(roleProfile);
@@ -115,8 +119,7 @@ class TdsrLabPromptContractTest {
         assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
         assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
-        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
-        assertTrue(multimodalProfile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
+        assertLabWeatherInput(multimodalProfile);
         assertLabPhysicalOutput(multimodalProfile);
     }
 
@@ -134,6 +137,11 @@ class TdsrLabPromptContractTest {
         assertContains(outerState, "Answer very briefly: usually one sentence, often only 3-10 words");
         assertContains(outerState, "Use warm micro-humor");
         assertContains(outerState, "Treat sensing events as imperfect lab signals");
+        assertContains(outerState, "obs.weather.current");
+        assertContains(outerState, "obs.weather.forecast");
+        assertContains(outerState, "current geographic location");
+        assertContains(outerState, "Do not proactively comment just because weather context arrived");
+        assertContains(outerState, "Do not say that you sense the weather yourself");
         assertFalse(outerState.contains("Hotel Grischa"));
         assertFalse(outerState.contains("care center"));
 
@@ -277,6 +285,11 @@ class TdsrLabPromptContractTest {
         assertTrue(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
         assertFalse(profile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
         assertEquals(6, profile.getSupportedBehaviourModalities().size());
+    }
+
+    private static void assertLabWeatherInput(AgentInteractionProfile profile) {
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
     }
 
     private static void assertSharedNonverbalPrompt(State state) throws Exception {
