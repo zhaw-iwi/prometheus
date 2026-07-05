@@ -3242,6 +3242,11 @@ async function runCameraLoop() {
     clearOverlay();
     if (isSensorModeEnabled("social") && camera.socialDetectorReady) {
       await detectSocial();
+    } else if (isSensorModeEnabled("social")) {
+      const statusText = camera.socialDetectorError ? "Social model unavailable" : "Social model not ready";
+      renderSocialMetrics(null, []);
+      setSocialContextStatusText(statusText, camera.socialDetectorError ? "error" : "idle");
+      drawSocialStatus(statusText, camera.socialDetectorError ? "error" : "idle");
     }
     if (isSensorModeEnabled("emotion") && camera.faceModelsReady) {
       await detectEmotion();
@@ -3287,13 +3292,25 @@ async function detectEmotion() {
 }
 
 async function detectSocial() {
-  const rawDetections = await camera.socialDetector.detect(camera.video);
+  let rawDetections = [];
+  try {
+    rawDetections = await camera.socialDetector.detect(camera.video);
+  } catch (error) {
+    renderSocialMetrics(null, []);
+    setSocialContextStatusText("Detection error", "error");
+    drawSocialStatus("Social detection error", "error");
+    appendLog("camera", "social detection failed: " + errorMessage(error));
+    return;
+  }
   const people = rawDetections
     .filter((d) => d && d.class === "person" && Number(d.score || 0) >= PERSON_SCORE_THRESHOLD)
     .map(normalizePersonDetection);
   const tracked = updateTracks(people);
   const social = deriveSocialSituation(tracked);
   drawSocialOverlay(tracked, social);
+  if (tracked.length === 0) {
+    drawSocialStatus("No people", "idle");
+  }
   renderSocialMetrics(social, tracked);
   await maybeEmitSocial(social, tracked);
 }
@@ -4067,6 +4084,15 @@ function setSocialContextStatus(humanCount) {
   }
   el.textContent = humanCount === 1 ? "1 person" : `${humanCount} people`;
   el.className = "status-pill is-live";
+}
+
+function setSocialContextStatusText(text, mode = "idle") {
+  const el = document.getElementById("social_context_status");
+  if (!el) {
+    return;
+  }
+  el.textContent = text || "No people";
+  el.className = `status-pill is-${mode || "idle"}`;
 }
 
 function renderSocialGroups(groups) {
@@ -4992,7 +5018,17 @@ function drawSocialOverlay(tracked, social) {
     camera.ctx.lineWidth = 2;
     camera.ctx.strokeStyle = `hsl(${hue}, 75%, 42%)`;
     camera.ctx.strokeRect(displayBox.x, displayBox.y, displayBox.width, displayBox.height);
+    drawOverlayLabel(displayBox.x, Math.max(8, displayBox.y - 24),
+      `Person ${person.id} ${asUnitNumber(person.score).toFixed(2)}`, camera.ctx.strokeStyle);
   }
+}
+
+function drawSocialStatus(text, mode = "idle") {
+  if (!text || !camera.ctx) {
+    return;
+  }
+  overlayScale();
+  drawOverlayLabel(8, 36, text, mode === "error" ? "#dc2626" : "#059669");
 }
 
 function drawGestureOverlay(candidate) {

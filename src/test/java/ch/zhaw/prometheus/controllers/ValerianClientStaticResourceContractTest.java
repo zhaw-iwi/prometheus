@@ -429,7 +429,10 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"camera-video\""));
         assertTrue(index.contains("data-testid=\"camera-status\""));
         assertTrue(index.contains("data-testid=\"overlay-canvas\""));
-        assertTrue(index.indexOf("face-api.js@0.22.2") < index.indexOf("@tensorflow/tfjs@4.22.0"));
+        assertTrue(index.contains("@tensorflow/tfjs@1.7.4"));
+        assertFalse(index.contains("@tensorflow/tfjs@4.22.0"));
+        assertTrue(index.indexOf("@tensorflow/tfjs@1.7.4") < index.indexOf("@tensorflow-models/coco-ssd@2.2.3"));
+        assertTrue(index.indexOf("@tensorflow-models/coco-ssd@2.2.3") < index.indexOf("face-api.js@0.22.2"));
         assertFalse(index.contains("defer src=\"https://cdn.jsdelivr.net/npm/face-api.js"));
         assertTrue(index.contains("data-testid=\"camera-device-input-group\""));
         assertTrue(index.contains("class=\"input-group input-group-sm\""));
@@ -561,6 +564,11 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function formatSignedDecimal(value)"));
         assertTrue(script.contains("renderSocialMetrics(social, tracked);"));
         assertTrue(script.contains("function renderSocialMetrics(social, tracked = [])"));
+        assertTrue(script.contains("function setSocialContextStatusText(text, mode = \"idle\")"));
+        assertTrue(script.contains("function drawSocialStatus(text, mode = \"idle\")"));
+        assertTrue(script.contains("drawSocialStatus(\"No people\", \"idle\");"));
+        assertTrue(script.contains("drawSocialStatus(\"Social detection error\", \"error\");"));
+        assertTrue(script.contains("social detection failed: "));
         assertTrue(script.contains("renderSocialGroups(view.groups || [])"));
         assertTrue(script.contains("renderSocialPeople(people)"));
         assertTrue(script.contains("const TRACK_MOVING_DISTANCE_NORM"));

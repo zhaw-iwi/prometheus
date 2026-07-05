@@ -122,6 +122,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 116: SIRA Lab multimodal behaviour demonstrator
 - [x] Milestone 117: Valerian facial emotion camera-loop diagnostics
 - [x] Milestone 118: Valerian facial emotion overlay and script-order alignment
+- [x] Milestone 119: Valerian shared visual detector TFJS compatibility
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5248,6 +5249,49 @@ Make Valerian's live facial emotion sensing visibly inspectable in the camera pr
 ### Next steps
 1. Live-test face emotion again on the target machine and compare the preview overlay state with the Facial Emotion Report status.
 2. If the overlay remains on `No face` despite a clear face in frame, lower the TinyFaceDetector threshold or expose it as an operator tuning control.
+
+## Milestone 119
+### Date
+2026-07-05
+
+### Goal
+Fix Valerian social context detection failing after facial sensing was enabled on the same page, and make cross-detector failures diagnosable.
+
+### What changed
+- Reproduced the browser-side failure outside the app: combining `face-api.js@0.22.2`, `coco-ssd@2.2.3`, and newer TFJS 3/4 runtimes causes minified runtime errors such as `n is not a function` or `d is not a function` when loading/detecting with COCO-SSD or face-api.
+- Changed Valerian's shared visual detector runtime from TFJS `4.22.0` to TFJS `1.7.4`, which successfully loads and runs both `coco-ssd@2.2.3` and `face-api.js@0.22.2` in the same browser page.
+- Kept the Valerian script order as TFJS, COCO-SSD, face-api, then the cockpit script so both visual model libraries bind to the compatible shared runtime before Valerian initializes.
+- Added social-context detector diagnostics:
+  - social model-not-ready/unavailable states now render in the Social Context Report and camera overlay
+  - social detection runtime errors now render as `Detection error` in the report and `Social detection error` in the camera overlay
+  - detected people now get labelled overlay boxes with track ID and confidence
+- Scoped social detection errors to the social detector branch so one detector failure does not prevent the other enabled visual detectors from continuing.
+- Extended the static Valerian client contract to pin the compatible TFJS version, script order, and social diagnostics helpers.
+- Extended the Playwright visual smoke with a regression where social detection reports one person even while the face detector throws `d is not a function`.
+- Updated README documentation for the shared visual detector runtime constraint.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent that declares `obs.social.context` or legacy social observations, enable `Social context`, start the camera, and inspect both labelled preview boxes and Sensing > Signals Sensed > Social Context Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a Valerian cockpit client fix only; backend observation contracts, event processing, agent definitions, and prompts are unchanged.
+- Connecting/disconnecting different agents stops the camera and profile-gates unsupported toggles, but it does not unload already loaded browser model libraries. A hard page reload is still the cleanest way to reset browser ML runtime state after a failed model load.
+- COCO-SSD and face-api are older browser ML libraries. Future upgrades should treat the visual detector stack as one compatibility unit rather than upgrading TFJS for one detector in isolation.
+
+### Next steps
+1. Live-test Social context and Face emotion together on the target browser after a hard page reload.
+2. If social detection is still weak but no runtime error appears, tune person confidence/camera placement rather than backend signal processing.
 
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
