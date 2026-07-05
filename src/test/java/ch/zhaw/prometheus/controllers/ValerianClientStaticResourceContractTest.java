@@ -427,6 +427,7 @@ class ValerianClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(index.contains("data-testid=\"camera-video\""));
+        assertTrue(index.contains("data-testid=\"camera-status\""));
         assertTrue(index.contains("data-testid=\"overlay-canvas\""));
         assertTrue(index.contains("data-testid=\"camera-device-input-group\""));
         assertTrue(index.contains("class=\"input-group input-group-sm\""));
@@ -539,7 +540,10 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("const EMOTION_EXPRESSION_KEYS = [\"neutral\", \"happy\", \"sad\", \"angry\", \"fearful\", \"disgusted\", \"surprised\"]"));
         assertTrue(script.contains("renderEmotionMetrics(emotion, detection.detection.score);"));
         assertTrue(script.contains("function renderEmotionMetrics(emotion, faceScore = 0)"));
-        assertTrue(script.contains("function resetEmotionReport()"));
+        assertTrue(script.contains("function resetEmotionReport(options = {})"));
+        assertTrue(script.contains("faceModelsError"));
+        assertTrue(script.contains("Model unavailable"));
+        assertTrue(script.contains("Model load failed"));
         assertTrue(script.contains("function setEmotionAffectMarker(valence, arousal, emotion)"));
         assertTrue(script.contains("marker.style.left = `${x}%`;"));
         assertTrue(script.contains("marker.style.bottom = `${y}%`;"));

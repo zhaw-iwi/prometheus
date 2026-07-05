@@ -82,6 +82,9 @@ const camera = {
   faceModelsReady: false,
   socialDetectorReady: false,
   handDetectorReady: false,
+  faceModelsError: "",
+  socialDetectorError: "",
+  handDetectorError: "",
   socialDetector: null,
   handRecognizer: null,
   tracks: new Map(),
@@ -3167,38 +3170,68 @@ function isSensorModeEnabled(mode) {
 }
 
 async function loadFaceModels() {
+  camera.faceModelsError = "";
+  setEmotionEmitStatus("Loading model", "idle");
   if (!window.faceapi) {
-    appendLog("camera", "face-api unavailable.");
-    return;
+    const message = "face-api unavailable";
+    camera.faceModelsReady = false;
+    camera.faceModelsError = message;
+    resetEmotionReport({ statusText: "Model unavailable", statusMode: "error" });
+    throw new Error(message);
   }
-  await Promise.all([
-    window.faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URI),
-    window.faceapi.nets.faceExpressionNet.loadFromUri(FACE_MODEL_URI),
-  ]);
-  camera.faceModelsReady = true;
-  appendLog("camera", "face models ready.");
+  try {
+    await Promise.all([
+      window.faceapi.nets.tinyFaceDetector.loadFromUri(FACE_MODEL_URI),
+      window.faceapi.nets.faceExpressionNet.loadFromUri(FACE_MODEL_URI),
+    ]);
+    camera.faceModelsReady = true;
+    camera.faceModelsError = "";
+    setEmotionEmitStatus("Model ready", "idle");
+    appendLog("camera", "face models ready.");
+  } catch (error) {
+    camera.faceModelsReady = false;
+    camera.faceModelsError = errorMessage(error);
+    resetEmotionReport({ statusText: "Model load failed", statusMode: "error" });
+    throw error;
+  }
 }
 
 async function loadSocialDetector() {
+  camera.socialDetectorError = "";
   if (!window.cocoSsd) {
-    appendLog("camera", "coco-ssd unavailable.");
-    return;
+    const message = "coco-ssd unavailable";
+    camera.socialDetectorReady = false;
+    camera.socialDetectorError = message;
+    throw new Error(message);
   }
-  camera.socialDetector = await window.cocoSsd.load({ base: "lite_mobilenet_v2" });
-  camera.socialDetectorReady = true;
-  appendLog("camera", "person detector ready.");
+  try {
+    camera.socialDetector = await window.cocoSsd.load({ base: "lite_mobilenet_v2" });
+    camera.socialDetectorReady = true;
+    appendLog("camera", "person detector ready.");
+  } catch (error) {
+    camera.socialDetectorReady = false;
+    camera.socialDetectorError = errorMessage(error);
+    throw error;
+  }
 }
 
 async function loadHandRecognizer() {
-  const visionTasks = await import(MEDIAPIPE_TASKS_URL);
-  const vision = await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
-  camera.handRecognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: GESTURE_MODEL_URL },
-    runningMode: "VIDEO",
-    numHands: 1,
-  });
-  camera.handDetectorReady = true;
-  appendLog("camera", "gesture recognizer ready.");
+  camera.handDetectorError = "";
+  try {
+    const visionTasks = await import(MEDIAPIPE_TASKS_URL);
+    const vision = await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
+    camera.handRecognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: GESTURE_MODEL_URL },
+      runningMode: "VIDEO",
+      numHands: 1,
+    });
+    camera.handDetectorReady = true;
+    appendLog("camera", "gesture recognizer ready.");
+  } catch (error) {
+    camera.handDetectorReady = false;
+    camera.handDetectorError = errorMessage(error);
+    throw error;
+  }
 }
 
 async function runCameraLoop() {
@@ -3212,6 +3245,11 @@ async function runCameraLoop() {
     }
     if (isSensorModeEnabled("emotion") && camera.faceModelsReady) {
       await detectEmotion();
+    } else if (isSensorModeEnabled("emotion")) {
+      resetEmotionReport({
+        statusText: camera.faceModelsError ? "Model unavailable" : "Model not ready",
+        statusMode: camera.faceModelsError ? "error" : "idle",
+      });
     }
     if (isSensorModeEnabled("hand") && camera.handDetectorReady) {
       await detectHandSign();
@@ -3386,7 +3424,7 @@ function renderEmotionMetrics(emotion, faceScore = 0) {
   setEmotionEmitStatus("Live", "live");
 }
 
-function resetEmotionReport() {
+function resetEmotionReport(options = {}) {
   setText("emotion_value", "-");
   setText("emotion_valence_value", "0.00");
   setText("emotion_arousal_value", "0.00");
@@ -3398,7 +3436,7 @@ function resetEmotionReport() {
   setEmotionMeter("emotion_confidence_meter", 0);
   setEmotionMeter("emotion_face_confidence_meter", 0);
   renderExpressionBars({});
-  setEmotionEmitStatus("No face", "idle");
+  setEmotionEmitStatus(options.statusText || "No face", options.statusMode || "idle");
 }
 
 function setEmotionAffectMarker(valence, arousal, emotion) {

@@ -120,6 +120,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 114: SIRA Lab sensing demonstrator agents
 - [x] Milestone 115: SIRA Lab game demonstrator agents
 - [x] Milestone 116: SIRA Lab multimodal behaviour demonstrator
+- [x] Milestone 117: Valerian facial emotion camera-loop diagnostics
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5167,6 +5168,44 @@ Add an English SIRA Lab multimodal behaviour demonstrator that makes GIGI's curr
 ### Next steps
 1. Live-test the full `tdsr.lab.*` set in Valerian with Realtime speech and representative detector/manual inputs.
 2. Decide later whether PROMETHEUS needs first-class timed behaviour sequences for true rapid mood choreography.
+
+## Milestone 117
+### Date
+2026-07-05
+
+### Goal
+Double-check Valerian's client-side facial emotion camera path and make detector/model failures visible during live testing.
+
+### What changed
+- Confirmed the backend event path is not implicated: manual `obs.emotion.face` signals already reach the agent and update the report.
+- Made Valerian's face-api/model load failures visible in the Facial Emotion Report via `Model unavailable` / `Model load failed` status instead of leaving the report looking idle while the detector checkbox is enabled.
+- Preserved the existing live-preview behavior: camera detections still update the report even when `Emit camera observations` is off, and emitted observations still use the existing `obs.emotion.face` contract.
+- Added a stable `camera-status` test id for browser-level cockpit checks.
+- Extended the Playwright visual smoke with a mocked browser camera and mocked face-api result that exercises `startCamera()`, model loading, `runCameraLoop()`, `detectEmotion()`, and the shared facial report renderer without requiring physical webcam hardware.
+- Updated README documentation for the visible facial model-load diagnostic.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent that declares `obs.emotion.face`, enable `Face emotion`, start the camera, and inspect Sensing > Signals Sensed > Facial Emotion Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- The deterministic Playwright test proves the Valerian browser wiring works when face-api returns a face expression result; it does not prove the physical webcam, lighting, or real face-api model behavior on the demo laptop.
+- If the live Facial Emotion Report shows `Model unavailable` or `Model load failed`, check browser console/network access to the face-api script/model CDN before debugging backend signal processing.
+- No backend observation contracts, agent definitions, or prompt logic changed in this milestone.
+
+### Next steps
+1. Re-test live facial sensing on the target machine and note whether the report shows live values, `No face`, or a model error.
+2. If model/CDN loading is the live blocker, consider vendoring the required face-api model files into the static resources for offline/demo reliability.
 
 ## Mainline Valerian Cockpit Milestones Merged Into Agents
 The following sections record main-branch Valerian cockpit and observation-contract work imported into `agents`. Mainline milestone 101 is represented here by agents Milestone 112 because both branches removed the obsolete cockpit VAD create-response control.
