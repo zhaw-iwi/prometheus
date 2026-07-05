@@ -31,6 +31,23 @@ const SAMPLE_EMOTION = {
   facePresent: true,
 };
 const SAMPLE_FACE_SCORE = 0.91;
+const SAMPLE_CAMERA_EMOTION = {
+  emotion: "happy",
+  confidence: 0.92,
+  valence: 0.87,
+  arousal: 0.45,
+  expressions: {
+    neutral: 0.03,
+    happy: 0.92,
+    sad: 0.01,
+    angry: 0.01,
+    fearful: 0.01,
+    disgusted: 0.01,
+    surprised: 0.04,
+  },
+  facePresent: true,
+};
+const SAMPLE_CAMERA_FACE_SCORE = 0.94;
 const SAMPLE_SOCIAL = {
   humanCount: 3,
   groupCount: 1,
@@ -199,6 +216,38 @@ test("Valerian cockpit columns expand into a wider live modal viewport", async (
   });
 });
 
+test("Valerian face emotion detector updates the report from the camera loop", async ({ page }) => {
+  await page.goto("/valerian/");
+  await expect(page.getByTestId("access-screen")).toBeVisible();
+  await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+
+  await installMockFaceCamera(page);
+  await enableEmotionDetectorForSmoke(page);
+  await openSensedSignals(page);
+
+  await page.evaluate(async () => {
+    if (typeof window.startCamera !== "function") {
+      throw new Error("startCamera is not available on the Valerian page.");
+    }
+    await window.startCamera();
+  });
+
+  await expect(page.getByTestId("camera-status")).toHaveText("Camera Live");
+  await expect(page.getByTestId("emotion-value")).toHaveText("happy 0.92");
+  await expect(page.getByTestId("emotion-valence-value")).toHaveText("+0.90");
+  await expect(page.getByTestId("emotion-arousal-value")).toHaveText("0.37");
+  await expect(page.getByTestId("emotion-face-confidence-value")).toHaveText("0.94");
+  await expect(page.getByTestId("emotion-emit-status")).toHaveText("Live only");
+  await expect(page.getByTestId("emotion-affect-marker"))
+    .toHaveAttribute("aria-label", "Valence +0.90, arousal 0.37");
+  await expect(page.getByTestId("emotion-affect-marker")).toHaveAttribute("data-emotion", "happy");
+  await expect(page.getByTestId("emotion-expression-happy-value")).toHaveText("92%");
+
+  await page.evaluate(() => window.stopCamera({ silent: true }));
+});
+
 async function verifyColumnExpansion(page, testInfo, options) {
   const { key, title, buttonTestId, afterRestore, inModal } = options;
   const column = page.locator(`[data-column-key="${key}"]`);
@@ -251,6 +300,65 @@ async function renderSampleBehaviour(page) {
     }
     window.renderBehaviourPlan(plan);
   }, SAMPLE_BEHAVIOUR_PLAN);
+}
+
+async function installMockFaceCamera(page) {
+  await page.evaluate(({ emotion, faceScore }) => {
+    const stream = new MediaStream();
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: async () => stream,
+        enumerateDevices: async () => [{
+          kind: "videoinput",
+          deviceId: "mock-camera",
+          groupId: "mock",
+          label: "Mock camera",
+        }],
+        addEventListener: () => {},
+      },
+    });
+    const video = document.getElementById("camera_video");
+    Object.defineProperty(video, "videoWidth", { configurable: true, get: () => 640 });
+    Object.defineProperty(video, "videoHeight", { configurable: true, get: () => 480 });
+    Object.defineProperty(video, "readyState", {
+      configurable: true,
+      get: () => HTMLMediaElement.HAVE_ENOUGH_DATA,
+    });
+    video.play = async () => {};
+    window.faceapi = {
+      nets: {
+        tinyFaceDetector: { loadFromUri: async () => true },
+        faceExpressionNet: { loadFromUri: async () => true },
+      },
+      TinyFaceDetectorOptions: class TinyFaceDetectorOptions {
+        constructor(options) {
+          this.options = options;
+        }
+      },
+      detectSingleFace: () => ({
+        withFaceExpressions: async () => ({
+          detection: {
+            score: faceScore,
+            box: { x: 120, y: 75, width: 180, height: 190 },
+          },
+          expressions: emotion.expressions,
+        }),
+      }),
+    };
+  }, { emotion: SAMPLE_CAMERA_EMOTION, faceScore: SAMPLE_CAMERA_FACE_SCORE });
+}
+
+async function enableEmotionDetectorForSmoke(page) {
+  await page.evaluate(async () => {
+    const input = document.getElementById("sensor_emotion_enabled");
+    if (!input || typeof window.handleSensorModeChange !== "function") {
+      throw new Error("Emotion detector controls are not available on the Valerian page.");
+    }
+    input.disabled = false;
+    input.checked = true;
+    await window.handleSensorModeChange();
+  });
 }
 
 async function renderSampleEmotion(page) {

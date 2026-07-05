@@ -113,6 +113,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 107: Valerian social attentiveness signal
 - [x] Milestone 108: Valerian social context observation contract
 - [x] Milestone 109: Valerian sensing column completeness pass
+- [x] Milestone 110: Valerian facial emotion camera-loop diagnostics
 
 ## Milestone 1
 ### Date
@@ -3761,7 +3762,7 @@ Warm up the `gigitdsr.tour_conversation` persona and route grounding without cha
 ### What changed
 - Updated `TourConversation.PROMPT_STATE` so GIGI is more explicitly sympathetic, lightly humorous, open to people and places, and framed as a learning travel companion.
 - Added Frank as GIGI's occasional travel/context reference and design/mobility/technology sparring partner, with a guard to mention him only when fitting.
-- Replaced the compressed route capsule with a concrete station list covering Bürgenstock, Paradeplatz, Rinspeed, ETH Zürich, Rheinfall, Quantum Basel, Emmentaler Schaukäserei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
+- Replaced the compressed route capsule with a concrete station list covering B?rgenstock, Paradeplatz, Rinspeed, ETH Z?rich, Rheinfall, Quantum Basel, Emmentaler Schauk?serei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
 - Strengthened the prompt's humor and learning-companion wording while preserving existing German-only, sparse-follow-up, weather-location, no-Markdown, no-JSON, and current-station guardrails.
 - Added a small final-state prompt update so the closing response can acknowledge the Frank/TDSR learning journey without starting a new topic.
 - Updated prompt contract coverage and README notes for the revised tour-conversation behavior.
@@ -3965,7 +3966,7 @@ Add Babylon variants of the five TDSR core agents that start in English but can 
   - `tdsr.core.babylon.tour_conversation`
   - `tdsr.core.babylon.tour_conversation_social_context`
 - Copied the English core agents as the implementation base, kept English starter prompts for the opening turn, and replaced English-only state/final guards with the shared multilingual instruction:
-  `Du kannst Deutsch, Französisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
+  `Du kannst Deutsch, Franz?sisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
 - Kept the Babylon definitions without a `languageCode()` override so Valerian/Realtime does not receive a fixed language hint for these agents.
 - Extended the stop/readiness/play-again guard prompts so they interpret German, French, Italian, and English user intent.
 - Registered the Babylon keys and updated registry, source-profile, and Babylon prompt contract coverage.
@@ -4920,3 +4921,37 @@ Complete the Valerian Sensing column coverage so manual inputs and Signals Sense
 ### Next steps
 1. Live-test the full Sensing column with target camera, hand gestures, and representative weather locations.
 2. Consider whether specific production agents should declare and use `obs.social.context` now that the cockpit can emit and display the richer signal consistently.
+
+## Milestone 110
+### Date
+2026-07-05
+
+### Goal
+Bring Valerian's facial emotion camera-loop diagnostics from the agents branch back to main without importing application agent definitions.
+
+### What changed
+- Made face-api/model load failures visible in the Facial Emotion Report via `Model unavailable` / `Model load failed` states.
+- Preserved live-preview behavior: camera detections update the report when `Emit camera observations` is off, while emitted observations keep the existing `obs.emotion.face` contract.
+- Added a stable `camera-status` test id for browser checks.
+- Extended Playwright with a mocked browser camera and mocked face-api result that exercises `startCamera()`, model loading, `runCameraLoop()`, `detectEmotion()`, and the shared report renderer.
+
+### How to run
+1. Start the app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, connect an agent/profile that declares `obs.emotion.face`, enable `Face emotion`, start the camera, and inspect Sensing > Signals Sensed > Facial Emotion Report.
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+  - `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a Valerian cockpit client change only; backend observation contracts, event processing, and agent definitions are unchanged.
+- The deterministic Playwright test proves the Valerian browser wiring when face-api returns a face expression result; it does not prove physical webcam, lighting, or real model behavior.
+
+### Next steps
+1. Continue cherry-picking the remaining Valerian overlay/runtime compatibility fixes from agents.
