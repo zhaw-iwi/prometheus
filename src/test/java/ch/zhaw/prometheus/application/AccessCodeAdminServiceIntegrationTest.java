@@ -82,6 +82,7 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.lab.rock_scissor_paper"));
         assertTrue(keys.contains("tdsr.lab.role_clarification_guessing_game"));
         assertTrue(keys.contains("tdsr.lab.multimodal_behaviour"));
+        assertTrue(keys.contains("tdsr.migros.appenzell_menu_planner"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
         assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
         assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
@@ -109,6 +110,8 @@ class AccessCodeAdminServiceIntegrationTest {
                 packagePath(agentTypes, "tdsr.lab.role_clarification_guessing_game"));
         assertEquals(List.of("tdsr", "lab"),
                 packagePath(agentTypes, "tdsr.lab.multimodal_behaviour"));
+        assertEquals(List.of("tdsr", "migros"),
+                packagePath(agentTypes, "tdsr.migros.appenzell_menu_planner"));
     }
 
     @Test

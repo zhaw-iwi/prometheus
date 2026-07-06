@@ -85,6 +85,7 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RockScissorPaper.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RoleClarificationGuessingGame.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/MultimodalBehaviour.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/migros/AppenzellMenuPlanner.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));
@@ -154,7 +155,7 @@ class SeedAgentInteractionProfileContractTest {
             String source = Files.readString(seedAgentFile);
             assertTrue(source.contains("setInteractionProfile(") || source.contains("TdsrCoreAgentFactory.")
                     || source.contains("TdsrShhdAgentFactory.") || source.contains("DavosCareAgentFactory.")
-                    || source.contains("TdsrLabAgentFactory."),
+                    || source.contains("TdsrLabAgentFactory.") || source.contains("TdsrMigrosAgentFactory."),
                     "missing interaction profile declaration in " + seedAgentFile);
         }
     }

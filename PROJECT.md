@@ -124,6 +124,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 118: Valerian facial emotion overlay and script-order alignment
 - [x] Milestone 119: Valerian shared visual detector TFJS compatibility
 - [x] Milestone 120: SIRA Lab weather context support
+- [x] Milestone 121: Migros Appenzell TDSR menu-planner agent
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5646,3 +5647,45 @@ Let all English SIRA Lab demonstrator agents optionally receive weather observat
 
 ### Next steps
 1. Live-test heat, rain, and location questions with each `tdsr.lab.*` agent in Valerian.
+
+## Milestone 121
+### Date
+2026-07-06
+
+### Goal
+Add a German Migros Appenzell TDSR station agent that helps structure in-store menu-planning conversations while keeping Migros employees central to customer trust and product confirmation.
+
+### What changed
+- Added a new `tdsr.migros` application-agent package with shared Migros prompts, a package-local factory, and `tdsr.migros.appenzell_menu_planner`.
+- Grounded the agent in GIGI's Tour de Suisse Robotique persona, the Migros Appenzell everyday-shopping station, and the insight that useful everyday robotics should reduce small burdens without replacing staff.
+- Added menu-planning guidance for quick post-sport dinner decisions with examples such as Protein-Drink, Bio-Linsensalat, Tomaten, Mostbroeckli, and Pantli while avoiding claims about live availability, prices, allergens, or exact nutrition.
+- Added explicit triadic interaction guidance: GIGI structures the decision, the customer brings everyday context, and Migros employees provide trust, regionality, product details, and real store knowledge.
+- Declared face-emotion, human presence, social grouping, rich social context, social situation change, and weather observations, plus full GIGI physical behaviour output: speech, gesture, facial expression, gaze, nonverbal motion, and hand sign.
+- Registered the new agent definition as a Spring bean and documented the `tdsr.migros.*` package in README.
+- Added focused Migros prompt/profile tests and extended source-list and admin-registration contract coverage.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign:
+   - `tdsr.migros.appenzell_menu_planner`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use German speech interaction and optionally enable facial emotion, social context, and weather context before running a Migros Appenzell menu-planning conversation.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+- Focused milestone suite:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This milestone adds an application-agent definition only; no backend event schema, Valerian UI, Realtime orchestration, or prompt-policy behaviour changed.
+- The agent does not claim live store facts. Product availability, allergens, exact nutrition, prices, and store processes remain with Migros employees or labels.
+- The agent declares hand-sign behaviour for consistency with the current full GIGI physical behaviour contract, but the prompt keeps hand signs exceptional for this conversational station.
+- This milestone was verified with deterministic tests but not live-tested in Valerian or inside a Migros setting.
+
+### Next steps
+1. Live-test the agent in Valerian with a customer-from-sport scenario and a second speaker acting as a Migros employee.
+2. Confirm whether the prompt should use a slightly more Swiss/Appenzell speech register after rehearsal.
+3. Decide whether a Migros-specific access-code preset is needed for operator setup.

@@ -311,6 +311,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition tdsrMigrosAppenzellMenuPlanner() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.migros.AppenzellMenuPlanner();
+    }
+
+    @Bean
     AgentDefinition elderlyCareTherapyAppointmentReminder() {
         return new ch.zhaw.prometheus.agentdefs.elderlycare.SingleStateTherapyAppointmentReminder();
     }
