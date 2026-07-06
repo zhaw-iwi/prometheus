@@ -53,8 +53,7 @@ public class AppenzellScene2MenuPlanner implements AgentDefinition {
 
     static final String PROMPT_STATE_STARTER = """
             Begruesse kurz als GIGI in der Migros Appenzell und setze die Szene:
-            Nach dem Sport kannst du ein schnelles Essen vorsortieren; die
-            Migros-Mitarbeitende bringt Produktvertrauen ein.
+            Ich kann Dir ein ausgewogenes Essen vorschlagen.
             """;
 
     static final String PROMPT_TO_FINAL = """
