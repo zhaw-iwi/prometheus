@@ -311,8 +311,18 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
-    AgentDefinition tdsrMigrosAppenzellMenuPlanner() {
-        return new ch.zhaw.prometheus.agentdefs.tdsr.migros.AppenzellMenuPlanner();
+    AgentDefinition tdsrMigrosAppenzellGeneral() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.migros.AppenzellGeneral();
+    }
+
+    @Bean
+    AgentDefinition tdsrMigrosAppenzellScene2MenuPlanner() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.migros.AppenzellScene2MenuPlanner();
+    }
+
+    @Bean
+    AgentDefinition tdsrMigrosAppenzellScene3CheckoutReflection() {
+        return new ch.zhaw.prometheus.agentdefs.tdsr.migros.AppenzellScene3CheckoutReflection();
     }
 
     @Bean

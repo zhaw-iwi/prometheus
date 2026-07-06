@@ -85,7 +85,9 @@ class SeedAgentInteractionProfileContractTest {
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RockScissorPaper.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/RoleClarificationGuessingGame.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/lab/MultimodalBehaviour.java"),
-            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/migros/AppenzellMenuPlanner.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/migros/AppenzellGeneral.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/migros/AppenzellScene2MenuPlanner.java"),
+            Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/tdsr/migros/AppenzellScene3CheckoutReflection.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalIn.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalOut.java"),
             Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/multimodal/SingleStateMultimodalInOut.java"));

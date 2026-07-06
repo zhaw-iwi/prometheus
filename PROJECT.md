@@ -125,6 +125,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 119: Valerian shared visual detector TFJS compatibility
 - [x] Milestone 120: SIRA Lab weather context support
 - [x] Milestone 121: Migros Appenzell TDSR menu-planner agent
+- [x] Milestone 122: Migros Appenzell scripted scene 2 and 3 agents
+- [x] Milestone 123: Migros Appenzell general station agent rescope
+- [x] Milestone 124: Migros Appenzell prompt compaction
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5689,3 +5692,126 @@ Add a German Migros Appenzell TDSR station agent that helps structure in-store m
 1. Live-test the agent in Valerian with a customer-from-sport scenario and a second speaker acting as a Migros employee.
 2. Confirm whether the prompt should use a slightly more Swiss/Appenzell speech register after rehearsal.
 3. Decide whether a Migros-specific access-code preset is needed for operator setup.
+
+## Milestone 122
+### Date
+2026-07-06
+
+### Goal
+Add two narrowed German Migros Appenzell scripted-scene agents for filming Scene 2 menu planning and Scene 3 checkout reflection while keeping the existing broader menu-planner agent unchanged.
+
+### What changed
+- Added `tdsr.migros.appenzell_scene_2_menu_planner` for the in-store menu-planner scene where GIGI structures a post-sport dinner decision and Migros staff provide regional product trust.
+- Added `tdsr.migros.appenzell_scene_3_checkout_reflection` for the checkout scene where GIGI reminds the customer about Peterli glatt and reflects on remembered habits after the 60-liter refuse-bag cue.
+- Added a compact shared Migros scene outer prompt that keeps the TDSR/Appenzell persona, Migros staff boundaries, German short-response style, weather context, and social-context sensing while omitting facial-emotion sensing.
+- Added a gesture-only Migros scene profile and prompt-policy path so the new scene agents emit speech plus `nonVerbal.gesture` only instead of full structured nonverbal plans.
+- Registered both new scene agents as Spring `AgentDefinition` beans and added admin/source-list/prompt-profile contract coverage.
+- Updated README registered-agent documentation for the broader menu planner versus the narrowed filmed-scene agents.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign one or both scene agents:
+   - `tdsr.migros.appenzell_scene_2_menu_planner`
+   - `tdsr.migros.appenzell_scene_3_checkout_reflection`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use German speech interaction and optionally social context or weather context while filming the relevant scene.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+- Focused milestone suite:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- Prompt-level variation is encouraged through scene-specific wording families and anti-recitation rules, but identical deterministic LLM inputs can still produce similar responses; a later variation seed or operator cue would be needed for guaranteed take-to-take diversity.
+- The new scene agents intentionally do not declare facial-emotion input and do not emit facial expression, gaze, motion, hand sign, or display output.
+- The existing `tdsr.migros.appenzell_menu_planner` remains unchanged and still overlaps conceptually until the planned follow-up broadens it away from the narrowed filmed Scene 2 agent.
+- This milestone was verified with deterministic tests but not live-tested in Valerian or inside a Migros setting.
+
+### Next steps
+1. Re-scope the existing broad `tdsr.migros.appenzell_menu_planner` so it no longer overlaps with the narrowed Scene 2 agent.
+2. Live-test both scripted scene agents in Valerian with repeated takes and staff/customer role-play.
+3. Decide whether to add a lightweight take/variation cue if repeated identical inputs sound too similar.
+
+## Milestone 123
+### Date
+2026-07-06
+
+### Goal
+Rename the broad Migros Appenzell menu-planner agent to a general station conversation agent and remove scene-specific prompt anchors plus full physical behaviour output.
+
+### What changed
+- Renamed the broad agent class from `AppenzellMenuPlanner` to `AppenzellGeneral` and changed its key to `tdsr.migros.appenzell_general`.
+- Changed the agent name to `GIGI Migros - Appenzell General` and rewrote the inner prompt for open conversation with Migros customers, employees, and groups rather than a menu-planning scene.
+- Removed Scene 2-specific anchors from the general prompt, including fixed post-sport dinner product chains and filmed dialogue beats.
+- Reused the compact station outer prompt for all Migros agents and removed the obsolete full structured Migros nonverbal prompt and full-physical menu-planner factory path.
+- Changed the general agent profile to social/weather input plus speech and `nonVerbal.gesture` output only, with no facial-emotion input and no facial expression, gaze, motion, hand sign, or display output.
+- Updated Spring registration, admin/source-list/prompt-profile tests, and README registered-agent documentation.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign:
+   - `tdsr.migros.appenzell_general`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use German speech interaction with customers or Migros employees; optionally provide social context or weather context.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+- Focused milestone suite:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- This is a clean-slate rename: the old `tdsr.migros.appenzell_menu_planner` key is removed rather than kept as an alias.
+- The scripted Scene 2 and Scene 3 agents remain the only Migros agents with narrow filmed-scene beats.
+- The general agent intentionally does not declare facial emotion sensing or full GIGI physical behaviour output to keep response generation lighter.
+- This milestone was verified with deterministic tests but not live-tested in Valerian or inside a Migros setting.
+
+### Next steps
+1. Update any local Valerian access-code assignments that still reference `tdsr.migros.appenzell_menu_planner` to use `tdsr.migros.appenzell_general`.
+2. Live-test the general agent with one customer-style conversation and one Migros-employee-style conversation.
+3. Decide after rehearsal whether the general agent needs a Migros-specific access-code preset.
+## Milestone 124
+### Date
+2026-07-06
+
+### Goal
+Compact the Migros Appenzell general and scripted-scene generation prompts so the three agents keep their intended specificity while sending fewer redundant instructions to the LLM.
+
+### What changed
+- Shortened the shared Migros station outer prompt while preserving GIGI's TDSR persona, Migros Appenzell grounding, staff-boundary guidance, German short-response style, social/weather sensing, and safety limits.
+- Compacted `AppenzellGeneral` so it remains a broad customer/employee station conversation agent without Scene 2 or Scene 3 anchors.
+- Compacted `AppenzellScene2MenuPlanner` and `AppenzellScene3CheckoutReflection` so they stay close to their scripted beats while keeping stateless take-to-take wording variation rules.
+- Removed redundant generation-prompt closing labels from the three inner state prompts and kept detailed JSON extraction prompts separate for post-conversation summarization.
+- Added prompt-contract guards that keep the shared station prompt and each inner generation state prompt below the compact-size threshold.
+- Updated README registered-agent documentation to mention the compact Migros social/weather prompt context.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign one of:
+   - `tdsr.migros.appenzell_general`
+   - `tdsr.migros.appenzell_scene_2_menu_planner`
+   - `tdsr.migros.appenzell_scene_3_checkout_reflection`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Use German speech interaction and optionally provide social context or weather context.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+- Focused milestone suite:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The prompts are optimized for fewer repeated instructions, not for guaranteed distinct wording under identical inputs; deterministic LLM calls can still sound similar across takes.
+- Detailed outcome extraction prompts remain longer by design because they produce stable JSON after the interaction rather than low-latency GIGI speech.
+- This milestone was verified with deterministic tests but not live-tested in Valerian or inside a Migros setting.
+
+### Next steps
+1. Rehearse all three Migros agents in Valerian and listen for whether the compact prompts still hold the intended general-versus-scene separation.
+2. If repeated takes remain too similar, consider adding an operator-controlled variation cue rather than expanding the base prompts again.
