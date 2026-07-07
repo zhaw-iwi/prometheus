@@ -163,15 +163,24 @@ class TdsrMigrosPromptContractTest {
         String scene2State = scene2Prompts.get("PROMPT_STATE");
         assertContains(scene2State, "Szene 2");
         assertContains(scene2State, "In-Store Beratung / Menuplanner");
+        assertContains(scene2State, "Starte sehr klein");
         assertContains(scene2State, "kommt vom Sport");
+        assertContains(scene2State, "du kommst vom Sport und brauchst etwas Proteinreiches");
         assertContains(scene2State, "Protein-Drink");
         assertContains(scene2State, "Linsensalat");
         assertContains(scene2State, "Tomaten");
         assertContains(scene2State, "Mostbroeckli");
         assertContains(scene2State, "Pantli");
-        assertContains(scene2State, "GIGI sortiert vor");
+        assertContains(scene2State, "GIGI macht die Entscheidung leichter");
+        assertContains(scene2State, "erste Starter-Antwort ist nur die Begruessung");
+        assertContains(scene2State, "Ich mache einen Vorschlag");
+        assertFalse(scene2State.toLowerCase(java.util.Locale.ROOT).contains("sortier"));
         assertContains(scene2State, "Kopiere die Beispieldialoge nie wortwoertlich");
         assertContains(scene2State, "Waehle still eine andere Satzform");
+        assertContains(scene2Prompts.get("PROMPT_STATE_STARTER"), "Hoi, ich bin GIGI.");
+        assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("Protein-Drink"));
+        assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("Linsensalat"));
+        assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("ausgewogenes Essen"));
         assertCompactGenerationPrompt("AppenzellScene2MenuPlanner.PROMPT_STATE", scene2State);
         assertContains(scene2Prompts.get("PROMPT_OUTCOME_EXTRACTION"),
                 "\"interaction_type\": \"migros_appenzell_scene_2_menu_planner\"");

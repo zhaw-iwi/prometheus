@@ -128,6 +128,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 122: Migros Appenzell scripted scene 2 and 3 agents
 - [x] Milestone 123: Migros Appenzell general station agent rescope
 - [x] Milestone 124: Migros Appenzell prompt compaction
+- [x] Milestone 125: Naturalize Migros Scene 2 opener and menu wording
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5775,6 +5776,7 @@ Rename the broad Migros Appenzell menu-planner agent to a general station conver
 1. Update any local Valerian access-code assignments that still reference `tdsr.migros.appenzell_menu_planner` to use `tdsr.migros.appenzell_general`.
 2. Live-test the general agent with one customer-style conversation and one Migros-employee-style conversation.
 3. Decide after rehearsal whether the general agent needs a Migros-specific access-code preset.
+
 ## Milestone 124
 ### Date
 2026-07-06
@@ -5815,3 +5817,38 @@ Compact the Migros Appenzell general and scripted-scene generation prompts so th
 ### Next steps
 1. Rehearse all three Migros agents in Valerian and listen for whether the compact prompts still hold the intended general-versus-scene separation.
 2. If repeated takes remain too similar, consider adding an operator-controlled variation cue rather than expanding the base prompts again.
+
+## Milestone 125
+### Date
+2026-07-07
+
+### Goal
+Naturalize the Migros Appenzell Scene 2 menu-planner prompt after rehearsal feedback so GIGI opens more simply and avoids unnatural `sortieren` language in menu-planning speech.
+
+### What changed
+- Updated `AppenzellScene2MenuPlanner` so the starter response is only the short greeting `Hoi, ich bin GIGI.` without a question or menu proposal.
+- Added a clearer Scene 2 conversation rhythm: first greet, then acknowledge the sport/protein context, then propose Protein-Drink plus a later Linsensalat/Tomaten/regional addition once the customer context is present.
+- Replaced menu-planning uses of `sortieren`/`sortiert vor` with more natural everyday wording such as making the decision easier, making a proposal, and keeping the choice simple.
+- Extended the Migros prompt contract test to pin the new starter behavior, preserve the sport/protein acknowledgement beat, and guard against the `sortier` stem returning to the Scene 2 prompt.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign:
+   - `tdsr.migros.appenzell_scene_2_menu_planner`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. Start a Scene 2 take and confirm GIGI opens only with a short greeting before the customer provides the sport/dinner context.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+
+### Known issues and decisions
+- This milestone changes only the Scene 2 prompt and prompt-contract test; no registration, profile, Realtime, Valerian, or backend event behavior changed.
+- The general Migros agent still contains `vorsortieren`; this was left unchanged because the rehearsal feedback was specific to the filmed Scene 2 agent.
+- This milestone was verified with deterministic tests but not live-tested in Valerian after the wording change.
+
+### Next steps
+1. Continue applying the remaining Scene 2 rehearsal feedback one item at a time.
+2. Rehearse the updated Scene 2 opener in Valerian and confirm the first response is short enough for filming.
