@@ -12,14 +12,22 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.OuterState;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Transition;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class TdsrMigrosPromptContractTest {
     private static final int MAX_PERSISTED_PROMPT_LENGTH = 8000;
@@ -181,6 +189,11 @@ class TdsrMigrosPromptContractTest {
         assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("Protein-Drink"));
         assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("Linsensalat"));
         assertFalse(scene2Prompts.get("PROMPT_STATE_STARTER").contains("ausgewogenes Essen"));
+        assertContains(scene2Prompts.get("PROMPT_RELEVANCE"), "plausibel zu Szene 2");
+        assertContains(scene2Prompts.get("PROMPT_RELEVANCE"), "Sport");
+        assertContains(scene2Prompts.get("PROMPT_RELEVANCE"), "Linsensalat");
+        assertContains(scene2Prompts.get("PROMPT_RELEVANCE"), "Kasse");
+        assertContains(scene2Prompts.get("PROMPT_RELEVANCE"), "allgemeine Robotik-/PROMETHEUS-Fragen");
         assertCompactGenerationPrompt("AppenzellScene2MenuPlanner.PROMPT_STATE", scene2State);
         assertContains(scene2Prompts.get("PROMPT_OUTCOME_EXTRACTION"),
                 "\"interaction_type\": \"migros_appenzell_scene_2_menu_planner\"");
@@ -196,6 +209,11 @@ class TdsrMigrosPromptContractTest {
         assertContains(scene3State, "Menschen suchen nicht nur Produkte");
         assertContains(scene3State, "Kopiere die Beispieldialoge nie wortwoertlich");
         assertContains(scene3State, "Waehle still eine andere Satzform");
+        assertContains(scene3Prompts.get("PROMPT_RELEVANCE"), "plausibel zu Szene 3");
+        assertContains(scene3Prompts.get("PROMPT_RELEVANCE"), "Peterli glatt");
+        assertContains(scene3Prompts.get("PROMPT_RELEVANCE"), "60 Liter");
+        assertContains(scene3Prompts.get("PROMPT_RELEVANCE"), "Sport-/Protein-Menuplanung");
+        assertContains(scene3Prompts.get("PROMPT_RELEVANCE"), "Protein-Drink");
         assertCompactGenerationPrompt("AppenzellScene3CheckoutReflection.PROMPT_STATE", scene3State);
         assertContains(scene3Prompts.get("PROMPT_OUTCOME_EXTRACTION"),
                 "\"interaction_type\": \"migros_appenzell_scene_3_checkout_reflection\"");
@@ -220,6 +238,7 @@ class TdsrMigrosPromptContractTest {
         assertNoTransitionDecision(interactionState, Event.TYPE_FACE_EMOTION);
         assertTransitionDecision(interactionState, Event.TYPE_SOCIAL_CONTEXT);
         assertTransitionDecision(interactionState, Event.TYPE_SOCIAL_SITUATION_CHANGE);
+        assertNoTransitionDecisionClass(interactionState, "SceneScopedRelevanceDecision");
 
         PromptPolicy policy = assertInstanceOf(PromptPolicy.class, policy(interactionState));
         assertNull(policy.getNonVerbalPlanPrompt());
@@ -237,10 +256,21 @@ class TdsrMigrosPromptContractTest {
             assertTransitionDecision(interactionState, Event.TYPE_SOCIAL_CONTEXT);
             assertTransitionDecision(interactionState, Event.TYPE_SOCIAL_SITUATION_CHANGE);
 
-            PromptPolicy policy = assertInstanceOf(PromptPolicy.class, policy(interactionState));
-            assertNull(policy.getNonVerbalPlanPrompt());
-            assertEquals(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT, policy.getNonVerbalGesturePrompt());
+            assertSceneScopedGestureOnlyPolicy(policy(interactionState));
+            assertTransitionDecisionClass(interactionState, "SceneScopedRelevanceDecision");
         }
+    }
+
+    @Test
+    void scenePoliciesSuppressOutOfScopeUserUtterancesButRespondInScope() {
+        assertSceneScope(
+                APPENZELL_SCENE_2_MENU_PLANNER.definition().createAgent(),
+                "Kannst du mir PROMETHEUS technisch erklaeren?",
+                "Ich komme vom Sport und brauche etwas zum Znacht.");
+        assertSceneScope(
+                APPENZELL_SCENE_3_CHECKOUT_REFLECTION.definition().createAgent(),
+                "Ich komme vom Sport und brauche Protein.",
+                "Kehrichtsaecke, 60 Liter, wie immer.");
     }
 
     private static void assertTransitionDecision(State state, String eventType) throws Exception {
@@ -255,6 +285,20 @@ class TdsrMigrosPromptContractTest {
                 .flatMap(transition -> transition.getDecisions().stream())
                 .anyMatch(decision -> decision.toString().contains(eventType)),
                 "unexpected transition decision for " + eventType);
+    }
+
+    private static void assertTransitionDecisionClass(State state, String simpleName) throws Exception {
+        assertTrue(transitions(state).stream()
+                .flatMap(transition -> transition.getDecisions().stream())
+                .anyMatch(decision -> decision.getClass().getSimpleName().equals(simpleName)),
+                "missing transition decision class " + simpleName);
+    }
+
+    private static void assertNoTransitionDecisionClass(State state, String simpleName) throws Exception {
+        assertFalse(transitions(state).stream()
+                .flatMap(transition -> transition.getDecisions().stream())
+                .anyMatch(decision -> decision.getClass().getSimpleName().equals(simpleName)),
+                "unexpected transition decision class " + simpleName);
     }
 
     private static void assertMigrosSocialWeatherGestureOnlyProfile(AgentInteractionProfile profile) {
@@ -283,6 +327,21 @@ class TdsrMigrosPromptContractTest {
         Field policyField = State.class.getDeclaredField("policy");
         policyField.setAccessible(true);
         return policyField.get(state);
+    }
+
+    private static void assertSceneScopedGestureOnlyPolicy(Object policy) throws Exception {
+        assertEquals("SceneScopedPromptPolicy", policy.getClass().getSimpleName());
+        Field delegateField = policy.getClass().getDeclaredField("delegate");
+        delegateField.setAccessible(true);
+        PromptPolicy delegate = assertInstanceOf(PromptPolicy.class, delegateField.get(policy));
+        assertNull(delegate.getNonVerbalPlanPrompt());
+        assertEquals(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT, delegate.getNonVerbalGesturePrompt());
+
+        Field relevanceField = policy.getClass().getDeclaredField("relevancePrompt");
+        relevanceField.setAccessible(true);
+        String relevancePrompt = assertInstanceOf(String.class, relevanceField.get(policy));
+        assertContains(relevancePrompt, "Gib true zurueck");
+        assertContains(relevancePrompt, "Gib false zurueck");
     }
 
     @SuppressWarnings("unchecked")
@@ -315,5 +374,65 @@ class TdsrMigrosPromptContractTest {
     }
 
     private record DefinitionCase(AgentDefinition definition, Class<?> definitionClass, String key) {
+    }
+
+    private static void assertSceneScope(Agent agent, String outOfScopeUtterance, String inScopeUtterance) {
+        RecordingGateway gateway = new RecordingGateway();
+        PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
+
+        agent.start(runtime);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, outOfScopeUtterance),
+                runtime);
+        assertNull(agent.generate(runtime));
+
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, inScopeUtterance),
+                runtime);
+        Event response = agent.generate(runtime);
+        BehaviourPlan plan = BehaviourPlan.fromJson(response.getPayload());
+        assertEquals("Das passt zur Szene.", plan.getSpeech());
+    }
+
+    private static final class RecordingGateway implements LanguageModelGateway {
+        @Override
+        public String complete(List<PromptMessage> messages) {
+            String prompt = join(messages);
+            if (prompt.contains("Select one nonverbal gesture label")) {
+                return "NONE";
+            }
+            return "Das passt zur Szene.";
+        }
+
+        @Override
+        public boolean decide(List<PromptMessage> messages) {
+            String prompt = join(messages);
+            if (prompt.contains("plausibel zu Szene 2")) {
+                return prompt.contains("Ich komme vom Sport und brauche etwas zum Znacht.");
+            }
+            if (prompt.contains("plausibel zu Szene 3")) {
+                return prompt.contains("Kehrichtsaecke, 60 Liter, wie immer.");
+            }
+            return false;
+        }
+
+        @Override
+        public JsonElement extract(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public JsonElement summarise(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public String summariseOffline(List<PromptMessage> messages) {
+            return "";
+        }
+
+        private static String join(List<PromptMessage> messages) {
+            return messages.stream()
+                    .map(PromptMessage::getContent)
+                    .reduce("", (left, right) -> left + "\n" + right);
+        }
     }
 }

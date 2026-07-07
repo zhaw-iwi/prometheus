@@ -129,6 +129,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 123: Migros Appenzell general station agent rescope
 - [x] Milestone 124: Migros Appenzell prompt compaction
 - [x] Milestone 125: Naturalize Migros Scene 2 opener and menu wording
+- [x] Milestone 126: Migros filmed-scene user-utterance relevance gates
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -5852,3 +5853,44 @@ Naturalize the Migros Appenzell Scene 2 menu-planner prompt after rehearsal feed
 ### Next steps
 1. Continue applying the remaining Scene 2 rehearsal feedback one item at a time.
 2. Rehearse the updated Scene 2 opener in Valerian and confirm the first response is short enough for filming.
+## Milestone 126
+### Date
+2026-07-07
+
+### Goal
+Add scene-scope relevance gates to the two Migros Appenzell filmed-scene agents so they suppress clearly out-of-scope user utterances instead of answering unrelated speech heard during filming.
+
+### What changed
+- Added `SceneScopedPromptPolicy`, a package-local Migros policy wrapper that delegates normal prompt generation but first checks the latest user utterance against a scene-specific relevance prompt.
+- Wired the relevance gate only into `AppenzellScene2MenuPlanner` and `AppenzellScene3CheckoutReflection`; the broad `AppenzellGeneral` agent remains an open station conversation agent.
+- Added the same scene-relevance guard before each filmed scene's own completion transition, while leaving the shared explicit stop/end transition available.
+- Added a Scene 2 relevance prompt for greetings, sport/dinner/protein/menu-planner utterances, regional-product and employee contributions, while rejecting checkout, Peterli, general robotics, wayfinding, unrelated shopping, small talk, and background speech.
+- Added a Scene 3 relevance prompt for checkout, Peterli, vitamin, 60-liter refuse-bag, habit, employee, and reflection utterances, while rejecting Scene 2 sport/protein/menu-planning and unrelated speech.
+- Extended the Migros prompt contract test to verify the scene-scoped policy wiring, relevance prompt anchors, and runtime behavior: out-of-scope user utterances produce no behaviour, while in-scope utterances still generate a response.
+- Updated README to document that the filmed-scene Migros agents now include scene-scope relevance gating.
+
+### How to run
+1. Start the agents branch app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian Admin and assign one of:
+   - `tdsr.migros.appenzell_scene_2_menu_planner`
+   - `tdsr.migros.appenzell_scene_3_checkout_reflection`
+3. Open Valerian:
+   - `http://localhost:8080/valerian/`
+4. During a filmed take, send an obviously unrelated user utterance and confirm that no new behaviour is generated for that utterance.
+
+### How to test
+- Focused Migros contract check:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest" test`
+- Focused milestone suite:
+  - `./mvnw -q "-Dtest=TdsrMigrosPromptContractTest,SeedAgentInteractionProfileContractTest,AccessCodeAdminServiceIntegrationTest" test`
+
+### Known issues and decisions
+- The relevance gate is LLM-decision based. It is intended for obvious out-of-scope suppression during filming, not for hard safety or deterministic semantic classification.
+- Out-of-scope user utterances are still recorded in event history; the gate suppresses generated behaviour for that latest utterance.
+- Social/weather observations remain available to the scene agents and are not filtered by this user-utterance relevance gate.
+- This milestone was verified with deterministic tests but not live-tested in Valerian after the relevance gate was added.
+
+### Next steps
+1. Rehearse both filmed-scene agents in Valerian with deliberate background speech and unrelated questions.
+2. Tune each relevance prompt if rehearsal shows false positives or false negatives.

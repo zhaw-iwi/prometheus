@@ -70,6 +70,23 @@ public class AppenzellScene3CheckoutReflection implements AgentDefinition {
             Gib nur true oder false zurueck.
             """;
 
+    static final String PROMPT_RELEVANCE = """
+            Pruefe nur die neueste Nutzerinnen- oder Nutzer-Aeusserung.
+            Gib true zurueck, wenn sie plausibel zu Szene 3 der Migros-Appenzell-Station gehoert:
+            Kasse, geplantes Menue, Peterli glatt, Geschmack, Vitamine A/C/K ohne medizinische
+            Wirkung, Kehrichtsaecke, 60 Liter, "wie immer", Gewohnheit, Wiedererkennung,
+            Mitarbeitenden-Beitrag, kurzer Dank, kurze Zustimmung oder die Reflexion, dass
+            Menschen im Alltag schnell verstanden werden wollen.
+
+            Gib false zurueck, wenn die Aeusserung offensichtlich ausserhalb dieser Szene liegt:
+            Sport-/Protein-Menuplanung, Protein-Drink, Linsensalat, Tomaten, Mostbroeckli,
+            Pantli, allgemeine Einkaufsberatung, andere Migros-Szenen, Wetterplauderei,
+            allgemeine Robotik-/PROMETHEUS-Fragen, Technikfragen, Wegauskunft, privater
+            Smalltalk, Hintergrundrede oder wahrscheinlich falsch erkannte Sprache.
+
+            Gib nur true oder false zurueck.
+            """;
+
     static final String PROMPT_OUTCOME_EXTRACTION = """
             Extrahiere das Ergebnis der gerade beendeten Migros-Appenzell-Szene 3.
             Gib nur gueltiges JSON zurueck, ohne Markdown oder Erklaerung.
@@ -115,7 +132,8 @@ public class AppenzellScene3CheckoutReflection implements AgentDefinition {
                         PROMPT_STATE_STARTER,
                         PROMPT_TO_FINAL,
                         PROMPT_OUTCOME_EXTRACTION,
-                        PROMPT_FINAL),
+                        PROMPT_FINAL,
+                        PROMPT_RELEVANCE),
                 "GIGI Migros - Appenzell Scene 3 Checkout Reflection",
                 "German Migros Appenzell scripted scene 3 agent for checkout reflection film takes.",
                 "GIGI Migros Appenzell scene 3 checkout reflection",

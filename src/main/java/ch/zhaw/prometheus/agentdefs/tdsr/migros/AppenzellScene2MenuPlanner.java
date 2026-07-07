@@ -73,6 +73,24 @@ public class AppenzellScene2MenuPlanner implements AgentDefinition {
             Gib nur true oder false zurueck.
             """;
 
+    static final String PROMPT_RELEVANCE = """
+            Pruefe nur die neueste Nutzerinnen- oder Nutzer-Aeusserung.
+            Gib true zurueck, wenn sie plausibel zu Szene 2 der Migros-Appenzell-Station gehoert:
+            Begruessung, kurze Zustimmung, Sport, Hunger, Abendessen, Protein, schnelle Mahlzeit,
+            Linsensalat, Tomaten, Mostbroeckli, Pantli, regionale Ergaenzung, Produktbestaetigung,
+            Mitarbeitenden-Beitrag, Verfuegbarkeit, Zutaten, Allergene, Preis/Naehrwert als
+            Hinweis zur Mitarbeitenden oder zum Etikett, oder eine kurze Korrektur innerhalb
+            dieser Menuplanner-Szene.
+
+            Gib false zurueck, wenn die Aeusserung offensichtlich ausserhalb dieser Szene liegt:
+            andere Migros-Szenen, Kasse, Kehrichtsaecke, Peterli-Reflexion, Wetterplauderei,
+            allgemeine Robotik-/PROMETHEUS-Fragen, Technikfragen, Wegauskunft, andere
+            Einkaufswuensche, privater Smalltalk, Hintergrundrede oder wahrscheinlich
+            falsch erkannte Sprache.
+
+            Gib nur true oder false zurueck.
+            """;
+
     static final String PROMPT_OUTCOME_EXTRACTION = """
             Extrahiere das Ergebnis der gerade beendeten Migros-Appenzell-Szene 2.
             Gib nur gueltiges JSON zurueck, ohne Markdown oder Erklaerung.
@@ -118,7 +136,8 @@ public class AppenzellScene2MenuPlanner implements AgentDefinition {
                         PROMPT_STATE_STARTER,
                         PROMPT_TO_FINAL,
                         PROMPT_OUTCOME_EXTRACTION,
-                        PROMPT_FINAL),
+                        PROMPT_FINAL,
+                        PROMPT_RELEVANCE),
                 "GIGI Migros - Appenzell Scene 2 Menu Planner",
                 "German Migros Appenzell scripted scene 2 agent for in-store menu-planning film takes.",
                 "GIGI Migros Appenzell scene 2 menu planner",

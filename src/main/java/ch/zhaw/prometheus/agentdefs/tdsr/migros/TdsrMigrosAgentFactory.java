@@ -3,6 +3,7 @@ package ch.zhaw.prometheus.agentdefs.tdsr.migros;
 import java.util.List;
 
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.Decision;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.OuterState;
 import ch.zhaw.prometheus.model.State;
@@ -14,6 +15,7 @@ import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
+import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 
 final class TdsrMigrosAgentFactory {
@@ -27,7 +29,11 @@ final class TdsrMigrosAgentFactory {
     private TdsrMigrosAgentFactory() {
     }
 
-    record TaskPrompts(String state, String starter, String toFinal, String outcomeExtraction, String finalPrompt) {
+    record TaskPrompts(String state, String starter, String toFinal, String outcomeExtraction, String finalPrompt,
+            String relevance) {
+        TaskPrompts(String state, String starter, String toFinal, String outcomeExtraction, String finalPrompt) {
+            this(state, starter, toFinal, outcomeExtraction, finalPrompt, null);
+        }
     }
 
     static Agent singleStateGeneralAgent(TaskPrompts prompts, String agentName, String agentDescription,
@@ -74,11 +80,11 @@ final class TdsrMigrosAgentFactory {
 
         State interactionState = new State(
                 stateName,
-                migrosGestureOnlyPromptPolicy(prompts.state(), prompts.starter()),
+                migrosSceneScopedPromptPolicy(prompts.state(), prompts.starter(), prompts.relevance()),
                 List.of());
 
-        interactionState.addTransition(finalTransition(prompts.toFinal(), prompts.outcomeExtraction(), storage,
-                sessionFinal));
+        interactionState.addTransition(sceneFinalTransition(prompts.relevance(), prompts.toFinal(),
+                prompts.outcomeExtraction(), storage, sessionFinal));
         for (String eventType : reactionEventTypes == null ? List.<String>of() : reactionEventTypes) {
             interactionState.addTransition(new Transition(new LatestEventTypeDecision(eventType), interactionState));
         }
@@ -106,6 +112,14 @@ final class TdsrMigrosAgentFactory {
         PromptPolicy policy = new PromptPolicy(prompt, starter, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
         policy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
         return policy;
+    }
+
+    static Policy migrosSceneScopedPromptPolicy(String prompt, String starter, String relevancePrompt) {
+        PromptPolicy policy = migrosGestureOnlyPromptPolicy(prompt, starter);
+        if (relevancePrompt == null || relevancePrompt.isBlank()) {
+            return policy;
+        }
+        return new SceneScopedPromptPolicy(policy, relevancePrompt);
     }
 
     static AgentInteractionProfile migrosSceneProfile(List<String> sceneTags) {
@@ -152,10 +166,34 @@ final class TdsrMigrosAgentFactory {
 
     private static Transition finalTransition(String toFinalPrompt, String outcomeExtractionPrompt, Storage storage,
             State finalState) {
-        return new Transition(
+        return finalTransition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
                         new StaticDecision(toFinalPrompt)),
+                outcomeExtractionPrompt,
+                storage,
+                finalState);
+    }
+
+    private static Transition sceneFinalTransition(String relevancePrompt, String toFinalPrompt,
+            String outcomeExtractionPrompt, Storage storage, State finalState) {
+        if (relevancePrompt == null || relevancePrompt.isBlank()) {
+            return finalTransition(toFinalPrompt, outcomeExtractionPrompt, storage, finalState);
+        }
+        return finalTransition(
+                List.of(
+                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new SceneScopedRelevanceDecision(relevancePrompt),
+                        new StaticDecision(toFinalPrompt)),
+                outcomeExtractionPrompt,
+                storage,
+                finalState);
+    }
+
+    private static Transition finalTransition(List<Decision> decisions, String outcomeExtractionPrompt,
+            Storage storage, State finalState) {
+        return new Transition(
+                decisions,
                 List.of(
                         new StaticExtractionAction(outcomeExtractionPrompt, storage, "outcome")),
                 finalState);
