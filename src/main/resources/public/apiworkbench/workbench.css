@@ -372,6 +372,10 @@ body {
   font-size: 0.86rem;
 }
 
+.event-template-panel {
+  margin-bottom: 0.45rem;
+}
+
 .snippet-output,
 .response-output {
   border: 1px solid var(--workbench-line);

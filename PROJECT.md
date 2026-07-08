@@ -125,6 +125,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 119: Remove replaceable legacy static clients
 - [x] Milestone 120: API Workbench shell and endpoint catalog
 - [x] Milestone 121: API Workbench live scoped lifecycle execution
+- [x] Milestone 122: API Workbench SSE and observation publishing
 
 ## Milestone 1
 ### Date
@@ -5452,3 +5453,61 @@ Make the API Workbench execute non-streaming scoped lifecycle HTTP requests and 
 ### Next steps
 1. Add live behaviour and monitor SSE subscriptions.
 2. Add observation-template helpers for publishing compatible perception and interaction events.
+
+## Milestone 122
+### Date
+2026-07-08
+
+### Goal
+Complete the first practical API Workbench loop for client developers by adding live SSE subscriptions and profile-aware observation publishing helpers.
+
+### What changed
+- Added live `EventSource` connection handling for SSE endpoint templates.
+- The primary request command now switches between:
+  - `Send` for non-streaming HTTP endpoints
+  - `Connect` / `Disconnect` for SSE endpoints
+- Added SSE event capture for `open`, `message`, `behaviour`, `snapshot`, `heartbeat`, `error`, connect, and disconnect events.
+- Added a bounded SSE log in the response pane with endpoint id, event type, timestamp, and parsed JSON/text payload.
+- Added automatic stream cleanup on page unload.
+- Added observation body templates for:
+  - `obs.user_utterance`
+  - `obs.emotion.face`
+  - `obs.hand.sign`
+  - `obs.social.context`
+  - `obs.weather.current`
+- Added an event-template selector for acknowledge endpoints.
+- Made event templates profile-aware after an agent info response loads `AgentInteractionProfile`; supported observation types are preferred when templates are shown.
+- Kept the scoped lifecycle, response extraction, and snippet generation behaviour from Milestone 121.
+- Extended static contract coverage for EventSource and observation-template wiring.
+- Extended Playwright coverage for:
+  - mocked SSE stream event capture
+  - profile-compatible hand-sign observation template selection
+  - acknowledge request body validation for the generated observation event
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open the API Workbench:
+   - `http://localhost:8080/apiworkbench/index.html`
+3. Use the scoped lifecycle to create/select an agent, connect a behaviour or monitor stream, then publish an observation through the acknowledge endpoint.
+
+### How to test
+- Static/client checks:
+  - `git diff --check`
+  - `node --check src/main/resources/public/apiworkbench/script.js`
+  - `node --check tests/playwright/apiworkbench.spec.mjs`
+- Focused Java contract checks:
+  - `.\mvnw.cmd -q "-Dtest=ApiWorkbenchStaticResourceContractTest,LegacyStaticClientRemovalContractTest" test`
+- Playwright smoke:
+  - `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The workbench still uses a static endpoint and observation-template catalog. This keeps the milestone self-contained and avoids backend metadata changes.
+- SSE subscriptions are browser-local and close on page unload. Multiple stream endpoints can be connected from the same page, but the UI is intentionally compact rather than a full stream-management console.
+- Observation templates are starter payloads for developers. They demonstrate correct `EventRequest` structure and JSON-string payload handling, not every possible observation shape.
+- README updates remain deferred until the final screenshot/documentation pass for the new UI set.
+
+### Next steps
+1. Add optional request history and clearer copied-code/export affordances if developers need repeatable test sessions.
+2. Add `/apiworkbench` redirect only if the shorter URL is worth a backend route change.
+3. Update README with the API Workbench once screenshots are ready.

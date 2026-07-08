@@ -290,10 +290,90 @@ const LIFECYCLE_STEPS = [
   },
 ];
 
+const OBSERVATION_TEMPLATES = [
+  {
+    type: "obs.user_utterance",
+    label: "User utterance",
+    body: {
+      type: "obs.user_utterance",
+      actor: "user",
+      kind: "message",
+      payload: "Hello from the API Workbench.",
+    },
+  },
+  {
+    type: "obs.emotion.face",
+    label: "Face emotion",
+    body: {
+      type: "obs.emotion.face",
+      actor: "vision",
+      kind: "perception",
+      payload: JSON.stringify({
+        source: "apiworkbench.manual",
+        emotion: "happy",
+        confidence: 0.91,
+        valence: 0.82,
+        arousal: 0.42,
+        facePresent: true,
+      }),
+    },
+  },
+  {
+    type: "obs.hand.sign",
+    label: "Hand sign",
+    body: {
+      type: "obs.hand.sign",
+      actor: "vision",
+      kind: "perception",
+      payload: JSON.stringify({
+        source: "apiworkbench.manual",
+        sign: "rock",
+        confidence: 1,
+      }),
+    },
+  },
+  {
+    type: "obs.social.context",
+    label: "Social context",
+    body: {
+      type: "obs.social.context",
+      actor: "vision",
+      kind: "perception",
+      payload: JSON.stringify({
+        source: "apiworkbench.manual",
+        humanCount: 2,
+        groupCount: 1,
+        singletonCount: 0,
+        largestGroupSize: 2,
+      }),
+    },
+  },
+  {
+    type: "obs.weather.current",
+    label: "Current weather",
+    body: {
+      type: "obs.weather.current",
+      actor: "weather",
+      kind: "context",
+      payload: JSON.stringify({
+        source: "apiworkbench.manual",
+        location_label: "Zurich, Switzerland",
+        condition: "cloudy",
+        temperature_c: 21.4,
+        wind: "calm",
+      }),
+    },
+  },
+];
+
 const state = {
   selectedEndpointId: "demo-session-open",
   selectedSnippet: "fetch",
   variables: { ...DEFAULT_VARIABLES },
+  streams: {},
+  sseEvents: [],
+  agentProfile: null,
+  supportedObservations: [],
 };
 
 const elements = {};
@@ -327,6 +407,8 @@ function collectElements() {
   elements.pathVariables = document.getElementById("path_variables");
   elements.requestHeaders = document.getElementById("request_headers");
   elements.requestQuery = document.getElementById("request_query");
+  elements.eventTemplatePanel = document.getElementById("event_template_panel");
+  elements.eventTemplateSelect = document.getElementById("event_template_select");
   elements.bodyEditor = document.getElementById("body_editor");
   elements.snippetOutput = document.getElementById("snippet_output");
   elements.httpResponsePreview = document.getElementById("http_response_preview");
@@ -363,6 +445,7 @@ function wireEvents() {
   });
   elements.endpointSearch.addEventListener("input", renderEndpointList);
   elements.groupFilter.addEventListener("change", renderEndpointList);
+  elements.eventTemplateSelect.addEventListener("change", applySelectedObservationTemplate);
   elements.bodyEditor.addEventListener("input", renderSnippet);
   elements.sendRequestButton.addEventListener("click", sendSelectedRequest);
   elements.copyUrlButton.addEventListener("click", () => copyText(buildResolvedUrl(selectedEndpoint()), "URL"));
@@ -382,6 +465,7 @@ function wireEvents() {
     copyText(elements.snippetOutput.textContent, "SSE");
   });
   elements.themeToggle.addEventListener("click", toggleTheme);
+  window.addEventListener("beforeunload", closeAllStreams);
 }
 
 function renderGroupFilter() {
@@ -468,10 +552,13 @@ function renderSelectedEndpoint() {
   elements.bodyEditor.value = bodyText(endpoint);
   elements.httpResponsePreview.textContent = httpPlaceholder(endpoint);
   elements.sseResponsePreview.textContent = ssePlaceholder(endpoint);
-  elements.profilePreview.textContent = "No profile loaded.";
+  elements.profilePreview.textContent = state.agentProfile
+    ? JSON.stringify(state.agentProfile, null, 2)
+    : "No profile loaded.";
   elements.copySseButton.disabled = !endpoint.sse;
-  elements.sendRequestButton.disabled = endpoint.sse;
-  elements.requestStatus.textContent = endpoint.sse ? "Stream template" : "Idle";
+  elements.requestStatus.textContent = streamStatus(endpoint);
+  renderEventTemplateOptions(endpoint);
+  updateSendButton(endpoint, false);
   renderSnippet();
   markActiveEndpoint();
 }
@@ -492,7 +579,11 @@ function renderSnippet() {
 
 async function sendSelectedRequest() {
   const endpoint = selectedEndpoint();
-  if (!endpoint || endpoint.sse) {
+  if (!endpoint) {
+    return;
+  }
+  if (endpoint.sse) {
+    toggleSseStream(endpoint);
     return;
   }
 
@@ -607,13 +698,159 @@ function renderRequestError(message) {
 }
 
 function setRequestBusy(busy) {
-  elements.sendRequestButton.disabled = busy || selectedEndpoint().sse;
-  elements.sendRequestButton.innerHTML = busy
-    ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Send`
-    : `<i class="bi bi-send-fill" aria-hidden="true"></i> Send`;
+  const endpoint = selectedEndpoint();
+  elements.sendRequestButton.disabled = busy;
+  updateSendButton(endpoint, busy);
   if (busy) {
     elements.requestStatus.textContent = "Sending";
   }
+}
+
+function updateSendButton(endpoint, busy) {
+  if (busy) {
+    elements.sendRequestButton.innerHTML = `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Send`;
+    return;
+  }
+  if (endpoint.sse) {
+    const connected = Boolean(state.streams[endpoint.id]);
+    elements.sendRequestButton.innerHTML = connected
+      ? `<i class="bi bi-x-circle" aria-hidden="true"></i> Disconnect`
+      : `<i class="bi bi-broadcast" aria-hidden="true"></i> Connect`;
+    return;
+  }
+  elements.sendRequestButton.innerHTML = `<i class="bi bi-send-fill" aria-hidden="true"></i> Send`;
+}
+
+function streamStatus(endpoint) {
+  if (!endpoint.sse) {
+    return "Idle";
+  }
+  return state.streams[endpoint.id] ? "Connected" : "Stream ready";
+}
+
+function toggleSseStream(endpoint) {
+  if (state.streams[endpoint.id]) {
+    disconnectSseStream(endpoint);
+    return;
+  }
+  connectSseStream(endpoint);
+}
+
+function connectSseStream(endpoint) {
+  const url = buildResolvedUrl(endpoint);
+  const unresolved = unresolvedPlaceholders(url);
+  if (unresolved.length) {
+    renderRequestError(`Missing variable: ${unresolved.join(", ")}`);
+    return;
+  }
+  const source = new EventSource(url);
+  state.streams[endpoint.id] = source;
+  appendSseEvent(endpoint, "connect", { url });
+  elements.requestStatus.textContent = "Connecting";
+  updateSendButton(endpoint, false);
+
+  source.addEventListener("open", () => {
+    elements.requestStatus.textContent = "Connected";
+    appendSseEvent(endpoint, "open", { url });
+  });
+  ["message", "behaviour", "snapshot", "heartbeat"].forEach((eventName) => {
+    source.addEventListener(eventName, (event) => {
+      appendSseEvent(endpoint, eventName, parseSseData(event.data));
+    });
+  });
+  source.onerror = () => {
+    appendSseEvent(endpoint, "error", { readyState: source.readyState });
+    if (source.readyState === EventSource.CLOSED) {
+      delete state.streams[endpoint.id];
+      elements.requestStatus.textContent = "Stream closed";
+      updateSendButton(endpoint, false);
+    } else {
+      elements.requestStatus.textContent = "Reconnecting";
+    }
+  };
+}
+
+function disconnectSseStream(endpoint) {
+  const source = state.streams[endpoint.id];
+  if (source) {
+    source.close();
+    delete state.streams[endpoint.id];
+  }
+  appendSseEvent(endpoint, "disconnect", { url: buildResolvedUrl(endpoint) });
+  elements.requestStatus.textContent = "Stream ready";
+  updateSendButton(endpoint, false);
+}
+
+function closeAllStreams() {
+  Object.values(state.streams).forEach((source) => source.close());
+  state.streams = {};
+}
+
+function appendSseEvent(endpoint, type, data) {
+  state.sseEvents.unshift({
+    at: new Date().toISOString(),
+    endpoint: endpoint.id,
+    type,
+    data,
+  });
+  state.sseEvents = state.sseEvents.slice(0, 40);
+  elements.sseResponsePreview.textContent = JSON.stringify(state.sseEvents, null, 2);
+}
+
+function parseSseData(data) {
+  if (data == null || data === "") {
+    return "";
+  }
+  try {
+    return JSON.parse(data);
+  } catch (error) {
+    return data;
+  }
+}
+
+function renderEventTemplateOptions(endpoint) {
+  const isAcknowledge = endpoint.id.endsWith("acknowledge");
+  elements.eventTemplatePanel.hidden = !isAcknowledge;
+  if (!isAcknowledge) {
+    elements.eventTemplateSelect.innerHTML = "";
+    return;
+  }
+  const templates = compatibleObservationTemplates();
+  elements.eventTemplateSelect.innerHTML = templates
+    .map((template) => `<option value="${escapeHtml(template.type)}">${escapeHtml(template.label)}</option>`)
+    .join("");
+  const currentType = currentBodyEventType();
+  const selectedType = templates.some((template) => template.type === currentType)
+    ? currentType
+    : templates[0]?.type;
+  if (selectedType) {
+    elements.eventTemplateSelect.value = selectedType;
+  }
+}
+
+function compatibleObservationTemplates() {
+  if (!state.supportedObservations.length) {
+    return OBSERVATION_TEMPLATES;
+  }
+  const filtered = OBSERVATION_TEMPLATES.filter((template) => state.supportedObservations.includes(template.type));
+  return filtered.length ? filtered : OBSERVATION_TEMPLATES;
+}
+
+function currentBodyEventType() {
+  try {
+    return JSON.parse(elements.bodyEditor.value).type || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function applySelectedObservationTemplate() {
+  const template = OBSERVATION_TEMPLATES.find((candidate) => candidate.type === elements.eventTemplateSelect.value);
+  if (!template) {
+    return;
+  }
+  elements.bodyEditor.value = JSON.stringify(template.body, null, 2);
+  renderSnippet();
 }
 
 function handleSuccessfulResponse(endpoint, parsed) {
@@ -674,14 +911,19 @@ function applyAgentInfo(value) {
 
 function renderProfile(agentInfo) {
   const profile = agentInfo.interactionProfile || {};
-  elements.profilePreview.textContent = JSON.stringify({
+  state.supportedObservations = Array.isArray(profile.supportedObservations)
+    ? profile.supportedObservations
+    : [];
+  state.agentProfile = {
     agentId: agentInfo.id || agentInfo.ID || variableValue("agentId"),
     name: agentInfo.name || "",
     languageCode: agentInfo.languageCode || "",
     supportedObservations: profile.supportedObservations || [],
     supportedBehaviourModalities: profile.supportedBehaviourModalities || [],
     profileTags: profile.profileTags || [],
-  }, null, 2);
+  };
+  elements.profilePreview.textContent = JSON.stringify(state.agentProfile, null, 2);
+  renderEventTemplateOptions(selectedEndpoint());
 }
 
 function setVariable(key, value) {

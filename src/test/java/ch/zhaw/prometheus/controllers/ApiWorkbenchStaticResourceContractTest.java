@@ -27,6 +27,8 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"request-body-editor\""));
         assertTrue(index.contains("data-testid=\"send-request\""));
         assertTrue(index.contains("data-testid=\"request-status\""));
+        assertTrue(index.contains("data-testid=\"event-template-panel\""));
+        assertTrue(index.contains("data-testid=\"event-template-select\""));
         assertTrue(index.contains("data-testid=\"snippet-output\""));
         assertTrue(index.contains("data-testid=\"http-response-preview\""));
         assertTrue(index.contains("data-testid=\"sse-response-preview\""));
@@ -36,6 +38,7 @@ class ApiWorkbenchStaticResourceContractTest {
 
         assertTrue(script.contains("const ENDPOINTS = ["));
         assertTrue(script.contains("const LIFECYCLE_STEPS = ["));
+        assertTrue(script.contains("const OBSERVATION_TEMPLATES = ["));
         assertTrue(script.contains("function buildResolvedUrl(endpoint)"));
         assertTrue(script.contains("function fetchSnippet(endpoint)"));
         assertTrue(script.contains("function curlSnippet(endpoint)"));
@@ -46,6 +49,13 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(script.contains("function handleSuccessfulResponse(endpoint, parsed)"));
         assertTrue(script.contains("function renderProfile(agentInfo)"));
         assertTrue(script.contains("function unresolvedPlaceholders(value)"));
+        assertTrue(script.contains("function connectSseStream(endpoint)"));
+        assertTrue(script.contains("new EventSource(url)"));
+        assertTrue(script.contains("function disconnectSseStream(endpoint)"));
+        assertTrue(script.contains("function appendSseEvent(endpoint, type, data)"));
+        assertTrue(script.contains("function renderEventTemplateOptions(endpoint)"));
+        assertTrue(script.contains("function compatibleObservationTemplates()"));
+        assertTrue(script.contains("function applySelectedObservationTemplate()"));
         assertTrue(script.contains("function renderEndpointList()"));
         assertTrue(script.contains("function renderLifecycleSteps()"));
         assertTrue(script.contains("X-Prometheus-Access-Code"));
@@ -78,6 +88,10 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(script.contains("/{agentId}/acknowledge"));
         assertTrue(script.contains("/{agentId}/behaviour/stream"));
         assertTrue(script.contains("obs.user_utterance"));
+        assertTrue(script.contains("obs.emotion.face"));
+        assertTrue(script.contains("obs.hand.sign"));
+        assertTrue(script.contains("obs.social.context"));
+        assertTrue(script.contains("obs.weather.current"));
         assertTrue(script.contains("resp.behaviour_plan") || script.contains("behaviour-plan"));
 
         assertFalse(script.contains("/visual/facial"));

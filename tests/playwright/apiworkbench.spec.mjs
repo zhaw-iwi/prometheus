@@ -88,6 +88,17 @@ test("API Workbench executes scoped lifecycle requests and extracts session valu
       body: JSON.stringify(agentInfo()),
     });
   });
+  await page.route(`**/demo/agents/${AGENT_ID}/acknowledge?*`, async (route) => {
+    expect(route.request().headers()["x-prometheus-access-code"]).toBe(ACCESS_CODE);
+    const body = route.request().postDataJSON();
+    expect(body.type).toBe("obs.hand.sign");
+    expect(JSON.parse(body.payload).sign).toBe("rock");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ responseEvent: null, active: true }),
+    });
+  });
 
   await page.goto("/apiworkbench/index.html");
   await page.getByTestId("access-code-input").fill(ACCESS_CODE);
@@ -107,6 +118,14 @@ test("API Workbench executes scoped lifecycle requests and extracts session valu
   await page.getByTestId("send-request").click();
   await expect(page.getByTestId("request-status")).toHaveText("200 OK");
   await expect(page.getByTestId("profile-preview")).toContainText("motion.handSign");
+
+  await page.getByTestId("endpoint-search").fill("acknowledge");
+  await page.getByTestId("endpoint-demo-agent-acknowledge").click();
+  await expect(page.getByTestId("event-template-panel")).toBeVisible();
+  await page.getByTestId("event-template-select").selectOption("obs.hand.sign");
+  await expect(page.getByTestId("request-body-editor")).toHaveValue(/obs\.hand\.sign/);
+  await page.getByTestId("send-request").click();
+  await expect(page.getByTestId("request-status")).toHaveText("200 OK");
 });
 
 test("API Workbench reports missing variables before sending", async ({ page }) => {
@@ -118,6 +137,30 @@ test("API Workbench reports missing variables before sending", async ({ page }) 
 
   await expect(page.getByTestId("request-status")).toHaveText("Error");
   await expect(page.getByTestId("http-response-preview")).toContainText("Missing variable");
+});
+
+test("API Workbench connects to SSE stream templates", async ({ page }) => {
+  await page.route(`**/demo/agents/${AGENT_ID}/behaviour/stream?*`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+      },
+      body: `event: behaviour\ndata: {"speech":"stream hello"}\n\n`,
+    });
+  });
+
+  await page.goto("/apiworkbench/index.html");
+  await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("agent-id-input").fill(AGENT_ID);
+  await page.getByTestId("lifecycle-step-demo-behaviour-stream").click();
+  await page.getByTestId("send-request").click();
+
+  await expect(page.getByTestId("sse-response-preview")).toContainText("behaviour");
+  await expect(page.getByTestId("sse-response-preview")).toContainText("stream hello");
+  await page.getByTestId("send-request").click();
+  await expect(page.getByTestId("request-status")).toHaveText("Stream ready");
 });
 
 function agentInfo() {
