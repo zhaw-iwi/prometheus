@@ -155,8 +155,10 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Mainline Milestone 122: API Workbench SSE and observation publishing
 - [x] Mainline Milestone 123: README bundled client and API Workbench documentation
 - [x] Mainline Milestone 124: README multilateral note and API Workbench response width
+- [x] Mainline Milestone 125: API Workbench short URL redirect
 - [x] Milestone 129: Merge main detached-window and API Workbench work into agents branch
 - [x] Milestone 130: Merge main README and API Workbench layout polish into agents branch
+- [x] Milestone 131: Merge main API Workbench short URL redirect into agents branch
 
 ## Milestone 1
 ### Date
@@ -6193,3 +6195,27 @@ Merge the latest main-branch README client-surface polish and API Workbench resp
 
 ### Next steps
 1. Review the pushed `agents` merge result.
+
+## Milestone 131
+### Date
+2026-07-08
+
+### Goal
+Merge the main-branch API Workbench short URL redirect into the `agents` branch for deployed agents-branch builds.
+
+### What changed
+- Merged main commit `2252cab` into `agents`.
+- Brought in `/apiworkbench` and `/apiworkbench/` redirects to `/apiworkbench/index.html`.
+- Brought in query-preserving MVC redirect coverage for both short API Workbench routes.
+- Brought in README URL updates that advertise `http://localhost:8080/apiworkbench/`.
+- Resolved `PROJECT.md` by keeping the agents milestone trail, adding mainline milestone 125 to the checklist, and recording this merge as milestone 131.
+
+### How to test
+- `git diff --check`
+- `.\mvnw.cmd -q "-Dtest=StaticRedirectControllerWebMvcTest,ApiWorkbenchStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The short route is an entry-point convenience; the static implementation still lives under `/apiworkbench/index.html`.
+
+### Next steps
+1. Redeploy the agents branch so deployed `/apiworkbench` URLs route correctly.

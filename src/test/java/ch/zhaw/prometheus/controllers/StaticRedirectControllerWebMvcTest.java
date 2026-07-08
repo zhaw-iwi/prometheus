@@ -59,4 +59,15 @@ class StaticRedirectControllerWebMvcTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/valerian-admin/index.html?view=root"));
     }
+
+    @Test
+    void redirectsApiWorkbenchToStaticIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/apiworkbench?view=streams"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/apiworkbench/index.html?view=streams"));
+
+        this.mockMvc.perform(get("/apiworkbench/?view=streams"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/apiworkbench/index.html?view=streams"));
+    }
 }

@@ -111,7 +111,7 @@ This core agent demonstrates a hand-sign game loop.
 
 ### API Workbench
 
-URL: `http://localhost:8080/apiworkbench/index.html`
+URL: `http://localhost:8080/apiworkbench/`
 
 ![PROMETHEUS API Workbench](.doc/figures/Valerian/api-workbench.png)
 
@@ -213,7 +213,7 @@ Open the main surfaces:
 
 - Valerian Cockpit: `http://localhost:8080/valerian/`
 - Valerian Access Management: `http://localhost:8080/valerian-admin/`
-- API Workbench: `http://localhost:8080/apiworkbench/index.html`
+- API Workbench: `http://localhost:8080/apiworkbench/`
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
