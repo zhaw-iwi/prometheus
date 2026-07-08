@@ -117,7 +117,20 @@ const detachedView = {
   panel: null,
 };
 
+const controlOwnership = {
+  windowId: createWindowId(),
+  channel: null,
+  owned: new Set(),
+  heartbeatTimers: new Map(),
+  staleSweepTimer: null,
+};
+
 const VALERIAN_COLUMN_KEYS = ["sensing", "interaction", "behaviour"];
+const CONTROL_OWNERSHIP_CHANNEL = "prometheus.valerian.controlOwnership";
+const CONTROL_OWNER_STORAGE_PREFIX = "prometheus.valerian.owner.";
+const CONTROL_OWNER_TTL_MS = 5000;
+const CONTROL_OWNER_HEARTBEAT_MS = 1000;
+const CONTROL_RESOURCES = ["camera", "microphone"];
 
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
@@ -251,6 +264,7 @@ async function init() {
   camera.ctx = camera.canvas.getContext("2d");
   applyStoredTheme();
   configureValerianView();
+  initControlOwnership();
   wireUi();
   loadStoredSpeechDeviceSelection();
   loadStoredSpeechSettings();
@@ -537,6 +551,204 @@ function detachedColumnUrl(columnKey) {
   url.searchParams.set("panel", columnKey);
   url.searchParams.set("agentId", state.agentId);
   return url.toString();
+}
+
+function createWindowId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return window.crypto.randomUUID();
+  }
+  return `window-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function initControlOwnership() {
+  if ("BroadcastChannel" in window) {
+    controlOwnership.channel = new BroadcastChannel(CONTROL_OWNERSHIP_CHANNEL);
+    controlOwnership.channel.addEventListener("message", handleControlOwnershipMessage);
+  }
+  window.addEventListener("storage", handleControlOwnershipStorageEvent);
+  controlOwnership.staleSweepTimer = setInterval(() => {
+    sweepStaleControlOwners();
+    refreshControlOwnershipUi();
+  }, CONTROL_OWNER_HEARTBEAT_MS);
+  sweepStaleControlOwners();
+  refreshControlOwnershipUi();
+}
+
+function handleControlOwnershipMessage(event) {
+  const data = event && event.data;
+  if (!data || data.ownerId === controlOwnership.windowId || !CONTROL_RESOURCES.includes(data.resource)) {
+    return;
+  }
+  refreshControlOwnershipUi();
+}
+
+function handleControlOwnershipStorageEvent(event) {
+  if (!event || !event.key || !event.key.startsWith(CONTROL_OWNER_STORAGE_PREFIX)) {
+    return;
+  }
+  refreshControlOwnershipUi();
+}
+
+function claimControlOwnership(resource) {
+  if (!CONTROL_RESOURCES.includes(resource)) {
+    return false;
+  }
+  const existing = readControlOwner(resource);
+  if (existing && existing.ownerId !== controlOwnership.windowId) {
+    refreshControlOwnershipUi();
+    return false;
+  }
+  writeControlOwner(resource);
+  controlOwnership.owned.add(resource);
+  startControlOwnershipHeartbeat(resource);
+  broadcastControlOwnership("claim", resource);
+  refreshControlOwnershipUi();
+  return true;
+}
+
+function releaseControlOwnership(resource) {
+  if (!CONTROL_RESOURCES.includes(resource)) {
+    return;
+  }
+  stopControlOwnershipHeartbeat(resource);
+  controlOwnership.owned.delete(resource);
+  const existing = readControlOwner(resource, { removeStale: false });
+  if (existing && existing.ownerId === controlOwnership.windowId) {
+    removeControlOwner(resource);
+  }
+  broadcastControlOwnership("release", resource);
+  refreshControlOwnershipUi();
+}
+
+function releaseAllControlOwnership() {
+  CONTROL_RESOURCES.forEach((resource) => {
+    if (controlOwnership.owned.has(resource)) {
+      releaseControlOwnership(resource);
+    }
+  });
+  if (controlOwnership.staleSweepTimer) {
+    clearInterval(controlOwnership.staleSweepTimer);
+    controlOwnership.staleSweepTimer = null;
+  }
+  if (controlOwnership.channel) {
+    controlOwnership.channel.close();
+    controlOwnership.channel = null;
+  }
+}
+
+function controlOwnedByOther(resource) {
+  const owner = readControlOwner(resource);
+  return !!(owner && owner.ownerId !== controlOwnership.windowId);
+}
+
+function readControlOwner(resource, options = {}) {
+  if (!CONTROL_RESOURCES.includes(resource)) {
+    return null;
+  }
+  const removeStale = options.removeStale !== false;
+  let raw = null;
+  try {
+    raw = localStorage.getItem(controlOwnerStorageKey(resource));
+  } catch (error) {
+    return null;
+  }
+  if (!raw) {
+    return null;
+  }
+  let owner = null;
+  try {
+    owner = JSON.parse(raw);
+  } catch (error) {
+    if (removeStale) {
+      removeControlOwner(resource);
+    }
+    return null;
+  }
+  if (!owner || !owner.ownerId || !Number.isFinite(Number(owner.updatedAt))) {
+    if (removeStale) {
+      removeControlOwner(resource);
+    }
+    return null;
+  }
+  if (removeStale && Date.now() - Number(owner.updatedAt) > CONTROL_OWNER_TTL_MS) {
+    removeControlOwner(resource);
+    broadcastControlOwnership("release", resource);
+    return null;
+  }
+  return owner;
+}
+
+function writeControlOwner(resource) {
+  const owner = {
+    ownerId: controlOwnership.windowId,
+    resource,
+    panel: detachedView.panel || "cockpit",
+    agentId: state.agentId || "",
+    updatedAt: Date.now(),
+  };
+  try {
+    localStorage.setItem(controlOwnerStorageKey(resource), JSON.stringify(owner));
+  } catch (error) {
+    // If storage is unavailable, this window can still operate locally.
+  }
+  return owner;
+}
+
+function removeControlOwner(resource) {
+  try {
+    localStorage.removeItem(controlOwnerStorageKey(resource));
+  } catch (error) {
+    // Ignore storage failures during cleanup.
+  }
+}
+
+function controlOwnerStorageKey(resource) {
+  return `${CONTROL_OWNER_STORAGE_PREFIX}${resource}`;
+}
+
+function startControlOwnershipHeartbeat(resource) {
+  if (controlOwnership.heartbeatTimers.has(resource)) {
+    return;
+  }
+  const timer = setInterval(() => {
+    if (!controlOwnership.owned.has(resource)) {
+      stopControlOwnershipHeartbeat(resource);
+      return;
+    }
+    writeControlOwner(resource);
+    broadcastControlOwnership("heartbeat", resource);
+  }, CONTROL_OWNER_HEARTBEAT_MS);
+  controlOwnership.heartbeatTimers.set(resource, timer);
+}
+
+function stopControlOwnershipHeartbeat(resource) {
+  const timer = controlOwnership.heartbeatTimers.get(resource);
+  if (!timer) {
+    return;
+  }
+  clearInterval(timer);
+  controlOwnership.heartbeatTimers.delete(resource);
+}
+
+function broadcastControlOwnership(type, resource) {
+  if (!controlOwnership.channel) {
+    return;
+  }
+  controlOwnership.channel.postMessage({
+    type,
+    resource,
+    ownerId: controlOwnership.windowId,
+    updatedAt: Date.now(),
+  });
+}
+
+function sweepStaleControlOwners() {
+  CONTROL_RESOURCES.forEach((resource) => readControlOwner(resource));
+}
+
+function refreshControlOwnershipUi() {
+  updateCameraOwnershipControls();
+  setRealtimeControlsLocked(state.realtimeListening);
 }
 
 function applyStoredTheme() {
@@ -1927,6 +2139,13 @@ async function startRealtime() {
   if (!state.agentId) {
     return;
   }
+  if (!claimControlOwnership("microphone")) {
+    setRealtimeGlobalStatus("Mic In Use", "idle");
+    setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
+    setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
+    appendLog("realtime", "start blocked; microphone is active in another Valerian window.");
+    return;
+  }
   realtime.activeMode = REALTIME_MODE_CONTINUOUS;
   setRealtimeState(true);
   resetRealtimeTranscriptGate();
@@ -1980,6 +2199,7 @@ async function stopRealtime() {
   resetRealtimeTranscriptGate();
   setRealtimeTransportStatus("Transport Idle", "idle", "");
   appendLog("realtime", "stopped.");
+  releaseControlOwnership("microphone");
 }
 
 async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
@@ -2486,6 +2706,11 @@ async function refreshAudioDevices(options = {}) {
     setRealtimeControlsLocked(state.realtimeListening);
     return;
   }
+  if (requestPermission && controlOwnedByOther("microphone")) {
+    setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
+    setRealtimeControlsLocked(state.realtimeListening);
+    return;
+  }
   let permissionStream = null;
   try {
     if (requestPermission) {
@@ -2637,6 +2862,11 @@ async function refreshCameraDevices(options = {}) {
     updateCameraDeviceControls();
     return;
   }
+  if (requestPermission && controlOwnedByOther("camera")) {
+    setCameraDeviceStatus("Camera is active in another Valerian window.", "error");
+    updateCameraDeviceControls();
+    return;
+  }
   let permissionStream = null;
   try {
     if (requestPermission && !camera.stream) {
@@ -2723,7 +2953,7 @@ function setCameraDeviceStatus(text, mode = "") {
 
 function updateCameraDeviceControls() {
   const supported = cameraSelectionSupported();
-  const enabled = !!state.agentId && supported;
+  const enabled = !!state.agentId && supported && !controlOwnedByOther("camera");
   const select = document.getElementById("camera_device_select");
   const refresh = document.getElementById("refresh_camera_devices");
   if (select) {
@@ -2731,6 +2961,47 @@ function updateCameraDeviceControls() {
   }
   if (refresh) {
     refresh.disabled = !enabled;
+  }
+}
+
+function updateCameraOwnershipControls() {
+  const remote = controlOwnedByOther("camera");
+  const enabled = !!state.agentId && !remote;
+  const detectorControlIds = [
+    "sensor_emit_enabled",
+    "sensor_emotion_enabled",
+    "sensor_social_enabled",
+    "sensor_hand_enabled",
+    "emit_interval_ms",
+    "face_confidence_threshold",
+    "group_distance_threshold",
+    "hand_confidence_threshold",
+  ];
+  detectorControlIds.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.disabled = !enabled;
+    }
+  });
+  const start = document.getElementById("start_camera");
+  if (start) {
+    start.disabled = !enabled || state.cameraRunning;
+  }
+  const stop = document.getElementById("stop_camera");
+  if (stop) {
+    stop.disabled = !enabled || !state.cameraRunning;
+  }
+  updateCameraDeviceControls();
+  const cameraStatus = document.getElementById("camera_status");
+  const cameraDeviceStatus = document.getElementById("camera_device_status");
+  if (remote && !state.cameraRunning) {
+    setCameraStatus("Camera In Use", "idle");
+    setCameraDeviceStatus("Camera is active in another Valerian window.", "error");
+  } else if (!remote && !state.cameraRunning && cameraStatus && cameraStatus.textContent === "Camera In Use") {
+    setCameraStatus("Camera Idle", "idle");
+    if (cameraDeviceStatus && cameraDeviceStatus.textContent.includes("another Valerian window")) {
+      setCameraDeviceStatus("Camera uses browser default.");
+    }
   }
 }
 
@@ -3169,9 +3440,16 @@ async function startCamera() {
   if (state.cameraRunning) {
     return;
   }
+  if (!claimControlOwnership("camera")) {
+    setCameraStatus("Camera In Use", "idle");
+    setCameraDeviceStatus("Camera is active in another Valerian window.", "error");
+    appendLog("camera", "start blocked; camera is active in another Valerian window.");
+    return;
+  }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setCameraStatus("Camera Error", "error");
     appendLog("camera", "camera API unavailable.");
+    releaseControlOwnership("camera");
     return;
   }
   await ensureEnabledModels();
@@ -3219,6 +3497,7 @@ function stopCamera(options = {}) {
   if (!options.silent) {
     appendLog("camera", "stopped.");
   }
+  releaseControlOwnership("camera");
 }
 
 async function ensureEnabledModels() {
@@ -5460,9 +5739,11 @@ function setControlsEnabled(enabled) {
     }
     el.disabled = !enabled;
   });
-  document.getElementById("start_camera").disabled = !enabled || state.cameraRunning;
-  document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning;
+  document.getElementById("start_camera").disabled = !enabled || state.cameraRunning || controlOwnedByOther("camera");
+  document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning || controlOwnedByOther("camera");
   updateCameraDeviceControls();
+  updateCameraOwnershipControls();
+  setRealtimeControlsLocked(state.realtimeListening);
   updateAgentTypeControls();
   updateAgentSelectionControls();
 }
@@ -5516,32 +5797,51 @@ function setRealtimeState(isListening, mode = realtime.activeMode || REALTIME_MO
 }
 
 function setRealtimeControlsLocked(locked) {
+  const remote = controlOwnedByOther("microphone");
+  const connected = !!state.agentId;
+  const controlsLocked = locked || remote || !connected;
   speechSessionSettingControls().forEach((element) => {
-    element.disabled = locked;
+    element.disabled = controlsLocked;
   });
   [
     "speech_input_device_select",
   ].forEach((id) => {
     const element = document.getElementById(id);
     if (element) {
-      element.disabled = locked;
+      element.disabled = controlsLocked;
     }
   });
   const bargeIn = document.getElementById("speechBargeInCancelToggle");
   if (bargeIn) {
-    bargeIn.disabled = false;
+    bargeIn.disabled = remote || !connected;
   }
   const echoGuard = document.getElementById("speechEchoGuardToggle");
   if (echoGuard) {
-    echoGuard.disabled = false;
+    echoGuard.disabled = remote || !connected;
   }
   const outputSelect = document.getElementById("speech_output_device_select");
   if (outputSelect) {
-    outputSelect.disabled = !speechAudioSelectionSupported() || !speechOutputSelectionSupported();
+    outputSelect.disabled = controlsLocked || !speechAudioSelectionSupported() || !speechOutputSelectionSupported();
   }
   const refreshButton = document.getElementById("refresh_audio_devices");
   if (refreshButton) {
-    refreshButton.disabled = !speechAudioSelectionSupported();
+    refreshButton.disabled = controlsLocked || !speechAudioSelectionSupported();
+  }
+  const toggle = document.getElementById("toggle_realtime");
+  if (toggle && !state.realtimeListening) {
+    toggle.disabled = remote || !connected;
+  }
+  const speechStatus = document.getElementById("speech_device_status");
+  if (remote && !state.realtimeListening) {
+    setRealtimeGlobalStatus("Mic In Use", "idle");
+    setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
+    setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
+  } else if (!remote && !state.realtimeListening && document.getElementById("realtime_status").textContent === "Mic In Use") {
+    setRealtimeGlobalStatus("Realtime Idle", "idle");
+    setRealtimeTransportStatus("Transport Idle", "idle", "");
+    if (speechStatus && speechStatus.textContent.includes("another Valerian window")) {
+      setSpeechDeviceStatus("Audio devices use browser defaults.");
+    }
   }
 }
 
@@ -5553,6 +5853,7 @@ function setCameraStatus(text, mode) {
 
 function cleanupAll() {
   state.isPageUnloading = true;
+  releaseAllControlOwnership();
   cleanupStreams();
   stopCamera({ silent: true });
   if (state.realtimeListening) {

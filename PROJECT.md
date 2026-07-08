@@ -121,6 +121,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 115: GitHub README current-state cleanup and client API guide
 - [x] Milestone 116: Codex context guide cleanup and branch publication
 - [x] Milestone 117: Valerian detached column window foundation
+- [x] Milestone 118: Valerian cross-window camera and microphone ownership
 
 ## Milestone 1
 ### Date
@@ -5239,3 +5240,43 @@ Add the first Valerian detached-window foundation so students can open Sensing, 
 
 ### Next steps
 1. Add cross-window ownership coordination for camera and microphone controls.
+
+## Milestone 118
+### Date
+2026-07-08
+
+### Goal
+Prevent conflicting camera and microphone use across Valerian cockpit and detached windows, and re-enable cockpit controls when the owning window closes.
+
+### What changed
+- Added browser-side cross-window ownership for camera and microphone resources using same-origin `BroadcastChannel` messages plus `localStorage` heartbeat records.
+- Camera start now claims camera ownership; stop, page close, and cleanup release it.
+- Realtime speech start now claims microphone ownership; stop, page close, and cleanup release it.
+- Cockpit and detached windows disable camera controls, detector toggles, and camera configuration while another Valerian window owns the camera.
+- Cockpit and detached windows disable realtime start and speech-session controls while another Valerian window owns the microphone.
+- Added visible `Camera In Use` and `Mic In Use` statuses while a resource is owned by another window.
+- Added a stale-owner TTL fallback so controls recover if a window closes without delivering a clean release event.
+- Extended static client contract coverage and Playwright multi-window coverage for claim, disable, close, and re-enable behaviour.
+- Left `README.md` unchanged for the later screenshot/documentation pass.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Connect an agent, open Sensing or Interaction in a separate window, start or own the camera/microphone there, and observe the corresponding cockpit controls deactivate until the detached window closes or releases the resource.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `npm run test:valerian:visual`
+
+### Known issues and decisions
+- Ownership is intentionally browser-local and same-origin. It coordinates Valerian windows in one browser profile, not different browsers or machines.
+- Ownership is global per resource, not per agent, because camera and microphone hardware cannot be safely shared across different agent windows either.
+- The TTL fallback recovers stale ownership after a short delay; normal window close releases immediately.
+
+### Next steps
+1. Compare detached Valerian windows against the old special-purpose clients and decide which legacy clients should redirect, be removed, or remain separate.

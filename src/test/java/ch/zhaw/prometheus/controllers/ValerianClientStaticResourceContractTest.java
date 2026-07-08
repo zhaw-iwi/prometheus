@@ -112,8 +112,13 @@ class ValerianClientStaticResourceContractTest {
 
         assertTrue(script.contains("const columnExpansion = {"));
         assertTrue(script.contains("const detachedView = {"));
+        assertTrue(script.contains("const controlOwnership = {"));
         assertTrue(script.contains("const VALERIAN_COLUMN_KEYS = [\"sensing\", \"interaction\", \"behaviour\"]"));
+        assertTrue(script.contains("CONTROL_OWNERSHIP_CHANNEL = \"prometheus.valerian.controlOwnership\""));
+        assertTrue(script.contains("CONTROL_OWNER_STORAGE_PREFIX = \"prometheus.valerian.owner.\""));
+        assertTrue(script.contains("CONTROL_RESOURCES = [\"camera\", \"microphone\"]"));
         assertTrue(script.contains("configureValerianView();"));
+        assertTrue(script.contains("initControlOwnership();"));
         assertTrue(script.contains("wireColumnExpansion();"));
         assertTrue(script.contains("wireColumnDetach();"));
         assertTrue(script.contains("function wireColumnExpansion()"));
@@ -146,6 +151,20 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("url.searchParams.set(\"mode\", \"detached\");"));
         assertTrue(script.contains("url.searchParams.set(\"panel\", columnKey);"));
         assertTrue(script.contains("url.searchParams.set(\"agentId\", state.agentId);"));
+        assertTrue(script.contains("function initControlOwnership()"));
+        assertTrue(script.contains("new BroadcastChannel(CONTROL_OWNERSHIP_CHANNEL);"));
+        assertTrue(script.contains("window.addEventListener(\"storage\", handleControlOwnershipStorageEvent);"));
+        assertTrue(script.contains("function claimControlOwnership(resource)"));
+        assertTrue(script.contains("function releaseControlOwnership(resource)"));
+        assertTrue(script.contains("function controlOwnedByOther(resource)"));
+        assertTrue(script.contains("function updateCameraOwnershipControls()"));
+        assertTrue(script.contains("claimControlOwnership(\"camera\")"));
+        assertTrue(script.contains("releaseControlOwnership(\"camera\")"));
+        assertTrue(script.contains("claimControlOwnership(\"microphone\")"));
+        assertTrue(script.contains("releaseControlOwnership(\"microphone\")"));
+        assertTrue(script.contains("releaseAllControlOwnership();"));
+        assertTrue(script.contains("Camera is active in another Valerian window."));
+        assertTrue(script.contains("Microphone is active in another Valerian window."));
     }
 
     @Test

@@ -192,6 +192,55 @@ test("Valerian cockpit opens connected columns in detached windows", async ({ pa
   });
 });
 
+test("Valerian camera and microphone controls follow detached window ownership", async ({ page, context }) => {
+  await installDetachedWindowApiMocks(context);
+
+  await page.goto(`/valerian/?agentId=${DETACHED_AGENT_ID}`);
+  await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+  await expect(page.getByTestId("agent-connection-state")).toContainText(DETACHED_AGENT_ID);
+
+  const sensingWindow = await openDetachedColumnWindow(page, context, {
+    key: "sensing",
+    title: "Sensing",
+    buttonTestId: "detach-sensing-column",
+  });
+  await sensingWindow.evaluate(() => {
+    if (typeof window.claimControlOwnership !== "function") {
+      throw new Error("claimControlOwnership is not available.");
+    }
+    window.claimControlOwnership("camera");
+  });
+  await expect(page.getByTestId("camera-status")).toHaveText("Camera In Use");
+  await expect(page.getByTestId("start-camera")).toBeDisabled();
+  await expect(page.getByTestId("stop-camera")).toBeDisabled();
+  await expect(page.getByTestId("sensor-emotion-enabled")).toBeDisabled();
+  await sensingWindow.close();
+  await expect(page.getByTestId("camera-status")).toHaveText("Camera Idle");
+  await expect(page.getByTestId("start-camera")).toBeEnabled();
+  await expect(page.getByTestId("sensor-emotion-enabled")).toBeEnabled();
+
+  const interactionWindow = await openDetachedColumnWindow(page, context, {
+    key: "interaction",
+    title: "Interaction",
+    buttonTestId: "detach-interaction-column",
+  });
+  await interactionWindow.evaluate(() => {
+    if (typeof window.claimControlOwnership !== "function") {
+      throw new Error("claimControlOwnership is not available.");
+    }
+    window.claimControlOwnership("microphone");
+  });
+  await expect(page.locator("#realtime_status")).toHaveText("Mic In Use");
+  await expect(page.getByTestId("toggle-realtime")).toBeDisabled();
+  await expect(page.getByTestId("speech-vad")).toBeDisabled();
+  await interactionWindow.close();
+  await expect(page.locator("#realtime_status")).toHaveText("Realtime Idle");
+  await expect(page.getByTestId("toggle-realtime")).toBeEnabled();
+  await expect(page.getByTestId("speech-vad")).toBeEnabled();
+});
+
 test("Valerian cockpit columns expand into a wider live modal viewport", async ({ page }, testInfo) => {
   await page.goto("/valerian/");
   await expect(page.getByTestId("access-screen")).toBeVisible();
@@ -393,6 +442,15 @@ async function verifyColumnExpansion(page, testInfo, options) {
 
 async function verifyDetachedColumnWindow(page, context, options) {
   const { key, title, buttonTestId, visibleTestId } = options;
+  const detached = await openDetachedColumnWindow(page, context, { key, title, buttonTestId });
+  await expect(detached.getByTestId(visibleTestId)).toBeVisible();
+  await expect(detached.locator("[data-column-maximize]:visible")).toHaveCount(0);
+  await expect(detached.locator("[data-column-detach]:visible")).toHaveCount(0);
+  await detached.close();
+}
+
+async function openDetachedColumnWindow(page, context, options) {
+  const { key, title, buttonTestId } = options;
   const [detached] = await Promise.all([
     context.waitForEvent("page"),
     page.getByTestId(buttonTestId).click(),
@@ -405,13 +463,10 @@ async function verifyDetachedColumnWindow(page, context, options) {
   await expect(detached.getByTestId("agent-connection-state")).toContainText(DETACHED_AGENT_ID);
   await expect(detached.locator(`[data-column-key="${key}"]`)).toBeVisible();
   await expect(detached.locator(`[data-column-panel="${key}"]`)).toBeVisible();
-  await expect(detached.getByTestId(visibleTestId)).toBeVisible();
   for (const otherKey of ["sensing", "interaction", "behaviour"].filter((value) => value !== key)) {
     await expect(detached.locator(`[data-column-key="${otherKey}"]`)).toBeHidden();
   }
-  await expect(detached.locator("[data-column-maximize]:visible")).toHaveCount(0);
-  await expect(detached.locator("[data-column-detach]:visible")).toHaveCount(0);
-  await detached.close();
+  return detached;
 }
 
 async function renderSampleBehaviour(page) {
