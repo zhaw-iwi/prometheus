@@ -147,6 +147,15 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Mainline Milestone 114: Valerian main-branch core and healthcare agent catalog
 - [x] Mainline Milestone 115: GitHub README current-state cleanup and client API guide
 - [x] Mainline Milestone 116: Codex context guide cleanup and branch publication
+- [x] Mainline Milestone 117: Valerian detached column window foundation
+- [x] Mainline Milestone 118: Valerian cross-window camera and microphone ownership
+- [x] Mainline Milestone 119: Remove replaceable legacy static clients
+- [x] Mainline Milestone 120: API Workbench shell and endpoint catalog
+- [x] Mainline Milestone 121: API Workbench live scoped lifecycle execution
+- [x] Mainline Milestone 122: API Workbench SSE and observation publishing
+- [x] Mainline Milestone 123: README bundled client and API Workbench documentation
+- [x] Milestone 129: Merge main detached-window and API Workbench work into agents branch
+
 ## Milestone 1
 ### Date
 2026-02-24
@@ -3794,7 +3803,7 @@ Warm up the `gigitdsr.tour_conversation` persona and route grounding without cha
 ### What changed
 - Updated `TourConversation.PROMPT_STATE` so GIGI is more explicitly sympathetic, lightly humorous, open to people and places, and framed as a learning travel companion.
 - Added Frank as GIGI's occasional travel/context reference and design/mobility/technology sparring partner, with a guard to mention him only when fitting.
-- Replaced the compressed route capsule with a concrete station list covering Bürgenstock, Paradeplatz, Rinspeed, ETH Zürich, Rheinfall, Quantum Basel, Emmentaler Schaukäserei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
+- Replaced the compressed route capsule with a concrete station list covering BÃ¼rgenstock, Paradeplatz, Rinspeed, ETH ZÃ¼rich, Rheinfall, Quantum Basel, Emmentaler SchaukÃ¤serei, EPFL Lausanne, Furka/Tremola/Gotthard, SUPSI Lugano, Swiss Miniature, Migros Appenzell, and ZHAW Winterthur.
 - Strengthened the prompt's humor and learning-companion wording while preserving existing German-only, sparse-follow-up, weather-location, no-Markdown, no-JSON, and current-station guardrails.
 - Added a small final-state prompt update so the closing response can acknowledge the Frank/TDSR learning journey without starting a new topic.
 - Updated prompt contract coverage and README notes for the revised tour-conversation behavior.
@@ -3998,7 +4007,7 @@ Add Babylon variants of the five TDSR core agents that start in English but can 
   - `tdsr.core.babylon.tour_conversation`
   - `tdsr.core.babylon.tour_conversation_social_context`
 - Copied the English core agents as the implementation base, kept English starter prompts for the opening turn, and replaced English-only state/final guards with the shared multilingual instruction:
-  `Du kannst Deutsch, Französisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
+  `Du kannst Deutsch, FranzÃ¶sisch, Italienisch und Englisch. Antworte in der Sprache, in der Du angesprochen wirst.`
 - Kept the Babylon definitions without a `languageCode()` override so Valerian/Realtime does not receive a fixed language hint for these agents.
 - Extended the stop/readiness/play-again guard prompts so they interpret German, French, Italian, and English user intent.
 - Registered the Babylon keys and updated registry, source-profile, and Babylon prompt contract coverage.
@@ -6119,6 +6128,39 @@ Merge the main documentation and Codex-context refresh back into the `agents` br
 ### Known issues and decisions
 - The README on `agents` intentionally documents both the main Valerian baseline catalog and the branch-specific application packages.
 - This is a documentation/assets merge; any remaining event-specific prompt work should continue in later agents-branch milestones.
+
+### Next steps
+1. Review the pushed `agents` merge result.
+
+## Milestone 129
+### Date
+2026-07-08
+
+### Goal
+Merge the latest main-branch Valerian detached-window, legacy-client removal, API Workbench, and README documentation work back into the `agents` branch while preserving the agents-branch application catalog.
+
+### What changed
+- Merged main commit `266250c` into `agents`.
+- Kept the agents-branch TDSR, Davos, SIRA Lab, Migros, SHHD, and elderly-care application agents on top of the main Valerian baseline catalog.
+- Brought in the main Valerian detached-column window flow and browser-local camera/microphone ownership coordination.
+- Kept the main legacy-client cleanup on `agents`; the old root, monitor, realtime, nonverbal, and visual static clients remain removed while multilateral screens remain available.
+- Brought in the new API Workbench static client, API Workbench tests, and README screenshot/documentation pass.
+- Resolved `StaticRedirectController` in favor of the current main routes: `/`, `/valerian`, and `/valerian-admin`; removed legacy redirect routes were not restored.
+- Resolved `PROJECT.md` by keeping the agents milestone trail, adding mainline milestones 117-123 to the checklist, and recording this merge as milestone 129.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check src/main/resources/public/apiworkbench/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `node --check tests/playwright/apiworkbench.spec.mjs`
+- `.\mvnw.cmd -q "-Dtest=StaticRedirectControllerWebMvcTest,LegacyStaticClientRemovalContractTest,ApiWorkbenchStaticResourceContractTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest,AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TdsrMigrosPromptContractTest" test`
+- `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The agents branch intentionally keeps event- and experiment-specific agent definitions that are not part of the main baseline catalog.
+- The API Workbench remains documented at `/apiworkbench/index.html`; no `/apiworkbench` redirect has been added.
+- Full Valerian visual smoke can be run separately when camera/microphone UI behaviour needs browser-level regression coverage.
 
 ### Next steps
 1. Review the pushed `agents` merge result.

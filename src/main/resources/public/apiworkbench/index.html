@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PROMETHEUS API Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <script>
+    (() => {
+      let theme = "light";
+      try {
+        theme = localStorage.getItem("prometheus.valerian.theme") === "dark" ? "dark" : "light";
+      } catch (error) {
+        theme = "light";
+      }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.bsTheme = theme;
+    })();
+  </script>
+  <link rel="stylesheet" href="workbench.css" />
+</head>
+
+<body>
+  <main class="workbench-shell" data-testid="apiworkbench-shell">
+    <header class="workbench-header">
+      <div class="brand-block">
+        <div class="page-subtitle" data-testid="apiworkbench-page-subtitle">PROMETHEUS API Workbench</div>
+        <div class="header-line">
+          <span class="method-chip method-get">GET</span>
+          <span class="method-chip method-post">POST</span>
+          <span class="method-chip method-delete">DELETE</span>
+          <span class="method-chip method-put">PUT</span>
+          <span class="text-muted">Client API</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline-secondary toolbar-button" type="button" data-theme-toggle
+          data-testid="apiworkbench-theme-toggle" title="Switch theme" aria-label="Switch theme"
+          aria-pressed="false">
+          <i class="bi bi-moon-stars" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <section class="session-strip" aria-label="Session variables" data-testid="session-strip">
+      <label class="field">
+        <span>Base URL</span>
+        <input id="base_url_input" class="form-control form-control-sm" data-workbench-variable="baseUrl"
+          data-testid="base-url-input" value="" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Access Code</span>
+        <input id="access_code_input" class="form-control form-control-sm" data-workbench-variable="accessCode"
+          data-testid="access-code-input" placeholder="VX102" autocomplete="off">
+      </label>
+      <label class="field field-wide">
+        <span>Agent ID</span>
+        <input id="agent_id_input" class="form-control form-control-sm mono" data-workbench-variable="agentId"
+          data-testid="agent-id-input" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Agent Type</span>
+        <input id="agent_definition_key_input" class="form-control form-control-sm mono"
+          data-workbench-variable="agentDefinitionKey" data-testid="agent-definition-key-input"
+          placeholder="core.social_context_sensitivity" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>Admin Token</span>
+        <input id="admin_token_input" class="form-control form-control-sm" data-workbench-variable="adminToken"
+          data-testid="admin-token-input" placeholder="optional" autocomplete="off">
+      </label>
+    </section>
+
+    <section class="workbench-grid">
+      <nav class="workbench-panel lifecycle-panel" aria-label="Guided lifecycle">
+        <div class="panel-header">
+          <div>
+            <h1>Lifecycle</h1>
+            <p>Scoped agent flow</p>
+          </div>
+        </div>
+        <div id="lifecycle_steps" class="lifecycle-steps" data-testid="lifecycle-steps"></div>
+      </nav>
+
+      <aside class="workbench-panel endpoint-panel" aria-label="Endpoint catalog">
+        <div class="panel-header">
+          <div>
+            <h2>Endpoints</h2>
+            <p>Catalog</p>
+          </div>
+        </div>
+        <div class="endpoint-tools">
+          <label class="field mb-0">
+            <span>Filter</span>
+            <input id="endpoint_search" class="form-control form-control-sm" data-testid="endpoint-search"
+              placeholder="acknowledge, stream, admin..." autocomplete="off">
+          </label>
+          <label class="field mb-0">
+            <span>Group</span>
+            <select id="group_filter" class="form-select form-select-sm" data-testid="group-filter"></select>
+          </label>
+        </div>
+        <div id="endpoint_list" class="endpoint-list" data-testid="endpoint-list"></div>
+      </aside>
+
+      <section class="workbench-panel request-panel" aria-label="Request template">
+        <div class="panel-header detail-header">
+          <div>
+            <div class="selected-meta">
+              <span id="selected_method" class="method-chip method-get" data-testid="selected-method">GET</span>
+              <span id="selected_group" class="group-label" data-testid="selected-group">Scoped Demo</span>
+              <span id="request_status" class="group-label" data-testid="request-status">Idle</span>
+            </div>
+            <h2 id="selected_name" data-testid="selected-endpoint-name">Endpoint</h2>
+            <p id="selected_summary" data-testid="selected-endpoint-summary"></p>
+          </div>
+          <div class="header-actions">
+            <button id="send_request_button" class="btn btn-primary btn-sm command-button" type="button"
+              data-testid="send-request">
+              <i class="bi bi-send-fill" aria-hidden="true"></i> Send
+            </button>
+            <button id="copy_url_button" class="btn btn-outline-secondary toolbar-button" type="button"
+              data-testid="copy-url" title="Copy resolved URL" aria-label="Copy resolved URL">
+              <i class="bi bi-link-45deg" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="request-layout">
+          <section class="template-section">
+            <div class="section-title">Request</div>
+            <div class="request-url" data-testid="resolved-url">
+              <span id="request_method_badge" class="method-chip method-get">GET</span>
+              <code id="resolved_url" class="mono"></code>
+            </div>
+            <dl class="template-grid">
+              <div>
+                <dt>Path Variables</dt>
+                <dd id="path_variables" data-testid="path-variables"></dd>
+              </div>
+              <div>
+                <dt>Headers</dt>
+                <dd id="request_headers" data-testid="request-headers"></dd>
+              </div>
+              <div>
+                <dt>Query</dt>
+                <dd id="request_query" data-testid="request-query"></dd>
+              </div>
+            </dl>
+            <label class="field body-field">
+              <span>Body Template</span>
+              <div id="event_template_panel" class="event-template-panel" data-testid="event-template-panel" hidden>
+                <select id="event_template_select" class="form-select form-select-sm"
+                  data-testid="event-template-select" aria-label="Event template"></select>
+              </div>
+              <textarea id="body_editor" class="form-control mono" data-testid="request-body-editor"
+                spellcheck="false"></textarea>
+            </label>
+          </section>
+
+          <section class="template-section">
+            <div class="section-title">Copy</div>
+            <div class="snippet-actions" role="group" aria-label="Snippet type">
+              <button id="copy_fetch_button" class="btn btn-sm btn-outline-secondary" type="button"
+                data-testid="copy-fetch">
+                <i class="bi bi-files" aria-hidden="true"></i> Fetch
+              </button>
+              <button id="copy_curl_button" class="btn btn-sm btn-outline-secondary" type="button"
+                data-testid="copy-curl">
+                <i class="bi bi-terminal" aria-hidden="true"></i> curl
+              </button>
+              <button id="copy_sse_button" class="btn btn-sm btn-outline-secondary" type="button"
+                data-testid="copy-sse">
+                <i class="bi bi-broadcast" aria-hidden="true"></i> SSE
+              </button>
+            </div>
+            <pre id="snippet_output" class="snippet-output mono" data-testid="snippet-output"></pre>
+          </section>
+        </div>
+      </section>
+
+      <section class="workbench-panel response-panel" aria-label="Response and stream viewer">
+        <div class="panel-header">
+          <div>
+            <h2>Response Viewer</h2>
+            <p>HTTP and SSE</p>
+          </div>
+        </div>
+        <div class="response-grid">
+          <div class="response-box">
+            <div class="section-title">HTTP</div>
+            <pre id="http_response_preview" class="response-output mono" data-testid="http-response-preview"></pre>
+          </div>
+          <div class="response-box">
+            <div class="section-title">SSE</div>
+            <pre id="sse_response_preview" class="response-output mono" data-testid="sse-response-preview"></pre>
+          </div>
+          <div class="response-box">
+            <div class="section-title">Profile</div>
+            <pre id="profile_preview" class="response-output mono" data-testid="profile-preview"></pre>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
