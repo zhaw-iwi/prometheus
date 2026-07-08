@@ -12,3 +12,4 @@ public final class DeterministicRpsSignSelector {
         return CYCLE.get(completedRoundCount % CYCLE.size());
     }
 }
+

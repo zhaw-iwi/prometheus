@@ -67,7 +67,7 @@ public class SingleStateSummitHotelConversation implements AgentDefinition {
             """;
 
     static final String PROMPT_STATE_STARTER = """
-            Eröffne das Gespräch mit einer spontanen, kurzen Begrüssung. Frage z.B. nach dem Wohlbefinden, etwasigen Ausflugspvorhaben, oder nach der Meinung zu Roboter.
+            Eröffne das Gespräch mit einer spontanen, kurzen Begrüssung. Frage z.B. nach dem Wohlbefinden, Ausflugsplänen, oder wie Roboter Menschen nützlich sein können.
             """;
 
     static final String PROMPT_TO_FINAL = """

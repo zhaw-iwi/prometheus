@@ -39,3 +39,4 @@ public final class RpsRules {
         return winningSign.germanLabel() + " schlaegt " + losingSign.germanLabel();
     }
 }
+

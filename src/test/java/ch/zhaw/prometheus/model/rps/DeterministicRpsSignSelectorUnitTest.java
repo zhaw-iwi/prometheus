@@ -23,3 +23,4 @@ class DeterministicRpsSignSelectorUnitTest {
         assertThrows(IllegalArgumentException.class, () -> selector.selectForNextRound(-1));
     }
 }
+

@@ -130,6 +130,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 124: Migros Appenzell prompt compaction
 - [x] Milestone 125: Naturalize Migros Scene 2 opener and menu wording
 - [x] Milestone 126: Migros filmed-scene user-utterance relevance gates
+- [x] Milestone 127: Merge main Valerian catalog into agents branch
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -138,7 +139,11 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Mainline Milestone 107: Valerian social attentiveness signal
 - [x] Mainline Milestone 108: Valerian social context observation contract
 - [x] Mainline Milestone 109: Valerian sensing column completeness pass
-
+- [x] Mainline Milestone 110: Valerian facial emotion camera-loop diagnostics
+- [x] Mainline Milestone 111: Valerian facial emotion overlay diagnostics
+- [x] Mainline Milestone 112: Valerian shared visual detector TFJS compatibility
+- [x] Mainline Milestone 113: Valerian compact cockpit headers
+- [x] Mainline Milestone 114: Valerian main-branch core and healthcare agent catalog
 ## Milestone 1
 ### Date
 2026-02-24
@@ -5619,6 +5624,126 @@ Complete the Valerian Sensing column coverage so manual inputs and Signals Sense
 1. Live-test the full Sensing column with target camera, hand gestures, and representative weather locations.
 2. Consider whether specific production agents should declare and use `obs.social.context` now that the cockpit can emit and display the richer signal consistently.
 
+### Mainline Milestone 110
+### Date
+2026-07-05
+
+### Goal
+Bring Valerian's facial emotion camera-loop diagnostics from the agents branch back to main without importing application agent definitions.
+
+### What changed
+- Made face-api/model load failures visible in the Facial Emotion Report via `Model unavailable` / `Model load failed` states.
+- Preserved live-preview behavior: camera detections update the report when `Emit camera observations` is off, while emitted observations keep the existing `obs.emotion.face` contract.
+- Added a stable `camera-status` test id for browser checks.
+- Extended Playwright with a mocked browser camera and mocked face-api result that exercises the facial emotion camera loop and shared report renderer.
+
+### How to test
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `npm run test:valerian:visual`
+
+### Known issues and decisions
+- This is a Valerian cockpit client change only; backend observation contracts, event processing, and agent definitions are unchanged.
+- The deterministic Playwright test proves the Valerian browser wiring when face-api returns a face expression result; it does not prove physical webcam, lighting, or real model behavior.
+
+### Mainline Milestone 111
+### Date
+2026-07-05
+
+### Goal
+Make Valerian's facial emotion detector visibly diagnosable in the shared camera preview so users can see whether face detection is active before relying on emitted observations.
+
+### What changed
+- Drew a labelled face box in the shared camera preview when the facial emotion detector finds a face.
+- Added explicit preview overlay states for `No face` and face detection errors.
+- Routed face detector exceptions into the Facial Emotion Report without disabling unrelated visual detectors.
+- Extended the Playwright visual checks to verify the face overlay and the no-face diagnostic path.
+- Updated README documentation for the visible face-detection overlay.
+
+### How to test
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `npm run test:valerian:visual`
+
+### Known issues and decisions
+- The overlay is a client-side diagnostic only. It does not change `obs.emotion.face` payloads or backend processing.
+- The preview now distinguishes no face from detector/model failure so live testing can separate camera positioning from runtime problems.
+
+### Mainline Milestone 112
+### Date
+2026-07-05
+
+### Goal
+Stabilize Valerian's shared visual detector runtime on main so face emotion, social context, and hand-sign sensing can be started across agent reconnects without face-api/COCO TensorFlow.js conflicts.
+
+### What changed
+- Pinned the Valerian visual stack to a TFJS runtime version compatible with both `face-api.js@0.22.2` and `coco-ssd@2.2.3`.
+- Kept all visual detector scripts loaded in a deterministic order before the cockpit script initializes.
+- Added explicit Social Context Report status/error rows when the people detector model is unavailable or detection fails.
+- Added camera-preview social context diagnostics for model load and detection errors while keeping face and hand detectors isolated from those failures.
+- Added a Playwright regression that simulates the prior face-api runtime error and verifies social context sensing still reports people.
+- Updated README documentation for the shared detector runtime dependency and visual diagnostics.
+
+### How to test
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `npm run test:valerian:visual`
+
+### Known issues and decisions
+- The compatibility fix is client-only; backend event contracts and agent definitions are unchanged.
+- This keeps the existing browser-side model set instead of replacing face/social detection with GPT calls.
+- Real webcam accuracy still depends on lighting, camera placement, and model limitations.
+
+### Mainline Milestone 113
+### Date
+2026-07-08
+
+### Goal
+Compact the Valerian cockpit and admin header areas by removing the large page-title row and using the existing subtitle style for the page labels.
+
+### What changed
+- Removed the large legacy page-title elements from the logged-in Valerian cockpit and admin shells.
+- Renamed the visible and browser titles to `Valerian Cockpit` and `Valerian Access Management`.
+- Kept the existing `.page-subtitle` styling for the remaining compact header labels.
+- Stopped the Valerian cockpit script from overwriting the compact header label with the connected agent name; agent metadata remains visible in the Agent drawer.
+- Updated static resource contract tests and README client naming.
+
+### How to test
+- `node --check src/main/resources/public/valerian/script.js`
+- `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This is a static Valerian UI change only; backend routes, access-code behavior, agent metadata, and observation contracts are unchanged.
+- The connected agent name is no longer mirrored in the top cockpit header because that header line is now the compact page label.
+
+### Mainline Milestone 114
+### Date
+2026-07-08
+
+### Goal
+Replace the remaining main-branch `basic.*` and `multimodal.*` framework demo agents with the Valerian baseline catalog: reusable core capability demos and English healthcare use-case demos.
+
+### What changed
+- Removed the old `agentdefs/basic` and `agentdefs/multimodal` production definitions, manual seed wrappers, and their deleted-catalog replay scripts/tests.
+- Added `agentdefs/core` with the five Valerian Core definitions: facial-expression sensitivity, multimodal behaviour, rock-scissor-paper, role-clarification guessing game, and social-context sensitivity.
+- Added `agentdefs/usecases/healthcare` with six English healthcare use-case definitions: guessing games, healthcare conversation, SMART goal coaching, and one-/two-state therapy appointment reminders.
+- Adapted the imported lab and Davos/event prompts to the Valerian digital-agent persona, removing GIGI, TDSR, robot, Davos, hotel, and German-only references from the new main packages.
+- Restored the shared RPS model package required by the Valerian Core rock-scissor-paper agent.
+- Updated registry, interaction-profile, access-code, scoped-demo, prompt contract, README, and API example coverage for the new catalog.
+
+### How to test
+- `./mvnw.cmd -q -DskipTests compile`
+- `./mvnw.cmd -q -DskipTests test-compile`
+- `./mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,ValerianCorePromptContractTest,HealthcareUseCasePromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,RpsRevealPolicyContractTest" test`
+
+### Known issues and decisions
+- This intentionally removes the old main-branch `basic.*` and `multimodal.*` public keys. Existing local database access-code assignments that reference those keys need to be recreated with the new keys.
+- The healthcare package deliberately has no Davos/package/key naming, even where the source material came from the former Davos event agents.
+- Historical milestones in this file still describe earlier GIGI/TDSR and split-branch work; they are retained as project history.
+
 ## Milestone 120
 ### Date
 2026-07-05
@@ -5894,3 +6019,30 @@ Add scene-scope relevance gates to the two Migros Appenzell filmed-scene agents 
 ### Next steps
 1. Rehearse both filmed-scene agents in Valerian with deliberate background speech and unrelated questions.
 2. Tune each relevance prompt if rehearsal shows false positives or false negatives.
+
+## Milestone 127
+### Date
+2026-07-08
+
+### Goal
+Merge the main Valerian catalog replacement back into the agents branch so this branch retains only event- and experiment-specific application agents on top of the new main baseline.
+
+### What changed
+- Merged the main-branch `core.*` and `usecases.healthcare.*` Valerian baseline agent definitions into `agents`.
+- Removed the old main `basic.*` and `multimodal.*` production definitions, manual seed wrappers, and their deleted-catalog replay scripts/tests from the agents branch as well.
+- Kept the agents-branch application packages for TDSR core, SHHD, Davos, SIRA Lab, Migros, and elderly-care experiments.
+- Resolved the duplicated RPS package in favor of the main shared RPS implementation used by the Valerian Core rock-scissor-paper agent.
+- Updated README and test contracts so Spring/admin registration covers both the new main baseline catalog and the agents-branch application catalog.
+- Repaired the retained Davos summit hotel starter prompt so it satisfies its existing German robot-usefulness contract after the merge verification sweep.
+
+### How to test
+- `./mvnw.cmd -q -DskipTests compile`
+- `./mvnw.cmd -q -DskipTests test-compile`
+- `./mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,ValerianCorePromptContractTest,HealthcareUseCasePromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,RpsRevealPolicyContractTest" test`
+
+### Known issues and decisions
+- Existing local access-code assignments using removed `basic.*` or `multimodal.*` keys need to be recreated with `core.*`, `usecases.healthcare.*`, or application-agent keys.
+- Historical agents-branch packages such as `tdsr.lab.*` and `tdsr.davos.*` remain available for their event/experiment contexts even though the main baseline now uses Valerian core and healthcare packages.
+
+### Next steps
+1. Review the merge result on `agents` and push it after verification.

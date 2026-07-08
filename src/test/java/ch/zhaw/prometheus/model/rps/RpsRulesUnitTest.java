@@ -37,3 +37,4 @@ class RpsRulesUnitTest {
         assertThrows(IllegalArgumentException.class, () -> RpsRules.reason(RpsSign.ROCK, RpsSign.PAPER));
     }
 }
+

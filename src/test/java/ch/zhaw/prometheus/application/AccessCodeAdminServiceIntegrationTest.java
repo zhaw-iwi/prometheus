@@ -32,6 +32,9 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 @SpringBootTest
 @Transactional
 class AccessCodeAdminServiceIntegrationTest {
+    private static final String CORE_SOCIAL_CONTEXT = "core.social_context_sensitivity";
+    private static final String CORE_MULTIMODAL_BEHAVIOUR = "core.multimodal_behaviour";
+    private static final String HEALTHCARE_THERAPY_REMINDER = "usecases.healthcare.therapy_appointment_reminder";
 
     @Autowired
     private AccessCodeAdminService service;
@@ -62,7 +65,11 @@ class AccessCodeAdminServiceIntegrationTest {
                 .map(AdminAgentTypeView::getKey)
                 .toList();
 
-        assertTrue(keys.contains("basic.single_state_micro_coaching"));
+        assertTrue(keys.contains(CORE_SOCIAL_CONTEXT));
+        assertTrue(keys.contains(CORE_MULTIMODAL_BEHAVIOUR));
+        assertTrue(keys.contains("core.rock_scissor_paper"));
+        assertTrue(keys.contains(HEALTHCARE_THERAPY_REMINDER));
+        assertTrue(keys.contains("usecases.healthcare.healthcare_conversation"));
         assertTrue(keys.contains("tdsr.core.de.rock_scissor_paper"));
         assertTrue(keys.contains("tdsr.core.de.tour_conversation"));
         assertTrue(keys.contains("tdsr.core.de.tour_conversation_social_context"));
@@ -86,7 +93,8 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.migros.appenzell_scene_2_menu_planner"));
         assertTrue(keys.contains("tdsr.migros.appenzell_scene_3_checkout_reflection"));
         assertEquals(keys.size(), new java.util.HashSet<>(keys).size());
-        assertEquals(List.of("basic"), packagePath(agentTypes, "basic.single_state_micro_coaching"));
+        assertEquals(List.of("core"), packagePath(agentTypes, CORE_SOCIAL_CONTEXT));
+        assertEquals(List.of("usecases", "healthcare"), packagePath(agentTypes, HEALTHCARE_THERAPY_REMINDER));
         assertEquals(List.of("elderlycare"), packagePath(agentTypes, "elderlycare.smart_goal_coaching"));
         assertEquals(List.of("tdsr", "core", "de"),
                 packagePath(agentTypes, "tdsr.core.de.rock_scissor_paper"));
@@ -212,7 +220,7 @@ class AccessCodeAdminServiceIntegrationTest {
                         .map(entry -> new AccessCodePresetEntrySpec(entry.getCode(), entry.getAgentTypeKeys()))
                         .toList()));
         assertThrows(IllegalArgumentException.class, () -> this.service.applyAccessCodePreset("shhd_scene_agents",
-                List.of(new AccessCodePresetEntrySpec("shhde", List.of("basic.single_state_micro_coaching")))));
+                List.of(new AccessCodePresetEntrySpec("shhde", List.of(CORE_SOCIAL_CONTEXT)))));
         assertTrue(this.service.applyAccessCodePreset("missing", List.of()).isEmpty());
     }
 
@@ -246,36 +254,36 @@ class AccessCodeAdminServiceIntegrationTest {
         AccessCodeView created = this.service.createAccessCode("typ48", true);
 
         AccessCodeView assigned = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.guessing_game_with_gestures")).orElseThrow();
+                CORE_SOCIAL_CONTEXT,
+                HEALTHCARE_THERAPY_REMINDER)).orElseThrow();
 
-        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.rock_scissor_paper"),
+        assertEquals(List.of(CORE_SOCIAL_CONTEXT, HEALTHCARE_THERAPY_REMINDER),
                 assigned.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView added = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.tour_conversation")).orElseThrow();
+                CORE_SOCIAL_CONTEXT,
+                HEALTHCARE_THERAPY_REMINDER,
+                CORE_MULTIMODAL_BEHAVIOUR)).orElseThrow();
 
         assertEquals(List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.rock_scissor_paper",
-                "tdsr.core.de.tour_conversation"), added.getAllowedAgentTypeKeys());
+                CORE_MULTIMODAL_BEHAVIOUR,
+                CORE_SOCIAL_CONTEXT,
+                HEALTHCARE_THERAPY_REMINDER), added.getAllowedAgentTypeKeys());
         assertEquals(3, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView removed = this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                "tdsr.core.de.guessing_game_with_gestures",
-                "tdsr.core.de.tour_conversation")).orElseThrow();
+                CORE_SOCIAL_CONTEXT,
+                HEALTHCARE_THERAPY_REMINDER)).orElseThrow();
 
-        assertEquals(List.of("tdsr.core.de.guessing_game_with_gestures", "tdsr.core.de.tour_conversation"),
+        assertEquals(List.of(CORE_SOCIAL_CONTEXT, HEALTHCARE_THERAPY_REMINDER),
                 removed.getAllowedAgentTypeKeys());
         assertEquals(2, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView replaced = this.service.replaceAllowedAgentTypes(created.getId(),
-                List.of("basic.single_state_micro_coaching")).orElseThrow();
+                List.of(HEALTHCARE_THERAPY_REMINDER)).orElseThrow();
 
-        assertEquals(List.of("basic.single_state_micro_coaching"), replaced.getAllowedAgentTypeKeys());
+        assertEquals(List.of(HEALTHCARE_THERAPY_REMINDER), replaced.getAllowedAgentTypeKeys());
         assertEquals(1, this.allowedAgentTypes.findByAccessCodeId(created.getId()).size());
 
         AccessCodeView cleared = this.service.replaceAllowedAgentTypes(created.getId(), List.of()).orElseThrow();
@@ -292,8 +300,8 @@ class AccessCodeAdminServiceIntegrationTest {
                 () -> this.service.replaceAllowedAgentTypes(created.getId(), List.of("missing.type")));
         assertThrows(IllegalArgumentException.class,
                 () -> this.service.replaceAllowedAgentTypes(created.getId(), List.of(
-                        "basic.single_state_micro_coaching",
-                        "basic.single_state_micro_coaching")));
+                        CORE_SOCIAL_CONTEXT,
+                        CORE_SOCIAL_CONTEXT)));
     }
 
     @Test

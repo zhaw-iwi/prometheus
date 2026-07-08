@@ -15,3 +15,4 @@ public enum RpsRoundOutcome {
         return this.winner;
     }
 }
+

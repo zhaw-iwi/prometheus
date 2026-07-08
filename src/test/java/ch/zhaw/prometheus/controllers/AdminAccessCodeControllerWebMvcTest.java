@@ -35,6 +35,8 @@ import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 class AdminAccessCodeControllerWebMvcTest {
     private static final String HEADER = AdminAccessCodeController.ADMIN_TOKEN_HEADER;
     private static final String TOKEN = "root-token";
+    private static final String CORE_AGENT_KEY = "core.social_context_sensitivity";
+    private static final String HEALTHCARE_AGENT_KEY = "usecases.healthcare.therapy_appointment_reminder";
 
     @Autowired
     private MockMvc mockMvc;
@@ -106,15 +108,15 @@ class AdminAccessCodeControllerWebMvcTest {
     @Test
     void acceptsValidAdminTokenForAgentTypes() throws Exception {
         when(this.service.listAgentTypes()).thenReturn(List.of(
-                new AdminAgentTypeView("basic.single_state_micro_coaching", "Micro Coach", "Micro coaching",
-                        List.of("basic"))));
+                new AdminAgentTypeView(CORE_AGENT_KEY, "Valerian Core - Social Context Sensitivity",
+                        "Social context sensitivity", List.of("core"))));
 
         this.mockMvc.perform(get("/admin/agent-types")
                 .header(HEADER, TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].key").value("basic.single_state_micro_coaching"))
-                .andExpect(jsonPath("$[0].displayName").value("Micro Coach"))
-                .andExpect(jsonPath("$[0].packagePath[0]").value("basic"));
+                .andExpect(jsonPath("$[0].key").value(CORE_AGENT_KEY))
+                .andExpect(jsonPath("$[0].displayName").value("Valerian Core - Social Context Sensitivity"))
+                .andExpect(jsonPath("$[0].packagePath[0]").value("core"));
     }
 
     @Test
@@ -122,8 +124,8 @@ class AdminAccessCodeControllerWebMvcTest {
         when(this.service.listAccessCodePresets()).thenReturn(List.of(
                 new AccessCodePresetView("starter_agents", "Starter agent access codes", List.of(
                         new AccessCodePresetEntryView("start", List.of(
-                                "basic.single_state_micro_coaching",
-                                "multimodal.single_state_in"))))));
+                                CORE_AGENT_KEY,
+                                HEALTHCARE_AGENT_KEY))))));
 
         this.mockMvc.perform(get("/admin/access-code-presets")
                 .header(HEADER, TOKEN))
@@ -132,7 +134,7 @@ class AdminAccessCodeControllerWebMvcTest {
                 .andExpect(jsonPath("$[0].displayName").value("Starter agent access codes"))
                 .andExpect(jsonPath("$[0].entries[0].code").value("start"))
                 .andExpect(jsonPath("$[0].entries[0].agentTypeKeys[0]")
-                        .value("basic.single_state_micro_coaching"));
+                        .value(CORE_AGENT_KEY));
     }
 
     @Test
@@ -162,8 +164,8 @@ class AdminAccessCodeControllerWebMvcTest {
         UUID secondId = UUID.fromString("66666666-6666-6666-6666-666666666666");
         when(this.service.applyAccessCodePreset(eq("starter_agents"), any()))
                 .thenReturn(Optional.of(List.of(
-                        new AccessCodeView(firstId, "start", true, List.of("basic.single_state_micro_coaching")),
-                        new AccessCodeView(secondId, "multi", true, List.of("multimodal.single_state_in")))));
+                        new AccessCodeView(firstId, "start", true, List.of(CORE_AGENT_KEY)),
+                        new AccessCodeView(secondId, "care1", true, List.of(HEALTHCARE_AGENT_KEY)))));
 
         this.mockMvc.perform(post("/admin/access-code-presets/starter_agents/apply")
                 .header(HEADER, TOKEN)
@@ -173,21 +175,21 @@ class AdminAccessCodeControllerWebMvcTest {
                           "entries": [
                             {
                               "code": "start",
-                              "agentTypeKeys": ["basic.single_state_micro_coaching"]
+                              "agentTypeKeys": ["%s"]
                             },
                             {
-                              "code": "multi",
-                              "agentTypeKeys": ["multimodal.single_state_in"]
+                              "code": "care1",
+                              "agentTypeKeys": ["%s"]
                             }
                           ]
                         }
-                        """))
+                        """.formatted(CORE_AGENT_KEY, HEALTHCARE_AGENT_KEY)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value(firstId.toString()))
                 .andExpect(jsonPath("$[0].code").value("start"))
                 .andExpect(jsonPath("$[0].allowedAgentTypeKeys[0]")
-                        .value("basic.single_state_micro_coaching"))
-                .andExpect(jsonPath("$[1].code").value("multi"));
+                        .value(CORE_AGENT_KEY))
+                .andExpect(jsonPath("$[1].code").value("care1"));
     }
 
     @Test
@@ -246,9 +248,9 @@ class AdminAccessCodeControllerWebMvcTest {
         UUID id = UUID.fromString("33333333-3333-3333-3333-333333333333");
         when(this.service.updateAccessCodeEnabled(id, false))
                 .thenReturn(Optional.of(new AccessCodeView(id, "af7u1", false, List.of())));
-        when(this.service.replaceAllowedAgentTypes(id, List.of("basic.single_state_micro_coaching")))
+        when(this.service.replaceAllowedAgentTypes(id, List.of(CORE_AGENT_KEY)))
                 .thenReturn(Optional.of(new AccessCodeView(id, "af7u1", false,
-                        List.of("basic.single_state_micro_coaching"))));
+                        List.of(CORE_AGENT_KEY))));
         when(this.service.replaceAllowedAgentTypes(id, List.of()))
                 .thenReturn(Optional.of(new AccessCodeView(id, "af7u1", false, List.of())));
 
@@ -268,11 +270,11 @@ class AdminAccessCodeControllerWebMvcTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "agentTypeKeys": ["basic.single_state_micro_coaching"]
+                          "agentTypeKeys": ["%s"]
                         }
-                        """))
+                        """.formatted(CORE_AGENT_KEY)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.allowedAgentTypeKeys[0]").value("basic.single_state_micro_coaching"));
+                .andExpect(jsonPath("$.allowedAgentTypeKeys[0]").value(CORE_AGENT_KEY));
 
         this.mockMvc.perform(put("/admin/access-codes/" + id + "/agent-types")
                 .header(HEADER, TOKEN)

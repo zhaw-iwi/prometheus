@@ -17,9 +17,11 @@ class ValerianClientStaticResourceContractTest {
     void valerianClientExposesSinglePageAgentAndInteractionControls() throws IOException {
         String index = Files.readString(INDEX);
 
-        assertTrue(index.contains("<title>Prometheus Demo Cockpit</title>"));
-        assertTrue(index.contains("Prometheus Demo Cockpit"));
-        assertTrue(index.contains("PROMETHEUS demo console"));
+        assertTrue(index.contains("<title>Valerian Cockpit</title>"));
+        assertTrue(index.contains("Valerian Cockpit"));
+        assertFalse(index.contains("Prometheus Demo Cockpit"));
+        assertFalse(index.contains("PROMETHEUS demo console"));
+        assertFalse(index.contains("class=\"page-title\""));
         assertTrue(index.contains("<script src=\"script.js\"></script>"));
         assertTrue(index.contains("data-testid=\"access-screen\""));
         assertTrue(index.contains("data-testid=\"access-code-input\""));

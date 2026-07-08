@@ -17,9 +17,11 @@ class ValerianAdminClientStaticResourceContractTest {
     void adminClientExposesRootManagementControls() throws IOException {
         String index = Files.readString(INDEX);
 
-        assertTrue(index.contains("<title>Prometheus Admin Cockpit</title>"));
-        assertTrue(index.contains("Prometheus Admin Cockpit"));
-        assertTrue(index.contains("Valerian access management"));
+        assertTrue(index.contains("<title>Valerian Access Management</title>"));
+        assertTrue(index.contains("Valerian Access Management"));
+        assertFalse(index.contains("Prometheus Admin Cockpit"));
+        assertFalse(index.contains("Valerian access management"));
+        assertFalse(index.contains("class=\"page-title\""));
         assertTrue(index.contains("class=\"admin-access-screen\""));
         assertTrue(index.contains("data-testid=\"admin-token-panel\""));
         assertTrue(index.contains("data-testid=\"admin-token-input\""));
