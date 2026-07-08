@@ -46,30 +46,83 @@ away from the state machine. This keeps interaction adaptive while preserving
 traceability: developers can inspect the current state, event history, storage,
 generated prompts, and emitted behaviour.
 
-## Valerian Cockpit
+## Bundled Clients
 
-Valerian is the bundled PROMETHEUS cockpit for trying agent definitions,
-inspecting perception signals, and rendering behaviour plans.
+### Valerian Access Management
+
+URL: `http://localhost:8080/valerian-admin/`
 
 ![Valerian access management](.doc/figures/Valerian/valerian-cockpit-admin.png)
 
-![Valerian facial expression sensing](.doc/figures/Valerian/valerian-cockpit-facial.png)
+Use this client to create new access codes and assign the agent types made
+available in the scope of each access code. A valid access code must be entered
+before using Valerian Cockpit.
+
+### Valerian Cockpit
+
+URL: `http://localhost:8080/valerian/`
+
+Valerian Cockpit is the primary all-in-one client for trying the core agents
+that ship with PROMETHEUS. After entering an access code, open the drawer on
+the right with the heartbeat button, choose an agent type, create an instance,
+connect to it, and reset or delete it when needed. The drawer's diagnostics tab
+shows runtime events and agent state.
+
+The cockpit is organised into three columns: sensing, verbal interaction by
+text or speech, and behaviour. Each column can be maximised or opened in a
+separate window when an experiment needs more screen space.
+
+#### Social Context Sensitivity
 
 ![Valerian social context sensing](.doc/figures/Valerian/valerian-cockpit-social.png)
 
+This core agent demonstrates social-context sensing.
+
+- Sensing: visual detection of human presence, groups of humans, and whether
+  people are attentive toward the agent.
+- Interaction: the agent comments on the social situation; users can also enter
+  utterances or run the interaction in speech-to-speech mode.
+- Behaviour: the full behaviour spectrum, including speech, gesture, facial
+  expression, gaze, motion, hand signs, and display output where supported.
+
+#### Facial Expression Sensitivity
+
+![Valerian facial expression sensing](.doc/figures/Valerian/valerian-cockpit-facial.png)
+
+This core agent demonstrates facial-expression sensing.
+
+- Sensing: visual detection of faces and emotion, valence, and arousal.
+- Interaction: the agent comments on the social situation; users can also enter
+  utterances or run the interaction in speech-to-speech mode.
+- Behaviour: the full behaviour spectrum, including speech, gesture, facial
+  expression, gaze, motion, hand signs, and display output where supported.
+
+#### Rock-Scissor-Paper
+
 ![Valerian rock-scissor-paper hand-sign interaction](.doc/figures/Valerian/valerian-cockpit-rsp.png)
 
-The cockpit includes:
+This core agent demonstrates a hand-sign game loop.
 
-- Access-code scoped demo sessions at `/valerian/`.
-- Access-code administration at `/valerian-admin/`.
-- Text interaction and OpenAI Realtime speech interaction.
-- Manual and camera-based sensing for supported profiles.
-- Facial expression, social context, hand sign, and weather context reports.
-- Behaviour rendering for speech, gesture, facial expression, gaze, motion, hand
-  signs, and display output.
-- Agent metadata, interaction profile, event history, storage, and live monitor
-  streams.
+- Sensing: visual detection of the user's hand sign: rock, scissor, or paper.
+- Interaction: ready, draw a sign, and receive the evaluation of who won; text-
+  and speech-based interaction remain available.
+- Behaviour: the full behaviour spectrum, plus the additional hand sign drawn
+  by the agent.
+
+### API Workbench
+
+URL: `http://localhost:8080/apiworkbench/index.html`
+
+![PROMETHEUS API Workbench](.doc/figures/Valerian/api-workbench.png)
+
+The API Workbench is a guided developer client for learning and testing the
+PROMETHEUS REST and SSE API. Start with the lifecycle column: open a scoped
+session, list allowed agent definitions, create or select an agent, inspect its
+interaction profile, subscribe to behaviour or monitor streams, and publish
+observation events. The endpoint catalog can also be used directly to inspect
+resolved URLs, path variables, headers, query parameters, JSON request bodies,
+copyable `fetch`, `curl`, and `EventSource` snippets, HTTP responses, SSE
+events, and the active agent profile.
 
 ## Current Agent Catalog
 
@@ -136,6 +189,7 @@ Open the main surfaces:
 
 - Valerian Cockpit: `http://localhost:8080/valerian/`
 - Valerian Access Management: `http://localhost:8080/valerian-admin/`
+- API Workbench: `http://localhost:8080/apiworkbench/index.html`
 
 ## Testing
 
@@ -145,24 +199,29 @@ Run the Java regression suite:
 .\mvnw.cmd test
 ```
 
-Run JavaScript syntax checks for the Valerian cockpit:
+Run JavaScript syntax checks for the bundled clients:
 
 ```powershell
 node --check src/main/resources/public/valerian/script.js
+node --check src/main/resources/public/apiworkbench/script.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
+node --check tests/playwright/apiworkbench.spec.mjs
 ```
 
-Run the Valerian Playwright visual smoke test:
+Run the Playwright visual smoke tests:
 
 ```powershell
 npm install
 npx playwright install chromium
 npm run test:valerian:visual
+npm run test:apiworkbench:visual
 ```
 
-The Playwright test starts or reuses `http://127.0.0.1:8080`, creates or
-re-enables access code `VX102` through the admin API, and checks the facial
-expression report, social context report, and behaviour board. Set
+The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
+or re-enables access code `VX102` through the admin API, and checks the facial
+expression report, social context report, and behaviour board. The API
+Workbench Playwright test uses deterministic mocked API responses to verify the
+guided lifecycle, snippets, request execution, and SSE viewer. Set
 `PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
 the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
 running.
@@ -496,10 +555,11 @@ src/main/java/ch/zhaw/prometheus
   spi/              OpenAI and Realtime integration boundary.
 
 src/main/resources/public
+  apiworkbench/     Guided REST/SSE API workbench for client developers.
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
-tests/playwright    Browser-level Valerian visual smoke test.
+tests/playwright    Browser-level Valerian and API Workbench visual smoke tests.
 ```
 
 ## Developing New Agents

@@ -5511,3 +5511,50 @@ Complete the first practical API Workbench loop for client developers by adding 
 1. Add optional request history and clearer copied-code/export affordances if developers need repeatable test sessions.
 2. Add `/apiworkbench` redirect only if the shorter URL is worth a backend route change.
 3. Update README with the API Workbench once screenshots are ready.
+
+## Milestone 123
+### Date
+2026-07-08
+
+### Goal
+Update the README client documentation with URL-specific guidance for the current Valerian UI set and the new API Workbench.
+
+### What changed
+- Replaced the old bare screenshot stack with a `Bundled Clients` section.
+- Added URL and usage guidance for Valerian Access Management.
+- Added URL and workflow guidance for Valerian Cockpit:
+  - access-code entry
+  - heartbeat drawer agent selection/creation/connection/reset/deletion
+  - diagnostics tab for events and agent state
+  - three-column sensing/interaction/behaviour layout
+  - maximised and separate-window column modes
+- Added focused descriptions for the shipped social-context, facial-expression, and rock-scissor-paper core agents.
+- Generated a Playwright screenshot for the API Workbench at `.doc/figures/Valerian/api-workbench.png`.
+- Added API Workbench URL, lifecycle guidance, endpoint-catalog guidance, and snippet/HTTP/SSE/profile viewer guidance.
+- Added the API Workbench to the README local surface list, JavaScript checks, Playwright smoke checks, and repository structure summary.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open the documented clients:
+   - `http://localhost:8080/valerian-admin/`
+   - `http://localhost:8080/valerian/`
+   - `http://localhost:8080/apiworkbench/index.html`
+
+### How to test
+- Documentation/static checks:
+  - `git diff --check`
+  - `node --check src/main/resources/public/apiworkbench/script.js`
+  - `node --check tests/playwright/apiworkbench.spec.mjs`
+- Focused Java contract checks:
+  - `.\mvnw.cmd -q "-Dtest=ApiWorkbenchStaticResourceContractTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+- Playwright smoke:
+  - `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The API Workbench remains documented at `/apiworkbench/index.html`; no `/apiworkbench` redirect has been added.
+- The README now describes only the current bundled clients: Valerian Access Management, Valerian Cockpit, API Workbench, and the externally documented API contract.
+
+### Next steps
+1. Take updated Valerian Cockpit screenshots again if the column-detach UI changes visually.
+2. Add request history/export documentation if the API Workbench grows those features.
