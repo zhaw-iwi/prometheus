@@ -126,6 +126,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 120: API Workbench shell and endpoint catalog
 - [x] Milestone 121: API Workbench live scoped lifecycle execution
 - [x] Milestone 122: API Workbench SSE and observation publishing
+- [x] Milestone 123: README bundled client and API Workbench documentation
+- [x] Milestone 124: README multilateral note and API Workbench response width
 
 ## Milestone 1
 ### Date
@@ -5558,3 +5560,31 @@ Update the README client documentation with URL-specific guidance for the curren
 ### Next steps
 1. Take updated Valerian Cockpit screenshots again if the column-detach UI changes visually.
 2. Add request history/export documentation if the API Workbench grows those features.
+
+## Milestone 124
+### Date
+2026-07-08
+
+### Goal
+Finish the README client-surface pass and make the API Workbench response viewer span the full desktop width.
+
+### What changed
+- Added the bundled multilateral listener and reports displays to the README.
+- Documented that `http://localhost:8080` redirects to Valerian Cockpit.
+- Added `multilateral/` to the README repository structure.
+- Changed the API Workbench desktop grid so the response viewer spans the full row instead of stopping after the lifecycle and endpoint columns.
+- Added a Playwright regression assertion that the response viewer spans the full desktop grid width.
+- Added missing Milestone 123 and 124 entries to the checklist.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/apiworkbench/script.js`
+- `node --check tests/playwright/apiworkbench.spec.mjs`
+- `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The API Workbench response viewer now sits below the full top row on desktop, which is the intended tradeoff for full-width response visibility.
+- The README still documents the API Workbench at `/apiworkbench/index.html`; no short redirect route has been added.
+
+### Next steps
+1. Merge this main-branch documentation and API Workbench layout polish into `agents`.

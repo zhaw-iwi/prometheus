@@ -51,6 +51,18 @@ test("API Workbench lifecycle selects SSE stream templates", async ({ page }) =>
   await expect(page.getByTestId("snippet-output")).toBeVisible();
 });
 
+test("API Workbench response viewer spans the desktop grid width", async ({ page }) => {
+  await page.goto("/apiworkbench/index.html");
+
+  const gridBox = await page.locator(".workbench-grid").boundingBox();
+  const responseBox = await page.locator(".response-panel").boundingBox();
+
+  expect(gridBox).not.toBeNull();
+  expect(responseBox).not.toBeNull();
+  expect(Math.abs(responseBox.x - gridBox.x)).toBeLessThan(1);
+  expect(Math.abs((responseBox.x + responseBox.width) - (gridBox.x + gridBox.width))).toBeLessThan(1);
+});
+
 test("API Workbench executes scoped lifecycle requests and extracts session values", async ({ page }) => {
   await page.route("**/demo/session", async (route) => {
     expect(route.request().method()).toBe("POST");
