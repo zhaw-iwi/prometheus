@@ -70,6 +70,14 @@ body {
   padding: 0;
 }
 
+.command-button {
+  min-height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
 .session-strip {
   border: 1px solid var(--workbench-line);
   border-radius: 8px;
@@ -382,7 +390,7 @@ body {
 
 .response-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
   padding: 0.95rem;
 }

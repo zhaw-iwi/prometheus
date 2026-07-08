@@ -319,6 +319,7 @@ function collectElements() {
   elements.endpointList = document.getElementById("endpoint_list");
   elements.selectedMethod = document.getElementById("selected_method");
   elements.selectedGroup = document.getElementById("selected_group");
+  elements.requestStatus = document.getElementById("request_status");
   elements.selectedName = document.getElementById("selected_name");
   elements.selectedSummary = document.getElementById("selected_summary");
   elements.requestMethodBadge = document.getElementById("request_method_badge");
@@ -330,6 +331,8 @@ function collectElements() {
   elements.snippetOutput = document.getElementById("snippet_output");
   elements.httpResponsePreview = document.getElementById("http_response_preview");
   elements.sseResponsePreview = document.getElementById("sse_response_preview");
+  elements.profilePreview = document.getElementById("profile_preview");
+  elements.sendRequestButton = document.getElementById("send_request_button");
   elements.copyUrlButton = document.getElementById("copy_url_button");
   elements.copyFetchButton = document.getElementById("copy_fetch_button");
   elements.copyCurlButton = document.getElementById("copy_curl_button");
@@ -361,6 +364,7 @@ function wireEvents() {
   elements.endpointSearch.addEventListener("input", renderEndpointList);
   elements.groupFilter.addEventListener("change", renderEndpointList);
   elements.bodyEditor.addEventListener("input", renderSnippet);
+  elements.sendRequestButton.addEventListener("click", sendSelectedRequest);
   elements.copyUrlButton.addEventListener("click", () => copyText(buildResolvedUrl(selectedEndpoint()), "URL"));
   elements.copyFetchButton.addEventListener("click", () => {
     state.selectedSnippet = "fetch";
@@ -464,7 +468,10 @@ function renderSelectedEndpoint() {
   elements.bodyEditor.value = bodyText(endpoint);
   elements.httpResponsePreview.textContent = httpPlaceholder(endpoint);
   elements.sseResponsePreview.textContent = ssePlaceholder(endpoint);
+  elements.profilePreview.textContent = "No profile loaded.";
   elements.copySseButton.disabled = !endpoint.sse;
+  elements.sendRequestButton.disabled = endpoint.sse;
+  elements.requestStatus.textContent = endpoint.sse ? "Stream template" : "Idle";
   renderSnippet();
   markActiveEndpoint();
 }
@@ -481,6 +488,217 @@ function renderSnippet() {
   } else {
     elements.snippetOutput.textContent = fetchSnippet(endpoint);
   }
+}
+
+async function sendSelectedRequest() {
+  const endpoint = selectedEndpoint();
+  if (!endpoint || endpoint.sse) {
+    return;
+  }
+
+  const url = buildResolvedUrl(endpoint);
+  const unresolved = unresolvedPlaceholders(url);
+  if (unresolved.length) {
+    renderRequestError(`Missing variable: ${unresolved.join(", ")}`);
+    return;
+  }
+
+  let requestBody;
+  try {
+    requestBody = requestBodyForSend(endpoint);
+  } catch (error) {
+    renderRequestError(error.message);
+    return;
+  }
+
+  const options = {
+    method: endpoint.method,
+    headers: resolvedHeaders(endpoint),
+  };
+  if (requestBody !== undefined) {
+    options.body = requestBody;
+  }
+
+  setRequestBusy(true);
+  try {
+    const response = await fetch(url, options);
+    const text = await response.text();
+    const parsed = parseResponseBody(text, response.headers.get("content-type") || "");
+    const result = {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      text,
+      parsed,
+    };
+    renderHttpResult(result);
+    if (response.ok) {
+      handleSuccessfulResponse(endpoint, parsed);
+    }
+  } catch (error) {
+    renderRequestError(error.message || String(error));
+  } finally {
+    setRequestBusy(false);
+  }
+}
+
+function requestBodyForSend(endpoint) {
+  const body = elements.bodyEditor.value.trim();
+  if (!body) {
+    return undefined;
+  }
+  if (endpoint.bodyKind === "text") {
+    const unresolved = unresolvedPlaceholders(body);
+    if (unresolved.length) {
+      throw new Error(`Missing body variable: ${unresolved.join(", ")}`);
+    }
+    return body;
+  }
+  try {
+    const parsed = JSON.parse(body);
+    const normalized = JSON.stringify(parsed);
+    const unresolved = unresolvedPlaceholders(normalized);
+    if (unresolved.length) {
+      throw new Error(`Missing body variable: ${unresolved.join(", ")}`);
+    }
+    return normalized;
+  } catch (error) {
+    if (error.message && error.message.startsWith("Missing body variable:")) {
+      throw error;
+    }
+    throw new Error("Request body is not valid JSON.");
+  }
+}
+
+function parseResponseBody(text, contentType) {
+  if (!text) {
+    return null;
+  }
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return text;
+    }
+  }
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return text;
+  }
+}
+
+function renderHttpResult(result) {
+  elements.requestStatus.textContent = `${result.status} ${result.statusText || ""}`.trim();
+  elements.httpResponsePreview.textContent = JSON.stringify({
+    status: result.status,
+    statusText: result.statusText,
+    headers: result.headers,
+    body: result.parsed,
+  }, null, 2);
+}
+
+function renderRequestError(message) {
+  elements.requestStatus.textContent = "Error";
+  elements.httpResponsePreview.textContent = JSON.stringify({
+    error: message,
+  }, null, 2);
+}
+
+function setRequestBusy(busy) {
+  elements.sendRequestButton.disabled = busy || selectedEndpoint().sse;
+  elements.sendRequestButton.innerHTML = busy
+    ? `<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Send`
+    : `<i class="bi bi-send-fill" aria-hidden="true"></i> Send`;
+  if (busy) {
+    elements.requestStatus.textContent = "Sending";
+  }
+}
+
+function handleSuccessfulResponse(endpoint, parsed) {
+  if (!parsed || typeof parsed !== "object") {
+    return;
+  }
+  if (endpoint.id === "demo-session-open") {
+    if (parsed.accessCode) {
+      setVariable("accessCode", parsed.accessCode);
+    }
+    applyAgentTypes(parsed.agentTypes);
+    applyAgents(parsed.agents);
+  } else if (endpoint.id === "demo-agent-types" || endpoint.id === "admin-agent-types") {
+    applyAgentTypes(parsed);
+  } else if (endpoint.id === "demo-agent-list") {
+    applyAgents(parsed);
+  } else if (endpoint.id === "demo-agent-create" || endpoint.id === "demo-agent-info" || endpoint.id === "global-agent-info") {
+    applyAgentInfo(parsed);
+  }
+}
+
+function applyAgentTypes(value) {
+  if (!Array.isArray(value) || !value.length) {
+    return;
+  }
+  const first = value.find((entry) => entry && entry.key);
+  if (first) {
+    setVariable("agentDefinitionKey", first.key);
+  }
+  elements.profilePreview.textContent = JSON.stringify({
+    agentTypes: value.map((entry) => ({
+      key: entry.key,
+      displayName: entry.displayName,
+      packagePath: entry.packagePath || [],
+    })),
+  }, null, 2);
+}
+
+function applyAgents(value) {
+  if (!Array.isArray(value) || !value.length) {
+    return;
+  }
+  applyAgentInfo(value[0]);
+}
+
+function applyAgentInfo(value) {
+  if (!value || typeof value !== "object") {
+    return;
+  }
+  const id = value.id || value.ID;
+  if (id) {
+    setVariable("agentId", id);
+  }
+  if (value.interactionProfile) {
+    renderProfile(value);
+  }
+}
+
+function renderProfile(agentInfo) {
+  const profile = agentInfo.interactionProfile || {};
+  elements.profilePreview.textContent = JSON.stringify({
+    agentId: agentInfo.id || agentInfo.ID || variableValue("agentId"),
+    name: agentInfo.name || "",
+    languageCode: agentInfo.languageCode || "",
+    supportedObservations: profile.supportedObservations || [],
+    supportedBehaviourModalities: profile.supportedBehaviourModalities || [],
+    profileTags: profile.profileTags || [],
+  }, null, 2);
+}
+
+function setVariable(key, value) {
+  if (value == null || value === "") {
+    return;
+  }
+  state.variables[key] = String(value);
+  const input = elements.variableInputs.find((candidate) => candidate.dataset.workbenchVariable === key);
+  if (input) {
+    input.value = String(value);
+  }
+  elements.resolvedUrl.textContent = buildResolvedUrl(selectedEndpoint());
+  renderSnippet();
+}
+
+function unresolvedPlaceholders(value) {
+  return Array.from(new Set(String(value).match(/\{[a-zA-Z0-9_]+\}/g) || []));
 }
 
 function selectEndpoint(endpointId) {

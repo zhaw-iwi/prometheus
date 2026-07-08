@@ -114,14 +114,21 @@
             <div class="selected-meta">
               <span id="selected_method" class="method-chip method-get" data-testid="selected-method">GET</span>
               <span id="selected_group" class="group-label" data-testid="selected-group">Scoped Demo</span>
+              <span id="request_status" class="group-label" data-testid="request-status">Idle</span>
             </div>
             <h2 id="selected_name" data-testid="selected-endpoint-name">Endpoint</h2>
             <p id="selected_summary" data-testid="selected-endpoint-summary"></p>
           </div>
-          <button id="copy_url_button" class="btn btn-outline-secondary toolbar-button" type="button"
-            data-testid="copy-url" title="Copy resolved URL" aria-label="Copy resolved URL">
-            <i class="bi bi-link-45deg" aria-hidden="true"></i>
-          </button>
+          <div class="header-actions">
+            <button id="send_request_button" class="btn btn-primary btn-sm command-button" type="button"
+              data-testid="send-request">
+              <i class="bi bi-send-fill" aria-hidden="true"></i> Send
+            </button>
+            <button id="copy_url_button" class="btn btn-outline-secondary toolbar-button" type="button"
+              data-testid="copy-url" title="Copy resolved URL" aria-label="Copy resolved URL">
+              <i class="bi bi-link-45deg" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
 
         <div class="request-layout">
@@ -188,6 +195,10 @@
           <div class="response-box">
             <div class="section-title">SSE</div>
             <pre id="sse_response_preview" class="response-output mono" data-testid="sse-response-preview"></pre>
+          </div>
+          <div class="response-box">
+            <div class="section-title">Profile</div>
+            <pre id="profile_preview" class="response-output mono" data-testid="profile-preview"></pre>
           </div>
         </div>
       </section>

@@ -124,6 +124,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 118: Valerian cross-window camera and microphone ownership
 - [x] Milestone 119: Remove replaceable legacy static clients
 - [x] Milestone 120: API Workbench shell and endpoint catalog
+- [x] Milestone 121: API Workbench live scoped lifecycle execution
 
 ## Milestone 1
 ### Date
@@ -5400,3 +5401,54 @@ Add the first static PROMETHEUS API Workbench client so developers can discover 
 ### Next steps
 1. Add guided scoped-demo lifecycle execution: open session, list agent definitions, create/select an agent, inspect `AgentInteractionProfile`, and display HTTP responses.
 2. Add behaviour and monitor SSE subscriptions plus event publishing from observation templates.
+
+## Milestone 121
+### Date
+2026-07-08
+
+### Goal
+Make the API Workbench execute non-streaming scoped lifecycle HTTP requests and use successful responses to keep the developer session context synchronized.
+
+### What changed
+- Added a `Send` command to the API Workbench request panel for non-SSE endpoints.
+- Added request execution against the selected endpoint template using the same resolved URL, headers, query, and body shown in the workbench.
+- Added preflight validation for unresolved path/body variables before sending.
+- Added JSON-body validation before sending JSON requests.
+- Added HTTP response rendering with status, response headers, and parsed JSON/text body.
+- Added a request status indicator.
+- Added response extraction for scoped lifecycle calls:
+  - `POST /demo/session` updates access code, first agent type, and first visible agent when present.
+  - `GET /demo/agent-types` updates the agent definition key from the first returned type.
+  - `GET /demo/agents` updates the selected agent id from the first returned agent.
+  - `POST /demo/agents` and `GET /demo/agents/{agentId}/info` update the selected agent id and render the `AgentInteractionProfile`.
+- Added a dedicated profile preview pane for supported observations, behaviour modalities, tags, language, and agent identity.
+- Kept SSE endpoints as prepared templates only; live stream connection is left for the next milestone.
+- Extended static and Playwright coverage for live request execution, response extraction, and missing-variable failure handling.
+- Left `README.md` unchanged until the workbench has live SSE/event publishing and final screenshots.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open the API Workbench:
+   - `http://localhost:8080/apiworkbench/index.html`
+3. Enter an access code, select a lifecycle step, and use `Send` on non-streaming endpoints.
+
+### How to test
+- Static/client checks:
+  - `git diff --check`
+  - `node --check src/main/resources/public/apiworkbench/script.js`
+  - `node --check tests/playwright/apiworkbench.spec.mjs`
+- Focused Java contract checks:
+  - `.\mvnw.cmd -q "-Dtest=ApiWorkbenchStaticResourceContractTest,LegacyStaticClientRemovalContractTest" test`
+- Playwright smoke:
+  - `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- SSE endpoints remain non-executing stream templates in this milestone. The `Send` command is disabled for those endpoints.
+- The workbench updates context from the first returned agent type or agent instance when a response contains lists. More explicit selection controls can be added if the response lists become too large for the guided flow.
+- The Playwright lifecycle test uses mocked API responses so it remains deterministic and independent from the configured database state.
+- README updates remain deferred until the workbench has complete request, event, and stream support.
+
+### Next steps
+1. Add live behaviour and monitor SSE subscriptions.
+2. Add observation-template helpers for publishing compatible perception and interaction events.

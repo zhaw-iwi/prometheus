@@ -25,9 +25,12 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"lifecycle-steps\""));
         assertTrue(index.contains("data-testid=\"endpoint-list\""));
         assertTrue(index.contains("data-testid=\"request-body-editor\""));
+        assertTrue(index.contains("data-testid=\"send-request\""));
+        assertTrue(index.contains("data-testid=\"request-status\""));
         assertTrue(index.contains("data-testid=\"snippet-output\""));
         assertTrue(index.contains("data-testid=\"http-response-preview\""));
         assertTrue(index.contains("data-testid=\"sse-response-preview\""));
+        assertTrue(index.contains("data-testid=\"profile-preview\""));
         assertTrue(index.contains("<script src=\"script.js\"></script>"));
         assertTrue(index.contains("<link rel=\"stylesheet\" href=\"workbench.css\""));
 
@@ -37,6 +40,12 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(script.contains("function fetchSnippet(endpoint)"));
         assertTrue(script.contains("function curlSnippet(endpoint)"));
         assertTrue(script.contains("function sseSnippet(endpoint)"));
+        assertTrue(script.contains("async function sendSelectedRequest()"));
+        assertTrue(script.contains("function requestBodyForSend(endpoint)"));
+        assertTrue(script.contains("function renderHttpResult(result)"));
+        assertTrue(script.contains("function handleSuccessfulResponse(endpoint, parsed)"));
+        assertTrue(script.contains("function renderProfile(agentInfo)"));
+        assertTrue(script.contains("function unresolvedPlaceholders(value)"));
         assertTrue(script.contains("function renderEndpointList()"));
         assertTrue(script.contains("function renderLifecycleSteps()"));
         assertTrue(script.contains("X-Prometheus-Access-Code"));
