@@ -1,309 +1,216 @@
-# CONTEXT.md  
-PROMETHEUS – Event-Driven, Regulation-Aware Agent Framework
+# PROMETHEUS Context for Codex
 
-## 1. Vision and Motivation
+PROMETHEUS is an event-driven Java framework for developing multimodal digital
+agents with explicit state-machine control, first-class regulation, and
+structured behaviour output.
 
-PROMETHEUS is a next-generation agent control framework that generalizes the original PROMISE framework and its Social Behaviour Regulation extension into a unified, event-driven architecture.
+This file exists to orient coding agents before they work in the repository. It
+describes the current architecture and boundaries. Workflow rules live in
+`.agents/CODEX.md`; project history lives in `PROJECT.md`; user-facing setup and
+API documentation live in `README.md`.
 
-The original PROMISE framework demonstrated that explicit state-machine-based control enables the engineering of complex, controllable conversational agents using language models. The SBR extension showed that adaptive social behaviour can be layered on top of task-oriented behaviour using regulation models such as the Zurich Model of Social Motivation.
+## Current Mental Model
 
-However, both frameworks were biased toward:
+PROMETHEUS maps multimodal perception to multimodal behaviour through explicit,
+inspectable agent control.
 
-- Verbal input and output  
-- Turn-based conversational interaction  
-- Reactive behaviour triggered primarily by user utterances  
+- Inputs are `Event` objects.
+- Task control is modeled with `Agent`, `State`, `OuterState`, `Transition`,
+  guards, actions, policies, and storage.
+- Agent output is a persisted `BehaviourPlan` event with optional `speech`,
+  `nonVerbal`, `motion`, and `display` channels.
+- `AgentInteractionProfile` declares which observation event types an agent
+  accepts and which behaviour modalities it can emit.
+- Valerian is the bundled cockpit for creating, sensing, speaking with,
+  inspecting, and rendering PROMETHEUS agents.
 
-Modern agent applications increasingly require:
+The important abstraction is not chat. Conversation is one event source among
+many. A facial expression sample, social grouping report, hand sign, weather
+context, system tick, internal regulation signal, and user utterance all move
+through the same event-driven runtime.
 
-- Proactive and deliberative behaviour  
-- Multimodal perception and action  
-- Continuous evaluation without turn boundaries  
-- Socially appropriate disengagement and yielding  
-- Agents that may never speak at all  
+## Core Architecture
 
-PROMETHEUS addresses these needs by providing a unified framework that supports conversational agents, embodied robots, and ambient intelligence systems under a single conceptual model.
+### State-Machine Task Control
 
-## 2. Core Design Objectives
+Primary behaviour belongs to explicit state machines.
 
-PROMETHEUS is designed to achieve the following objectives:
+- States define behavioural regimes and prompts.
+- Transitions define when control moves.
+- Actions update storage or compute domain-specific outputs.
+- Nested `OuterState` control is allowed when it keeps task structure explicit.
+- Guards and actions must remain readable and testable.
 
-1. Preserve explicit, inspectable task control  
-2. Generalize interaction from turns to events  
-3. Treat regulation as a first-class component  
-4. Support multimodal behaviour expression  
-5. Maintain explicit authority boundaries between control and regulation  
-6. Enable deterministic testing, trace replay, and regression validation  
-7. Support safe, safety-critical and socially adaptive systems  
+Do not replace explicit control flow with a single opaque prompt loop.
 
-The framework must allow developers to build agents that:
+### Event-Driven Interaction
 
-- Perform useful tasks  
-- Adapt socially and contextually  
-- Take initiative when appropriate  
-- Withdraw or remain silent when necessary  
-- Remain predictable and testable  
+Events are the public and internal runtime currency.
 
-## 3. Conceptual Model
+Current public observation types include:
 
-### 3.1 Explicit Task Control
+- `obs.user_utterance`
+- `obs.emotion.face`
+- `obs.human.presence`
+- `obs.social.grouping`
+- `obs.social.context`
+- `obs.social.situation_change`
+- `obs.hand.sign`
+- `obs.weather.current`
+- `obs.weather.forecast`
 
-Primary behaviour is modeled as explicit state machines.
+Assistant behaviour is persisted as:
 
-- States represent behavioural regimes  
-- Transitions are triggered by events  
-- Guards and actions remain inspectable and testable  
-- Nested and supervisory state machines are supported  
+- `resp.behaviour_plan`
 
-This preserves the designability and controllability that characterized PROMISE.
+For HTTP ingestion, `payload` is a string. Structured perception payloads are
+JSON encoded into that string.
 
-### 3.2 Event-Driven Interaction
+### Behaviour Plans
 
-All interaction is driven by a unified event model.
+Agent responses should be represented as `BehaviourPlan`, not ad-hoc response
+objects.
 
-Events may represent:
+Supported top-level channels:
 
-- User utterances  
-- Detected emotions or gaze  
-- Physical world observations  
-- Internal regulation signals  
-- Timers or periodic ticks  
-- System-level signals  
+- `speech`
+- `nonVerbal`
+- `motion`
+- `display`
 
-Conversation turns are a special case of events, not the primary abstraction.
+Clients render only the channels they support. Agents may be speech-only, but
+the framework must not assume speech-only interaction.
 
-### 3.3 Regulation as a First-Class Component
+### Regulation
 
-Regulation systems operate alongside task control.
+Regulation is a bounded layer alongside task control.
 
-A regulation system:
+- Regulation may integrate multimodal context over time.
+- Regulation may shape expression or emit explicit internal opportunities and
+  interrupts.
+- Task control owns goals, commitments, and final authority.
+- Safety and policy constraints override adaptive social expression.
 
-- Integrates multimodal signals over time  
-- Maintains latent internal state such as tanks or drives  
-- Outputs:
-  - Modulation bundles that shape behaviour expression  
-  - Internal control events such as opportunities and interrupts  
+Do not let regulation silently replace task transitions or hiddenly change agent
+goals.
 
-Regulation shapes task execution but does not replace task control.
+## Current Main-Branch Agent Boundary
 
-### 3.4 Behaviour as Multi-Channel Intent
+The `main` branch is the reusable framework and baseline Valerian catalog.
 
-Agent output is expressed as a BehaviourPlan rather than raw text.
-
-A BehaviourPlan may include:
-
-- Speech intent  
-- Non-verbal signals such as gesture or gaze  
-- Motion intent  
-- Display or advisory output  
-
-Rendering depends on available capabilities.  
-A purely verbal agent is a valid degenerate case.
-
-### 3.5 Explicit Authority Boundaries
-
-Task control and regulation remain separate layers.
-
-- Task control owns goals and commitments  
-- Regulation shapes expression and may suggest initiative  
-- Hard constraints and policies override social adaptation  
-- Interrupts have severity levels and explicit semantics  
-
-All coupling must be explicit and traceable.
-
-## 4. What PROMETHEUS Is
-
-PROMETHEUS is:
-
-- A general agent control framework  
-- Suitable for conversational AI  
-- Suitable for embodied robots  
-- Suitable for ambient or advisory agents  
-- Suitable for safety-critical social navigation scenarios  
-- Designed for engineering, testing, and iterative development  
-
-## 5. What PROMETHEUS Is Not
-
-PROMETHEUS is not:
-
-- A chatbot framework  
-- A reinforcement learning framework  
-- A full autonomy or robotics stack  
-- Tied to a single psychological theory  
-- Limited to language-based interaction  
-
-## 6. Canonical Use Cases and Scenarios
-
-The following scenarios define acceptance-level capability targets.  
-The framework must support all of them without changing core abstractions.
-
-### 6.1 Conversational Health Check-In
-
-A digital agent conducts daily patient check-ins.
-
-Characteristics:
-
-- Purely verbal  
-- Turn-based  
-- State-machine-driven prompts and transitions  
-- Optional escalation  
-
-Purpose:
-
-- Ensures backward compatibility with PROMISE-style agents  
-- Defines the minimal viable configuration  
-
-### 6.2 Door Assist in Hospital Room
-
-A robot observes a healthcare professional approaching a closed door with hands full and offers assistance.
-
-Characteristics:
-
-- Proactive initiative  
-- Explicit consent gate  
-- Multimodal perception  
-- Physical action execution  
-- Socially appropriate disengagement  
-
-Tests:
-
-- Regulation-driven initiative  
-- Interrupt handling  
-- Multi-channel BehaviourPlans  
-
-### 6.3 Phone Retrieval with Plan Invalidation
-
-A robot retrieves a dropped phone.  
-A relative picks it up first, invalidating the plan.
-
-Characteristics:
-
-- Continuous monitoring  
-- Plan invalidation  
-- Graceful withdrawal  
-
-Tests:
-
-- Execution monitoring  
-- Abort semantics  
-- Social disengagement  
-
-### 6.4 Warehouse Robot Safe Passage
-
-A mobile robot encounters a worker in a warehouse aisle.
-
-Characteristics:
-
-- Continuous perception  
-- Safety-critical motion control  
-- No conversation required  
-- Hard interrupts  
-
-Tests:
-
-- Event-driven control without turn-taking  
-- Regulation-based risk assessment  
-- Motion regimes as states  
-
-### 6.5 Meeting Monitoring and Facilitation Support
-
-An ambient agent monitors group meeting dynamics and provides facilitation support.
-
-Characteristics:
-
-- Multi-actor perception  
-- Advisory and display output  
-- No direct conversational ownership  
-
-Tests:
-
-- Group-level regulation  
-- Non-intrusive behaviour  
-- Continuous evaluation  
-
-### Scenario Coverage Matrix
-
-| Scenario | Speech | Motion | Regulation | Initiative | Abort |
-|----------|--------|--------|------------|------------|-------|
-| Check-in | Yes | No | Yes | No | Yes |
-| Door Assist | Yes | Yes | Yes | Yes | Yes |
-| Phone Retrieval | Optional | Yes | Yes | Yes | Yes |
-| Warehouse | No | Yes | Yes | Yes | Yes |
-| Meeting Monitor | No | No | Yes | Yes | Soft |
-
-## 7. High-Level Requirements
-
-### 7.1 Architectural Requirements
-
-- Event-driven architecture  
-- Explicit state machine task control  
-- Regulation as first-class component  
-- Explicit coupling between task and regulation  
-- Support for verbal-only agents  
-
-### 7.2 Event and Perception Requirements
-
-- Unified event schema with provenance and confidence  
-- Snapshot aggregation of events  
-- Pluggable perception providers  
-- Support evaluation without new user input  
-
-### 7.3 Behaviour Output Requirements
-
-- Multi-channel BehaviourPlans  
-- Capability-dependent rendering  
-- Optional non-verbal behaviour  
-
-### 7.4 Regulation Requirements
-
-- Latent internal state with decay and thresholds  
-- Output modulation bundles and control events  
-- Interchangeable regulation implementations  
-- Composable regulation systems  
-
-### 7.5 Initiative and Interrupt Requirements
-
-- Severity levels for interrupts  
-- Hard interrupts must preempt any task state  
-- Initiative must be gated and rate-limited  
-
-### 7.6 Execution and Planning Requirements
-
-- Reusable provisioning modules  
-- Continuous execution monitoring  
-- Cancellable execution  
-- Disengagement as first-class outcome  
-
-### 7.7 Compatibility Requirements
-
-- Preserve explicit state and transition semantics  
-- Preserve prompt orchestration patterns  
-- Preserve traceability of decisions and actions  
-
-### 7.8 Developer Experience Requirements
-
-- Minimal boilerplate for simple agents  
-- Declarative configuration preferred  
-- Deterministic simulation and replay support  
-- Rich monitoring and introspection  
-
-### 7.9 Safety and Policy Requirements
-
-- Explicit policy constraints  
-- Hard constraints override adaptation  
-
-### 7.10 Non-Functional Requirements
-
-- Deterministic behaviour where possible  
-- Support for real-time scenarios  
-- Extensibility without modifying the core engine  
-
-## 8. Acceptance Criterion
-
-PROMETHEUS is considered architecturally complete when all canonical scenarios can be implemented using:
-
-- The same event model  
-- The same state machine abstraction  
-- Interchangeable regulation systems  
-- Explicit authority boundaries  
-
-without changing core abstractions.
+Main-branch production definitions currently live under:
+
+- `agentdefs/core`
+- `agentdefs/usecases/healthcare`
+
+The current public keys are:
+
+- `core.facial_expression_sensitivity`
+- `core.multimodal_behaviour`
+- `core.rock_scissor_paper`
+- `core.role_clarification_guessing_game`
+- `core.social_context_sensitivity`
+- `usecases.healthcare.guessing_game`
+- `usecases.healthcare.guessing_game_user_guess`
+- `usecases.healthcare.healthcare_conversation`
+- `usecases.healthcare.smart_goal_coaching`
+- `usecases.healthcare.therapy_appointment_reminder`
+- `usecases.healthcare.therapy_appointment_reminder_intro`
+
+Main should stay generic. Event-specific, location-specific, experiment-specific,
+or customer-specific agents belong on application branches or in separate
+deployment-specific modules. Do not reintroduce obsolete `basic.*` or
+`multimodal.*` production catalogs.
+
+The main baseline persona is Valerian, a digital agent made in the ZHAW SIRA Lab
+for demo purposes and as a starting point for developing other agents. Main
+baseline agents should not rely on GIGI, TDSR, Davos, hotel, or robot-tour
+persona assumptions.
+
+## Valerian Boundary
+
+Valerian is a cockpit and demo client, not the framework core.
+
+It uses the scoped demo API and should remain a client of public backend
+contracts:
+
+- access-code scoped agent creation
+- `AgentInteractionProfile`
+- `acknowledge` event ingestion
+- behaviour SSE streams
+- monitor SSE streams
+- Realtime speech call orchestration
+
+Keep reusable semantics in the backend model/application layers. Keep browser UI
+logic in `src/main/resources/public/valerian` or
+`src/main/resources/public/valerian-admin`.
+
+## Public API Contracts to Preserve
+
+External perception clients and behaviour renderers depend on these contracts:
+
+- `POST /demo/agents/{agentId}/acknowledge`
+- `GET /demo/agents/{agentId}/behaviour/stream`
+- `POST /demo/agents/{agentId}/behaviour/generate`
+- `GET /demo/agents/{agentId}/info`
+- `GET /demo/agents/{agentId}/monitor/stream`
+- Global equivalents without `/demo` for trusted tools.
+
+Scoped browser SSE may pass `accessCode` as a query parameter because
+`EventSource` cannot set custom headers. Non-browser clients should prefer the
+`X-Prometheus-Access-Code` header.
+
+When adding or changing observation or behaviour contracts:
+
+1. Update `AgentInteractionProfile` usage.
+2. Update prompt event adapters or behaviour renderers as needed.
+3. Update Valerian only if the cockpit should expose the capability.
+4. Update README API documentation.
+5. Add focused contract tests.
+
+## Engineering Boundaries
+
+- Prefer existing framework concepts over new parallel abstractions.
+- Keep controllers thin; validation and delegation only.
+- Keep domain logic in model/application packages.
+- Keep prompt strings near the agent definitions that own them.
+- Keep agent definitions as Spring-discovered `AgentDefinition` beans.
+- Keep event payloads inspectable and deterministic where possible.
+- Preserve explicit state, transition, storage, and event-history semantics.
+- Remove obsolete code instead of adding compatibility layers unless the user
+  explicitly requires compatibility.
+
+## Testing Expectations
+
+Use the smallest high-value test set that protects the changed contract.
+
+Common anchors:
+
+- Agent catalog/profile changes:
+  `AgentDefinitionRegistryUnitTest`,
+  `SeedAgentInteractionProfileContractTest`,
+  package-specific prompt contract tests.
+- Public API changes:
+  `AgentClientCompatibilityWebMvcTest`,
+  `ScopedDemoControllerIntegrationTest`,
+  `AdminAccessCodeControllerWebMvcTest`.
+- Valerian client changes:
+  `ValerianClientStaticResourceContractTest`,
+  `ValerianAdminClientStaticResourceContractTest`,
+  `node --check src/main/resources/public/valerian/script.js`,
+  `node --check tests/playwright/valerian-column-expansion.spec.mjs`,
+  and Playwright visual smoke tests when layout or camera/rendering behaviour
+  changes.
+- RPS changes:
+  `RpsRulesUnitTest`,
+  `DeterministicRpsSignSelectorUnitTest`,
+  `RpsRevealPolicyContractTest`.
+
+## What Not To Do
+
+- Do not treat PROMETHEUS as a chatbot-only framework.
+- Do not hide control flow inside one giant prompt.
+- Do not bypass `Event` and `BehaviourPlan` contracts with ad-hoc DTOs.
+- Do not make Valerian-only assumptions part of the model core.
+- Do not add new event-specific agents to `main` without an explicit decision.
+- Do not preserve dead legacy agents, endpoints, scripts, or tests by default.
