@@ -7,37 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class StaticRedirectController {
 
-    @GetMapping({ "/monitor", "/monitor/" })
-    public String monitor(HttpServletRequest request) {
-        return redirectWithQuery("/monitor/index.html", request);
-    }
-
-    @GetMapping({ "/realtime", "/realtime/" })
-    public String realtime(HttpServletRequest request) {
-        return redirectWithQuery("/realtime/index.html", request);
-    }
-
-    @GetMapping({ "/visual/facial", "/visual/facial/" })
-    public String visualFacial(HttpServletRequest request) {
-        return redirectWithQuery("/visual/facial/index.html", request);
-    }
-
-    @GetMapping({ "/visual/multifacial", "/visual/multifacial/" })
-    public String visualMultifacial(HttpServletRequest request) {
-        return redirectWithQuery("/visual/multifacial/index.html", request);
-    }
-
-    @GetMapping({ "/nonverbal", "/nonverbal/", "/visual/nonverbal", "/visual/nonverbal/" })
-    public String nonverbal(HttpServletRequest request) {
-        return redirectWithQuery("/nonverbal/index.html", request);
-    }
-
-    @GetMapping({ "/visual/social", "/visual/social/" })
-    public String visualSocial(HttpServletRequest request) {
-        return redirectWithQuery("/visual/social/index.html", request);
-    }
-
-    @GetMapping({ "/valerian", "/valerian/" })
+    @GetMapping({ "/", "/valerian", "/valerian/" })
     public String valerian(HttpServletRequest request) {
         return redirectWithQuery("/valerian/index.html", request);
     }

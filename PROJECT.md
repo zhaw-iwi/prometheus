@@ -122,6 +122,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 116: Codex context guide cleanup and branch publication
 - [x] Milestone 117: Valerian detached column window foundation
 - [x] Milestone 118: Valerian cross-window camera and microphone ownership
+- [x] Milestone 119: Remove replaceable legacy static clients
 
 ## Milestone 1
 ### Date
@@ -5280,3 +5281,64 @@ Prevent conflicting camera and microphone use across Valerian cockpit and detach
 
 ### Next steps
 1. Compare detached Valerian windows against the old special-purpose clients and decide which legacy clients should redirect, be removed, or remain separate.
+
+## Milestone 119
+### Date
+2026-07-08
+
+### Goal
+Remove the replaceable legacy browser clients now covered by the Valerian cockpit and detached Valerian windows, while keeping the multilateral meeting displays separate.
+
+### What changed
+- Removed the old root text-interaction client:
+  - `src/main/resources/public/index.html`
+  - `src/main/resources/public/script.js`
+- Removed the old special-purpose browser clients:
+  - `src/main/resources/public/monitor`
+  - `src/main/resources/public/realtime`
+  - `src/main/resources/public/nonverbal`
+  - `src/main/resources/public/visual`
+- Kept the current shared static surfaces:
+  - `src/main/resources/public/valerian`
+  - `src/main/resources/public/valerian-admin`
+  - `src/main/resources/public/multilateral`
+  - shared `src/main/resources/public/style.css`
+- Removed static redirects for `/monitor`, `/realtime`, `/nonverbal`, `/visual/facial`, `/visual/multifacial`, `/visual/social`, and `/visual/nonverbal`.
+- Added `/` as the canonical redirect to `/valerian/index.html`, preserving query parameters.
+- Updated realtime browser contract coverage so it validates the remaining Valerian speech client and the multilateral listener instead of the removed `/public/realtime` client.
+- Added contract coverage that the legacy client assets are absent and the current Valerian/Admin/Multilateral static surfaces remain present.
+- Left `README.md` unchanged for the later screenshot and user-facing documentation pass.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/`
+   - `http://localhost:8080/valerian/`
+3. Open Valerian Access Management:
+   - `http://localhost:8080/valerian-admin/`
+4. Open the multilateral screens when needed:
+   - `http://localhost:8080/multilateral/listen/`
+   - `http://localhost:8080/multilateral/reports/`
+
+### How to test
+- Static/client checks:
+  - `git diff --check`
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `node --check src/main/resources/public/valerian-admin/script.js`
+  - `node --check src/main/resources/public/multilateral/listen/script.js`
+  - `node --check src/main/resources/public/multilateral/reports/script.js`
+  - `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- Focused Java contract checks:
+  - `.\mvnw.cmd -q clean "-Dtest=StaticRedirectControllerWebMvcTest,LegacyStaticClientRemovalContractTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+- Valerian visual smoke:
+  - `npm run test:valerian:visual`
+
+### Known issues and decisions
+- Compatibility redirects for the removed legacy clients were intentionally not kept. They now return 404 rather than silently opening Valerian.
+- The backend realtime, monitor, acknowledgement, behaviour-stream, and multilateral APIs remain available; only the old browser clients were removed.
+- The root path is now a current entry point for Valerian, not a compatibility layer for the deleted text client.
+- README updates are deferred until the Valerian UI cleanup/screenshot pass is ready.
+
+### Next steps
+1. Use the remaining Valerian and multilateral surfaces for the next README screenshot/documentation pass.
