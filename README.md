@@ -1,176 +1,155 @@
 # PROMETHEUS
 
-PROMETHEUS is an event-driven Java framework for building digital agents with explicit state-machine control and a first-class regulation layer.
+PROMETHEUS is an event-driven Java framework for building multimodal digital
+agents with explicit state-machine control, first-class regulation, and
+structured behaviour output.
 
-It evolves the PROMISE approach from turn-based text interaction into multimodal sensing and multimodal behaviour while keeping transitions, guards, and actions explicit and testable.
+## Why
 
-### Why
+Many agent systems still treat interaction as turn-based chat: a user says
+something and the agent replies. That is too narrow for digital agents that must
+work with voice, facial expression, hand signs, group context, weather, and
+other signals while deciding when to speak, gesture, stay silent, or yield.
 
-Many agent systems still assume turn-based chat: user says something, agent replies. That model breaks in real environments where agents must interpret voice, visual, social, and system signals continuously, decide when to act proactively, and sometimes stay silent, yield, or disengage safely.
+PROMETHEUS focuses on the mapping problem behind multimodal agents: how sensed
+events from humans and environments become inspectable agent state, and how that
+state becomes coordinated speech, nonverbal behaviour, motion intent, or display
+output.
 
-### What
+## What
 
-PROMETHEUS is an event-driven, regulation-aware framework for engineering multimodal agents with explicit control. It combines inspectable state-machine task logic with first-class regulation, so behaviour can adapt to context without becoming opaque or unpredictable.
+PROMETHEUS provides an engineering framework for digital agents that may remain
+screen-based, be embodied as VR avatars, or be connected to physical robots.
+Agents are explicit state machines, not opaque chat loops. Their task logic is
+implemented with states, transitions, guards, actions, prompts, and storage.
 
-### How
+The framework treats multimodality as a first-class contract:
 
-PROMETHEUS models all inputs as `Event` objects and all outputs as structured `BehaviourPlan` objects (`speech`, `nonVerbal`, `motion`, `display`). State transitions, guards, and actions remain explicit and testable, while regulation modules modulate expression and emit bounded control signals (for example opportunities and interrupts). This unified model supports use cases from conversational check-ins to embodied assistance and ambient monitoring.
+- Perception clients publish observations as `Event` objects.
+- Agents declare accepted observations and emitted behaviour modalities through
+  an `AgentInteractionProfile`.
+- Agent responses are persisted as `BehaviourPlan` events with `speech`,
+  `nonVerbal`, `motion`, and `display` channels.
+- Streaming clients subscribe to behaviour events and render the channels that
+  their target avatar, robot, or UI can support.
 
-## What You Can Build
+## How
 
-- Digital agents with two-layer behaviour control: state-machine interaction flow plus regulation inspired by motivational models for adaptive behavior.
-- Multimodal agents that combine user utterances with multimodal sensing (e.g., facial expressions, heart rate variability, gaze, social context).
-- Multimodal behaviour generation across channels (e.g., gestures, facial expressions, gaze, proxemics, prosody).
-- Embodied AI scenarios such as virtual avatars and robotic systems.
+Every runtime input is normalized as an event. A user utterance, facial emotion
+sample, social grouping report, hand sign, weather context, system tick, and
+internal regulation signal use the same event pipeline. The current state
+decides whether the event changes control flow, updates storage, or triggers a
+new behaviour plan.
 
-## Clients (Quick Tour)
+Regulation and continuous evaluation can shape behaviour without taking control
+away from the state machine. This keeps interaction adaptive while preserving
+traceability: developers can inspect the current state, event history, storage,
+generated prompts, and emitted behaviour.
 
-Most runtime clients take `?agentId=<uuid>`. The Valerian cockpit starts with an access-code screen and then uses scoped `/demo/...` endpoints.
-For the complete list including multilateral endpoints, see `All Client Endpoints` below.
-The Valerian Cockpit and Valerian Access Management surfaces include a shared light/dark theme toggle in their header tool rows; the current light UI remains the default and the selected theme is persisted in the browser.
+## Valerian Cockpit
 
-### Valerian Cockpit
+Valerian is the bundled PROMETHEUS cockpit for trying agent definitions,
+inspecting perception signals, and rendering behaviour plans.
 
-- URL: `http://localhost:8080/valerian/`
-- Purpose: single-page PROMETHEUS demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
-- Users enter a configured access code first. Accepted codes are stored in `sessionStorage` for the current browser session.
-- The drawer opens on the `Agent` tab, which shows assigned agent types, known instances, connection controls, and agent metadata including name, description, language code, and interaction profile. Users create one or more instances from the assigned types, then select an instance in `Known Agents`; diagnostics are available on the second tab.
-- `Known Agents` lists only instances linked to the active access code. Delete removes the visible scoped instance link and deletes the underlying agent only when no other code links remain.
-- Agent selection/start controls live in the drawer. Dropdown selection or manual typing only selects an Agent ID; `Connect` validates it through the scoped demo API and opens live streams. Once connected, the same button becomes `Disconnect`. `Start Agent` calls the scoped agent runtime start endpoint. The drawer shows the connected agent's name, description, and interaction profile.
-- Without an explicit `?agentId=` URL after access-code validation or drawer selection, the cockpit leaves the Agent ID empty and does not auto-connect to a stored or guessed agent.
-- The center column has separate Text and Continuous Speech tabs. Sensing and sensed input signals are on the left; rendered `BehaviourPlan` output is on the right.
-- The Sensing, Interaction, and Behaviour columns can each be expanded into a wider modal viewport while preserving the live panel state.
-- The Continuous Speech tab lets operators refresh and choose browser microphone and speaker devices; unsupported speaker routing falls back to the browser/system default output.
-- Routine speech controls stay in the Continuous Speech tab. Advanced Speech Settings live in the Sensing accordion and include voice, VAD mode/timing/eagerness, backend complement, transcript logprobs, input noise reduction, output speed, reasoning effort, max output tokens, VAD interruption, local barge-in cancellation, and half-duplex fallback.
-- Speech is full-duplex by default: the microphone stays live while assistant audio plays. Barge-in cancellation is enabled by default and sends `response.cancel` on the Realtime data channel when user speech starts during active assistant audio. Half-duplex fallback is disabled by default and only mutes microphone tracks during assistant playback when difficult speaker-to-microphone echo makes that preferable.
-- The same tab exposes browser-side Realtime WebRTC transport and inbound-audio diagnostics, including ICE connection failures, candidate errors, playback stalls/buffering, remote audio track interruptions, packet loss, jitter, jitter-buffer delay, concealed samples, and high RTT, so operators can distinguish speech-session transport problems from agent or robot-side issues.
-- On connect, the Text tab hydrates from existing agent event history, including prior user utterances and assistant behaviour-plan speech.
-- The cockpit suppresses duplicate assistant renders when the same behaviour response arrives through both an HTTP response and the behaviour stream.
-- The Diagnostics tab shows a configurable activity log, current/available state view, and storage entries as expandable key rows with copy-to-clipboard value buttons.
-- Camera sensing modes are independently toggleable while the camera is running. Face emotion, social context, and hand-sign detection can run in any combination; mirrored overlay boxes align with the mirrored self-view. Face emotion draws a labelled face box when it detects a face and shows a small camera-overlay status such as `No face` or `Face detection error` while scanning. Operators can refresh and select browser camera devices, including USB cameras plugged in after page load; changing the selected camera while live restarts the camera stream with the new input. `Emit camera observations` sends enabled camera detections, including hand signs, with per-mode throttles. If the browser cannot load the face-api library or expression models, the Facial Emotion Report shows a model error instead of silently looking idle.
-- Valerian's visual detectors intentionally share the TFJS 1.7.x runtime because `face-api.js@0.22.2` and `coco-ssd@2.2.3` fail together on newer TFJS 3/4 runtimes with minified browser errors such as `n is not a function` or `d is not a function`.
-- The sensing card is visual-only: it groups visual detectors, configuration, manual emotion/social-context/hand inputs, weather context, and sensed visual signal readouts. The facial emotion readout includes a live valence/arousal affect plane, confidence meters, expression distribution bars, and emission status, with matching manual buttons for the supported expression labels. The social context report shows humans, groups, group sizes, member IDs, tracked-person confidence, cheap movement states such as stationary, moving, approaching, and receding, and a first-pass attentiveness signal from person visibility, likely face visibility, centered/frontal geometry, and confidence; manual social context can set the same movement and attention fields. Hand signs and weather have dedicated report panels with source/mode/confidence or location/condition/forecast details. The Continuous Speech tab includes a speech-sensing readout for the latest accepted Realtime ASR user utterance. Behaviour modalities render as a visual state board with active modality chips, a gesture icon, sign visuals, and progress meters for numeric face/motion state.
-- After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour board cards/chips. Agents without a declared profile keep the full cockpit visible as a fallback.
-- If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
+![Valerian access management](.doc/figures/Valerian/valerian-cockpit-admin.png)
 
-### Valerian Access Management
+![Valerian facial expression sensing](.doc/figures/Valerian/valerian-cockpit-facial.png)
 
-- URL: `http://localhost:8080/valerian-admin/`
-- Purpose: small root/admin page for configuring Valerian access codes without manual database changes.
-- Admin token is entered in the page and stored in `sessionStorage` for the current browser session.
-- The page can create manually typed five-character access codes, generate non-ambiguous five-character codes client-side, enable/disable codes, assign registered agent types with checkboxes, and inspect instances linked to each code.
-- The header preset menu can load backend-defined access-code presets, review their preselected agent assignments in a modal, optionally uncheck individual agents, and create the whole preset set in one transaction.
+![Valerian social context sensing](.doc/figures/Valerian/valerian-cockpit-social.png)
 
-### Text Client
+![Valerian rock-scissor-paper hand-sign interaction](.doc/figures/Valerian/valerian-cockpit-rsp.png)
 
-- URL: `http://localhost:8080/?agentId=<uuid>`
-- Purpose: text-first conversational interaction with the agent.
+The cockpit includes:
 
-![Text client screenshot](.readme/client-text.png)
+- Access-code scoped demo sessions at `/valerian/`.
+- Access-code administration at `/valerian-admin/`.
+- Text interaction and OpenAI Realtime speech interaction.
+- Manual and camera-based sensing for supported profiles.
+- Facial expression, social context, hand sign, and weather context reports.
+- Behaviour rendering for speech, gesture, facial expression, gaze, motion, hand
+  signs, and display output.
+- Agent metadata, interaction profile, event history, storage, and live monitor
+  streams.
 
-### Realtime Client
+## Current Agent Catalog
 
-- URL: `http://localhost:8080/realtime/?agentId=<uuid>`
-- Purpose: low-latency voice interaction via OpenAI Realtime.
+Production agent definitions live under
+`src/main/java/ch/zhaw/prometheus/agentdefs`. Definitions implement
+`AgentDefinition`, expose a stable key, and are discovered as Spring beans.
 
-![Realtime client screenshot](.readme/client-realtime.png)
+The main branch ships the Valerian baseline catalog:
 
-### Monitor Client
+| Key | Purpose |
+| --- | --- |
+| `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
+| `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
+| `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
+| `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
+| `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
+| `usecases.healthcare.guessing_game` | Healthcare guessing game where Valerian guesses. |
+| `usecases.healthcare.guessing_game_user_guess` | Healthcare guessing game where the user guesses. |
+| `usecases.healthcare.healthcare_conversation` | Open healthcare conversation use case. |
+| `usecases.healthcare.smart_goal_coaching` | Healthcare SMART-goal coaching use case. |
+| `usecases.healthcare.therapy_appointment_reminder` | Single-state therapy appointment reminder. |
+| `usecases.healthcare.therapy_appointment_reminder_intro` | Two-state therapy appointment reminder with introduction. |
 
-- URL: `http://localhost:8080/monitor/?agentId=<uuid>`
-- Purpose: live runtime visibility (state snapshots, behaviour events, logs).
+This `agents` branch keeps the main baseline catalog and adds event- and
+experiment-specific application definitions as Spring beans via
+`ApplicationAgentDefinitionConfiguration`:
 
-![Monitor client screenshot](.readme/client-monitor.png)
+| Package/key prefix | Purpose |
+| --- | --- |
+| `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
+| `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
+| `tdsr.davos.*` | Davos care-center and summit/hotel application agents for event demonstrations. |
+| `tdsr.lab.*` | SIRA Lab demonstrators for GIGI/TDSR event and experiment work. |
+| `tdsr.migros.*` | German Migros Appenzell TDSR station and filmed-scene agents. |
+| `elderlycare.*` | Elderly-care single-state demonstrator agents. |
 
-### Visual Facial Client
+These branch-specific definitions stay outside the generic main baseline
+catalog so `main` can remain the reusable PROMETHEUS framework line.
 
-- URL: `http://localhost:8080/visual/facial/?agentId=<uuid>`
-- Purpose: visual/facial rendering channel for multimodal output.
+## Requirements
 
-![Visual facial client screenshot](.readme/client-visual-facial.png)
-
-### Visual Multifacial Client
-
-- URL: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
-- Purpose: facial-emotion capture with per-user naming for multi-user interactions.
-
-### Visual Social Client
-
-- URL: `http://localhost:8080/visual/social/?agentId=<uuid>`
-- Purpose: social visual presentation channel for multimodal output.
-
-![Visual social client screenshot](.readme/client-visual-social.png)
-
-### Nonverbal Behaviour Renderer
-
-- URL: `http://localhost:8080/nonverbal/?agentId=<uuid>`
-- Purpose: dedicated nonverbal behaviour stream rendering.
-
-![Nonverbal behaviour renderer screenshot](.readme/client-nonverbal-renderer.png)
-
-## Core Concepts
-
-- `Event`: unified input and internal signal model (observations, responses, control events).
-- `State` and `Transition`: explicit control with prompt-based decisions and actions.
-- `BehaviourPlan`: structured output across behaviour modalities (`speech`, `nonVerbal`, `motion`, `display`).
-- `Storage`: per-agent key-value memory shared across states.
-- `OuterState`: hierarchical control across nested state machines.
-- Regulation and policy runtime: modulation is explicit and bounded by control semantics.
-
-## Tech Stack
-
-- Java 21
-- Spring Boot 3.4.x
-- Maven Wrapper (`mvnw`, `mvnw.cmd`)
-- MySQL (JPA/Hibernate)
+- Java 21 or newer.
+- MySQL.
+- Maven Wrapper from this repository.
+- Node.js only when running the Playwright visual smoke tests.
+- OpenAI or Azure OpenAI configuration for prompt generation and Realtime speech.
 
 ## Local Setup
 
-### 1. Prerequisites
+Copy the template files and adjust them for your machine:
 
-- JDK (`java -version`)
-- MySQL running locally
-
-### 2. Configure properties
-
-Create or update:
-
-- `src/main/resources/application.properties`
-- `src/main/resources/openai.properties`
-
-You can copy from:
-
-- `src/main/resources/application.properties.template`
-- `src/main/resources/openai.properties.template`
-
-Minimum local fields:
-
-- DB: `spring.datasource.url`, `spring.datasource.username`, `spring.datasource.password`
-- OpenAI or Azure: `openai.openaivsazureopenai`, `openai.url`, `openai.key`
-- Optional admin API: `prometheus.admin.token`
-- Optional external browser clients:
-  `prometheus.cors.allowed-origins`,
-  `prometheus.cors.allowed-origin-patterns`
-- Optional realtime: `openai.realtimeModel`, `openai.realtimeInputTranscriptionModel`,
-  `openai.realtimeTranscriptionModel`, `openai.realtimeTranscriptionLanguage`,
-  `openai.realtimeTranscriptionDelay`, `openai.realtimeSafetyIdentifier`,
-  `openai.realtimeClientSecretUrl`, `openai.realtimeCallsUrl`
-
-### 3. Run
-
-```bash
-./mvnw spring-boot:run
+```powershell
+Copy-Item src/main/resources/application.properties.template src/main/resources/application.properties
+Copy-Item src/main/resources/openai.properties.template src/main/resources/openai.properties
 ```
 
-PowerShell:
+Minimum configuration:
+
+- `spring.datasource.url`
+- `spring.datasource.username`
+- `spring.datasource.password`
+- `openai.openaivsazureopenai`
+- `openai.url`
+- `openai.key`
+- `prometheus.admin.token` for Valerian Access Management
+
+Run the application:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-App default URL: `http://localhost:8080`
+The default local URL is `http://localhost:8080`.
 
-### 4. Test
+Open the main surfaces:
+
+- Valerian Cockpit: `http://localhost:8080/valerian/`
+- Valerian Access Management: `http://localhost:8080/valerian-admin/`
+
+## Testing
 
 Run the Java regression suite:
 
@@ -178,7 +157,14 @@ Run the Java regression suite:
 .\mvnw.cmd test
 ```
 
-Run the Valerian Playwright visual smoke check:
+Run JavaScript syntax checks for the Valerian cockpit:
+
+```powershell
+node --check src/main/resources/public/valerian/script.js
+node --check tests/playwright/valerian-column-expansion.spec.mjs
+```
+
+Run the Valerian Playwright visual smoke test:
 
 ```powershell
 npm install
@@ -186,498 +172,379 @@ npx playwright install chromium
 npm run test:valerian:visual
 ```
 
-The Playwright check starts or reuses `http://127.0.0.1:8080`, uses the configured
-database, creates or re-enables access code `VX102` through the admin API,
-validates the facial emotion report, social context report, and Behaviour board
-visuals in expanded modals, and captures expanded-column screenshots as test artifacts. Set
-`PROMETHEUS_ADMIN_TOKEN` if your local `prometheus.admin.token` is not `laure`.
-Set `PROMETHEUS_SKIP_WEBSERVER=true` when you already started the app yourself.
+The Playwright test starts or reuses `http://127.0.0.1:8080`, creates or
+re-enables access code `VX102` through the admin API, and checks the facial
+expression report, social context report, and behaviour board. Set
+`PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
+the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
+running.
 
-### 5. External browser clients and CORS
+## Connecting External Clients
 
-The bundled PROMETHEUS clients are same-origin and do not need CORS. If a
-separate browser client such as `zhaw-iwi/valerian.git` runs on another origin
-and calls PROMETHEUS directly, configure an explicit allowlist.
+External clients usually use the scoped demo API. It keeps agent instances
+behind an access code and mirrors what the Valerian cockpit does. Trusted
+backend tools can use the global agent endpoints shown later.
 
-For a local laptop cockpit:
+### 1. Open a scoped session
 
-```properties
-prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010
-```
+Create an access code and assign agent types in Valerian Access Management, or
+use the admin API. Then validate the code:
 
-For variable local ports or hostnames, use origin patterns instead:
+```http
+POST /demo/session
+Content-Type: application/json
 
-```properties
-prometheus.cors.allowed-origin-patterns=http://127.0.0.1:*,http://localhost:*
-```
-
-On Heroku, set the equivalent config vars:
-
-```bash
-PROMETHEUS_CORS_ALLOWED_ORIGINS=http://127.0.0.1:5010,http://localhost:5010
-PROMETHEUS_CORS_ALLOWED_ORIGIN_PATTERNS=http://127.0.0.1:*,http://localhost:*
-```
-
-Keep the allowlist as narrow as practical because the scoped demo access code is
-used as a bearer-style client credential.
-
-## Agent Definitions and Creation
-
-Reusable agent type definitions live in `src/main/java/ch/zhaw/prometheus/agentdefs`.
-Each production definition implements `AgentDefinition`, exposes a stable `key()`, builds an unsaved `Agent` through `createAgent()`, and may define its startup path in `createInstance(...)`.
-Definitions are discovered from Spring-managed `AgentDefinition` beans, so new
-definition packages can be added without editing `AgentDefinitionRegistry`.
-Annotate a definition with `@Component` or expose it from a Spring configuration
-class. The current migrated definitions call `Agent.start(...)` inside
-`createInstance(...)`, preserving the former seed-test startup behaviour as
-developer-written code.
-
-This `agents` branch is based on the clean framework `main` line and keeps the
-baseline Valerian catalog from `main` while adding event- and
-experiment-specific application agents as Spring `AgentDefinition` beans via
-`ApplicationAgentDefinitionConfiguration`. The branch also carries the TDSR
-prompt/docs, app replay tests, and SHHD access-code presets.
-
-Registered baseline definitions from `main`:
-
-- `core.facial_expression_sensitivity` - Valerian Core facial-expression signal demo.
-- `core.multimodal_behaviour` - Valerian Core multimodal behaviour demo.
-- `core.rock_scissor_paper` - Valerian Core rock-scissor-paper hand-sign demo.
-- `core.role_clarification_guessing_game` - Valerian Core role-clarification guessing game.
-- `core.social_context_sensitivity` - Valerian Core social-context signal demo.
-- `usecases.healthcare.guessing_game` - Healthcare use-case guessing game where Valerian guesses.
-- `usecases.healthcare.guessing_game_user_guess` - Healthcare use-case guessing game where the user guesses.
-- `usecases.healthcare.healthcare_conversation` - Open healthcare use-case conversation.
-- `usecases.healthcare.smart_goal_coaching` - Healthcare SMART-goal coaching use case.
-- `usecases.healthcare.therapy_appointment_reminder` - Healthcare therapy-reminder use case.
-- `usecases.healthcare.therapy_appointment_reminder_intro` - Healthcare therapy-reminder use case with Valerian intro.
-
-Registered application definitions on this branch:
-
-- `tdsr.core.<language>.*` - TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`.
-- `tdsr.shhd.<language>.*` - SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`.
-- `tdsr.davos.*` - Davos care-center and summit/hotel application agents for event demonstrations.
-- `tdsr.lab.*` - SIRA Lab demonstrators for GIGI/TDSR event and experiment work.
-- `tdsr.migros.*` - German Migros Appenzell TDSR station and filmed-scene agents.
-- `elderlycare.*` - Elderly-care single-state demonstrator agents.
-
-### Option A: Create a registered agent through scoped demo access codes
-
-Registered definitions are normally instantiated through the scoped demo flow:
-
-1. In Valerian Access Management, create an access code and assign one or more registered agent types.
-2. In Valerian Cockpit, enter that access code.
-3. Create an assigned agent type; the backend calls the definition's `createInstance(...)` startup path and saves the initialized agent.
-4. Use the returned agent from the scoped Valerian endpoints.
-
-### Option B: Create a simple single-state agent via REST
-
-Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/main/java/ch/zhaw/prometheus/controllers/dto/SingleStateAgentCreateDTO.java`).
-
-## All Client Endpoints
-
-Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code session first.
-
-- Valerian cockpit: `http://localhost:8080/valerian/`
-- Valerian Access Management: `http://localhost:8080/valerian-admin/`
-- Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
-- Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
-- Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
-- Visual facial detector: `http://localhost:8080/visual/facial/?agentId=<uuid>`
-- Visual multifacial detector: `http://localhost:8080/visual/multifacial/?agentId=<uuid>`
-- Visual social detector: `http://localhost:8080/visual/social/?agentId=<uuid>`
-- Nonverbal behaviour renderer: `http://localhost:8080/nonverbal/?agentId=<uuid>`
-- RPS manual client: `http://localhost:8080/rps/?agentId=<uuid>`
-- Multilateral listen: `http://localhost:8080/multilateral/listen/?agentId=<uuid>`
-- Multilateral reports: `http://localhost:8080/multilateral/reports/?agentId=<uuid>`
-
-## API Overview
-
-### Agent metadata
-
-- `GET /agent`
-- `GET /agent/{id}`
-- `GET /agent/eventhistory`
-- `GET /agent/{id}/eventhistory`
-- `POST /agent/singlestate`
-
-`GET /agent`, `GET /agent/{id}`, and `GET /{agentID}/info` return
-`languageCode` and an `interactionProfile` object. `languageCode` is optional
-agent metadata used as a Realtime transcription language hint; custom
-`POST /agent/singlestate` requests may include it and otherwise default to
-`en`. The profile declares the observation event types an
-agent expects and the behaviour modalities it can emit, for example
-`obs.hand.sign`, `obs.social.grouping`, `obs.social.context`, `speech`,
-`nonVerbal.gesture`, `motion.handSign`, and `display`. It is persisted with the
-`Agent` aggregate and is metadata, not runtime `Storage`.
-Seed agent templates declare generic profiles through `AgentInteractionProfiles`
-factories such as `speechOnly()`, `multimodalOutput()`, and
-`multimodalInputOutput()`. TDSR application agents keep their specialized
-profile tags and capability bundles in the app-local `TdsrInteractionProfiles`
-helper rather than adding TDSR-specific API to the framework interaction model.
-
-### Agent runtime
-
-- `GET /{agentID}/info`
-- `GET /{agentID}/state`
-- `GET /{agentID}/states`
-- `GET /{agentID}/storage`
-- `GET /{agentID}/eventhistory`
-- `POST /{agentID}/start`
-- `DELETE /{agentID}/reset`
-
-### Realtime and event ingress
-
-- `GET /{agentID}/prompt` (optional `?profile=FULL_PLAN|REALTIME_SPEECH|BACKEND_COMPLEMENT`)
-- `POST /{agentID}/acknowledge` returns `ResponseView` (`responseEvent`, `active`)
-- `POST /{agentID}/realtime/call` with raw SDP body (`Content-Type: application/sdp`)
-- `DELETE /realtime/calls/{callId}`
-- `POST /realtime/transcription/session`
-
-### Streaming (SSE)
-
-- `GET /{agentID}/monitor/stream`
-- `GET /{agentID}/behaviour/stream`
-- `POST /{agentID}/behaviour/generate` (optional body: `omitModalities`, `outputProfile`)
-- `GET /logs/stream`
-- SSE publish failures are isolated from main HTTP endpoint handling and scheduler tick processing.
-- SSE streams use finite emitter lifetimes plus periodic heartbeat comments (`prometheus.sse.heartbeat.delay-ms`, default `25000`) so dead connections are discovered and cleaned up.
-- Behaviour SSE frames carry persisted event ids. Reconnecting clients may pass `Last-Event-ID` or `?lastEventId=<id>` to replay missed behaviour events from event history.
-- Browser clients close EventSource streams on page unload and use one reconnect timer per stream with bounded exponential backoff and jitter on disconnect.
-- Monitor client log and behaviour panes use bounded in-memory buffers to avoid unbounded growth during long sessions or repeated stream failures.
-
-### Admin access-code API
-
-Admin endpoints require header `X-Prometheus-Admin-Token` with the exact value from `prometheus.admin.token`.
-Access codes are case-sensitive, are not normalized by the backend, and must be exactly five ASCII letters or digits.
-The same operations are available through Valerian Access Management at `/valerian-admin/`.
-
-- `GET /admin/agent-types`
-- `GET /admin/access-code-presets`
-- `POST /admin/access-code-presets/{presetKey}/apply`
-- `POST /admin/access-codes`
-- `GET /admin/access-codes`
-- `PATCH /admin/access-codes/{id}`
-- `PUT /admin/access-codes/{id}/agent-types`
-- `GET /admin/access-codes/{id}/agents`
-
-Agent type views include package metadata derived from the Java package below
-`ch.zhaw.prometheus.agentdefs`, for example:
-
-```json
 {
-  "key": "usecases.healthcare.therapy_appointment_reminder",
-  "displayName": "Valerian Use Cases Healthcare - Therapy Reminder",
-  "description": "English healthcare care-center agent for a gentle therapy or activation appointment reminder.",
-  "packagePath": ["usecases", "healthcare"]
+  "accessCode": "VX102"
 }
 ```
 
-The admin cockpit uses `packagePath` to build its assignment tree dynamically.
-Package names are not hard-coded in the client, so new, renamed, or removed
-agent-definition packages appear from the API metadata.
+The response contains the enabled agent types and existing scoped agents.
 
-Access-code presets are backend-defined convenience bundles. They are listed as
-explicit access-code-to-agent-type-key assignments so the admin cockpit does not
-need to infer package contents. Applying a preset creates all requested access
-codes and assignments transactionally; if any code already exists or a submitted
-agent type is not part of that preset entry, the request fails without creating
-partial data. This `agents` branch ships the `shhd_scene_agents` preset for the
-TDSR SHHD scene-agent bundles.
+### 2. Create or select an agent
 
-Create body:
+List agent types available to the code:
 
-```json
-{
-  "code": "af7u1",
-  "enabled": true
-}
+```http
+GET /demo/agent-types
+X-Prometheus-Access-Code: VX102
 ```
 
-Allowed-type replacement body:
+Create an assigned agent type:
 
-```json
-{
-  "agentTypeKeys": ["core.social_context_sensitivity"]
-}
-```
+```http
+POST /demo/agents
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
 
-Preset apply body:
-
-```json
-{
-  "entries": [
-    {
-      "code": "start",
-      "agentTypeKeys": [
-        "core.social_context_sensitivity",
-        "usecases.healthcare.therapy_appointment_reminder"
-      ]
-    }
-  ]
-}
-```
-
-`PUT /admin/access-codes/{id}/agent-types` replaces the complete assignment. Send a
-smaller list to remove types, a larger list to add types, or an empty list to
-clear all assigned agent types.
-
-### Scoped demo API
-
-The scoped demo API is intended for the Valerian cockpit and does not change the
-existing global agent endpoints. Requests use an existing enabled access code.
-Pass the code as header `X-Prometheus-Access-Code`. Browser SSE clients may pass
-the same value as `?accessCode=<code>` because `EventSource` cannot set custom
-headers.
-
-- `POST /demo/session`
-- `GET /demo/agent-types`
-- `GET /demo/agents`
-- `POST /demo/agents`
-- `DELETE /demo/agents/{agentId}`
-- `GET /demo/agents/{agentId}/info`
-- `GET /demo/agents/{agentId}/eventhistory`
-- `GET /demo/agents/{agentId}/state`
-- `GET /demo/agents/{agentId}/states`
-- `GET /demo/agents/{agentId}/storage`
-- `POST /demo/agents/{agentId}/start`
-- `DELETE /demo/agents/{agentId}/reset`
-- `POST /demo/agents/{agentId}/acknowledge`
-- `POST /demo/agents/{agentId}/behaviour/generate`
-- `GET /demo/agents/{agentId}/behaviour/stream`
-- `GET /demo/agents/{agentId}/monitor/stream`
-- `GET /demo/agents/{agentId}/prompt`
-- `POST /demo/agents/{agentId}/realtime/call` with raw SDP body (`Content-Type: application/sdp`)
-
-Session body:
-
-```json
-{
-  "accessCode": "af7u1"
-}
-```
-
-Agent creation body:
-
-```json
 {
   "agentDefinitionKey": "core.social_context_sensitivity"
 }
 ```
 
-Only agent types assigned to the access code can be created. Agents created
-through a code are visible only through that code unless an admin or later flow
-links the same agent to another code. Deleting a scoped agent removes the link
-first and deletes the underlying `Agent` only when no other access code links
-remain.
+Read the agent metadata before enabling perception or rendering controls:
 
-## Developer Workflow for New Agents
+```http
+GET /demo/agents/{agentId}/info
+X-Prometheus-Access-Code: VX102
+```
 
-1. Start from an existing production definition under `src/main/java/ch/zhaw/prometheus/agentdefs`, such as `core/SocialContextSensitivity.java` or `usecases/healthcare/SingleStateTherapyAppointmentReminder.java`.
-2. Define prompts for outer state, inner state(s), transition decisions, and actions.
-3. Use `Storage` keys for extracted values consumed by later states.
-4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
-5. For multimodal behaviour, include nonverbal policy prompts (`PromptPolicy#setNonVerbalPlanPrompt` and optional `PromptPolicy#setNonVerbalGesturePrompt` fallback) and ingest nonverbal events via `/acknowledge`.
-6. Implement `AgentDefinition`, choose a stable key, and expose the definition as a Spring bean, usually with `@Component`.
-7. Put startup behavior directly in `createInstance(...)`; call `Agent.start(...)` there only when this agent type should be started during creation.
-8. Add a thin test wrapper only when manual database seeding is useful.
-9. Seed the agent, run app, then iterate using the Valerian cockpit, Monitor, and behaviour streams.
-10. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
-
-### Event example
+Relevant response fields:
 
 ```json
+{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "name": "Valerian Core social context sensitivity",
+  "description": "English Valerian Core agent for social-context sensing.",
+  "active": true,
+  "languageCode": "en",
+  "interactionProfile": {
+    "supportedObservations": [
+      "obs.user_utterance",
+      "obs.human.presence",
+      "obs.social.grouping",
+      "obs.social.context"
+    ],
+    "supportedBehaviourModalities": [
+      "speech",
+      "nonVerbal.gesture",
+      "nonVerbal.facialExpression",
+      "nonVerbal.gaze",
+      "nonVerbal.motion"
+    ],
+    "profileTags": []
+  }
+}
+```
+
+Clients should use `supportedObservations` to decide which sensing UI or sensors
+to enable, and `supportedBehaviourModalities` to decide which behaviour channels
+to render. An empty profile means "unknown"; fall back conservatively.
+
+### 3. Publish perception events
+
+Send observations to the agent with `acknowledge`:
+
+```http
+POST /demo/agents/{agentId}/acknowledge
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
 {
   "type": "obs.user_utterance",
   "actor": "user",
   "kind": "observation",
-  "payload": "I am feeling better today."
+  "payload": "What do you notice about this group?"
 }
 ```
 
-Assistant behaviour plan events use:
-
-- `type`: `resp.behaviour_plan`
-- `actor`: `assistant`
-- `kind`: `response`
-- `payload`: JSON string of a `BehaviourPlan`
-
-Visual social observations use raw event types:
-
-- `obs.human.presence`
-- `obs.social.grouping`
-- `obs.social.context`
-
-The visual social client emits the presence/grouping pair from camera detection.
-The Valerian cockpit can emit the same pair and, when supported by the active
-profile, the richer `obs.social.context` event. The Valerian cockpit also includes
-manual social scenario buttons and a compact detail editor for people, group
-sizes, movement state/confidence, attentiveness state/confidence, and attention
-cues; both paths emit the same social contracts for rehearsal without a camera.
-
-`obs.social.context` is the richer optional Valerian social sensing event. It is
-emitted alongside the existing presence/grouping events only for agents that
-declare `obs.social.context` or for unprofiled fallback cockpits. Its payload has
-`schemaVersion: 1`, aggregate human/group counts, group member IDs, and per-person
-`detectionConfidence`, `movement.state/confidence`, and
-`attention.state/confidence` plus boolean attention cues such as `personVisible`,
-`faceVisible`, `nearFrontal`, `centered`, and `frontalCentered`. It does not carry
-camera frames or raw bounding boxes.
-
-When `obs.social.grouping` is acknowledged, PROMETHEUS may persist a computed
-social event:
-
-- `type`: `obs.social.situation_change`
-- `actor`: `system`
-- `kind`: `observation`
-- `payload.changeType`: `arrival`, `departure`, `crowd_detected`,
-  `now_alone`, `single_person_nearby`, or `group_size_changed`
-
-Hand-sign observations use:
-
-- `type`: `obs.hand.sign`
-- `actor`: `user`
-- `kind`: `observation`
-- `payload.sign`: `rock`, `scissor`, or `paper`
-- optional payload fields: `hand`, `confidence`, `detectionMode`, `source`
-
-The Valerian cockpit emits this event shape from manual sign buttons with
-`source=valerian.hand.manual` and `detectionMode=manual`. Its optional camera
-mode uses MediaPipe Gesture Recognizer in the browser and maps canned gestures as
-follows: `Closed_Fist -> rock`, `Victory -> scissor`, `Open_Palm -> paper`.
-Camera events use `source=valerian.hand.camera` and
-`detectionMode=client_camera`. The Signals Sensed accordion shows the latest hand
-sign as a report with the sign symbol, confidence meter, source, detection mode,
-canned MediaPipe gesture, and stability-frame count when available.
-
-Weather observations use:
-
-- `type`: `obs.weather.current` or `obs.weather.forecast`
-- `actor`: `system`
-- `kind`: `observation`
-- payload fields for current weather: `location_label`, `condition`, `intensity`,
-  `wind`, `temperature_c`, `cloud_cover`, `observed_at`
-- payload fields for forecasts: `location_label` and `days[]` with `date`,
-  `condition`, `intensity`, `temperature_min_c`, and `temperature_max_c`
-
-The Valerian cockpit exposes weather controls only for agents that declare
-weather observations. It resolves a manually entered location through
-Open-Meteo in the browser, normalizes the result, and sends current weather or a
-short forecast only when the operator presses the corresponding button. The
-Signals Sensed accordion shows the latest weather context as a report with
-location, condition, temperature, precipitation/intensity, wind, light state, and
-a compact three-day forecast strip when forecast data is present.
-
-Hand-sign reveal behaviours use top-level `BehaviourPlan.motion`:
+`payload` is always a string. For structured observations, encode the structured
+payload as JSON inside the string:
 
 ```json
 {
-  "effector": "right_hand",
-  "armPose": "present_forward",
-  "handSign": "rock",
-  "timing": {
-    "synchronizeWithSpeech": "spoken reveal phrase",
-    "revealAt": "phrase_end"
-  },
-  "confidence": 1.0
+  "type": "obs.hand.sign",
+  "actor": "user",
+  "kind": "observation",
+  "payload": "{\"source\":\"external.camera\",\"hand\":\"right\",\"sign\":\"rock\",\"confidence\":0.93,\"detectionMode\":\"client_camera\",\"ts\":\"2026-07-08T09:00:00Z\"}"
 }
 ```
 
-Notes:
-- `/{agentID}/acknowledge` may already return a `responseEvent` (for example when a transition enters a starting state).
-- `/{agentID}/behaviour/generate` can be called in final states; final-state prompts may still produce behaviour while `active=false`.
-- The Valerian cockpit renders the gesture field as `NONE` when a behaviour event contains no `nonVerbal` object, making speech-only turns explicit instead of leaving a stale previous gesture visible.
-- Valerian-facing agents should not emit robot-server gesture IDs directly in
-  `nonVerbal.gesture`, and should not emit unsupported locomotion fields such
-  as `motion.move` or `motion.turn`.
+The response is:
 
-## Realtime Notes
+```json
+{
+  "responseEvent": {
+    "type": "resp.behaviour_plan",
+    "actor": "assistant",
+    "kind": "response",
+    "payload": "{\"speech\":\"I saw rock. I will reveal mine now.\",\"motion\":{\"handSign\":\"paper\"}}",
+    "createdDate": "2026-07-08T09:00:01Z",
+    "statePath": ["Valerian Core RPS Reveal Sign"]
+  },
+  "active": true
+}
+```
 
-- Continuous speech browsers no longer obtain OpenAI client secrets. They create a WebRTC offer and post the raw SDP to PROMETHEUS:
-  - global client: `POST /{agentID}/realtime/call`
-  - Valerian scoped client: `POST /demo/agents/{agentId}/realtime/call`
-  - query options: `voice`, `turnDetection=server_vad|semantic_vad`, `generateComplement=true|false`,
-    `vadThreshold`, `vadPrefixPaddingMs`, `vadSilenceDurationMs`, `vadEagerness`,
-    `vadInterruptResponse=true|false`, `inputNoiseReduction=near_field|far_field|off`,
-    `outputSpeed`, `reasoningEffort=low|medium|high`, `maxOutputTokens`, and
-    `includeInputTranscriptionLogprobs=true|false`.
-- PROMETHEUS forwards the SDP to OpenAI `/v1/realtime/calls` with the current `REALTIME_SPEECH` prompt already installed as session `instructions`.
-- Realtime tuning query options are applied both to the initial OpenAI session payload and to later sideband `session.update` messages. Server VAD-only options are `vadThreshold`, `vadPrefixPaddingMs`, and `vadSilenceDurationMs`; semantic VAD uses `vadEagerness`. `inputNoiseReduction=off` sends OpenAI `audio.input.noise_reduction=null`.
-- PROMETHEUS remains authoritative for assistant speech generation: Realtime turn detection always sends `create_response=false`. Browser cockpits do not expose response creation as a user setting, and older clients that send `vadCreateResponse=true` are rejected with `400 Bad Request`. `vadInterruptResponse` only maps to OpenAI `interrupt_response`.
-- Agent instances can carry an optional `languageCode` such as `de` or `en`. Definition-backed agents set this according to their prompt language; the current registered built-ins use German prompts and set `de`. Custom `/agent/singlestate` creation defaults to `en` unless the request supplies another `languageCode`. Agent-bound Realtime speech calls forward the value as `audio.input.transcription.language` to reduce cross-language transcription drift.
-- Speech-to-speech calls use `openai.realtimeInputTranscriptionModel` for `audio.input.transcription.model` and default to `gpt-4o-transcribe`. This is the built-in ASR model for the Realtime call, not the response-generation model. Transcription-only sessions still use `openai.realtimeTranscriptionModel` and default to `gpt-realtime-whisper`.
-- PROMETHEUS opens a backend sideband WebSocket for the returned call ID. The sideband listens for Realtime transcript events, batches asynchronous transcript completions by committed input item, suppresses duplicate and known caption-hallucination transcripts, acknowledges accepted user utterances through the normal PROMETHEUS runtime, generates canonical `REALTIME_SPEECH` through the backend when needed, refreshes session instructions after state transitions, and only then triggers an out-of-band `response.create` with `conversation=none`, empty input context, and an exact-speech instruction.
-- PROMETHEUS persists the canonical assistant speech as `resp.behaviour_plan` before Realtime speaks it. Browser clients render live audio/transcript but do not acknowledge assistant responses themselves.
-  - Server default: `openai.realtimeModel=gpt-realtime-2`.
-  - Voice controls include the GA voice options `cedar` and `marin`.
-  - Optional endpoint override: `openai.realtimeCallsUrl`.
-- The multilateral listening client obtains a transcription-only client secret from
-  `POST /realtime/transcription/session`.
-  - Server default: `openai.realtimeTranscriptionModel=gpt-realtime-whisper`.
-  - Optional transcription hints: `openai.realtimeTranscriptionLanguage`, `openai.realtimeTranscriptionDelay`.
-  - When `/multilateral/listen` is opened for an agent, it passes `agentId`; the endpoint uses the agent `languageCode` as a transcription language override when present and falls back to `openai.realtimeTranscriptionLanguage` otherwise.
-  - `gpt-realtime-whisper` omits turn detection, so `/multilateral/listen` sends periodic
-    `input_audio_buffer.commit` events while listening.
-  - Known caption-style ASR hallucinations are filtered before display or `/acknowledge`.
-- If `openai.realtimeSafetyIdentifier` is set, the backend sends it as `OpenAI-Safety-Identifier` when creating
-  Realtime calls and transcription client secrets. Use a stable, privacy-preserving identifier.
-- Browser clients establish WebRTC by posting SDP to PROMETHEUS. PROMETHEUS returns the OpenAI SDP answer plus a `callId`.
-- `/{agentID}/prompt?profile=REALTIME_SPEECH` remains the backend prompt source for Realtime session instructions.
-- When PROMETHEUS acknowledgement or backend speech generation returns speech, the sideband asks Realtime to say that exact text from an empty out-of-band response context and does not persist a duplicate assistant event.
-- Active Realtime calls render canonical backend `BehaviourPlan.speech` for any published assistant behaviour event, including responses triggered by non-speech observations such as hand signs or visual social signals.
-- Browser speech clients expose continuous Realtime speech only. Users choose `server_vad` or `semantic_vad`; OpenAI VAD owns turn chunking.
-- Continuous Realtime restarts through its sideband startup configuration: if the latest utterance in the current state history is assistant-authored, PROMETHEUS asks Realtime to read that exact stored `BehaviourPlan.speech`. Non-speech observations or backend complement events after the assistant speech do not prevent replay, but a later user utterance does.
-- To complement realtime speech with nonverbal backend output, call:
-  - `POST /{agentID}/behaviour/generate`
-  - body example: `{"outputProfile":"BACKEND_COMPLEMENT","omitModalities":["speech"]}`
+`responseEvent` may be `null` when the event updates context but does not trigger
+new behaviour.
 
-For Python exploration, see `PROMISE_Realtime.ipynb`.
+Supported observation event types in the current public contract:
 
-## Deployment to Heroku
+| Event type | Actor | Payload |
+| --- | --- | --- |
+| `obs.user_utterance` | `user` | Plain utterance text. |
+| `obs.emotion.face` | `user` | JSON string with `emotion`, `confidence`, `valence`, `arousal`, optional `expressions`, source, and timestamp. |
+| `obs.human.presence` | `user` | JSON string with aggregate human/tracked counts and source. |
+| `obs.social.grouping` | `user` | JSON string with group count, singleton count, largest group size, groups, and source. |
+| `obs.social.context` | `user` | JSON string with `schemaVersion: 1`, aggregate group fields, and per-person movement/attention fields. |
+| `obs.hand.sign` | `user` | JSON string with `sign` as `rock`, `scissor`, or `paper`, plus confidence/source fields. |
+| `obs.weather.current` | `system` | JSON string with location, condition, intensity, wind, temperature, precipitation, and timestamp. |
+| `obs.weather.forecast` | `system` | JSON string with location and `days[]` forecast entries. |
 
-This repository already contains Heroku-oriented production resources:
+Use only observations declared by the agent profile unless you are deliberately
+testing fallback behaviour.
+
+### 4. Subscribe to behaviour
+
+Behaviour clients subscribe with Server-Sent Events:
+
+```http
+GET /demo/agents/{agentId}/behaviour/stream?accessCode=VX102
+Accept: text/event-stream
+```
+
+Browser `EventSource` cannot set custom headers, so scoped browser clients pass
+`accessCode` as a query parameter. Non-browser clients may use the
+`X-Prometheus-Access-Code` header instead.
+
+Each behaviour event has:
+
+- SSE event name: `behaviour`
+- SSE id: persisted event id when available
+- SSE data: an `Event` object with type `resp.behaviour_plan`
+
+The event `payload` is a JSON string containing a `BehaviourPlan`:
+
+```json
+{
+  "speech": "That looks like a small group.",
+  "nonVerbal": {
+    "gesture": "ACKNOWLEDGE",
+    "facialExpression": { "type": "attentive", "intensity": 0.55 },
+    "gaze": { "direction": "toward_group", "focus": "group" },
+    "motion": { "stillness": 0.75, "energy": 0.35 }
+  },
+  "motion": {
+    "handSign": "paper"
+  },
+  "display": {
+    "title": "Social context",
+    "summary": "Two people nearby"
+  }
+}
+```
+
+Clients should ignore channels they cannot render. Reconnect with either the
+standard `Last-Event-ID` header or `?lastEventId=<id>` to replay missed
+behaviour events.
+
+### 5. Request generated behaviour without a new perception event
+
+Some clients need backend complement behaviour after realtime speech, or want to
+ask the current state to generate again:
+
+```http
+POST /demo/agents/{agentId}/behaviour/generate
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
+{
+  "outputProfile": "BACKEND_COMPLEMENT",
+  "omitModalities": ["speech"]
+}
+```
+
+Valid output profiles are:
+
+- `FULL_PLAN`: speech and supported non-speech channels.
+- `REALTIME_SPEECH`: speech-only prompt contract for realtime speech.
+- `BACKEND_COMPLEMENT`: non-speech complement derived from the current context.
+
+The endpoint returns `200` when behaviour was generated, `409` when no behaviour
+was produced, `404` when the agent is missing, and `400` for an unknown profile.
+
+### 6. Monitor state and storage
+
+Use these endpoints for diagnostics and operator UI:
+
+```http
+GET /demo/agents/{agentId}/state
+GET /demo/agents/{agentId}/states
+GET /demo/agents/{agentId}/storage
+GET /demo/agents/{agentId}/eventhistory
+GET /demo/agents/{agentId}/monitor/stream?accessCode=VX102
+```
+
+The monitor SSE stream emits `snapshot` events with current state, inner state
+chain, active flag, known states, and storage entries.
+
+## Global Agent API
+
+The global API is useful for trusted tools, tests, or internal services. It is
+not access-code scoped.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/agent` | List persisted agents. |
+| `POST` | `/agent/singlestate` | Create an ad-hoc single-state agent. |
+| `GET` | `/{agentId}/info` | Agent metadata and interaction profile. |
+| `POST` | `/{agentId}/start` | Start the current state. |
+| `DELETE` | `/{agentId}/reset` | Reset the agent. |
+| `POST` | `/{agentId}/acknowledge` | Publish an event. |
+| `GET` | `/{agentId}/prompt?profile=...` | Inspect the prompt contract. |
+| `POST` | `/{agentId}/behaviour/generate` | Generate behaviour from current state. |
+| `GET` | `/{agentId}/behaviour/stream` | Subscribe to behaviour SSE. |
+| `GET` | `/{agentId}/monitor/stream` | Subscribe to monitor SSE. |
+
+The request and response shapes are the same as the scoped demo API, without the
+access-code header.
+
+## Realtime Speech
+
+Realtime speech clients do not talk directly to OpenAI. They post a WebRTC SDP
+offer to PROMETHEUS:
+
+```http
+POST /demo/agents/{agentId}/realtime/call?voice=cedar&turnDetection=server_vad
+X-Prometheus-Access-Code: VX102
+Content-Type: application/sdp
+
+v=0
+...
+```
+
+PROMETHEUS creates the OpenAI Realtime call with the agent's current
+`REALTIME_SPEECH` prompt, keeps a backend sideband connection, accepts
+transcripts into the normal event pipeline, persists canonical assistant speech
+as `resp.behaviour_plan`, and asks Realtime to speak that exact text.
+
+Close calls with:
+
+```http
+DELETE /realtime/calls/{callId}
+```
+
+Transcription-only clients can request a session with:
+
+```http
+POST /realtime/transcription/session?agentId={agentId}
+```
+
+## Admin API
+
+Admin endpoints require:
+
+```http
+X-Prometheus-Admin-Token: <prometheus.admin.token>
+```
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/admin/agent-types` | List registered `AgentDefinition` types with package metadata. |
+| `GET` | `/admin/access-code-presets` | List backend-defined access-code presets. |
+| `POST` | `/admin/access-code-presets/{presetKey}/apply` | Create a preset bundle transactionally. |
+| `POST` | `/admin/access-codes` | Create an access code. |
+| `GET` | `/admin/access-codes` | List access codes. |
+| `PATCH` | `/admin/access-codes/{id}` | Enable or disable a code. |
+| `PUT` | `/admin/access-codes/{id}/agent-types` | Replace assigned agent type keys. |
+| `GET` | `/admin/access-codes/{id}/agents` | List agents linked to a code. |
+
+Access codes must be exactly five ASCII letters or digits. The backend treats
+them as case-sensitive.
+
+## CORS
+
+Bundled clients are same-origin. External browser clients need an explicit
+allowlist:
+
+```properties
+prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010
+prometheus.cors.allowed-origin-patterns=http://127.0.0.1:*,http://localhost:*
+```
+
+Keep this narrow because the scoped access code acts as a bearer-style client
+credential.
+
+## Repository Structure
+
+```text
+src/main/java/ch/zhaw/prometheus
+  agentdefs/        Registered Valerian agent definitions.
+  application/      Application services for agents, access codes, Realtime, and scoped demos.
+  controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
+  logging/          SSE broadcasters.
+  model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
+  spi/              OpenAI and Realtime integration boundary.
+
+src/main/resources/public
+  valerian/         Valerian cockpit.
+  valerian-admin/   Valerian access management.
+
+tests/playwright    Browser-level Valerian visual smoke test.
+```
+
+## Developing New Agents
+
+1. Start from an existing definition in `agentdefs/core` or
+   `agentdefs/usecases/healthcare`.
+2. Define prompts for state entry, response generation, transitions, actions,
+   and outcome extraction.
+3. Declare an `AgentInteractionProfile` that lists required observations and
+   emitted behaviour modalities.
+4. Implement `AgentDefinition` with a stable key and expose it as a Spring bean.
+5. Use `createInstance(...)` for startup behaviour that should run immediately
+   after scoped creation.
+6. Add prompt/profile contract tests and update README/API examples if the
+   public contract changes.
+
+Prefer clear replacement over compatibility shims while the framework remains
+prototype-oriented.
+
+## Deployment Notes
+
+The repository contains Heroku/container-oriented resources:
 
 - `Dockerfile`
 - `src/main/resources/application-prod.properties`
 - `src/main/resources/openai-prod.properties`
 - `.github/workflows/deployment.yml`
 
-### 1. Heroku app setup
+Production deployments must provide database credentials and OpenAI credentials
+through environment variables or platform config vars.
 
-- Create app in Heroku.
-- Add JawsDB MySQL.
-- Set stack to container:
+## Project Notes
 
-```bash
-heroku stack:set container --app <your-app-name>
-```
-
-### 2. Heroku config vars
-
-Set at minimum:
-
-- `OPENAI_KEY`
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `PORT` (provided automatically by Heroku runtime)
-
-### 3. GitHub Actions deployment
-
-Update `.github/workflows/deployment.yml` with your app and secret names.
-
-Current workflow deploys Docker to Heroku on push to branch `au_restaurant_prod`.
-
-### 4. Run with prod profile
-
-Container command uses:
-
-```bash
-./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
-```
-
-## Repository Notes
-
-- `.agents/CONTEXT.MD` defines the PROMETHEUS framework context for agentic development: purpose, canonical use cases, requirements, and architectural specifications.
-- `.agents/CODEX.md` defines the engineering workflow and execution discipline coding agents must follow in this repository.
-- `.agents/humandevhowto.txt` provides example prompts for starting a coding-agent session.
+- `.agents/CONTEXT.md` describes the PROMETHEUS architecture and boundaries.
+- `.agents/CODEX.md` describes the repository workflow for coding agents.
+- `PROJECT.md` is the milestone audit trail.

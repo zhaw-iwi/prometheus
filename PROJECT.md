@@ -131,6 +131,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 125: Naturalize Migros Scene 2 opener and menu wording
 - [x] Milestone 126: Migros filmed-scene user-utterance relevance gates
 - [x] Milestone 127: Merge main Valerian catalog into agents branch
+- [x] Milestone 128: Merge main documentation refresh into agents branch
 - [x] Mainline Milestone 102: Valerian maximizable cockpit columns
 - [x] Mainline Milestone 103: Valerian visual behaviour board
 - [x] Mainline Milestone 104: Valerian real-time facial emotion report
@@ -144,6 +145,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Mainline Milestone 112: Valerian shared visual detector TFJS compatibility
 - [x] Mainline Milestone 113: Valerian compact cockpit headers
 - [x] Mainline Milestone 114: Valerian main-branch core and healthcare agent catalog
+- [x] Mainline Milestone 115: GitHub README current-state cleanup and client API guide
+- [x] Mainline Milestone 116: Codex context guide cleanup and branch publication
 ## Milestone 1
 ### Date
 2026-02-24
@@ -5744,6 +5747,54 @@ Replace the remaining main-branch `basic.*` and `multimodal.*` framework demo ag
 - The healthcare package deliberately has no Davos/package/key naming, even where the source material came from the former Davos event agents.
 - Historical milestones in this file still describe earlier GIGI/TDSR and split-branch work; they are retained as project history.
 
+### Mainline Milestone 115
+### Date
+2026-07-08
+
+### Goal
+Rewrite `README.md` as a GitHub-facing current-state project entry point with a why/what/how introduction focused on multimodal sensing, multimodal behaviour, and digital-agent mapping, while documenting the API contracts external clients need.
+
+### What changed
+- Replaced the historical README narrative with a current-state overview of PROMETHEUS, Valerian, the main Valerian agent catalog, setup, testing, and repository structure.
+- Reframed the introduction around why turn-based chat is too narrow, what PROMETHEUS provides for multimodal digital agents, and how events, interaction profiles, state machines, and behaviour plans map sensing to behaviour.
+- Replaced older `.readme` client screenshots in the README with the new Valerian screenshots under `.doc/figures/Valerian`.
+- Added a practical external-client guide for scoped demo sessions, agent creation, `AgentInteractionProfile` discovery, perception event publication, behaviour SSE subscription, behaviour generation, monitor streams, Realtime speech, admin access-code management, and CORS.
+- Documented the current main-branch agent catalog only, removing descriptions of obsolete `basic.*` and `multimodal.*` agents and older historical client flows.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw.cmd -q "-Dtest=AgentClientCompatibilityWebMvcTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest,AgentDefinitionRegistryUnitTest" test`
+
+### Known issues and decisions
+- The new README intentionally describes the current main branch only and leaves historical implementation detail to `PROJECT.md`.
+- The screenshot files are expected to be committed together with this README update so GitHub can render them.
+- The API guide documents current public request/response shapes but is not an OpenAPI specification.
+
+### Mainline Milestone 116
+### Date
+2026-07-08
+
+### Goal
+Clean up `.agents/CONTEXT.md` so it optimally informs Codex agents working on the current PROMETHEUS repository, then publish the accumulated main-branch documentation/assets and merge them back into the `agents` branch.
+
+### What changed
+- Replaced the old long-form architectural requirements document in `.agents/CONTEXT.md` with a concise current-state Codex context guide.
+- Focused the context guide on the present PROMETHEUS mental model: event-driven inputs, explicit state-machine control, `AgentInteractionProfile`, `BehaviourPlan`, Valerian boundaries, public API contracts, main-branch agent catalog boundaries, and high-value test anchors.
+- Removed obsolete or overly broad scenario/acceptance material that is no longer the best first context for a coding agent; historical detail remains in `PROJECT.md`.
+- Published the repository documentation/assets state on `main`, including the README cleanup, new Valerian screenshots, and the pre-existing audio-tuning documentation archive move.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw.cmd -q "-Dtest=AgentClientCompatibilityWebMvcTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest,AgentDefinitionRegistryUnitTest" test`
+
+### Known issues and decisions
+- This milestone changes repository documentation and committed assets only; no runtime Java or Valerian client behaviour is intended to change.
+- `.agents/CONTEXT.md` is intentionally not a full product requirements document anymore; it is a focused orientation document for coding agents.
+- The audio-tuning archive move was already present in the workspace and is included because this milestone explicitly publishes all current main-branch changes.
 ## Milestone 120
 ### Date
 2026-07-05
@@ -6046,3 +6097,28 @@ Merge the main Valerian catalog replacement back into the agents branch so this 
 
 ### Next steps
 1. Review the merge result on `agents` and push it after verification.
+## Milestone 128
+### Date
+2026-07-08
+
+### Goal
+Merge the main documentation and Codex-context refresh back into the `agents` branch while preserving the agents-branch application catalog and milestone history.
+
+### What changed
+- Merged main commit `94999aa` into `agents`, carrying the cleaned GitHub-facing README, refreshed `.agents/CONTEXT.md`, new Valerian screenshots, and audio-tuning archive move.
+- Resolved `README.md` in favor of the current main README structure, then added an agents-branch catalog note for `tdsr.*`, `elderlycare.*`, and other event/experiment definitions.
+- Resolved `PROJECT.md` by keeping the agents milestone trail, adding mainline milestones 115 and 116, and recording this merge as milestone 128.
+- No Java runtime, Valerian client script, prompt, or agent-definition behaviour changes were intended in this merge.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `./mvnw.cmd -q "-Dtest=AgentClientCompatibilityWebMvcTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest,AgentDefinitionRegistryUnitTest" test`
+
+### Known issues and decisions
+- The README on `agents` intentionally documents both the main Valerian baseline catalog and the branch-specific application packages.
+- This is a documentation/assets merge; any remaining event-specific prompt work should continue in later agents-branch milestones.
+
+### Next steps
+1. Review the pushed `agents` merge result.
