@@ -121,7 +121,7 @@ body {
   grid-template-columns: minmax(250px, 0.76fr) minmax(310px, 0.96fr) minmax(0, 1.62fr);
   grid-template-areas:
     "lifecycle endpoints request"
-    "response response request";
+    "response response response";
   gap: 1rem;
   align-items: start;
 }

@@ -124,6 +124,17 @@ resolved URLs, path variables, headers, query parameters, JSON request bodies,
 copyable `fetch`, `curl`, and `EventSource` snippets, HTTP responses, SSE
 events, and the active agent profile.
 
+### Multilateral Displays
+
+URLs:
+
+- Listener display: `http://localhost:8080/multilateral/listen/`
+- Reports display: `http://localhost:8080/multilateral/reports/`
+
+The multilateral screens are separate meeting/group displays. They are not part
+of the Valerian cockpit workflow, but remain bundled for situations where a
+larger audience should see live listening state or generated meeting reports.
+
 ## Current Agent Catalog
 
 Production agent definitions live under
@@ -195,13 +206,16 @@ Run the application:
 .\mvnw.cmd spring-boot:run
 ```
 
-The default local URL is `http://localhost:8080`.
+The default local URL is `http://localhost:8080`; it redirects to Valerian
+Cockpit.
 
 Open the main surfaces:
 
 - Valerian Cockpit: `http://localhost:8080/valerian/`
 - Valerian Access Management: `http://localhost:8080/valerian-admin/`
 - API Workbench: `http://localhost:8080/apiworkbench/index.html`
+- Multilateral listener: `http://localhost:8080/multilateral/listen/`
+- Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
 ## Testing
 
@@ -568,6 +582,7 @@ src/main/java/ch/zhaw/prometheus
 
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.
+  multilateral/     Meeting/group listener and report displays.
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 

@@ -154,7 +154,9 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Mainline Milestone 121: API Workbench live scoped lifecycle execution
 - [x] Mainline Milestone 122: API Workbench SSE and observation publishing
 - [x] Mainline Milestone 123: README bundled client and API Workbench documentation
+- [x] Mainline Milestone 124: README multilateral note and API Workbench response width
 - [x] Milestone 129: Merge main detached-window and API Workbench work into agents branch
+- [x] Milestone 130: Merge main README and API Workbench layout polish into agents branch
 
 ## Milestone 1
 ### Date
@@ -6161,6 +6163,33 @@ Merge the latest main-branch Valerian detached-window, legacy-client removal, AP
 - The agents branch intentionally keeps event- and experiment-specific agent definitions that are not part of the main baseline catalog.
 - The API Workbench remains documented at `/apiworkbench/index.html`; no `/apiworkbench` redirect has been added.
 - Full Valerian visual smoke can be run separately when camera/microphone UI behaviour needs browser-level regression coverage.
+
+### Next steps
+1. Review the pushed `agents` merge result.
+
+## Milestone 130
+### Date
+2026-07-08
+
+### Goal
+Merge the latest main-branch README client-surface polish and API Workbench response-viewer layout fix into the `agents` branch.
+
+### What changed
+- Merged main commit `0bc50c2` into `agents`.
+- Brought in the README multilateral listener/report display documentation, root redirect note, and repository-structure update.
+- Brought in the API Workbench desktop grid fix so the response viewer spans the full row.
+- Brought in the Playwright regression assertion for full-width API Workbench response-viewer layout.
+- Resolved `PROJECT.md` by keeping the agents milestone trail, adding mainline milestone 124 to the checklist, and recording this merge as milestone 130.
+
+### How to test
+- `git diff --check`
+- `node --check src/main/resources/public/apiworkbench/script.js`
+- `node --check tests/playwright/apiworkbench.spec.mjs`
+- `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The agents branch keeps the main Valerian baseline plus branch-specific event and experiment agents.
+- The API Workbench remains documented at `/apiworkbench/index.html`; no `/apiworkbench` redirect has been added.
 
 ### Next steps
 1. Review the pushed `agents` merge result.
