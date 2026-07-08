@@ -17,24 +17,30 @@ import ch.zhaw.prometheus.model.Agent;
 class AgentDefinitionRegistryUnitTest {
 
     private static final List<String> EXPECTED_KEYS = List.of(
-            "basic.four_states_circular",
-            "basic.four_states_linear",
-            "basic.single_state_co_creation",
-            "basic.single_state_guessing_game",
-            "basic.single_state_micro_coaching",
-            "multimodal.single_state_in",
-            "multimodal.single_state_in_out",
-            "multimodal.single_state_out");
+            "core.facial_expression_sensitivity",
+            "core.multimodal_behaviour",
+            "core.rock_scissor_paper",
+            "core.role_clarification_guessing_game",
+            "core.social_context_sensitivity",
+            "usecases.healthcare.guessing_game",
+            "usecases.healthcare.guessing_game_user_guess",
+            "usecases.healthcare.healthcare_conversation",
+            "usecases.healthcare.smart_goal_coaching",
+            "usecases.healthcare.therapy_appointment_reminder",
+            "usecases.healthcare.therapy_appointment_reminder_intro");
 
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
-            Map.entry("basic.single_state_guessing_game", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("basic.single_state_micro_coaching", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("basic.single_state_co_creation", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("basic.four_states_circular", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("basic.four_states_linear", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("multimodal.single_state_in", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("multimodal.single_state_out", AgentDefinition.LANGUAGE_GERMAN),
-            Map.entry("multimodal.single_state_in_out", AgentDefinition.LANGUAGE_GERMAN));
+            Map.entry("core.facial_expression_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.rock_scissor_paper", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.role_clarification_guessing_game", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.social_context_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.guessing_game", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.guessing_game_user_guess", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.healthcare_conversation", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.smart_goal_coaching", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.therapy_appointment_reminder_intro", AgentDefinition.LANGUAGE_ENGLISH));
 
     @Test
     void registryExposesExpectedUniqueDefinitionKeys() {
@@ -76,20 +82,23 @@ class AgentDefinitionRegistryUnitTest {
 
     @Test
     void duplicateDefinitionKeysFailFast() {
-        AgentDefinition duplicate = new ch.zhaw.prometheus.agentdefs.basic.SingleStateGuessingGame();
+        AgentDefinition duplicate = new ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity();
 
         assertThrows(IllegalArgumentException.class, () -> new AgentDefinitionRegistry(List.of(duplicate, duplicate)));
     }
 
     private static AgentDefinitionRegistry registryWithBuiltIns() {
         return new AgentDefinitionRegistry(List.of(
-                new ch.zhaw.prometheus.agentdefs.basic.SingleStateGuessingGame(),
-                new ch.zhaw.prometheus.agentdefs.basic.SingleStateMicroCoaching(),
-                new ch.zhaw.prometheus.agentdefs.basic.SingleStateCoCreation(),
-                new ch.zhaw.prometheus.agentdefs.basic.FourStatesCircular(),
-                new ch.zhaw.prometheus.agentdefs.basic.FourStatesLinear(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalIn(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalOut(),
-                new ch.zhaw.prometheus.agentdefs.multimodal.SingleStateMultimodalInOut()));
+                new ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour(),
+                new ch.zhaw.prometheus.agentdefs.core.RockScissorPaper(),
+                new ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame(),
+                new ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGame(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGameUserGuess(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateTherapyAppointmentReminder(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.TwoStateTherapyAppointmentReminder()));
     }
 }

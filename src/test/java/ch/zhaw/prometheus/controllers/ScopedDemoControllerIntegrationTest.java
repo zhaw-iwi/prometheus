@@ -45,7 +45,8 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 @Transactional
 class ScopedDemoControllerIntegrationTest {
     private static final String HEADER = ScopedDemoController.ACCESS_CODE_HEADER;
-    private static final String TYPE_KEY = "basic.single_state_micro_coaching";
+    private static final String TYPE_KEY = "core.social_context_sensitivity";
+    private static final String DISALLOWED_TYPE_KEY = "core.multimodal_behaviour";
 
     @Autowired
     private MockMvc mockMvc;
@@ -94,14 +95,14 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].key").value(TYPE_KEY))
-                .andExpect(jsonPath("$[0].packagePath[0]").value("basic"));
+                .andExpect(jsonPath("$[0].packagePath[0]").value("core"));
 
         this.mockMvc.perform(get("/demo/agents")
                 .header(HEADER, "A49a1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].id").value(agentA.toString()))
-                .andExpect(jsonPath("$[0].languageCode").value("de"));
+                .andExpect(jsonPath("$[0].languageCode").value("en"));
 
         this.mockMvc.perform(get("/demo/agents")
                 .header(HEADER, "B49b2"))
@@ -124,7 +125,7 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(jsonPath("$.accessCode").value("A49a1"))
                 .andExpect(jsonPath("$.agentTypes", hasSize(1)))
                 .andExpect(jsonPath("$.agents", hasSize(1)))
-                .andExpect(jsonPath("$.agents[0].languageCode").value("de"));
+                .andExpect(jsonPath("$.agents[0].languageCode").value("en"));
     }
 
     @Test
@@ -152,9 +153,9 @@ class ScopedDemoControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "agentDefinitionKey": "basic.single_state_micro_coaching"
+                          "agentDefinitionKey": "%s"
                         }
-                        """))
+                        """.formatted(TYPE_KEY)))
                 .andExpect(status().isUnauthorized());
 
         this.mockMvc.perform(get("/demo/agents/" + agentId + "/info")
@@ -171,9 +172,9 @@ class ScopedDemoControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "agentDefinitionKey": "multimodal.single_state_out"
+                          "agentDefinitionKey": "%s"
                         }
-                        """))
+                        """.formatted(DISALLOWED_TYPE_KEY)))
                 .andExpect(status().isForbidden());
     }
 

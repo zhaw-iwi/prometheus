@@ -27,9 +27,9 @@ PROMETHEUS models all inputs as `Event` objects and all outputs as structured `B
 
 Most runtime clients take `?agentId=<uuid>`. The Valerian cockpit starts with an access-code screen and then uses scoped `/demo/...` endpoints.
 For the complete list including multilateral endpoints, see `All Client Endpoints` below.
-The Valerian and Valerian Admin cockpits include a shared light/dark theme toggle in their header tool rows; the current light UI remains the default and the selected theme is persisted in the browser.
+The Valerian Cockpit and Valerian Access Management surfaces include a shared light/dark theme toggle in their header tool rows; the current light UI remains the default and the selected theme is persisted in the browser.
 
-### Prometheus Demo Cockpit
+### Valerian Cockpit
 
 - URL: `http://localhost:8080/valerian/`
 - Purpose: single-page PROMETHEUS demo surface with agent selection, text input, realtime speech-to-speech, camera sensing controls, manual event shortcuts, behaviour visualization, and diagnostics drawer.
@@ -53,7 +53,7 @@ The Valerian and Valerian Admin cockpits include a shared light/dark theme toggl
 - After `Connect`, the cockpit reads `interactionProfile` from agent info and hides irrelevant sensing controls and behaviour board cards/chips. Agents without a declared profile keep the full cockpit visible as a fallback.
 - If the connected profile declares no visual observations, the sensing card hides the camera viewer and camera controls and shows a no-visual-sensing message.
 
-### Prometheus Admin Cockpit
+### Valerian Access Management
 
 - URL: `http://localhost:8080/valerian-admin/`
 - Purpose: small root/admin page for configuring Valerian access codes without manual database changes.
@@ -232,29 +232,34 @@ class. The current migrated definitions call `Agent.start(...)` inside
 `createInstance(...)`, preserving the former seed-test startup behaviour as
 developer-written code.
 
-This `main` branch keeps only framework demo definitions. Application-specific
-TDSR and elderly-care agents are preserved on the `agents` branch and should be
-added to framework deployments as separate application code, modules, or
-dependencies.
+This `main` branch ships the baseline Valerian catalog: reusable core
+capability demos and healthcare use-case demos. Event-specific or
+experiment-specific agents should be added from application branches, separate
+modules, or deployment-specific code rather than becoming static main-branch
+catalog entries.
 
 Registered definitions:
 
-- `basic.single_state_guessing_game` - Single-state guessing game with guided prompt flow.
-- `basic.single_state_micro_coaching` - Single-state supportive micro-coaching agent.
-- `basic.single_state_co_creation` - Single-state collaborative co-creation conversation.
-- `basic.four_states_linear` - Four-state linear progression with explicit stage transitions.
-- `basic.four_states_circular` - Four-state circular loop for iterative dialogue cycles.
-- `multimodal.single_state_in` - Single-state micro-coaching with multimodal sensing inputs.
-- `multimodal.single_state_out` - Single-state interaction with deterministic multimodal behaviour output.
-- `multimodal.single_state_in_out` - Single-state interaction combining multimodal sensing and multimodal behaviour output.
+- `core.facial_expression_sensitivity` - Valerian Core facial-expression signal demo.
+- `core.multimodal_behaviour` - Valerian Core multimodal behaviour demo.
+- `core.rock_scissor_paper` - Valerian Core rock-scissor-paper hand-sign demo.
+- `core.role_clarification_guessing_game` - Valerian Core role-clarification guessing game.
+- `core.social_context_sensitivity` - Valerian Core social-context signal demo.
+- `usecases.healthcare.guessing_game` - Healthcare use-case guessing game where Valerian guesses.
+- `usecases.healthcare.guessing_game_user_guess` - Healthcare use-case guessing game where the user guesses.
+- `usecases.healthcare.healthcare_conversation` - Open healthcare use-case conversation.
+- `usecases.healthcare.smart_goal_coaching` - Healthcare SMART-goal coaching use case.
+- `usecases.healthcare.therapy_appointment_reminder` - Healthcare therapy-reminder use case.
+- `usecases.healthcare.therapy_appointment_reminder_intro` - Healthcare therapy-reminder use case with Valerian intro.
 
-### Option A: Seed registered agents from tests
+### Option A: Create a registered agent through scoped demo access codes
 
-The classes under `src/test/java/ch/zhaw/prometheus/agents` are thin manual seed wrappers around production definitions. To persist one initialized agent locally:
+Registered definitions are normally instantiated through the scoped demo flow:
 
-1. Run the wrapper test once.
-2. The test creates the production definition, runs its `createInstance(...)` startup path, and saves the initialized agent in the database.
-3. List agents via `GET /agent` and use the returned UUID.
+1. In Valerian Access Management, create an access code and assign one or more registered agent types.
+2. In Valerian Cockpit, enter that access code.
+3. Create an assigned agent type; the backend calls the definition's `createInstance(...)` startup path and saves the initialized agent.
+4. Use the returned agent from the scoped Valerian endpoints.
 
 ### Option B: Create a simple single-state agent via REST
 
@@ -264,8 +269,8 @@ Use `POST /agent/singlestate` with `SingleStateAgentCreateDTO` shape (see `src/m
 
 Most clients take `?agentId=<uuid>`. The Valerian cockpit uses an access-code session first.
 
-- Prometheus demo cockpit: `http://localhost:8080/valerian/`
-- Prometheus admin cockpit: `http://localhost:8080/valerian-admin/`
+- Valerian cockpit: `http://localhost:8080/valerian/`
+- Valerian Access Management: `http://localhost:8080/valerian-admin/`
 - Chat client (text-to-text): `http://localhost:8080/?agentId=<uuid>`
 - Realtime voice client (speech-to-speech): `http://localhost:8080/realtime/?agentId=<uuid>`
 - Agent monitor: `http://localhost:8080/monitor/?agentId=<uuid>`
@@ -333,7 +338,7 @@ factories such as `speechOnly()`, `multimodalOutput()`, and
 
 Admin endpoints require header `X-Prometheus-Admin-Token` with the exact value from `prometheus.admin.token`.
 Access codes are case-sensitive, are not normalized by the backend, and must be exactly five ASCII letters or digits.
-The same operations are available through the Prometheus admin cockpit at `/valerian-admin/`.
+The same operations are available through Valerian Access Management at `/valerian-admin/`.
 
 - `GET /admin/agent-types`
 - `GET /admin/access-code-presets`
@@ -349,10 +354,10 @@ Agent type views include package metadata derived from the Java package below
 
 ```json
 {
-  "key": "basic.single_state_micro_coaching",
-  "displayName": "Gigi on Prometheus (Single State Micro Coach)",
-  "description": "Single-state micro-coaching demo with outcome extraction and final summary.",
-  "packagePath": ["basic"]
+  "key": "usecases.healthcare.therapy_appointment_reminder",
+  "displayName": "Valerian Use Cases Healthcare - Therapy Reminder",
+  "description": "English healthcare care-center agent for a gentle therapy or activation appointment reminder.",
+  "packagePath": ["usecases", "healthcare"]
 }
 ```
 
@@ -381,7 +386,7 @@ Allowed-type replacement body:
 
 ```json
 {
-  "agentTypeKeys": ["basic.single_state_micro_coaching"]
+  "agentTypeKeys": ["core.social_context_sensitivity"]
 }
 ```
 
@@ -393,8 +398,8 @@ Preset apply body:
     {
       "code": "start",
       "agentTypeKeys": [
-        "basic.single_state_micro_coaching",
-        "multimodal.single_state_in"
+        "core.social_context_sensitivity",
+        "usecases.healthcare.therapy_appointment_reminder"
       ]
     }
   ]
@@ -444,7 +449,7 @@ Agent creation body:
 
 ```json
 {
-  "agentDefinitionKey": "basic.single_state_micro_coaching"
+  "agentDefinitionKey": "core.social_context_sensitivity"
 }
 ```
 
@@ -456,7 +461,7 @@ remain.
 
 ## Developer Workflow for New Agents
 
-1. Start from an existing production definition under `src/main/java/ch/zhaw/prometheus/agentdefs`, such as `basic/SingleStateMicroCoaching.java` or `multimodal/SingleStateMultimodalInOut.java`.
+1. Start from an existing production definition under `src/main/java/ch/zhaw/prometheus/agentdefs`, such as `core/SocialContextSensitivity.java` or `usecases/healthcare/SingleStateTherapyAppointmentReminder.java`.
 2. Define prompts for outer state, inner state(s), transition decisions, and actions.
 3. Use `Storage` keys for extracted values consumed by later states.
 4. Declare an `AgentInteractionProfile` when the agent expects specific observation signals or supports specific output modalities. Prefer the common `AgentInteractionProfiles` factories when they fit.
@@ -464,7 +469,7 @@ remain.
 6. Implement `AgentDefinition`, choose a stable key, and expose the definition as a Spring bean, usually with `@Component`.
 7. Put startup behavior directly in `createInstance(...)`; call `Agent.start(...)` there only when this agent type should be started during creation.
 8. Add a thin test wrapper only when manual database seeding is useful.
-9. Seed the agent, run app, then iterate using the Prometheus demo cockpit, Monitor, and behaviour streams.
+9. Seed the agent, run app, then iterate using the Valerian cockpit, Monitor, and behaviour streams.
 10. Add or adapt controller DTOs and endpoints when you need reusable agent creation APIs beyond `/agent/singlestate`.
 
 ### Event example

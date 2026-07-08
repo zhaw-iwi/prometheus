@@ -801,7 +801,6 @@ async function loadAgentInfo() {
     }
     const data = await response.json();
     state.agentInfo = data;
-    document.getElementById("agent_subtitle").textContent = prometheusFacingText(data.name) || "PROMETHEUS demo console";
     document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(data.description) || "-";
     document.getElementById("agent_info_language").textContent = agentLanguageLabel(data.languageCode);
@@ -852,7 +851,6 @@ function clearAgentConnection(options = {}) {
 
 function resetAgentInfo() {
   state.agentInfo = null;
-  document.getElementById("agent_subtitle").textContent = "PROMETHEUS demo console";
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
   document.getElementById("agent_info_language").textContent = "-";

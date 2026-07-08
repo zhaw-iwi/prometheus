@@ -116,6 +116,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 110: Valerian facial emotion camera-loop diagnostics
 - [x] Milestone 111: Valerian facial emotion overlay diagnostics
 - [x] Milestone 112: Valerian shared visual detector TFJS compatibility
+- [x] Milestone 113: Valerian compact cockpit headers
+- [x] Milestone 114: Valerian main-branch core and healthcare agent catalog
 
 ## Milestone 1
 ### Date
@@ -5030,3 +5032,92 @@ Stabilize Valerian's shared visual detector runtime on main so face emotion, soc
 ### Next steps
 1. Live-test detector toggling across multiple agent connect/disconnect cycles on the target browser and camera.
 2. Revisit the model stack only if future detector additions require a newer shared TFJS runtime.
+
+## Milestone 113
+### Date
+2026-07-08
+
+### Goal
+Compact the Valerian cockpit and admin header areas by removing the large page-title row and using the existing subtitle style for the page labels.
+
+### What changed
+- Removed the large legacy page-title elements from the logged-in Valerian cockpit and admin shells.
+- Renamed the visible and browser titles to `Valerian Cockpit` and `Valerian Access Management`.
+- Kept the existing `.page-subtitle` styling for the remaining compact header labels.
+- Stopped the Valerian cockpit script from overwriting the compact header label with the connected agent name; agent metadata remains visible in the Agent drawer.
+- Updated static resource contract tests and README client naming.
+
+### How to run
+1. Start the app:
+   - `./mvnw spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Open Valerian Access Management:
+   - `http://localhost:8080/valerian-admin/`
+
+### How to test
+- Focused cockpit checks:
+  - `node --check src/main/resources/public/valerian/script.js`
+  - `./mvnw -q "-Dtest=ValerianClientStaticResourceContractTest,ValerianAdminClientStaticResourceContractTest" test`
+
+### Known issues and decisions
+- This is a static Valerian UI change only; backend routes, access-code behavior, agent metadata, and observation contracts are unchanged.
+- The connected agent name is no longer mirrored in the top cockpit header because that header line is now the compact page label.
+
+### Next steps
+1. Visually smoke-test both Valerian surfaces in the target browser after the current main-branch merge work settles.
+
+## Milestone 114
+### Date
+2026-07-08
+
+### Goal
+Replace the remaining main-branch `basic.*` and `multimodal.*` framework demo agents with the Valerian baseline catalog: reusable core capability demos and English healthcare use-case demos.
+
+### What changed
+- Removed the old `agentdefs/basic` and `agentdefs/multimodal` production definitions, manual seed wrappers, and their deleted-catalog replay scripts/tests.
+- Added `src/main/java/ch/zhaw/prometheus/agentdefs/core` with five Valerian Core definitions:
+  - `core.facial_expression_sensitivity`
+  - `core.multimodal_behaviour`
+  - `core.rock_scissor_paper`
+  - `core.role_clarification_guessing_game`
+  - `core.social_context_sensitivity`
+- Added `src/main/java/ch/zhaw/prometheus/agentdefs/usecases/healthcare` with six English Valerian healthcare use-case definitions:
+  - `usecases.healthcare.guessing_game`
+  - `usecases.healthcare.guessing_game_user_guess`
+  - `usecases.healthcare.healthcare_conversation`
+  - `usecases.healthcare.smart_goal_coaching`
+  - `usecases.healthcare.therapy_appointment_reminder`
+  - `usecases.healthcare.therapy_appointment_reminder_intro`
+- Adapted the imported lab and Davos/event prompts to the Valerian digital-agent persona:
+  - Valerian is a digital agent manifestation from the ZHAW SIRA Lab.
+  - PROMETHEUS is described as a digital agent development framework for rapid prototyping and experimental validation of multimodal digital agents.
+  - GIGI, TDSR, robot, Davos, hotel, and German-only references were removed from the new main-branch agent packages.
+- Restored the RPS model package required by the Valerian Core rock-scissor-paper agent.
+- Updated registry, interaction-profile, access-code, scoped-demo, and prompt contract tests for the new catalog.
+- Updated README registered-agent documentation and API examples to use the new `core.*` and `usecases.healthcare.*` keys.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian Access Management:
+   - `http://localhost:8080/valerian-admin/`
+3. Create an access code and assign one or more `core.*` or `usecases.healthcare.*` agent types.
+4. Open Valerian Cockpit:
+   - `http://localhost:8080/valerian/`
+5. Enter the access code and create one of the assigned Valerian agents.
+
+### How to test
+- Focused backend checks:
+  - `.\mvnw.cmd -q -DskipTests compile`
+  - `.\mvnw.cmd -q -DskipTests test-compile`
+  - `.\mvnw.cmd -q "-Dtest=AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,ValerianCorePromptContractTest,HealthcareUseCasePromptContractTest,AccessCodeAdminServiceIntegrationTest,ScopedDemoControllerIntegrationTest,AdminAccessCodeControllerWebMvcTest,RpsRulesUnitTest,DeterministicRpsSignSelectorUnitTest,RpsRevealPolicyContractTest" test`
+
+### Known issues and decisions
+- This intentionally removes the old main-branch `basic.*` and `multimodal.*` public keys. Existing local database access-code assignments that reference those keys need to be recreated with the new keys.
+- The healthcare package deliberately has no Davos/package/key naming, even where the source material came from the former Davos event agents.
+- Historical milestones in this file still describe earlier GIGI/TDSR and split-branch work; they are retained as project history.
+
+### Next steps
+1. Review and commit this catalog replacement on `main`.
+2. Merge `main` back into the `agents` branch so the old main-branch `basic.*` and `multimodal.*` definitions disappear there as intended.
