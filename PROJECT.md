@@ -120,6 +120,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 114: Valerian main-branch core and healthcare agent catalog
 - [x] Milestone 115: GitHub README current-state cleanup and client API guide
 - [x] Milestone 116: Codex context guide cleanup and branch publication
+- [x] Milestone 117: Valerian detached column window foundation
 
 ## Milestone 1
 ### Date
@@ -5201,3 +5202,40 @@ Clean up `.agents/CONTEXT.md` so it optimally informs Codex agents working on th
 ### Next steps
 1. Commit and push `main`.
 2. Merge `main` into `agents`, resolve documentation conflicts if any, then push `agents`.
+
+## Milestone 117
+### Date
+2026-07-08
+
+### Goal
+Add the first Valerian detached-window foundation so students can open Sensing, Interaction, or Behaviour from a connected cockpit into separate browser windows while keeping the normal three-column cockpit intact.
+
+### What changed
+- Added detached-window toolbar buttons for the Sensing, Interaction, and Behaviour columns.
+- Added Valerian detached mode at `/valerian/?mode=detached&panel=<sensing|interaction|behaviour>&agentId=<uuid>`.
+- Detached windows inherit the opener's access-code session, reconnect to the same agent through the scoped demo API, update the page subtitle/title, and show only the requested Valerian column.
+- Kept the existing in-page column maximization modal unchanged.
+- Added static contract coverage for detached controls, query-mode handling, and detached CSS.
+- Extended the Playwright Valerian smoke with a deterministic connected-agent detached-window test while preserving the existing database-backed visual smoke coverage.
+- Left `README.md` unchanged so screenshots and user-facing docs can be updated after the UI pass is ready.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open Valerian:
+   - `http://localhost:8080/valerian/`
+3. Enter an access code, create or select an agent, connect it, then use the new window buttons in a column header.
+
+### How to test
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-column-expansion.spec.mjs`
+- `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `npm run test:valerian:visual`
+
+### Known issues and decisions
+- Detached windows are intentionally opened from the connected cockpit in this milestone; standalone detached-window agent selection is left for a later pass.
+- Hardware ownership is not coordinated yet. Camera and microphone controls can still be active in more than one window; this is the explicit scope of the next milestone.
+- Detached windows rely on the browser's same-origin session-storage copy from `window.open`, with existing access-code entry as the fallback if opened directly.
+
+### Next steps
+1. Add cross-window ownership coordination for camera and microphone controls.

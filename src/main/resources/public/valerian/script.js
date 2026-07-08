@@ -113,6 +113,12 @@ const columnExpansion = {
   active: null,
 };
 
+const detachedView = {
+  panel: null,
+};
+
+const VALERIAN_COLUMN_KEYS = ["sensing", "interaction", "behaviour"];
+
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
@@ -244,6 +250,7 @@ async function init() {
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   applyStoredTheme();
+  configureValerianView();
   wireUi();
   loadStoredSpeechDeviceSelection();
   loadStoredSpeechSettings();
@@ -278,6 +285,7 @@ function wireUi() {
     button.addEventListener("click", toggleTheme);
   });
   wireColumnExpansion();
+  wireColumnDetach();
   document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
@@ -447,6 +455,88 @@ function refreshExpandedColumnLayout() {
   window.requestAnimationFrame(() => {
     clearOverlay();
   });
+}
+
+function configureValerianView() {
+  detachedView.panel = detachedPanelFromLocation();
+  const mode = detachedView.panel ? "detached" : "cockpit";
+  document.documentElement.dataset.valerianView = mode;
+  document.documentElement.dataset.valerianPanel = detachedView.panel || "";
+  if (document.body) {
+    document.body.dataset.valerianView = mode;
+    document.body.dataset.valerianPanel = detachedView.panel || "";
+  }
+  document.querySelectorAll("[data-column-key]").forEach((column) => {
+    column.classList.toggle("is-detached-active", !!detachedView.panel
+      && column.dataset.columnKey === detachedView.panel);
+  });
+  const title = detachedView.panel
+    ? `Valerian ${columnDisplayTitle(detachedView.panel)}`
+    : "Valerian Cockpit";
+  const subtitle = document.getElementById("valerian_page_subtitle");
+  if (subtitle) {
+    subtitle.textContent = title;
+  }
+  document.title = title;
+}
+
+function detachedPanelFromLocation() {
+  const params = new URLSearchParams(window.location.search || "");
+  if (params.get("mode") !== "detached") {
+    return null;
+  }
+  const panel = params.get("panel") || params.get("column") || "";
+  return VALERIAN_COLUMN_KEYS.includes(panel) ? panel : "sensing";
+}
+
+function columnDisplayTitle(columnKey) {
+  switch (columnKey) {
+    case "sensing":
+      return "Sensing";
+    case "interaction":
+      return "Interaction";
+    case "behaviour":
+      return "Behaviour";
+    default:
+      return "Panel";
+  }
+}
+
+function wireColumnDetach() {
+  document.querySelectorAll("[data-column-detach]").forEach((button) => {
+    button.addEventListener("click", () => {
+      openDetachedColumn(button.dataset.columnDetach);
+    });
+  });
+}
+
+function openDetachedColumn(columnKey) {
+  if (!VALERIAN_COLUMN_KEYS.includes(columnKey)) {
+    return;
+  }
+  if (!state.agentId) {
+    appendSystemMessage("Connect an agent before opening a separate window.");
+    return;
+  }
+  if (state.accessCode) {
+    sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode);
+  }
+  const url = detachedColumnUrl(columnKey);
+  const name = `prometheus-valerian-${columnKey}-${state.agentId}`;
+  const opened = window.open(url, name, "popup,width=1180,height=900");
+  if (opened) {
+    opened.focus();
+  } else {
+    appendLog("app", "detached window blocked by browser popup settings.");
+  }
+}
+
+function detachedColumnUrl(columnKey) {
+  const url = new URL("/valerian/", window.location.origin);
+  url.searchParams.set("mode", "detached");
+  url.searchParams.set("panel", columnKey);
+  url.searchParams.set("agentId", state.agentId);
+  return url.toString();
 }
 
 function applyStoredTheme() {

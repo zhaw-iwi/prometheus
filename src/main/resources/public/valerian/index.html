@@ -149,6 +149,24 @@
       display: none;
     }
 
+    .column-expansion-body [data-column-detach] {
+      display: none;
+    }
+
+    [data-valerian-view="detached"] .cockpit-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    [data-valerian-view="detached"] .cockpit-column:not(.is-detached-active) {
+      display: none;
+    }
+
+    [data-valerian-view="detached"] [data-column-maximize],
+    [data-valerian-view="detached"] [data-column-detach],
+    [data-valerian-view="detached"] .column-expanded-placeholder {
+      display: none !important;
+    }
+
     .message-list {
       height: min(52vh, 520px);
       min-height: 320px;
@@ -1364,7 +1382,9 @@
       <div id="cockpit_shell" class="d-none" data-testid="cockpit-shell" hidden>
       <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-end gap-3 mb-3">
         <div>
-          <div class="page-subtitle">Valerian Cockpit</div>
+          <div id="valerian_page_subtitle" class="page-subtitle" data-testid="valerian-page-subtitle">
+            Valerian Cockpit
+          </div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2">
           <span id="active_access_code" class="status-pill is-live" data-testid="active-access-code">Access -</span>
@@ -1393,11 +1413,18 @@
           <div class="demo-card card" data-column-panel="sensing">
             <div class="card-header">
               <span><i class="bi bi-radar me-2"></i>Sensing</span>
-              <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Sensing"
-                aria-label="Expand Sensing" data-column-maximize="sensing" data-column-title="Sensing"
-                data-testid="maximize-sensing-column">
-                <i class="bi bi-arrows-fullscreen"></i>
-              </button>
+              <div class="card-header-actions">
+                <button class="btn btn-outline-ink toolbar-button" type="button" title="Open Sensing in new window"
+                  aria-label="Open Sensing in new window" data-column-detach="sensing" data-column-title="Sensing"
+                  data-testid="detach-sensing-column">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </button>
+                <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Sensing"
+                  aria-label="Expand Sensing" data-column-maximize="sensing" data-column-title="Sensing"
+                  data-testid="maximize-sensing-column">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <div class="video-shell mb-3"
@@ -2153,6 +2180,12 @@
                   data-column-title="Interaction" data-testid="maximize-interaction-column">
                   <i class="bi bi-arrows-fullscreen"></i>
                 </button>
+                <button class="btn btn-outline-ink toolbar-button" type="button"
+                  title="Open Interaction in new window" aria-label="Open Interaction in new window"
+                  data-column-detach="interaction" data-column-title="Interaction"
+                  data-testid="detach-interaction-column">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </button>
               </div>
             </div>
             <div class="card-body">
@@ -2270,11 +2303,19 @@
           <div class="demo-card card" data-column-panel="behaviour">
             <div class="card-header">
               <span><i class="bi bi-send-fill me-2"></i>Behaviour</span>
-              <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Behaviour"
-                aria-label="Expand Behaviour" data-column-maximize="behaviour" data-column-title="Behaviour"
-                data-testid="maximize-behaviour-column">
-                <i class="bi bi-arrows-fullscreen"></i>
-              </button>
+              <div class="card-header-actions">
+                <button class="btn btn-outline-ink toolbar-button" type="button"
+                  title="Open Behaviour in new window" aria-label="Open Behaviour in new window"
+                  data-column-detach="behaviour" data-column-title="Behaviour"
+                  data-testid="detach-behaviour-column">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </button>
+                <button class="btn btn-outline-ink toolbar-button" type="button" title="Expand Behaviour"
+                  aria-label="Expand Behaviour" data-column-maximize="behaviour" data-column-title="Behaviour"
+                  data-testid="maximize-behaviour-column">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <div class="behaviour-state-board" data-testid="behaviour-state-board">

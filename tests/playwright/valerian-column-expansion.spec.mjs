@@ -3,6 +3,36 @@ import { expect, test } from "@playwright/test";
 const ACCESS_CODE = "VX102";
 const ADMIN_TOKEN = process.env.PROMETHEUS_ADMIN_TOKEN || "laure";
 const ADMIN_TOKEN_HEADER = "X-Prometheus-Admin-Token";
+const DETACHED_AGENT_ID = "11111111-1111-1111-1111-111111111111";
+const DETACHED_AGENT = {
+  id: DETACHED_AGENT_ID,
+  name: "Valerian Detached Test Agent",
+  description: "Deterministic browser test agent for detached Valerian columns.",
+  active: true,
+  languageCode: "en",
+  interactionProfile: {
+    supportedObservations: [
+      "obs.user_utterance",
+      "obs.emotion.face",
+      "obs.human.presence",
+      "obs.social.grouping",
+      "obs.social.context",
+      "obs.hand.sign",
+      "obs.weather.current",
+      "obs.weather.forecast",
+    ],
+    supportedBehaviourModalities: [
+      "speech",
+      "nonVerbal.gesture",
+      "nonVerbal.facialExpression",
+      "nonVerbal.gaze",
+      "nonVerbal.motion",
+      "motion.handSign",
+      "display",
+    ],
+    profileTags: [],
+  },
+};
 const SAMPLE_BEHAVIOUR_PLAN = {
   speech: "Ich zeige kurz, worauf ich achte.",
   nonVerbal: {
@@ -126,6 +156,40 @@ const SAMPLE_WEATHER_FORECAST = {
 
 test.beforeAll(async ({ request }) => {
   await ensureAccessCode(request, ACCESS_CODE);
+});
+
+test("Valerian cockpit opens connected columns in detached windows", async ({ page, context }) => {
+  await installDetachedWindowApiMocks(context);
+
+  await page.goto(`/valerian/?agentId=${DETACHED_AGENT_ID}`);
+  await expect(page.getByTestId("access-screen")).toBeVisible();
+  await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+  await expect(page.getByTestId("valerian-page-subtitle")).toHaveText("Valerian Cockpit");
+  await expect(page.getByTestId("agent-connection-state")).toContainText(DETACHED_AGENT_ID);
+  await expect(page.getByTestId("detach-sensing-column")).toBeEnabled();
+  await expect(page.getByTestId("detach-interaction-column")).toBeEnabled();
+  await expect(page.getByTestId("detach-behaviour-column")).toBeEnabled();
+
+  await verifyDetachedColumnWindow(page, context, {
+    key: "sensing",
+    title: "Sensing",
+    buttonTestId: "detach-sensing-column",
+    visibleTestId: "start-camera",
+  });
+  await verifyDetachedColumnWindow(page, context, {
+    key: "interaction",
+    title: "Interaction",
+    buttonTestId: "detach-interaction-column",
+    visibleTestId: "text-input",
+  });
+  await verifyDetachedColumnWindow(page, context, {
+    key: "behaviour",
+    title: "Behaviour",
+    buttonTestId: "detach-behaviour-column",
+    visibleTestId: "behaviour-state-board",
+  });
 });
 
 test("Valerian cockpit columns expand into a wider live modal viewport", async ({ page }, testInfo) => {
@@ -325,6 +389,29 @@ async function verifyColumnExpansion(page, testInfo, options) {
   if (afterRestore) {
     await afterRestore();
   }
+}
+
+async function verifyDetachedColumnWindow(page, context, options) {
+  const { key, title, buttonTestId, visibleTestId } = options;
+  const [detached] = await Promise.all([
+    context.waitForEvent("page"),
+    page.getByTestId(buttonTestId).click(),
+  ]);
+  await detached.waitForLoadState("domcontentloaded");
+  await expect(detached).toHaveURL(new RegExp(`mode=detached.*panel=${key}.*agentId=${DETACHED_AGENT_ID}`));
+  await expect(detached.getByTestId("cockpit-shell")).toBeVisible();
+  await expect(detached.getByTestId("valerian-page-subtitle")).toHaveText(`Valerian ${title}`);
+  await expect(detached.getByTestId("active-access-code")).toHaveText(`Access ${ACCESS_CODE}`);
+  await expect(detached.getByTestId("agent-connection-state")).toContainText(DETACHED_AGENT_ID);
+  await expect(detached.locator(`[data-column-key="${key}"]`)).toBeVisible();
+  await expect(detached.locator(`[data-column-panel="${key}"]`)).toBeVisible();
+  await expect(detached.getByTestId(visibleTestId)).toBeVisible();
+  for (const otherKey of ["sensing", "interaction", "behaviour"].filter((value) => value !== key)) {
+    await expect(detached.locator(`[data-column-key="${otherKey}"]`)).toBeHidden();
+  }
+  await expect(detached.locator("[data-column-maximize]:visible")).toHaveCount(0);
+  await expect(detached.locator("[data-column-detach]:visible")).toHaveCount(0);
+  await detached.close();
 }
 
 async function renderSampleBehaviour(page) {
@@ -722,6 +809,82 @@ async function verifyBehaviourVisualState(page) {
   await expect(page.getByTestId("behaviour-chip-gaze")).toHaveClass(/is-active/);
   await expect(page.getByTestId("behaviour-chip-motion")).toHaveClass(/is-active/);
   await expect(page.getByTestId("behaviour-chip-display")).toHaveClass(/is-active/);
+}
+
+async function installDetachedWindowApiMocks(context) {
+  await context.route("**/demo/**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    if (request.method() === "POST" && path === "/demo/session") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          accessCode: ACCESS_CODE,
+          agentTypes: [],
+          agents: [DETACHED_AGENT],
+        }),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/info`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(DETACHED_AGENT),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/eventhistory`) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/storage`) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/state`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ name: "Detached Test State", innerName: null, innerNames: [] }),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/states`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(["Detached Test State"]),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/behaviour/stream`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: ": connected\n\n",
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/monitor/stream`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: `event: snapshot\ndata: ${JSON.stringify({
+          active: true,
+          stateName: "Detached Test State",
+          innerName: null,
+          innerNames: [],
+          states: ["Detached Test State"],
+          storage: [],
+        })}\n\n`,
+      });
+      return;
+    }
+    await route.fallback();
+  });
 }
 
 async function requiredBox(locator, name) {

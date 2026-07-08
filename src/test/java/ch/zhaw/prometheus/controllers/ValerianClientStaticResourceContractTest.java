@@ -85,9 +85,16 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"maximize-sensing-column\""));
         assertTrue(index.contains("data-testid=\"maximize-interaction-column\""));
         assertTrue(index.contains("data-testid=\"maximize-behaviour-column\""));
+        assertTrue(index.contains("data-testid=\"detach-sensing-column\""));
+        assertTrue(index.contains("data-testid=\"detach-interaction-column\""));
+        assertTrue(index.contains("data-testid=\"detach-behaviour-column\""));
         assertTrue(index.contains("data-column-maximize=\"sensing\""));
         assertTrue(index.contains("data-column-maximize=\"interaction\""));
         assertTrue(index.contains("data-column-maximize=\"behaviour\""));
+        assertTrue(index.contains("data-column-detach=\"sensing\""));
+        assertTrue(index.contains("data-column-detach=\"interaction\""));
+        assertTrue(index.contains("data-column-detach=\"behaviour\""));
+        assertTrue(index.contains("data-testid=\"valerian-page-subtitle\""));
         assertTrue(index.contains("data-testid=\"sensing-column-placeholder\""));
         assertTrue(index.contains("data-testid=\"interaction-column-placeholder\""));
         assertTrue(index.contains("data-testid=\"behaviour-column-placeholder\""));
@@ -97,10 +104,18 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("modal-fullscreen-lg-down"));
         assertTrue(index.contains("column-expansion-dialog"));
         assertTrue(index.contains("column-expansion-body [data-column-maximize]"));
+        assertTrue(index.contains("column-expansion-body [data-column-detach]"));
+        assertTrue(index.contains("[data-valerian-view=\"detached\"] .cockpit-grid"));
+        assertTrue(index.contains("[data-valerian-view=\"detached\"] .cockpit-column:not(.is-detached-active)"));
         assertTrue(index.contains("bi bi-arrows-fullscreen"));
+        assertTrue(index.contains("bi bi-box-arrow-up-right"));
 
         assertTrue(script.contains("const columnExpansion = {"));
+        assertTrue(script.contains("const detachedView = {"));
+        assertTrue(script.contains("const VALERIAN_COLUMN_KEYS = [\"sensing\", \"interaction\", \"behaviour\"]"));
+        assertTrue(script.contains("configureValerianView();"));
         assertTrue(script.contains("wireColumnExpansion();"));
+        assertTrue(script.contains("wireColumnDetach();"));
         assertTrue(script.contains("function wireColumnExpansion()"));
         assertTrue(script.contains("window.bootstrap.Modal.getOrCreateInstance(modalElement);"));
         assertTrue(script.contains("document.querySelectorAll(\"[data-column-maximize]\")"));
@@ -121,6 +136,16 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function refreshExpandedColumnLayout()"));
         assertTrue(script.contains("clearOverlay();"));
         assertTrue(script.contains("el.hasAttribute(\"data-column-maximize\")"));
+        assertTrue(script.contains("function configureValerianView()"));
+        assertTrue(script.contains("function detachedPanelFromLocation()"));
+        assertTrue(script.contains("function wireColumnDetach()"));
+        assertTrue(script.contains("document.querySelectorAll(\"[data-column-detach]\")"));
+        assertTrue(script.contains("function openDetachedColumn(columnKey)"));
+        assertTrue(script.contains("Connect an agent before opening a separate window."));
+        assertTrue(script.contains("function detachedColumnUrl(columnKey)"));
+        assertTrue(script.contains("url.searchParams.set(\"mode\", \"detached\");"));
+        assertTrue(script.contains("url.searchParams.set(\"panel\", columnKey);"));
+        assertTrue(script.contains("url.searchParams.set(\"agentId\", state.agentId);"));
     }
 
     @Test
