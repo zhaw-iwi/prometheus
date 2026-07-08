@@ -123,6 +123,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 117: Valerian detached column window foundation
 - [x] Milestone 118: Valerian cross-window camera and microphone ownership
 - [x] Milestone 119: Remove replaceable legacy static clients
+- [x] Milestone 120: API Workbench shell and endpoint catalog
 
 ## Milestone 1
 ### Date
@@ -5342,3 +5343,60 @@ Remove the replaceable legacy browser clients now covered by the Valerian cockpi
 
 ### Next steps
 1. Use the remaining Valerian and multilateral surfaces for the next README screenshot/documentation pass.
+
+## Milestone 120
+### Date
+2026-07-08
+
+### Goal
+Add the first static PROMETHEUS API Workbench client so developers can discover the current REST/SSE contracts through guided lifecycle steps and ready-to-copy endpoint templates.
+
+### What changed
+- Added a new self-contained static client under `src/main/resources/public/apiworkbench/`:
+  - `index.html`
+  - `script.js`
+  - `workbench.css`
+- Added a Valerian-style developer workbench layout with:
+  - session variables for base URL, access code, agent id, agent definition key, and admin token
+  - guided scoped-demo lifecycle steps
+  - endpoint catalog filtering by text and group
+  - selected endpoint detail view
+  - path variable, header, query, and body template rendering
+  - resolved URL display
+  - ready-to-copy `fetch`, `curl`, and `EventSource` snippets
+  - placeholder HTTP and SSE response panes for the next live-execution milestone
+- Added endpoint templates for current client-developer contracts:
+  - scoped demo lifecycle, observation, behaviour, stream, prompt, and Realtime endpoints
+  - admin access-code endpoints
+  - trusted global agent endpoint equivalents
+- Kept the first milestone static/template-only. It does not execute HTTP calls or open SSE connections yet.
+- Added static resource contract coverage for the workbench and updated the static-client removal contract so `apiworkbench` is an intentional current client surface.
+- Added a Playwright smoke test for endpoint filtering, lifecycle selection, snippet generation, and mobile viewport visibility.
+- Added `npm run test:apiworkbench:visual`.
+- Left `README.md` unchanged until the API Workbench can execute live requests and provide meaningful screenshots.
+
+### How to run
+1. Start the app:
+   - `.\mvnw.cmd spring-boot:run`
+2. Open the API Workbench:
+   - `http://localhost:8080/apiworkbench/index.html`
+
+### How to test
+- Static/client checks:
+  - `git diff --check`
+  - `node --check src/main/resources/public/apiworkbench/script.js`
+  - `node --check tests/playwright/apiworkbench.spec.mjs`
+- Focused Java contract checks:
+  - `.\mvnw.cmd -q "-Dtest=ApiWorkbenchStaticResourceContractTest,LegacyStaticClientRemovalContractTest" test`
+- Playwright smoke:
+  - `npm run test:apiworkbench:visual`
+
+### Known issues and decisions
+- The first workbench milestone intentionally does not send live HTTP requests or subscribe to SSE streams. That is the next milestone.
+- The workbench is available at `/apiworkbench/index.html`. No backend redirect for `/apiworkbench` was added because this milestone keeps runtime changes inside the new static client.
+- Endpoint metadata is currently a static JavaScript catalog so the client can evolve without backend API changes. A backend-provided OpenAPI or metadata endpoint can be considered later.
+- README updates are deferred until the workbench has live request/SSE execution and final screenshots.
+
+### Next steps
+1. Add guided scoped-demo lifecycle execution: open session, list agent definitions, create/select an agent, inspect `AgentInteractionProfile`, and display HTTP responses.
+2. Add behaviour and monitor SSE subscriptions plus event publishing from observation templates.

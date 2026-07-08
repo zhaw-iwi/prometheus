@@ -28,6 +28,9 @@ class LegacyStaticClientRemovalContractTest {
     void currentStaticClientsRemainAvailable() {
         for (Path path : List.of(
                 Path.of("src/main/resources/public/style.css"),
+                Path.of("src/main/resources/public/apiworkbench/index.html"),
+                Path.of("src/main/resources/public/apiworkbench/script.js"),
+                Path.of("src/main/resources/public/apiworkbench/workbench.css"),
                 Path.of("src/main/resources/public/valerian/index.html"),
                 Path.of("src/main/resources/public/valerian/script.js"),
                 Path.of("src/main/resources/public/valerian-admin/index.html"),
