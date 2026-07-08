@@ -128,6 +128,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 122: API Workbench SSE and observation publishing
 - [x] Milestone 123: README bundled client and API Workbench documentation
 - [x] Milestone 124: README multilateral note and API Workbench response width
+- [x] Milestone 125: API Workbench short URL redirect
 
 ## Milestone 1
 ### Date
@@ -5588,3 +5589,26 @@ Finish the README client-surface pass and make the API Workbench response viewer
 
 ### Next steps
 1. Merge this main-branch documentation and API Workbench layout polish into `agents`.
+
+## Milestone 125
+### Date
+2026-07-08
+
+### Goal
+Add a short `/apiworkbench` entry point so deployed users do not need to type `/apiworkbench/index.html`.
+
+### What changed
+- Added `StaticRedirectController` mappings for `/apiworkbench` and `/apiworkbench/`.
+- Preserved query strings when redirecting to `/apiworkbench/index.html`.
+- Added MVC redirect coverage for both short API Workbench routes.
+- Updated README client URLs to advertise `http://localhost:8080/apiworkbench/`.
+
+### How to test
+- `git diff --check`
+- `.\mvnw.cmd -q "-Dtest=StaticRedirectControllerWebMvcTest,ApiWorkbenchStaticResourceContractTest" test`
+
+### Known issues and decisions
+- The redirect keeps the implementation as a static client under `/apiworkbench/index.html`; the short route is only an entry-point convenience.
+
+### Next steps
+1. Merge this main-branch redirect into `agents` for deployed agents-branch builds.
