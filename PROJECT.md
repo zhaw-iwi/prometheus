@@ -129,6 +129,8 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 123: README bundled client and API Workbench documentation
 - [x] Milestone 124: README multilateral note and API Workbench response width
 - [x] Milestone 125: API Workbench short URL redirect
+- [x] Milestone 126: Standalone German SIRA/PROMETHEUS public page
+- [x] Milestone 127: Participate landing page and registration wizard frontend
 
 ## Milestone 1
 ### Date
@@ -5612,3 +5614,106 @@ Add a short `/apiworkbench` entry point so deployed users do not need to type `/
 
 ### Next steps
 1. Merge this main-branch redirect into `agents` for deployed agents-branch builds.
+
+## Milestone 126
+### Date
+2026-07-09
+
+### Goal
+Create a standalone German/English public web page introducing the ZHAW SIRA Lab and positioning PROMETHEUS as the agent development framework for SIRA experiments.
+
+### What changed
+- Added `.web/index.html` and `.web/texts.js` as a static page that can be hosted directly.
+- Wrote German and English introductory copy for:
+  - ZHAW Socially Intelligent and Responsible Agents (SIRA) Lab.
+  - PROMETHEUS as a platform for SIRA experiments.
+- Added a public GitHub repository link to `https://github.com/zhaw-iwi/prometheus`.
+- Added Alexandre de Spindler as the main contact with a link to the ZHAW Centre for Information Systems Engineering page.
+- Added an selected publication list covering PROMETHEUS, PROMISE, SBR, multimodal interaction, and social behaviour work.
+- Matched the visual direction of the Valerian cockpit with Space Grotesk typography, compact 8px panels, orange/teal/blue accents, and a persisted light/dark theme toggle.
+- Added a persisted German/English language switch next to the dark-mode toggle.
+- Added a canvas-based configuration-space hero visual and reduced mobile canvas detail to avoid text overlap.
+- Updated `README.md` with the standalone page location and repository structure entry.
+
+### How to run
+1. Open the static page directly:
+   - `.web/index.html`
+2. Or host the `.web/` directory as static files.
+
+### How to test
+- Static checks:
+  - `git diff --check`
+  - `node --check .web/texts.js`
+  - Inline script parse check:
+    - `node -e "const fs=require('fs');const vm=require('vm');const html=fs.readFileSync('.web/index.html','utf8');const re=new RegExp('<script>([\\\\s\\\\S]*?)</script>','g');let m,n=0;while((m=re.exec(html))){new vm.Script(m[1],{filename:'inline-'+n+'.js'});n++;}console.log('checked '+n+' inline scripts');"`
+- Browser smoke checks with Playwright:
+  - Desktop render, dark-mode toggle, German/English toggle, page title, H1, publication count, GitHub links, and contact links.
+  - Mobile render at 390x844 with no horizontal overflow.
+
+### Known issues and decisions
+- The page intentionally lives under `.web/` and is not bundled into the Spring static client surfaces.
+- The page uses CDN-hosted fonts and Bootstrap Icons, matching the existing Valerian style direction.
+- The publication list is a selected research-context list, not a formal CV or exhaustive bibliography.
+
+### Next steps
+1. Review the public wording and publication selection before deploying the page online.
+
+## Milestone 127
+### Date
+2026-07-10
+
+### Goal
+Create the first standalone German participation site frontend under `.web/participate/` for recruiting participants into the human-AI collaboration study.
+
+### What changed
+- Added `.web/participate/index.php` as the deployable root page for the participation site.
+- Added local frontend assets:
+  - `.web/participate/assets/styles.css`
+  - `.web/participate/assets/app.js`
+- Matched the SIRA/Valerian visual direction with compact panels, 8px radii, orange/teal accents, a canvas hero, and persisted light/dark theme.
+- Added German landing content for the study:
+  - introductory study motivation.
+  - what participants can expect.
+  - key facts for date, place, target group, and thank-you gift.
+  - privacy and contact summary.
+- Added a `Mitmachen` registration dialog with a three-step chevron wizard:
+  - personal details: full name, date of birth, e-mail address.
+  - half-day preference: Monday 17 August 2026 morning, Monday 17 August 2026 afternoon, or unavailable-but-interested.
+  - review and submit.
+- Added a privacy information dialog accessible from the landing page, footer, and review step.
+- Added frontend validation for required personal details, valid e-mail address, and slot preference.
+- Added local browser recognition for the frontend milestone:
+  - submitted data is stored in local storage with a cookie marker.
+  - returning users see their registration summary.
+  - returning users cannot edit and resubmit through the CTA.
+- Added a full-width success alert after local submission that vanishes after five seconds.
+- Added dedicated Playwright support for this PHP-rooted static site:
+  - `playwright.participate.config.mjs`
+  - `tests/playwright/participate.spec.mjs`
+  - `npm run test:participate:visual`
+- Updated `README.md` with local run and test instructions.
+
+### How to run
+1. Start PHP's built-in server:
+   - `php -S 127.0.0.1:8091 -t .web/participate`
+2. Open:
+   - `http://127.0.0.1:8091/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/index.php`
+  - `node --check .web/participate/assets/app.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+  - `node --check playwright.participate.config.mjs`
+  - `git diff --check`
+- Browser smoke:
+  - `npm run test:participate:visual`
+
+### Known issues and decisions
+- This milestone is frontend-only. It does not yet write to MySQL or send e-mail.
+- Submission currently stores a local summary in the participant's browser to validate the wizard and returning-summary UX. Milestone 128 will replace this with the PHP/MySQL registration API, duplicate e-mail handling, cookies backed by a server token, and confirmation mail.
+- The page intentionally lives under `.web/participate/` and does not depend on `.web/index.html` or `.web/texts.js`.
+- The study page is German-only for this milestone, but the asset structure leaves room for future localization.
+
+### Next steps
+1. Milestone 128: add `.env` loading, MySQL schema/seed files, PHP registration API, duplicate handling, confirmation mail, and database-backed returning-summary lookup.

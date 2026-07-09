@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "test:apiworkbench:visual": "playwright test --config=playwright.config.mjs tests/playwright/apiworkbench.spec.mjs",
+    "test:participate:visual": "playwright test --config=playwright.participate.config.mjs",
     "test:valerian:visual": "playwright test --config=playwright.config.mjs tests/playwright/valerian-column-expansion.spec.mjs"
   },
   "devDependencies": {

@@ -205,6 +205,17 @@ Open the main surfaces:
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
+The standalone German/English SIRA/PROMETHEUS public page lives under `.web/`.
+Open `.web/index.html` directly in a browser, or host the `.web/` directory as
+static files.
+
+The standalone German study participation site lives under `.web/participate/`.
+Run it locally with PHP when testing the registration wizard:
+
+```powershell
+php -S 127.0.0.1:8091 -t .web/participate
+```
+
 ## Testing
 
 Run the Java regression suite:
@@ -218,8 +229,10 @@ Run JavaScript syntax checks for the bundled clients:
 ```powershell
 node --check src/main/resources/public/valerian/script.js
 node --check src/main/resources/public/apiworkbench/script.js
+node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
+node --check tests/playwright/participate.spec.mjs
 ```
 
 Run the Playwright visual smoke tests:
@@ -229,6 +242,7 @@ npm install
 npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
+npm run test:participate:visual
 ```
 
 The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
@@ -239,6 +253,10 @@ guided lifecycle, snippets, request execution, and SSE viewer. Set
 `PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
 the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
 running.
+
+The participate Playwright test starts PHP's built-in server for
+`.web/participate/` and verifies the landing page, registration wizard,
+validation, privacy modal, local registration summary, and mobile layout.
 
 ## Connecting External Clients
 
@@ -574,7 +592,11 @@ src/main/resources/public
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
-tests/playwright    Browser-level Valerian and API Workbench visual smoke tests.
+.web/
+  index.html        Standalone German/English SIRA/PROMETHEUS public page.
+  participate/      Standalone German study participation site.
+
+tests/playwright    Browser-level Valerian, API Workbench, and participate smoke tests.
 ```
 
 ## Developing New Agents
