@@ -1,7 +1,11 @@
 import { defineConfig } from "@playwright/test";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const baseURL = process.env.PARTICIPATE_BASE_URL || "http://127.0.0.1:8091";
-const startCommand = "php -S 127.0.0.1:8091 -t .web/participate";
+const rootDir = dirname(fileURLToPath(import.meta.url));
+const envFile = resolve(rootDir, ".web/participate/.env.test");
+const startCommand = "php .web/participate/tests/setup_test_db.php && php -S 127.0.0.1:8091 -t .web/participate";
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -26,7 +30,11 @@ export default defineConfig({
     : {
         command: startCommand,
         url: baseURL,
+        env: {
+          ...process.env,
+          PARTICIPATE_ENV_FILE: envFile,
+        },
         timeout: 30_000,
-        reuseExistingServer: true,
+        reuseExistingServer: false,
       },
 });

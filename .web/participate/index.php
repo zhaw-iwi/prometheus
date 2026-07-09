@@ -177,13 +177,13 @@
           <div class="panel">
             <div class="panel-header">
               <span>Gespeicherte Zusammenfassung</span>
-              <span class="metric-label">Browser</span>
+              <span class="metric-label">Anmeldung</span>
             </div>
             <div class="panel-body">
               <div class="summary-grid" data-local-summary></div>
               <p class="summary-note">
-                Diese Zusammenfassung wird in diesem Browser wieder angezeigt. Du kannst diese Anmeldung nicht erneut
-                bearbeiten oder nochmals absenden. Bei Fragen kontaktiere bitte
+                Diese Zusammenfassung wird über die Anmeldung in diesem Browser wieder angezeigt. Du kannst diese
+                Anmeldung nicht erneut bearbeiten oder nochmals absenden. Bei Fragen kontaktiere bitte
                 <a href="mailto:alexandre.despindler@zhaw.ch">alexandre.despindler@zhaw.ch</a>.
               </p>
             </div>

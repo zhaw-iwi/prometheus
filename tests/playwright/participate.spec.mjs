@@ -1,6 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-test("participant wizard validates, reviews, submits, and restores local summary", async ({ page }) => {
+const mailDir = resolve(".web/participate/.tmp/mail");
+
+function mailFiles() {
+  try {
+    return readdirSync(mailDir).filter((file) => file.endsWith(".eml"));
+  } catch (error) {
+    return [];
+  }
+}
+
+test("participant wizard validates, reviews, submits, logs mail, and restores server summary", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", {
@@ -39,9 +51,27 @@ test("participant wizard validates, reviews, submits, and restores local summary
   await expect(page.locator("[data-local-summary-section]")).toBeVisible();
   await expect(page.locator("[data-local-summary]")).toContainText("Max Muster");
 
+  await expect.poll(() => mailFiles().length).toBeGreaterThan(0);
+  const firstMail = readFileSync(resolve(mailDir, mailFiles()[0]), "utf8");
+  expect(firstMail).toContain("DO NOT REPLY TO THIS MAIL");
+  expect(firstMail).toContain("Bcc: alexandre.despindler@zhaw.ch");
+  expect(firstMail).toContain("max.muster@example.com");
+
   await page.reload();
   await expect(page.locator("[data-local-summary-section]")).toBeVisible();
   await expect(page.locator("[data-local-summary]")).toContainText("max.muster@example.com");
+
+  const duplicate = await page.request.post("/api/register.php", {
+    data: {
+      fullName: "Max Muster",
+      dateOfBirth: "1990-05-12",
+      email: "max.muster@example.com",
+      slotPreference: "2026-08-17-afternoon",
+    },
+  });
+  expect(duplicate.status()).toBe(409);
+  const duplicateBody = await duplicate.json();
+  expect(duplicateBody.message).toContain("alexandre.despindler@zhaw.ch");
 });
 
 test("participant page remains usable on mobile", async ({ page }) => {

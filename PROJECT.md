@@ -131,6 +131,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 125: API Workbench short URL redirect
 - [x] Milestone 126: Standalone German SIRA/PROMETHEUS public page
 - [x] Milestone 127: Participate landing page and registration wizard frontend
+- [x] Milestone 128: Participate PHP/MySQL registration backend
 
 ## Milestone 1
 ### Date
@@ -5717,3 +5718,110 @@ Create the first standalone German participation site frontend under `.web/parti
 
 ### Next steps
 1. Milestone 128: add `.env` loading, MySQL schema/seed files, PHP registration API, duplicate handling, confirmation mail, and database-backed returning-summary lookup.
+
+## Milestone 128
+### Date
+2026-07-10
+
+### Goal
+Replace the participation site's frontend-only submission with a deployable PHP/MySQL registration backend, confirmation mail support, duplicate e-mail handling, and database-backed returning-summary lookup.
+
+### What changed
+- Added deployment and test environment templates under `.web/participate/`:
+  - `.env.example` for production host credentials and mail settings.
+  - `.env.test` for the local MySQL test instance using `root` / `achselle9`.
+- Added MySQL deployment files:
+  - `.web/participate/database/schema.sql`
+  - `.web/participate/database/seed.sql`
+- Seeded the first three participation options:
+  - Monday 17 August 2026, 09:00 to 13:00, capacity 64.
+  - Monday 17 August 2026, 13:00 to 17:00, capacity 64.
+  - unavailable-but-interested option with no capacity limit.
+- Added PHP backend support in `.web/participate/config/bootstrap.php`:
+  - local `.env` loading.
+  - PDO/MySQL connection creation.
+  - JSON request/response helpers.
+  - secure server-token registration cookie helper.
+  - PHP `mail()` confirmation sender with logged-mail transport for tests.
+- Added participant API endpoints:
+  - `.web/participate/api/register.php`
+  - `.web/participate/api/registration.php`
+- Registration now:
+  - validates name, date of birth, e-mail address, and selected slot.
+  - enforces one registration per normalized e-mail address.
+  - checks slot capacity for the two half-day slots.
+  - stores the request in MySQL.
+  - sets an HTTP-only cookie containing a random 64-character public token.
+  - sends a confirmation mail marked `DO NOT REPLY TO THIS MAIL`.
+  - adds comma-separated `ADMIN_NOTIFY_EMAIL` values as BCC recipients on participant mails.
+- Duplicate registration rejection now returns a graceful message telling participants to contact `alexandre.despindler@zhaw.ch`.
+- Updated the frontend submission flow in `.web/participate/assets/app.js`:
+  - posts the wizard values to the PHP API.
+  - shows backend validation or duplicate messages in the existing wizard alert.
+  - restores returning-user summaries through the server-backed cookie.
+  - prevents editing and resubmitting once the browser has an existing registration token.
+- Updated the returning summary copy in `.web/participate/index.php` to describe browser-backed registration lookup instead of local-only storage.
+- Added `.web/participate/tests/setup_test_db.php` to reset and seed the local MySQL test database and clear logged test mails.
+- Updated `playwright.participate.config.mjs` so `npm run test:participate:visual` resets MySQL, starts PHP with `.env.test`, and runs against the real backend.
+- Extended `tests/playwright/participate.spec.mjs` to verify:
+  - wizard validation and review.
+  - backend submission.
+  - MySQL-backed summary restoration after reload.
+  - logged confirmation mail with BCC.
+  - duplicate e-mail rejection.
+  - mobile layout.
+- Updated `.gitignore` to ignore production `.env` and generated test mail while keeping `.env.example` and `.env.test` tracked.
+- Updated `README.md` with deployment setup, local backend setup, and backend-aware test instructions.
+
+### How to run
+1. For deployment, create `.web/participate/.env` from `.web/participate/.env.example`.
+2. Execute the database files in this order in the deployment MySQL database:
+   - `.web/participate/database/schema.sql`
+   - `.web/participate/database/seed.sql`
+3. For local testing:
+   - `$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path`
+   - `php .web/participate/tests/setup_test_db.php`
+   - `php -S 127.0.0.1:8091 -t .web/participate`
+4. Open:
+   - `http://127.0.0.1:8091/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/index.php`
+  - `php -l .web/participate/config/bootstrap.php`
+  - `php -l .web/participate/api/register.php`
+  - `php -l .web/participate/api/registration.php`
+  - `php -l .web/participate/tests/setup_test_db.php`
+  - `node --check .web/participate/assets/app.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+  - `node --check playwright.participate.config.mjs`
+- Database setup:
+  - `php .web/participate/tests/setup_test_db.php`
+- MySQL seed check:
+  - `mysql -uroot -pachselle9 -D sira_participate_test -e "SELECT slot_key, capacity, is_active FROM participation_slots ORDER BY sort_order; SELECT COUNT(*) AS registrations FROM participation_registrations;"`
+- Browser/backend smoke:
+  - `npm run test:participate:visual`
+
+### Verification
+- `php -l .web/participate/index.php`: passed.
+- `php -l .web/participate/config/bootstrap.php`: passed.
+- `php -l .web/participate/api/register.php`: passed.
+- `php -l .web/participate/api/registration.php`: passed.
+- `php -l .web/participate/tests/setup_test_db.php`: passed.
+- `node --check .web/participate/assets/app.js`: passed.
+- `node --check tests/playwright/participate.spec.mjs`: passed.
+- `node --check playwright.participate.config.mjs`: passed.
+- `php .web/participate/tests/setup_test_db.php`: passed and prepared `sira_participate_test`.
+- Direct API smoke with PHP server: passed registration insert, cookie-backed summary lookup, logged mail, and duplicate 409 rejection.
+- MySQL seed check: passed; both half-day slots have capacity 64 and the unavailable option has `NULL` capacity.
+- `npm run test:participate:visual`: passed, 2 tests.
+
+### Known issues and decisions
+- Production mail uses PHP `mail()` because no SMTP library or Composer dependency was introduced.
+- Test mail uses `MAIL_TRANSPORT=log` and writes `.eml` files under `.web/participate/.tmp/mail`.
+- The registration cookie stores only a random public token; the summary itself is fetched from MySQL.
+- `.web/participate/.env` is intentionally ignored and must be created on the deployment host.
+- The admin view is not part of this milestone.
+
+### Next steps
+1. Milestone 129: add the unprotected `/admin/` view with searchable/sortable registration table and CSV export.

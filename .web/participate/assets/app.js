@@ -1,6 +1,4 @@
 const THEME_STORAGE_KEY = "sira.participate.theme";
-const REGISTRATION_STORAGE_KEY = "sira.participate.registration";
-const REGISTRATION_COOKIE_KEY = "sira_participate_registration";
 
 const slotLabels = {
   "2026-08-17-morning": "Montag, 17. August 2026, 09:00 bis 13:00",
@@ -13,6 +11,7 @@ const context = canvas.getContext("2d");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let animationFrame = 0;
 let pointer = { x: 0.66, y: 0.42 };
+let savedRegistration = null;
 
 function currentTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -81,6 +80,38 @@ function closeDialog(dialog) {
   }
 }
 
+async function apiRequest(path, options = {}) {
+  const headers = {
+    Accept: "application/json",
+    ...(options.headers || {})
+  };
+  if (options.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    ...options,
+    headers
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const apiError = new Error(payload?.message || "Die Anfrage konnte nicht verarbeitet werden.");
+    apiError.status = response.status;
+    apiError.payload = payload;
+    throw apiError;
+  }
+
+  return payload || {};
+}
+
 function formValues() {
   const form = document.querySelector("[data-registration-form]");
   const data = new FormData(form);
@@ -108,7 +139,7 @@ function summaryItems(values) {
     ["Name", values.fullName || "-"],
     ["Geburtsdatum", formatDate(values.dateOfBirth)],
     ["E-Mail", values.email || "-"],
-    ["Terminpräferenz", slotLabels[values.slotPreference] || "-"]
+    ["Terminpräferenz", values.slotPreferenceLabel || slotLabels[values.slotPreference] || "-"]
   ];
 }
 
@@ -133,39 +164,7 @@ function renderSummary(target, values) {
   });
 }
 
-function saveLocalRegistration(values) {
-  const registration = {
-    ...values,
-    submittedAt: new Date().toISOString(),
-    localReference: `local-${Date.now()}`
-  };
-  try {
-    localStorage.setItem(REGISTRATION_STORAGE_KEY, JSON.stringify(registration));
-  } catch (error) {
-    // Cookie marker still records that a submission happened in this browser.
-  }
-  document.cookie = `${REGISTRATION_COOKIE_KEY}=1; Max-Age=31536000; Path=/; SameSite=Lax`;
-  return registration;
-}
-
-function loadLocalRegistration() {
-  try {
-    const raw = localStorage.getItem(REGISTRATION_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return null;
-    }
-    return parsed;
-  } catch (error) {
-    return null;
-  }
-}
-
-function refreshLocalRegistrationUi() {
-  const registration = loadLocalRegistration();
+function renderRegistrationUi(registration) {
   const section = document.querySelector("[data-local-summary-section]");
   const target = document.querySelector("[data-local-summary]");
   if (!section || !target) {
@@ -177,6 +176,26 @@ function refreshLocalRegistrationUi() {
   }
 }
 
+async function refreshRegistrationUi() {
+  try {
+    const payload = await apiRequest("api/registration.php");
+    savedRegistration = payload.registered ? payload.registration : null;
+  } catch (error) {
+    savedRegistration = null;
+  }
+  renderRegistrationUi(savedRegistration);
+}
+
+async function submitRegistration(values) {
+  const payload = await apiRequest("api/register.php", {
+    method: "POST",
+    body: JSON.stringify(values)
+  });
+  savedRegistration = payload.registration || null;
+  renderRegistrationUi(savedRegistration);
+  return payload;
+}
+
 function initWizard() {
   const form = document.querySelector("[data-registration-form]");
   const dialog = document.querySelector("[data-registration-dialog]");
@@ -184,6 +203,7 @@ function initWizard() {
   const tabs = Array.from(form.querySelectorAll("[data-step-target]"));
   const alert = form.querySelector("[data-validation-alert]");
   let current = 0;
+  let submitting = false;
 
   function clearAlert() {
     alert.hidden = true;
@@ -270,21 +290,41 @@ function initWizard() {
     tab.addEventListener("click", () => showStep(index));
   });
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
     if (!validateAll()) {
       return;
     }
     const values = formValues();
-    saveLocalRegistration(values);
-    closeDialog(dialog);
-    refreshLocalRegistrationUi();
-    showAlert("Deine Anmeldung ist eingegangen. Weitere Informationen werden an deine E-Mail-Adresse gesendet.");
+    const submitButton = form.querySelector('.wizard-step.active button[type="submit"]');
+    submitting = true;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Wird gesendet...";
+    }
+    try {
+      await submitRegistration(values);
+      closeDialog(dialog);
+      form.reset();
+      showStep(0);
+      showAlert("Deine Anmeldung ist eingegangen. Weitere Informationen werden an deine E-Mail-Adresse gesendet.");
+    } catch (error) {
+      showValidation(error.message);
+    } finally {
+      submitting = false;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Teilnahmeanfrage absenden";
+      }
+    }
   });
 
   document.querySelectorAll("[data-open-registration]").forEach((button) => {
     button.addEventListener("click", () => {
-      if (loadLocalRegistration()) {
+      if (savedRegistration) {
         document.querySelector("[data-local-summary-section]")?.scrollIntoView({ behavior: "smooth" });
         return;
       }
@@ -473,6 +513,6 @@ reduceMotion.addEventListener("change", () => {
 updateThemeToggle(currentTheme());
 initWizard();
 initPrivacyDialog();
-refreshLocalRegistrationUi();
+refreshRegistrationUi();
 resizeCanvas();
 animationFrame = window.requestAnimationFrame(animate);

@@ -210,9 +210,19 @@ Open `.web/index.html` directly in a browser, or host the `.web/` directory as
 static files.
 
 The standalone German study participation site lives under `.web/participate/`.
-Run it locally with PHP when testing the registration wizard:
+It is self-contained for deployment as a separate host root. Before deploying,
+copy `.web/participate/.env.example` to `.web/participate/.env`, fill in the
+database and mail values, and execute `.web/participate/database/schema.sql`
+followed by `.web/participate/database/seed.sql` in the target MySQL database.
+`ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
+added as BCC recipients on participant confirmation mails.
+
+For local backend testing, use the provided `.env.test` and reset the local
+MySQL test database:
 
 ```powershell
+$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path
+php .web/participate/tests/setup_test_db.php
 php -S 127.0.0.1:8091 -t .web/participate
 ```
 
@@ -233,6 +243,12 @@ node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
 node --check tests/playwright/participate.spec.mjs
+node --check playwright.participate.config.mjs
+php -l .web/participate/index.php
+php -l .web/participate/config/bootstrap.php
+php -l .web/participate/api/register.php
+php -l .web/participate/api/registration.php
+php -l .web/participate/tests/setup_test_db.php
 ```
 
 Run the Playwright visual smoke tests:
@@ -254,9 +270,12 @@ guided lifecycle, snippets, request execution, and SSE viewer. Set
 the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
 running.
 
-The participate Playwright test starts PHP's built-in server for
-`.web/participate/` and verifies the landing page, registration wizard,
-validation, privacy modal, local registration summary, and mobile layout.
+The participate Playwright test resets `sira_participate_test` through
+`.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
+`.web/participate/` with `.env.test`, and verifies the landing page,
+registration wizard, validation, privacy modal, MySQL-backed registration,
+logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
+and mobile layout.
 
 ## Connecting External Clients
 
@@ -595,6 +614,11 @@ src/main/resources/public
 .web/
   index.html        Standalone German/English SIRA/PROMETHEUS public page.
   participate/      Standalone German study participation site.
+    api/            PHP JSON endpoints for registration and returning-summary lookup.
+    assets/         Plain CSS and JavaScript for the landing page and wizard.
+    config/         Local `.env` loading, PDO, JSON, cookie, and mail helpers.
+    database/       MySQL schema and seed files for phpMyAdmin deployment.
+    tests/          Local MySQL reset helper for integration smoke tests.
 
 tests/playwright    Browser-level Valerian, API Workbench, and participate smoke tests.
 ```
