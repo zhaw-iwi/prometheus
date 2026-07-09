@@ -132,6 +132,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 126: Standalone German SIRA/PROMETHEUS public page
 - [x] Milestone 127: Participate landing page and registration wizard frontend
 - [x] Milestone 128: Participate PHP/MySQL registration backend
+- [x] Milestone 129: Participate admin registration table
 
 ## Milestone 1
 ### Date
@@ -5825,3 +5826,76 @@ Replace the participation site's frontend-only submission with a deployable PHP/
 
 ### Next steps
 1. Milestone 129: add the unprotected `/admin/` view with searchable/sortable registration table and CSV export.
+
+## Milestone 129
+### Date
+2026-07-10
+
+### Goal
+Add the participation admin view under `.web/participate/admin/` so registrations can be inspected, searched, sorted, and exported as CSV.
+
+### What changed
+- Added `.web/participate/admin/index.php` as the admin root page.
+- Added `.web/participate/admin/admin.css` for admin-specific layout:
+  - compact SIRA/participate visual language.
+  - summary metric cards.
+  - toolbar with search and CSV export.
+  - horizontally scrollable dense registration table.
+- Added `.web/participate/admin/admin.js` for plain-JavaScript table behavior:
+  - persisted light/dark theme toggle using the existing participate theme key.
+  - client-side search across every displayed column.
+  - sortable headers for every displayed column.
+  - CSV export from the full loaded registration set, independent of the active search filter.
+- The admin page queries MySQL server-side through the existing participation backend config and renders:
+  - ID.
+  - created and updated timestamps.
+  - full name.
+  - date of birth.
+  - e-mail address.
+  - slot preference.
+  - slot start and end.
+  - slot capacity.
+  - status.
+  - IP address.
+  - user agent.
+- Extended the participation Playwright suite with an admin smoke test that:
+  - creates two registrations through the API.
+  - opens `/admin/`.
+  - verifies the table contains the registrations.
+  - sorts by e-mail.
+  - filters by search value.
+  - exports CSV while filtered and verifies the CSV still contains all loaded rows.
+- Updated `README.md` with the `/admin/` route, lack of built-in authentication, and admin test coverage.
+
+### How to run
+1. Use the same `.web/participate/.env` deployment setup from milestone 128.
+2. Open the admin route below the deployed participation root:
+   - `/admin/`
+   - local example: `http://127.0.0.1:8091/admin/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/admin/index.php`
+  - `node --check .web/participate/admin/admin.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+- Browser/backend smoke:
+  - `npm run test:participate:visual`
+- Manual visual check:
+  - start PHP with `.env.test`.
+  - capture `http://127.0.0.1:8091/admin/` at 1440x1000.
+  - verify the metrics, toolbar, and wide table do not overlap and remain readable.
+
+### Verification
+- `php -l .web/participate/admin/index.php`: passed.
+- `node --check .web/participate/admin/admin.js`: passed.
+- `node --check tests/playwright/participate.spec.mjs`: passed.
+- `npm run test:participate:visual`: passed, 3 tests.
+- Manual screenshot check of `/admin/` at 1440x1000: passed; table is readable and horizontally scrolls inside its panel.
+
+### Known issues and decisions
+- The admin page intentionally has no built-in authentication, matching the requested UUID/obscured-folder deployment approach.
+- The CSV export is generated client-side from the full dataset loaded into the admin page. For very large future datasets, a server-side export endpoint would be more scalable.
+- The page omits the registration public token from the visible/exported table to avoid exposing a browser summary token unnecessarily.
+
+### Next steps
+1. No milestone 130 has been defined yet.

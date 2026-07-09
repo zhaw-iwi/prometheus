@@ -217,6 +217,12 @@ followed by `.web/participate/database/seed.sql` in the target MySQL database.
 `ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
 added as BCC recipients on participant confirmation mails.
 
+The participation admin view is available at `/admin/` below that deployment
+root, for example `https://participate.siralab.ch/admin/`. It intentionally has
+no built-in authentication; protect or obscure the deployed folder name at the
+hosting level if needed. The table supports client-side search, sortable
+columns, and CSV export of the full loaded registration set.
+
 For local backend testing, use the provided `.env.test` and reset the local
 MySQL test database:
 
@@ -248,7 +254,9 @@ php -l .web/participate/index.php
 php -l .web/participate/config/bootstrap.php
 php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
+php -l .web/participate/admin/index.php
 php -l .web/participate/tests/setup_test_db.php
+node --check .web/participate/admin/admin.js
 ```
 
 Run the Playwright visual smoke tests:
@@ -275,7 +283,8 @@ The participate Playwright test resets `sira_participate_test` through
 `.web/participate/` with `.env.test`, and verifies the landing page,
 registration wizard, validation, privacy modal, MySQL-backed registration,
 logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
-and mobile layout.
+mobile layout, and the `/admin/` registration table with search, sorting, and
+CSV export.
 
 ## Connecting External Clients
 
@@ -614,6 +623,7 @@ src/main/resources/public
 .web/
   index.html        Standalone German/English SIRA/PROMETHEUS public page.
   participate/      Standalone German study participation site.
+    admin/          Unprotected registration overview with search, sort, and CSV export.
     api/            PHP JSON endpoints for registration and returning-summary lookup.
     assets/         Plain CSS and JavaScript for the landing page and wizard.
     config/         Local `.env` loading, PDO, JSON, cookie, and mail helpers.

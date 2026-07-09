@@ -94,3 +94,46 @@ test("participant page remains usable on mobile", async ({ page }) => {
   }));
   expect(modalOverflow.scrollWidth).toBeLessThanOrEqual(modalOverflow.innerWidth);
 });
+
+test("admin view searches, sorts, and exports all rows", async ({ page }) => {
+  const registrations = [
+    {
+      fullName: "Admin Eins",
+      dateOfBirth: "1988-01-15",
+      email: "admin.one@example.com",
+      slotPreference: "2026-08-17-morning",
+    },
+    {
+      fullName: "Admin Zwei",
+      dateOfBirth: "1992-02-20",
+      email: "admin.two@example.com",
+      slotPreference: "unavailable",
+    },
+  ];
+
+  for (const registration of registrations) {
+    const response = await page.request.post("/api/register.php", { data: registration });
+    expect(response.status()).toBe(201);
+  }
+
+  await page.goto("/admin/");
+  await expect(page.getByRole("heading", { name: "Admin Übersicht" })).toBeVisible();
+  await expect(page.locator("[data-table-body]")).toContainText("admin.one@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("admin.two@example.com");
+
+  await page.getByRole("button", { name: "E-Mail" }).click();
+  await expect(page.getByRole("button", { name: "E-Mail" })).toHaveAttribute("data-sort-active", "asc");
+
+  await page.getByLabel("Suche").fill("admin.one");
+  await expect(page.locator("[data-table-body]")).toContainText("admin.one@example.com");
+  await expect(page.locator("[data-table-body]")).not.toContainText("admin.two@example.com");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "CSV exportieren" }).click(),
+  ]);
+  const downloadPath = await download.path();
+  const csv = readFileSync(downloadPath, "utf8");
+  expect(csv).toContain("admin.one@example.com");
+  expect(csv).toContain("admin.two@example.com");
+});
