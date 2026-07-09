@@ -88,6 +88,28 @@ function filteredRows() {
   return visible;
 }
 
+function updateMetrics() {
+  const counts = {
+    total: rows.length,
+    "2026-08-17-morning": 0,
+    "2026-08-17-afternoon": 0,
+    unavailable: 0
+  };
+
+  rows.forEach((row) => {
+    if (Object.prototype.hasOwnProperty.call(counts, row.slot_preference_key)) {
+      counts[row.slot_preference_key] += 1;
+    }
+  });
+
+  Object.entries(counts).forEach(([key, value]) => {
+    const metric = document.querySelector(`[data-metric="${key}"]`);
+    if (metric) {
+      metric.textContent = String(value);
+    }
+  });
+}
+
 function formatCell(row, column) {
   const value = valueFor(row, column.key);
   return value || "-";
@@ -99,6 +121,7 @@ function renderTable() {
   if (!body || !count) {
     return;
   }
+  updateMetrics();
 
   const visible = filteredRows();
   body.textContent = "";
@@ -107,7 +130,7 @@ function renderTable() {
     const row = document.createElement("tr");
     row.className = "empty-row";
     const cell = document.createElement("td");
-    cell.colSpan = columns.length;
+    cell.colSpan = columns.length + 1;
     cell.textContent = "Keine passenden Einträge";
     row.append(cell);
     body.append(row);
@@ -129,6 +152,16 @@ function renderTable() {
         }
         row.append(cell);
       });
+      const actionCell = document.createElement("td");
+      actionCell.className = "nowrap";
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "button table-action-button danger";
+      deleteButton.type = "button";
+      deleteButton.textContent = "Löschen";
+      deleteButton.setAttribute("aria-label", `${valueFor(registration, "full_name") || "Anmeldung"} löschen`);
+      deleteButton.addEventListener("click", () => deleteRegistration(registration));
+      actionCell.append(deleteButton);
+      row.append(actionCell);
       body.append(row);
     });
   }
@@ -147,6 +180,41 @@ function renderTable() {
 function csvEscape(value) {
   const text = value === null || value === undefined ? "" : String(value);
   return `"${text.replaceAll('"', '""')}"`;
+}
+
+async function deleteRegistration(registration) {
+  const name = valueFor(registration, "full_name") || valueFor(registration, "email") || `ID ${registration.id}`;
+  if (!window.confirm(`Anmeldung von ${name} wirklich löschen? Die Person kann sich danach erneut anmelden.`)) {
+    return;
+  }
+
+  const response = await fetch("delete.php", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id: registration.id })
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    window.alert(payload?.message || "Die Anmeldung konnte nicht gelöscht werden.");
+    return;
+  }
+
+  const index = rows.findIndex((row) => String(row.id) === String(registration.id));
+  if (index >= 0) {
+    rows.splice(index, 1);
+  }
+  renderTable();
 }
 
 function exportCsv() {

@@ -136,4 +136,19 @@ test("admin view searches, sorts, and exports all rows", async ({ page }) => {
   const csv = readFileSync(downloadPath, "utf8");
   expect(csv).toContain("admin.one@example.com");
   expect(csv).toContain("admin.two@example.com");
+
+  await page.getByLabel("Suche").fill("admin.two");
+  await page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Admin Zwei löschen" }).click();
+  await expect(page.locator("[data-table-body]")).not.toContainText("admin.two@example.com");
+  await expect(page.locator('[data-metric="unavailable"]')).toHaveText("0");
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Mitmachen" }).click();
+  await expect(page.locator("[data-registration-dialog]")).toBeVisible();
+
+  const resubscribe = await page.request.post("/api/register.php", {
+    data: registrations[1],
+  });
+  expect(resubscribe.status()).toBe(201);
 });

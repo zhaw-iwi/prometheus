@@ -221,7 +221,10 @@ The participation admin view is available at `/admin/` below that deployment
 root, for example `https://participate.siralab.ch/admin/`. It intentionally has
 no built-in authentication; protect or obscure the deployed folder name at the
 hosting level if needed. The table supports client-side search, sortable
-columns, and CSV export of the full loaded registration set.
+columns, deletion of registrations, and CSV export of the full loaded
+registration set. Deleting a registration removes its e-mail reservation and
+server-token summary, so the participant can register again from the same
+browser.
 
 For local backend testing, use the provided `.env.test` and reset the local
 MySQL test database:
@@ -254,6 +257,7 @@ php -l .web/participate/index.php
 php -l .web/participate/config/bootstrap.php
 php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
+php -l .web/participate/admin/delete.php
 php -l .web/participate/admin/index.php
 php -l .web/participate/tests/setup_test_db.php
 node --check .web/participate/admin/admin.js
@@ -284,7 +288,8 @@ The participate Playwright test resets `sira_participate_test` through
 registration wizard, validation, privacy modal, MySQL-backed registration,
 logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
 mobile layout, and the `/admin/` registration table with search, sorting, and
-CSV export.
+CSV export. It also verifies admin deletion and same-browser re-registration
+after deletion.
 
 ## Connecting External Clients
 

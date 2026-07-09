@@ -95,22 +95,22 @@ foreach ($registrations as $registration) {
           <div class="admin-metrics" aria-label="Kurzübersicht">
             <div class="fact-card">
               <span class="metric-label">Anmeldungen</span>
-              <strong><?php echo htmlspecialchars((string) $registrationCount, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <strong data-metric="total"><?php echo htmlspecialchars((string) $registrationCount, ENT_QUOTES, 'UTF-8'); ?></strong>
               <span>gesamt erfasst</span>
             </div>
             <div class="fact-card">
               <span class="metric-label">Vormittag</span>
-              <strong><?php echo htmlspecialchars((string) $morningCount, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <strong data-metric="2026-08-17-morning"><?php echo htmlspecialchars((string) $morningCount, ENT_QUOTES, 'UTF-8'); ?></strong>
               <span>17.08.2026, 09:00 bis 13:00</span>
             </div>
             <div class="fact-card">
               <span class="metric-label">Nachmittag</span>
-              <strong><?php echo htmlspecialchars((string) $afternoonCount, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <strong data-metric="2026-08-17-afternoon"><?php echo htmlspecialchars((string) $afternoonCount, ENT_QUOTES, 'UTF-8'); ?></strong>
               <span>17.08.2026, 13:00 bis 17:00</span>
             </div>
             <div class="fact-card">
               <span class="metric-label">Andere Termine</span>
-              <strong><?php echo htmlspecialchars((string) $unavailableCount, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <strong data-metric="unavailable"><?php echo htmlspecialchars((string) $unavailableCount, ENT_QUOTES, 'UTF-8'); ?></strong>
               <span>interessiert, aber verhindert</span>
             </div>
           </div>
@@ -153,6 +153,7 @@ foreach ($registrations as $registration) {
                   <th><button type="button" data-sort="status">Status</button></th>
                   <th><button type="button" data-sort="ip_address">IP</button></th>
                   <th><button type="button" data-sort="user_agent">User-Agent</button></th>
+                  <th>Aktion</th>
                 </tr>
               </thead>
               <tbody data-table-body></tbody>

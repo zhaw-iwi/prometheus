@@ -125,7 +125,6 @@
             <div class="fact-card">
               <span class="metric-label">Datum</span>
               <strong>Montag, 17. August 2026</strong>
-              <span>optional: Mittwoch, 19. August 2026</span>
             </div>
             <div class="fact-card">
               <span class="metric-label">Ort</span>
@@ -159,6 +158,11 @@
               <p>
                 Kontaktangaben dienen nur dazu, deine Teilnahme zu koordinieren. Tool-Nutzungen und Meinungen werden
                 anonym erfasst und nicht deinen Kontaktangaben zugeordnet.
+              </p>
+              <p>
+                <a href="mailto:alexandre.despindler@zhaw.ch">Alexandre de Spindler</a> verantwortet diese
+                Untersuchung. Bei Fragen, Unklarheiten oder Anmerkungen kannst du ihm eine E-Mail oder auf Teams
+                schreiben.
               </p>
             </div>
             <button class="button" type="button" data-open-privacy>
@@ -357,8 +361,8 @@
           Gespräche zu transkribieren und extrahieren.
         </p>
         <p>
-          Alexandre de Spindler verantwortet diese Untersuchung. Bei Fragen, Unklarheiten oder Anmerkungen kannst du ihm
-          eine E-Mail oder auf Teams schreiben.
+          <a href="mailto:alexandre.despindler@zhaw.ch">Alexandre de Spindler</a> verantwortet diese Untersuchung. Bei
+          Fragen, Unklarheiten oder Anmerkungen kannst du ihm eine E-Mail oder auf Teams schreiben.
         </p>
       </div>
       <div class="modal-actions">

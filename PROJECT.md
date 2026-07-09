@@ -5630,7 +5630,7 @@ Create a standalone German/English public web page introducing the ZHAW SIRA Lab
   - ZHAW Socially Intelligent and Responsible Agents (SIRA) Lab.
   - PROMETHEUS as a platform for SIRA experiments.
 - Added a public GitHub repository link to `https://github.com/zhaw-iwi/prometheus`.
-- Added Alexandre de Spindler as the main contact with a link to the ZHAW Centre for Information Systems Engineering page.
+- Added [Alexandre de Spindler](mailto:alexandre.despindler@zhaw.ch) as the main contact with a link to the ZHAW Centre for Information Systems Engineering page.
 - Added an selected publication list covering PROMETHEUS, PROMISE, SBR, multimodal interaction, and social behaviour work.
 - Matched the visual direction of the Valerian cockpit with Space Grotesk typography, compact 8px panels, orange/teal/blue accents, and a persisted light/dark theme toggle.
 - Added a persisted German/English language switch next to the dark-mode toggle.
@@ -5832,7 +5832,7 @@ Replace the participation site's frontend-only submission with a deployable PHP/
 2026-07-10
 
 ### Goal
-Add the participation admin view under `.web/participate/admin/` so registrations can be inspected, searched, sorted, and exported as CSV.
+Add the participation admin view under `.web/participate/admin/` so registrations can be inspected, searched, sorted, deleted, and exported as CSV.
 
 ### What changed
 - Added `.web/participate/admin/index.php` as the admin root page.
@@ -5845,7 +5845,9 @@ Add the participation admin view under `.web/participate/admin/` so registration
   - persisted light/dark theme toggle using the existing participate theme key.
   - client-side search across every displayed column.
   - sortable headers for every displayed column.
+  - per-row deletion through the admin delete endpoint.
   - CSV export from the full loaded registration set, independent of the active search filter.
+- Added `.web/participate/admin/delete.php` to delete a registration row from MySQL, freeing the e-mail address and browser token so the participant can register again.
 - The admin page queries MySQL server-side through the existing participation backend config and renders:
   - ID.
   - created and updated timestamps.
@@ -5865,6 +5867,7 @@ Add the participation admin view under `.web/participate/admin/` so registration
   - sorts by e-mail.
   - filters by search value.
   - exports CSV while filtered and verifies the CSV still contains all loaded rows.
+  - deletes a registration and verifies the same browser can open the signup dialog and submit the same e-mail address again.
 - Updated `README.md` with the `/admin/` route, lack of built-in authentication, and admin test coverage.
 
 ### How to run
@@ -5875,6 +5878,7 @@ Add the participation admin view under `.web/participate/admin/` so registration
 
 ### How to test
 - Static checks:
+  - `php -l .web/participate/admin/delete.php`
   - `php -l .web/participate/admin/index.php`
   - `node --check .web/participate/admin/admin.js`
   - `node --check tests/playwright/participate.spec.mjs`
@@ -5886,6 +5890,7 @@ Add the participation admin view under `.web/participate/admin/` so registration
   - verify the metrics, toolbar, and wide table do not overlap and remain readable.
 
 ### Verification
+- `php -l .web/participate/admin/delete.php`: passed.
 - `php -l .web/participate/admin/index.php`: passed.
 - `node --check .web/participate/admin/admin.js`: passed.
 - `node --check tests/playwright/participate.spec.mjs`: passed.
@@ -5896,6 +5901,7 @@ Add the participation admin view under `.web/participate/admin/` so registration
 - The admin page intentionally has no built-in authentication, matching the requested UUID/obscured-folder deployment approach.
 - The CSV export is generated client-side from the full dataset loaded into the admin page. For very large future datasets, a server-side export endpoint would be more scalable.
 - The page omits the registration public token from the visible/exported table to avoid exposing a browser summary token unnecessarily.
+- Deletion is hard-delete rather than cancellation because the participant must be able to register again with the same e-mail address and stale browser token.
 
 ### Next steps
 1. No milestone 130 has been defined yet.

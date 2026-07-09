@@ -488,6 +488,13 @@
       margin-top: 0.16rem;
     }
 
+    .resource-card a {
+      color: inherit;
+      text-decoration-color: rgba(0, 176, 162, 0.55);
+      text-decoration-thickness: 2px;
+      text-underline-offset: 0.18em;
+    }
+
     .publication-list {
       display: grid;
       gap: 0.72rem;
@@ -743,17 +750,21 @@
             <h2 id="links-heading" data-i18n="sections.contact">Kontakt und Code</h2>
           </div>
           <div class="link-grid">
-            <a class="resource-card"
-              href="https://www.zhaw.ch/de/sml/institute-zentren/iwi/ueber-uns/fachstelle-information-systems-engineering"
-              target="_blank" rel="noreferrer">
+            <article class="resource-card">
               <span class="resource-icon"><i class="bi bi-person-vcard" aria-hidden="true"></i></span>
               <span>
-                <strong data-i18n="resources.contactTitle">Alexandre de Spindler</strong>
-                <small data-i18n="resources.contactSubtitle">Hauptkontakt, ZHAW Centre for Information Systems
-                  Engineering</small>
+                <strong>
+                  <a href="mailto:alexandre.despindler@zhaw.ch" data-i18n="resources.contactTitle">Alexandre de
+                    Spindler</a>
+                </strong>
+                <small>
+                  <a href="https://www.zhaw.ch/de/sml/institute-zentren/iwi/ueber-uns/fachstelle-information-systems-engineering"
+                    target="_blank" rel="noreferrer" data-i18n="resources.contactSubtitle">Hauptkontakt, ZHAW Centre for
+                    Information Systems Engineering</a>
+                </small>
               </span>
               <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-            </a>
+            </article>
             <a class="resource-card" href="https://github.com/zhaw-iwi/prometheus" target="_blank" rel="noreferrer">
               <span class="resource-icon"><i class="bi bi-github" aria-hidden="true"></i></span>
               <span>

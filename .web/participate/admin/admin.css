@@ -137,6 +137,24 @@
   white-space: nowrap;
 }
 
+.table-action-button {
+  min-height: 2rem;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.84rem;
+}
+
+.table-action-button.danger {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-strong));
+}
+
+.table-action-button.danger:hover,
+.table-action-button.danger:focus-visible {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, var(--surface-strong));
+}
+
 .empty-row td {
   color: var(--muted);
   font-weight: 800;
