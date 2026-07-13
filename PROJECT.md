@@ -1,9 +1,69 @@
 # PROJECT.md
 
 ## Short project summary
-PROMETHEUS is an event-driven Java framework for explicit state-machine agent control with first-class regulation and multimodal behaviour plans.
+PROMETHEUS is an event-driven Java framework for explicit state-machine agent
+control, a developing regulation layer, and multimodal behaviour plans.
 
-## Milestones checklist
+## How to use this file
+
+This opening section is the current engineering status. Coding agents should
+read it at session startup, then inspect relevant code, tests, and README
+sections for their task.
+
+The milestone checklist and records below are a historical audit trail. Do not
+read them end to end by default. Search or open individual milestones only when
+an earlier decision is relevant, and verify historical claims against current
+code.
+
+## Current implementation status
+
+### Product and architecture
+
+- PROMETHEUS is a Java 21/Spring Boot framework for mapping multimodal `Event`
+  inputs to persisted multimodal `BehaviourPlan` outputs.
+- Explicit `Agent`/`State`/`OuterState`/`Transition` control owns tasks,
+  commitments, and final authority.
+- `AgentInteractionProfile` declares accepted observations and emitted
+  modalities.
+- The reusable main-branch catalog consists of Spring-discovered definitions
+  under `agentdefs/core` and `agentdefs/usecases/healthcare`.
+- Valerian, Valerian Access Management, API Workbench, and the multilateral
+  displays consume public backend contracts. Standalone sites under `.web` are
+  auxiliary deployments outside the Spring agent runtime.
+
+### Implemented runtime capabilities
+
+- Persisted state machines, storage, event history, prompt policies, explicit
+  acknowledge/generate semantics, and scheduled evaluation.
+- Speech, nonverbal, motion, and display behaviour-plan channels.
+- Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
+  and PROMETHEUS-authoritative Realtime speech orchestration.
+- Browser sensing for facial emotion, social context, and hand signs, plus
+  manual environmental inputs and deterministic social-situation derivation.
+- A persisted regulation foundation with snapshot context, modulation values,
+  internal opportunities, reset behavior, and focused tests.
+
+### Known capability gap
+
+The intended social regulation/internal motivation system is not complete.
+Production agents currently use no-op regulation. The Zurich prototype responds
+only to ticks and user utterances, emits an affiliation opportunity from a
+dependency threshold, and does not yet integrate multimodal social evidence.
+Its modulation bundle is retained on the agent but is not consumed by prompt or
+behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
+and regulation diagnostics remain future work.
+
+### Current milestone state
+
+- Last completed milestone: Milestone 130, agent-facing context and bootstrap
+  optimization.
+- No subsequent milestone has been selected.
+- The regulation gap above is a major framework direction, but it should become
+  a milestone only after its intended motivation model and acceptance criteria
+  are explicitly scoped.
+
+## Historical milestones checklist
+
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
 - [x] Milestone 3: Multifacial client with per-user face-emotion attribution
@@ -133,6 +193,7 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 127: Participate landing page and registration wizard frontend
 - [x] Milestone 128: Participate PHP/MySQL registration backend
 - [x] Milestone 129: Participate admin registration table
+- [x] Milestone 130: Agent-facing context and bootstrap optimization
 
 ## Milestone 1
 ### Date
@@ -5905,3 +5966,86 @@ Add the participation admin view under `.web/participate/admin/` so registration
 
 ### Next steps
 1. No milestone 130 has been defined yet.
+
+## Milestone 130
+### Date
+2026-07-13
+
+### Goal
+Optimize the coding-agent bootstrap and context documents so new agents receive
+accurate PROMETHEUS architecture and current-state guidance without loading the
+complete milestone history or inheriting project-specific assumptions from the
+reusable engineering guide.
+
+### What changed
+- Rewrote `.agents/messageinabottle.txt` as a compact startup sequence that
+  reads the generic engineering guide, PROMETHEUS context, and only the current
+  status at the top of `PROJECT.md` before inspecting task-relevant code and
+  tests.
+- Replaced `.agents/CODEX.md` with a shorter project-neutral guide covering
+  context discovery, scope safety, software-engineering principles, milestone
+  execution, testing, documentation, cleanup, and review handoff.
+- Removed generic-guide assumptions about prototype maturity, backward
+  compatibility, schema resets, fixed error shapes, repository file layout, and
+  mandatory full-history reading. Those decisions now defer to project context.
+- Refactored `.agents/CONTEXT.MD` around PROMETHEUS's purpose, explicit
+  event/state-machine/behaviour model, implemented capabilities, repository
+  boundaries, compatibility policy, and task-oriented source/test routing.
+- Documented the regulation maturity boundary accurately:
+  - persisted no-op/Zurich foundation and internal opportunity support exist;
+  - production agents still use no-op regulation;
+  - multimodal social evidence, modulation consumption, interrupts,
+    arbitration, safety precedence, and diagnostics remain incomplete.
+- Distinguished raw external observations from backend-derived social
+  situation changes, system events, and internal regulation events.
+- Normalized all bootstrap and contributor references to the tracked
+  `.agents/CONTEXT.MD` casing so they work on case-sensitive systems.
+- Added this concise current implementation snapshot at the top of `PROJECT.md`
+  and explicitly designated the remaining milestones as a selectively searched
+  historical audit.
+- Updated the README introduction to describe regulation as a developing
+  foundation and updated project notes to explain each agent-facing file.
+
+### How to run
+1. Give a new coding agent the contents of
+   `.agents/messageinabottle.txt`.
+2. The agent should read the two focused `.agents` documents and the current
+   status at the top of `PROJECT.md`, then inspect only task-relevant sources.
+
+### How to test
+- `git diff --check`
+- PowerShell documentation contract assertions for:
+  - exact `.agents/CONTEXT.MD` path tracking;
+  - absence of PROMETHEUS-specific terms in `.agents/CODEX.md`;
+  - selective-history wording in the bootstrap and project status;
+  - regulation capability/gap statements in `.agents/CONTEXT.MD`;
+  - preservation of historical milestone records;
+  - synchronized README agent-document guidance.
+
+### Verification
+- `git diff --check`: passed.
+- PowerShell agent-document contract assertions: passed for tracked path casing,
+  project-neutral `CODEX.md`, selective-history startup guidance, regulation
+  capability/gap coverage, historical milestone preservation, and synchronized
+  README guidance.
+- Measured required startup content decreased from 357,251 bytes to 19,986
+  bytes, a 94.4% reduction; the new current-status section is 65 lines.
+- No runtime tests were run because this milestone changes documentation and
+  agent instructions only.
+
+### Known issues and decisions
+- Historical milestones remain in `PROJECT.md` to preserve the existing audit
+  trail. Startup guidance now prevents loading them end to end; physical archive
+  splitting is unnecessary unless the file becomes operationally difficult to
+  maintain.
+- The current-status section is intentionally curated and must be updated when
+  future milestones materially change architecture, capabilities, gaps, or the
+  latest milestone.
+- This milestone changes agent guidance only. Runtime code, public APIs,
+  database schemas, and user-facing application behavior are unchanged.
+
+### Next steps
+1. Rehearse `.agents/messageinabottle.txt` with a fresh coding-agent session and
+   adjust only if it still causes unnecessary broad file reads.
+2. Scope the next regulation milestone separately, with an explicit motivation
+   model and acceptance criteria before implementation.

@@ -1,7 +1,7 @@
 # PROMETHEUS
 
 PROMETHEUS is an event-driven Java framework for building multimodal digital
-agents with explicit state-machine control, first-class regulation, and
+agents with explicit state-machine control, a developing regulation layer, and
 structured behaviour output.
 
 ## Why
@@ -41,10 +41,11 @@ internal regulation signal use the same event pipeline. The current state
 decides whether the event changes control flow, updates storage, or triggers a
 new behaviour plan.
 
-Regulation and continuous evaluation can shape behaviour without taking control
-away from the state machine. This keeps interaction adaptive while preserving
-traceability: developers can inspect the current state, event history, storage,
-generated prompts, and emitted behaviour.
+The regulation foundation runs alongside task control, can maintain persisted
+variables, and can emit internal opportunities back through the state machine.
+Direct multimodal motivation, arbitration, and modulation of generated
+behaviour are not complete yet. The state machine therefore remains explicit
+and authoritative while the regulation layer develops.
 
 ## Bundled Clients
 
@@ -669,6 +670,12 @@ through environment variables or platform config vars.
 
 ## Project Notes
 
-- `.agents/CONTEXT.md` describes the PROMETHEUS architecture and boundaries.
-- `.agents/CODEX.md` describes the repository workflow for coding agents.
-- `PROJECT.md` is the milestone audit trail.
+- `.agents/messageinabottle.txt` is the compact session bootstrap prompt for a
+  new coding agent.
+- `.agents/CODEX.md` contains reusable, project-neutral engineering and
+  milestone practices.
+- `.agents/CONTEXT.MD` describes PROMETHEUS's purpose, current capabilities,
+  regulation gaps, architecture, and repository boundaries.
+- The top of `PROJECT.md` is the current engineering snapshot. The remaining
+  milestone records are a historical audit to search selectively, not required
+  startup reading.
