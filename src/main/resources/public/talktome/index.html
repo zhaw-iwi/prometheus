@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Talk to Me</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/talktome/talktome.css">
+  <script>
+    (() => {
+      let theme = "light";
+      try {
+        theme = localStorage.getItem("prometheus.talktome.theme") === "dark" ? "dark" : "light";
+      } catch (_) {
+        theme = "light";
+      }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.bsTheme = theme;
+    })();
+  </script>
+</head>
+
+<body>
+  <main class="page-shell py-3">
+    <div class="container content-layer px-3 px-lg-4">
+      <section id="access_screen" class="access-screen" data-testid="access-screen">
+        <div class="demo-card card access-card">
+          <div class="card-header">
+            <span><i class="bi bi-soundwave me-2"></i>Talk to Me</span>
+            <button class="btn btn-outline-ink toolbar-button" type="button" title="Switch to dark mode"
+              aria-label="Switch to dark mode" data-theme-toggle data-testid="access-theme-toggle">
+              <i class="bi bi-moon-stars"></i>
+            </button>
+          </div>
+          <div class="card-body p-4">
+            <p class="text-muted mb-4">Enter your PROMETHEUS access code to manage your speech instances.</p>
+            <label class="form-label metric-label" for="access_code_input">Access Code</label>
+            <div class="input-group">
+              <input id="access_code_input" class="form-control mono" type="text" maxlength="5"
+                autocomplete="one-time-code" spellcheck="false" data-testid="access-code-input">
+              <button id="submit_access_code" class="btn btn-primary" type="button" data-testid="submit-access-code">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Enter
+              </button>
+            </div>
+            <div id="access_code_status" class="status-text mt-3" role="status" data-testid="access-code-status"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="talktome_shell" hidden data-testid="talktome-shell">
+        <header class="cockpit-header mb-3">
+          <div>
+            <div class="eyebrow">PROMETHEUS PUBLIC CLIENT</div>
+            <h1>Talk to Me</h1>
+            <p class="page-subtitle mb-0">Turn exactly what you type into Realtime speech.</p>
+          </div>
+          <div class="header-actions">
+            <span id="active_access_code" class="status-pill is-live" data-testid="active-access-code">Access -</span>
+            <button class="btn btn-outline-ink toolbar-button" type="button" title="Switch to dark mode"
+              aria-label="Switch to dark mode" data-theme-toggle data-testid="app-theme-toggle">
+              <i class="bi bi-moon-stars"></i>
+            </button>
+            <button id="clear_access_code" class="btn btn-outline-ink toolbar-button" type="button"
+              title="Change access code" aria-label="Change access code" data-testid="clear-access-code">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+          </div>
+        </header>
+
+        <div class="talk-grid">
+          <section class="demo-card card" aria-labelledby="instances_heading">
+            <div class="card-header">
+              <span id="instances_heading"><i class="bi bi-cpu me-2"></i>Speech Instance</span>
+              <span id="agent_status" class="status-pill is-idle" data-testid="agent-status">Not connected</span>
+            </div>
+            <div class="card-body">
+              <p class="text-muted small">Create an instance, connect to use it, and delete it when it is no longer needed.</p>
+              <label class="form-label metric-label" for="agent_select">Your Talk to Me instances</label>
+              <select id="agent_select" class="form-select" data-testid="agent-select">
+                <option value="">No instances</option>
+              </select>
+              <div class="button-grid mt-3">
+                <button id="create_agent" class="btn btn-outline-ink" type="button" data-testid="create-agent">
+                  <i class="bi bi-plus-lg me-2"></i>Create
+                </button>
+                <button id="connect_agent" class="btn btn-primary" type="button" data-testid="connect-agent">
+                  <i class="bi bi-link-45deg me-2"></i>Connect
+                </button>
+                <button id="disconnect_agent" class="btn btn-outline-ink" type="button" disabled
+                  data-testid="disconnect-agent">
+                  <i class="bi bi-link-45deg me-2"></i>Disconnect
+                </button>
+                <button id="delete_agent" class="btn btn-outline-danger" type="button" data-testid="delete-agent">
+                  <i class="bi bi-trash3 me-2"></i>Delete
+                </button>
+              </div>
+              <div id="agent_detail" class="status-text mt-3" role="status" data-testid="agent-detail"></div>
+            </div>
+          </section>
+
+          <section class="demo-card card" aria-labelledby="speech_heading">
+            <div class="card-header">
+              <span id="speech_heading"><i class="bi bi-chat-square-text me-2"></i>Speech</span>
+              <span id="realtime_status" class="status-pill is-idle" data-testid="realtime-status">Offline</span>
+            </div>
+            <div class="card-body">
+              <label class="form-label metric-label" for="speech_text">Text to speak</label>
+              <textarea id="speech_text" class="form-control speech-text" rows="8" maxlength="4000" disabled
+                placeholder="Connect an instance, then type what it should say." data-testid="speech-text"></textarea>
+              <div class="d-flex justify-content-between mt-2">
+                <span class="text-muted small">The spoken words are not rewritten by PROMETHEUS.</span>
+                <span id="character_count" class="text-muted small mono" data-testid="character-count">0 / 2000</span>
+              </div>
+
+              <div class="settings-grid mt-4">
+                <div>
+                  <label class="form-label metric-label" for="voice_select">Voice</label>
+                  <select id="voice_select" class="form-select" data-testid="voice-select">
+                    <option value="alloy">alloy</option>
+                    <option value="ash">ash</option>
+                    <option value="ballad">ballad</option>
+                    <option value="cedar">cedar</option>
+                    <option value="coral">coral</option>
+                    <option value="echo">echo</option>
+                    <option value="marin" selected>marin</option>
+                    <option value="sage">sage</option>
+                    <option value="shimmer">shimmer</option>
+                    <option value="verse">verse</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label metric-label" for="speed_select">Output speed</label>
+                  <select id="speed_select" class="form-select" data-testid="speed-select">
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1.00x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.50x</option>
+                  </select>
+                </div>
+                <div class="speaker-setting">
+                  <label class="form-label metric-label" for="speaker_select">Speaker</label>
+                  <div class="input-group">
+                    <select id="speaker_select" class="form-select" data-testid="speaker-select">
+                      <option value="">System / browser default</option>
+                    </select>
+                    <button id="refresh_speakers" class="btn btn-outline-ink" type="button"
+                      title="Refresh speakers" aria-label="Refresh speakers" data-testid="refresh-speakers">
+                      <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="speaker_status" class="status-text mt-2" role="status" data-testid="speaker-status">
+                Speaker output uses the browser default.
+              </div>
+              <div class="d-flex gap-2 mt-4">
+                <button id="speak_text" class="btn btn-primary flex-grow-1" type="button" disabled
+                  data-testid="speak-text">
+                  <i class="bi bi-volume-up-fill me-2"></i>Speak
+                </button>
+                <button id="stop_speech" class="btn btn-outline-ink" type="button" disabled
+                  data-testid="stop-speech">
+                  <i class="bi bi-stop-fill me-2"></i>Stop
+                </button>
+              </div>
+              <audio id="assistant_audio" class="w-100 mt-3" controls autoplay data-testid="assistant-audio"></audio>
+              <div id="speech_status" class="status-text mt-2" role="status" data-testid="speech-status">
+                Connect an instance to begin.
+              </div>
+              <div id="spoken_transcript" class="transcript mt-3" hidden data-testid="spoken-transcript"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/talktome/script.js"></script>
+</body>
+
+</html>

@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.controllers;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -69,5 +70,23 @@ class StaticRedirectControllerWebMvcTest {
         this.mockMvc.perform(get("/apiworkbench/?view=streams"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/apiworkbench/index.html?view=streams"));
+    }
+
+    @Test
+    void servesRequestedPublicTalkToMeRouteWithoutChangingTheAddress() throws Exception {
+        this.mockMvc.perform(get("/public/talktome"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/talktome/index.html"));
+
+        this.mockMvc.perform(get("/public/talktome/"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/talktome/index.html"));
+    }
+
+    @Test
+    void redirectsConventionalTalkToMeAliasPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/talktome?view=speech"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/talktome/index.html?view=speech"));
     }
 }

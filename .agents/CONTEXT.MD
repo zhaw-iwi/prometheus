@@ -93,8 +93,8 @@ PROMETHEUS currently provides:
 - deterministic social-situation-change derivation;
 - a regulation foundation with persisted specifications, snapshot context,
   modulation values, internal events, reset behavior, and tests;
-- Valerian Cockpit, Valerian Access Management, API Workbench, and separate
-  multilateral displays.
+- Valerian Cockpit, Valerian Access Management, the public Talk to Me exact-text
+  speech client, API Workbench, and separate multilateral displays.
 
 The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
@@ -177,7 +177,10 @@ tests, and README documentation together.
 Valerian is a cockpit and demo client, not framework core. Keep its browser
 logic under `src/main/resources/public/valerian` or `valerian-admin` and consume
 public backend contracts rather than importing client assumptions into the
-model.
+model. Talk to Me is a reduced public client under
+`src/main/resources/public/talktome`; it uses explicit access-code-scoped agent
+lifecycle and the backend-authoritative Realtime contract without microphone
+capture or browser-authored speech responses.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation
@@ -203,8 +206,8 @@ deployment is confirmed to be prototype data.
 - `application`: runtime orchestration, scoped access, Realtime, and publishing.
 - `controllers`: HTTP/SSE boundaries and request/response contracts.
 - `agentdefs`: current production definitions and their prompts.
-- `src/main/resources/public`: Valerian, access management, API Workbench, and
-  multilateral clients.
+- `src/main/resources/public`: Valerian, access management, Talk to Me, API
+  Workbench, and multilateral clients.
 - `.web`: standalone public and participation sites.
 - `src/test/java`: unit, integration, prompt, profile, controller, and static
   resource contracts.
