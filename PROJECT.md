@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 133, public Talk to Me exact-text speech
-  client.
+- Last completed milestone: Milestone 134, Talk to Me lifecycle layout and
+  Realtime completion diagnostics.
 - No subsequent milestone has been selected.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
@@ -198,6 +198,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 129: Participate admin registration table
 - [x] Milestone 130: Agent-facing context and bootstrap optimization
 - [x] Milestone 133: Public Talk to Me exact-text speech client
+- [x] Milestone 134: Talk to Me lifecycle layout and Realtime completion diagnostics
 
 ## Milestone 1
 ### Date
@@ -6119,3 +6120,75 @@ disconnection, and deletion.
 ### Next steps
 1. Perform one manual audible smoke with deployment OpenAI credentials and the
    intended speaker hardware before public deployment.
+2. Select the next milestone independently; no follow-on Talk to Me scope is
+   implied by this milestone.
+
+## Milestone 134
+### Date
+2026-07-13
+
+### Goal
+Polish the public Talk to Me lifecycle controls and make Realtime speech
+completion accurate and diagnosable after a reported mid-paragraph audio and
+transcript cutoff.
+
+### What changed
+- Grouped Create/Delete and Connect/Disconnect into two full-width,
+  equal-button rows in the Speech Instance card.
+- Moved voice, output speed, and speaker selection between those lifecycle
+  rows. Dynamic guidance explains that voice and speed lock for an active call
+  while speaker selection and refresh remain available immediately.
+- Made `alloy` the initial voice in markup and the fresh-user preference
+  fallback. An explicitly stored voice choice continues to take precedence.
+- Load the reported “Love is patient…” paragraph into the textarea on every
+  page load and provide accessible icon-only actions to restore or clear it.
+- Retained the 2,000-Unicode-code-point application boundary. The reported
+  320-code-point paragraph is well within it, so no speculative lower limit was
+  added.
+- Replaced partial transcript deltas with the final transcript event and also
+  recover the complete transcript from `response.done` output.
+- Interpret Realtime's final response status and `status_details`, distinguishing
+  completed, incomplete, cancelled, and failed responses. Output-token and
+  content-filter cutoffs now have explicit messages.
+- Warn when a completed Realtime transcript differs from the submitted text
+  instead of reporting unconditional success.
+- Extended the static resource and Playwright coverage for the row and settings
+  geometry, disconnected/connected control states and guidance, Alloy default,
+  default-text initialization, restoration, clearing, reload behavior, the
+  reported paragraph, partial-to-final transcript replacement, transcript
+  mismatch, and output-token cutoff handling.
+- Updated `README.md` with the default, limit, and completion semantics.
+
+### How to test
+- Focused Java and configured MySQL smoke:
+  - `.\mvnw.cmd -q "-Dtest=TalkToMePolicyUnitTest,AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TalkToMeClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,TalkToMeScopedIntegrationTest,RealtimeSidebandServiceContractTest" test`
+- Browser syntax:
+  - `node --check src/main/resources/public/talktome/script.js`
+  - `node --check tests/playwright/talktome.spec.mjs`
+- Browser/database smoke and visual checks:
+  - `npm.cmd run test:talktome:visual`
+
+### Verification
+- Focused Java tests passed, including `TalkToMeScopedIntegrationTest` against
+  the configured MySQL test database.
+- JavaScript and Playwright syntax checks passed.
+- Talk to Me Playwright lifecycle, persistence, settings-placement and locking,
+  voice-default, textarea preset actions, Realtime completion, responsive, and
+  screenshot smoke passed, 1 test.
+- Light desktop and dark mobile screenshots were inspected; both lifecycle rows
+  use the available width evenly and remain legible at mobile width.
+
+### Known issues and decisions
+- The automated browser smoke fakes OpenAI/WebRTC and physical speaker output,
+  so it cannot reproduce or prove resolution of the reported audible cutoff.
+  It does fix the partial-transcript rendering bug and makes a repeated live
+  cutoff report its final Realtime status and transcript mismatch.
+- The Realtime session does not request a lower output-token cap; reducing the
+  textarea limit would not address the observed short-paragraph failure.
+- A Realtime transcript describes model output but cannot prove that every audio
+  frame reached a particular browser and speaker device.
+
+### Next steps
+1. Deploy `main` and repeat the audible test with the same paragraph.
+2. If audio still stops, record the displayed completion message and final
+   transcript; they now distinguish model truncation from downstream playback.

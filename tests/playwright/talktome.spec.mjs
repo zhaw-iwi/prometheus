@@ -6,6 +6,14 @@ const ADMIN_TOKEN_HEADER = "X-Prometheus-Admin-Token";
 const ADMIN_TOKEN = process.env.PROMETHEUS_ADMIN_TOKEN || "laure";
 const AGENT_TYPE = "core.talk_to_me";
 const PROFILE_TAG = "utility.talk_to_me";
+const DEFAULT_SPEECH_TEXT = [
+  "Love is patient, love is kind.",
+  "It does not envy, it does not boast, it is not proud.",
+  "It does not dishonor others, it is not self-seeking, it is not easily angered,",
+  "it keeps no record of wrongs.",
+  "Love does not delight in evil but rejoices with the truth.",
+  "It always protects, always trusts, always hopes, always perseveres.",
+].join(" ");
 
 test.beforeAll(async ({ request }) => {
   const accessCode = await ensureAccessCode(request, ACCESS_CODE);
@@ -46,6 +54,45 @@ test("public Talk to Me manages a scoped instance and persists exact speech", as
   await page.getByTestId("submit-access-code").click();
   await expect(page.getByTestId("talktome-shell")).toBeVisible();
   await expect(page.getByTestId("agent-detail")).toContainText("No instance yet");
+  await expect(page.getByTestId("speech-text")).toHaveValue(DEFAULT_SPEECH_TEXT);
+  await expect(page.getByTestId("character-count"))
+    .toHaveText(`${Array.from(DEFAULT_SPEECH_TEXT).length} / 2000`);
+  await expect(page.getByTestId("load-default-text")).toBeDisabled();
+  await expect(page.getByTestId("clear-speech-text")).toBeDisabled();
+  await expect(page.getByTestId("voice-select")).toHaveValue("alloy");
+  await expect(page.getByTestId("voice-select")).toBeEnabled();
+  await expect(page.getByTestId("speed-select")).toBeEnabled();
+  await expect(page.getByTestId("speaker-select")).toBeEnabled();
+  await expect(page.getByTestId("refresh-speakers")).toBeEnabled();
+  await expect(page.getByTestId("connection-guidance"))
+    .toHaveText("Choose voice and output speed before connecting. Speaker can be changed at any time.");
+
+  const lifecycleBoxes = await Promise.all([
+    page.getByTestId("create-agent").boundingBox(),
+    page.getByTestId("delete-agent").boundingBox(),
+    page.getByTestId("connection-settings").boundingBox(),
+    page.getByTestId("connect-agent").boundingBox(),
+    page.getByTestId("disconnect-agent").boundingBox(),
+  ]);
+  const [createBox, deleteBox, connectionSettingsBox, connectBox, disconnectBox] = lifecycleBoxes;
+  expect(lifecycleBoxes.every(Boolean)).toBeTruthy();
+  expect(Math.abs(createBox.y - deleteBox.y)).toBeLessThan(2);
+  expect(Math.abs(connectBox.y - disconnectBox.y)).toBeLessThan(2);
+  expect(connectionSettingsBox.y).toBeGreaterThan(createBox.y + createBox.height);
+  expect(connectBox.y).toBeGreaterThan(connectionSettingsBox.y + connectionSettingsBox.height);
+  expect(Math.abs(createBox.width - deleteBox.width)).toBeLessThan(2);
+  expect(Math.abs(connectBox.width - disconnectBox.width)).toBeLessThan(2);
+
+  const speechControlBoxes = await Promise.all([
+    page.getByTestId("load-default-text").boundingBox(),
+    page.getByTestId("clear-speech-text").boundingBox(),
+    page.getByTestId("speech-text").boundingBox(),
+  ]);
+  const [loadDefaultBox, clearTextBox, speechTextBox] = speechControlBoxes;
+  expect(speechControlBoxes.every(Boolean)).toBeTruthy();
+  expect(Math.abs(loadDefaultBox.y - clearTextBox.y)).toBeLessThan(2);
+  expect(clearTextBox.x).toBeGreaterThan(loadDefaultBox.x + loadDefaultBox.width);
+  expect(speechTextBox.y).toBeGreaterThan(loadDefaultBox.y + loadDefaultBox.height);
 
   await page.getByTestId("create-agent").click();
   await expect(page.getByTestId("agent-detail")).toContainText("Instance created");
@@ -61,6 +108,14 @@ test("public Talk to Me manages a scoped instance and persists exact speech", as
   await page.getByTestId("connect-agent").click();
   await expect(page.getByTestId("realtime-status")).toHaveText("Connected");
   await expect(page.getByTestId("speech-text")).toBeEnabled();
+  await expect(page.getByTestId("load-default-text")).toBeEnabled();
+  await expect(page.getByTestId("clear-speech-text")).toBeEnabled();
+  await expect(page.getByTestId("voice-select")).toBeDisabled();
+  await expect(page.getByTestId("speed-select")).toBeDisabled();
+  await expect(page.getByTestId("speaker-select")).toBeEnabled();
+  await expect(page.getByTestId("refresh-speakers")).toBeEnabled();
+  await expect(page.getByTestId("connection-guidance"))
+    .toHaveText("Voice and output speed are locked for this call. Disconnect to change them. Speaker changes apply immediately.");
   expect(callRequest).toBeTruthy();
   expect(callRequest.headers()[ACCESS_CODE_HEADER.toLowerCase()]).toBe(ACCESS_CODE);
   expect(callRequest.postData()).toBe("fake-offer");
@@ -73,7 +128,24 @@ test("public Talk to Me manages a scoped instance and persists exact speech", as
   ]);
   expect(await page.evaluate(() => window.__microphoneRequests)).toBe(0);
 
-  const exactText = "Grüezi, \"Zürich\"!\nPlease read line two 🌍";
+  await page.getByTestId("clear-speech-text").click();
+  await expect(page.getByTestId("speech-text")).toHaveValue("");
+  await expect(page.getByTestId("character-count")).toHaveText("0 / 2000");
+  await expect(page.getByTestId("speak-text")).toBeDisabled();
+
+  await page.getByTestId("load-default-text").click();
+  await expect(page.getByTestId("speech-text")).toHaveValue(DEFAULT_SPEECH_TEXT);
+  await expect(page.getByTestId("character-count"))
+    .toHaveText(`${Array.from(DEFAULT_SPEECH_TEXT).length} / 2000`);
+  await expect(page.getByTestId("speak-text")).toBeEnabled();
+
+  let exactText = "Love is patient, love is kind.";
+  exactText += " It does not envy, it does not boast, it is not proud.";
+  exactText += " It does not dishonor others, it is not self-seeking,";
+  exactText += " it is not easily angered, it keeps no record of wrongs.";
+  exactText += " Love does not delight in evil but rejoices with the truth.";
+  exactText += " It always protects, always trusts, always hopes, always perseveres.";
+  expect(exactText).toBe(DEFAULT_SPEECH_TEXT);
   await page.getByTestId("speech-text").fill(exactText);
   await expect(page.getByTestId("character-count")).toHaveText(`${Array.from(exactText).length} / 2000`);
 
@@ -87,11 +159,55 @@ test("public Talk to Me manages a scoped instance and persists exact speech", as
   expect(JSON.parse(acknowledgement.responseEvent.payload).speech).toBe(exactText);
 
   await page.evaluate((transcript) => {
+    const partialTranscript = transcript.slice(0, transcript.indexOf(" it keeps no record"));
     window.__emitRealtime({ type: "response.created" });
+    window.__emitRealtime({ type: "response.output_audio_transcript.delta", delta: partialTranscript });
     window.__emitRealtime({ type: "response.output_audio_transcript.done", transcript });
-    window.__emitRealtime({ type: "response.done" });
+    window.__emitRealtime({
+      type: "response.done",
+      response: {
+        status: "completed",
+        output: [{ type: "message", content: [{ type: "audio", transcript }] }],
+      },
+    });
   }, exactText);
   await expect(page.getByTestId("spoken-transcript")).toContainText(exactText);
+  await expect(page.getByTestId("speech-status")).toHaveText("Speech completed.");
+
+  await page.evaluate((transcript) => {
+    const partialTranscript = transcript.slice(0, transcript.indexOf(" it keeps no record"));
+    window.__emitRealtime({ type: "response.created" });
+    window.__emitRealtime({
+      type: "response.done",
+      response: {
+        status: "completed",
+        output: [{ type: "message", content: [{ type: "audio", transcript: partialTranscript }] }],
+      },
+    });
+  }, exactText);
+  await expect(page.getByTestId("speech-status"))
+    .toHaveText("Realtime completed, but its final transcript differs from the submitted text.");
+
+  await page.evaluate(() => {
+    window.__emitRealtime({ type: "response.created" });
+    window.__emitRealtime({
+      type: "response.done",
+      response: { status: "incomplete", status_details: { reason: "max_output_tokens" } },
+    });
+  });
+  await expect(page.getByTestId("speech-status"))
+    .toHaveText("Speech was cut off because Realtime reached its output-token limit.");
+
+  await page.evaluate((transcript) => {
+    window.__emitRealtime({ type: "response.created" });
+    window.__emitRealtime({
+      type: "response.done",
+      response: {
+        status: "completed",
+        output: [{ type: "message", content: [{ type: "audio", transcript }] }],
+      },
+    });
+  }, exactText);
   await expect(page.getByTestId("speech-status")).toHaveText("Speech completed.");
 
   const historyResponse = await request.get(`/demo/agents/${agentId}/eventhistory`, {
@@ -110,15 +226,31 @@ test("public Talk to Me manages a scoped instance and persists exact speech", as
   await page.setViewportSize({ width: 390, height: 844 });
   await attachScreenshot(page.getByTestId("talktome-shell"), testInfo, "talktome-connected-mobile-dark");
 
+  await page.getByTestId("clear-speech-text").click();
+  await expect(page.getByTestId("speech-text")).toHaveValue("");
+
   await page.getByTestId("disconnect-agent").click();
   await expect(page.getByTestId("realtime-status")).toHaveText("Offline");
   await expect(page.getByTestId("agent-select")).toHaveValue(agentId);
   await expect(page.getByTestId("connect-agent")).toBeEnabled();
+  await expect(page.getByTestId("load-default-text")).toBeDisabled();
+  await expect(page.getByTestId("clear-speech-text")).toBeDisabled();
+  await expect(page.getByTestId("voice-select")).toBeEnabled();
+  await expect(page.getByTestId("speed-select")).toBeEnabled();
+  await expect(page.getByTestId("speaker-select")).toBeEnabled();
+  await expect(page.getByTestId("connection-guidance"))
+    .toHaveText("Choose voice and output speed before connecting. Speaker can be changed at any time.");
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("delete-agent").click();
   await expect(page.getByTestId("agent-detail")).toHaveText("Instance deleted.");
   await expect(page.getByTestId("agent-select")).toHaveValue("");
+
+  await page.reload();
+  await expect(page.getByTestId("access-screen")).toBeVisible();
+  await expect(page.getByTestId("speech-text")).toHaveValue(DEFAULT_SPEECH_TEXT);
+  await expect(page.getByTestId("character-count"))
+    .toHaveText(`${Array.from(DEFAULT_SPEECH_TEXT).length} / 2000`);
 });
 
 async function installBrowserAudioFakes(page) {

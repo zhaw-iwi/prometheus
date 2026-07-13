@@ -7,6 +7,14 @@ const VOICE_STORAGE_KEY = "prometheus.talktome.voice";
 const SPEED_STORAGE_KEY = "prometheus.talktome.outputSpeed";
 const SPEAKER_STORAGE_KEY = "prometheus.talktome.speaker";
 const MAX_TEXT_CODE_POINTS = 2000;
+const DEFAULT_SPEECH_TEXT = [
+  "Love is patient, love is kind.",
+  "It does not envy, it does not boast, it is not proud.",
+  "It does not dishonor others, it is not self-seeking, it is not easily angered,",
+  "it keeps no record of wrongs.",
+  "Love does not delight in evil but rejoices with the truth.",
+  "It always protects, always trusts, always hopes, always perseveres.",
+].join(" ");
 
 const state = {
   accessCode: null,
@@ -24,13 +32,14 @@ const realtime = {
   callId: null,
   sessionReadyResolver: null,
   transcript: "",
+  requestedText: "",
 };
 
 document.addEventListener("DOMContentLoaded", () => {
   bindControls();
   loadPreferences();
   updateThemeButtons();
-  updateCharacterCount();
+  setSpeechText(DEFAULT_SPEECH_TEXT);
   renderAgents();
   refreshSpeakers({ silent: true });
 
@@ -60,6 +69,12 @@ function bindControls() {
     refreshLifecycleControls();
   });
   document.getElementById("speech_text").addEventListener("input", updateCharacterCount);
+  document.getElementById("load_default_text").addEventListener("click", () => {
+    setSpeechText(DEFAULT_SPEECH_TEXT, { focus: true });
+  });
+  document.getElementById("clear_speech_text").addEventListener("click", () => {
+    setSpeechText("", { focus: true });
+  });
   document.getElementById("speak_text").addEventListener("click", () => speakText());
   document.getElementById("stop_speech").addEventListener("click", stopSpeech);
   document.getElementById("refresh_speakers").addEventListener("click", () => refreshSpeakers());
@@ -73,7 +88,7 @@ function bindControls() {
 }
 
 function loadPreferences() {
-  selectStoredValue("voice_select", VOICE_STORAGE_KEY, "marin");
+  selectStoredValue("voice_select", VOICE_STORAGE_KEY, "alloy");
   selectStoredValue("speed_select", SPEED_STORAGE_KEY, "1");
   const speaker = localStorage.getItem(SPEAKER_STORAGE_KEY);
   if (speaker) {
@@ -285,10 +300,15 @@ function refreshLifecycleControls() {
   document.getElementById("disconnect_agent").disabled = busy || !connected;
   document.getElementById("delete_agent").disabled = busy || !selected;
   document.getElementById("speech_text").disabled = !connected;
+  document.getElementById("load_default_text").disabled = !connected;
+  document.getElementById("clear_speech_text").disabled = !connected;
   document.getElementById("voice_select").disabled = connected;
   document.getElementById("speed_select").disabled = connected;
   document.getElementById("speak_text").disabled = !connected || state.responseActive || !validSpeechText();
   document.getElementById("stop_speech").disabled = !connected || !state.responseActive;
+  document.getElementById("connection_settings_guidance").textContent = connected
+    ? "Voice and output speed are locked for this call. Disconnect to change them. Speaker changes apply immediately."
+    : "Choose voice and output speed before connecting. Speaker can be changed at any time.";
   setAgentStatus(connected ? "Connected" : "Not connected", connected ? "live" : "idle");
 }
 
@@ -385,13 +405,12 @@ function handleRealtimeEvent(event) {
     realtime.transcript += data.delta || "";
     renderTranscript(realtime.transcript);
   } else if (data.type === "response.output_audio_transcript.done" || data.type === "response.output_text.done") {
-    realtime.transcript = realtime.transcript || data.transcript || data.text || "";
+    realtime.transcript = data.transcript || data.text || realtime.transcript;
     renderTranscript(realtime.transcript);
-  } else if (data.type === "response.done" || data.type === "response.cancelled" || data.type === "response.canceled") {
-    state.responseActive = false;
-    setRealtimeStatus("Connected", "live");
-    setStatus("speech_status", data.type === "response.done" ? "Speech completed." : "Speech stopped.", "success");
-    refreshLifecycleControls();
+  } else if (data.type === "response.done") {
+    finishRealtimeResponse(data.response || {});
+  } else if (data.type === "response.cancelled" || data.type === "response.canceled") {
+    finishRealtimeResponse({ status: "cancelled", status_details: { reason: "client_cancelled" } });
   } else if (data.type === "error") {
     state.responseActive = false;
     setRealtimeStatus("Realtime error", "idle");
@@ -407,6 +426,8 @@ async function speakText() {
     return;
   }
   state.responseActive = true;
+  realtime.requestedText = text;
+  realtime.transcript = "";
   setRealtimeStatus("Requested", "busy");
   setStatus("speech_status", "PROMETHEUS accepted the speech request.", "");
   renderTranscript("");
@@ -449,6 +470,8 @@ async function closeRealtimeResources() {
   const callId = realtime.callId;
   realtime.callId = null;
   realtime.sessionReadyResolver = null;
+  realtime.requestedText = "";
+  realtime.transcript = "";
   state.sessionReady = false;
   if (realtime.dataChannel) {
     realtime.dataChannel.close();
@@ -545,6 +568,15 @@ function validSpeechText(value = document.getElementById("speech_text").value) {
   return !!value && value.trim().length > 0 && count <= MAX_TEXT_CODE_POINTS;
 }
 
+function setSpeechText(value, { focus = false } = {}) {
+  const textarea = document.getElementById("speech_text");
+  textarea.value = value;
+  updateCharacterCount();
+  if (focus) {
+    textarea.focus();
+  }
+}
+
 function updateCharacterCount() {
   const text = document.getElementById("speech_text").value;
   const count = codePointCount(text);
@@ -565,6 +597,59 @@ function renderTranscript(text) {
   const transcript = document.getElementById("spoken_transcript");
   transcript.textContent = text ? `Realtime transcript\n${text}` : "";
   transcript.hidden = !text;
+}
+
+function finishRealtimeResponse(response) {
+  const finalTranscript = transcriptFromResponse(response);
+  if (finalTranscript) {
+    realtime.transcript = finalTranscript;
+    renderTranscript(finalTranscript);
+  }
+
+  const status = response.status || "completed";
+  const details = response.status_details || {};
+  state.responseActive = false;
+  setRealtimeStatus("Connected", "live");
+
+  if (status === "completed") {
+    if (realtime.transcript && !matchesRequestedSpeech(realtime.transcript, realtime.requestedText)) {
+      setStatus("speech_status", "Realtime completed, but its final transcript differs from the submitted text.", "error");
+    } else {
+      setStatus("speech_status", "Speech completed.", "success");
+    }
+  } else if (status === "incomplete") {
+    const message = details.reason === "max_output_tokens"
+      ? "Speech was cut off because Realtime reached its output-token limit."
+      : details.reason === "content_filter"
+        ? "Speech was cut off by the Realtime content filter."
+        : "Realtime returned an incomplete speech response.";
+    setStatus("speech_status", message, "error");
+  } else if (status === "cancelled" || status === "canceled") {
+    setStatus("speech_status", details.reason === "turn_detected"
+      ? "Speech was interrupted when Realtime detected a new turn."
+      : "Speech stopped.", details.reason === "turn_detected" ? "error" : "");
+  } else {
+    const errorMessage = details.error && (details.error.message || details.error.code);
+    setStatus("speech_status", errorMessage || "Realtime failed to complete the speech response.", "error");
+  }
+  refreshLifecycleControls();
+}
+
+function transcriptFromResponse(response) {
+  if (!response || !Array.isArray(response.output)) {
+    return "";
+  }
+  return response.output.flatMap((item) => Array.isArray(item && item.content) ? item.content : [])
+    .map((part) => part && (part.transcript || part.text) || "")
+    .join("");
+}
+
+function matchesRequestedSpeech(transcript, requestedText) {
+  return normalizeSpokenText(transcript) === normalizeSpokenText(requestedText);
+}
+
+function normalizeSpokenText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
 function setAgentStatus(text, mode) {
