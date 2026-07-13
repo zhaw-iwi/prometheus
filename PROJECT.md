@@ -1,9 +1,72 @@
 # PROJECT.md
 
 ## Short project summary
-PROMETHEUS is an event-driven Java framework for explicit state-machine agent control with first-class regulation and multimodal behaviour plans.
+PROMETHEUS is an event-driven Java framework for explicit state-machine agent
+control, a developing regulation layer, and multimodal behaviour plans.
 
-## Milestones checklist
+## How to use this file
+
+This opening section is the current engineering status. Coding agents should
+read it at session startup, then inspect relevant code, tests, and README
+sections for their task.
+
+The milestone checklist and records below are a historical audit trail. Do not
+read them end to end by default. Search or open individual milestones only when
+an earlier decision is relevant, and verify historical claims against current
+code.
+
+## Current implementation status
+
+### Product and architecture
+
+- PROMETHEUS is a Java 21/Spring Boot framework for mapping multimodal `Event`
+  inputs to persisted multimodal `BehaviourPlan` outputs.
+- Explicit `Agent`/`State`/`OuterState`/`Transition` control owns tasks,
+  commitments, and final authority.
+- `AgentInteractionProfile` declares accepted observations and emitted
+  modalities.
+- The reusable main-branch catalog consists of Spring-discovered definitions
+  under `agentdefs/core` and `agentdefs/usecases/healthcare`.
+- The `agents` branch additionally registers event- and experiment-specific
+  application definitions through `ApplicationAgentDefinitionConfiguration`;
+  their package/key families are documented in `README.md`.
+- Valerian, Valerian Access Management, API Workbench, and the multilateral
+  displays consume public backend contracts. Standalone sites under `.web` are
+  auxiliary deployments outside the Spring agent runtime.
+
+### Implemented runtime capabilities
+
+- Persisted state machines, storage, event history, prompt policies, explicit
+  acknowledge/generate semantics, and scheduled evaluation.
+- Speech, nonverbal, motion, and display behaviour-plan channels.
+- Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
+  and PROMETHEUS-authoritative Realtime speech orchestration.
+- Browser sensing for facial emotion, social context, and hand signs, plus
+  manual environmental inputs and deterministic social-situation derivation.
+- A persisted regulation foundation with snapshot context, modulation values,
+  internal opportunities, reset behavior, and focused tests.
+
+### Known capability gap
+
+The intended social regulation/internal motivation system is not complete.
+Production agents currently use no-op regulation. The Zurich prototype responds
+only to ticks and user utterances, emits an affiliation opportunity from a
+dependency threshold, and does not yet integrate multimodal social evidence.
+Its modulation bundle is retained on the agent but is not consumed by prompt or
+behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
+and regulation diagnostics remain future work.
+
+### Current milestone state
+
+- Last completed milestone: Milestone 132, merge main public-site,
+  participation, and agent-bootstrap work into the agents branch.
+- No subsequent milestone has been selected.
+- The regulation gap above is a major framework direction, but it should become
+  a milestone only after its intended motivation model and acceptance criteria
+  are explicitly scoped.
+
+## Historical milestones checklist
+
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
 - [x] Milestone 3: Multifacial client with per-user face-emotion attribution
@@ -159,6 +222,12 @@ PROMETHEUS is an event-driven Java framework for explicit state-machine agent co
 - [x] Milestone 129: Merge main detached-window and API Workbench work into agents branch
 - [x] Milestone 130: Merge main README and API Workbench layout polish into agents branch
 - [x] Milestone 131: Merge main API Workbench short URL redirect into agents branch
+- [x] Mainline Milestone 126: Standalone German SIRA/PROMETHEUS public page
+- [x] Mainline Milestone 127: Participate landing page and registration wizard frontend
+- [x] Mainline Milestone 128: Participate PHP/MySQL registration backend
+- [x] Mainline Milestone 129: Participate admin registration table
+- [x] Mainline Milestone 130: Agent-facing context and bootstrap optimization
+- [x] Milestone 132: Merge main public-site, participation, and agent-bootstrap work into agents branch
 
 ## Milestone 1
 ### Date
@@ -6219,3 +6288,418 @@ Merge the main-branch API Workbench short URL redirect into the `agents` branch 
 
 ### Next steps
 1. Redeploy the agents branch so deployed `/apiworkbench` URLs route correctly.
+
+## Mainline Public-Site, Participation, and Bootstrap Milestones Merged Into Agents
+
+The following sections retain the main-branch milestone records imported by
+agents Milestone 132. Their mainline labels distinguish them from the
+independent agents-branch milestones with the same numbers.
+
+### Mainline Milestone 126
+### Date
+2026-07-09
+
+### Goal
+Create a standalone German/English public web page introducing the ZHAW SIRA Lab and positioning PROMETHEUS as the agent development framework for SIRA experiments.
+
+### What changed
+- Added `.web/index.html` and `.web/texts.js` as a static page that can be hosted directly.
+- Wrote German and English introductory copy for:
+  - ZHAW Socially Intelligent and Responsible Agents (SIRA) Lab.
+  - PROMETHEUS as a platform for SIRA experiments.
+- Added a public GitHub repository link to `https://github.com/zhaw-iwi/prometheus`.
+- Added [Alexandre de Spindler](mailto:alexandre.despindler@zhaw.ch) as the main contact with a link to the ZHAW Centre for Information Systems Engineering page.
+- Added an selected publication list covering PROMETHEUS, PROMISE, SBR, multimodal interaction, and social behaviour work.
+- Matched the visual direction of the Valerian cockpit with Space Grotesk typography, compact 8px panels, orange/teal/blue accents, and a persisted light/dark theme toggle.
+- Added a persisted German/English language switch next to the dark-mode toggle.
+- Added a canvas-based configuration-space hero visual and reduced mobile canvas detail to avoid text overlap.
+- Updated `README.md` with the standalone page location and repository structure entry.
+
+### How to run
+1. Open the static page directly:
+   - `.web/index.html`
+2. Or host the `.web/` directory as static files.
+
+### How to test
+- Static checks:
+  - `git diff --check`
+  - `node --check .web/texts.js`
+  - Inline script parse check:
+    - `node -e "const fs=require('fs');const vm=require('vm');const html=fs.readFileSync('.web/index.html','utf8');const re=new RegExp('<script>([\\\\s\\\\S]*?)</script>','g');let m,n=0;while((m=re.exec(html))){new vm.Script(m[1],{filename:'inline-'+n+'.js'});n++;}console.log('checked '+n+' inline scripts');"`
+- Browser smoke checks with Playwright:
+  - Desktop render, dark-mode toggle, German/English toggle, page title, H1, publication count, GitHub links, and contact links.
+  - Mobile render at 390x844 with no horizontal overflow.
+
+### Known issues and decisions
+- The page intentionally lives under `.web/` and is not bundled into the Spring static client surfaces.
+- The page uses CDN-hosted fonts and Bootstrap Icons, matching the existing Valerian style direction.
+- The publication list is a selected research-context list, not a formal CV or exhaustive bibliography.
+
+### Next steps
+1. Review the public wording and publication selection before deploying the page online.
+
+### Mainline Milestone 127
+### Date
+2026-07-10
+
+### Goal
+Create the first standalone German participation site frontend under `.web/participate/` for recruiting participants into the human-AI collaboration study.
+
+### What changed
+- Added `.web/participate/index.php` as the deployable root page for the participation site.
+- Added local frontend assets:
+  - `.web/participate/assets/styles.css`
+  - `.web/participate/assets/app.js`
+- Matched the SIRA/Valerian visual direction with compact panels, 8px radii, orange/teal accents, a canvas hero, and persisted light/dark theme.
+- Added German landing content for the study:
+  - introductory study motivation.
+  - what participants can expect.
+  - key facts for date, place, target group, and thank-you gift.
+  - privacy and contact summary.
+- Added a `Mitmachen` registration dialog with a three-step chevron wizard:
+  - personal details: full name, date of birth, e-mail address.
+  - half-day preference: Monday 17 August 2026 morning, Monday 17 August 2026 afternoon, or unavailable-but-interested.
+  - review and submit.
+- Added a privacy information dialog accessible from the landing page, footer, and review step.
+- Added frontend validation for required personal details, valid e-mail address, and slot preference.
+- Added local browser recognition for the frontend milestone:
+  - submitted data is stored in local storage with a cookie marker.
+  - returning users see their registration summary.
+  - returning users cannot edit and resubmit through the CTA.
+- Added a full-width success alert after local submission that vanishes after five seconds.
+- Added dedicated Playwright support for this PHP-rooted static site:
+  - `playwright.participate.config.mjs`
+  - `tests/playwright/participate.spec.mjs`
+  - `npm run test:participate:visual`
+- Updated `README.md` with local run and test instructions.
+
+### How to run
+1. Start PHP's built-in server:
+   - `php -S 127.0.0.1:8091 -t .web/participate`
+2. Open:
+   - `http://127.0.0.1:8091/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/index.php`
+  - `node --check .web/participate/assets/app.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+  - `node --check playwright.participate.config.mjs`
+  - `git diff --check`
+- Browser smoke:
+  - `npm run test:participate:visual`
+
+### Known issues and decisions
+- This milestone is frontend-only. It does not yet write to MySQL or send e-mail.
+- Submission currently stores a local summary in the participant's browser to validate the wizard and returning-summary UX. Milestone 128 will replace this with the PHP/MySQL registration API, duplicate e-mail handling, cookies backed by a server token, and confirmation mail.
+- The page intentionally lives under `.web/participate/` and does not depend on `.web/index.html` or `.web/texts.js`.
+- The study page is German-only for this milestone, but the asset structure leaves room for future localization.
+
+### Next steps
+1. Milestone 128: add `.env` loading, MySQL schema/seed files, PHP registration API, duplicate handling, confirmation mail, and database-backed returning-summary lookup.
+
+### Mainline Milestone 128
+### Date
+2026-07-10
+
+### Goal
+Replace the participation site's frontend-only submission with a deployable PHP/MySQL registration backend, confirmation mail support, duplicate e-mail handling, and database-backed returning-summary lookup.
+
+### What changed
+- Added deployment and test environment templates under `.web/participate/`:
+  - `.env.example` for production host credentials and mail settings.
+  - `.env.test` for the local MySQL test instance using `root` / `achselle9`.
+- Added MySQL deployment files:
+  - `.web/participate/database/schema.sql`
+  - `.web/participate/database/seed.sql`
+- Seeded the first three participation options:
+  - Monday 17 August 2026, 09:00 to 13:00, capacity 64.
+  - Monday 17 August 2026, 13:00 to 17:00, capacity 64.
+  - unavailable-but-interested option with no capacity limit.
+- Added PHP backend support in `.web/participate/config/bootstrap.php`:
+  - local `.env` loading.
+  - PDO/MySQL connection creation.
+  - JSON request/response helpers.
+  - secure server-token registration cookie helper.
+  - PHP `mail()` confirmation sender with logged-mail transport for tests.
+- Added participant API endpoints:
+  - `.web/participate/api/register.php`
+  - `.web/participate/api/registration.php`
+- Registration now:
+  - validates name, date of birth, e-mail address, and selected slot.
+  - enforces one registration per normalized e-mail address.
+  - checks slot capacity for the two half-day slots.
+  - stores the request in MySQL.
+  - sets an HTTP-only cookie containing a random 64-character public token.
+  - sends a confirmation mail marked `DO NOT REPLY TO THIS MAIL`.
+  - adds comma-separated `ADMIN_NOTIFY_EMAIL` values as BCC recipients on participant mails.
+- Duplicate registration rejection now returns a graceful message telling participants to contact `alexandre.despindler@zhaw.ch`.
+- Updated the frontend submission flow in `.web/participate/assets/app.js`:
+  - posts the wizard values to the PHP API.
+  - shows backend validation or duplicate messages in the existing wizard alert.
+  - restores returning-user summaries through the server-backed cookie.
+  - prevents editing and resubmitting once the browser has an existing registration token.
+- Updated the returning summary copy in `.web/participate/index.php` to describe browser-backed registration lookup instead of local-only storage.
+- Added `.web/participate/tests/setup_test_db.php` to reset and seed the local MySQL test database and clear logged test mails.
+- Updated `playwright.participate.config.mjs` so `npm run test:participate:visual` resets MySQL, starts PHP with `.env.test`, and runs against the real backend.
+- Extended `tests/playwright/participate.spec.mjs` to verify:
+  - wizard validation and review.
+  - backend submission.
+  - MySQL-backed summary restoration after reload.
+  - logged confirmation mail with BCC.
+  - duplicate e-mail rejection.
+  - mobile layout.
+- Updated `.gitignore` to ignore production `.env` and generated test mail while keeping `.env.example` and `.env.test` tracked.
+- Updated `README.md` with deployment setup, local backend setup, and backend-aware test instructions.
+
+### How to run
+1. For deployment, create `.web/participate/.env` from `.web/participate/.env.example`.
+2. Execute the database files in this order in the deployment MySQL database:
+   - `.web/participate/database/schema.sql`
+   - `.web/participate/database/seed.sql`
+3. For local testing:
+   - `$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path`
+   - `php .web/participate/tests/setup_test_db.php`
+   - `php -S 127.0.0.1:8091 -t .web/participate`
+4. Open:
+   - `http://127.0.0.1:8091/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/index.php`
+  - `php -l .web/participate/config/bootstrap.php`
+  - `php -l .web/participate/api/register.php`
+  - `php -l .web/participate/api/registration.php`
+  - `php -l .web/participate/tests/setup_test_db.php`
+  - `node --check .web/participate/assets/app.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+  - `node --check playwright.participate.config.mjs`
+- Database setup:
+  - `php .web/participate/tests/setup_test_db.php`
+- MySQL seed check:
+  - `mysql -uroot -pachselle9 -D sira_participate_test -e "SELECT slot_key, capacity, is_active FROM participation_slots ORDER BY sort_order; SELECT COUNT(*) AS registrations FROM participation_registrations;"`
+- Browser/backend smoke:
+  - `npm run test:participate:visual`
+
+### Verification
+- `php -l .web/participate/index.php`: passed.
+- `php -l .web/participate/config/bootstrap.php`: passed.
+- `php -l .web/participate/api/register.php`: passed.
+- `php -l .web/participate/api/registration.php`: passed.
+- `php -l .web/participate/tests/setup_test_db.php`: passed.
+- `node --check .web/participate/assets/app.js`: passed.
+- `node --check tests/playwright/participate.spec.mjs`: passed.
+- `node --check playwright.participate.config.mjs`: passed.
+- `php .web/participate/tests/setup_test_db.php`: passed and prepared `sira_participate_test`.
+- Direct API smoke with PHP server: passed registration insert, cookie-backed summary lookup, logged mail, and duplicate 409 rejection.
+- MySQL seed check: passed; both half-day slots have capacity 64 and the unavailable option has `NULL` capacity.
+- `npm run test:participate:visual`: passed, 2 tests.
+
+### Known issues and decisions
+- Production mail uses PHP `mail()` because no SMTP library or Composer dependency was introduced.
+- Test mail uses `MAIL_TRANSPORT=log` and writes `.eml` files under `.web/participate/.tmp/mail`.
+- The registration cookie stores only a random public token; the summary itself is fetched from MySQL.
+- `.web/participate/.env` is intentionally ignored and must be created on the deployment host.
+- The admin view is not part of this milestone.
+
+### Next steps
+1. Milestone 129: add the unprotected `/admin/` view with searchable/sortable registration table and CSV export.
+
+### Mainline Milestone 129
+### Date
+2026-07-10
+
+### Goal
+Add the participation admin view under `.web/participate/admin/` so registrations can be inspected, searched, sorted, deleted, and exported as CSV.
+
+### What changed
+- Added `.web/participate/admin/index.php` as the admin root page.
+- Added `.web/participate/admin/admin.css` for admin-specific layout:
+  - compact SIRA/participate visual language.
+  - summary metric cards.
+  - toolbar with search and CSV export.
+  - horizontally scrollable dense registration table.
+- Added `.web/participate/admin/admin.js` for plain-JavaScript table behavior:
+  - persisted light/dark theme toggle using the existing participate theme key.
+  - client-side search across every displayed column.
+  - sortable headers for every displayed column.
+  - per-row deletion through the admin delete endpoint.
+  - CSV export from the full loaded registration set, independent of the active search filter.
+- Added `.web/participate/admin/delete.php` to delete a registration row from MySQL, freeing the e-mail address and browser token so the participant can register again.
+- The admin page queries MySQL server-side through the existing participation backend config and renders:
+  - ID.
+  - created and updated timestamps.
+  - full name.
+  - date of birth.
+  - e-mail address.
+  - slot preference.
+  - slot start and end.
+  - slot capacity.
+  - status.
+  - IP address.
+  - user agent.
+- Extended the participation Playwright suite with an admin smoke test that:
+  - creates two registrations through the API.
+  - opens `/admin/`.
+  - verifies the table contains the registrations.
+  - sorts by e-mail.
+  - filters by search value.
+  - exports CSV while filtered and verifies the CSV still contains all loaded rows.
+  - deletes a registration and verifies the same browser can open the signup dialog and submit the same e-mail address again.
+- Updated `README.md` with the `/admin/` route, lack of built-in authentication, and admin test coverage.
+
+### How to run
+1. Use the same `.web/participate/.env` deployment setup from milestone 128.
+2. Open the admin route below the deployed participation root:
+   - `/admin/`
+   - local example: `http://127.0.0.1:8091/admin/`
+
+### How to test
+- Static checks:
+  - `php -l .web/participate/admin/delete.php`
+  - `php -l .web/participate/admin/index.php`
+  - `node --check .web/participate/admin/admin.js`
+  - `node --check tests/playwright/participate.spec.mjs`
+- Browser/backend smoke:
+  - `npm run test:participate:visual`
+- Manual visual check:
+  - start PHP with `.env.test`.
+  - capture `http://127.0.0.1:8091/admin/` at 1440x1000.
+  - verify the metrics, toolbar, and wide table do not overlap and remain readable.
+
+### Verification
+- `php -l .web/participate/admin/delete.php`: passed.
+- `php -l .web/participate/admin/index.php`: passed.
+- `node --check .web/participate/admin/admin.js`: passed.
+- `node --check tests/playwright/participate.spec.mjs`: passed.
+- `npm run test:participate:visual`: passed, 3 tests.
+- Manual screenshot check of `/admin/` at 1440x1000: passed; table is readable and horizontally scrolls inside its panel.
+
+### Known issues and decisions
+- The admin page intentionally has no built-in authentication, matching the requested UUID/obscured-folder deployment approach.
+- The CSV export is generated client-side from the full dataset loaded into the admin page. For very large future datasets, a server-side export endpoint would be more scalable.
+- The page omits the registration public token from the visible/exported table to avoid exposing a browser summary token unnecessarily.
+- Deletion is hard-delete rather than cancellation because the participant must be able to register again with the same e-mail address and stale browser token.
+
+### Next steps
+1. No milestone 130 has been defined yet.
+
+### Mainline Milestone 130
+### Date
+2026-07-13
+
+### Goal
+Optimize the coding-agent bootstrap and context documents so new agents receive
+accurate PROMETHEUS architecture and current-state guidance without loading the
+complete milestone history or inheriting project-specific assumptions from the
+reusable engineering guide.
+
+### What changed
+- Rewrote `.agents/messageinabottle.txt` as a compact startup sequence that
+  reads the generic engineering guide, PROMETHEUS context, and only the current
+  status at the top of `PROJECT.md` before inspecting task-relevant code and
+  tests.
+- Replaced `.agents/CODEX.md` with a shorter project-neutral guide covering
+  context discovery, scope safety, software-engineering principles, milestone
+  execution, testing, documentation, cleanup, and review handoff.
+- Removed generic-guide assumptions about prototype maturity, backward
+  compatibility, schema resets, fixed error shapes, repository file layout, and
+  mandatory full-history reading. Those decisions now defer to project context.
+- Refactored `.agents/CONTEXT.MD` around PROMETHEUS's purpose, explicit
+  event/state-machine/behaviour model, implemented capabilities, repository
+  boundaries, compatibility policy, and task-oriented source/test routing.
+- Documented the regulation maturity boundary accurately:
+  - persisted no-op/Zurich foundation and internal opportunity support exist;
+  - production agents still use no-op regulation;
+  - multimodal social evidence, modulation consumption, interrupts,
+    arbitration, safety precedence, and diagnostics remain incomplete.
+- Distinguished raw external observations from backend-derived social
+  situation changes, system events, and internal regulation events.
+- Normalized all bootstrap and contributor references to the tracked
+  `.agents/CONTEXT.MD` casing so they work on case-sensitive systems.
+- Added this concise current implementation snapshot at the top of `PROJECT.md`
+  and explicitly designated the remaining milestones as a selectively searched
+  historical audit.
+- Updated the README introduction to describe regulation as a developing
+  foundation and updated project notes to explain each agent-facing file.
+
+### How to run
+1. Give a new coding agent the contents of
+   `.agents/messageinabottle.txt`.
+2. The agent should read the two focused `.agents` documents and the current
+   status at the top of `PROJECT.md`, then inspect only task-relevant sources.
+
+### How to test
+- `git diff --check`
+- PowerShell documentation contract assertions for:
+  - exact `.agents/CONTEXT.MD` path tracking;
+  - absence of PROMETHEUS-specific terms in `.agents/CODEX.md`;
+  - selective-history wording in the bootstrap and project status;
+  - regulation capability/gap statements in `.agents/CONTEXT.MD`;
+  - preservation of historical milestone records;
+  - synchronized README agent-document guidance.
+
+### Verification
+- `git diff --check`: passed.
+- PowerShell agent-document contract assertions: passed for tracked path casing,
+  project-neutral `CODEX.md`, selective-history startup guidance, regulation
+  capability/gap coverage, historical milestone preservation, and synchronized
+  README guidance.
+- Measured required startup content decreased from 357,251 bytes to 19,986
+  bytes, a 94.4% reduction; the new current-status section is 65 lines.
+- No runtime tests were run because this milestone changes documentation and
+  agent instructions only.
+
+### Known issues and decisions
+- Historical milestones remain in `PROJECT.md` to preserve the existing audit
+  trail. Startup guidance now prevents loading them end to end; physical archive
+  splitting is unnecessary unless the file becomes operationally difficult to
+  maintain.
+- The current-status section is intentionally curated and must be updated when
+  future milestones materially change architecture, capabilities, gaps, or the
+  latest milestone.
+- This milestone changes agent guidance only. Runtime code, public APIs,
+  database schemas, and user-facing application behavior are unchanged.
+
+### Next steps
+1. Rehearse `.agents/messageinabottle.txt` with a fresh coding-agent session and
+   adjust only if it still causes unnecessary broad file reads.
+2. Scope the next regulation milestone separately, with an explicit motivation
+   model and acceptance criteria before implementation.
+
+## Milestone 132
+### Date
+2026-07-13
+
+### Goal
+Merge current `main` into `agents` so the agents branch includes the standalone
+SIRA/PROMETHEUS site, participation frontend/backend/admin work, and the latest
+coding-agent bootstrap guidance.
+
+### What changed
+- Fast-forwarded the local `agents` branch to `origin/agents` before merging.
+- Merged main milestones 126 through 130 and retained their historical records
+  above under explicit mainline labels.
+- Brought the standalone `.web` SIRA page and PHP/MySQL participation site,
+  including the administration view and Playwright coverage, into `agents`.
+- Brought the streamlined `.agents` bootstrap/context files and current-status
+  section into the branch.
+- Preserved the agents-specific catalog, prompts, event agents, and prior merge
+  history.
+
+### How to test
+- `git diff --check`
+- `node --check .web/texts.js`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `.\mvnw.cmd test`
+
+### Known issues and decisions
+- Mainline and agents milestone numbers 126 through 130 refer to different work.
+  The imported records are labelled `Mainline Milestone` rather than renumbered,
+  preserving both histories.
+- Participation browser/database smoke remains separately runnable with
+  `npm run test:participate:visual` and its dedicated PHP/MySQL test setup.
+
+### Next steps
+1. Apply and commit the pending Talk to Me milestone on the merged agents branch.

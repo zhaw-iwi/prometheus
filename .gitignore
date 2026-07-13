@@ -39,3 +39,6 @@ eclipse-formatter.xml
 *.properties
 !.mvn/wrapper/maven-wrapper.properties
 !*-prod.properties
+
+.web/participate/.env
+.web/participate/.tmp/

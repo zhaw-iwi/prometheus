@@ -1,7 +1,7 @@
 # PROMETHEUS
 
 PROMETHEUS is an event-driven Java framework for building multimodal digital
-agents with explicit state-machine control, first-class regulation, and
+agents with explicit state-machine control, a developing regulation layer, and
 structured behaviour output.
 
 ## Why
@@ -41,10 +41,11 @@ internal regulation signal use the same event pipeline. The current state
 decides whether the event changes control flow, updates storage, or triggers a
 new behaviour plan.
 
-Regulation and continuous evaluation can shape behaviour without taking control
-away from the state machine. This keeps interaction adaptive while preserving
-traceability: developers can inspect the current state, event history, storage,
-generated prompts, and emitted behaviour.
+The regulation foundation runs alongside task control, can maintain persisted
+variables, and can emit internal opportunities back through the state machine.
+Direct multimodal motivation, arbitration, and modulation of generated
+behaviour are not complete yet. The state machine therefore remains explicit
+and authoritative while the regulation layer develops.
 
 ## Bundled Clients
 
@@ -217,6 +218,36 @@ Open the main surfaces:
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
+The standalone German/English SIRA/PROMETHEUS public page lives under `.web/`.
+Open `.web/index.html` directly in a browser, or host the `.web/` directory as
+static files.
+
+The standalone German study participation site lives under `.web/participate/`.
+It is self-contained for deployment as a separate host root. Before deploying,
+copy `.web/participate/.env.example` to `.web/participate/.env`, fill in the
+database and mail values, and execute `.web/participate/database/schema.sql`
+followed by `.web/participate/database/seed.sql` in the target MySQL database.
+`ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
+added as BCC recipients on participant confirmation mails.
+
+The participation admin view is available at `/admin/` below that deployment
+root, for example `https://participate.siralab.ch/admin/`. It intentionally has
+no built-in authentication; protect or obscure the deployed folder name at the
+hosting level if needed. The table supports client-side search, sortable
+columns, deletion of registrations, and CSV export of the full loaded
+registration set. Deleting a registration removes its e-mail reservation and
+server-token summary, so the participant can register again from the same
+browser.
+
+For local backend testing, use the provided `.env.test` and reset the local
+MySQL test database:
+
+```powershell
+$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path
+php .web/participate/tests/setup_test_db.php
+php -S 127.0.0.1:8091 -t .web/participate
+```
+
 ## Testing
 
 Run the Java regression suite:
@@ -230,8 +261,19 @@ Run JavaScript syntax checks for the bundled clients:
 ```powershell
 node --check src/main/resources/public/valerian/script.js
 node --check src/main/resources/public/apiworkbench/script.js
+node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
+node --check tests/playwright/participate.spec.mjs
+node --check playwright.participate.config.mjs
+php -l .web/participate/index.php
+php -l .web/participate/config/bootstrap.php
+php -l .web/participate/api/register.php
+php -l .web/participate/api/registration.php
+php -l .web/participate/admin/delete.php
+php -l .web/participate/admin/index.php
+php -l .web/participate/tests/setup_test_db.php
+node --check .web/participate/admin/admin.js
 ```
 
 Run the Playwright visual smoke tests:
@@ -241,6 +283,7 @@ npm install
 npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
+npm run test:participate:visual
 ```
 
 The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
@@ -251,6 +294,15 @@ guided lifecycle, snippets, request execution, and SSE viewer. Set
 `PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
 the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
 running.
+
+The participate Playwright test resets `sira_participate_test` through
+`.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
+`.web/participate/` with `.env.test`, and verifies the landing page,
+registration wizard, validation, privacy modal, MySQL-backed registration,
+logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
+mobile layout, and the `/admin/` registration table with search, sorting, and
+CSV export. It also verifies admin deletion and same-browser re-registration
+after deletion.
 
 ## Connecting External Clients
 
@@ -586,7 +638,17 @@ src/main/resources/public
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
-tests/playwright    Browser-level Valerian and API Workbench visual smoke tests.
+.web/
+  index.html        Standalone German/English SIRA/PROMETHEUS public page.
+  participate/      Standalone German study participation site.
+    admin/          Unprotected registration overview with search, sort, and CSV export.
+    api/            PHP JSON endpoints for registration and returning-summary lookup.
+    assets/         Plain CSS and JavaScript for the landing page and wizard.
+    config/         Local `.env` loading, PDO, JSON, cookie, and mail helpers.
+    database/       MySQL schema and seed files for phpMyAdmin deployment.
+    tests/          Local MySQL reset helper for integration smoke tests.
+
+tests/playwright    Browser-level Valerian, API Workbench, and participate smoke tests.
 ```
 
 ## Developing New Agents
@@ -620,6 +682,12 @@ through environment variables or platform config vars.
 
 ## Project Notes
 
-- `.agents/CONTEXT.md` describes the PROMETHEUS architecture and boundaries.
-- `.agents/CODEX.md` describes the repository workflow for coding agents.
-- `PROJECT.md` is the milestone audit trail.
+- `.agents/messageinabottle.txt` is the compact session bootstrap prompt for a
+  new coding agent.
+- `.agents/CODEX.md` contains reusable, project-neutral engineering and
+  milestone practices.
+- `.agents/CONTEXT.MD` describes PROMETHEUS's purpose, current capabilities,
+  regulation gaps, architecture, and repository boundaries.
+- The top of `PROJECT.md` is the current engineering snapshot. The remaining
+  milestone records are a historical audit to search selectively, not required
+  startup reading.
