@@ -17,6 +17,7 @@ import ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour;
 import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame;
 import ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGame;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGameUserGuess;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation;
@@ -33,6 +34,7 @@ class SeedAgentInteractionProfileContractTest {
             new RockScissorPaper(),
             new RoleClarificationGuessingGame(),
             new SocialContextSensitivity(),
+            new TalkToMe(),
             new SingleStateGuessingGame(),
             new SingleStateGuessingGameUserGuess(),
             new SingleStateHealthcareConversation(),
@@ -73,6 +75,10 @@ class SeedAgentInteractionProfileContractTest {
                 .getInteractionProfile();
         assertTrue(healthcare.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
         assertTrue(healthcare.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
+
+        AgentInteractionProfile talkToMe = new TalkToMe().createAgent().getInteractionProfile();
+        assertTrue(talkToMe.getProfileTags().contains(TalkToMe.PROFILE_TAG));
+        assertTrue(talkToMe.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
     }
 
     @Test

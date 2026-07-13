@@ -22,6 +22,16 @@ public class StaticRedirectController {
         return redirectWithQuery("/apiworkbench/index.html", request);
     }
 
+    @GetMapping({ "/public/talktome", "/public/talktome/" })
+    public String publicTalkToMe() {
+        return "forward:/talktome/index.html";
+    }
+
+    @GetMapping({ "/talktome", "/talktome/" })
+    public String talkToMe(HttpServletRequest request) {
+        return redirectWithQuery("/talktome/index.html", request);
+    }
+
     private String redirectWithQuery(String target, HttpServletRequest request) {
         String query = request.getQueryString();
         if (query == null || query.isBlank()) {

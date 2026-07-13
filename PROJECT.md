@@ -27,9 +27,10 @@ code.
   modalities.
 - The reusable main-branch catalog consists of Spring-discovered definitions
   under `agentdefs/core` and `agentdefs/usecases/healthcare`.
-- Valerian, Valerian Access Management, API Workbench, and the multilateral
-  displays consume public backend contracts. Standalone sites under `.web` are
-  auxiliary deployments outside the Spring agent runtime.
+- Valerian, Valerian Access Management, the public Talk to Me speech client,
+  API Workbench, and the multilateral displays consume public backend
+  contracts. Standalone sites under `.web` are auxiliary deployments outside
+  the Spring agent runtime.
 
 ### Implemented runtime capabilities
 
@@ -38,6 +39,8 @@ code.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   and PROMETHEUS-authoritative Realtime speech orchestration.
+- Explicit access-code-scoped Talk to Me instances for deterministic exact-text
+  Realtime speech with user-managed create/connect/disconnect/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
   manual environmental inputs and deterministic social-situation derivation.
 - A persisted regulation foundation with snapshot context, modulation values,
@@ -55,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 130, agent-facing context and bootstrap
-  optimization.
+- Last completed milestone: Milestone 133, public Talk to Me exact-text speech
+  client.
 - No subsequent milestone has been selected.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
@@ -194,6 +197,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 128: Participate PHP/MySQL registration backend
 - [x] Milestone 129: Participate admin registration table
 - [x] Milestone 130: Agent-facing context and bootstrap optimization
+- [x] Milestone 133: Public Talk to Me exact-text speech client
 
 ## Milestone 1
 ### Date
@@ -6049,3 +6053,69 @@ reusable engineering guide.
    adjust only if it still causes unnecessary broad file reads.
 2. Scope the next regulation milestone separately, with an explicit motivation
    model and acceptance criteria before implementation.
+
+## Milestone 133
+### Date
+2026-07-13
+
+### Goal
+Provide a standalone public Talk to Me client at `/public/talktome` that keeps
+PROMETHEUS access-code scoping and backend-authoritative OpenAI Realtime speech,
+while giving users explicit ownership of speech-agent creation, connection,
+disconnection, and deletion.
+
+### What changed
+- Added the Spring-discovered `core.talk_to_me` agent definition with interaction
+  profile tag `utility.talk_to_me` and a deterministic policy that copies the
+  latest user utterance exactly into a speech-only `BehaviourPlan`.
+- Added a 2,000-Unicode-code-point policy boundary and matching browser
+  validation. Blank or over-limit inputs do not produce speech.
+- Added the standalone Valerian-styled client under
+  `src/main/resources/public/talktome` and the stable
+  `/public/talktome` forwarding route.
+- Kept lifecycle actions explicit: users create, select, connect, disconnect,
+  and delete access-code-scoped instances.
+- Opened a receive-only WebRTC audio connection without requesting microphone
+  access, with Realtime voice, output speed, and browser speaker controls.
+- Preserved the authority boundary: the client acknowledges exact text through
+  the scoped agent API, while the backend owns Realtime session and response
+  commands.
+- Added policy, registry/profile, MVC route, static-client contract,
+  MySQL-backed scoped integration, and Playwright lifecycle/visual coverage.
+- Updated `README.md`, `.agents/CONTEXT.MD`, and current project status.
+
+### How to run
+1. Create a five-character access code in Valerian Access Management and assign
+   `core.talk_to_me`.
+2. Start the application with `./mvnw spring-boot:run` or
+   `.\mvnw.cmd spring-boot:run`.
+3. Open `http://localhost:8080/public/talktome`, enter the code, create an
+   instance, configure the speech connection, and connect.
+
+### How to test
+- Focused Java and MySQL-backed tests:
+  - `.\mvnw.cmd -q "-Dtest=TalkToMePolicyUnitTest,AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,TalkToMeClientStaticResourceContractTest,StaticRedirectControllerWebMvcTest,TalkToMeScopedIntegrationTest,RealtimeSidebandServiceContractTest" test`
+- Browser syntax:
+  - `node --check src/main/resources/public/talktome/script.js`
+  - `node --check tests/playwright/talktome.spec.mjs`
+- Browser/database smoke and visual checks:
+  - `npm.cmd run test:talktome:visual`
+
+### Verification
+- Focused Java tests passed, including `TalkToMeScopedIntegrationTest` against
+  the configured MySQL test database.
+- JavaScript and Playwright syntax checks passed.
+- Talk to Me Playwright lifecycle, persistence, Realtime authority, speaker,
+  responsive, and screenshot smoke passed, 1 test.
+
+### Known issues and decisions
+- Automated browser coverage fakes OpenAI/WebRTC and physical audio devices;
+  audible live output remains an environment-dependent manual check.
+- Multiple Talk to Me agents may exist under one access code. The client does
+  not silently create, reuse, or delete an instance.
+- A Realtime call is ephemeral; the persisted agent is the longer-lived
+  user-managed resource.
+
+### Next steps
+1. Perform one manual audible smoke with deployment OpenAI credentials and the
+   intended speaker hardware before public deployment.

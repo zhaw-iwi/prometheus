@@ -110,6 +110,23 @@ This core agent demonstrates a hand-sign game loop.
 - Behaviour: the full behaviour spectrum, plus the additional hand sign drawn
   by the agent.
 
+### Talk to Me
+
+URL: `http://localhost:8080/public/talktome`
+
+Talk to Me is a reduced, public-facing Valerian-style speech client. An
+administrator first assigns `core.talk_to_me` to an access code. The user then
+enters that code and explicitly creates, selects, connects, disconnects, and
+deletes their own scoped speech instances. Connecting opens a receive-only
+OpenAI Realtime call; leaving or disconnecting closes the call without deleting
+the instance.
+
+Enter up to 2,000 Unicode characters and choose **Speak** to persist and speak
+that exact text without language-model rewriting. The client exposes the
+Realtime voices, output speed, browser speaker selection, and speaker refresh.
+It does not request microphone access. Voice and speed are fixed for an active
+call, so disconnect before changing them and reconnect afterward.
+
 ### API Workbench
 
 URL: `http://localhost:8080/apiworkbench/`
@@ -151,6 +168,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
+| `core.talk_to_me` | Deterministic exact-text Realtime speech utility. |
 | `usecases.healthcare.guessing_game` | Healthcare guessing game where Valerian guesses. |
 | `usecases.healthcare.guessing_game_user_guess` | Healthcare guessing game where the user guesses. |
 | `usecases.healthcare.healthcare_conversation` | Open healthcare conversation use case. |
@@ -202,6 +220,7 @@ Open the main surfaces:
 
 - Valerian Cockpit: `http://localhost:8080/valerian/`
 - Valerian Access Management: `http://localhost:8080/valerian-admin/`
+- Talk to Me: `http://localhost:8080/public/talktome`
 - API Workbench: `http://localhost:8080/apiworkbench/`
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
@@ -249,9 +268,11 @@ Run JavaScript syntax checks for the bundled clients:
 ```powershell
 node --check src/main/resources/public/valerian/script.js
 node --check src/main/resources/public/apiworkbench/script.js
+node --check src/main/resources/public/talktome/script.js
 node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
+node --check tests/playwright/talktome.spec.mjs
 node --check tests/playwright/participate.spec.mjs
 node --check playwright.participate.config.mjs
 php -l .web/participate/index.php
@@ -271,6 +292,7 @@ npm install
 npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
+npm run test:talktome:visual
 npm run test:participate:visual
 ```
 
@@ -282,6 +304,13 @@ guided lifecycle, snippets, request execution, and SSE viewer. Set
 `PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
 the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
 running.
+
+The Talk to Me Playwright test uses the running Spring application and its
+configured test database for access-code assignment, scoped agent lifecycle,
+exact event/behaviour persistence, and deletion. It replaces only the external
+OpenAI/WebRTC and physical speaker boundary with deterministic browser fakes,
+then checks the light desktop and dark mobile layouts. It uses access code
+`TTM31` and the same admin-token environment override.
 
 The participate Playwright test resets `sira_participate_test` through
 `.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
@@ -562,6 +591,12 @@ PROMETHEUS creates the OpenAI Realtime call with the agent's current
 transcripts into the normal event pipeline, persists canonical assistant speech
 as `resp.behaviour_plan`, and asks Realtime to speak that exact text.
 
+Talk to Me uses the same authority boundary for output-only speech. Its browser
+posts a user-utterance observation containing the textarea value; the
+deterministic `core.talk_to_me` policy copies that value into the persisted
+speech channel, and the backend sideband issues the corresponding Realtime
+response. The browser does not send `session.update` or `response.create`.
+
 Close calls with:
 
 ```http
@@ -623,6 +658,7 @@ src/main/java/ch/zhaw/prometheus
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.
   multilateral/     Meeting/group listener and report displays.
+  talktome/         Public exact-text Realtime speech client.
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
@@ -636,7 +672,7 @@ src/main/resources/public
     database/       MySQL schema and seed files for phpMyAdmin deployment.
     tests/          Local MySQL reset helper for integration smoke tests.
 
-tests/playwright    Browser-level Valerian, API Workbench, and participate smoke tests.
+tests/playwright    Browser-level Valerian, Talk to Me, API Workbench, and participate smoke tests.
 ```
 
 ## Developing New Agents
