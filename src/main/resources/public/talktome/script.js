@@ -21,18 +21,13 @@ const state = {
   agentTypes: [],
   agents: [],
   selectedAgentId: null,
-  connectedAgentId: null,
   responseActive: false,
-  sessionReady: false,
+  lifecycleBusy: false,
 };
 
-const realtime = {
-  peerConnection: null,
-  dataChannel: null,
-  callId: null,
-  sessionReadyResolver: null,
-  transcript: "",
-  requestedText: "",
+const speech = {
+  abortController: null,
+  objectUrl: null,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -58,15 +53,17 @@ function bindControls() {
   });
   document.getElementById("clear_access_code").addEventListener("click", () => clearAccessSession());
   document.getElementById("create_agent").addEventListener("click", () => createAgent());
-  document.getElementById("connect_agent").addEventListener("click", () => connectSelectedAgent());
-  document.getElementById("disconnect_agent").addEventListener("click", () => disconnectAgent());
   document.getElementById("delete_agent").addEventListener("click", () => deleteSelectedAgent());
-  document.getElementById("agent_select").addEventListener("change", async (event) => {
-    if (state.connectedAgentId) {
-      await disconnectAgent();
-    }
+  document.getElementById("agent_select").addEventListener("change", (event) => {
+    cleanupAudio();
+    state.responseActive = false;
     state.selectedAgentId = event.target.value || null;
-    refreshLifecycleControls();
+    renderSpeechText("");
+    refreshControls();
+    setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+    setStatus("speech_status", state.selectedAgentId
+      ? "Enter text and choose Speak."
+      : "Select or create an instance to begin.", state.selectedAgentId ? "success" : "");
   });
   document.getElementById("speech_text").addEventListener("input", updateCharacterCount);
   document.getElementById("load_default_text").addEventListener("click", () => {
@@ -84,7 +81,11 @@ function bindControls() {
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
     button.addEventListener("click", toggleTheme);
   });
-  window.addEventListener("beforeunload", closeRealtimeCallForUnload);
+  const audio = document.getElementById("assistant_audio");
+  audio.addEventListener("play", handleAudioPlay);
+  audio.addEventListener("ended", handleAudioEnded);
+  audio.addEventListener("error", handleAudioError);
+  window.addEventListener("beforeunload", () => cleanupAudio());
 }
 
 function loadPreferences() {
@@ -136,7 +137,8 @@ async function submitAccessCode() {
 }
 
 async function clearAccessSession() {
-  await disconnectAgent({ silent: true });
+  stopSpeech({ silent: true });
+  renderSpeechText("");
   sessionStorage.removeItem(ACCESS_CODE_STORAGE_KEY);
   state.accessCode = null;
   state.agentTypes = [];
@@ -175,7 +177,7 @@ function renderAgents() {
   } else {
     agents.forEach((agent, index) => {
       const shortId = String(agent.id || "").slice(0, 8);
-      select.appendChild(new Option(`${agent.name || "Talk to Me"} ${index + 1} · ${shortId}`, agent.id));
+      select.appendChild(new Option(`${agent.name || "Talk to Me"} ${index + 1} - ${shortId}`, agent.id));
     });
     const selectionStillVisible = agents.some((agent) => agent.id === state.selectedAgentId);
     state.selectedAgentId = selectionStillVisible ? state.selectedAgentId : agents[0].id;
@@ -191,7 +193,10 @@ function renderAgents() {
   } else {
     setStatus("agent_detail", "", "");
   }
-  refreshLifecycleControls();
+  refreshControls();
+  if (!state.responseActive) {
+    setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+  }
 }
 
 async function refreshSession() {
@@ -220,47 +225,13 @@ async function createAgent() {
     state.agents.push(created);
     state.selectedAgentId = created.id;
     renderAgents();
-    setStatus("agent_detail", "Instance created. Connect when you are ready.", "success");
+    setStatus("agent_detail", "Instance created. Enter text and choose Speak.", "success");
+    setStatus("speech_status", "Enter text and choose Speak.", "success");
   } catch (error) {
     setStatus("agent_detail", readableError(error, "Unable to create the instance."), "error");
   } finally {
     setLifecycleBusy(false);
   }
-}
-
-async function connectSelectedAgent() {
-  const agentId = state.selectedAgentId;
-  if (!agentId || state.connectedAgentId) {
-    return;
-  }
-  setLifecycleBusy(true);
-  setRealtimeStatus("Connecting", "busy");
-  setStatus("speech_status", "Opening a receive-only Realtime session.", "");
-  try {
-    await setupRealtimeConnection(agentId);
-    state.connectedAgentId = agentId;
-    setRealtimeStatus("Connected", "live");
-    setStatus("speech_status", "Connected. Enter text and choose Speak.", "success");
-  } catch (error) {
-    await closeRealtimeResources();
-    setRealtimeStatus("Connection failed", "idle");
-    setStatus("speech_status", readableError(error, "Realtime connection failed."), "error");
-  } finally {
-    setLifecycleBusy(false);
-    refreshLifecycleControls();
-  }
-}
-
-async function disconnectAgent(options = {}) {
-  const wasConnected = !!state.connectedAgentId;
-  await closeRealtimeResources();
-  state.connectedAgentId = null;
-  state.responseActive = false;
-  setRealtimeStatus("Offline", "idle");
-  if (wasConnected && !options.silent) {
-    setStatus("speech_status", "Disconnected. The instance remains available until you delete it.", "");
-  }
-  refreshLifecycleControls();
 }
 
 async function deleteSelectedAgent() {
@@ -273,15 +244,14 @@ async function deleteSelectedAgent() {
   }
   setLifecycleBusy(true);
   try {
-    if (state.connectedAgentId === agentId) {
-      await disconnectAgent({ silent: true });
-    }
+    stopSpeech({ silent: true });
     const response = await scopedFetch(`/demo/agents/${encodeURIComponent(agentId)}`, { method: "DELETE" });
     if (!response.ok) {
       throw responseError(response, "Instance deletion failed.");
     }
     state.selectedAgentId = null;
     await refreshSession();
+    renderSpeechText("");
     setStatus("agent_detail", "Instance deleted.", "success");
   } catch (error) {
     setStatus("agent_detail", readableError(error, "Unable to delete the instance."), "error");
@@ -290,150 +260,54 @@ async function deleteSelectedAgent() {
   }
 }
 
-function refreshLifecycleControls() {
+function refreshControls() {
   const selected = !!state.selectedAgentId;
-  const connected = !!state.connectedAgentId;
-  const busy = document.getElementById("create_agent").dataset.busy === "true";
+  const busy = state.lifecycleBusy;
+  const active = state.responseActive;
   document.getElementById("create_agent").disabled = busy || !state.accessCode || !talkToMeAllowed();
-  document.getElementById("agent_select").disabled = busy || connected || talkToMeAgents().length === 0;
-  document.getElementById("connect_agent").disabled = busy || !selected || connected;
-  document.getElementById("disconnect_agent").disabled = busy || !connected;
-  document.getElementById("delete_agent").disabled = busy || !selected;
-  document.getElementById("speech_text").disabled = !connected;
-  document.getElementById("load_default_text").disabled = !connected;
-  document.getElementById("clear_speech_text").disabled = !connected;
-  document.getElementById("voice_select").disabled = connected;
-  document.getElementById("speed_select").disabled = connected;
-  document.getElementById("speak_text").disabled = !connected || state.responseActive || !validSpeechText();
-  document.getElementById("stop_speech").disabled = !connected || !state.responseActive;
-  document.getElementById("connection_settings_guidance").textContent = connected
-    ? "Voice and output speed are locked for this call. Disconnect to change them. Speaker changes apply immediately."
-    : "Choose voice and output speed before connecting. Speaker can be changed at any time.";
-  setAgentStatus(connected ? "Connected" : "Not connected", connected ? "live" : "idle");
+  document.getElementById("agent_select").disabled = busy || active || talkToMeAgents().length === 0;
+  document.getElementById("delete_agent").disabled = busy || active || !selected;
+  document.getElementById("speech_text").disabled = !selected || active;
+  document.getElementById("load_default_text").disabled = !selected || active;
+  document.getElementById("clear_speech_text").disabled = !selected || active;
+  document.getElementById("voice_select").disabled = active;
+  document.getElementById("speed_select").disabled = active;
+  document.getElementById("speak_text").disabled = busy || !selected || active || !validSpeechText();
+  document.getElementById("stop_speech").disabled = !active;
+  document.getElementById("speech_settings_guidance").textContent = active
+    ? "Voice and output speed are locked while this request is active. Speaker changes apply immediately."
+    : "Voice and output speed apply to the next request. Speaker can be changed at any time.";
+  setAgentStatus(selected ? "Ready" : "No instance", selected ? "live" : "idle");
 }
 
 function setLifecycleBusy(busy) {
-  document.getElementById("create_agent").dataset.busy = String(busy);
-  refreshLifecycleControls();
-}
-
-async function setupRealtimeConnection(agentId) {
-  state.sessionReady = false;
-  realtime.transcript = "";
-  realtime.peerConnection = new RTCPeerConnection();
-  realtime.peerConnection.addTransceiver("audio", { direction: "recvonly" });
-  realtime.peerConnection.ontrack = (event) => {
-    const audio = document.getElementById("assistant_audio");
-    audio.srcObject = event.streams[0];
-    applySelectedSpeaker().finally(() => audio.play().catch(() => {
-      setStatus("speaker_status", "Audio is ready; press Play if browser autoplay is blocked.", "");
-    }));
-  };
-  realtime.peerConnection.addEventListener("connectionstatechange", () => {
-    const connectionState = realtime.peerConnection && realtime.peerConnection.connectionState;
-    if (state.connectedAgentId && (connectionState === "failed" || connectionState === "disconnected")) {
-      setRealtimeStatus("Connection interrupted", "idle");
-      setStatus("speech_status", "Realtime transport was interrupted. Disconnect and reconnect.", "error");
-    }
-  });
-
-  realtime.dataChannel = realtime.peerConnection.createDataChannel("oai-events");
-  realtime.dataChannel.addEventListener("message", handleRealtimeEvent);
-  const sessionReady = new Promise((resolve) => {
-    realtime.sessionReadyResolver = resolve;
-  });
-
-  const offer = await realtime.peerConnection.createOffer();
-  await realtime.peerConnection.setLocalDescription(offer);
-  const call = await createRealtimeCall(agentId, offer.sdp);
-  realtime.callId = call.callId || call.id || null;
-  await realtime.peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
-  await waitForDataChannelOpen();
-  await withTimeout(sessionReady, 8000, "Realtime session did not become ready.");
-}
-
-async function createRealtimeCall(agentId, offerSdp) {
-  const params = new URLSearchParams({
-    voice: document.getElementById("voice_select").value,
-    outputSpeed: document.getElementById("speed_select").value,
-    turnDetection: "server_vad",
-    generateComplement: "false",
-  });
-  const response = await scopedFetch(`/demo/agents/${encodeURIComponent(agentId)}/realtime/call?${params}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/sdp" },
-    body: offerSdp,
-  });
-  if (!response.ok) {
-    throw responseError(response, "Realtime call creation failed.");
-  }
-  return response.json();
-}
-
-function waitForDataChannelOpen() {
-  if (realtime.dataChannel && realtime.dataChannel.readyState === "open") {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Realtime data channel did not open.")), 5000);
-    realtime.dataChannel.addEventListener("open", () => {
-      clearTimeout(timeout);
-      resolve();
-    }, { once: true });
-  });
-}
-
-function handleRealtimeEvent(event) {
-  let data;
-  try {
-    data = JSON.parse(event.data);
-  } catch (_) {
-    return;
-  }
-  if (data.type === "session.updated") {
-    state.sessionReady = true;
-    if (realtime.sessionReadyResolver) {
-      realtime.sessionReadyResolver();
-      realtime.sessionReadyResolver = null;
-    }
-  } else if (data.type === "response.created") {
-    state.responseActive = true;
-    realtime.transcript = "";
-    setRealtimeStatus("Speaking", "busy");
-    refreshLifecycleControls();
-  } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
-    realtime.transcript += data.delta || "";
-    renderTranscript(realtime.transcript);
-  } else if (data.type === "response.output_audio_transcript.done" || data.type === "response.output_text.done") {
-    realtime.transcript = data.transcript || data.text || realtime.transcript;
-    renderTranscript(realtime.transcript);
-  } else if (data.type === "response.done") {
-    finishRealtimeResponse(data.response || {});
-  } else if (data.type === "response.cancelled" || data.type === "response.canceled") {
-    finishRealtimeResponse({ status: "cancelled", status_details: { reason: "client_cancelled" } });
-  } else if (data.type === "error") {
-    state.responseActive = false;
-    setRealtimeStatus("Realtime error", "idle");
-    setStatus("speech_status", data.error && data.error.message ? data.error.message : "Realtime returned an error.", "error");
-    refreshLifecycleControls();
-  }
+  state.lifecycleBusy = busy;
+  refreshControls();
 }
 
 async function speakText() {
   const text = document.getElementById("speech_text").value;
-  if (!state.connectedAgentId || !validSpeechText(text)) {
+  const agentId = state.selectedAgentId;
+  if (!agentId || !validSpeechText(text)) {
     updateCharacterCount();
     return;
   }
+
+  cleanupAudio();
+  const controller = new AbortController();
+  speech.abortController = controller;
   state.responseActive = true;
-  realtime.requestedText = text;
-  realtime.transcript = "";
-  setRealtimeStatus("Requested", "busy");
-  setStatus("speech_status", "PROMETHEUS accepted the speech request.", "");
-  renderTranscript("");
-  refreshLifecycleControls();
+  setRendererStatus("Synthesizing", "busy");
+  setStatus("speech_status", "PROMETHEUS accepted the speech request and is synthesizing it.", "");
+  renderSpeechText(text);
+  refreshControls();
+
+  const params = new URLSearchParams({
+    voice: document.getElementById("voice_select").value,
+    speed: document.getElementById("speed_select").value,
+  });
   try {
-    const response = await scopedFetch(`/demo/agents/${encodeURIComponent(state.connectedAgentId)}/acknowledge?profile=realtime_speech`, {
+    const response = await scopedFetch("/demo/talktome/agents/" + encodeURIComponent(agentId) + "/speech?" + params, {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
@@ -442,65 +316,104 @@ async function speakText() {
         kind: "observation",
         payload: text,
       }),
+      signal: controller.signal,
     });
     if (!response.ok) {
-      throw responseError(response, "Speech request failed.");
+      throw responseError(response, "Speech synthesis failed.");
+    }
+    const audioBlob = await response.blob();
+    if (!audioBlob.size) {
+      throw new Error("Speech synthesis returned no audio.");
+    }
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    speech.abortController = null;
+    speech.objectUrl = URL.createObjectURL(audioBlob);
+    const audio = document.getElementById("assistant_audio");
+    audio.src = speech.objectUrl;
+    await applySelectedSpeaker();
+    try {
+      await audio.play();
+    } catch (_) {
+      setRendererStatus("Audio ready", "live");
+      setStatus("speech_status", "Audio is ready; press Play if browser autoplay is blocked.", "");
     }
   } catch (error) {
+    if (error && error.name === "AbortError") {
+      return;
+    }
+    if (speech.abortController === controller) {
+      speech.abortController = null;
+    }
     state.responseActive = false;
-    setRealtimeStatus("Connected", "live");
-    setStatus("speech_status", readableError(error, "Unable to submit the text."), "error");
-    refreshLifecycleControls();
+    setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+    setStatus("speech_status", readableError(error, "Unable to synthesize the text."), "error");
+    refreshControls();
   }
 }
 
-function stopSpeech() {
-  if (!realtime.dataChannel || realtime.dataChannel.readyState !== "open") {
-    return;
-  }
-  realtime.dataChannel.send(JSON.stringify({ type: "response.cancel" }));
-  realtime.dataChannel.send(JSON.stringify({ type: "output_audio_buffer.clear" }));
+function stopSpeech(options = {}) {
+  const wasActive = state.responseActive;
+  cleanupAudio();
   state.responseActive = false;
-  setRealtimeStatus("Connected", "live");
-  setStatus("speech_status", "Speech stopped.", "");
-  refreshLifecycleControls();
+  setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+  if (wasActive && !options.silent) {
+    setStatus("speech_status", "Speech stopped.", "");
+  }
+  refreshControls();
 }
 
-async function closeRealtimeResources() {
-  const callId = realtime.callId;
-  realtime.callId = null;
-  realtime.sessionReadyResolver = null;
-  realtime.requestedText = "";
-  realtime.transcript = "";
-  state.sessionReady = false;
-  if (realtime.dataChannel) {
-    realtime.dataChannel.close();
-    realtime.dataChannel = null;
-  }
-  if (realtime.peerConnection) {
-    realtime.peerConnection.close();
-    realtime.peerConnection = null;
+function cleanupAudio() {
+  if (speech.abortController) {
+    speech.abortController.abort();
+    speech.abortController = null;
   }
   const audio = document.getElementById("assistant_audio");
   audio.pause();
-  audio.srcObject = null;
+  try {
+    audio.currentTime = 0;
+  } catch (_) {
+    // Some browsers reject seeking before media metadata is available.
+  }
   audio.removeAttribute("src");
   audio.load();
-  if (callId) {
-    await fetch(`/realtime/calls/${encodeURIComponent(callId)}`, { method: "DELETE" }).catch(() => undefined);
+  if (speech.objectUrl) {
+    URL.revokeObjectURL(speech.objectUrl);
+    speech.objectUrl = null;
   }
 }
 
-function closeRealtimeCallForUnload() {
-  if (realtime.callId) {
-    fetch(`/realtime/calls/${encodeURIComponent(realtime.callId)}`, {
-      method: "DELETE",
-      keepalive: true,
-    }).catch(() => undefined);
+function handleAudioPlay() {
+  if (!document.getElementById("assistant_audio").getAttribute("src")) {
+    return;
   }
-  if (realtime.peerConnection) {
-    realtime.peerConnection.close();
+  state.responseActive = true;
+  setRendererStatus("Playing", "busy");
+  setStatus("speech_status", "Playing synthesized speech.", "");
+  refreshControls();
+}
+
+function handleAudioEnded() {
+  if (!speech.objectUrl) {
+    return;
   }
+  state.responseActive = false;
+  setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+  setStatus("speech_status", "Speech completed.", "success");
+  refreshControls();
+}
+
+function handleAudioError() {
+  const audio = document.getElementById("assistant_audio");
+  if (!audio.getAttribute("src")) {
+    return;
+  }
+  state.responseActive = false;
+  setRendererStatus(state.selectedAgentId ? "Ready" : "No instance", state.selectedAgentId ? "live" : "idle");
+  setStatus("speech_status", "The browser could not play the synthesized audio.", "error");
+  refreshControls();
 }
 
 function sessionSettingChanged() {
@@ -586,78 +499,25 @@ function updateCharacterCount() {
   if (count > MAX_TEXT_CODE_POINTS) {
     setStatus("speech_status", `Text is ${count - MAX_TEXT_CODE_POINTS} characters over the limit.`, "error");
   }
-  refreshLifecycleControls();
+  refreshControls();
 }
 
 function codePointCount(value) {
   return Array.from(value || "").length;
 }
 
-function renderTranscript(text) {
+function renderSpeechText(text) {
   const transcript = document.getElementById("spoken_transcript");
-  transcript.textContent = text ? `Realtime transcript\n${text}` : "";
+  transcript.textContent = text ? "Speech text\n" + text : "";
   transcript.hidden = !text;
-}
-
-function finishRealtimeResponse(response) {
-  const finalTranscript = transcriptFromResponse(response);
-  if (finalTranscript) {
-    realtime.transcript = finalTranscript;
-    renderTranscript(finalTranscript);
-  }
-
-  const status = response.status || "completed";
-  const details = response.status_details || {};
-  state.responseActive = false;
-  setRealtimeStatus("Connected", "live");
-
-  if (status === "completed") {
-    if (realtime.transcript && !matchesRequestedSpeech(realtime.transcript, realtime.requestedText)) {
-      setStatus("speech_status", "Realtime completed, but its final transcript differs from the submitted text.", "error");
-    } else {
-      setStatus("speech_status", "Speech completed.", "success");
-    }
-  } else if (status === "incomplete") {
-    const message = details.reason === "max_output_tokens"
-      ? "Speech was cut off because Realtime reached its output-token limit."
-      : details.reason === "content_filter"
-        ? "Speech was cut off by the Realtime content filter."
-        : "Realtime returned an incomplete speech response.";
-    setStatus("speech_status", message, "error");
-  } else if (status === "cancelled" || status === "canceled") {
-    setStatus("speech_status", details.reason === "turn_detected"
-      ? "Speech was interrupted when Realtime detected a new turn."
-      : "Speech stopped.", details.reason === "turn_detected" ? "error" : "");
-  } else {
-    const errorMessage = details.error && (details.error.message || details.error.code);
-    setStatus("speech_status", errorMessage || "Realtime failed to complete the speech response.", "error");
-  }
-  refreshLifecycleControls();
-}
-
-function transcriptFromResponse(response) {
-  if (!response || !Array.isArray(response.output)) {
-    return "";
-  }
-  return response.output.flatMap((item) => Array.isArray(item && item.content) ? item.content : [])
-    .map((part) => part && (part.transcript || part.text) || "")
-    .join("");
-}
-
-function matchesRequestedSpeech(transcript, requestedText) {
-  return normalizeSpokenText(transcript) === normalizeSpokenText(requestedText);
-}
-
-function normalizeSpokenText(value) {
-  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
 function setAgentStatus(text, mode) {
   setPill("agent_status", text, mode);
 }
 
-function setRealtimeStatus(text, mode) {
-  setPill("realtime_status", text, mode);
+function setRendererStatus(text, mode) {
+  setPill("speech_renderer_status", text, mode);
 }
 
 function setPill(id, text, mode) {
@@ -728,17 +588,4 @@ function responseError(response, fallback) {
 
 function readableError(error, fallback) {
   return error && error.message ? error.message : fallback;
-}
-
-function withTimeout(promise, timeoutMs, message) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
-    promise.then((value) => {
-      clearTimeout(timeout);
-      resolve(value);
-    }, (error) => {
-      clearTimeout(timeout);
-      reject(error);
-    });
-  });
 }

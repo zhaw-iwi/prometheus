@@ -40,7 +40,7 @@ code.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   and PROMETHEUS-authoritative Realtime speech orchestration.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
-  Realtime speech with user-managed create/connect/disconnect/delete lifecycle.
+  output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
   manual environmental inputs and deterministic social-situation derivation.
 - A persisted regulation foundation with snapshot context, modulation values,
@@ -58,8 +58,7 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 134, Talk to Me lifecycle layout and
-  Realtime completion diagnostics.
+- Last completed milestone: Milestone 136, Talk to Me backend isolation.
 - No subsequent milestone has been selected.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
@@ -199,6 +198,8 @@ and regulation diagnostics remain future work.
 - [x] Milestone 130: Agent-facing context and bootstrap optimization
 - [x] Milestone 133: Public Talk to Me exact-text speech client
 - [x] Milestone 134: Talk to Me lifecycle layout and Realtime completion diagnostics
+- [x] Milestone 135: Talk to Me exact-text Speech renderer
+- [x] Milestone 136: Talk to Me backend isolation
 
 ## Milestone 1
 ### Date
@@ -6192,3 +6193,132 @@ transcript cutoff.
 1. Deploy `main` and repeat the audible test with the same paragraph.
 2. If audio still stops, record the displayed completion message and final
    transcript; they now distinguish model truncation from downstream playback.
+
+## Milestone 135
+### Date
+2026-07-13
+
+### Goal
+Replace Talk to Me's conversational Realtime renderer with an output-only
+OpenAI Speech renderer so the persisted canonical speech plan is the actual
+synthesis input and short exact-text requests are not exposed to conversational
+response truncation.
+
+### What changed
+- Added `POST /demo/talktome/agents/{agentId}/speech`. The scoped application service
+  acknowledges the observation with `REALTIME_SPEECH`, extracts the unchanged
+  speech channel from the returned persisted `BehaviourPlan`, and only then
+  invokes the synthesis gateway.
+- Added an OpenAI Speech gateway for `/v1/audio/speech` with configurable
+  `prometheus.talktome.speech.model` and `prometheus.talktome.speech.url`.
+  Standard OpenAI requests use
+  `gpt-4o-mini-tts` and MP3; voice and speed are validated server-side against
+  the supported contract.
+- Return uncached audio from the scoped endpoint. Invalid requests/settings are
+  400, a policy result without speech is 409, and upstream synthesis failure is
+  502.
+- Removed Talk to Me's Connect/Disconnect, WebRTC peer connection, Realtime
+  data channel, response-status, and generated-transcript lifecycle. Other
+  Valerian and Realtime clients are unchanged.
+- The browser now uses Speak/Stop directly, buffers the returned audio blob,
+  routes it to the selected speaker, and reports completion only on the media
+  element's `ended` event. Stop aborts synthesis or stops playback.
+- Updated focused gateway, MVC, scoped persistence, static-resource, and
+  Playwright coverage plus OpenAI configuration and project documentation.
+
+### How to test
+- Focused Java tests:
+  - `.\mvnw.cmd -q "-Dtest=TalkToMeSpeechControllerWebMvcTest,TalkToMeScopedIntegrationTest,TalkToMeClientStaticResourceContractTest,OpenAISpeechSynthesisGatewayUnitTest" test`
+- Browser syntax:
+  - `node --check src/main/resources/public/talktome/script.js`
+  - `node --check tests/playwright/talktome.spec.mjs`
+- Browser/database smoke and visual checks:
+  - `npm.cmd run test:talktome:visual`
+
+### Verification
+- Focused Java tests passed, including exact outbound text/options at the local
+  OpenAI Speech boundary and exact event/behaviour persistence against the
+  configured test database.
+- The full Java regression suite passed: 246 tests, 0 failures/errors/skips.
+- JavaScript and Playwright syntax checks passed.
+- Talk to Me Playwright synthesis mapping, playback, media-ended completion,
+  Stop, persistence, speaker, responsive layout, and screenshot smoke passed,
+  1 test.
+
+### Known issues and decisions
+- The browser intentionally buffers the complete MP3 before playback. This
+  favors complete, simple playback for the 2,000-code-point client limit but
+  adds startup latency relative to streamed audio.
+- The automated gateway and browser tests use local/fake audio boundaries. They
+  do not prove audible output through deployment credentials and intended
+  speaker hardware.
+- The agent observation and canonical response are persisted before the
+  external synthesis call. An upstream failure therefore remains auditable, but
+  a manual retry creates another observation/response pair.
+- Standard OpenAI request mapping is tested. Azure deployment URL behavior is
+  configuration-compatible with the existing provider abstraction but was not
+  exercised live.
+
+### Next steps
+1. Deploy with `prometheus.talktome.speech.model=gpt-4o-mini-tts` and the Speech endpoint.
+2. Repeat the supplied-paragraph audible smoke on the target browser/speaker
+   and confirm playback reaches the media `ended` completion state.
+
+## Milestone 136
+### Date
+2026-07-13
+
+### Goal
+Make Talk to Me's output-only synthesis backend structurally independent from
+Valerian Cockpit and the shared scoped/Realtime application paths.
+
+### What changed
+- Moved synthesis HTTP handling from `ScopedDemoController` into the dedicated
+  `TalkToMeSpeechController` at
+  `POST /demo/talktome/agents/{agentId}/speech`. The shared controller constructor,
+  mappings, and MVC slices are restored to their pre-synthesis contract.
+- Added `ScopedTalkToMeSpeechService`, which requires the existing
+  `utility.talk_to_me` profile tag before acknowledgement, persistence, or an
+  external synthesis call. Other scoped agents receive 404 from this endpoint.
+- Restored `SpeechTurnSelector` to its Realtime-only implementation. Talk to Me
+  now extracts its exact persisted plan within its own application service.
+- Restored `OpenAIProperties` to the shared Chat/Realtime contract. Dedicated
+  `TalkToMeSpeechProperties` owns
+  `prometheus.talktome.speech.model` and
+  `prometheus.talktome.speech.url`; the synthesis gateway reuses only the
+  existing provider credentials/header behavior.
+- Split controller tests along the same boundary and added an application test
+  proving a non-Talk-to-Me agent cannot be acknowledged or synthesized through
+  the output-only path.
+
+### How to test
+- Focused Java isolation and speech tests:
+  - `.\mvnw.cmd -q "-Dtest=ScopedTalkToMeSpeechServiceUnitTest,TalkToMeSpeechControllerWebMvcTest,TalkToMeScopedIntegrationTest,TalkToMeClientStaticResourceContractTest,OpenAISpeechSynthesisGatewayUnitTest,ScopedDemoControllerWebMvcTest,PrometheusCorsConfigurationWebMvcTest" test`
+- Full Java regression suite:
+  - `.\mvnw.cmd -q test`
+- Browser syntax and regression checks:
+  - `node --check src/main/resources/public/talktome/script.js`
+  - `node --check tests/playwright/talktome.spec.mjs`
+  - `npm.cmd run test:talktome:visual`
+  - `npm.cmd run test:valerian:visual`
+
+### Verification
+- Focused isolation and speech tests passed: 17 tests across the seven listed
+  suites, with no failures, errors, or skips.
+- The full Java regression suite passed: 248 tests across 63 suites, with no
+  failures, errors, or skips.
+- JavaScript and Playwright syntax checks passed.
+- Talk to Me's Playwright persistence, synthesis mapping, playback, Stop,
+  speaker, lifecycle, responsive-layout, and screenshot smoke passed: 1 test.
+- The unchanged Valerian cockpit Playwright suite passed all detached-window,
+  camera/microphone ownership, column-expansion, face-emotion, and resilient
+  social-detector checks: 5 tests.
+
+### Known issues and decisions
+- The synthesis provider still uses the shared OpenAI provider selection and
+  credential/header helpers. Those are read-only dependencies; synthesis no
+  longer adds fields or payload behavior to `OpenAIProperties`.
+- A valid access code and visible agent remain shared scoped infrastructure by
+  design. Talk to Me adds its profile-tag restriction on top of that boundary.
+- Live OpenAI credentials and audible speaker hardware remain outside automated
+  regression coverage.

@@ -3,6 +3,10 @@ package ch.zhaw.prometheus.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,7 +26,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
@@ -37,6 +40,8 @@ import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -68,6 +73,9 @@ class TalkToMeScopedIntegrationTest {
     @MockitoBean
     private LanguageModelGateway languageModelGateway;
 
+    @MockitoBean
+    private SpeechSynthesisGateway speechSynthesisGateway;
+
     @BeforeEach
     void clearScopedTestData() {
         this.accessCodeAgents.deleteAll();
@@ -76,14 +84,17 @@ class TalkToMeScopedIntegrationTest {
     }
 
     @Test
-    void scopedLifecyclePersistsExactTextAndSpeechPlanWithoutLanguageModelGeneration() throws Exception {
+    void scopedSpeechPersistsExactPlanAndSynthesizesItsUnchangedText() throws Exception {
         this.allowTalkToMe(ACCESS_CODE);
         String text = "Gr\u00fcezi, \"Z\u00fcrich\"!\nPlease read line two \ud83c\udf0d";
         UUID agentId = this.createTalkToMeAgent(ACCESS_CODE);
+        when(this.speechSynthesisGateway.synthesize(anyString(), anyString(), anyDouble()))
+                .thenReturn(new SpeechAudio(new byte[] { 4, 5, 6 }, "audio/mpeg"));
 
-        MvcResult acknowledged = this.mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge")
+        this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, ACCESS_CODE)
-                .queryParam("profile", "realtime_speech")
+                .queryParam("voice", "marin")
+                .queryParam("speed", "1.25")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(Map.of(
                         "type", Event.TYPE_USER_UTTERANCE,
@@ -91,18 +102,16 @@ class TalkToMeScopedIntegrationTest {
                         "kind", Event.KIND_OBSERVATION,
                         "payload", text))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
-                .andReturn();
-
-        JsonNode response = this.objectMapper.readTree(acknowledged.getResponse().getContentAsString());
-        BehaviourPlan returnedPlan = BehaviourPlan.fromJson(response.path("responseEvent").path("payload").asText());
-        assertEquals(text, returnedPlan.getSpeech());
+                .andExpect(result -> assertEquals("audio/mpeg", result.getResponse().getContentType()))
+                .andExpect(result -> assertTrue(java.util.Arrays.equals(new byte[] { 4, 5, 6 },
+                        result.getResponse().getContentAsByteArray())));
 
         Agent persisted = this.agents.findById(agentId).orElseThrow();
         List<Event> history = persisted.getEventHistory().toList();
         assertEquals(2, history.size());
         assertEquals(text, history.get(0).getPayload());
         assertEquals(text, BehaviourPlan.fromJson(history.get(1).getPayload()).getSpeech());
+        verify(this.speechSynthesisGateway).synthesize(text, "marin", 1.25);
         verifyNoInteractions(this.languageModelGateway);
     }
 
@@ -135,24 +144,21 @@ class TalkToMeScopedIntegrationTest {
         UUID agentId = this.createTalkToMeAgent(ACCESS_CODE);
         String text = "x".repeat(TalkToMePolicy.MAX_TEXT_CODE_POINTS + 1);
 
-        MvcResult acknowledged = this.mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge")
+        this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, ACCESS_CODE)
-                .queryParam("profile", "realtime_speech")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(Map.of(
                         "type", Event.TYPE_USER_UTTERANCE,
                         "actor", Event.ACTOR_USER,
                         "kind", Event.KIND_OBSERVATION,
                         "payload", text))))
-                .andExpect(status().isOk())
-                .andReturn();
+                .andExpect(status().isConflict());
 
-        JsonNode response = this.objectMapper.readTree(acknowledged.getResponse().getContentAsString());
-        assertTrue(response.path("responseEvent").isNull() || response.path("responseEvent").isMissingNode());
         List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
         assertEquals(1, history.size());
         assertEquals(text, history.get(0).getPayload());
         verifyNoInteractions(this.languageModelGateway);
+        verifyNoInteractions(this.speechSynthesisGateway);
     }
 
     private AccessCodeView allowTalkToMe(String code) {
