@@ -121,11 +121,26 @@ deletes their own scoped speech instances. Connecting opens a receive-only
 OpenAI Realtime call; leaving or disconnecting closes the call without deleting
 the instance.
 
-Enter up to 2,000 Unicode characters and choose **Speak** to persist and speak
+Enter up to 2,000 Unicode code points and choose **Speak** to persist and speak
 that exact text without language-model rewriting. The client exposes the
-Realtime voices, output speed, browser speaker selection, and speaker refresh.
-It does not request microphone access. Voice and speed are fixed for an active
-call, so disconnect before changing them and reconnect afterward.
+Realtime voices, output speed, browser speaker selection, and speaker refresh;
+`alloy` is the fresh-user voice default while an explicitly saved choice is
+retained. The connection settings sit between the Create/Delete and
+Connect/Disconnect rows: choose voice and speed before connecting, after which
+they remain locked for that call. Speaker selection and refresh remain
+available while connected and apply immediately. The client does not request
+microphone access.
+
+The supplied “Love is patient…” sample is loaded into the speech field on every
+page load. The icon controls above the field restore that sample or clear the
+field; they become available with the textarea after connecting an instance.
+
+The transcript is finalized from Realtime's completion event rather than left
+at the last partial delta. If Realtime reports an incomplete, cancelled, or
+failed response—or completes with a transcript that differs from the submitted
+text—the client displays that outcome instead of claiming speech completed.
+The 2,000-code-point boundary is an application policy; it is not an estimate of
+Realtime output tokens.
 
 ### API Workbench
 
@@ -608,6 +623,9 @@ posts a user-utterance observation containing the textarea value; the
 deterministic `core.talk_to_me` policy copies that value into the persisted
 speech channel, and the backend sideband issues the corresponding Realtime
 response. The browser does not send `session.update` or `response.create`.
+Realtime response status and its final output transcript remain browser-visible
+so the public client can distinguish normal completion, interruption, output
+limits, filtering, and transport/model failures.
 
 Close calls with:
 

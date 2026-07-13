@@ -75,12 +75,50 @@ body {
   color: var(--demo-muted);
 }
 
-.header-actions,
-.button-grid {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.lifecycle-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lifecycle-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.lifecycle-row .btn {
+  flex: 1 1 0;
+}
+
+.connection-settings {
+  padding: 0.75rem;
+  border: 1px solid var(--demo-line);
+  border-radius: 6px;
+  background: rgba(12, 22, 24, 0.025);
+}
+
+.connection-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.speaker-setting {
+  grid-column: 1 / -1;
+}
+
+.connection-guidance {
+  min-height: 2.5rem;
+  color: var(--demo-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .talk-grid {
@@ -90,11 +128,26 @@ body {
   align-items: start;
 }
 
-.settings-grid {
-  display: grid;
-  grid-template-columns: minmax(130px, 0.7fr) minmax(130px, 0.7fr) minmax(240px, 1.6fr);
+.speech-text-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  align-items: end;
+  margin-bottom: 0.5rem;
+}
+
+.speech-text-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.speech-text-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
 }
 
 .speech-text {
@@ -164,6 +217,10 @@ body {
   background: rgba(29, 39, 40, 0.98);
 }
 
+[data-theme="dark"] .connection-settings {
+  background: rgba(235, 244, 242, 0.025);
+}
+
 [data-theme="dark"] .btn-outline-ink {
   border-color: rgba(235, 244, 242, 0.42);
   color: var(--ink);
@@ -175,8 +232,7 @@ body {
 }
 
 @media (max-width: 900px) {
-  .talk-grid,
-  .settings-grid {
+  .talk-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -187,12 +243,17 @@ body {
     flex-direction: column;
   }
 
-  .header-actions,
-  .button-grid {
+  .header-actions {
     width: 100%;
   }
+}
 
-  .button-grid .btn {
-    flex: 1 1 calc(50% - 0.5rem);
+@media (max-width: 360px) {
+  .connection-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .speaker-setting {
+    grid-column: auto;
   }
 }

@@ -84,20 +84,76 @@
               <select id="agent_select" class="form-select" data-testid="agent-select">
                 <option value="">No instances</option>
               </select>
-              <div class="button-grid mt-3">
-                <button id="create_agent" class="btn btn-outline-ink" type="button" data-testid="create-agent">
-                  <i class="bi bi-plus-lg me-2"></i>Create
-                </button>
-                <button id="connect_agent" class="btn btn-primary" type="button" data-testid="connect-agent">
-                  <i class="bi bi-link-45deg me-2"></i>Connect
-                </button>
-                <button id="disconnect_agent" class="btn btn-outline-ink" type="button" disabled
-                  data-testid="disconnect-agent">
-                  <i class="bi bi-link-45deg me-2"></i>Disconnect
-                </button>
-                <button id="delete_agent" class="btn btn-outline-danger" type="button" data-testid="delete-agent">
-                  <i class="bi bi-trash3 me-2"></i>Delete
-                </button>
+              <div class="lifecycle-actions mt-3">
+                <div class="lifecycle-row" data-testid="create-delete-row">
+                  <button id="create_agent" class="btn btn-outline-ink" type="button" data-testid="create-agent">
+                    <i class="bi bi-plus-lg me-2"></i>Create
+                  </button>
+                  <button id="delete_agent" class="btn btn-outline-danger" type="button" data-testid="delete-agent">
+                    <i class="bi bi-trash3 me-2"></i>Delete
+                  </button>
+                </div>
+                <div class="connection-settings" data-testid="connection-settings">
+                  <div class="metric-label mb-2">Connection settings</div>
+                  <div class="connection-settings-grid">
+                    <div>
+                      <label class="form-label metric-label" for="voice_select">Voice</label>
+                      <select id="voice_select" class="form-select" aria-describedby="connection_settings_guidance"
+                        data-testid="voice-select">
+                        <option value="alloy" selected>alloy</option>
+                        <option value="ash">ash</option>
+                        <option value="ballad">ballad</option>
+                        <option value="cedar">cedar</option>
+                        <option value="coral">coral</option>
+                        <option value="echo">echo</option>
+                        <option value="marin">marin</option>
+                        <option value="sage">sage</option>
+                        <option value="shimmer">shimmer</option>
+                        <option value="verse">verse</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="form-label metric-label" for="speed_select">Output speed</label>
+                      <select id="speed_select" class="form-select" aria-describedby="connection_settings_guidance"
+                        data-testid="speed-select">
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1.00x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.50x</option>
+                      </select>
+                    </div>
+                    <div class="speaker-setting">
+                      <label class="form-label metric-label" for="speaker_select">Speaker</label>
+                      <div class="input-group">
+                        <select id="speaker_select" class="form-select" aria-describedby="connection_settings_guidance speaker_status"
+                          data-testid="speaker-select">
+                          <option value="">System / browser default</option>
+                        </select>
+                        <button id="refresh_speakers" class="btn btn-outline-ink" type="button"
+                          title="Refresh speakers" aria-label="Refresh speakers" data-testid="refresh-speakers">
+                          <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="connection_settings_guidance" class="connection-guidance mt-2" role="status"
+                    data-testid="connection-guidance">
+                    Choose voice and output speed before connecting. Speaker can be changed at any time.
+                  </div>
+                  <div id="speaker_status" class="status-text mt-2" role="status" data-testid="speaker-status">
+                    Speaker output uses the browser default.
+                  </div>
+                </div>
+                <div class="lifecycle-row" data-testid="connect-disconnect-row">
+                  <button id="connect_agent" class="btn btn-primary" type="button"
+                    aria-describedby="connection_settings_guidance" data-testid="connect-agent">
+                    <i class="bi bi-link-45deg me-2"></i>Connect
+                  </button>
+                  <button id="disconnect_agent" class="btn btn-outline-ink" type="button" disabled
+                    data-testid="disconnect-agent">
+                    <i class="bi bi-link-45deg me-2"></i>Disconnect
+                  </button>
+                </div>
               </div>
               <div id="agent_detail" class="status-text mt-3" role="status" data-testid="agent-detail"></div>
             </div>
@@ -109,7 +165,21 @@
               <span id="realtime_status" class="status-pill is-idle" data-testid="realtime-status">Offline</span>
             </div>
             <div class="card-body">
-              <label class="form-label metric-label" for="speech_text">Text to speak</label>
+              <div class="speech-text-heading">
+                <label class="form-label metric-label mb-0" for="speech_text">Text to speak</label>
+                <div class="speech-text-actions" aria-label="Text actions">
+                  <button id="load_default_text" class="btn btn-sm btn-outline-ink" type="button" disabled
+                    title="Load default text" aria-label="Load default text" aria-controls="speech_text"
+                    data-testid="load-default-text">
+                    <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                  </button>
+                  <button id="clear_speech_text" class="btn btn-sm btn-outline-danger" type="button" disabled
+                    title="Clear text" aria-label="Clear text" aria-controls="speech_text"
+                    data-testid="clear-speech-text">
+                    <i class="bi bi-trash3" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
               <textarea id="speech_text" class="form-control speech-text" rows="8" maxlength="4000" disabled
                 placeholder="Connect an instance, then type what it should say." data-testid="speech-text"></textarea>
               <div class="d-flex justify-content-between mt-2">
@@ -117,48 +187,6 @@
                 <span id="character_count" class="text-muted small mono" data-testid="character-count">0 / 2000</span>
               </div>
 
-              <div class="settings-grid mt-4">
-                <div>
-                  <label class="form-label metric-label" for="voice_select">Voice</label>
-                  <select id="voice_select" class="form-select" data-testid="voice-select">
-                    <option value="alloy">alloy</option>
-                    <option value="ash">ash</option>
-                    <option value="ballad">ballad</option>
-                    <option value="cedar">cedar</option>
-                    <option value="coral">coral</option>
-                    <option value="echo">echo</option>
-                    <option value="marin" selected>marin</option>
-                    <option value="sage">sage</option>
-                    <option value="shimmer">shimmer</option>
-                    <option value="verse">verse</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="form-label metric-label" for="speed_select">Output speed</label>
-                  <select id="speed_select" class="form-select" data-testid="speed-select">
-                    <option value="0.75">0.75x</option>
-                    <option value="1" selected>1.00x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.50x</option>
-                  </select>
-                </div>
-                <div class="speaker-setting">
-                  <label class="form-label metric-label" for="speaker_select">Speaker</label>
-                  <div class="input-group">
-                    <select id="speaker_select" class="form-select" data-testid="speaker-select">
-                      <option value="">System / browser default</option>
-                    </select>
-                    <button id="refresh_speakers" class="btn btn-outline-ink" type="button"
-                      title="Refresh speakers" aria-label="Refresh speakers" data-testid="refresh-speakers">
-                      <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div id="speaker_status" class="status-text mt-2" role="status" data-testid="speaker-status">
-                Speaker output uses the browser default.
-              </div>
               <div class="d-flex gap-2 mt-4">
                 <button id="speak_text" class="btn btn-primary flex-grow-1" type="button" disabled
                   data-testid="speak-text">
