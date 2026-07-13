@@ -57,7 +57,7 @@
           <div>
             <div class="eyebrow">PROMETHEUS PUBLIC CLIENT</div>
             <h1>Talk to Me</h1>
-            <p class="page-subtitle mb-0">Turn exactly what you type into Realtime speech.</p>
+            <p class="page-subtitle mb-0">Turn exactly what you type into speech.</p>
           </div>
           <div class="header-actions">
             <span id="active_access_code" class="status-pill is-live" data-testid="active-access-code">Access -</span>
@@ -76,10 +76,10 @@
           <section class="demo-card card" aria-labelledby="instances_heading">
             <div class="card-header">
               <span id="instances_heading"><i class="bi bi-cpu me-2"></i>Speech Instance</span>
-              <span id="agent_status" class="status-pill is-idle" data-testid="agent-status">Not connected</span>
+              <span id="agent_status" class="status-pill is-idle" data-testid="agent-status">No instance</span>
             </div>
             <div class="card-body">
-              <p class="text-muted small">Create an instance, connect to use it, and delete it when it is no longer needed.</p>
+              <p class="text-muted small">Create an instance, select its speech settings, and delete it when it is no longer needed.</p>
               <label class="form-label metric-label" for="agent_select">Your Talk to Me instances</label>
               <select id="agent_select" class="form-select" data-testid="agent-select">
                 <option value="">No instances</option>
@@ -93,12 +93,12 @@
                     <i class="bi bi-trash3 me-2"></i>Delete
                   </button>
                 </div>
-                <div class="connection-settings" data-testid="connection-settings">
-                  <div class="metric-label mb-2">Connection settings</div>
-                  <div class="connection-settings-grid">
+                <div class="speech-settings" data-testid="speech-settings">
+                  <div class="metric-label mb-2">Speech settings</div>
+                  <div class="speech-settings-grid">
                     <div>
                       <label class="form-label metric-label" for="voice_select">Voice</label>
-                      <select id="voice_select" class="form-select" aria-describedby="connection_settings_guidance"
+                      <select id="voice_select" class="form-select" aria-describedby="speech_settings_guidance"
                         data-testid="voice-select">
                         <option value="alloy" selected>alloy</option>
                         <option value="ash">ash</option>
@@ -106,7 +106,10 @@
                         <option value="cedar">cedar</option>
                         <option value="coral">coral</option>
                         <option value="echo">echo</option>
+                        <option value="fable">fable</option>
                         <option value="marin">marin</option>
+                        <option value="nova">nova</option>
+                        <option value="onyx">onyx</option>
                         <option value="sage">sage</option>
                         <option value="shimmer">shimmer</option>
                         <option value="verse">verse</option>
@@ -114,7 +117,7 @@
                     </div>
                     <div>
                       <label class="form-label metric-label" for="speed_select">Output speed</label>
-                      <select id="speed_select" class="form-select" aria-describedby="connection_settings_guidance"
+                      <select id="speed_select" class="form-select" aria-describedby="speech_settings_guidance"
                         data-testid="speed-select">
                         <option value="0.75">0.75x</option>
                         <option value="1" selected>1.00x</option>
@@ -125,7 +128,7 @@
                     <div class="speaker-setting">
                       <label class="form-label metric-label" for="speaker_select">Speaker</label>
                       <div class="input-group">
-                        <select id="speaker_select" class="form-select" aria-describedby="connection_settings_guidance speaker_status"
+                        <select id="speaker_select" class="form-select" aria-describedby="speech_settings_guidance speaker_status"
                           data-testid="speaker-select">
                           <option value="">System / browser default</option>
                         </select>
@@ -136,23 +139,13 @@
                       </div>
                     </div>
                   </div>
-                  <div id="connection_settings_guidance" class="connection-guidance mt-2" role="status"
-                    data-testid="connection-guidance">
-                    Choose voice and output speed before connecting. Speaker can be changed at any time.
+                  <div id="speech_settings_guidance" class="speech-settings-guidance mt-2" role="status"
+                    data-testid="speech-settings-guidance">
+                    Voice and output speed apply to the next request. Speaker can be changed at any time.
                   </div>
                   <div id="speaker_status" class="status-text mt-2" role="status" data-testid="speaker-status">
                     Speaker output uses the browser default.
                   </div>
-                </div>
-                <div class="lifecycle-row" data-testid="connect-disconnect-row">
-                  <button id="connect_agent" class="btn btn-primary" type="button"
-                    aria-describedby="connection_settings_guidance" data-testid="connect-agent">
-                    <i class="bi bi-link-45deg me-2"></i>Connect
-                  </button>
-                  <button id="disconnect_agent" class="btn btn-outline-ink" type="button" disabled
-                    data-testid="disconnect-agent">
-                    <i class="bi bi-link-45deg me-2"></i>Disconnect
-                  </button>
                 </div>
               </div>
               <div id="agent_detail" class="status-text mt-3" role="status" data-testid="agent-detail"></div>
@@ -162,7 +155,7 @@
           <section class="demo-card card" aria-labelledby="speech_heading">
             <div class="card-header">
               <span id="speech_heading"><i class="bi bi-chat-square-text me-2"></i>Speech</span>
-              <span id="realtime_status" class="status-pill is-idle" data-testid="realtime-status">Offline</span>
+              <span id="speech_renderer_status" class="status-pill is-idle" data-testid="speech-renderer-status">No instance</span>
             </div>
             <div class="card-body">
               <div class="speech-text-heading">
@@ -181,7 +174,7 @@
                 </div>
               </div>
               <textarea id="speech_text" class="form-control speech-text" rows="8" maxlength="4000" disabled
-                placeholder="Connect an instance, then type what it should say." data-testid="speech-text"></textarea>
+                placeholder="Select an instance, then type what it should say." data-testid="speech-text"></textarea>
               <div class="d-flex justify-content-between mt-2">
                 <span class="text-muted small">The spoken words are not rewritten by PROMETHEUS.</span>
                 <span id="character_count" class="text-muted small mono" data-testid="character-count">0 / 2000</span>
@@ -199,7 +192,7 @@
               </div>
               <audio id="assistant_audio" class="w-100 mt-3" controls autoplay data-testid="assistant-audio"></audio>
               <div id="speech_status" class="status-text mt-2" role="status" data-testid="speech-status">
-                Connect an instance to begin.
+                Select or create an instance to begin.
               </div>
               <div id="spoken_transcript" class="transcript mt-3" hidden data-testid="spoken-transcript"></div>
             </div>

@@ -97,14 +97,14 @@ body {
   flex: 1 1 0;
 }
 
-.connection-settings {
+.speech-settings {
   padding: 0.75rem;
   border: 1px solid var(--demo-line);
   border-radius: 6px;
   background: rgba(12, 22, 24, 0.025);
 }
 
-.connection-settings-grid {
+.speech-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
@@ -114,7 +114,7 @@ body {
   grid-column: 1 / -1;
 }
 
-.connection-guidance {
+.speech-settings-guidance {
   min-height: 2.5rem;
   color: var(--demo-muted);
   font-size: 0.82rem;
@@ -217,7 +217,7 @@ body {
   background: rgba(29, 39, 40, 0.98);
 }
 
-[data-theme="dark"] .connection-settings {
+[data-theme="dark"] .speech-settings {
   background: rgba(235, 244, 242, 0.025);
 }
 
@@ -249,7 +249,7 @@ body {
 }
 
 @media (max-width: 360px) {
-  .connection-settings-grid {
+  .speech-settings-grid {
     grid-template-columns: 1fr;
   }
 

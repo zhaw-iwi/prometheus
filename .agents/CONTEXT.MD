@@ -84,7 +84,8 @@ PROMETHEUS currently provides:
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
-- scoped access-code APIs and trusted global APIs;
+- scoped access-code APIs and trusted global APIs, including exact-text Speech
+  synthesis;
 - behaviour and monitor SSE streams with heartbeat, replay, cursor, and
   disconnect resilience;
 - PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
@@ -179,8 +180,12 @@ logic under `src/main/resources/public/valerian` or `valerian-admin` and consume
 public backend contracts rather than importing client assumptions into the
 model. Talk to Me is a reduced public client under
 `src/main/resources/public/talktome`; it uses explicit access-code-scoped agent
-lifecycle and the backend-authoritative Realtime contract without microphone
-capture or browser-authored speech responses.
+lifecycle and backend-authoritative output-only OpenAI Speech synthesis without
+microphone capture or browser-authored speech responses. Its synthesis endpoint,
+application service, and configuration are Talk-to-Me-specific and reject agents
+without the `utility.talk_to_me` profile tag before acknowledgement. Valerian
+and the other speech-to-speech clients continue to use the unchanged shared
+scoped and Realtime contracts.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation

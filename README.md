@@ -114,33 +114,29 @@ This core agent demonstrates a hand-sign game loop.
 
 URL: `http://localhost:8080/public/talktome`
 
-Talk to Me is a reduced, public-facing Valerian-style speech client. An
-administrator first assigns `core.talk_to_me` to an access code. The user then
-enters that code and explicitly creates, selects, connects, disconnects, and
-deletes their own scoped speech instances. Connecting opens a receive-only
-OpenAI Realtime call; leaving or disconnecting closes the call without deleting
-the instance.
+Talk to Me is a reduced, public-facing Valerian-style output-only speech client.
+An administrator first assigns `core.talk_to_me` to an access code. The user
+then enters that code and explicitly creates, selects, and deletes their own
+scoped speech instances.
 
 Enter up to 2,000 Unicode code points and choose **Speak** to persist and speak
-that exact text without language-model rewriting. The client exposes the
-Realtime voices, output speed, browser speaker selection, and speaker refresh;
+that exact text without language-model rewriting. The client exposes the OpenAI
+Speech voices, output speed, browser speaker selection, and speaker refresh;
 `alloy` is the fresh-user voice default while an explicitly saved choice is
-retained. The connection settings sit between the Create/Delete and
-Connect/Disconnect rows: choose voice and speed before connecting, after which
-they remain locked for that call. Speaker selection and refresh remain
-available while connected and apply immediately. The client does not request
-microphone access.
+retained. Voice and speed are locked only while a synthesis/playback request is
+active. Speaker selection remains available and applies immediately. The client
+does not request microphone access.
 
-The supplied “Love is patient…” sample is loaded into the speech field on every
-page load. The icon controls above the field restore that sample or clear the
-field; they become available with the textarea after connecting an instance.
+The supplied sample is loaded into the speech field on every page load. The
+icon controls above the field restore that sample or clear the field; they
+become available with the textarea after selecting an instance.
 
-The transcript is finalized from Realtime's completion event rather than left
-at the last partial delta. If Realtime reports an incomplete, cancelled, or
-failed response—or completes with a transcript that differs from the submitted
-text—the client displays that outcome instead of claiming speech completed.
-The 2,000-code-point boundary is an application policy; it is not an estimate of
-Realtime output tokens.
+The browser sends one scoped speech request. PROMETHEUS first persists the
+canonical `BehaviourPlan`, then sends that plan's unchanged speech channel to
+OpenAI's output-only Speech API. The browser buffers the returned MP3 before
+playback and reports completion only when the audio element emits `ended`.
+**Stop** aborts an in-flight request or stops current playback. The
+2,000-code-point boundary remains an application policy.
 
 ### API Workbench
 
@@ -213,7 +209,8 @@ catalog so `main` can remain the reusable PROMETHEUS framework line.
 - MySQL.
 - Maven Wrapper from this repository.
 - Node.js only when running the Playwright visual smoke tests.
-- OpenAI or Azure OpenAI configuration for prompt generation and Realtime speech.
+- OpenAI or Azure OpenAI configuration for prompt generation, Realtime speech,
+  and output-only Speech synthesis.
 
 ## Local Setup
 
@@ -232,6 +229,8 @@ Minimum configuration:
 - `openai.openaivsazureopenai`
 - `openai.url`
 - `openai.key`
+- `prometheus.talktome.speech.model` and `prometheus.talktome.speech.url` when
+  overriding Talk to Me's output-only Speech defaults
 - `prometheus.admin.token` for Valerian Access Management
 
 Run the application:
@@ -334,10 +333,11 @@ running.
 
 The Talk to Me Playwright test uses the running Spring application and its
 configured test database for access-code assignment, scoped agent lifecycle,
-exact event/behaviour persistence, and deletion. It replaces only the external
-OpenAI/WebRTC and physical speaker boundary with deterministic browser fakes,
-then checks the light desktop and dark mobile layouts. It uses access code
-`TTM31` and the same admin-token environment override.
+exact event/behaviour persistence, synthesis request mapping, audio completion,
+Stop, and deletion. It replaces only the external OpenAI Speech and physical
+speaker boundary with deterministic browser fakes, then checks the light
+desktop and dark mobile layouts. It uses access code `TTM31` and the same
+admin-token environment override.
 
 The participate Playwright test resets `sira_participate_test` through
 `.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
@@ -639,6 +639,30 @@ Transcription-only clients can request a session with:
 POST /realtime/transcription/session?agentId={agentId}
 ```
 
+### Output-only Speech
+
+Talk to Me does not create a Realtime call. It sends the observation and speech
+options to a scoped backend endpoint:
+
+```http
+POST /demo/talktome/agents/{agentId}/speech?voice=cedar&speed=1.25
+X-Prometheus-Access-Code: TTM31
+Content-Type: application/json
+
+{"type":"obs.user_utterance","actor":"user","kind":"observation","payload":"Exact text"}
+```
+
+The dedicated endpoint first verifies that the scoped agent carries the
+`utility.talk_to_me` profile tag. PROMETHEUS then acknowledges the observation
+with the `REALTIME_SPEECH` output profile, persists the deterministic
+`core.talk_to_me` speech plan, and passes that canonical speech string to
+`prometheus.talktome.speech.url` using
+`prometheus.talktome.speech.model` (default: `gpt-4o-mini-tts`). The endpoint
+returns uncached MP3 audio. Unsupported voices or speeds outside `0.25` through
+`4.0` are rejected before synthesis. The shared scoped-agent controller,
+Realtime configuration, and Realtime speech selection remain independent of
+this output-only path.
+
 ## Admin API
 
 Admin endpoints require:
@@ -688,7 +712,7 @@ src/main/java/ch/zhaw/prometheus
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.
   multilateral/     Meeting/group listener and report displays.
-  talktome/         Public exact-text Realtime speech client.
+  talktome/         Public exact-text output-only Speech client.
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
