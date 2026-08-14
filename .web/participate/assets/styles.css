@@ -246,6 +246,10 @@ p {
   transform: none;
 }
 
+[data-signup-action]:disabled {
+  cursor: not-allowed;
+}
+
 .button.primary {
   border-color: rgba(255, 122, 0, 0.74);
   background: var(--accent);

@@ -272,16 +272,17 @@ the e-mail address exists. The public JSON response is filtered on the server:
 - Phase 4 sends no assignment fields, thanks the participant, and provides a
   reversible results-information choice with its last-change timestamp.
 
-When the overall phase leaves phase 1, both the visible signup action and the
-registration API close. Recovery remains available. Registrations without a
-complete phase-2 schedule remain in phase 1 regardless of the overall phase.
+When the overall phase leaves phase 1, the **Mitmachen** action remains visible
+but becomes disabled, and the registration API closes. Recovery remains
+available. Registrations without a complete phase-2 schedule remain in phase 1
+regardless of the overall phase.
 The participant endpoints are `api/registration.php` (current cookie session),
 `api/identify.php` (e-mail/date-of-birth recovery), and
 `api/results-interest.php` (phase-4 choice). The header session button shows a
-door-entry action for unidentified visitors and delegates to the same signup
-action as **Mitmachen**. For identified participants it changes to a door-exit
-action backed by `api/logout.php`, which forgets only the browser cookie and
-does not delete or cancel the database registration.
+door-entry action for unidentified visitors and delegates to **Bereits
+angemeldet?** in every overall phase. For identified participants it changes to
+a door-exit action backed by `api/logout.php`, which forgets only the browser
+cookie and does not delete or cancel the database registration.
 
 For an existing deployment, run the additive migration before importing the
 private Brainkick assignment seed:

@@ -58,7 +58,7 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 143, participate header session action.
+- Last completed milestone: Milestone 144, participate phase-aware signup and recovery actions.
 - The approved standalone participation phase-management scope is complete; no
   follow-up milestone is currently selected.
 - The regulation gap above is a major framework direction, but it should become
@@ -206,6 +206,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 141: Participate recovery, phase views, and results interest
 - [x] Milestone 142: Participate phase date label
 - [x] Milestone 143: Participate header session action
+- [x] Milestone 144: Participate phase-aware signup and recovery actions
 
 ## Milestone 1
 ### Date
@@ -6695,6 +6696,64 @@ when identified.
   registration, assignment, phase, and results-interest data in the database.
 - The anonymous entry icon does not bypass signup closure. Returning
   participants continue to use the recovery action when signup is closed.
+- No database migration is required.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.
+
+## Milestone 144
+### Date
+2026-08-14
+
+### Goal
+Keep returning-participant recovery consistently available from the header and
+make new-signup availability follow the overall experiment phase.
+
+### What changed
+- Changed the anonymous door-entry header action to open the existing
+  **Bereits angemeldet?** recovery dialog in every overall phase.
+- Kept **Mitmachen** enabled for anonymous visitors only while the overall phase
+  is phase 1.
+- Kept **Mitmachen** visible but disabled when the overall phase is 2, 3, or 4,
+  alongside the existing closed-signup explanation.
+- Preserved the identified-participant behavior: the hero action becomes **Zu
+  meinen Informationen**, while the header door-exit action logs out and forgets
+  the browser cookie.
+- Initialized **Mitmachen** as disabled in the static HTML until the current
+  server state is loaded, preventing a premature signup-dialog action.
+- Extended Playwright coverage for the Phase 1 enabled state, closed-phase
+  disabled state, and door-entry recovery behavior before signup, after logout,
+  and while signup is closed.
+- Updated README participant-action documentation.
+
+### How to test
+- `php -l .web/participate/index.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- All 5 participation Playwright tests passed.
+- The browser suite proved **Mitmachen** is enabled in phase 1, visible and
+  disabled after signup closes, and that the door-entry action opens recovery in
+  both states.
+- Desktop screenshots of the Phase 1, Phase 2, and Phase 2 recovery-dialog
+  states were inspected; the enabled/disabled distinction and recovery flow are
+  visually clear.
+- Existing mobile overflow, registration, logout, admin, phase, assignment, and
+  results-interest coverage remains green.
+
+### Known issues and decisions
+- Signup availability is derived from the existing `signupOpen` response field,
+  which is true only when the overall default phase is 1; no current-phase value
+  is hard-coded in the participant client.
+- A participant who is data-limited to effective phase 1 does not reopen global
+  signup when the overall phase is later than phase 1.
+- The server-side registration closure remains authoritative even if a client
+  bypasses the disabled button.
 - No database migration is required.
 
 ### Next steps

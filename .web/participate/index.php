@@ -44,8 +44,8 @@
             aria-label="In den dunklen Modus wechseln" aria-pressed="false" data-theme-toggle>
             <span class="theme-symbol" aria-hidden="true">◐</span>
           </button>
-          <button class="icon-button session-button" type="button" title="Teilnahme beginnen"
-            aria-label="Teilnahme beginnen" data-participant-session-action data-session-state="anonymous">
+          <button class="icon-button session-button" type="button" title="Anmeldung aufrufen"
+            aria-label="Anmeldung aufrufen" data-participant-session-action data-session-state="anonymous">
             <svg class="session-icon" data-session-entry-icon viewBox="0 0 24 24" aria-hidden="true">
               <path d="M10 17l5-5-5-5"></path>
               <path d="M15 12H3"></path>
@@ -77,7 +77,7 @@
             gemeinsames Verständnis zu entwickeln und dadurch die Zusammenarbeit zu verbessern.
           </p>
           <div class="hero-actions">
-            <button class="button primary" type="button" data-open-registration data-signup-action>
+            <button class="button primary" type="button" data-open-registration data-signup-action disabled>
               <span class="button-icon" aria-hidden="true" data-signup-icon>+</span>
               <span data-signup-label>Mitmachen</span>
             </button>

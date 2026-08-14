@@ -14,7 +14,7 @@ let pointer = { x: 0.66, y: 0.42 };
 let savedRegistration = null;
 let participantSession = {
   registered: false,
-  signupOpen: true
+  signupOpen: false
 };
 
 function currentTheme() {
@@ -233,7 +233,7 @@ function formatTimestamp(value) {
 function renderParticipantUi(session) {
   participantSession = {
     registered: false,
-    signupOpen: true,
+    signupOpen: false,
     ...session
   };
   savedRegistration = participantSession.registered ? participantSession.registration : null;
@@ -257,7 +257,8 @@ function renderParticipantUi(session) {
   const registered = participantSession.registered === true;
 
   if (signupButton) {
-    signupButton.hidden = !registered && participantSession.signupOpen === false;
+    signupButton.hidden = false;
+    signupButton.disabled = !registered && participantSession.signupOpen === false;
   }
   if (signupLabel) {
     signupLabel.textContent = registered ? "Zu meinen Informationen" : "Mitmachen";
@@ -274,7 +275,7 @@ function renderParticipantUi(session) {
   if (sessionButton) {
     const sessionLabel = registered
       ? "Abmelden und Anmeldung auf diesem Gerät vergessen"
-      : "Teilnahme beginnen";
+      : "Anmeldung aufrufen";
     sessionButton.dataset.sessionState = registered ? "registered" : "anonymous";
     sessionButton.title = sessionLabel;
     sessionButton.setAttribute("aria-label", sessionLabel);
@@ -340,7 +341,7 @@ async function refreshRegistrationUi() {
     const payload = await apiRequest("api/registration.php");
     renderParticipantUi(payload);
   } catch (error) {
-    renderParticipantUi({ registered: false, signupOpen: true });
+    renderParticipantUi({ registered: false, signupOpen: false });
   }
 }
 
@@ -607,13 +608,7 @@ function initParticipantSessionAction() {
       return;
     }
     if (participantSession.registered !== true) {
-      const primaryAction = document.querySelector("[data-open-registration]");
-      if (primaryAction && !primaryAction.hidden) {
-        primaryAction.click();
-      } else {
-        document.querySelector("[data-signup-status]")?.scrollIntoView({ behavior: "smooth" });
-        showAlert("Die Anmeldung für diese Studie ist geschlossen.");
-      }
+      document.querySelector("[data-open-recovery]")?.click();
       return;
     }
 

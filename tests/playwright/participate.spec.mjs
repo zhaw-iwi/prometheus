@@ -24,12 +24,13 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   await expect(page.locator("[data-session-entry-icon]")).toBeVisible();
   await expect(page.locator("[data-session-exit-icon]")).toBeHidden();
   await sessionButton.click();
-  await expect(page.locator("[data-registration-dialog]")).toBeVisible();
-  await page.locator("[data-registration-dialog]")
-    .getByRole("button", { name: "Dialog schliessen" })
-    .click();
+  await expect(page.locator("[data-recovery-dialog]")).toBeVisible();
+  await expect(page.locator("[data-registration-dialog]")).toBeHidden();
+  await page.locator("[data-recovery-dialog]").getByRole("button", { name: "Abbrechen" }).click();
 
-  await page.getByRole("button", { name: "Mitmachen" }).click();
+  const signupButton = page.getByRole("button", { name: "Mitmachen" });
+  await expect(signupButton).toBeEnabled();
+  await signupButton.click();
   await expect(page.locator("[data-registration-dialog]")).toBeVisible();
   await expect(page.locator(".wizard-progress .nav-link.active")).toContainText("Angaben");
 
@@ -96,7 +97,8 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   expect((await loggedOutSession.json()).registered).toBe(false);
 
   await sessionButton.click();
-  await expect(page.locator("[data-registration-dialog]")).toBeVisible();
+  await expect(page.locator("[data-recovery-dialog]")).toBeVisible();
+  await expect(page.locator("[data-registration-dialog]")).toBeHidden();
 });
 
 test("participant page remains usable on mobile", async ({ page }) => {
@@ -332,11 +334,15 @@ test("participants recover access across devices and receive only their active p
   await recoveryPage.getByRole("button", { name: "Bereits angemeldet?" }).click();
   await recoveryPage.getByLabel("E-Mail-Adresse", { exact: true }).last().fill("recovery.person@example.com");
   await recoveryPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-13");
-  await recoveryPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await recoveryPage.locator("[data-recovery-dialog]")
+    .getByRole("button", { name: "Anmeldung aufrufen" })
+    .click();
   await expect(recoveryPage.locator("[data-recovery-alert]")).toContainText("keiner aktiven Anmeldung");
 
   await recoveryPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-14");
-  await recoveryPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await recoveryPage.locator("[data-recovery-dialog]")
+    .getByRole("button", { name: "Anmeldung aufrufen" })
+    .click();
   await expect(recoveryPage.getByRole("heading", { name: "Dein Termin" })).toBeVisible();
   await expect(recoveryPage.locator('[data-assignment-field="participantId"]')).toContainText(String(registrationId));
   await expect(recoveryPage.locator('[data-assignment-field="halfDaySlot"]')).toContainText("Morgen");
@@ -410,13 +416,19 @@ test("participants recover access across devices and receive only their active p
   const closedPage = await closedContext.newPage();
   await closedPage.goto("/");
   await expect(closedPage.locator("[data-signup-status]")).toContainText("Anmeldung ist geschlossen");
-  await expect(closedPage.getByRole("button", { name: "Mitmachen" })).toBeHidden();
+  await expect(closedPage.getByRole("button", { name: "Mitmachen" })).toBeVisible();
+  await expect(closedPage.getByRole("button", { name: "Mitmachen" })).toBeDisabled();
   await expect(closedPage.getByRole("button", { name: "Bereits angemeldet?" })).toBeVisible();
 
-  await closedPage.getByRole("button", { name: "Bereits angemeldet?" }).click();
+  const closedSessionButton = closedPage.locator("[data-participant-session-action]");
+  await expect(closedSessionButton).toHaveAttribute("aria-label", "Anmeldung aufrufen");
+  await closedSessionButton.click();
+  await expect(closedPage.locator("[data-recovery-dialog]")).toBeVisible();
   await closedPage.getByLabel("E-Mail-Adresse", { exact: true }).last().fill("RECOVERY.PERSON@EXAMPLE.COM");
   await closedPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-14");
-  await closedPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await closedPage.locator("[data-recovery-dialog]")
+    .getByRole("button", { name: "Anmeldung aufrufen" })
+    .click();
   await expect(closedPage.getByRole("heading", { name: "Vielen Dank für Deine Teilnahme" })).toBeVisible();
 
   await page.goto("/admin/");
