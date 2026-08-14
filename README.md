@@ -277,7 +277,11 @@ registration API close. Recovery remains available. Registrations without a
 complete phase-2 schedule remain in phase 1 regardless of the overall phase.
 The participant endpoints are `api/registration.php` (current cookie session),
 `api/identify.php` (e-mail/date-of-birth recovery), and
-`api/results-interest.php` (phase-4 choice).
+`api/results-interest.php` (phase-4 choice). The header session button shows a
+door-entry action for unidentified visitors and delegates to the same signup
+action as **Mitmachen**. For identified participants it changes to a door-exit
+action backed by `api/logout.php`, which forgets only the browser cookie and
+does not delete or cancel the database registration.
 
 For an existing deployment, run the additive migration before importing the
 private Brainkick assignment seed:
@@ -354,6 +358,7 @@ php -l .web/participate/config/phases.php
 php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
 php -l .web/participate/api/identify.php
+php -l .web/participate/api/logout.php
 php -l .web/participate/api/results-interest.php
 php -l .web/participate/admin/delete.php
 php -l .web/participate/admin/index.php

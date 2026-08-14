@@ -58,7 +58,7 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 142, participate phase date label.
+- Last completed milestone: Milestone 143, participate header session action.
 - The approved standalone participation phase-management scope is complete; no
   follow-up milestone is currently selected.
 - The regulation gap above is a major framework direction, but it should become
@@ -205,6 +205,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 140: Participate admin phase and assignment management
 - [x] Milestone 141: Participate recovery, phase views, and results interest
 - [x] Milestone 142: Participate phase date label
+- [x] Milestone 143: Participate header session action
 
 ## Milestone 1
 ### Date
@@ -6638,6 +6639,63 @@ participant's phase-2 and phase-3 schedule information.
   parsing or reformatting it, as requested.
 - No database migration is required because the source column already exists
   and is non-null in `participation_registrations`.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.
+
+## Milestone 143
+### Date
+2026-08-14
+
+### Goal
+Give participants a persistent header action beside the theme switch for
+starting signup when anonymous and logging out/forgetting the browser session
+when identified.
+
+### What changed
+- Added an accessible header session button with inline door-entry and
+  door-exit SVG icons beside the dark-mode switch.
+- Anonymous users see the entry icon. It delegates to the existing hero
+  **Mitmachen** action while signup is open; if signup is closed, it surfaces
+  the existing closed-signup state instead.
+- Identified participants see the exit icon and can clear the participation
+  cookie on the current device without deleting or cancelling their database
+  registration.
+- Added the idempotent `api/logout.php` endpoint and the shared secure cookie
+  clearing helper.
+- Kept cross-device recovery available after logout through **Bereits
+  angemeldet?**.
+- Extended Playwright coverage for anonymous/identified icon states, entry
+  action delegation, logout feedback, cookie removal, participant-view hiding,
+  and reusing the entry action after logout.
+- Updated README endpoint and logout-semantics documentation.
+
+### How to test
+- `php -l .web/participate/index.php`
+- `php -l .web/participate/config/bootstrap.php`
+- `php -l .web/participate/api/logout.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- All 5 participation Playwright tests passed, including the complete
+  entry-register-exit-logout-entry lifecycle and server confirmation that the
+  cookie no longer identifies a participant after logout.
+- Desktop header screenshots for anonymous and identified states were
+  inspected; both icons are clear, aligned, and visually consistent with the
+  adjacent theme control.
+- Mobile overflow coverage remains green.
+
+### Known issues and decisions
+- Logout means “forget this browser”: it intentionally preserves the
+  registration, assignment, phase, and results-interest data in the database.
+- The anonymous entry icon does not bypass signup closure. Returning
+  participants continue to use the recovery action when signup is closed.
+- No database migration is required.
 
 ### Next steps
 1. Deploy the updated `.web/participate/` application files; no SQL step is

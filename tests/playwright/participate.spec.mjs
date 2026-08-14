@@ -19,6 +19,16 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
     name: "Gestalte die Zukunft der Zusammenarbeit zwischen Menschen und KI",
   })).toBeVisible();
 
+  const sessionButton = page.locator("[data-participant-session-action]");
+  await expect(sessionButton).toHaveAttribute("data-session-state", "anonymous");
+  await expect(page.locator("[data-session-entry-icon]")).toBeVisible();
+  await expect(page.locator("[data-session-exit-icon]")).toBeHidden();
+  await sessionButton.click();
+  await expect(page.locator("[data-registration-dialog]")).toBeVisible();
+  await page.locator("[data-registration-dialog]")
+    .getByRole("button", { name: "Dialog schliessen" })
+    .click();
+
   await page.getByRole("button", { name: "Mitmachen" }).click();
   await expect(page.locator("[data-registration-dialog]")).toBeVisible();
   await expect(page.locator(".wizard-progress .nav-link.active")).toContainText("Angaben");
@@ -50,6 +60,9 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   await expect(page.locator("#status_alert")).toContainText("Deine Anmeldung ist eingegangen");
   await expect(page.locator("[data-local-summary-section]")).toBeVisible();
   await expect(page.locator("[data-local-summary]")).toContainText("Max Muster");
+  await expect(sessionButton).toHaveAttribute("data-session-state", "registered");
+  await expect(page.locator("[data-session-entry-icon]")).toBeHidden();
+  await expect(page.locator("[data-session-exit-icon]")).toBeVisible();
 
   await expect.poll(() => mailFiles().length).toBeGreaterThan(0);
   const firstMail = readFileSync(resolve(mailDir, mailFiles()[0]), "utf8");
@@ -72,6 +85,18 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   expect(duplicate.status()).toBe(409);
   const duplicateBody = await duplicate.json();
   expect(duplicateBody.message).toContain("alexandre.despindler@zhaw.ch");
+
+  await sessionButton.click();
+  await expect(page.locator("#status_alert")).toContainText("wurdest abgemeldet");
+  await expect(page.locator("[data-local-summary-section]")).toBeHidden();
+  await expect(sessionButton).toHaveAttribute("data-session-state", "anonymous");
+  await expect(page.locator("[data-session-entry-icon]")).toBeVisible();
+  await expect(page.locator("[data-session-exit-icon]")).toBeHidden();
+  const loggedOutSession = await page.request.get("/api/registration.php");
+  expect((await loggedOutSession.json()).registered).toBe(false);
+
+  await sessionButton.click();
+  await expect(page.locator("[data-registration-dialog]")).toBeVisible();
 });
 
 test("participant page remains usable on mobile", async ({ page }) => {

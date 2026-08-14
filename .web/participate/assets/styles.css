@@ -131,6 +131,13 @@ p {
   min-height: 4.25rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
 .brand-lockup {
   display: inline-flex;
   align-items: center;
@@ -198,6 +205,16 @@ p {
   display: inline-grid;
   place-items: center;
   padding: 0;
+}
+
+.session-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .footer-button {

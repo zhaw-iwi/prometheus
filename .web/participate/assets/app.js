@@ -251,6 +251,9 @@ function renderParticipantUi(session) {
   const signupLabel = document.querySelector("[data-signup-label]");
   const signupIcon = document.querySelector("[data-signup-icon]");
   const signupStatus = document.querySelector("[data-signup-status]");
+  const sessionButton = document.querySelector("[data-participant-session-action]");
+  const sessionEntryIcon = document.querySelector("[data-session-entry-icon]");
+  const sessionExitIcon = document.querySelector("[data-session-exit-icon]");
   const registered = participantSession.registered === true;
 
   if (signupButton) {
@@ -267,6 +270,20 @@ function renderParticipantUi(session) {
   });
   if (signupStatus) {
     signupStatus.hidden = registered || participantSession.signupOpen !== false;
+  }
+  if (sessionButton) {
+    const sessionLabel = registered
+      ? "Abmelden und Anmeldung auf diesem Gerät vergessen"
+      : "Teilnahme beginnen";
+    sessionButton.dataset.sessionState = registered ? "registered" : "anonymous";
+    sessionButton.title = sessionLabel;
+    sessionButton.setAttribute("aria-label", sessionLabel);
+  }
+  if (sessionEntryIcon) {
+    sessionEntryIcon.toggleAttribute("hidden", registered);
+  }
+  if (sessionExitIcon) {
+    sessionExitIcon.toggleAttribute("hidden", !registered);
   }
 
   if (!section || !target) {
@@ -578,6 +595,43 @@ function initResultsInterest() {
   });
 }
 
+function initParticipantSessionAction() {
+  const button = document.querySelector("[data-participant-session-action]");
+  if (!button) {
+    return;
+  }
+  let submitting = false;
+
+  button.addEventListener("click", async () => {
+    if (submitting) {
+      return;
+    }
+    if (participantSession.registered !== true) {
+      const primaryAction = document.querySelector("[data-open-registration]");
+      if (primaryAction && !primaryAction.hidden) {
+        primaryAction.click();
+      } else {
+        document.querySelector("[data-signup-status]")?.scrollIntoView({ behavior: "smooth" });
+        showAlert("Die Anmeldung für diese Studie ist geschlossen.");
+      }
+      return;
+    }
+
+    submitting = true;
+    button.disabled = true;
+    try {
+      const payload = await apiRequest("api/logout.php", { method: "POST" });
+      renderParticipantUi(payload);
+      showAlert("Du wurdest abgemeldet. Die Anmeldung wurde auf diesem Gerät vergessen.");
+    } catch (error) {
+      showAlert(error.message);
+    } finally {
+      submitting = false;
+      button.disabled = false;
+    }
+  });
+}
+
 function initPrivacyDialog() {
   const dialog = document.querySelector("[data-privacy-dialog]");
   document.querySelectorAll("[data-open-privacy]").forEach((button) => {
@@ -752,6 +806,7 @@ updateThemeToggle(currentTheme());
 initWizard();
 initRecovery();
 initResultsInterest();
+initParticipantSessionAction();
 initPrivacyDialog();
 refreshRegistrationUi();
 resizeCanvas();

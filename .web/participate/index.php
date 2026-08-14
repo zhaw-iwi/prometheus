@@ -39,10 +39,25 @@
             <span class="brand-subtitle">Studie zur Mensch-KI-Zusammenarbeit</span>
           </span>
         </a>
-        <button class="icon-button" type="button" title="In den dunklen Modus wechseln"
-          aria-label="In den dunklen Modus wechseln" aria-pressed="false" data-theme-toggle>
-          <span class="theme-symbol" aria-hidden="true">◐</span>
-        </button>
+        <div class="header-actions">
+          <button class="icon-button" type="button" title="In den dunklen Modus wechseln"
+            aria-label="In den dunklen Modus wechseln" aria-pressed="false" data-theme-toggle>
+            <span class="theme-symbol" aria-hidden="true">◐</span>
+          </button>
+          <button class="icon-button session-button" type="button" title="Teilnahme beginnen"
+            aria-label="Teilnahme beginnen" data-participant-session-action data-session-state="anonymous">
+            <svg class="session-icon" data-session-entry-icon viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17l5-5-5-5"></path>
+              <path d="M15 12H3"></path>
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            </svg>
+            <svg class="session-icon" data-session-exit-icon viewBox="0 0 24 24" aria-hidden="true" hidden>
+              <path d="M14 8l4 4-4 4"></path>
+              <path d="M18 12H9"></path>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 

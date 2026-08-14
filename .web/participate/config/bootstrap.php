@@ -286,6 +286,19 @@ function participate_set_registration_cookie(string $token): void
     ]);
 }
 
+function participate_clear_registration_cookie(): void
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    setcookie(PARTICIPATE_COOKIE_NAME, '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    unset($_COOKIE[PARTICIPATE_COOKIE_NAME]);
+}
+
 function participate_get_registration_token(): ?string
 {
     $token = $_COOKIE[PARTICIPATE_COOKIE_NAME] ?? null;
