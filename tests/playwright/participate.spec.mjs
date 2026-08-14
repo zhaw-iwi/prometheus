@@ -141,7 +141,7 @@ test("admin view searches, sorts, and exports all rows", async ({ page }) => {
   await page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Admin Zwei löschen" }).click();
   await expect(page.locator("[data-table-body]")).not.toContainText("admin.two@example.com");
-  await expect(page.locator('[data-metric="unavailable"]')).toHaveText("0");
+  await expect(page.locator('[data-metric="phase-1"]')).toHaveText("2");
 
   await page.goto("/");
   await page.getByRole("button", { name: "Mitmachen" }).click();
@@ -151,4 +151,112 @@ test("admin view searches, sorts, and exports all rows", async ({ page }) => {
     data: registrations[1],
   });
   expect(resubscribe.status()).toBe(201);
+});
+
+test("admin controls overall and participant phases and edits assignments", async ({ page }) => {
+  const registrations = [
+    {
+      fullName: "Phase Eins",
+      dateOfBirth: "1985-03-11",
+      email: "phase.one@example.com",
+      slotPreference: "2026-08-17-morning",
+    },
+    {
+      fullName: "Phase Zwei",
+      dateOfBirth: "1987-04-12",
+      email: "phase.two@example.com",
+      slotPreference: "2026-08-17-afternoon",
+    },
+  ];
+  for (const registration of registrations) {
+    const response = await page.request.post("/api/register.php", { data: registration });
+    expect(response.status()).toBe(201);
+  }
+
+  await page.goto("/admin/");
+  await expect(page.getByRole("heading", { name: "Gesamtphase steuern" })).toBeVisible();
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await page.getByRole("button", { name: "Phase Eins bearbeiten" }).click();
+  await expect(page.locator("[data-participant-dialog]")).toBeVisible();
+  await page.getByLabel("Individuelle Phase").selectOption("3");
+  await page.getByLabel("Halbtag").fill("Morgen");
+  await page.getByLabel("Zeitfenster").fill("09:45 - 11:00 Uhr");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 2 · Termin (angefordert: Phase 3)");
+  await expect(page.locator("[data-table-body]")).toContainText("Zugangscode, Rolle, Team-ID, Raum");
+
+  await page.getByRole("button", { name: "Phase Eins bearbeiten" }).click();
+  await page.getByLabel("Zugangscode").fill("PHASE-ONE-CODE");
+  await page.getByLabel("Rolle").fill("A");
+  await page.getByLabel("Team-ID").fill("15");
+  await page.getByLabel("Raum").fill("B");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 3 · Zuteilung");
+  await expect(page.locator("[data-table-body]")).toContainText("PHASE-ONE-CODE");
+
+  const phaseTwoId = await page.locator("#registration_data").evaluate((element) => {
+    const entries = JSON.parse(element.textContent || "[]");
+    return entries.find((entry) => entry.email === "phase.two@example.com")?.id;
+  });
+  const duplicateCode = await page.request.post("/admin/update.php", {
+    data: {
+      action: "save_participant",
+      id: phaseTwoId,
+      accessCode: "PHASE-ONE-CODE",
+      role: "B",
+      teamId: "15",
+      halfDaySlot: "Nachmittag",
+      timeSlot: "13:00 - 14:15 Uhr",
+      room: "B",
+    },
+  });
+  expect(duplicateCode.status()).toBe(409);
+  expect((await duplicateCode.json()).code).toBe("duplicate_access_code");
+
+  await page.getByLabel("Suche").fill("");
+  await page.getByLabel("Gesamtphase").selectOption("4");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Gesamtphase speichern" }).click();
+  await expect(page.getByLabel("Gesamtphase")).toHaveValue("4");
+
+  const closedSignup = await page.request.post("/api/register.php", {
+    data: {
+      fullName: "Zu spät",
+      dateOfBirth: "1993-05-13",
+      email: "signup.closed@example.com",
+      slotPreference: "2026-08-17-morning",
+    },
+  });
+  expect(closedSignup.status()).toBe(409);
+  expect((await closedSignup.json()).code).toBe("signup_closed");
+
+  await page.getByLabel("Suche").fill("phase.two@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 1 · Anmeldung (angefordert: Phase 4)");
+
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await page.getByRole("button", { name: "Phase Eins bearbeiten" }).click();
+  await page.getByLabel("Individuelle Phase").selectOption("");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 4 · Abschluss");
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "CSV exportieren" }).click(),
+  ]);
+  const csv = readFileSync(await download.path(), "utf8");
+  expect(csv).toContain("Zugangscode");
+  expect(csv).toContain("Ergebnisinfo geändert");
+  expect(csv).toContain("PHASE-ONE-CODE");
+
+  await page.getByRole("button", { name: "Phase Eins bearbeiten" }).click();
+  await page.getByLabel("Zeitfenster").fill("");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+  await page.getByLabel("Suche").fill("phase.one@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 1 · Anmeldung (angefordert: Phase 4)");
+  await expect(page.locator("[data-table-body]")).toContainText("Zeitfenster");
 });

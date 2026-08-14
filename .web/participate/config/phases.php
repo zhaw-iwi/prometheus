@@ -16,6 +16,23 @@ function participate_phase_labels(): array
     ];
 }
 
+function participate_phase_label(int $phase): string
+{
+    return participate_phase_labels()[$phase] ?? participate_phase_labels()[PARTICIPATE_PHASE_SIGNUP];
+}
+
+function participate_assignment_field_labels(): array
+{
+    return [
+        'access_code' => 'Zugangscode',
+        'participant_role' => 'Rolle',
+        'team_id' => 'Team-ID',
+        'half_day_slot' => 'Halbtag',
+        'time_slot' => 'Zeitfenster',
+        'room' => 'Raum',
+    ];
+}
+
 function participate_phase_from_value(mixed $value): ?int
 {
     if (is_int($value)) {
@@ -29,6 +46,14 @@ function participate_phase_from_value(mixed $value): ?int
     return $phase >= PARTICIPATE_PHASE_SIGNUP && $phase <= PARTICIPATE_PHASE_COMPLETE
         ? $phase
         : null;
+}
+
+function participate_default_phase(PDO $pdo): int
+{
+    $statement = $pdo->query(
+        'SELECT default_phase FROM participation_phase_settings WHERE id = 1 LIMIT 1'
+    );
+    return participate_phase_from_value($statement->fetchColumn()) ?? PARTICIPATE_PHASE_SIGNUP;
 }
 
 function participate_nullable_text(mixed $value): ?string

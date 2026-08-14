@@ -285,10 +285,16 @@ The participation admin view is available at `/admin/` below that deployment
 root, for example `https://participate.siralab.ch/admin/`. It intentionally has
 no built-in authentication; protect or obscure the deployed folder name at the
 hosting level if needed. The table supports client-side search, sortable
-columns, deletion of registrations, and CSV export of the full loaded
-registration set. Deleting a registration removes its e-mail reservation and
-server-token summary, so the participant can register again from the same
-browser.
+columns, an overall phase selector, nullable per-participant phase overrides,
+fixed experiment-assignment editing, deletion of registrations, and CSV export
+of the full loaded registration set including effective phase, assignments,
+and results-interest state. Missing schedule/access data limits effective
+phases even when a higher overall phase or override is requested. Empty
+assignment editor values are stored as SQL `NULL`. Changing the overall phase
+from phase 1 closes `api/register.php`; individual overrides do not reopen
+signup. Deleting a registration removes its e-mail reservation, assignment,
+participant state, and server-token summary, so the participant can register
+again from the same browser while signup is open.
 
 For local backend testing, use the provided `.env.test` and reset the local
 MySQL test database:
@@ -329,6 +335,7 @@ php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
 php -l .web/participate/admin/delete.php
 php -l .web/participate/admin/index.php
+php -l .web/participate/admin/update.php
 php -l .web/participate/tests/setup_test_db.php
 php -l .web/participate/tests/phase_rules_test.php
 php -l .web/participate/tests/brainkick_seed_generator_test.php
@@ -371,7 +378,9 @@ registration wizard, validation, privacy modal, MySQL-backed registration,
 logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
 mobile layout, and the `/admin/` registration table with search, sorting, and
 CSV export. It also verifies admin deletion and same-browser re-registration
-after deletion.
+after deletion, overall and participant-specific phase management, assignment
+editing and null clearing, readiness limits, duplicate access-code rejection,
+and server-side signup closure outside phase 1.
 
 ## Connecting External Clients
 

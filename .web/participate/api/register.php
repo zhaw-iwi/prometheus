@@ -35,6 +35,14 @@ if ($slotPreference === '') {
 }
 
 $pdo = participate_pdo();
+$defaultPhase = participate_default_phase($pdo);
+if ($defaultPhase !== PARTICIPATE_PHASE_SIGNUP) {
+    participate_json([
+        'ok' => false,
+        'code' => 'signup_closed',
+        'message' => 'Die Anmeldung für diese Studie ist geschlossen.',
+    ], 409);
+}
 $emailNormalized = participate_normalize_email($email);
 
 try {

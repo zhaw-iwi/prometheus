@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 139, participate phase and assignment foundation.
-- Milestone 140 is selected next: participate admin phase and assignment management.
+- Last completed milestone: Milestone 140, participate admin phase and assignment management.
+- Milestone 141 is selected next: participant recovery, phase views, and results interest.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -201,6 +201,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 135: Talk to Me exact-text Speech renderer
 - [x] Milestone 136: Talk to Me backend isolation
 - [x] Milestone 139: Participate phase and assignment foundation
+- [x] Milestone 140: Participate admin phase and assignment management
 
 ## Milestone 1
 ### Date
@@ -6412,3 +6413,88 @@ before adding its administrative and participant-facing phase workflows.
 ### Next steps
 1. Milestone 140: add overall/per-participant phase controls, assignment
    editing, readiness diagnostics, and export fields to the admin site.
+
+## Milestone 140
+### Date
+2026-08-14
+
+### Goal
+Give participation administrators direct control over the overall/default
+phase, per-participant overrides, and the experiment's fixed assignment values
+while making incomplete-data phase limits explicit and testable.
+
+### What changed
+- Added an overall phase control to the participation admin page with a
+  confirmation step and an explicit signup-closure warning.
+- Added server-side signup closure in `api/register.php` whenever the overall
+  phase is not phase 1, including the stable `signup_closed` error code.
+- Added phase summary metrics and effective/requested phase diagnostics to the
+  registration table.
+- Added one modal editor per registration for:
+  - nullable individual phase override;
+  - half-day and time slot;
+  - access code, role, team ID, and room.
+- Empty assignment editor values are normalized to SQL `NULL`. Effective phase
+  is recalculated from the requested phase and data readiness, so incomplete
+  participants remain at the highest safe visible phase.
+- Added `admin/update.php` for validated overall-phase and participant updates,
+  including registration existence checks, field-length boundaries,
+  transactions, and duplicate access-code rejection.
+- Preserved individual overrides when the overall phase changes; choosing
+  `Standardphase übernehmen` stores a nullable override.
+- Extended admin search, sorting, metrics, and full-dataset CSV export with
+  effective phase, missing assignment data, all assignment fields, and the
+  results-interest value/timestamp prepared in milestone 139.
+- Preserved relative admin endpoint paths so the deployed admin directory can
+  continue to use its UUID-suffixed name.
+- Updated the admin layout for five phase metrics, the phase control, wide data
+  table, and responsive assignment modal.
+- Expanded the participation Playwright suite with overall/override phase
+  changes, incomplete-to-complete assignment progression, duplicate access-code
+  rejection, signup closure, CSV fields, and clearing a time slot back to NULL.
+- Updated README behavior, deployment, test, and admin documentation.
+
+### How to run
+- Prepare the test database and start the standalone PHP site as documented in
+  README.
+- Open `/admin/` (or the deployment's UUID-suffixed admin directory).
+- Use `Gesamtphase speichern` for the default phase.
+- Use `Bearbeiten` on a participant row for an override or fixed assignment
+  values.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP syntax checks passed for all participation PHP files.
+- JavaScript syntax checks passed for the admin client and Playwright suite.
+- Clean-schema setup, phase rules, seed generation, and the MariaDB
+  migration/private-seed smoke tests passed.
+- The participation Playwright suite passed all 4 participant/admin tests.
+- Headless Chromium screenshots of the 1440x1000 admin overview and assignment
+  modal were inspected; controls, metrics, table, backdrop, fields, and actions
+  were readable without overlap.
+- Whitespace checks passed.
+
+### Known issues and decisions
+- The participant page still uses the phase-1 presentation in this milestone;
+  higher-phase participant rendering and recovery belong to milestone 141.
+- The public signup button remains present until milestone 141, but direct
+  submissions are already rejected server-side outside phase 1.
+- Admin authentication remains intentionally external through the deployment's
+  hard-to-guess UUID-suffixed directory.
+- The in-app browser connection was unavailable in this environment; the
+  project-owned Playwright/Chromium suite and inspected screenshot artifacts
+  provided browser coverage instead.
+
+### Next steps
+1. Milestone 141: add email/date-of-birth recovery, phase-specific participant
+   data, closed-signup presentation, and reversible results-interest handling.
