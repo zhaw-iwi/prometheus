@@ -259,6 +259,25 @@ complete schedule data without complete access/role/team/room data permits only
 phase 2; complete assignment data permits phases 1 through 4. Phase 4 replaces
 the assignment display rather than extending it.
 
+Participants can return from any browser through **Bereits angemeldet?** using
+the e-mail address and date of birth from their active registration. A
+successful recovery reuses the registration's long-lived public token on that
+device; a failed match returns one generic error and does not disclose whether
+the e-mail address exists. The public JSON response is filtered on the server:
+
+- Phase 1 shows the saved signup summary.
+- Phase 2 sends and shows only participant ID, half-day, and time slot.
+- Phase 3 additionally sends and shows access code, role, team ID, and room.
+- Phase 4 sends no assignment fields, thanks the participant, and provides a
+  reversible results-information choice with its last-change timestamp.
+
+When the overall phase leaves phase 1, both the visible signup action and the
+registration API close. Recovery remains available. Registrations without a
+complete phase-2 schedule remain in phase 1 regardless of the overall phase.
+The participant endpoints are `api/registration.php` (current cookie session),
+`api/identify.php` (e-mail/date-of-birth recovery), and
+`api/results-interest.php` (phase-4 choice).
+
 For an existing deployment, run the additive migration before importing the
 private Brainkick assignment seed:
 
@@ -333,6 +352,8 @@ php -l .web/participate/config/bootstrap.php
 php -l .web/participate/config/phases.php
 php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
+php -l .web/participate/api/identify.php
+php -l .web/participate/api/results-interest.php
 php -l .web/participate/admin/delete.php
 php -l .web/participate/admin/index.php
 php -l .web/participate/admin/update.php
@@ -380,7 +401,11 @@ mobile layout, and the `/admin/` registration table with search, sorting, and
 CSV export. It also verifies admin deletion and same-browser re-registration
 after deletion, overall and participant-specific phase management, assignment
 editing and null clearing, readiness limits, duplicate access-code rejection,
-and server-side signup closure outside phase 1.
+and server-side signup closure outside phase 1. It also opens a clean browser
+context to verify e-mail/date-of-birth recovery, phase-2 response filtering,
+the full phase-3 display, phase-4 replacement, reversible persisted
+results-interest, closed-signup recovery, and the exported/admin-visible
+interest value.
 
 ## Connecting External Clients
 
@@ -745,8 +770,8 @@ src/main/resources/public
   index.html        Standalone German/English SIRA/PROMETHEUS public page.
   participate/      Standalone German study participation site.
     admin/          Unprotected registration overview with search, sort, and CSV export.
-    api/            PHP JSON endpoints for registration and returning-summary lookup.
-    assets/         Plain CSS and JavaScript for the landing page and wizard.
+    api/            PHP JSON endpoints for signup, recovery, phases, and results interest.
+    assets/         Plain CSS and JavaScript for signup and participant phase views.
     config/         Local environment, PDO, cookie, mail, and phase-rule helpers.
     database/       Canonical schema/seed, additive migrations, and Brainkick seed tooling.
     tests/          Phase rules, seed generation, migration, and local MySQL smoke tests.

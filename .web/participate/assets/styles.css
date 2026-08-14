@@ -47,6 +47,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -344,6 +348,15 @@ h1 {
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 0.3rem;
+}
+
+.signup-status {
+  width: min(100%, 48rem);
+  margin: 0.85rem 0 0;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--surface-strong) 86%, transparent);
+  padding: 0.65rem 0.8rem;
+  color: var(--muted);
 }
 
 .content-band {
@@ -773,6 +786,7 @@ input:focus-visible,
 }
 
 .summary-item {
+  position: relative;
   display: grid;
   gap: 0.18rem;
   border: 1px solid var(--line);
@@ -789,6 +803,68 @@ input:focus-visible,
 .summary-note {
   margin-top: 0.85rem;
   margin-bottom: 0;
+}
+
+.copy-button {
+  width: max-content;
+  min-height: 1.8rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+}
+
+.copy-button:hover,
+.copy-button:focus-visible {
+  border-color: rgba(0, 176, 162, 0.5);
+  background: rgba(0, 176, 162, 0.1);
+}
+
+.results-interest {
+  display: grid;
+  gap: 1rem;
+}
+
+.interest-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-strong) 88%, rgba(0, 176, 162, 0.1));
+  padding: 1rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.interest-choice input {
+  width: 1.2rem;
+  min-height: 1.2rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--accent-2);
+}
+
+.interest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.interest-status {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.recovery-modal {
+  max-width: 36rem;
 }
 
 .privacy-copy {

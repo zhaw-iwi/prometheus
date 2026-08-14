@@ -27,8 +27,8 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   await expect(page.locator("[data-validation-alert]")).toContainText("vollständigen Namen");
 
   await page.getByLabel("Vollständiger Name").fill("Max Muster");
-  await page.getByLabel("Geburtsdatum").fill("1990-05-12");
-  await page.getByLabel("E-Mail-Adresse").fill("max.muster@example.com");
+  await page.locator("[data-registration-form]").getByLabel("Geburtsdatum").fill("1990-05-12");
+  await page.locator("[data-registration-form]").getByLabel("E-Mail-Adresse").fill("max.muster@example.com");
   await page.locator(".wizard-step.active [data-next]").click();
 
   await expect(page.locator(".wizard-progress .nav-link.active")).toContainText("Termin");
@@ -259,4 +259,139 @@ test("admin controls overall and participant phases and edits assignments", asyn
   await page.getByLabel("Suche").fill("phase.one@example.com");
   await expect(page.locator("[data-table-body]")).toContainText("Phase 1 · Anmeldung (angefordert: Phase 4)");
   await expect(page.locator("[data-table-body]")).toContainText("Zeitfenster");
+});
+
+test("participants recover access across devices and receive only their active phase data", async ({ page, browser }, testInfo) => {
+  const defaultPhaseOne = await page.request.post("/admin/update.php", {
+    data: { action: "set_default_phase", defaultPhase: 1 },
+  });
+  expect(defaultPhaseOne.status()).toBe(200);
+
+  const registration = {
+    fullName: "Recovery Person",
+    dateOfBirth: "1991-06-14",
+    email: "recovery.person@example.com",
+    slotPreference: "2026-08-17-morning",
+  };
+  const registered = await page.request.post("/api/register.php", { data: registration });
+  expect(registered.status()).toBe(201);
+
+  await page.goto("/admin/");
+  const registrationId = await page.locator("#registration_data").evaluate((element) => {
+    const entries = JSON.parse(element.textContent || "[]");
+    return entries.find((entry) => entry.email === "recovery.person@example.com")?.id;
+  });
+  expect(registrationId).toBeTruthy();
+
+  const assignment = {
+    action: "save_participant",
+    id: registrationId,
+    phaseOverride: 2,
+    accessCode: "RECOVERY-CODE-141",
+    role: "B",
+    teamId: "21",
+    halfDaySlot: "Morgen",
+    timeSlot: "10:30 - 11:45 Uhr",
+    room: "C",
+  };
+  const phaseTwoUpdate = await page.request.post("/admin/update.php", { data: assignment });
+  expect(phaseTwoUpdate.status()).toBe(200);
+
+  const baseURL = String(testInfo.project.use.baseURL);
+  const recoveryContext = await browser.newContext({ baseURL });
+  const recoveryPage = await recoveryContext.newPage();
+  await recoveryPage.goto("/");
+  await expect(recoveryPage.getByRole("button", { name: "Bereits angemeldet?" })).toBeVisible();
+  await expect(recoveryPage.locator("[data-participant-section]")).toBeHidden();
+
+  await recoveryPage.getByRole("button", { name: "Bereits angemeldet?" }).click();
+  await recoveryPage.getByLabel("E-Mail-Adresse", { exact: true }).last().fill("recovery.person@example.com");
+  await recoveryPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-13");
+  await recoveryPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await expect(recoveryPage.locator("[data-recovery-alert]")).toContainText("keiner aktiven Anmeldung");
+
+  await recoveryPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-14");
+  await recoveryPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await expect(recoveryPage.getByRole("heading", { name: "Dein Termin" })).toBeVisible();
+  await expect(recoveryPage.locator('[data-assignment-field="participantId"]')).toContainText(String(registrationId));
+  await expect(recoveryPage.locator('[data-assignment-field="halfDaySlot"]')).toContainText("Morgen");
+  await expect(recoveryPage.locator('[data-assignment-field="timeSlot"]')).toContainText("10:30 - 11:45 Uhr");
+  await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("RECOVERY-CODE-141");
+
+  const phaseTwoPayload = await recoveryPage.request.get("/api/registration.php");
+  expect(phaseTwoPayload.status()).toBe(200);
+  expect(Object.keys((await phaseTwoPayload.json()).assignment)).toEqual([
+    "participantId",
+    "halfDaySlot",
+    "timeSlot",
+  ]);
+  const prematureInterest = await recoveryPage.request.post("/api/results-interest.php", {
+    data: { interest: true },
+  });
+  expect(prematureInterest.status()).toBe(409);
+  expect((await prematureInterest.json()).code).toBe("interest_not_available");
+
+  const phaseThreeUpdate = await page.request.post("/admin/update.php", {
+    data: { ...assignment, phaseOverride: 3 },
+  });
+  expect(phaseThreeUpdate.status()).toBe(200);
+  await recoveryPage.reload();
+  await expect(recoveryPage.getByRole("heading", { name: "Deine Zuteilung" })).toBeVisible();
+  await expect(recoveryPage.locator('[data-assignment-field="accessCode"]')).toContainText("RECOVERY-CODE-141");
+  await expect(recoveryPage.locator('[data-assignment-field="role"]')).toContainText("B");
+  await expect(recoveryPage.locator('[data-assignment-field="teamId"]')).toContainText("21");
+  await expect(recoveryPage.locator('[data-assignment-field="room"]')).toContainText("C");
+
+  const phaseFourUpdate = await page.request.post("/admin/update.php", {
+    data: { ...assignment, phaseOverride: 4 },
+  });
+  expect(phaseFourUpdate.status()).toBe(200);
+  await recoveryPage.reload();
+  await expect(recoveryPage.getByRole("heading", { name: "Vielen Dank für Deine Teilnahme" })).toBeVisible();
+  await expect(recoveryPage.locator("[data-results-interest-form]")).toBeVisible();
+  await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("RECOVERY-CODE-141");
+  await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("10:30 - 11:45 Uhr");
+  const phaseFourBody = await (await recoveryPage.request.get("/api/registration.php")).json();
+  expect(phaseFourBody.assignment).toEqual({});
+
+  const interestCheckbox = recoveryPage.getByLabel("Ich möchte informiert werden");
+  await expect(interestCheckbox).not.toBeChecked();
+  await expect(recoveryPage.locator("[data-interest-status]")).toContainText("Noch keine Auswahl");
+  await interestCheckbox.check();
+  await recoveryPage.getByRole("button", { name: "Auswahl speichern" }).click();
+  await expect(recoveryPage.locator("[data-interest-status]")).toContainText("Gespeichert: Ja");
+  await recoveryPage.reload();
+  await expect(interestCheckbox).toBeChecked();
+
+  await interestCheckbox.uncheck();
+  await recoveryPage.getByRole("button", { name: "Auswahl speichern" }).click();
+  await expect(recoveryPage.locator("[data-interest-status]")).toContainText("Gespeichert: Nein");
+  await recoveryPage.reload();
+  await expect(interestCheckbox).not.toBeChecked();
+  await expect(recoveryPage.locator("[data-interest-status]")).toContainText("Gespeichert: Nein");
+
+  const closeSignup = await page.request.post("/admin/update.php", {
+    data: { action: "set_default_phase", defaultPhase: 4 },
+  });
+  expect(closeSignup.status()).toBe(200);
+  const closedContext = await browser.newContext({ baseURL });
+  const closedPage = await closedContext.newPage();
+  await closedPage.goto("/");
+  await expect(closedPage.locator("[data-signup-status]")).toContainText("Anmeldung ist geschlossen");
+  await expect(closedPage.getByRole("button", { name: "Mitmachen" })).toBeHidden();
+  await expect(closedPage.getByRole("button", { name: "Bereits angemeldet?" })).toBeVisible();
+
+  await closedPage.getByRole("button", { name: "Bereits angemeldet?" }).click();
+  await closedPage.getByLabel("E-Mail-Adresse", { exact: true }).last().fill("RECOVERY.PERSON@EXAMPLE.COM");
+  await closedPage.getByLabel("Geburtsdatum", { exact: true }).last().fill("1991-06-14");
+  await closedPage.getByRole("button", { name: "Anmeldung aufrufen" }).click();
+  await expect(closedPage.getByRole("heading", { name: "Vielen Dank für Deine Teilnahme" })).toBeVisible();
+
+  await page.goto("/admin/");
+  await page.getByLabel("Suche").fill("recovery.person@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Nein");
+  await expect(page.locator("[data-table-body]")).not.toContainText("Noch nicht beantwortet");
+
+  await closedContext.close();
+  await recoveryContext.close();
 });

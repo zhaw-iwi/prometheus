@@ -10,33 +10,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     ], 405);
 }
 
-$token = participate_get_registration_token();
-if ($token === null) {
-    participate_json([
-        'ok' => true,
-        'registered' => false,
-    ]);
-}
-
 $pdo = participate_pdo();
-$statement = $pdo->prepare(
-    "SELECT full_name, date_of_birth, email, slot_preference_key, slot_preference_label, created_at
-     FROM participation_registrations
-     WHERE public_token = :token AND status = 'received'
-     LIMIT 1"
-);
-$statement->execute(['token' => $token]);
-$registration = $statement->fetch();
+$defaultPhase = participate_default_phase($pdo);
+$token = participate_get_registration_token();
+$participant = $token === null ? null : participate_participant_by_token($pdo, $token);
 
-if (!$registration) {
+if ($participant === null) {
     participate_json([
         'ok' => true,
         'registered' => false,
+        'signupOpen' => $defaultPhase === PARTICIPATE_PHASE_SIGNUP,
     ]);
 }
 
-participate_json([
-    'ok' => true,
-    'registered' => true,
-    'registration' => participate_public_registration($registration),
-]);
+participate_json(['ok' => true] + participate_public_participant_session($pdo, $participant, $defaultPhase));

@@ -58,8 +58,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 140, participate admin phase and assignment management.
-- Milestone 141 is selected next: participant recovery, phase views, and results interest.
+- Last completed milestone: Milestone 141, participate recovery, phase views, and results interest.
+- The approved standalone participation phase-management scope is complete; no
+  follow-up milestone is currently selected.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -202,6 +203,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 136: Talk to Me backend isolation
 - [x] Milestone 139: Participate phase and assignment foundation
 - [x] Milestone 140: Participate admin phase and assignment management
+- [x] Milestone 141: Participate recovery, phase views, and results interest
 
 ## Milestone 1
 ### Date
@@ -6498,3 +6500,99 @@ while making incomplete-data phase limits explicit and testable.
 ### Next steps
 1. Milestone 141: add email/date-of-birth recovery, phase-specific participant
    data, closed-signup presentation, and reversible results-interest handling.
+
+## Milestone 141
+### Date
+2026-08-14
+
+### Goal
+Complete the standalone participation workflow with cross-device recovery,
+server-filtered phase 2/3/4 participant views, closed-signup presentation, and
+the reversible phase-4 results-information choice.
+
+### What changed
+- Added `api/identify.php` so a participant can recover an active registration
+  on another device with the normalized e-mail address and exact date of birth.
+  Successful recovery installs the existing long-lived public-token cookie on
+  that device; failed matching uses a generic response.
+- Centralized participant-row loading and public-session construction in
+  `config/bootstrap.php` so registration, recovery, and session refresh use the
+  same effective-phase and data-filtering contract.
+- Extended `api/registration.php` and `api/register.php` with the current
+  signup state, effective phase, phase label, filtered assignment, and
+  phase-appropriate results-interest state.
+- Enforced data minimization in PHP before JSON encoding:
+  - phase 2 exposes participant ID, half-day, and time slot only;
+  - phase 3 adds access code, role, team ID, and room;
+  - phase 4 returns an empty assignment object.
+- Added `api/results-interest.php` for an explicit boolean phase-4 choice. It
+  preserves any participant phase override and updates the stored last-change
+  timestamp on every save.
+- Reworked the participant page into four phase views while retaining the
+  original signup summary as phase 1. Phase 3 includes a copyable access code;
+  phase 4 replaces all assignment data with the requested thank-you message and
+  reversible results-information checkbox.
+- Added a **Bereits angemeldet?** recovery dialog and kept it available when
+  overall signup is closed. The visible signup action is hidden outside phase 1
+  for unidentified visitors, matching the server-side registration closure
+  added in milestone 140.
+- Expanded the Playwright suite to use a genuinely separate browser context for
+  recovery, reject a mismatched birth date, verify phase-2 response keys,
+  reject premature interest writes, progress through phases 3 and 4, verify
+  phase-4 replacement, persist yes then no, recover while signup is closed,
+  and confirm the final interest value in the admin table.
+- Updated README participant behavior, endpoint, deployment, structure, lint,
+  and browser-test documentation.
+
+### How to run
+- Deploy the complete `.web/participate/` directory after applying the
+  milestone-139 database migration and private Brainkick assignment seed.
+- Participants use **Mitmachen** only while the overall phase is 1.
+- Returning participants use **Bereits angemeldet?** with their signup e-mail
+  address and date of birth on any device.
+- Administrators progress the overall phase or a participant override through
+  the admin page; the participant view changes on the next request/reload.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/assets/app.js`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- Clean-schema setup, phase-rule, Brainkick generator, and repeatable
+  migration/private-seed smoke tests passed.
+- All 5 participation Playwright tests passed against MySQL and PHP's built-in
+  server, including the separate-device recovery and public JSON filtering
+  checks.
+- Headless Chromium screenshots of the 1440x1000 phase-3 assignment view and
+  phase-4 thank-you/interest view were inspected; content, controls, wrapping,
+  spacing, and replacement behavior were correct without overlap.
+- Whitespace checks passed.
+
+### Known issues and decisions
+- Recovery intentionally uses the approved e-mail/date-of-birth pair and does
+  not rotate the existing public token, so already identified devices remain
+  valid.
+- Invalid recovery matches deliberately return one generic error to avoid
+  disclosing whether an e-mail address exists.
+- Results interest is writable only when the participant's effective phase is
+  4. Saving an unchecked box stores an explicit `false`, distinct from the
+  initial unanswered `NULL` state.
+- Phase 4 deliberately transmits and displays no phase-3 assignment values.
+- No schema change was needed in this milestone; the canonical schema, seed,
+  additive migration, and private import from milestone 139 already include
+  the results-interest columns.
+- Admin authentication remains deployment-managed through the UUID-suffixed
+  directory as explicitly accepted for this version.
+
+### Next steps
+1. Deploy the migration, private assignment seed, verification query, and then
+   the complete `.web/participate/` application as documented in README.

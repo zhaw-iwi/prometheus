@@ -62,15 +62,22 @@
             gemeinsames Verständnis zu entwickeln und dadurch die Zusammenarbeit zu verbessern.
           </p>
           <div class="hero-actions">
-            <button class="button primary" type="button" data-open-registration>
-              <span class="button-icon" aria-hidden="true">+</span>
-              Mitmachen
+            <button class="button primary" type="button" data-open-registration data-signup-action>
+              <span class="button-icon" aria-hidden="true" data-signup-icon>+</span>
+              <span data-signup-label>Mitmachen</span>
+            </button>
+            <button class="button" type="button" data-open-recovery>
+              <span class="button-icon" aria-hidden="true">↗</span>
+              Bereits angemeldet?
             </button>
             <a class="button" href="#details">
               <span class="button-icon" aria-hidden="true">i</span>
               Details
             </a>
           </div>
+          <p class="signup-status" data-signup-status hidden>
+            Die Anmeldung ist geschlossen. Bereits angemeldete Personen können ihre Informationen weiterhin aufrufen.
+          </p>
         </div>
       </section>
 
@@ -173,21 +180,32 @@
         </div>
       </section>
 
-      <section class="content-band tight" aria-labelledby="summary-heading" data-local-summary-section hidden>
+      <section class="content-band tight" aria-labelledby="summary-heading" data-local-summary-section
+        data-participant-section hidden>
         <div class="section-inner">
           <div class="section-heading">
-            <h2 id="summary-heading">Deine Anmeldung</h2>
+            <h2 id="summary-heading" data-participant-heading>Deine Anmeldung</h2>
           </div>
-          <div class="panel">
+          <div class="panel participant-panel">
             <div class="panel-header">
-              <span>Gespeicherte Zusammenfassung</span>
-              <span class="metric-label">Anmeldung</span>
+              <span data-participant-panel-title>Gespeicherte Zusammenfassung</span>
+              <span class="metric-label" data-participant-phase-label>Phase 1 · Anmeldung</span>
             </div>
             <div class="panel-body">
               <div class="summary-grid" data-local-summary></div>
-              <p class="summary-note">
-                Diese Zusammenfassung wird über die Anmeldung in diesem Browser wieder angezeigt. Du kannst diese
-                Anmeldung nicht erneut bearbeiten oder nochmals absenden. Bei Fragen kontaktiere bitte
+              <form class="results-interest" data-results-interest-form hidden>
+                <label class="interest-choice" for="results_interest">
+                  <input id="results_interest" name="resultsInterest" type="checkbox">
+                  <span>Ich möchte informiert werden, sobald Ergebnisse aus den nachfolgenden Analysen vorliegen.</span>
+                </label>
+                <div class="interest-actions">
+                  <button class="button primary" type="submit">Auswahl speichern</button>
+                  <span class="interest-status" data-interest-status aria-live="polite"></span>
+                </div>
+              </form>
+              <p class="summary-note" data-participant-note>
+                Du kannst deine Anmeldung auf diesem oder einem anderen Gerät mit deiner E-Mail-Adresse und deinem
+                Geburtsdatum wieder aufrufen. Bei Fragen kontaktiere bitte
                 <a href="mailto:alexandre.despindler@zhaw.ch">alexandre.despindler@zhaw.ch</a>.
               </p>
             </div>
@@ -330,6 +348,40 @@
           <button class="button primary" type="submit">Teilnahmeanfrage absenden</button>
         </div>
       </section>
+    </form>
+  </dialog>
+
+  <dialog class="registration-dialog recovery-dialog" data-recovery-dialog aria-labelledby="recovery_title">
+    <form class="registration-modal recovery-modal" data-recovery-form method="dialog" novalidate>
+      <div class="modal-header">
+        <div>
+          <span class="metric-label">Bestehende Anmeldung</span>
+          <h2 id="recovery_title">Anmeldung wieder aufrufen</h2>
+        </div>
+        <button class="icon-button" type="button" aria-label="Dialog schliessen" data-close-recovery>
+          <span aria-hidden="true">×</span>
+        </button>
+      </div>
+      <p>
+        Gib dieselbe E-Mail-Adresse und dasselbe Geburtsdatum wie bei deiner Anmeldung ein. So kannst du deine
+        Informationen auch auf einem anderen Gerät öffnen.
+      </p>
+      <div class="form-alert" data-recovery-alert role="alert" hidden></div>
+      <div class="form-grid">
+        <label class="field-label field-wide" for="recovery_email">
+          <span>E-Mail-Adresse</span>
+          <input id="recovery_email" name="email" type="email" autocomplete="email" required
+            placeholder="name@example.com">
+        </label>
+        <label class="field-label field-wide" for="recovery_date_of_birth">
+          <span>Geburtsdatum</span>
+          <input id="recovery_date_of_birth" name="dateOfBirth" type="date" autocomplete="bday" required>
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="button" type="button" data-close-recovery>Abbrechen</button>
+        <button class="button primary" type="submit">Anmeldung aufrufen</button>
+      </div>
     </form>
   </dialog>
 

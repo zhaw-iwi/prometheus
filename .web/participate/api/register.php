@@ -118,21 +118,17 @@ try {
     throw $exception;
 }
 
-$statement = $pdo->prepare(
-    "SELECT full_name, date_of_birth, email, slot_preference_key, slot_preference_label, created_at
-     FROM participation_registrations
-     WHERE id = :id
-     LIMIT 1"
-);
-$statement->execute(['id' => $registrationId]);
-$registration = participate_public_registration($statement->fetch());
+$participant = participate_participant_by_id($pdo, $registrationId);
+if ($participant === null) {
+    throw new RuntimeException('The saved participation registration could not be reloaded.');
+}
+$registration = participate_public_registration($participant);
+$session = participate_public_participant_session($pdo, $participant, $defaultPhase);
 
 participate_set_registration_cookie($token);
 $mailSent = participate_send_confirmation_mail($registration);
 
 participate_json([
     'ok' => true,
-    'registered' => true,
     'mailSent' => $mailSent,
-    'registration' => $registration,
-], 201);
+] + $session, 201);
