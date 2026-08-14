@@ -123,7 +123,12 @@ function participate_phase_context(int $defaultPhase, ?int $phaseOverride, ?arra
     ];
 }
 
-function participate_visible_assignment(int $registrationId, ?array $assignment, int $effectivePhase): array
+function participate_visible_assignment(
+    int $registrationId,
+    ?array $assignment,
+    int $effectivePhase,
+    ?string $slotPreferenceLabel
+): array
 {
     if ($effectivePhase < PARTICIPATE_PHASE_SCHEDULE || $effectivePhase >= PARTICIPATE_PHASE_COMPLETE) {
         return [];
@@ -134,6 +139,7 @@ function participate_visible_assignment(int $registrationId, ?array $assignment,
         'participantId' => $registrationId,
         'halfDaySlot' => participate_nullable_text($assignment['half_day_slot'] ?? null),
         'timeSlot' => participate_nullable_text($assignment['time_slot'] ?? null),
+        'date' => participate_nullable_text($slotPreferenceLabel),
     ];
 
     if ($effectivePhase >= PARTICIPATE_PHASE_ASSIGNMENT) {

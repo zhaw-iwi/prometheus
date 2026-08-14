@@ -199,7 +199,8 @@ function assignmentItems(assignment, phase) {
   const items = [
     { label: "Teilnehmenden-ID", value: assignment.participantId, field: "participantId" },
     { label: "Halbtag", value: assignment.halfDaySlot, field: "halfDaySlot" },
-    { label: "Zeitfenster", value: assignment.timeSlot, field: "timeSlot" }
+    { label: "Zeitfenster", value: assignment.timeSlot, field: "timeSlot" },
+    { label: "Datum", value: assignment.date, field: "date" }
   ];
   if (phase >= 3) {
     items.push(

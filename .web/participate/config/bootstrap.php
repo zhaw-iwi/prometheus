@@ -251,7 +251,8 @@ function participate_public_participant_session(PDO $pdo, array $row, ?int $defa
     $visibleAssignment = participate_visible_assignment(
         (int) $row['registration_id'],
         $assignment,
-        $effectivePhase
+        $effectivePhase,
+        $row['slot_preference_label'] ?? null
     );
     $interest = ($row['results_interest'] ?? null) === null
         ? null

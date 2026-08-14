@@ -58,7 +58,7 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 141, participate recovery, phase views, and results interest.
+- Last completed milestone: Milestone 142, participate phase date label.
 - The approved standalone participation phase-management scope is complete; no
   follow-up milestone is currently selected.
 - The regulation gap above is a major framework direction, but it should become
@@ -204,6 +204,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 139: Participate phase and assignment foundation
 - [x] Milestone 140: Participate admin phase and assignment management
 - [x] Milestone 141: Participate recovery, phase views, and results interest
+- [x] Milestone 142: Participate phase date label
 
 ## Milestone 1
 ### Date
@@ -6596,3 +6597,48 @@ the reversible phase-4 results-information choice.
 ### Next steps
 1. Deploy the migration, private assignment seed, verification query, and then
    the complete `.web/participate/` application as documented in README.
+
+## Milestone 142
+### Date
+2026-08-14
+
+### Goal
+Show the registration's stored slot label as a fourth date entry in the
+participant's phase-2 and phase-3 schedule information.
+
+### What changed
+- Added `date` to the server-filtered visible assignment payload for phases 2
+  and 3, sourced directly from
+  `participation_registrations.slot_preference_label`.
+- Added a fourth `Datum` card after `Zeitfenster` in the participant UI.
+- Preserved the existing phase-4 replacement behavior, which still exposes no
+  assignment or date fields.
+- Extended phase-rule and Playwright assertions for the exact stored label in
+  both phase 2 and phase 3.
+- Updated README's phase-2 public data contract.
+
+### How to test
+- `php .web/participate/tests/phase_rules_test.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- Phase-rule tests passed, including phase-2/3 date presence and phase-4
+  replacement.
+- All 5 participation Playwright tests passed, including exact API key order
+  and rendered date-label assertions in phases 2 and 3.
+- The phase-2 participant panel was captured and visually inspected at desktop
+  width; all four cards fit without truncation or overlap.
+
+### Known issues and decisions
+- `Datum` deliberately displays the complete stored slot label rather than
+  parsing or reformatting it, as requested.
+- No database migration is required because the source column already exists
+  and is non-null in `participation_registrations`.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.

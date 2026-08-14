@@ -56,17 +56,20 @@ expect_same(false, $ready['limitedByMissingData'], 'Complete assignments are not
 $overridden = participate_phase_context(4, 2, $complete);
 expect_same(2, $overridden['effectivePhase'], 'A participant override takes precedence over the default');
 
-$phase2Payload = participate_visible_assignment(42, $complete, 2);
+$dateLabel = 'Montag, 17. August 2026, 09:00 bis 13:00';
+$phase2Payload = participate_visible_assignment(42, $complete, 2, $dateLabel);
 expect_same(
-    ['participantId', 'halfDaySlot', 'timeSlot'],
+    ['participantId', 'halfDaySlot', 'timeSlot', 'date'],
     array_keys($phase2Payload),
     'Phase 2 exposes only schedule data'
 );
+expect_same($dateLabel, $phase2Payload['date'] ?? null, 'Phase 2 exposes the stored slot label as its date');
 
-$phase3Payload = participate_visible_assignment(42, $complete, 3);
+$phase3Payload = participate_visible_assignment(42, $complete, 3, $dateLabel);
 expect_same('CODE123', $phase3Payload['accessCode'] ?? null, 'Phase 3 exposes the access code');
 expect_same('A', $phase3Payload['room'] ?? null, 'Phase 3 exposes the room');
-expect_same([], participate_visible_assignment(42, $complete, 4), 'Phase 4 replaces assignment data');
+expect_same($dateLabel, $phase3Payload['date'] ?? null, 'Phase 3 retains the stored slot label');
+expect_same([], participate_visible_assignment(42, $complete, 4, $dateLabel), 'Phase 4 replaces assignment data');
 
 if ($failures !== []) {
     fwrite(STDERR, implode(PHP_EOL, $failures) . PHP_EOL);

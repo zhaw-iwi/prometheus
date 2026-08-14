@@ -266,7 +266,8 @@ device; a failed match returns one generic error and does not disclose whether
 the e-mail address exists. The public JSON response is filtered on the server:
 
 - Phase 1 shows the saved signup summary.
-- Phase 2 sends and shows only participant ID, half-day, and time slot.
+- Phase 2 sends and shows participant ID, half-day, time slot, and the stored
+  registration slot label as the date.
 - Phase 3 additionally sends and shows access code, role, team ID, and room.
 - Phase 4 sends no assignment fields, thanks the participant, and provides a
   reversible results-information choice with its last-change timestamp.

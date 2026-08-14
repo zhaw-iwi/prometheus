@@ -316,6 +316,9 @@ test("participants recover access across devices and receive only their active p
   await expect(recoveryPage.locator('[data-assignment-field="participantId"]')).toContainText(String(registrationId));
   await expect(recoveryPage.locator('[data-assignment-field="halfDaySlot"]')).toContainText("Morgen");
   await expect(recoveryPage.locator('[data-assignment-field="timeSlot"]')).toContainText("10:30 - 11:45 Uhr");
+  await expect(recoveryPage.locator('[data-assignment-field="date"]')).toContainText(
+    "Montag, 17. August 2026, 09:00 bis 13:00",
+  );
   await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("RECOVERY-CODE-141");
 
   const phaseTwoPayload = await recoveryPage.request.get("/api/registration.php");
@@ -324,6 +327,7 @@ test("participants recover access across devices and receive only their active p
     "participantId",
     "halfDaySlot",
     "timeSlot",
+    "date",
   ]);
   const prematureInterest = await recoveryPage.request.post("/api/results-interest.php", {
     data: { interest: true },
@@ -341,6 +345,9 @@ test("participants recover access across devices and receive only their active p
   await expect(recoveryPage.locator('[data-assignment-field="role"]')).toContainText("B");
   await expect(recoveryPage.locator('[data-assignment-field="teamId"]')).toContainText("21");
   await expect(recoveryPage.locator('[data-assignment-field="room"]')).toContainText("C");
+  await expect(recoveryPage.locator('[data-assignment-field="date"]')).toContainText(
+    "Montag, 17. August 2026, 09:00 bis 13:00",
+  );
 
   const phaseFourUpdate = await page.request.post("/admin/update.php", {
     data: { ...assignment, phaseOverride: 4 },
