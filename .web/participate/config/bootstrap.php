@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/phases.php';
+
 const PARTICIPATE_COOKIE_NAME = 'sira_participate_registration';
 
 function participate_base_path(string $path = ''): string

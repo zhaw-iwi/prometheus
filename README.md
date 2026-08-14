@@ -251,6 +251,36 @@ followed by `.web/participate/database/seed.sql` in the target MySQL database.
 `ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
 added as BCC recipients on participant confirmation mails.
 
+The participation database also contains a singleton overall phase setting,
+per-registration phase/result-interest state, and one hard-coded experiment
+assignment row per registration. Assignment completeness limits the effective
+participant phase: a missing half-day or time keeps the participant in phase 1;
+complete schedule data without complete access/role/team/room data permits only
+phase 2; complete assignment data permits phases 1 through 4. Phase 4 replaces
+the assignment display rather than extending it.
+
+For an existing deployment, run the additive migration before importing the
+private Brainkick assignment seed:
+
+```powershell
+mysql -u USER -p DATABASE < .web/participate/database/migrations/20260814_participation_phases.sql
+mysql -u USER -p DATABASE < .web/participate/database/brainkick_seed.sql
+mysql -u USER -p DATABASE < .web/participate/database/brainkick_verify.sql
+```
+
+`brainkick_seed.sql` contains live access codes and is intentionally ignored by
+Git. Generate it locally from the private assignment CSV with:
+
+```powershell
+php .web/participate/database/generate_brainkick_seed.php INPUT.csv .web/participate/database/brainkick_seed.sql
+```
+
+The generator validates the fixed seven-column CSV contract, converts blank or
+literal `NULL` values to SQL `NULL`, sorts by participant ID, rejects duplicate
+participant IDs/access codes, and produces a repeatable upsert script. The
+migration initializes the overall phase to 1 and does not change existing
+registration rows.
+
 The participation admin view is available at `/admin/` below that deployment
 root, for example `https://participate.siralab.ch/admin/`. It intentionally has
 no built-in authentication; protect or obscure the deployed folder name at the
@@ -266,6 +296,9 @@ MySQL test database:
 ```powershell
 $env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path
 php .web/participate/tests/setup_test_db.php
+php .web/participate/tests/phase_rules_test.php
+php .web/participate/tests/brainkick_seed_generator_test.php
+php .web/participate/tests/migration_smoke_test.php
 php -S 127.0.0.1:8091 -t .web/participate
 ```
 
@@ -291,11 +324,15 @@ node --check tests/playwright/participate.spec.mjs
 node --check playwright.participate.config.mjs
 php -l .web/participate/index.php
 php -l .web/participate/config/bootstrap.php
+php -l .web/participate/config/phases.php
 php -l .web/participate/api/register.php
 php -l .web/participate/api/registration.php
 php -l .web/participate/admin/delete.php
 php -l .web/participate/admin/index.php
 php -l .web/participate/tests/setup_test_db.php
+php -l .web/participate/tests/phase_rules_test.php
+php -l .web/participate/tests/brainkick_seed_generator_test.php
+php -l .web/participate/tests/migration_smoke_test.php
 node --check .web/participate/admin/admin.js
 ```
 
@@ -701,9 +738,9 @@ src/main/resources/public
     admin/          Unprotected registration overview with search, sort, and CSV export.
     api/            PHP JSON endpoints for registration and returning-summary lookup.
     assets/         Plain CSS and JavaScript for the landing page and wizard.
-    config/         Local `.env` loading, PDO, JSON, cookie, and mail helpers.
-    database/       MySQL schema and seed files for phpMyAdmin deployment.
-    tests/          Local MySQL reset helper for integration smoke tests.
+    config/         Local environment, PDO, cookie, mail, and phase-rule helpers.
+    database/       Canonical schema/seed, additive migrations, and Brainkick seed tooling.
+    tests/          Phase rules, seed generation, migration, and local MySQL smoke tests.
 
 tests/playwright    Browser-level Valerian, Talk to Me, API Workbench, and participate smoke tests.
 ```

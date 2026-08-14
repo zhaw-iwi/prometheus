@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 136, Talk to Me backend isolation.
-- No subsequent milestone has been selected.
+- Last completed milestone: Milestone 139, participate phase and assignment foundation.
+- Milestone 140 is selected next: participate admin phase and assignment management.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -200,6 +200,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 134: Talk to Me lifecycle layout and Realtime completion diagnostics
 - [x] Milestone 135: Talk to Me exact-text Speech renderer
 - [x] Milestone 136: Talk to Me backend isolation
+- [x] Milestone 139: Participate phase and assignment foundation
 
 ## Milestone 1
 ### Date
@@ -6322,3 +6323,92 @@ Valerian Cockpit and the shared scoped/Realtime application paths.
   design. Talk to Me adds its profile-tag restriction on top of that boundary.
 - Live OpenAI credentials and audible speaker hardware remain outside automated
   regression coverage.
+
+## Milestone 139
+### Date
+2026-08-14
+
+### Goal
+Establish the persistence, deployment, deterministic phase rules, and private
+Brainkick assignment import foundation for the standalone participation site
+before adding its administrative and participant-facing phase workflows.
+
+### What changed
+- Added `participation_phase_settings` as the singleton overall/default phase
+  setting, initialized to phase 1.
+- Added `participation_assignments` as a one-to-one, cascade-deleted extension
+  of registrations with the experiment's fixed access code, role, team,
+  half-day, time, and room fields.
+- Added `participation_participant_state` for nullable per-registration phase
+  overrides and the future reversible results-interest value/timestamp.
+- Added deterministic phase rules in `config/phases.php`:
+  - missing half-day or time data limits a participant to phase 1;
+  - complete schedule data with incomplete phase-3 data limits them to phase 2;
+  - complete assignments permit phases 1 through 4;
+  - phase 4 exposes no assignment data.
+- Kept the canonical `database/schema.sql` and `database/seed.sql` synchronized
+  with the model.
+- Added the MariaDB-compatible, repeatable additive migration
+  `database/migrations/20260814_participation_phases.sql`.
+- Added `database/generate_brainkick_seed.php`, which validates the private
+  seven-column CSV, converts blank/literal `NULL` values to SQL `NULL`, rejects
+  duplicate IDs/access codes, orders rows by participant ID, and generates a
+  repeatable assignment upsert.
+- Generated the requested `database/brainkick_seed.sql` with 57 live
+  assignments. It remains on the local deployment workspace but is ignored by
+  Git because it contains live access codes.
+- Added `database/brainkick_verify.sql` for post-deployment counts and
+  incomplete-assignment review.
+- Ignored the private live database dump and generated Brainkick seed without
+  modifying or deleting either artifact.
+- Added pure phase-rule, generator, and disposable MariaDB migration smoke
+  tests. The migration test also exercises the private seed when it is present.
+- Updated README deployment, generation, verification, testing, and structure
+  documentation.
+
+### How to run
+- Fresh database:
+  - execute `.web/participate/database/schema.sql`;
+  - execute `.web/participate/database/seed.sql`.
+- Existing live database:
+  - execute `.web/participate/database/migrations/20260814_participation_phases.sql`;
+  - execute the locally generated `.web/participate/database/brainkick_seed.sql`;
+  - execute `.web/participate/database/brainkick_verify.sql` and review the results.
+- Regenerate the private data seed when needed:
+  - `php .web/participate/database/generate_brainkick_seed.php INPUT.csv .web/participate/database/brainkick_seed.sql`.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- The canonical schema and seed prepared `sira_participate_test` successfully.
+- Phase-rule tests passed.
+- Brainkick seed generator tests passed.
+- The disposable MariaDB migration smoke passed, including applying the
+  migration twice, applying the private 57-row seed twice, checking participant
+  4's SQL `NULL` fields, constraint enforcement, and cascade deletion.
+- The existing participation Playwright suite passed all 3 participant/admin
+  tests against the evolved schema.
+- PHP syntax and whitespace checks passed.
+
+### Known issues and decisions
+- This milestone intentionally adds no phase controls or new participant UI;
+  those are the next two milestones.
+- The generated Brainkick seed is a deployment artifact, not a versioned source
+  artifact, because it contains live access codes. Its generator and structural
+  verification are versioned.
+- Participant ID is the existing `participation_registrations.id`; the live CSV
+  contained 57 unique IDs and all matched the supplied 66-registration dump.
+- Registrations without schedule assignments, including participant 4 while
+  its time remains `NULL`, stay in phase 1 even when a higher default is later
+  selected.
+
+### Next steps
+1. Milestone 140: add overall/per-participant phase controls, assignment
+   editing, readiness diagnostics, and export fields to the admin site.

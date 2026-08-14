@@ -1,3 +1,7 @@
+INSERT INTO participation_phase_settings (id, default_phase)
+VALUES (1, 1)
+ON DUPLICATE KEY UPDATE id = VALUES(id);
+
 INSERT INTO participation_slots
   (slot_key, label, starts_at, ends_at, capacity, is_active, sort_order)
 VALUES
