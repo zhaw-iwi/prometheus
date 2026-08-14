@@ -24,9 +24,17 @@ test("participant wizard validates, reviews, submits, logs mail, and restores se
   await expect(page.locator("[data-session-entry-icon]")).toBeVisible();
   await expect(page.locator("[data-session-exit-icon]")).toBeHidden();
   await sessionButton.click();
-  await expect(page.locator("[data-recovery-dialog]")).toBeVisible();
+  const recoveryDialog = page.locator("[data-recovery-dialog]");
+  await expect(recoveryDialog).toBeVisible();
   await expect(page.locator("[data-registration-dialog]")).toBeHidden();
-  await page.locator("[data-recovery-dialog]").getByRole("button", { name: "Abbrechen" }).click();
+  const recoveryDialogBox = await recoveryDialog.boundingBox();
+  const recoveryFormBox = await page.locator("[data-recovery-form]").boundingBox();
+  expect(recoveryDialogBox).not.toBeNull();
+  expect(recoveryFormBox).not.toBeNull();
+  expect(recoveryDialogBox.width).toBeLessThanOrEqual(720);
+  expect(Math.abs(recoveryDialogBox.width - recoveryFormBox.width)).toBeLessThanOrEqual(4);
+  expect(Math.abs(recoveryDialogBox.x - ((1440 - recoveryDialogBox.width) / 2))).toBeLessThanOrEqual(2);
+  await recoveryDialog.getByRole("button", { name: "Abbrechen" }).click();
 
   const signupButton = page.getByRole("button", { name: "Mitmachen" });
   await expect(signupButton).toBeEnabled();
@@ -120,6 +128,16 @@ test("participant page remains usable on mobile", async ({ page }) => {
     innerWidth: window.innerWidth,
   }));
   expect(modalOverflow.scrollWidth).toBeLessThanOrEqual(modalOverflow.innerWidth);
+
+  await page.locator("[data-registration-dialog]")
+    .getByRole("button", { name: "Dialog schliessen" })
+    .click();
+  await page.locator("[data-participant-session-action]").click();
+  const mobileRecoveryDialog = page.locator("[data-recovery-dialog]");
+  await expect(mobileRecoveryDialog).toBeVisible();
+  const mobileRecoveryBox = await mobileRecoveryDialog.boundingBox();
+  expect(mobileRecoveryBox).not.toBeNull();
+  expect(mobileRecoveryBox.width).toBeLessThanOrEqual(390);
 });
 
 test("admin view searches, sorts, and exports all rows", async ({ page }) => {

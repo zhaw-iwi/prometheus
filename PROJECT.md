@@ -58,7 +58,7 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 144, participate phase-aware signup and recovery actions.
+- Last completed milestone: Milestone 145, compact participate recovery dialog.
 - The approved standalone participation phase-management scope is complete; no
   follow-up milestone is currently selected.
 - The regulation gap above is a major framework direction, but it should become
@@ -207,6 +207,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 142: Participate phase date label
 - [x] Milestone 143: Participate header session action
 - [x] Milestone 144: Participate phase-aware signup and recovery actions
+- [x] Milestone 145: Compact participate recovery dialog
 
 ## Milestone 1
 ### Date
@@ -6759,3 +6760,47 @@ make new-signup availability follow the overall experiment phase.
 ### Next steps
 1. Deploy the updated `.web/participate/` application files; no SQL step is
    required for this milestone.
+
+## Milestone 145
+### Date
+2026-08-14
+
+### Goal
+Give the returning-participant recovery form a balanced, compact dialog without
+changing the wider registration wizard.
+
+### What changed
+- Added a recovery-dialog-specific maximum width of `44rem` while preserving the
+  existing responsive viewport inset.
+- Let the recovery form fill that compact dialog so the heading, close control,
+  explanatory copy, fields, and actions share the same horizontal bounds.
+- Left the three-step registration and privacy dialog dimensions unchanged.
+- Added desktop assertions for maximum width, centring, and form/dialog width
+  alignment.
+- Extended the mobile participation test to open the recovery dialog and verify
+  that it remains within the viewport.
+- Documented the distinct compact recovery and wide registration layouts.
+
+### How to test
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All 5 participation Playwright tests passed.
+- Desktop geometry assertions proved that the recovery dialog is at most 720px,
+  centred in the 1440px viewport, and filled by the recovery form.
+- Mobile recovery-dialog and page-overflow assertions passed at 390px width.
+- The updated desktop recovery screenshot was inspected; content is balanced,
+  aligned, and no longer leaves a large empty region on the right.
+
+### Known issues and decisions
+- The recovery dialog is intentionally narrower than the registration wizard;
+  stretching two fields across the original 960px width would reduce visual
+  coherence and input readability.
+- Existing small-screen rules continue to stack the action buttons at full
+  width.
+- No database migration is required.
+
+### Next steps
+1. Deploy the updated `.web/participate/` stylesheet; no SQL step is required.

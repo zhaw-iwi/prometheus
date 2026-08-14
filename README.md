@@ -263,7 +263,9 @@ Participants can return from any browser through **Bereits angemeldet?** using
 the e-mail address and date of birth from their active registration. A
 successful recovery reuses the registration's long-lived public token on that
 device; a failed match returns one generic error and does not disclose whether
-the e-mail address exists. The public JSON response is filtered on the server:
+the e-mail address exists. The recovery dialog uses a compact centred layout,
+while the more complex registration wizard retains its wider dialog. The public
+JSON response is filtered on the server:
 
 - Phase 1 shows the saved signup summary.
 - Phase 2 sends and shows participant ID, half-day, time slot, and the stored

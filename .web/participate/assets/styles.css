@@ -518,6 +518,10 @@ h1 {
   width: min(760px, calc(100% - 1.5rem));
 }
 
+.recovery-dialog {
+  width: min(44rem, calc(100% - 1.5rem));
+}
+
 .registration-dialog::backdrop,
 .privacy-dialog::backdrop {
   background: rgba(12, 22, 24, 0.46);
@@ -885,7 +889,7 @@ input:focus-visible,
 }
 
 .recovery-modal {
-  max-width: 36rem;
+  width: 100%;
 }
 
 .privacy-copy {
