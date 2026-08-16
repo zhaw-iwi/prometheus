@@ -58,9 +58,10 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 145, compact participate recovery dialog.
-- The approved standalone participation phase-management scope is complete; no
-  follow-up milestone is currently selected.
+- Last completed milestone: Milestone 146, participate admin-creation database
+  foundation.
+- Milestone 147 will add admin participant creation and registration-field
+  editing on top of this schema.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -208,6 +209,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 143: Participate header session action
 - [x] Milestone 144: Participate phase-aware signup and recovery actions
 - [x] Milestone 145: Compact participate recovery dialog
+- [x] Milestone 146: Participate admin-creation database foundation
 
 ## Milestone 1
 ### Date
@@ -6804,3 +6806,60 @@ changing the wider registration wizard.
 
 ### Next steps
 1. Deploy the updated `.web/participate/` stylesheet; no SQL step is required.
+
+## Milestone 146
+### Date
+2026-08-16
+
+### Goal
+Prepare the participation database for admin-created participants, editable
+participant IDs, and one database-managed experiment survey URL without
+changing participant or admin behavior yet.
+
+### What changed
+- Added the phpMyAdmin-compatible, repeatable
+  `database/migrations/20260816_participant_admin_fields.sql` migration based on
+  the updated private live database dump.
+- Made registration name and signup-slot snapshot fields nullable so an admin
+  can create a participant with only e-mail address and date of birth.
+- Added one required `survey_url` value to the singleton phase-settings row and
+  initialized it with the agreed UZH survey URL while preserving the current
+  overall phase.
+- Changed assignment and participant-state foreign keys to `ON UPDATE CASCADE`
+  while retaining `ON DELETE CASCADE`, making deliberate participant-ID edits
+  safe for dependent records.
+- Kept the canonical `schema.sql` and `seed.sql` aligned with the migration.
+- Reworked the migration smoke test to restore the ignored current live dump
+  into a disposable database when present, apply the new migration twice, and
+  verify nullable fields, the survey URL, update/delete cascades, duplicate-ID
+  rejection, and preservation of the live default phase. It retains a
+  synthetic legacy-schema fallback for environments without the private dump.
+
+### How to test
+- `php .web/participate/tests/migration_smoke_test.php`
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php -l .web/participate/tests/migration_smoke_test.php`
+- `git diff --check`
+
+### Verification
+- The repeatable migration passed against the updated private live database
+  dump on the local MySQL test server.
+- Clean canonical schema/seed setup, phase rules, and Brainkick seed-generator
+  tests passed.
+- Participant-ID updates moved both assignment and participant-state rows;
+  duplicate IDs were rejected and subsequent registration deletion still
+  cascaded to both children.
+
+### Known issues and decisions
+- This milestone intentionally adds no admin form or participant survey button;
+  those are delivered in milestones 147 and 148.
+- The private live dump remains ignored and was used only as a local migration
+  input. It was not modified or staged.
+- The URL is stored once on `participation_phase_settings`, not duplicated per
+  participant.
+
+### Next steps
+1. Milestone 147: add admin participant creation and complete registration-field
+   editing with browser/integration coverage.
