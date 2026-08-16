@@ -198,7 +198,185 @@ test("admin view searches, sorts, and exports all rows", async ({ page }) => {
   expect(resubscribe.status()).toBe(201);
 });
 
+test("admin creates minimal and complete participants and safely edits registration identity", async ({ page }) => {
+  const mailCountBefore = mailFiles().length;
+  const closeSignup = await page.request.post("/admin/update.php", {
+    data: { action: "set_default_phase", defaultPhase: 2 },
+  });
+  expect(closeSignup.status()).toBe(200);
+
+  await page.goto("/admin/");
+  await page.getByRole("button", { name: "Teilnehmende Person erstellen" }).click();
+  const participantDialog = page.locator("[data-participant-dialog]");
+  await expect(participantDialog).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Teilnehmende Person erstellen" })).toBeVisible();
+  await expect(page.getByLabel("Teilnehmenden-ID")).not.toHaveAttribute("required", "");
+  await expect(page.getByLabel("E-Mail-Adresse")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Geburtsdatum")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Individuelle Phase")).toHaveValue("");
+  await expect(page.getByLabel("Individuelle Phase").locator("option").first()).toContainText(
+    "Phase 1 · Anmeldung",
+  );
+
+  await page.getByLabel("E-Mail-Adresse").fill("admin.minimal@example.com");
+  await page.getByLabel("Geburtsdatum").fill("1990-07-15");
+  await page.getByRole("button", { name: "Person erstellen", exact: true }).click();
+
+  await page.getByLabel("Suche").fill("admin.minimal@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("admin.minimal@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 1 · Anmeldung");
+  const minimalId = await page.locator("#registration_data").evaluate((element) => {
+    const entries = JSON.parse(element.textContent || "[]");
+    return entries.find((entry) => entry.email === "admin.minimal@example.com")?.id;
+  });
+  expect(minimalId).toBeTruthy();
+  expect(mailFiles().length).toBe(mailCountBefore);
+
+  const minimalRecovery = await page.request.post("/api/identify.php", {
+    data: {
+      email: "ADMIN.MINIMAL@EXAMPLE.COM",
+      dateOfBirth: "1990-07-15",
+    },
+  });
+  expect(minimalRecovery.status()).toBe(200);
+  const minimalSession = await minimalRecovery.json();
+  expect(minimalSession.registration.fullName).toBeNull();
+  expect(minimalSession.registration.slotPreference).toBeNull();
+  expect(minimalSession.phase.number).toBe(1);
+  await page.goto("/");
+  await expect(page.locator("[data-local-summary-section]")).toBeVisible();
+  await expect(page.locator("[data-local-summary]")).toContainText("admin.minimal@example.com");
+
+  const completeCreate = await page.request.post("/admin/update.php", {
+    data: {
+      action: "create_participant",
+      participantId: 730001,
+      fullName: "Admin Voll",
+      email: "admin.full@example.com",
+      dateOfBirth: "1984-08-16",
+      slotId: 1,
+      phaseOverride: 3,
+      halfDaySlot: "Morgen",
+      timeSlot: "09:45 - 11:00 Uhr",
+      accessCode: "ADMIN-FULL-CODE",
+      role: "A",
+      teamId: "31",
+      room: "B",
+    },
+  });
+  expect(completeCreate.status()).toBe(201);
+  const completeCreateBody = await completeCreate.json();
+  expect(completeCreateBody.id).toBe(730001);
+  expect(completeCreateBody.phase.effectivePhase).toBe(3);
+  expect(completeCreateBody.mailSent).toBe(false);
+  expect(completeCreateBody.confirmationRequired).toBe(false);
+
+  const duplicateId = await page.request.post("/admin/update.php", {
+    data: {
+      action: "create_participant",
+      participantId: 730001,
+      email: "admin.other@example.com",
+      dateOfBirth: "1980-01-01",
+    },
+  });
+  expect(duplicateId.status()).toBe(409);
+  expect((await duplicateId.json()).code).toBe("duplicate_participant_id");
+
+  const duplicateEmail = await page.request.post("/admin/update.php", {
+    data: {
+      action: "create_participant",
+      email: "ADMIN.FULL@EXAMPLE.COM",
+      dateOfBirth: "1980-01-01",
+    },
+  });
+  expect(duplicateEmail.status()).toBe(409);
+  expect((await duplicateEmail.json()).code).toBe("duplicate_email");
+
+  await page.goto("/admin/");
+  await page.getByLabel("Suche").fill("admin.full@example.com");
+  await page.getByRole("button", { name: "Admin Voll bearbeiten" }).click();
+  await expect(page.getByRole("heading", { name: "Teilnehmende Person bearbeiten" })).toBeVisible();
+  await expect(page.getByLabel("Teilnehmenden-ID")).toHaveAttribute("required", "");
+  await page.getByLabel("Teilnehmenden-ID").fill("730002");
+  await page.getByLabel("Name (optional)").fill("Admin Voll Editiert");
+  await page.getByLabel("E-Mail-Adresse").fill("admin.full.edited@example.com");
+  await page.getByLabel("Terminpräferenz (optional)").selectOption("2");
+  await page.getByRole("button", { name: "Änderungen speichern" }).click();
+
+  await page.getByLabel("Suche").fill("admin.full.edited@example.com");
+  await expect(page.locator("[data-table-body]")).toContainText("730002");
+  await expect(page.locator("[data-table-body]")).toContainText("Admin Voll Editiert");
+  await expect(page.locator("[data-table-body]")).toContainText("Phase 3 · Zuteilung");
+  await expect(page.locator("[data-table-body]")).toContainText("ADMIN-FULL-CODE");
+
+  const editedRecovery = await page.request.post("/api/identify.php", {
+    data: {
+      email: "admin.full.edited@example.com",
+      dateOfBirth: "1984-08-16",
+    },
+  });
+  expect(editedRecovery.status()).toBe(200);
+  const editedSession = await editedRecovery.json();
+  expect(editedSession.assignment.participantId).toBe(730002);
+  expect(editedSession.assignment.accessCode).toBe("ADMIN-FULL-CODE");
+  expect(editedSession.registration.slotPreference).toBe("2026-08-17-afternoon");
+
+  const duplicateIdEdit = await page.request.post("/admin/update.php", {
+    data: {
+      action: "save_participant",
+      id: minimalId,
+      participantId: 730002,
+    },
+  });
+  expect(duplicateIdEdit.status()).toBe(409);
+  expect((await duplicateIdEdit.json()).code).toBe("duplicate_participant_id");
+
+  const duplicateEmailEdit = await page.request.post("/admin/update.php", {
+    data: {
+      action: "save_participant",
+      id: minimalId,
+      email: "ADMIN.FULL.EDITED@EXAMPLE.COM",
+    },
+  });
+  expect(duplicateEmailEdit.status()).toBe(409);
+  expect((await duplicateEmailEdit.json()).code).toBe("duplicate_email");
+  expect(mailFiles().length).toBe(mailCountBefore);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "CSV exportieren" }).click(),
+  ]);
+  const csv = readFileSync(await download.path(), "utf8");
+  expect(csv).toContain("admin.minimal@example.com");
+  expect(csv).toContain("admin.full.edited@example.com");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin/");
+  await page.getByRole("button", { name: "Teilnehmende Person erstellen" }).click();
+  const mobileDialogBox = await participantDialog.boundingBox();
+  expect(mobileDialogBox).not.toBeNull();
+  expect(mobileDialogBox.width).toBeLessThanOrEqual(390);
+  const mobileOverflow = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  expect(mobileOverflow.scrollWidth).toBeLessThanOrEqual(mobileOverflow.innerWidth);
+  await page.locator("[data-participant-submit]").scrollIntoViewIfNeeded();
+  await expect(page.locator("[data-participant-submit]")).toBeVisible();
+  await page.getByRole("button", { name: "Abbrechen" }).click();
+
+  const reopenSignup = await page.request.post("/admin/update.php", {
+    data: { action: "set_default_phase", defaultPhase: 1 },
+  });
+  expect(reopenSignup.status()).toBe(200);
+});
+
 test("admin controls overall and participant phases and edits assignments", async ({ page }) => {
+  const defaultPhaseOne = await page.request.post("/admin/update.php", {
+    data: { action: "set_default_phase", defaultPhase: 1 },
+  });
+  expect(defaultPhaseOne.status()).toBe(200);
+
   const registrations = [
     {
       fullName: "Phase Eins",

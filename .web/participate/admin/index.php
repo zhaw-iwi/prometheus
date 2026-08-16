@@ -5,6 +5,11 @@ require_once __DIR__ . '/../config/bootstrap.php';
 
 $pdo = participate_pdo();
 $defaultPhase = participate_default_phase($pdo);
+$slots = $pdo->query(
+    'SELECT id, slot_key, label, is_active
+     FROM participation_slots
+     ORDER BY sort_order ASC, id ASC'
+)->fetchAll();
 $statement = $pdo->query(
     "SELECT
         r.id,
@@ -13,6 +18,7 @@ $statement = $pdo->query(
         r.full_name,
         r.date_of_birth,
         r.email,
+        r.slot_id,
         r.slot_preference_key,
         r.slot_preference_label,
         s.starts_at AS slot_starts_at,
@@ -198,6 +204,10 @@ unset($registration);
               <span class="metric-label" data-row-count>
                 <?php echo htmlspecialchars((string) $registrationCount, ENT_QUOTES, 'UTF-8'); ?> Einträge
               </span>
+              <button class="button" type="button" data-create-participant>
+                <span class="button-icon" aria-hidden="true">+</span>
+                Teilnehmende Person erstellen
+              </button>
               <button class="button primary" type="button" data-export-csv>
                 <span class="button-icon" aria-hidden="true">↓</span>
                 CSV exportieren
@@ -247,20 +257,50 @@ unset($registration);
     <form class="admin-edit-modal" data-participant-form>
       <div class="modal-header">
         <div>
-          <span class="metric-label">Teilnehmenden-ID <span data-editor-participant-id></span></span>
-          <h2 id="participant_editor_title">Phase und Zuteilung bearbeiten</h2>
+          <span class="metric-label" data-editor-kicker>Teilnehmenden-ID</span>
+          <h2 id="participant_editor_title" data-editor-title>Teilnehmende Person bearbeiten</h2>
         </div>
         <button class="icon-button" type="button" aria-label="Dialog schliessen" data-close-participant-dialog>
           <span aria-hidden="true">×</span>
         </button>
       </div>
       <input type="hidden" name="id">
+      <input type="hidden" name="mode" value="edit">
       <div class="form-alert" data-participant-alert role="alert" hidden></div>
       <div class="form-grid admin-edit-grid">
+        <label class="field-label" for="participant_id">
+          <span>Teilnehmenden-ID</span>
+          <input id="participant_id" name="participantId" type="number" min="1" step="1"
+            inputmode="numeric" placeholder="Wird automatisch vergeben">
+        </label>
+        <label class="field-label" for="full_name">
+          <span>Name <small>(optional)</small></span>
+          <input id="full_name" name="fullName" maxlength="255" autocomplete="name">
+        </label>
+        <label class="field-label" for="participant_email">
+          <span>E-Mail-Adresse</span>
+          <input id="participant_email" name="email" type="email" maxlength="320" autocomplete="email" required>
+        </label>
+        <label class="field-label" for="participant_date_of_birth">
+          <span>Geburtsdatum</span>
+          <input id="participant_date_of_birth" name="dateOfBirth" type="date" required>
+        </label>
+        <label class="field-label field-wide" for="slot_id">
+          <span>Terminpräferenz <small>(optional)</small></span>
+          <select id="slot_id" name="slotId">
+            <option value="">Keine Terminpräferenz</option>
+            <?php foreach ($slots as $slot): ?>
+              <option value="<?php echo htmlspecialchars((string) $slot['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars((string) $slot['label'], ENT_QUOTES, 'UTF-8'); ?>
+                <?php echo (int) $slot['is_active'] === 1 ? '' : ' (inaktiv)'; ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </label>
         <label class="field-label field-wide" for="phase_override">
           <span>Individuelle Phase</span>
           <select id="phase_override" name="phaseOverride">
-            <option value="">Standardphase übernehmen</option>
+            <option value="" data-default-phase-option>Standardphase übernehmen</option>
             <?php foreach (participate_phase_labels() as $phase => $label): ?>
               <option value="<?php echo $phase; ?>">
                 Phase <?php echo $phase; ?> · <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
@@ -293,10 +333,12 @@ unset($registration);
           <input id="room" name="room" maxlength="64">
         </label>
       </div>
-      <p class="summary-note">Leere Felder werden als NULL gespeichert und können die sichtbare Phase begrenzen.</p>
+      <p class="summary-note" data-editor-note>
+        Leere optionale Felder werden als NULL gespeichert und können die sichtbare Phase begrenzen.
+      </p>
       <div class="modal-actions">
         <button class="button" type="button" data-close-participant-dialog>Abbrechen</button>
-        <button class="button primary" type="submit">Änderungen speichern</button>
+        <button class="button primary" type="submit" data-participant-submit>Änderungen speichern</button>
       </div>
     </form>
   </dialog>

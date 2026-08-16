@@ -94,6 +94,7 @@
 
 .admin-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.8rem;
@@ -193,8 +194,9 @@
 }
 
 .admin-edit-dialog {
-  width: min(760px, calc(100% - 1.5rem));
+  width: min(920px, calc(100% - 1.5rem));
   max-height: min(92vh, 900px);
+  overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper);
@@ -212,6 +214,11 @@
   display: grid;
   gap: 1rem;
   padding: 1rem;
+}
+
+.admin-edit-modal small {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .table-action-button.danger {

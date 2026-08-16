@@ -58,10 +58,10 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 146, participate admin-creation database
-  foundation.
-- Milestone 147 will add admin participant creation and registration-field
-  editing on top of this schema.
+- Last completed milestone: Milestone 147, participate admin participant
+  creation and identity editing.
+- Milestone 148 will add the phase-3 survey action and compact access-code copy
+  control.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -210,6 +210,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 144: Participate phase-aware signup and recovery actions
 - [x] Milestone 145: Compact participate recovery dialog
 - [x] Milestone 146: Participate admin-creation database foundation
+- [x] Milestone 147: Participate admin participant creation and identity editing
 
 ## Milestone 1
 ### Date
@@ -6863,3 +6864,84 @@ changing participant or admin behavior yet.
 ### Next steps
 1. Milestone 147: add admin participant creation and complete registration-field
    editing with browser/integration coverage.
+
+## Milestone 147
+### Date
+2026-08-16
+
+### Goal
+Let administrators create participants and edit their registration identity,
+signup slot, phase, and assignment data while preserving immediate public
+recovery access and database integrity.
+
+### What changed
+- Added **Teilnehmende Person erstellen** to the admin toolbar and expanded the
+  existing editor into a shared create/edit dialog.
+- The creation form requires only e-mail address and date of birth. Name,
+  participant ID, signup slot, phase, and all assignment fields are optional.
+- An omitted participant ID uses the database auto-increment. An explicit ID is
+  accepted only when it is a positive unique integer; the same rule applies to
+  ID edits.
+- Admin-created participants receive a cryptographically random public token,
+  active `received` status, `NULL` IP/user-agent values, and no confirmation
+  requirement or mail. They can immediately recover access with their e-mail
+  address and birth date.
+- Leaving the creation phase selector unchanged stores an explicit phase-1
+  override, even if the experiment-wide phase has already closed signup.
+  Explicit higher phases remain subject to the existing assignment-data
+  ceiling.
+- Signup slots are selected from `participation_slots`; clearing the selection
+  stores the slot reference and snapshot key/label as SQL `NULL`.
+- The edit dialog now supports participant ID, name, e-mail, birth date, signup
+  slot, phase, and all fixed assignment fields. Public token, timestamps,
+  network metadata, status, and results-interest history remain system-managed.
+- Registration, assignment, and participant-state changes are saved in one
+  transaction. Normalized e-mail, participant ID, and access code conflicts
+  return specific 409 responses; an ID change relies on milestone 146's update
+  cascades so dependent data follows the new ID.
+- Changed overall phase updates to update the existing singleton row directly,
+  keeping them compatible with the new required survey URL column.
+- Expanded the Playwright suite from five to six tests with minimal/full admin
+  creation, explicit and automatic IDs, phase defaulting while signup is
+  closed, duplicate ID/e-mail handling, ID/edit cascades, slot edits, recovery,
+  no-mail verification, CSV inclusion, and desktop/mobile dialog coverage.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All six participant/admin Playwright tests passed against the reset MySQL
+  schema and PHP server configured through `.env.test`.
+- A minimal admin-created participant recovered successfully with `NULL` name
+  and signup slot, stayed in phase 1 while the overall phase was 2, and
+  generated no mail artifact.
+- A complete explicit-ID participant reached phase 3, then retained its
+  assignment and recovery access after its ID, e-mail, name, and signup slot
+  were edited.
+- Duplicate create/edit IDs and normalized e-mail addresses returned the
+  expected conflict codes; both created records appeared in the full CSV.
+- Desktop create/edit and mobile create-dialog screenshots were inspected. The
+  desktop form is balanced in two columns; the mobile form stacks without
+  horizontal overflow and keeps actions reachable through dialog scrolling.
+
+### Known issues and decisions
+- Admin creation deliberately bypasses public signup closure; only the public
+  registration endpoint is closed outside phase 1.
+- Admin-created participants receive no confirmation e-mail and do not need to
+  confirm their address, as approved.
+- The participant ID is the registration primary key. After an edit, the
+  database is authoritative and future private CSV imports must use the new ID.
+- The in-app browser connection was unavailable; the project-owned
+  Playwright/Chromium setup provided interaction and visual coverage.
+
+### Next steps
+1. Milestone 148: expose the database-managed survey link only in phase 3 and
+   replace the access-code text action with an accessible adjacent copy icon.

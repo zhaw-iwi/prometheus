@@ -255,27 +255,65 @@ function participantFormField(form, name) {
   return form.elements.namedItem(name);
 }
 
-function openParticipantEditor(registration) {
+function configureParticipantEditor(mode, registration = null) {
   const dialog = document.querySelector("[data-participant-dialog]");
   const form = document.querySelector("[data-participant-form]");
   if (!dialog || !form) {
-    return;
+    return null;
   }
 
-  participantFormField(form, "id").value = valueFor(registration, "id");
-  participantFormField(form, "phaseOverride").value = registration.phase_override ?? "";
-  participantFormField(form, "halfDaySlot").value = valueFor(registration, "half_day_slot");
-  participantFormField(form, "timeSlot").value = valueFor(registration, "time_slot");
-  participantFormField(form, "accessCode").value = valueFor(registration, "access_code");
-  participantFormField(form, "role").value = valueFor(registration, "participant_role");
-  participantFormField(form, "teamId").value = valueFor(registration, "team_id");
-  participantFormField(form, "room").value = valueFor(registration, "room");
-  document.querySelector("[data-editor-participant-id]").textContent = valueFor(registration, "id");
+  form.reset();
+  participantFormField(form, "mode").value = mode;
+  participantFormField(form, "id").value = registration ? valueFor(registration, "id") : "";
+  participantFormField(form, "participantId").value = registration ? valueFor(registration, "id") : "";
+  participantFormField(form, "participantId").required = mode === "edit";
+  participantFormField(form, "fullName").value = registration ? valueFor(registration, "full_name") : "";
+  participantFormField(form, "email").value = registration ? valueFor(registration, "email") : "";
+  participantFormField(form, "dateOfBirth").value = registration ? valueFor(registration, "date_of_birth") : "";
+  participantFormField(form, "slotId").value = registration ? valueFor(registration, "slot_id") : "";
+  participantFormField(form, "phaseOverride").value = registration?.phase_override ?? "";
+  participantFormField(form, "halfDaySlot").value = registration ? valueFor(registration, "half_day_slot") : "";
+  participantFormField(form, "timeSlot").value = registration ? valueFor(registration, "time_slot") : "";
+  participantFormField(form, "accessCode").value = registration ? valueFor(registration, "access_code") : "";
+  participantFormField(form, "role").value = registration ? valueFor(registration, "participant_role") : "";
+  participantFormField(form, "teamId").value = registration ? valueFor(registration, "team_id") : "";
+  participantFormField(form, "room").value = registration ? valueFor(registration, "room") : "";
+
+  const creating = mode === "create";
+  document.querySelector("[data-editor-kicker]").textContent = creating
+    ? "Neue teilnehmende Person"
+    : `Teilnehmenden-ID ${valueFor(registration, "id")}`;
+  document.querySelector("[data-editor-title]").textContent = creating
+    ? "Teilnehmende Person erstellen"
+    : "Teilnehmende Person bearbeiten";
+  document.querySelector("[data-default-phase-option]").textContent = creating
+    ? "Phase 1 · Anmeldung (Standard für neue Teilnehmende)"
+    : "Standardphase übernehmen";
+  document.querySelector("[data-editor-note]").textContent = creating
+    ? "Nur E-Mail-Adresse und Geburtsdatum sind erforderlich. Es wird keine Bestätigungs-E-Mail versendet."
+    : "Leere optionale Felder werden als NULL gespeichert und können die sichtbare Phase begrenzen.";
+  document.querySelector("[data-participant-submit]").textContent = creating
+    ? "Person erstellen"
+    : "Änderungen speichern";
 
   const alert = form.querySelector("[data-participant-alert]");
   alert.hidden = true;
   alert.textContent = "";
-  openDialog(dialog);
+  return { dialog, form };
+}
+
+function openParticipantCreator() {
+  const editor = configureParticipantEditor("create");
+  if (editor) {
+    openDialog(editor.dialog);
+  }
+}
+
+function openParticipantEditor(registration) {
+  const editor = configureParticipantEditor("edit", registration);
+  if (editor) {
+    openDialog(editor.dialog);
+  }
 }
 
 async function saveParticipant(event) {
@@ -283,9 +321,15 @@ async function saveParticipant(event) {
   const form = event.currentTarget;
   const alert = form.querySelector("[data-participant-alert]");
   const submitButton = form.querySelector('button[type="submit"]');
+  const creating = participantFormField(form, "mode").value === "create";
   const payload = {
-    action: "save_participant",
+    action: creating ? "create_participant" : "save_participant",
     id: participantFormField(form, "id").value,
+    participantId: participantFormField(form, "participantId").value,
+    fullName: participantFormField(form, "fullName").value,
+    email: participantFormField(form, "email").value,
+    dateOfBirth: participantFormField(form, "dateOfBirth").value,
+    slotId: participantFormField(form, "slotId").value,
     phaseOverride: participantFormField(form, "phaseOverride").value || null,
     halfDaySlot: participantFormField(form, "halfDaySlot").value,
     timeSlot: participantFormField(form, "timeSlot").value,
@@ -423,6 +467,7 @@ document.querySelectorAll("[data-sort]").forEach((button) => {
 });
 
 document.querySelector("[data-export-csv]")?.addEventListener("click", exportCsv);
+document.querySelector("[data-create-participant]")?.addEventListener("click", openParticipantCreator);
 document.querySelector("[data-default-phase-form]")?.addEventListener("submit", saveDefaultPhase);
 document.querySelector("[data-participant-form]")?.addEventListener("submit", saveParticipant);
 document.querySelectorAll("[data-close-participant-dialog]").forEach((button) => {
