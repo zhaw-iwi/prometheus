@@ -167,16 +167,41 @@ function renderItems(target, items) {
     labelElement.className = "metric-label";
     labelElement.textContent = entry.label;
 
+    item.append(labelElement);
+    if (entry.href) {
+      const surveyLink = document.createElement("a");
+      surveyLink.className = "button primary survey-button";
+      surveyLink.href = entry.href;
+      surveyLink.target = "_blank";
+      surveyLink.rel = "noopener noreferrer";
+      surveyLink.setAttribute("aria-label", "Umfrage in neuem Tab öffnen");
+      surveyLink.innerHTML = `
+        <span>${entry.linkLabel || "Umfrage öffnen"}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 5h5v5"></path>
+          <path d="M19 5l-8 8"></path>
+          <path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path>
+        </svg>`;
+      item.append(surveyLink);
+      target.append(item);
+      return;
+    }
+
     const valueElement = document.createElement("strong");
     valueElement.textContent = entry.value ?? "-";
-
-    item.append(labelElement, valueElement);
     if (entry.copy && entry.value) {
+      const valueRow = document.createElement("div");
+      valueRow.className = "summary-value-row";
       const copyButton = document.createElement("button");
       copyButton.className = "copy-button";
       copyButton.type = "button";
-      copyButton.textContent = "Kopieren";
       copyButton.setAttribute("aria-label", `${entry.label} kopieren`);
+      copyButton.title = `${entry.label} kopieren`;
+      copyButton.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+          <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"></path>
+        </svg>`;
       copyButton.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(String(entry.value));
@@ -185,7 +210,10 @@ function renderItems(target, items) {
           showAlert(`Zugangscode: ${entry.value}`);
         }
       });
-      item.append(copyButton);
+      valueRow.append(valueElement, copyButton);
+      item.append(valueRow);
+    } else {
+      item.append(valueElement);
     }
     target.append(item);
   });
@@ -202,13 +230,22 @@ function assignmentItems(assignment, phase) {
     { label: "Zeitfenster", value: assignment.timeSlot, field: "timeSlot" },
     { label: "Datum", value: assignment.date, field: "date" }
   ];
-  if (phase >= 3) {
+  if (phase === 3) {
     items.push(
       { label: "Zugangscode", value: assignment.accessCode, field: "accessCode", copy: true },
       { label: "Rolle", value: assignment.role, field: "role" },
       { label: "Team-ID", value: assignment.teamId, field: "teamId" },
       { label: "Raum", value: assignment.room, field: "room" }
     );
+    if (assignment.surveyUrl) {
+      items.push({
+        label: "Umfrage",
+        field: "surveyUrl",
+        href: assignment.surveyUrl,
+        linkLabel: "Umfrage öffnen",
+        full: true
+      });
+    }
   }
   return items;
 }

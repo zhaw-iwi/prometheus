@@ -271,7 +271,10 @@ JSON response is filtered on the server:
 - Phase 1 shows the saved signup summary.
 - Phase 2 sends and shows participant ID, half-day, time slot, and the stored
   registration slot label as the date.
-- Phase 3 additionally sends and shows access code, role, team ID, and room.
+- Phase 3 additionally sends and shows access code, role, team ID, room, and
+  the database-managed survey URL. The access code has an adjacent copy icon;
+  the survey opens from a button in a new browser tab. Neither value is sent
+  in phases 2 or 4.
 - Phase 4 sends no assignment fields, thanks the participant, and provides a
   reversible results-information choice with its last-change timestamp.
 
@@ -427,7 +430,10 @@ and server-side signup closure outside phase 1. It also opens a clean browser
 context to verify e-mail/date-of-birth recovery, phase-2 response filtering,
 the full phase-3 display, phase-4 replacement, reversible persisted
 results-interest, closed-signup recovery, and the exported/admin-visible
-interest value. Admin coverage also creates minimal and fully assigned
+interest value. The phase-3 coverage verifies the exact filtered JSON payload,
+clipboard contents, the survey link's new-tab behavior, and desktop/mobile
+layouts; phases 2 and 4 verify that access code and survey URL are absent.
+Admin coverage also creates minimal and fully assigned
 participants while signup is closed, rejects duplicate IDs/e-mails, edits an
 ID with dependent data intact, verifies no confirmation mail, exercises public
 recovery, and checks the create dialog at desktop and mobile widths.

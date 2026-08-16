@@ -830,25 +830,51 @@ input:focus-visible,
   margin-bottom: 0;
 }
 
+.summary-value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.summary-value-row strong {
+  overflow-wrap: anywhere;
+}
+
 .copy-button {
-  width: max-content;
-  min-height: 1.8rem;
-  margin-top: 0.35rem;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2rem;
+  min-height: 2rem;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--surface-strong);
   color: var(--ink);
   cursor: pointer;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 800;
-  padding: 0.2rem 0.5rem;
+  padding: 0;
 }
 
 .copy-button:hover,
 .copy-button:focus-visible {
   border-color: rgba(0, 176, 162, 0.5);
   background: rgba(0, 176, 162, 0.1);
+}
+
+.copy-button svg,
+.survey-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.survey-button {
+  width: max-content;
+  margin-top: 0.25rem;
 }
 
 .results-interest {

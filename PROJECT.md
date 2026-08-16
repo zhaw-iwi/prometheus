@@ -58,10 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 147, participate admin participant
-  creation and identity editing.
-- Milestone 148 will add the phase-3 survey action and compact access-code copy
-  control.
+- Last completed milestone: Milestone 148, participate phase-3 survey and
+  access-code actions.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -211,6 +209,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 145: Compact participate recovery dialog
 - [x] Milestone 146: Participate admin-creation database foundation
 - [x] Milestone 147: Participate admin participant creation and identity editing
+- [x] Milestone 148: Participate phase-3 survey and access-code actions
 
 ## Milestone 1
 ### Date
@@ -6945,3 +6944,63 @@ recovery access and database integrity.
 ### Next steps
 1. Milestone 148: expose the database-managed survey link only in phase 3 and
    replace the access-code text action with an accessible adjacent copy icon.
+
+## Milestone 148
+### Date
+2026-08-16
+
+### Goal
+Expose the one database-managed experiment survey only to phase-3 participants
+and make the phase-3 access code directly copyable without leaking either value
+into another phase.
+
+### What changed
+- Read and validate the singleton survey URL on the server only when a
+  participant's effective phase is exactly 3.
+- Added `surveyUrl` to the phase-3 public assignment payload while preserving
+  the exact phase-2 schedule-only payload and the empty phase-4 payload.
+- Added a full-width **Umfrage** card with a button that opens the configured
+  URL in a new tab using `noopener noreferrer`.
+- Replaced the access-code text action with an accessible compact copy icon
+  immediately beside the code. The action uses the Clipboard API with the
+  existing fallback and confirmation message.
+- Extended PHP rule tests and Playwright lifecycle coverage for exact payload
+  keys, URL filtering, real clipboard contents, new-tab navigation, phase-2
+  and phase-4 absence, and responsive presentation.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/assets/app.js`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All six participant/admin Playwright tests passed against the reset MySQL
+  database and PHP server configured through `.env.test`.
+- Phase 3 returned the exact expected assignment keys, copied the access code
+  into the browser clipboard, and opened the configured survey URL in a new
+  tab.
+- Phase 2 exposed schedule data only; phase 4 replaced assignment data and
+  exposed neither the access code nor survey URL.
+- Desktop and 390-pixel mobile screenshots were inspected. The access-code
+  action remains adjacent to its value, the survey card is visually distinct,
+  and the mobile page has no horizontal overflow.
+
+### Known issues and decisions
+- The survey URL is one experiment-wide database setting rather than a
+  per-participant assignment field, as approved.
+- Invalid or non-HTTP(S) stored values are withheld from the public payload.
+- The in-app browser connection remained unavailable; the project-owned
+  Playwright/Chromium setup provided interaction and visual coverage.
+- Milestone 148 requires no additional migration; deploy the migration created
+  in milestone 146 before these application files.
+
+### Next steps
+1. Apply `database/migrations/20260816_participant_admin_fields.sql` to the
+   deployment database, then deploy the updated `.web/participate/` files.

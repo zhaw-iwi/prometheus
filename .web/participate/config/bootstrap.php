@@ -248,11 +248,15 @@ function participate_public_participant_session(PDO $pdo, array $row, ?int $defa
     $default = $defaultPhase ?? participate_default_phase($pdo);
     $phase = participate_phase_context($default, $override, $assignment);
     $effectivePhase = $phase['effectivePhase'];
+    $surveyUrl = $effectivePhase === PARTICIPATE_PHASE_ASSIGNMENT
+        ? participate_survey_url($pdo)
+        : null;
     $visibleAssignment = participate_visible_assignment(
         (int) $row['registration_id'],
         $assignment,
         $effectivePhase,
-        $row['slot_preference_label'] ?? null
+        $row['slot_preference_label'] ?? null,
+        $surveyUrl
     );
     $interest = ($row['results_interest'] ?? null) === null
         ? null

@@ -56,6 +56,19 @@ function participate_default_phase(PDO $pdo): int
     return participate_phase_from_value($statement->fetchColumn()) ?? PARTICIPATE_PHASE_SIGNUP;
 }
 
+function participate_survey_url(PDO $pdo): ?string
+{
+    $statement = $pdo->query(
+        'SELECT survey_url FROM participation_phase_settings WHERE id = 1 LIMIT 1'
+    );
+    $url = participate_nullable_text($statement->fetchColumn());
+    if ($url === null || filter_var($url, FILTER_VALIDATE_URL) === false) {
+        return null;
+    }
+    $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+    return in_array($scheme, ['http', 'https'], true) ? $url : null;
+}
+
 function participate_nullable_text(mixed $value): ?string
 {
     if ($value === null) {
@@ -127,7 +140,8 @@ function participate_visible_assignment(
     int $registrationId,
     ?array $assignment,
     int $effectivePhase,
-    ?string $slotPreferenceLabel
+    ?string $slotPreferenceLabel,
+    ?string $surveyUrl = null
 ): array
 {
     if ($effectivePhase < PARTICIPATE_PHASE_SCHEDULE || $effectivePhase >= PARTICIPATE_PHASE_COMPLETE) {
@@ -149,6 +163,10 @@ function participate_visible_assignment(
             'teamId' => participate_nullable_text($assignment['team_id'] ?? null),
             'room' => participate_nullable_text($assignment['room'] ?? null),
         ];
+        $visibleSurveyUrl = participate_nullable_text($surveyUrl);
+        if ($visibleSurveyUrl !== null) {
+            $visible['surveyUrl'] = $visibleSurveyUrl;
+        }
     }
 
     return $visible;

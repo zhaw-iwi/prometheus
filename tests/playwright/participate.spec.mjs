@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const mailDir = resolve(".web/participate/.tmp/mail");
+const surveyUrl = "https://www.uzh.ch/zi/cl/surveys/index.php/922424?lang=de-easy";
 
 function mailFiles() {
   try {
@@ -522,6 +523,16 @@ test("participants recover access across devices and receive only their active p
 
   const baseURL = String(testInfo.project.use.baseURL);
   const recoveryContext = await browser.newContext({ baseURL });
+  await recoveryContext.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: new URL(baseURL).origin,
+  });
+  await recoveryContext.route(surveyUrl, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<!doctype html><title>Survey test target</title>",
+    });
+  });
   const recoveryPage = await recoveryContext.newPage();
   await recoveryPage.goto("/");
   await expect(recoveryPage.getByRole("button", { name: "Bereits angemeldet?" })).toBeVisible();
@@ -547,6 +558,8 @@ test("participants recover access across devices and receive only their active p
     "Montag, 17. August 2026, 09:00 bis 13:00",
   );
   await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("RECOVERY-CODE-141");
+  await expect(recoveryPage.getByRole("button", { name: "Zugangscode kopieren" })).toHaveCount(0);
+  await expect(recoveryPage.getByRole("link", { name: "Umfrage in neuem Tab öffnen" })).toHaveCount(0);
 
   const phaseTwoPayload = await recoveryPage.request.get("/api/registration.php");
   expect(phaseTwoPayload.status()).toBe(200);
@@ -575,6 +588,48 @@ test("participants recover access across devices and receive only their active p
   await expect(recoveryPage.locator('[data-assignment-field="date"]')).toContainText(
     "Montag, 17. August 2026, 09:00 bis 13:00",
   );
+  const phaseThreeBody = await (await recoveryPage.request.get("/api/registration.php")).json();
+  expect(Object.keys(phaseThreeBody.assignment)).toEqual([
+    "participantId",
+    "halfDaySlot",
+    "timeSlot",
+    "date",
+    "accessCode",
+    "role",
+    "teamId",
+    "room",
+    "surveyUrl",
+  ]);
+  expect(phaseThreeBody.assignment.surveyUrl).toBe(surveyUrl);
+
+  const copyAccessCode = recoveryPage.getByRole("button", { name: "Zugangscode kopieren" });
+  await expect(copyAccessCode).toBeVisible();
+  await expect(copyAccessCode.locator("svg")).toBeVisible();
+  await copyAccessCode.click();
+  await expect(recoveryPage.locator("#status_alert")).toContainText("Zugangscode wurde kopiert");
+  expect(await recoveryPage.evaluate(() => navigator.clipboard.readText())).toBe("RECOVERY-CODE-141");
+
+  const surveyLink = recoveryPage.getByRole("link", { name: "Umfrage in neuem Tab öffnen" });
+  await expect(surveyLink).toBeVisible();
+  await expect(surveyLink).toHaveAttribute("href", surveyUrl);
+  await expect(surveyLink).toHaveAttribute("target", "_blank");
+  await expect(surveyLink).toHaveAttribute("rel", "noopener noreferrer");
+  const [surveyPage] = await Promise.all([
+    recoveryPage.waitForEvent("popup"),
+    surveyLink.click(),
+  ]);
+  await surveyPage.waitForLoadState("domcontentloaded");
+  expect(surveyPage.url()).toBe(surveyUrl);
+  await surveyPage.close();
+  await recoveryPage.setViewportSize({ width: 390, height: 844 });
+  const phaseThreeMobileOverflow = await recoveryPage.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  expect(phaseThreeMobileOverflow.scrollWidth).toBeLessThanOrEqual(phaseThreeMobileOverflow.innerWidth);
+  await expect(copyAccessCode).toBeVisible();
+  await expect(surveyLink).toBeVisible();
+  await recoveryPage.setViewportSize({ width: 1440, height: 1000 });
 
   const phaseFourUpdate = await page.request.post("/admin/update.php", {
     data: { ...assignment, phaseOverride: 4 },
@@ -585,6 +640,8 @@ test("participants recover access across devices and receive only their active p
   await expect(recoveryPage.locator("[data-results-interest-form]")).toBeVisible();
   await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("RECOVERY-CODE-141");
   await expect(recoveryPage.locator("[data-participant-section]")).not.toContainText("10:30 - 11:45 Uhr");
+  await expect(recoveryPage.getByRole("button", { name: "Zugangscode kopieren" })).toHaveCount(0);
+  await expect(recoveryPage.getByRole("link", { name: "Umfrage in neuem Tab öffnen" })).toHaveCount(0);
   const phaseFourBody = await (await recoveryPage.request.get("/api/registration.php")).json();
   expect(phaseFourBody.assignment).toEqual({});
 
