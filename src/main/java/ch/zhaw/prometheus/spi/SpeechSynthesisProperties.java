@@ -4,8 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConfigurationProperties(prefix = "prometheus.talktome.speech")
-public class TalkToMeSpeechProperties {
+@ConfigurationProperties(prefix = "prometheus.speech")
+public class SpeechSynthesisProperties {
     private String model = "gpt-4o-mini-tts";
     private String url = "https://api.openai.com/v1/audio/speech";
 

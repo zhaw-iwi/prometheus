@@ -6,9 +6,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Optional;
@@ -23,7 +25,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import ch.zhaw.prometheus.application.ScopedTalkToMeSpeechService;
-import ch.zhaw.prometheus.application.TalkToMeSpeechSettings;
+import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.spi.SpeechAudio;
 
@@ -39,10 +41,10 @@ class TalkToMeSpeechControllerWebMvcTest {
     void mapsDedicatedRequestAndReturnsUncachedAudio() throws Exception {
         UUID agentId = UUID.randomUUID();
         when(this.speechService.synthesize(eq("abc12"), eq(agentId), any(EventRequest.class),
-                any(TalkToMeSpeechSettings.class)))
+                any(SpeechSynthesisSettings.class)))
                 .thenReturn(Optional.of(new SpeechAudio(new byte[] { 1, 2, 3 }, "audio/mpeg")));
 
-        this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
+        var result = this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
                 .contentType(MediaType.APPLICATION_JSON)
                 .queryParam("voice", "Marin")
@@ -51,11 +53,16 @@ class TalkToMeSpeechControllerWebMvcTest {
                         {"type":"obs.user_utterance","actor":"user","kind":"observation","payload":"Exact text"}
                         """))
                 .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        this.mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().contentType("audio/mpeg"))
                 .andExpect(content().bytes(new byte[] { 1, 2, 3 }));
 
-        ArgumentCaptor<TalkToMeSpeechSettings> settings = ArgumentCaptor.forClass(TalkToMeSpeechSettings.class);
+        ArgumentCaptor<SpeechSynthesisSettings> settings = ArgumentCaptor.forClass(SpeechSynthesisSettings.class);
         verify(this.speechService).synthesize(eq("abc12"), eq(agentId), any(EventRequest.class), settings.capture());
         assertEquals("marin", settings.getValue().getVoice());
         assertEquals(1.25, settings.getValue().getSpeed(), 0.0001);

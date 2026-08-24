@@ -39,6 +39,11 @@ code.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   and PROMETHEUS-authoritative Realtime speech orchestration.
+- Access-code-scoped live-transcription sessions and serialized finalized-turn
+  ingress through the ordinary full-plan acknowledgement pipeline.
+- Streamed output-only Speech synthesis that resolves canonical speech from a
+  persisted, scoped behaviour-event ID and shares provider mechanics with Talk
+  to Me without sharing its client policy.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -58,8 +63,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 152, scoped `FULL_PLAN` transcript ingress
-  with ordered acknowledgement and SSE-authoritative behaviour rendering.
+- Last completed milestone: Milestone 153, canonical persisted-behaviour Speech
+  synthesis with scoped event ownership and shared streaming provider mechanics.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -7241,3 +7246,59 @@ input and leaving canonical behaviour rendering to SSE.
 
 ### Next steps
 1. Implement milestone 153: canonical persisted-behaviour Speech synthesis.
+
+## Milestone 153
+### Date
+2026-08-24
+
+### Goal
+Provide output-only Speech synthesis from the exact persisted behaviour event
+selected by an authorized client, while sharing provider infrastructure with
+Talk to Me and accepting no browser-authored speech text on the new boundary.
+
+### What changed
+- Added an access-code-scoped behaviour Speech endpoint keyed by agent and
+  behaviour event UUID. It searches only the scoped agent history, requires a
+  valid `resp.behaviour_plan`, and synthesizes its exact non-empty speech.
+- Generalized the Talk-to-Me-specific provider properties and voice/speed
+  settings into shared Speech synthesis infrastructure. Talk to Me retains its
+  dedicated agent-tag restriction, acknowledgement, and exact-text policy.
+- Changed the provider gateway and both HTTP endpoints to stream uncached audio
+  with normalized `audio/*` metadata. Closing or failing the downstream copy
+  closes the upstream provider stream.
+- Removed the obsolete `prometheus.talktome.speech.*` configuration classes and
+  keys in favor of `prometheus.speech.*`.
+- Documented the canonical endpoint, ownership and error semantics, defaults,
+  shared configuration, and streaming behavior.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SpeechSynthesisSettingsUnitTest,ScopedBehaviourSpeechServiceUnitTest,SpeechAudioUnitTest,OpenAISpeechSynthesisGatewayUnitTest,BehaviourSpeechControllerWebMvcTest,TalkToMeSpeechControllerWebMvcTest,ScopedTalkToMeSpeechServiceUnitTest,TalkToMeScopedIntegrationTest,ScopedDemoControllerIntegrationTest" test`
+- `npm.cmd run test:talktome:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java matrix passed 30 tests covering shared settings, canonical
+  event lookup and parsing, provider mapping/error handling, streamed audio,
+  both Web MVC boundaries, Talk to Me policy, and scoped integration.
+- The scoped integration path acknowledged a real RPS transcript, selected the
+  resulting persisted behaviour UUID, and verified that the provider received
+  exactly that plan's speech before the endpoint streamed the mocked audio.
+- The full current Java suite passed 270 tests with zero failures, errors, or
+  skips. Surefire logged its existing forced-fork-shutdown warning after the
+  successful result.
+- The Talk to Me Playwright lifecycle/synthesis smoke passed one test unchanged,
+  and `git diff --check` passed apart from Git's line-ending notices.
+
+### Known issues and decisions
+- `prometheus.talktome.speech.*` is intentionally not retained as a compatibility
+  alias; affected prototype deployments must rename the two properties.
+- The provider contract uses a local chunked fake server. No live OpenAI/Azure
+  credential, browser disconnect during an active provider stream, physical
+  audio device, or acoustic environment was exercised.
+- Valerian does not consume the new endpoint yet. Milestone 154 owns live-only
+  SSE playback, ordering, output ownership, half-duplex microphone gating, and
+  Stop behavior.
+
+### Next steps
+1. Implement milestone 154: Valerian playback and explicit turn coordination.

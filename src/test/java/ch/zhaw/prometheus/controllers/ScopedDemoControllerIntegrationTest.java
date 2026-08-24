@@ -7,11 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -47,6 +52,8 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionInfo;
+import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -82,6 +89,9 @@ class ScopedDemoControllerIntegrationTest {
 
     @MockitoBean
     private LiveTranscriptionSessionClient liveTranscriptionSessionClient;
+
+    @MockitoBean
+    private SpeechSynthesisGateway speechSynthesisGateway;
 
     @BeforeEach
     void setUp() {
@@ -326,6 +336,27 @@ class ScopedDemoControllerIntegrationTest {
         assertNotNull(persistedPlan.getNonVerbal());
         assertNotNull(persistedPlan.getMotion());
         assertNotNull(persistedPlan.getDisplay());
+
+        Event persistedEvent = generatedPlans.get(0);
+        byte[] audio = new byte[] { 4, 9, 3 };
+        when(this.speechSynthesisGateway.synthesize(persistedPlan.getSpeech(), "cedar", 1.25))
+                .thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+
+        MvcResult speechResult = this.mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/"
+                + persistedEvent.getId() + "/speech")
+                .header(HEADER, accessCode)
+                .queryParam("voice", "cedar")
+                .queryParam("speed", "1.25"))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        this.mockMvc.perform(asyncDispatch(speechResult))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().contentType("audio/mpeg"))
+                .andExpect(content().bytes(audio));
+        verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25);
     }
 
     private AccessCodeView allowType(String code, String typeKey) {

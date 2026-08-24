@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,7 +93,7 @@ class TalkToMeScopedIntegrationTest {
         when(this.speechSynthesisGateway.synthesize(anyString(), anyString(), anyDouble()))
                 .thenReturn(new SpeechAudio(new byte[] { 4, 5, 6 }, "audio/mpeg"));
 
-        this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
+        MvcResult speechResult = this.mockMvc.perform(post("/demo/talktome/agents/" + agentId + "/speech")
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, ACCESS_CODE)
                 .queryParam("voice", "marin")
                 .queryParam("speed", "1.25")
@@ -101,6 +103,11 @@ class TalkToMeScopedIntegrationTest {
                         "actor", Event.ACTOR_USER,
                         "kind", Event.KIND_OBSERVATION,
                         "payload", text))))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        this.mockMvc.perform(asyncDispatch(speechResult))
                 .andExpect(status().isOk())
                 .andExpect(result -> assertEquals("audio/mpeg", result.getResponse().getContentType()))
                 .andExpect(result -> assertTrue(java.util.Arrays.equals(new byte[] { 4, 5, 6 },

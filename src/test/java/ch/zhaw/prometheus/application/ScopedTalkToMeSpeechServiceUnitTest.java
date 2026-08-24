@@ -38,7 +38,7 @@ class ScopedTalkToMeSpeechServiceUnitTest {
         ScopedTalkToMeSpeechService service = new ScopedTalkToMeSpeechService(this.demoService, this.speechGateway);
 
         Optional<?> result = service.synthesize("abc12", agentId, new EventRequest(),
-                new TalkToMeSpeechSettings(null, null));
+                new SpeechSynthesisSettings(null, null));
 
         assertTrue(result.isEmpty());
         verify(this.demoService, never()).acknowledge(any(), any(), any(), any());

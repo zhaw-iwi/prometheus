@@ -217,8 +217,8 @@ Minimum configuration:
 - `openai.openaivsazureopenai`
 - `openai.url`
 - `openai.key`
-- `prometheus.talktome.speech.model` and `prometheus.talktome.speech.url` when
-  overriding Talk to Me's output-only Speech defaults
+- `prometheus.speech.model` and `prometheus.speech.url` when overriding the
+  shared output-only Speech synthesis defaults
 - `prometheus.admin.token` for Valerian Access Management
 
 Run the application:
@@ -821,6 +821,24 @@ requesting one normal `full_plan` generation.
 
 ### Output-only Speech
 
+Any scoped client can request audio for the canonical speech in an already
+persisted behaviour-plan event:
+
+```http
+POST /demo/agents/{agentId}/behaviours/{eventId}/speech?voice=cedar&speed=1.25
+X-Prometheus-Access-Code: VX102
+```
+
+`eventId` is the UUID delivered as the behaviour SSE event ID. PROMETHEUS looks
+up that event only in the scoped agent's history, requires a
+`resp.behaviour_plan` with non-empty speech, and sends its exact persisted
+speech to the provider. This endpoint has no request body and therefore cannot
+synthesize browser-authored or foreign-agent text. It returns uncached,
+streamed provider audio with an explicit `audio/*` content type. Unknown agents
+or events return `404`; events that are not usable speech behaviours return
+`409`; unsupported voices or speeds outside `0.25` through `4.0` return `400`.
+The defaults are `alloy` and `1.0`.
+
 Talk to Me does not create a Realtime call. It sends the observation and speech
 options to a scoped backend endpoint:
 
@@ -836,12 +854,12 @@ The dedicated endpoint first verifies that the scoped agent carries the
 `utility.talk_to_me` profile tag. PROMETHEUS then acknowledges the observation
 with the `REALTIME_SPEECH` output profile, persists the deterministic
 `core.talk_to_me` speech plan, and passes that canonical speech string to
-`prometheus.talktome.speech.url` using
-`prometheus.talktome.speech.model` (default: `gpt-4o-mini-tts`). The endpoint
-returns uncached MP3 audio. Unsupported voices or speeds outside `0.25` through
-`4.0` are rejected before synthesis. The shared scoped-agent controller,
-Realtime configuration, and Realtime speech selection remain independent of
-this output-only path.
+`prometheus.speech.url` using `prometheus.speech.model` (default:
+`gpt-4o-mini-tts`). The Talk to Me endpoint retains its exact-text behavior and
+`utility.talk_to_me` agent-tag restriction while sharing provider configuration,
+voice/speed validation, and streamed HTTP audio mechanics with canonical
+behaviour speech. Realtime configuration and Realtime speech selection remain
+independent of these output-only paths.
 
 ## Admin API
 

@@ -84,8 +84,8 @@ PROMETHEUS currently provides:
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
-- scoped access-code APIs and trusted global APIs, including exact-text Speech
-  synthesis;
+- scoped access-code APIs and trusted global APIs, including streamed Speech
+  synthesis from exact persisted behaviour-event identity;
 - behaviour and monitor SSE streams with heartbeat, replay, cursor, and
   disconnect resilience;
 - PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
@@ -188,13 +188,13 @@ model. Talk to Me is a reduced public client under
 `src/main/resources/public/talktome`; it uses explicit access-code-scoped agent
 lifecycle and backend-authoritative output-only OpenAI Speech synthesis without
 microphone capture or browser-authored speech responses. Its synthesis endpoint,
-application service, and configuration are Talk-to-Me-specific and reject agents
-without the `utility.talk_to_me` profile tag before acknowledgement. Valerian
-and the multilateral listener share the transcription-first browser transport.
-Valerian currently displays ordered finalized transcripts from that transport;
-the next milestone connects those finals to scoped `FULL_PLAN`
-acknowledgement. Combined assistant-audio code remains only as migration debt
-until the removal milestone.
+application service, and agent-tag policy remain Talk-to-Me-specific and reject
+agents without the `utility.talk_to_me` profile tag before acknowledgement.
+Provider configuration, voice/speed validation, and streamed audio response
+mechanics are shared with the scoped canonical behaviour-speech endpoint.
+Valerian and the multilateral listener share the transcription-first browser
+transport and serialized scoped `FULL_PLAN` ingress. Combined assistant-audio
+code remains only as migration debt until the removal milestone.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation

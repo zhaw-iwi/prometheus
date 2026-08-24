@@ -3,7 +3,7 @@ package ch.zhaw.prometheus.application;
 import java.util.Locale;
 import java.util.Set;
 
-public class TalkToMeSpeechSettings {
+public class SpeechSynthesisSettings {
     private static final String DEFAULT_VOICE = "alloy";
     private static final double DEFAULT_SPEED = 1.0;
     private static final Set<String> VOICES = Set.of(
@@ -13,7 +13,7 @@ public class TalkToMeSpeechSettings {
     private final String voice;
     private final double speed;
 
-    public TalkToMeSpeechSettings(String voice, String speed) {
+    public SpeechSynthesisSettings(String voice, String speed) {
         this.voice = normalizeVoice(voice);
         this.speed = parseSpeed(speed);
     }

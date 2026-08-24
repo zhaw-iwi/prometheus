@@ -26,7 +26,7 @@ public class ScopedTalkToMeSpeechService {
     }
 
     public Optional<SpeechAudio> synthesize(String accessCode, UUID agentId, EventRequest request,
-            TalkToMeSpeechSettings settings) {
+            SpeechSynthesisSettings settings) {
         Optional<AgentInfoView> agentInfo = this.demoService.getAgentInfo(accessCode, agentId);
         if (agentInfo.isEmpty() || !isTalkToMe(agentInfo.get())) {
             return Optional.empty();
