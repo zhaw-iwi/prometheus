@@ -22,6 +22,8 @@ class RealtimeBrowserClientContractTest {
             "src/main/resources/public/transcription/events.js");
     private static final Path TRANSCRIPTION_INGRESS = Path.of(
             "src/main/resources/public/transcription/ingress.js");
+    private static final Path SPEECH_PLAYBACK = Path.of(
+            "src/main/resources/public/speech/playback.js");
 
     @Test
     void valerianSpeechClientUsesPrometheusBoundRealtimeCallEndpoint() throws IOException {
@@ -171,6 +173,30 @@ class RealtimeBrowserClientContractTest {
         assertDoesNotContain(ingress, "realtime_speech");
         assertDoesNotContain(ingress, "backend_complement");
         assertDoesNotContain(multilateral, "`/${session.agentId}/acknowledge`");
+    }
+
+    @Test
+    void valerianSpeaksOnlyLivePersistedBehaviourThroughOrderedOutputOwnership() throws IOException {
+        String index = Files.readString(VALERIAN_INDEX);
+        String script = Files.readString(VALERIAN_SCRIPT);
+        String playback = Files.readString(SPEECH_PLAYBACK);
+
+        assertContains(index, "/speech/browser-global.js");
+        assertContains(index, "data-testid=\"speech-playback-status\"");
+        assertContains(index, "data-testid=\"stop-speech-playback\"");
+        assertContains(script, "[\"behaviour-live\", \"behaviour-replay\"]");
+        assertContains(script, "delivery: eventName === \"behaviour-live\" ? \"live\" : \"replay\"");
+        assertContains(script, "/behaviours/${encodeURIComponent(item.eventId)}/speech");
+        assertContains(script, "realtime.transcriptIngress?.setAccepting(inputEnabled)");
+        assertContains(script, "realtime.transcriptionClient.setInputEnabled(inputEnabled)");
+        assertContains(script, "applySelectedSpeechOutputDevice()");
+        assertContains(playback, "item.delivery !== LIVE_DELIVERY");
+        assertContains(playback, "this.completed = new Set()");
+        assertContains(playback, "this.failed = new Set()");
+        assertContains(playback, "this.skipped = new Set()");
+        assertContains(playback, "prometheus.valerian.output-lease.v1.");
+        assertContains(playback, "this.current.controller.abort(reason)");
+        assertDoesNotContain(script, "addEventListener(\"behaviour\",");
     }
 
     private static void assertContains(String text, String expected) {

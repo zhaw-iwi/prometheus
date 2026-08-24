@@ -44,6 +44,9 @@ code.
 - Streamed output-only Speech synthesis that resolves canonical speech from a
   persisted, scoped behaviour-event ID and shares provider mechanics with Talk
   to Me without sharing its client policy.
+- Explicit live/replay behaviour SSE delivery and ordered Valerian playback of
+  live canonical Speech, with cross-tab output ownership, selected-device
+  routing, Stop semantics, and half-duplex transcription input gating.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -63,8 +66,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 153, canonical persisted-behaviour Speech
-  synthesis with scoped event ownership and shared streaming provider mechanics.
+- Last completed milestone: Milestone 154, live-only Valerian behaviour Speech
+  playback with ordered event identity, single-window output ownership, and
+  deterministic transcription input gating.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -7302,3 +7306,76 @@ Talk to Me and accepting no browser-authored speech text on the new boundary.
 
 ### Next steps
 1. Implement milestone 154: Valerian playback and explicit turn coordination.
+
+## Milestone 154
+### Date
+2026-08-24
+
+### Goal
+Complete Valerian's transcription-first speech loop by making live behaviour
+delivery explicit, synthesizing persisted speech exactly once, and coordinating
+output with transcription input across queued audio and multiple browser tabs.
+
+### What changed
+- Split behaviour SSE delivery into `behaviour-live` publications and
+  `behaviour-replay` initial/history/reconnect recovery while preserving each
+  event's persisted ID, payload object, ordering, cursor behavior, and heartbeat.
+- Updated Valerian and API Workbench to consume both named deliveries. Valerian
+  renders both visually but sends only live, non-empty, event-ID-addressed speech
+  to the canonical scoped synthesis endpoint.
+- Added a reusable ordered browser playback queue with event-ID deduplication,
+  distinct completed/failed/skipped tracking, cancellation, resource cleanup,
+  failure recovery, selected speaker routing, and operator status/Stop controls.
+- Added an expiring per-agent cross-tab output lease so duplicate Valerian pages
+  elect one audible owner for a live behaviour.
+- Gated transcript ingress and provider microphone input before synthesis starts,
+  cleared stale input/VAD state, and reopened a fresh provider epoch only after
+  the whole output burst completes or Stop/error/disconnect releases it.
+- Documented the live/replay contract and the Valerian half-duplex playback
+  lifecycle in the README and project context.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SseBroadcasterHardeningUnitTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ApiWorkbenchStaticResourceContractTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `npm.cmd run test:apiworkbench:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java SSE/client contract matrix passed 34 tests. Its broadcaster
+  capture proves live/replay labels, unchanged data identity and persisted IDs,
+  cursor replay ordering, and comment heartbeats.
+- The deterministic Node suites passed 18 transcription tests and 4 playback
+  tests, including ordered recovery, deduplication, replay suppression, Stop,
+  lease conflict/recovery, and fresh input epochs around the output gate.
+- The fake-boundary Valerian Playwright suite passed 7 scenarios, including the
+  full transcript -> acknowledgement -> live SSE -> one TTS request -> playback
+  path, acknowledgement/live deduplication, silent replay, two-page ownership,
+  and input reopening after Stop or synthesis failure. Its state screenshots
+  cover listening, loading, speaking, stopped, and error layouts.
+- The broader Valerian visual suite passed 5 tests and API Workbench passed 6,
+  including a real browser `EventSource` consuming `behaviour-live`.
+- The full current Java suite passed 272 tests with zero failures, errors, or
+  skips. Surefire logged its existing forced-fork-shutdown warning after the
+  successful result. JavaScript syntax checks and `git diff --check` passed
+  apart from Git's line-ending notices.
+
+### Known issues and decisions
+- No real OpenAI/Azure credential, physical microphone, Bluetooth speaker, or
+  quiet/noisy near-/far-field acoustic matrix was exercised. Those remain the
+  required live smoke before release and before claiming self-transcription is
+  eliminated in a real room.
+- The browser output lease is deliberately advisory and recovers by expiry if a
+  tab crashes. Provider synthesis failure, media failure, or autoplay rejection
+  is visible and reopens input rather than retrying speech implicitly.
+- The old combined Realtime call/sideband implementation still exists only as
+  migration debt. Milestone 155 removes that architecture, its profiles and
+  configuration, after which the transcription-first path becomes the sole
+  bundled agent speech path.
+
+### Next steps
+1. Implement milestone 155: remove the combined Realtime architecture and
+   legacy profiles.

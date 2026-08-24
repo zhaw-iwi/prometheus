@@ -277,6 +277,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"live-transcription-settings\""));
         assertTrue(index.contains("data-testid=\"transcription-push-to-talk\""));
         assertTrue(index.contains("/transcription/browser-global.js"));
+        assertTrue(index.contains("/speech/browser-global.js"));
+        assertTrue(index.contains("data-testid=\"speech-playback-status\""));
+        assertTrue(index.contains("data-testid=\"stop-speech-playback\""));
 
         assertTrue(script.contains("/realtime/call?"));
         assertTrue(script.contains("Content-Type\": \"application/sdp\""));
@@ -314,6 +317,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("audio: speechInputConstraints()"));
         assertTrue(script.contains("function applySelectedSpeechOutputDevice"));
         assertTrue(script.contains("audio.setSinkId(deviceId)"));
+        assertTrue(script.contains("[\"behaviour-live\", \"behaviour-replay\"]"));
+        assertTrue(script.contains("function synthesizeBehaviourSpeech"));
+        assertTrue(script.contains("function stopSpeechPlayback"));
         assertTrue(script.contains("Speaker selection is not supported by this browser; using browser default output."));
         assertTrue(script.contains("Microphone saved. Restart speech to use the new input device."));
         assertTrue(script.contains("renderSpeechSensingTranscript(selected.transcript);"));

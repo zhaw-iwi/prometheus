@@ -86,8 +86,9 @@ PROMETHEUS currently provides:
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;
-- behaviour and monitor SSE streams with heartbeat, replay, cursor, and
-  disconnect resilience;
+- behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
+  resilience; behaviour delivery explicitly distinguishes live publication
+  from initial/history/reconnect replay without changing persisted payloads;
 - PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
 - an access-code-scoped, typed `gpt-live-transcribe` session contract with
   agent-aware language defaults, strict settings validation, and ephemeral
@@ -99,6 +100,9 @@ PROMETHEUS currently provides:
 - serialized, duplicate-safe live-transcript ingress through the ordinary
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;
+- ordered Valerian Speech synthesis and selected-device playback driven only by
+  live persisted behaviour IDs, with replay suppression, per-agent cross-tab
+  output ownership, explicit Stop, and microphone gating across output;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -193,8 +197,11 @@ agents without the `utility.talk_to_me` profile tag before acknowledgement.
 Provider configuration, voice/speed validation, and streamed audio response
 mechanics are shared with the scoped canonical behaviour-speech endpoint.
 Valerian and the multilateral listener share the transcription-first browser
-transport and serialized scoped `FULL_PLAN` ingress. Combined assistant-audio
-code remains only as migration debt until the removal milestone.
+transport and serialized scoped `FULL_PLAN` ingress. Valerian adds a separate
+live-behaviour Speech playback queue; acknowledgement and replay are visual-only,
+and input is gated while the selected output device renders agent speech.
+Combined assistant-audio code remains only as migration debt until the removal
+milestone.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation

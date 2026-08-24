@@ -159,7 +159,7 @@ test("API Workbench connects to SSE stream templates", async ({ page }) => {
         "content-type": "text/event-stream",
         "cache-control": "no-cache",
       },
-      body: `event: behaviour\ndata: {"speech":"stream hello"}\n\n`,
+      body: `id: 33333333-3333-4333-8333-333333333333\nevent: behaviour-live\ndata: {"speech":"stream hello"}\n\n`,
     });
   });
 
@@ -169,7 +169,7 @@ test("API Workbench connects to SSE stream templates", async ({ page }) => {
   await page.getByTestId("lifecycle-step-demo-behaviour-stream").click();
   await page.getByTestId("send-request").click();
 
-  await expect(page.getByTestId("sse-response-preview")).toContainText("behaviour");
+  await expect(page.getByTestId("sse-response-preview")).toContainText("behaviour-live");
   await expect(page.getByTestId("sse-response-preview")).toContainText("stream hello");
   await page.getByTestId("send-request").click();
   await expect(page.getByTestId("request-status")).toHaveText("Stream ready");

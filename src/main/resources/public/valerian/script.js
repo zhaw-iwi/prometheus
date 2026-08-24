@@ -62,6 +62,13 @@ const realtime = {
   manualTurnActive: false,
 };
 
+const speechPlayback = {
+  coordinator: null,
+  agentId: null,
+  enqueueChain: Promise.resolve(),
+  generation: 0,
+};
+
 const speechDevices = {
   inputDeviceId: "",
   outputDeviceId: "",
@@ -339,6 +346,9 @@ function wireUi() {
     renderActivityLog();
   });
   document.getElementById("toggle_realtime").addEventListener("click", () => toggleRealtime());
+  document.getElementById("stop_speech_playback").addEventListener("click", () => {
+    stopSpeechPlayback("operator_stop");
+  });
   const transcriptionPush = document.getElementById("transcription_push_to_talk");
   transcriptionPush.addEventListener("pointerdown", beginManualTranscriptionTurn);
   ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
@@ -1074,6 +1084,7 @@ async function connectToAgent(agentId) {
   if (state.cameraRunning) {
     stopCamera({ silent: true });
   }
+  await stopSpeechPlayback("agent_switch", { reset: true, silent: true });
   cleanupStreams();
   state.agentId = selectedAgentId;
   document.getElementById("agent_id_input").value = selectedAgentId;
@@ -1090,6 +1101,7 @@ async function connectToAgent(agentId) {
     return;
   }
   await ensureLiveTranscriptionUi();
+  await ensureSpeechPlaybackCoordinator();
   clearMessages();
   appendSystemMessage("Connected.");
   await loadEventHistory();
@@ -1129,6 +1141,7 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
+  await stopSpeechPlayback("agent_disconnect", { reset: true, silent: true });
   if (state.realtimeListening) {
     await stopRealtime();
   }
@@ -1681,15 +1694,20 @@ function connectBehaviourStream() {
     setBehaviourStatus("Behaviour Live", "live");
     appendLog("stream", "behaviour stream connected.");
   });
-  state.behaviourSource.addEventListener("behaviour", (event) => {
-    if (event.lastEventId) {
-      state.lastBehaviourEventId = event.lastEventId;
-    }
-    try {
-      handleBehaviourEnvelope(JSON.parse(event.data));
-    } catch (_) {
-      appendLog("stream", "invalid behaviour event.");
-    }
+  ["behaviour-live", "behaviour-replay"].forEach((eventName) => {
+    state.behaviourSource.addEventListener(eventName, (event) => {
+      if (event.lastEventId) {
+        state.lastBehaviourEventId = event.lastEventId;
+      }
+      try {
+        handleBehaviourEnvelope(JSON.parse(event.data), {
+          delivery: eventName === "behaviour-live" ? "live" : "replay",
+          eventId: event.lastEventId || "",
+        });
+      } catch (_) {
+        appendLog("stream", "invalid behaviour event.");
+      }
+    });
   });
   state.behaviourSource.onerror = () => {
     closeBehaviourStream();
@@ -1795,6 +1813,7 @@ async function resetAgent() {
     return;
   }
   try {
+    await stopSpeechPlayback("agent_reset", { silent: true });
     const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
@@ -1913,7 +1932,7 @@ function handleResponseEvent(responseEvent) {
     return;
   }
   if (responseEvent.type === "resp.behaviour_plan") {
-    handleBehaviourEnvelope(responseEvent);
+    handleBehaviourEnvelope(responseEvent, { delivery: "acknowledgement" });
   } else {
     renderLatestEvent(responseEvent);
   }
@@ -1923,7 +1942,15 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!event || event.type !== "resp.behaviour_plan" || !event.payload) {
     return;
   }
-  const key = behaviourEventKey(event);
+  let plan = null;
+  try {
+    plan = JSON.parse(event.payload);
+  } catch (_) {
+    appendLog("behaviour", "payload is not valid json.");
+    return;
+  }
+  queueBehaviourSpeech(plan, options);
+  const key = behaviourEventKey(event, options.eventId);
   if ((key && state.seenBehaviourKeys.has(key))
     || (!options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
     return;
@@ -1933,13 +1960,6 @@ function handleBehaviourEnvelope(event, options = {}) {
   }
   if (!options.fromHistory) {
     rememberRecentBehaviourPayload(event.payload);
-  }
-  let plan = null;
-  try {
-    plan = JSON.parse(event.payload);
-  } catch (_) {
-    appendLog("behaviour", "payload is not valid json.");
-    return;
   }
   renderBehaviourPlan(plan);
   renderLatestEvent(event);
@@ -1953,7 +1973,10 @@ function resetBehaviourDeduplication() {
   state.recentBehaviourPayloads.clear();
 }
 
-function behaviourEventKey(event) {
+function behaviourEventKey(event, eventId = "") {
+  if (eventId) {
+    return `id:${eventId}`;
+  }
   if (!event || !event.createdDate || !event.payload) {
     return null;
   }
@@ -1977,6 +2000,204 @@ function pruneRecentBehaviourPayloads() {
     if (now - seenAt > BEHAVIOUR_DUPLICATE_WINDOW_MS) {
       state.recentBehaviourPayloads.delete(payload);
     }
+  }
+}
+
+function queueBehaviourSpeech(plan, options = {}) {
+  const eventId = typeof options.eventId === "string" ? options.eventId.trim() : "";
+  const speech = typeof plan?.speech === "string" ? plan.speech : "";
+  if (!eventId || !speech.trim()) {
+    return;
+  }
+  const generation = speechPlayback.generation;
+  const agentId = state.agentId;
+  speechPlayback.enqueueChain = speechPlayback.enqueueChain.then(async () => {
+    if (generation !== speechPlayback.generation || !agentId || state.agentId !== agentId) return;
+    const coordinator = await ensureSpeechPlaybackCoordinator();
+    if (generation !== speechPlayback.generation || state.agentId !== agentId) return;
+    coordinator.enqueue({ eventId, speech, delivery: options.delivery || "visual" });
+  }).catch((error) => {
+    appendLog("speech-playback", `queue failed: ${error.message}`);
+    handleSpeechPlaybackStatus({ state: "failed", eventId, message: error.message });
+  });
+}
+
+async function ensureSpeechPlaybackCoordinator() {
+  if (!state.agentId) throw new Error("Connect an agent before enabling speech playback.");
+  if (speechPlayback.coordinator && speechPlayback.agentId === state.agentId) {
+    return speechPlayback.coordinator;
+  }
+  const api = await waitForSpeechPlaybackApi();
+  const agentId = state.agentId;
+  let coordinator = null;
+  let lease = null;
+  lease = new api.OutputLease({
+    agentId,
+    onConflict: () => {
+      if (lease.active && coordinator) void coordinator.stop("output_lease_lost");
+    },
+  });
+  coordinator = new api.BehaviourSpeechPlaybackQueue({
+    lease,
+    synthesize: synthesizeBehaviourSpeech,
+    play: playBehaviourSpeech,
+    releaseResource: releaseSpeechAudioResource,
+    setInputEnabled: setSpeechPlaybackInputEnabled,
+    onStatus: handleSpeechPlaybackStatus,
+  });
+  speechPlayback.coordinator = coordinator;
+  speechPlayback.agentId = agentId;
+  setSpeechPlaybackStatus("Playback Ready", "idle", false);
+  return coordinator;
+}
+
+function waitForSpeechPlaybackApi(timeoutMs = 5000) {
+  if (window.PrometheusSpeechPlayback) return Promise.resolve(window.PrometheusSpeechPlayback);
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Speech playback modules did not load.")), timeoutMs);
+    window.addEventListener("prometheus-speech-playback-ready", () => {
+      clearTimeout(timeout);
+      resolve(window.PrometheusSpeechPlayback);
+    }, { once: true });
+  });
+}
+
+async function synthesizeBehaviourSpeech(item, signal) {
+  const params = new URLSearchParams();
+  const voice = document.getElementById("speechVoiceInput")?.value?.trim() || "";
+  const speed = document.getElementById("speechOutputSpeedInput")?.value?.trim() || "";
+  if (voice) params.set("voice", voice);
+  if (speed) params.set("speed", speed);
+  const suffix = params.size ? `?${params.toString()}` : "";
+  const response = await scopedFetch(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
+    method: "POST",
+    headers: { Accept: "audio/*" },
+    signal,
+  });
+  if (!response.ok) throw new Error(`Speech synthesis failed (${response.status}).`);
+  const blob = await response.blob();
+  if (!blob.size || !String(blob.type || "audio/mpeg").toLowerCase().startsWith("audio/")) {
+    throw new Error("Speech synthesis returned invalid audio.");
+  }
+  return { url: URL.createObjectURL(blob), contentType: blob.type || "audio/mpeg" };
+}
+
+function playBehaviourSpeech(resource, _item, signal) {
+  const audio = activeAssistantAudioElement();
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      audio.removeEventListener("ended", ended);
+      audio.removeEventListener("error", failed);
+      signal.removeEventListener("abort", stopped);
+    };
+    const finish = (action) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      action();
+    };
+    const ended = () => finish(resolve);
+    const failed = () => finish(() => reject(new Error(`Speech playback failed: ${assistantAudioErrorMessage()}.`)));
+    const stopped = () => {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      finish(() => reject(new DOMException("Speech playback was stopped.", "AbortError")));
+    };
+    audio.addEventListener("ended", ended, { once: true });
+    audio.addEventListener("error", failed, { once: true });
+    signal.addEventListener("abort", stopped, { once: true });
+    if (signal.aborted) {
+      stopped();
+      return;
+    }
+    audio.pause();
+    audio.srcObject = null;
+    audio.src = resource.url;
+    audio.load();
+    Promise.resolve(applySelectedSpeechOutputDevice())
+      .then(() => audio.play())
+      .catch((error) => finish(() => reject(error)));
+  });
+}
+
+function releaseSpeechAudioResource(resource) {
+  if (!resource?.url) return;
+  const audio = activeAssistantAudioElement();
+  if (audio.getAttribute("src") === resource.url || audio.src === resource.url) {
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+  }
+  URL.revokeObjectURL(resource.url);
+}
+
+function setSpeechPlaybackInputEnabled(enabled) {
+  const inputEnabled = Boolean(enabled);
+  realtime.assistantAudioActive = !inputEnabled;
+  realtime.transcriptIngress?.setAccepting(inputEnabled);
+  if (realtime.transcriptionClient && state.realtimeListening) {
+    realtime.transcriptionClient.setInputEnabled(inputEnabled);
+  }
+  if (!inputEnabled) {
+    realtime.manualTurnActive = false;
+    setText("continuous_speech_sensing_value", "-");
+  }
+  if (state.realtimeListening) {
+    const listen = document.getElementById("listen_status");
+    listen.textContent = inputEnabled ? "Listening" : "Input Paused";
+    listen.className = `status-pill is-${inputEnabled ? "listening" : "idle"}`;
+  }
+  updateTranscriptionManualControl();
+  setRealtimeControlsLocked(state.realtimeListening);
+}
+
+function handleSpeechPlaybackStatus(status) {
+  const mapping = {
+    loading: ["Speech Loading", "idle", true],
+    speaking: ["Speaking", "live", true],
+    completed: ["Playback Ready", "idle", false],
+    stopped: ["Playback Stopped", "idle", false],
+    failed: ["Synthesis Error", "error", false],
+  };
+  if (status.state === "skipped" && status.reason === "replay_or_non_live") return;
+  if (status.state === "skipped" && status.reason === "output_lease_conflict") {
+    setSpeechPlaybackStatus("Output In Other Window", "idle", false);
+  } else {
+    const [label, mode, stoppable] = mapping[status.state] || ["Playback Ready", "idle", false];
+    setSpeechPlaybackStatus(label, mode, stoppable);
+  }
+  appendLog("speech-playback", JSON.stringify(status));
+}
+
+function setSpeechPlaybackStatus(label, mode, stoppable) {
+  const status = document.getElementById("speech_playback_status");
+  if (status) {
+    status.textContent = label;
+    status.className = `status-pill is-${mode}`;
+  }
+  const stop = document.getElementById("stop_speech_playback");
+  if (stop) stop.disabled = !stoppable;
+}
+
+async function stopSpeechPlayback(reason = "operator_stop", options = {}) {
+  speechPlayback.generation += 1;
+  speechPlayback.enqueueChain = Promise.resolve();
+  const coordinator = speechPlayback.coordinator;
+  if (coordinator) {
+    await coordinator.stop(reason);
+  } else {
+    const audio = activeAssistantAudioElement();
+    audio?.pause();
+    audio?.removeAttribute("src");
+    audio?.load();
+    setSpeechPlaybackInputEnabled(true);
+    if (!options.silent) setSpeechPlaybackStatus("Playback Stopped", "idle", false);
+  }
+  if (options.reset) {
+    speechPlayback.coordinator = null;
+    speechPlayback.agentId = null;
   }
 }
 
@@ -2150,6 +2371,10 @@ async function startRealtime() {
   if (!state.agentId) {
     return;
   }
+  if (speechPlayback.coordinator?.snapshot().current) {
+    setRealtimeTransportStatus("Input Paused", "idle", "Stop current speech playback before starting transcription.");
+    return;
+  }
   if (!claimControlOwnership("microphone")) {
     setRealtimeGlobalStatus("Mic In Use", "idle");
     setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
@@ -2181,6 +2406,7 @@ async function startRealtime() {
 async function stopRealtime() {
   const stoppingMode = realtime.activeMode;
   setRealtimeState(false, stoppingMode);
+  await stopSpeechPlayback("transcription_stop", { silent: true });
   if (realtime.transcriptionClient) {
     await realtime.transcriptionClient.stop();
   }
@@ -5991,7 +6217,8 @@ function setRealtimeState(isListening, mode = realtime.activeMode || REALTIME_MO
 function setRealtimeControlsLocked(locked) {
   const remote = controlOwnedByOther("microphone");
   const connected = !!state.agentId;
-  const controlsLocked = locked || remote || !connected;
+  const outputActive = !!speechPlayback.coordinator?.snapshot().current;
+  const controlsLocked = locked || remote || !connected || outputActive;
   speechSessionSettingControls().forEach((element) => {
     element.disabled = controlsLocked;
   });
@@ -6021,7 +6248,7 @@ function setRealtimeControlsLocked(locked) {
   }
   const toggle = document.getElementById("toggle_realtime");
   if (toggle && !state.realtimeListening) {
-    toggle.disabled = remote || !connected;
+    toggle.disabled = remote || !connected || outputActive;
   }
   const speechStatus = document.getElementById("speech_device_status");
   if (remote && !state.realtimeListening) {
@@ -6045,6 +6272,7 @@ function setCameraStatus(text, mode) {
 
 function cleanupAll() {
   state.isPageUnloading = true;
+  void stopSpeechPlayback("page_unload", { reset: true, silent: true });
   releaseAllControlOwnership();
   cleanupStreams();
   stopCamera({ silent: true });

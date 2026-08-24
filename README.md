@@ -73,6 +73,17 @@ The cockpit is organised into three columns: sensing, verbal interaction by
 text or speech, and behaviour. Each column can be maximised or opened in a
 separate window when an experiment needs more screen space.
 
+Speech interaction is transcription-first: Valerian commits explicit browser
+audio turns to `gpt-live-transcribe`, sends only finalized transcripts through
+the ordinary scoped acknowledgement boundary, and synthesizes speech from the
+resulting persisted behaviour event. Only `behaviour-live` deliveries can
+produce audio; history and reconnect replay remain visual-only. While speech is
+loading or playing, microphone input is disabled and its pending provider state
+is cleared so the agent cannot transcribe itself. **Stop Playback** cancels
+queued/current audio and reopens input without changing the persisted plan. A
+per-agent browser lease selects one audible Valerian window, and playback uses
+the speaker, voice, and speed selected in the speech settings.
+
 #### Social Context Sensitivity
 
 ![Valerian social context sensing](.doc/figures/Valerian/valerian-cockpit-social.png)
@@ -82,7 +93,7 @@ This core agent demonstrates social-context sensing.
 - Sensing: visual detection of human presence, groups of humans, and whether
   people are attentive toward the agent.
 - Interaction: the agent comments on the social situation; users can also enter
-  utterances or run the interaction in speech-to-speech mode.
+  utterances or use transcription-first speech interaction.
 - Behaviour: the full behaviour spectrum, including speech, gesture, facial
   expression, gaze, motion, hand signs, and display output where supported.
 
@@ -94,7 +105,7 @@ This core agent demonstrates facial-expression sensing.
 
 - Sensing: visual detection of faces and emotion, valence, and arousal.
 - Interaction: the agent comments on the social situation; users can also enter
-  utterances or run the interaction in speech-to-speech mode.
+  utterances or use transcription-first speech interaction.
 - Behaviour: the full behaviour spectrum, including speech, gesture, facial
   expression, gaze, motion, hand signs, and display output where supported.
 
@@ -599,7 +610,8 @@ Browser `EventSource` cannot set custom headers, so scoped browser clients pass
 
 Each behaviour event has:
 
-- SSE event name: `behaviour`
+- SSE event name: `behaviour-live` for a new publication or
+  `behaviour-replay` for initial/history/reconnect recovery
 - SSE id: persisted event id when available
 - SSE data: an `Event` object with type `resp.behaviour_plan`
 
@@ -626,7 +638,9 @@ The event `payload` is a JSON string containing a `BehaviourPlan`:
 
 Clients should ignore channels they cannot render. Reconnect with either the
 standard `Last-Event-ID` header or `?lastEventId=<id>` to replay missed
-behaviour events.
+behaviour events. Replayed events retain their original persisted IDs, data,
+and order, but are labeled `behaviour-replay`; clients must not repeat live-only
+effects such as speech playback for them. Heartbeats remain SSE comments.
 
 ### 5. Request generated behaviour without a new perception event
 
@@ -792,7 +806,9 @@ Run its deterministic browser gates with:
 
 ```powershell
 npm.cmd run test:transcription:unit
+npm.cmd run test:speech:unit
 npm.cmd run test:valerian:transcription
+npm.cmd run test:valerian:visual
 ```
 
 These suites mock microphone, WebRTC, SDP exchange, and provider events. They
@@ -818,6 +834,16 @@ canonical `resp.behaviour_plan` rendering remains driven by the behaviour SSE
 stream so the same plan cannot appear twice. If acknowledgement legitimately
 returns no response event, the client preserves typed-input semantics by
 requesting one normal `full_plan` generation.
+
+Valerian's output queue accepts only `behaviour-live` events with non-empty
+speech and a persisted SSE event ID. It processes those IDs in order and keeps
+completed, failed, and deliberately skipped IDs distinct, so duplicate live
+delivery and replay cannot speak twice. Synthesis begins through the canonical
+event-scoped endpoint below; playback is routed to the selected output device.
+The microphone remains gated across a queued burst and reopens after completion,
+Stop, synthesis/playback error, disconnect, or agent change. An expiring
+cross-tab output lease ensures that only one Valerian page speaks a particular
+agent's live event.
 
 ### Output-only Speech
 

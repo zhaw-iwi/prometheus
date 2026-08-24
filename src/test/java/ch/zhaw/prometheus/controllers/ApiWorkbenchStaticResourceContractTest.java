@@ -53,6 +53,9 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(script.contains("new EventSource(url)"));
         assertTrue(script.contains("function disconnectSseStream(endpoint)"));
         assertTrue(script.contains("function appendSseEvent(endpoint, type, data)"));
+        assertTrue(script.contains("\"behaviour-live\""));
+        assertTrue(script.contains("\"behaviour-replay\""));
+        assertFalse(script.contains("addEventListener(\"behaviour\""));
         assertTrue(script.contains("function renderEventTemplateOptions(endpoint)"));
         assertTrue(script.contains("function compatibleObservationTemplates()"));
         assertTrue(script.contains("function applySelectedObservationTemplate()"));

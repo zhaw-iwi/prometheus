@@ -2,6 +2,11 @@ import { expect, test } from "@playwright/test";
 
 const ACCESS_CODE = "TRANSCRIBE";
 const AGENT_ID = "11111111-1111-4111-8111-111111111111";
+const LIVE_BEHAVIOUR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const REPLAY_BEHAVIOUR_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const SECOND_BEHAVIOUR_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const SLOW_BEHAVIOUR_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const ERROR_BEHAVIOUR_ID = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const AGENT = {
   id: AGENT_ID,
   name: "Live Transcription Test Agent",
@@ -22,8 +27,10 @@ test.beforeEach(async ({ context }) => {
 
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
   const acknowledgeRequests = [];
+  const speechRequests = [];
   page.on("request", (request) => {
     if (new URL(request.url()).pathname.endsWith("/acknowledge")) acknowledgeRequests.push(request);
+    if (new URL(request.url()).pathname.endsWith("/speech")) speechRequests.push(request);
   });
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
@@ -57,13 +64,28 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
     type: "obs.user_utterance", actor: "user", kind: "observation", payload: "Guten Morgen, PROMETHEUS.",
   });
 
-  await page.evaluate((event) => {
-    handleBehaviourEnvelope(event);
-    handleBehaviourEnvelope(event);
-  }, behaviourEvent());
+  await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
+  await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
   await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(1);
   await expect(page.getByTestId("message-list")).toContainText("Guten Morgen. I heard you clearly.");
   await expect(page.getByTestId("behaviour-channel-strip")).toContainText("Speech");
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  expect(speechRequests).toHaveLength(1);
+  expect(new URL(speechRequests[0].url()).pathname)
+    .toBe(`/demo/agents/${AGENT_ID}/behaviours/${LIVE_BEHAVIOUR_ID}/speech`);
+  expect(new URL(speechRequests[0].url()).searchParams.get("voice")).toBe("alloy");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(false);
+  expect(await page.evaluate(() => window.__transcriptionChannels.at(-1).sent
+    .map((value) => JSON.parse(value).type))).toContain("input_audio_buffer.clear");
+
+  await page.evaluate(() => window.__finishSpeechPlayback());
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
+
+  await emitBehaviourSse(page, "behaviour-replay", REPLAY_BEHAVIOUR_ID,
+    behaviourEvent("This replay must stay silent."));
+  await page.waitForTimeout(100);
+  expect(speechRequests).toHaveLength(1);
 
   await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "commit-failed",
     item_id: "item-failed" });
@@ -120,6 +142,47 @@ test("permission denial is visible and releases ownership", async ({ page }) => 
   await expect(page.getByTestId("toggle-realtime")).toBeEnabled();
 });
 
+test("two Valerian pages elect one output owner for the same live behaviour", async ({ page, context }) => {
+  const other = await context.newPage();
+  const requests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
+  });
+  other.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
+  });
+  await openConnectedValerian(page);
+  await openConnectedValerian(other);
+
+  await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await emitBehaviourSse(other, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
+  await expect(other.getByTestId("speech-playback-status")).toHaveText("Output In Other Window");
+  expect(requests).toHaveLength(1);
+
+  await page.evaluate(() => window.__finishSpeechPlayback());
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  await other.close();
+});
+
+test("Stop and synthesis failure both reopen live transcription input", async ({ page }) => {
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-realtime").click();
+  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Connected");
+
+  await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("Stop this output."));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(false);
+  await page.getByTestId("stop-speech-playback").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
+
+  await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Provider failure."));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Synthesis Error");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
+});
+
 test("multilateral listener uses the same shared transcription engine", async ({ page }) => {
   await page.goto(`/multilateral/listen/?agentId=${AGENT_ID}&accessCode=${ACCESS_CODE}`);
   await expect(page.getByTestId("listen-transcription-settings")).toContainText("Provider transcription");
@@ -155,8 +218,22 @@ test("transcription settings states produce deterministic desktop and narrow vis
   await page.getByTestId("toggle-realtime").click();
   await attach(page, testInfo, "transcription-listening-desktop", page.locator("[data-column-panel=interaction]"));
 
+  await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speech Loading");
+  await attach(page, testInfo, "speech-loading-desktop", page.locator("[data-column-panel=interaction]"));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await attach(page, testInfo, "speech-speaking-desktop", page.locator("[data-column-panel=interaction]"));
+  await page.getByTestId("stop-speech-playback").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  await attach(page, testInfo, "speech-stopped-desktop", page.locator("[data-column-panel=interaction]"));
+
+  await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Visual provider failure."));
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Synthesis Error");
+  await attach(page, testInfo, "speech-error-desktop", page.locator("[data-column-panel=interaction]"));
+
   await page.setViewportSize({ width: 390, height: 844 });
   await attach(page, testInfo, "transcription-settings-open-narrow", page.getByTestId("live-transcription-settings-root"));
+  await attach(page, testInfo, "speech-error-narrow", page.locator("[data-column-panel=interaction]"));
 });
 
 async function openConnectedValerian(page) {
@@ -173,6 +250,13 @@ async function emitProviderEvent(page, event) {
     const channel = window.__transcriptionChannels.at(-1);
     channel.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(payload) }));
   }, event);
+}
+
+async function emitBehaviourSse(page, eventName, eventId, event) {
+  await page.evaluate(({ eventName: name, eventId: id, envelope }) => {
+    const source = window.__eventSources.find((candidate) => candidate.url.includes("/behaviour/stream"));
+    source.emit(name, envelope, id);
+  }, { eventName, eventId, envelope: event });
 }
 
 async function attach(page, testInfo, name, locator) {
@@ -214,6 +298,12 @@ async function installApiMocks(context) {
     if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/acknowledge`) {
       return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
     }
+    if (request.method() === "POST" && path.endsWith("/speech")) {
+      const eventId = path.split("/").at(-2);
+      if (eventId === ERROR_BEHAVIOUR_ID) return route.fulfill({ status: 502, body: "" });
+      if (eventId === SLOW_BEHAVIOUR_ID) await new Promise((resolve) => setTimeout(resolve, 500));
+      return route.fulfill({ status: 200, contentType: "audio/mpeg", body: "mock-mp3-audio" });
+    }
     if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/behaviour/generate`) {
       return route.fulfill({ status: 200, body: "" });
     }
@@ -229,6 +319,48 @@ async function installBrowserMediaMocks(context) {
     window.__transcriptionSessionRequests = 0;
     window.__transcriptionChannels = [];
     window.__transcriptionPeers = [];
+    window.__eventSources = [];
+    window.__audioPlayback = { plays: 0, pauses: 0, sinkIds: [], revoked: [] };
+    let objectUrlSequence = 0;
+    URL.createObjectURL = () => `blob:mock-speech-${++objectUrlSequence}`;
+    URL.revokeObjectURL = (url) => window.__audioPlayback.revoked.push(url);
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      configurable: true,
+      get() { return this.__mockSpeechSrc || ""; },
+      set(value) { this.__mockSpeechSrc = String(value || ""); },
+    });
+    HTMLMediaElement.prototype.play = function play() {
+      window.__audioPlayback.plays += 1;
+      queueMicrotask(() => this.dispatchEvent(new Event("playing")));
+      return Promise.resolve();
+    };
+    HTMLMediaElement.prototype.pause = function pause() { window.__audioPlayback.pauses += 1; };
+    HTMLMediaElement.prototype.load = function load() {};
+    HTMLMediaElement.prototype.setSinkId = async function setSinkId(deviceId) {
+      window.__audioPlayback.sinkIds.push(deviceId);
+    };
+    window.__finishSpeechPlayback = () => document.getElementById("assistant_audio")
+      .dispatchEvent(new Event("ended"));
+    class FakeEventSource extends EventTarget {
+      static CONNECTING = 0; static OPEN = 1; static CLOSED = 2;
+      constructor(url) {
+        super();
+        this.url = String(url);
+        this.readyState = FakeEventSource.CONNECTING;
+        window.__eventSources.push(this);
+        queueMicrotask(() => {
+          this.readyState = FakeEventSource.OPEN;
+          this.dispatchEvent(new Event("open"));
+        });
+      }
+      emit(name, value, eventId = "") {
+        const event = new MessageEvent(name, { data: JSON.stringify(value) });
+        Object.defineProperty(event, "lastEventId", { value: eventId });
+        this.dispatchEvent(event);
+      }
+      close() { this.readyState = FakeEventSource.CLOSED; }
+    }
+    window.EventSource = FakeEventSource;
     class FakeTrack {
       constructor() { this.kind = "audio"; this.enabled = true; this.stopped = false; }
       stop() { this.stopped = true; }
@@ -328,14 +460,14 @@ function json(body) {
   return { status: 200, contentType: "application/json", body: JSON.stringify(body) };
 }
 
-function behaviourEvent() {
+function behaviourEvent(speech = "Guten Morgen. I heard you clearly.") {
   return {
     type: "resp.behaviour_plan",
     actor: "assistant",
     kind: "response",
     createdDate: "2026-08-24T10:00:00Z",
     payload: JSON.stringify({
-      speech: "Guten Morgen. I heard you clearly.",
+      speech,
       nonVerbal: { gesture: "ACKNOWLEDGE", facialExpression: { type: "warm", intensity: 0.7 },
         gaze: { direction: "forward", focus: "speaker" } },
       motion: { energy: 0.3 },

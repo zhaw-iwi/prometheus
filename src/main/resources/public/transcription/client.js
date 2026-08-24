@@ -132,7 +132,16 @@ export class LiveTranscriptionClient {
   }
 
   setInputEnabled(enabled) {
-    this.transport.setInputEnabled(enabled);
+    const accepting = Boolean(enabled) && this.transport.state === "connected";
+    if (!accepting) {
+      this.transport.setInputEnabled(false);
+      this.events.settleEpoch();
+      void this.localVad.stop();
+      return;
+    }
+    this.events.beginEpoch(this.transport.epoch);
+    this.transport.setInputEnabled(true);
+    void this.syncLocalVad();
   }
 
   async syncLocalVad() {
