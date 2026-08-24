@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 150, typed scoped live-transcription
-  session contract.
+- Last completed milestone: Milestone 151, shared browser live-transcription
+  engine and operator settings.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -7109,3 +7109,70 @@ sessions.
 ### Next steps
 1. Implement milestone 151: shared browser live-transcription transport,
    ordering, media controls, and operator settings.
+
+## Milestone 151
+### Date
+2026-08-24
+
+### Goal
+Move Valerian and the multilateral listener onto one deterministic
+`gpt-live-transcribe` browser engine with operator-visible provider and capture
+settings, while preserving the agent acknowledgement cutover for the next
+milestone.
+
+### What changed
+- Added shared ES modules for validated preferences, media constraints and a
+  cross-tab microphone lease, local VAD, item-ordered provider events, WebRTC
+  transport/reconnect, the scoped transcription client, and the settings UI.
+- Made partial transcripts display-only and serialized finalized turns by
+  committed provider item ID. Duplicate terminals and events from stale
+  connection epochs cannot emit a second final turn.
+- Made assistant response/audio events and remote media diagnostic-only; the
+  shared transport never renders provider assistant output.
+- Switched Valerian microphone startup from the combined Realtime call to the
+  scoped transcription session. Added the same shared client to
+  `/multilateral/listen`, retaining that page's existing transcript display and
+  acknowledgement behavior until the scoped acknowledgement milestone.
+- Added local/manual turn controls, far/near/off provider noise reduction,
+  context, keywords, expected languages, transcription delay, microphone
+  selection, browser echo/noise/gain controls, optional voice isolation, and
+  requested/applied capture diagnostics. Sensitive context and keywords are
+  never persisted.
+- Added automatic fresh-secret reconnect and teardown of tracks, channels,
+  peers, VAD audio contexts, timers, and stale epochs.
+
+### How to test
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `.\mvnw.cmd "-Dtest=RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- 13 Node unit tests passed for settings privacy and validation, media
+  constraints, local VAD, out-of-order and duplicate provider terminals, stale
+  epochs, assistant-event isolation, manual commits, teardown, and reconnect.
+- Five mocked Playwright flows passed for permission denial, connect,
+  partial/final transcript display, duplicate suppression, manual commit,
+  microphone selection, reconnect, stop, shared multilateral use, responsive
+  settings states, and visual artifacts.
+- The existing five-test Valerian visual/interaction suite passed after the
+  shared settings capability was added to its deterministic API fixture.
+- Static browser contracts passed for both clients and the shared scoped module
+  wiring. The full Java suite passed: 254 tests, zero failures and zero errors;
+  Surefire logged its existing forced-fork-shutdown warning after the results.
+
+### Known issues and decisions
+- Valerian intentionally does not acknowledge the new final transcript yet;
+  milestone 152 adds the serialized scoped `FULL_PLAN` boundary and its
+  exactly-once persistence tests.
+- The former combined Realtime Java/backend code and hidden legacy settings
+  markup remain migration debt until the explicit deletion milestone. Bundled
+  Valerian and multilateral microphone startup no longer use those endpoints.
+- All WebRTC/browser tests are mocked. No live OpenAI credential, acoustic
+  environment, wireless microphone, or Bluetooth speaker was exercised.
+
+### Next steps
+1. Implement milestone 152: serialize finalized speech through scoped
+   `FULL_PLAN` acknowledgement and prove one accepted agent turn.

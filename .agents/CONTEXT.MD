@@ -91,7 +91,11 @@ PROMETHEUS currently provides:
 - PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
 - an access-code-scoped, typed `gpt-live-transcribe` session contract with
   agent-aware language defaults, strict settings validation, and ephemeral
-  browser credentials; bundled clients have not yet migrated to it;
+  browser credentials;
+- one shared Valerian/multilateral browser transcription engine with
+  cross-tab microphone ownership, explicit local/manual turn commits,
+  item-ordered final transcripts, reconnect/teardown, operator capture
+  settings, and privacy-safe preference persistence;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -161,7 +165,9 @@ interaction-profile, storage, and event-history contracts.
 
 Published scoped client contracts include agent creation and info,
 `acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE, and
-Realtime call orchestration. Exact paths and request shapes are maintained in
+typed live-transcription capabilities/session issuance. The combined Realtime
+call contract remains a temporary migration boundary until the planned legacy
+removal milestone. Exact paths and request shapes are maintained in
 `README.md` and exercised by controller contract tests. Browser SSE may use an
 access code query parameter because `EventSource` cannot set custom headers;
 other clients should prefer the access-code header.
@@ -181,8 +187,11 @@ lifecycle and backend-authoritative output-only OpenAI Speech synthesis without
 microphone capture or browser-authored speech responses. Its synthesis endpoint,
 application service, and configuration are Talk-to-Me-specific and reject agents
 without the `utility.talk_to_me` profile tag before acknowledgement. Valerian
-and the other speech-to-speech clients continue to use the unchanged shared
-scoped and Realtime contracts.
+and the multilateral listener share the transcription-first browser transport.
+Valerian currently displays ordered finalized transcripts from that transport;
+the next milestone connects those finals to scoped `FULL_PLAN`
+acknowledgement. Combined assistant-audio code remains only as migration debt
+until the removal milestone.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation

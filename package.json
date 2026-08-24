@@ -2,6 +2,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:transcription:unit": "node --test tests/js/transcription/*.test.mjs",
+    "test:valerian:transcription": "playwright test --config=playwright.config.mjs tests/playwright/valerian-transcription.spec.mjs",
     "test:apiworkbench:visual": "playwright test --config=playwright.config.mjs tests/playwright/apiworkbench.spec.mjs",
     "test:participate:visual": "playwright test --config=playwright.participate.config.mjs",
     "test:valerian:visual": "playwright test --config=playwright.config.mjs tests/playwright/valerian-column-expansion.spec.mjs",

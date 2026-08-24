@@ -236,7 +236,7 @@ test("Valerian camera and microphone controls follow detached window ownership",
   await expect(page.getByTestId("toggle-realtime")).toBeDisabled();
   await expect(page.getByTestId("speech-vad")).toBeDisabled();
   await interactionWindow.close();
-  await expect(page.locator("#realtime_status")).toHaveText("Realtime Idle");
+  await expect(page.locator("#realtime_status")).toHaveText("Transcription Idle");
   await expect(page.getByTestId("toggle-realtime")).toBeEnabled();
   await expect(page.getByTestId("speech-vad")).toBeEnabled();
 });
@@ -888,6 +888,37 @@ async function installDetachedWindowApiMocks(context) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify(DETACHED_AGENT),
+      });
+      return;
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${DETACHED_AGENT_ID}/transcription/capabilities`) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          schemaVersion: 1,
+          sessionType: "transcription",
+          model: "gpt-live-transcribe",
+          capabilities: { assistantOutput: false, inputTranscription: true },
+          settings: [
+            { key: "noiseReduction", control: "select", defaultValue: "far_field",
+              allowedValues: ["near_field", "far_field", "off"], activeSessionBehavior: "live-input-boundary", sensitive: false },
+            { key: "turnDetection.type", control: "select", defaultValue: "local_vad",
+              allowedValues: ["local_vad", "manual"], activeSessionBehavior: "local-input-boundary", sensitive: false },
+            { key: "turnDetection.silenceDurationSeconds", control: "number", defaultValue: 1.5,
+              allowedValues: [], minimum: 0.5, maximum: 10, step: 0.1,
+              activeSessionBehavior: "local-input-boundary", visibleWhen: "turnDetection.type=local_vad", sensitive: false },
+            { key: "transcriptionPrompt", control: "text", defaultValue: "", allowedValues: [], maxLength: 1024,
+              activeSessionBehavior: "live-input-boundary", sensitive: true },
+            { key: "transcriptionKeywords", control: "string-list", defaultValue: [], allowedValues: [], maxLength: 100,
+              maxItems: 100, minItems: 0, itemPattern: "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._'/-]*$",
+              activeSessionBehavior: "live-input-boundary", sensitive: true },
+            { key: "languages", control: "multi-select", defaultValue: ["en"], allowedValues: ["en", "de"],
+              maxItems: 2, minItems: 1, activeSessionBehavior: "live-input-boundary", sensitive: false },
+            { key: "transcriptionDelay", control: "select", defaultValue: "medium",
+              allowedValues: ["minimal", "low", "medium", "high", "xhigh"], activeSessionBehavior: "live-input-boundary", sensitive: false },
+          ],
+        }),
       });
       return;
     }

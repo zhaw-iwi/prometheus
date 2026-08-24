@@ -274,9 +274,9 @@ class ValerianClientStaticResourceContractTest {
                 < index.indexOf("<aside class=\"right-column cockpit-column\""));
         assertTrue(index.indexOf("data-testid=\"continuous-speech-sensing-panel\"")
                 > index.indexOf("</aside>", index.indexOf("<aside class=\"left-column cockpit-column\"")));
-        assertFalse(index.contains("Push to Talk"));
-        assertFalse(index.contains("push_to_talk"));
-        assertFalse(index.contains("push-to-talk"));
+        assertTrue(index.contains("data-testid=\"live-transcription-settings\""));
+        assertTrue(index.contains("data-testid=\"transcription-push-to-talk\""));
+        assertTrue(index.contains("/transcription/browser-global.js"));
 
         assertTrue(script.contains("/realtime/call?"));
         assertTrue(script.contains("Content-Type\": \"application/sdp\""));
@@ -359,7 +359,7 @@ class ValerianClientStaticResourceContractTest {
 
         assertFalse(script.contains("/realtime/session"));
         assertFalse(script.contains("REALTIME_MODE_PUSH_TO_TALK"));
-        assertFalse(script.contains("push_to_talk"));
+        assertTrue(script.contains("transcription_push_to_talk"));
         assertFalse(script.contains("push-to-talk"));
         assertFalse(script.contains("window.MediaRecorder"));
         assertFalse(script.contains("new MediaRecorder"));

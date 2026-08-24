@@ -30,6 +30,9 @@ const state = {
 };
 
 const realtime = {
+  transcriptionClient: null,
+  transcriptionSettingsPanel: null,
+  transcriptionAgentId: null,
   peerConnection: null,
   dataChannel: null,
   micStream: null,
@@ -55,6 +58,7 @@ const realtime = {
   processedInputItemIds: new Set(),
   transcriptCandidates: [],
   transcriptFlushTimer: null,
+  manualTurnActive: false,
 };
 
 const speechDevices = {
@@ -334,6 +338,11 @@ function wireUi() {
     renderActivityLog();
   });
   document.getElementById("toggle_realtime").addEventListener("click", () => toggleRealtime());
+  const transcriptionPush = document.getElementById("transcription_push_to_talk");
+  transcriptionPush.addEventListener("pointerdown", beginManualTranscriptionTurn);
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
+    transcriptionPush.addEventListener(eventName, finishManualTranscriptionTurn);
+  });
   document.getElementById("diagnostics_drawer").addEventListener("show.bs.offcanvas", showAgentDrawerTab);
   document.getElementById("continuous_speech_tab").addEventListener("shown.bs.tab", () => {
     refreshAudioDevices({ requestPermission: false, silent: true });
@@ -1079,6 +1088,7 @@ async function connectToAgent(agentId) {
     await disconnectAgent({ preserveInput: true, silent: true });
     return;
   }
+  await ensureLiveTranscriptionUi();
   clearMessages();
   appendSystemMessage("Connected.");
   await loadEventHistory();
@@ -2149,21 +2159,36 @@ async function startRealtime() {
   realtime.activeMode = REALTIME_MODE_CONTINUOUS;
   setRealtimeState(true);
   resetRealtimeTranscriptGate();
-  appendLog("realtime", "starting.");
-  setRealtimeTransportStatus("Transport Starting", "idle", "");
+  appendLog("transcription", "starting gpt-live-transcribe session.");
+  setRealtimeTransportStatus("Transcription Starting", "idle", "");
   try {
-    await setupRealtimeConnection();
-    await waitForDataChannelOpen();
+    await ensureLiveTranscriptionUi();
+    const settings = realtime.transcriptionSettingsPanel.apiValues();
+    const mediaPreferences = realtime.transcriptionSettingsPanel.mediaValues();
+    realtime.transcriptionSettingsPanel.setLifecycle("CONNECTING");
+    const started = await realtime.transcriptionClient.start({ settings, mediaPreferences });
+    realtime.transcriptionSettingsPanel.setAppliedCapture(started.appliedCapture);
+    realtime.transcriptionSettingsPanel.setLifecycle("CONNECTED");
+    updateTranscriptionManualControl();
   } catch (error) {
-    appendLog("realtime", "start failed: " + error.message);
+    appendLog("transcription", "start failed: " + error.message);
     await stopRealtime();
-    setRealtimeTransportStatus("Transport Failed", "error", `Realtime start failed: ${error.message}`);
+    setRealtimeTransportStatus("Transcription Failed", "error", `Transcription start failed: ${error.message}`);
   }
 }
 
 async function stopRealtime() {
   const stoppingMode = realtime.activeMode;
   setRealtimeState(false, stoppingMode);
+  if (realtime.transcriptionClient) {
+    await realtime.transcriptionClient.stop();
+  }
+  if (realtime.transcriptionSettingsPanel) {
+    realtime.transcriptionSettingsPanel.setAppliedCapture({});
+    realtime.transcriptionSettingsPanel.setLifecycle("IDLE");
+  }
+  realtime.manualTurnActive = false;
+  updateTranscriptionManualControl();
   if (realtime.dataChannel) {
     realtime.dataChannel.close();
     realtime.dataChannel = null;
@@ -2197,9 +2222,126 @@ async function stopRealtime() {
   realtime.lastAudioStats = null;
   realtime.lastStatsWarningAt = 0;
   resetRealtimeTranscriptGate();
-  setRealtimeTransportStatus("Transport Idle", "idle", "");
-  appendLog("realtime", "stopped.");
+  setRealtimeTransportStatus("Transcription Idle", "idle", "");
+  appendLog("transcription", "stopped.");
   releaseControlOwnership("microphone");
+}
+
+async function ensureLiveTranscriptionUi() {
+  if (!state.agentId) throw new Error("Connect an agent before starting transcription.");
+  if (realtime.transcriptionClient && realtime.transcriptionAgentId === state.agentId) {
+    return realtime.transcriptionClient;
+  }
+  if (realtime.transcriptionClient) await realtime.transcriptionClient.stop();
+  const api = await waitForTranscriptionApi();
+  const media = new api.TranscriptionMedia({
+    onDiagnostic: (diagnostic) => appendLog("transcription", JSON.stringify(diagnostic)),
+  });
+  const client = new api.LiveTranscriptionClient({
+    agentId: state.agentId,
+    accessCode: state.accessCode || "",
+    media,
+    storageKey: `prometheus.valerian.transcription.${state.agentId}.v1`,
+    onPartial: ({ text }) => {
+      setText("continuous_speech_sensing_value", text || "-");
+    },
+    onFinal: handleLiveTranscriptionFinal,
+    onState: handleLiveTranscriptionState,
+    onInputState: handleLiveTranscriptionInputState,
+    onDiagnostic: (diagnostic) => appendLog("transcription", JSON.stringify(diagnostic)),
+  });
+  const descriptor = await client.initialize();
+  const root = document.getElementById("live_transcription_settings_root");
+  realtime.transcriptionSettingsPanel = new api.TranscriptionSettingsPanel({
+    root,
+    preferences: client.preferences,
+    media,
+    onValidation: () => updateTranscriptionManualControl(),
+  });
+  realtime.transcriptionClient = client;
+  realtime.transcriptionAgentId = state.agentId;
+  appendLog("transcription", `loaded ${descriptor.model} settings schema ${descriptor.schemaVersion}.`);
+  updateTranscriptionManualControl();
+  return client;
+}
+
+function waitForTranscriptionApi(timeoutMs = 5000) {
+  if (window.PrometheusTranscription) return Promise.resolve(window.PrometheusTranscription);
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Live-transcription modules did not load.")), timeoutMs);
+    window.addEventListener("prometheus-transcription-ready", () => {
+      clearTimeout(timeout);
+      resolve(window.PrometheusTranscription);
+    }, { once: true });
+  });
+}
+
+function handleLiveTranscriptionFinal({ itemId, text }) {
+  const transcript = String(text || "").trim();
+  if (!transcript || isLikelyAsrHallucination(transcript)) {
+    appendLog("transcription", `ignored empty or noisy final transcript for ${itemId}.`);
+    return;
+  }
+  appendMessage("user", transcript);
+  renderSpeechSensingTranscript(transcript);
+  appendLog("transcription", `final transcript ${itemId} rendered.`);
+}
+
+function handleLiveTranscriptionState({ state: transportState, message = "", attempt = 0 }) {
+  const mapping = {
+    connecting: ["Transcription Starting", "idle"],
+    connected: ["Transcription Connected", "live"],
+    reconnecting: [`Transcription Reconnecting ${attempt || ""}`.trim(), "error"],
+    failed: ["Transcription Failed", "error"],
+    stopping: ["Transcription Stopping", "idle"],
+    stopped: ["Transcription Idle", "idle"],
+  };
+  const [label, mode] = mapping[transportState] || ["Transcription Idle", "idle"];
+  setRealtimeTransportStatus(label, mode, message);
+  const lifecycle = transportState === "connected" ? "CONNECTED"
+    : transportState === "reconnecting" ? "RECONNECTING"
+      : transportState === "failed" ? "FAILED"
+        : transportState === "connecting" ? "CONNECTING" : "IDLE";
+  realtime.transcriptionSettingsPanel?.setLifecycle(lifecycle);
+  updateTranscriptionManualControl();
+}
+
+function handleLiveTranscriptionInputState({ type }) {
+  if (type.endsWith("speech_started")) {
+    document.getElementById("listen_status").textContent = "Hearing Speech";
+  } else if (type.endsWith("speech_stopped") || type.endsWith("committed")) {
+    document.getElementById("listen_status").textContent = "Listening";
+  }
+  appendLog("transcription", type);
+}
+
+function updateTranscriptionManualControl() {
+  const button = document.getElementById("transcription_push_to_talk");
+  let manual = false;
+  try {
+    manual = realtime.transcriptionSettingsPanel?.apiValues()?.turnDetection?.type === "manual";
+  } catch (_error) {
+    manual = false;
+  }
+  button.classList.toggle("d-none", !manual);
+  button.disabled = !manual || realtime.transcriptionClient?.transport?.state !== "connected";
+  button.setAttribute("aria-pressed", realtime.manualTurnActive ? "true" : "false");
+}
+
+function beginManualTranscriptionTurn(event) {
+  event.preventDefault();
+  if (!realtime.transcriptionClient?.startManualTurn()) return;
+  realtime.manualTurnActive = true;
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  updateTranscriptionManualControl();
+}
+
+function finishManualTranscriptionTurn(event) {
+  event.preventDefault();
+  if (!realtime.manualTurnActive) return;
+  realtime.manualTurnActive = false;
+  realtime.transcriptionClient?.commitManualTurn();
+  updateTranscriptionManualControl();
 }
 
 async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
@@ -5776,21 +5918,21 @@ function setRealtimeState(isListening, mode = realtime.activeMode || REALTIME_MO
   const continuousActive = isListening && mode === REALTIME_MODE_CONTINUOUS;
   if (isListening) {
     continuousButton.innerHTML = continuousActive
-      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Continuous'
-      : '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Transcription'
+      : '<i class="bi bi-mic-fill me-2"></i>Start Transcription';
     continuousButton.classList.toggle("is-listening", continuousActive);
     continuousButton.disabled = !continuousActive;
     continuousListen.textContent = continuousActive ? "Listening" : "Idle";
     continuousListen.className = `status-pill is-${continuousActive ? "listening" : "idle"}`;
-    status.textContent = "Realtime Live";
+    status.textContent = "Transcription Live";
     status.className = "status-pill is-live";
   } else {
-    continuousButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Continuous';
+    continuousButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Transcription';
     continuousButton.classList.remove("is-listening");
     continuousButton.disabled = false;
     continuousListen.textContent = "Idle";
     continuousListen.className = "status-pill is-idle";
-    status.textContent = "Realtime Idle";
+    status.textContent = "Transcription Idle";
     status.className = "status-pill is-idle";
   }
   setRealtimeControlsLocked(isListening);
@@ -5837,7 +5979,7 @@ function setRealtimeControlsLocked(locked) {
     setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
     setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
   } else if (!remote && !state.realtimeListening && document.getElementById("realtime_status").textContent === "Mic In Use") {
-    setRealtimeGlobalStatus("Realtime Idle", "idle");
+    setRealtimeGlobalStatus("Transcription Idle", "idle");
     setRealtimeTransportStatus("Transport Idle", "idle", "");
     if (speechStatus && speechStatus.textContent.includes("another Valerian window")) {
       setSpeechDeviceStatus("Audio devices use browser defaults.");

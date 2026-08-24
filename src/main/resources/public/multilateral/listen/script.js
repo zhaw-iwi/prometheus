@@ -1,312 +1,224 @@
-﻿let session = {
-  agentId: null,
-  isListening: false,
-};
+import { LiveTranscriptionClient } from "../../transcription/client.js";
+import { TranscriptionMedia } from "../../transcription/media.js";
+import { TranscriptionSettingsPanel } from "../../transcription/settings-panel.js";
 
-let peerConnection = null;
-let dataChannel = null;
-let micStream = null;
-let transcriptCommitTimer = null;
+const session = { agentId: null, accessCode: "", isListening: false, client: null, panel: null, manualActive: false };
 let utteranceCount = 0;
-const partialTranscriptsByItemId = new Map();
-const TRANSCRIPT_COMMIT_INTERVAL_MS = 3000;
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   session.agentId = getAgentId();
+  session.accessCode = new URLSearchParams(window.location.search).get("accessCode") || "";
+  document.getElementById("access_code").value = session.accessCode;
   if (!session.agentId) {
-    setStatusMessage("Missing agent id in URL. Use ?{UUID} or ?agentId=UUID.");
-    disableToggle();
+    setStatusMessage("Missing agent id in URL. Use ?agentId=UUID.");
+    document.getElementById("toggle_listen").disabled = true;
     return;
   }
   wireUi();
-  loadAgentInfo();
+  await loadAgentInfo();
+  if (session.accessCode) await initializeClient();
 });
 
 function wireUi() {
   document.getElementById("toggle_listen").addEventListener("click", toggleListening);
+  document.getElementById("access_code").addEventListener("change", async (event) => {
+    session.accessCode = event.target.value.trim();
+    if (!session.isListening && session.accessCode) await initializeClient({ replace: true });
+  });
+  const push = document.getElementById("transcription_push_to_talk");
+  push.addEventListener("pointerdown", beginManualTurn);
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach((name) => {
+    push.addEventListener(name, finishManualTurn);
+  });
 }
 
-function disableToggle() {
-  const button = document.getElementById("toggle_listen");
-  button.disabled = true;
+async function initializeClient({ replace = false } = {}) {
+  if (session.client && !replace) return session.client;
+  if (session.client) await session.client.stop();
+  const media = new TranscriptionMedia({ onDiagnostic: logDiagnostic });
+  const client = new LiveTranscriptionClient({
+    agentId: session.agentId,
+    accessCode: session.accessCode,
+    media,
+    storageKey: `prometheus.multilateral.transcription.${session.agentId}.v1`,
+    onPartial: ({ text }) => { document.getElementById("live_transcript").textContent = text; },
+    onFinal: handleFinalTranscript,
+    onState: handleTransportState,
+    onInputState: ({ type }) => appendLog("transcription", type),
+    onDiagnostic: logDiagnostic,
+  });
+  await client.initialize();
+  session.client = client;
+  session.panel = new TranscriptionSettingsPanel({
+    root: document.getElementById("live_transcription_settings_root"),
+    preferences: client.preferences,
+    media,
+    onValidation: updateManualControl,
+  });
+  updateManualControl();
+  return client;
+}
+
+async function toggleListening() {
+  if (session.isListening) await stopListening();
+  else await startListening();
+}
+
+async function startListening() {
+  session.accessCode = document.getElementById("access_code").value.trim();
+  if (!session.accessCode) {
+    setStatusMessage("Enter the access code that owns this agent.", true);
+    return;
+  }
+  setListeningState(true);
+  try {
+    const client = await initializeClient({ replace: session.client?.accessCode !== session.accessCode });
+    session.panel.setLifecycle("CONNECTING");
+    const started = await client.start({ settings: session.panel.apiValues(), mediaPreferences: session.panel.mediaValues() });
+    session.panel.setAppliedCapture(started.appliedCapture);
+    session.panel.setLifecycle("CONNECTED");
+    updateManualControl();
+  } catch (error) {
+    appendLog("app", `Failed to start: ${error.message}`);
+    await stopListening();
+    setStatusMessage(error.message, true);
+  }
+}
+
+async function stopListening() {
+  setListeningState(false);
+  session.manualActive = false;
+  if (session.client) await session.client.stop();
+  session.panel?.setAppliedCapture({});
+  session.panel?.setLifecycle("IDLE");
+  updateManualControl();
 }
 
 function setListeningState(isListening) {
   session.isListening = isListening;
   const button = document.getElementById("toggle_listen");
   const status = document.getElementById("listen_status");
-  if (isListening) {
-    button.innerHTML = '<i class="bi bi-mic-mute-fill me-2"></i>Stop Listening';
+  button.innerHTML = isListening
+    ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Listening'
+    : '<i class="bi bi-mic-fill me-2"></i>Start Listening';
+  status.textContent = isListening ? "Listening" : "Idle";
+  status.className = `status-pill is-${isListening ? "listening" : "idle"}`;
+  setStatusMessage(isListening ? "Listening for multi-speaker audio." : "Waiting for audio input.");
+}
+
+function handleTransportState({ state, message = "", attempt = 0 }) {
+  const status = document.getElementById("listen_status");
+  if (state === "connected") {
     status.textContent = "Listening";
     status.className = "status-pill is-listening";
-    setStatusMessage("Listening for multi-speaker audio.");
-  } else {
-    button.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Listening';
-    status.textContent = "Idle";
-    status.className = "status-pill is-idle";
-    setStatusMessage("Waiting for audio input.");
+  } else if (state === "reconnecting") {
+    status.textContent = `Reconnect ${attempt}`;
+    status.className = "status-pill is-error";
+  } else if (state === "failed") {
+    status.textContent = "Failed";
+    status.className = "status-pill is-error";
+    setStatusMessage(message || "Transcription transport failed.", true);
   }
+  session.panel?.setLifecycle(state === "connected" ? "CONNECTED"
+    : state === "reconnecting" ? "RECONNECTING" : state === "failed" ? "FAILED" : "IDLE");
+  updateManualControl();
 }
 
-function setStatusMessage(message) {
-  const status = document.querySelector(".card-body .small");
-  if (status) {
-    status.textContent = message;
+async function handleFinalTranscript({ itemId, text }) {
+  const transcript = String(text || "").trim();
+  if (!transcript || isLikelyAsrHallucination(transcript)) {
+    appendLog("transcription", `Ignored noisy transcript ${itemId}.`);
+    return;
   }
+  document.getElementById("live_transcript").textContent = transcript;
+  addTranscriptEntry(transcript);
+  appendLog("transcription", `Final transcript ${itemId}.`);
+  await acknowledgeTranscript(transcript);
 }
 
-async function toggleListening() {
-  if (!session.isListening) {
-    await startListening();
-  } else {
-    await stopListening();
-  }
+function beginManualTurn(event) {
+  event.preventDefault();
+  if (!session.client?.startManualTurn()) return;
+  session.manualActive = true;
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  updateManualControl();
 }
 
-async function startListening() {
-  appendLog("app", "Starting multilateral listening session...");
-  setListeningState(true);
-  try {
-    const sessionInfo = await createRealtimeSession();
-    await setupRealtimeConnection(sessionInfo);
-    await waitForDataChannelOpen();
-    configureTranscriptionCommit(sessionInfo);
-  } catch (error) {
-    appendLog("app", "Failed to start: " + error.message);
-    await stopListening();
-  }
+function finishManualTurn(event) {
+  event.preventDefault();
+  if (!session.manualActive) return;
+  session.manualActive = false;
+  session.client?.commitManualTurn();
+  updateManualControl();
 }
 
-async function stopListening() {
-  appendLog("app", "Stopping multilateral listening session...");
-  setListeningState(false);
-  if (dataChannel) {
-    dataChannel.close();
-    dataChannel = null;
-  }
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
-  if (micStream) {
-    micStream.getTracks().forEach((track) => track.stop());
-    micStream = null;
-  }
-  stopTranscriptCommitTimer();
-  partialTranscriptsByItemId.clear();
+function updateManualControl() {
+  const push = document.getElementById("transcription_push_to_talk");
+  let manual = false;
+  try { manual = session.panel?.apiValues()?.turnDetection?.type === "manual"; } catch (_error) { /* invalid UI */ }
+  push.classList.toggle("d-none", !manual);
+  push.disabled = !manual || session.client?.transport?.state !== "connected";
+  push.setAttribute("aria-pressed", session.manualActive ? "true" : "false");
 }
 
 async function loadAgentInfo() {
   const response = await fetch(`/${session.agentId}/info`);
-  if (!response.ok) {
-    appendLog("app", "Unable to load agent info.");
-    return;
-  }
+  if (!response.ok) return;
   const data = await response.json();
   document.getElementById("agent_name").textContent = data.name || "Multilateral Listener";
-}
-
-async function createRealtimeSession() {
-  const params = new URLSearchParams();
-  params.set("agentId", session.agentId);
-  const response = await fetch(`/realtime/transcription/session?${params.toString()}`, {
-    method: "POST",
-  });
-  if (!response.ok) {
-    throw new Error("Realtime transcription session creation failed.");
-  }
-  return await response.json();
-}
-
-async function setupRealtimeConnection(sessionInfo) {
-  peerConnection = new RTCPeerConnection();
-  dataChannel = peerConnection.createDataChannel("oai-events");
-  dataChannel.addEventListener("message", handleRealtimeEvent);
-
-  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  micStream.getTracks().forEach((track) => peerConnection.addTrack(track, micStream));
-
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
-
-  const answerResponse = await fetch(
-    sessionInfo.realtimeCallsUrl,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${sessionInfo.clientSecret}`,
-        "Content-Type": "application/sdp",
-      },
-      body: offer.sdp,
-    }
-  );
-
-  if (!answerResponse.ok) {
-    throw new Error("Realtime SDP exchange failed.");
-  }
-
-  const answer = await answerResponse.text();
-  await peerConnection.setRemoteDescription({ type: "answer", sdp: answer });
-  appendLog("realtime", "WebRTC session established.");
-}
-
-function waitForDataChannelOpen(timeoutMs = 5000) {
-  if (dataChannel && dataChannel.readyState === "open") {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("Data channel not ready."));
-    }, timeoutMs);
-    const handleOpen = () => {
-      clearTimeout(timeout);
-      dataChannel.removeEventListener("open", handleOpen);
-      resolve();
-    };
-    dataChannel.addEventListener("open", handleOpen);
-  });
-}
-
-function handleRealtimeEvent(event) {
-  let data = null;
-  try {
-    data = JSON.parse(event.data);
-  } catch (err) {
-    appendLog("realtime", "Non-JSON event received.");
-    return;
-  }
-
-  if (data.type === "conversation.item.input_audio_transcription.delta") {
-    const delta = data.delta || data.transcript || "";
-    if (delta.trim() && !isLikelyAsrHallucination(delta)) {
-      const key = transcriptItemKey(data);
-      const partial = `${partialTranscriptsByItemId.get(key) || ""}${delta}`;
-      partialTranscriptsByItemId.set(key, partial);
-      document.getElementById("live_transcript").textContent = partial;
-    }
-  } else if (data.type === "conversation.item.input_audio_transcription.completed") {
-    const key = transcriptItemKey(data);
-    const transcript = data.transcript || partialTranscriptsByItemId.get(key) || "";
-    partialTranscriptsByItemId.delete(key);
-    if (isLikelyAsrHallucination(transcript)) {
-      appendLog("realtime", "Ignored noisy user transcript.");
-      return;
-    }
-    if (transcript.trim()) {
-      document.getElementById("live_transcript").textContent = transcript;
-      addTranscriptEntry(transcript);
-      appendLog("realtime", "User transcript completed.");
-      acknowledgeTranscript(transcript);
-    }
-  }
-}
-
-function configureTranscriptionCommit(sessionInfo) {
-  if (!sessionInfo || String(sessionInfo.model || "").toLowerCase() !== "gpt-realtime-whisper") {
-    return;
-  }
-  startTranscriptCommitTimer();
-  appendLog("realtime", "Manual transcript commits enabled for gpt-realtime-whisper.");
-}
-
-function startTranscriptCommitTimer() {
-  stopTranscriptCommitTimer();
-  transcriptCommitTimer = window.setInterval(commitAudioBuffer, TRANSCRIPT_COMMIT_INTERVAL_MS);
-}
-
-function stopTranscriptCommitTimer() {
-  if (transcriptCommitTimer) {
-    window.clearInterval(transcriptCommitTimer);
-    transcriptCommitTimer = null;
-  }
-}
-
-function commitAudioBuffer() {
-  if (!session.isListening || !dataChannel || dataChannel.readyState !== "open") {
-    return;
-  }
-  dataChannel.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-}
-
-function transcriptItemKey(data) {
-  return data.item_id || data.itemId || "latest";
-}
-
-function isLikelyAsrHallucination(transcript) {
-  const normalized = normalizeTranscriptForGate(transcript);
-  return normalized === "untertitel der amara org community" ||
-    normalized === "subtitles by the amara org community" ||
-    normalized === "captions by the amara org community";
-}
-
-function normalizeTranscriptForGate(transcript) {
-  return String(transcript || "")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function addTranscriptEntry(text) {
-  const log = document.getElementById("transcript_log");
-  const empty = document.getElementById("transcript_empty");
-  if (empty) {
-    empty.remove();
-  }
-  utteranceCount += 1;
-  const item = document.createElement("div");
-  item.className = "transcript-item";
-
-  const meta = document.createElement("div");
-  meta.className = "transcript-meta mono";
-  meta.textContent = `Utterance ${String(utteranceCount).padStart(2, "0")} · ${new Date().toLocaleTimeString()}`;
-
-  const body = document.createElement("div");
-  body.className = "transcript-text";
-  body.textContent = text;
-
-  item.appendChild(meta);
-  item.appendChild(body);
-  log.prepend(item);
 }
 
 async function acknowledgeTranscript(transcript) {
   const response = await fetch(`/${session.agentId}/acknowledge`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-    body: JSON.stringify({
-      type: "obs.user_utterance",
-      actor: "user",
-      kind: "observation",
-      payload: transcript,
-    }),
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({ type: "obs.user_utterance", actor: "user", kind: "observation", payload: transcript }),
   });
-  if (!response.ok) {
-    appendLog("promise", "acknowledge failed.");
+  if (!response.ok) appendLog("prometheus", "acknowledge failed.");
+}
+
+function addTranscriptEntry(text) {
+  const log = document.getElementById("transcript_log");
+  document.getElementById("transcript_empty")?.remove();
+  utteranceCount += 1;
+  const item = document.createElement("div");
+  item.className = "transcript-item";
+  const meta = document.createElement("div");
+  meta.className = "transcript-meta mono";
+  meta.textContent = `Utterance ${String(utteranceCount).padStart(2, "0")} · ${new Date().toLocaleTimeString()}`;
+  const body = document.createElement("div");
+  body.className = "transcript-text";
+  body.textContent = text;
+  item.append(meta, body);
+  log.prepend(item);
+}
+
+function isLikelyAsrHallucination(transcript) {
+  const normalized = String(transcript || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return ["untertitel der amara org community", "subtitles by the amara org community",
+    "captions by the amara org community"].includes(normalized);
+}
+
+function setStatusMessage(message, error = false) {
+  const status = document.querySelector(".card-body .small");
+  if (status) {
+    status.textContent = message;
+    status.classList.toggle("text-danger", error);
   }
 }
 
+function logDiagnostic(diagnostic) {
+  appendLog("transcription", JSON.stringify(diagnostic));
+}
+
 function appendLog(source, message) {
-  const prefix = source ? `[${source}] ` : "";
-  console.log(`${prefix}${message}`);
+  console.log(`[${source}] ${message}`);
 }
 
 function getAgentId() {
   const search = window.location.search;
-  if (!search || search.length < 2) {
-    return null;
-  }
-  if (search.includes("=")) {
-    const params = new URLSearchParams(search);
-    if (params.has("agentId")) {
-      return params.get("agentId");
-    }
-    if (params.has("agent")) {
-      return params.get("agent");
-    }
-  }
-  return search.substring(1);
+  if (!search || search.length < 2) return null;
+  const params = new URLSearchParams(search);
+  return params.get("agentId") || params.get("agent") || (search.includes("=") ? null : search.substring(1));
 }

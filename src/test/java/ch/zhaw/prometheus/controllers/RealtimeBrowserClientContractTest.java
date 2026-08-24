@@ -16,6 +16,10 @@ class RealtimeBrowserClientContractTest {
     private static final Path VALERIAN_INDEX = Path.of("src/main/resources/public/valerian/index.html");
     private static final Path MULTILATERAL_LISTEN_SCRIPT = Path.of(
             "src/main/resources/public/multilateral/listen/script.js");
+    private static final Path TRANSCRIPTION_CLIENT = Path.of(
+            "src/main/resources/public/transcription/client.js");
+    private static final Path TRANSCRIPTION_EVENTS = Path.of(
+            "src/main/resources/public/transcription/events.js");
 
     @Test
     void valerianSpeechClientUsesPrometheusBoundRealtimeCallEndpoint() throws IOException {
@@ -75,21 +79,24 @@ class RealtimeBrowserClientContractTest {
     }
 
     @Test
-    void valerianSpeechClientExposesContinuousVadModesOnly() throws IOException {
+    void valerianSpeechClientExposesDeterministicLiveTranscriptionModes() throws IOException {
         String index = Files.readString(VALERIAN_INDEX);
         String script = Files.readString(VALERIAN_SCRIPT);
+        String client = Files.readString(TRANSCRIPTION_CLIENT);
 
         assertContains(index, "Continuous");
+        assertContains(index, "Live Transcription Settings");
+        assertContains(index, "/transcription/browser-global.js");
         assertContains(index, "value=\"server_vad\"");
         assertContains(index, "value=\"semantic_vad\"");
         assertDoesNotContain(index, "<option value=\"none\"");
-        assertDoesNotContain(index, "Push to Talk");
-        assertDoesNotContain(index, "push_to_talk");
-        assertDoesNotContain(index, "push-to-talk");
+        assertContains(index, "transcription_push_to_talk");
 
         assertContains(script, "REALTIME_MODE_CONTINUOUS");
-        assertContains(script, "activeTurnDetection");
+        assertContains(script, "LiveTranscriptionClient");
+        assertContains(script, "transcriptionSettingsPanel.apiValues()");
         assertContains(script, "setRealtimeControlsLocked");
+        assertContains(client, "turnDetectionMode: this.settings.turnDetection.type");
         assertDoesNotContain(script, "REALTIME_MODE_PUSH_TO_TALK");
         assertDoesNotContain(script, "MediaRecorder");
         assertDoesNotContain(script, "new FormData()");
@@ -119,18 +126,23 @@ class RealtimeBrowserClientContractTest {
     }
 
     @Test
-    void multilateralListenerUsesGaTranscriptionSession() throws IOException {
+    void multilateralListenerUsesSharedScopedLiveTranscriptionClient() throws IOException {
         String script = Files.readString(MULTILATERAL_LISTEN_SCRIPT);
+        String client = Files.readString(TRANSCRIPTION_CLIENT);
+        String events = Files.readString(TRANSCRIPTION_EVENTS);
 
-        assertContains(script, "/realtime/transcription/session");
-        assertContains(script, "params.set(\"agentId\", session.agentId)");
-        assertContains(script, "input_audio_buffer.commit");
-        assertContains(script, "gpt-realtime-whisper");
-        assertContains(script, "data.delta || data.transcript");
+        assertContains(script, "../../transcription/client.js");
+        assertContains(script, "new LiveTranscriptionClient");
+        assertContains(script, "TranscriptionSettingsPanel");
         assertContains(script, "isLikelyAsrHallucination");
         assertContains(script, "amara org community");
+        assertContains(client, "/transcription/capabilities");
+        assertContains(client, "/transcription/session");
+        assertContains(client, "gpt-live-transcribe");
+        assertContains(events, "unexpected_assistant_event");
 
-        assertDoesNotContain(script, "type: \"session.update\"");
+        assertDoesNotContain(script, "/realtime/transcription/session");
+        assertDoesNotContain(script, "new RTCPeerConnection");
         assertDoesNotContain(script, "type: \"response.create\"");
         assertDoesNotContain(script, "type: \"realtime\"");
         assertDoesNotContain(script, "output_modalities");

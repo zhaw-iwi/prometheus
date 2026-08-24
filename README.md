@@ -689,7 +689,7 @@ not access-code scoped.
 The request and response shapes are the same as the scoped demo API, without the
 access-code header.
 
-## Realtime Speech
+## Realtime Speech (legacy migration path)
 
 Realtime speech clients do not talk directly to OpenAI. They post a WebRTC SDP
 offer to PROMETHEUS:
@@ -719,6 +719,10 @@ Transcription-only clients can request a session with:
 ```http
 POST /realtime/transcription/session?agentId={agentId}
 ```
+
+These combined and unscoped endpoints are retained temporarily for the
+standalone legacy client while the transcription-first branch is completed.
+Valerian and `/multilateral/listen` no longer use them.
 
 ### Scoped live transcription
 
@@ -764,6 +768,36 @@ settings summary. The prompt text and keywords are never echoed in that
 summary. The older unscoped transcription and combined Realtime call endpoints
 remain available only while the bundled clients are migrated on the feature
 branch; they are removed before the transcription-first cutover is complete.
+
+### Shared browser transcription engine
+
+Valerian and `/multilateral/listen` use the same ES-module engine under
+`public/transcription`. It acquires a cross-tab microphone lease, applies the
+requested browser capture constraints, creates only a transcription WebRTC
+data channel, commits local-VAD or manual turns, orders terminal transcripts by
+provider item ID, and reconnects with a fresh scoped ephemeral secret. Partial
+transcripts are display-only; a provider assistant response or remote media
+track is reported as an unexpected diagnostic and is never rendered.
+
+The operator panel exposes provider noise reduction, local/manual turn mode,
+silence duration, context, keywords, expected languages, transcription delay,
+input device, echo cancellation, noise suppression, automatic gain control,
+and voice isolation when supported. The default group profile is far-field,
+local VAD with 1.5 seconds silence, the agent language, medium delay, browser
+echo/noise/gain processing enabled, and voice isolation disabled. Requested and
+browser-applied capture values are displayed separately. Context and keywords
+are intentionally not stored in local storage.
+
+Run its deterministic browser gates with:
+
+```powershell
+npm.cmd run test:transcription:unit
+npm.cmd run test:valerian:transcription
+```
+
+These suites mock microphone, WebRTC, SDP exchange, and provider events. They
+do not replace the real acoustic matrix in
+`.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
 
 ### Output-only Speech
 
