@@ -22,8 +22,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ch.zhaw.prometheus.application.BehaviourGenerationOutcome;
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.DemoAgentTypeForbiddenException;
-import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
-import ch.zhaw.prometheus.application.RealtimeCallSettings;
 import ch.zhaw.prometheus.application.ScopedDemoService;
 import ch.zhaw.prometheus.controllers.dto.DemoAgentCreateRequest;
 import ch.zhaw.prometheus.controllers.dto.DemoSessionRequest;
@@ -34,23 +32,19 @@ import ch.zhaw.prometheus.controllers.views.BehaviourGenerateRequest;
 import ch.zhaw.prometheus.controllers.views.DemoSessionView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
-import ch.zhaw.prometheus.controllers.views.RealtimeCallView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
-import ch.zhaw.prometheus.spi.RealtimeCallInfo;
 
 @RestController
 public class ScopedDemoController {
     public static final String ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 
     private final ScopedDemoService demoService;
-    private final RealtimeCallOrchestrationService realtimeCallService;
 
-    public ScopedDemoController(ScopedDemoService demoService, RealtimeCallOrchestrationService realtimeCallService) {
+    public ScopedDemoController(ScopedDemoService demoService) {
         this.demoService = demoService;
-        this.realtimeCallService = realtimeCallService;
     }
 
     @PostMapping("/demo/session")
@@ -247,41 +241,6 @@ public class ScopedDemoController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PostMapping(path = "/demo/agents/{agentId}/realtime/call", consumes = { "application/sdp",
-            MediaType.TEXT_PLAIN_VALUE })
-    public ResponseEntity<RealtimeCallView> realtimeCall(
-            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
-            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
-            @PathVariable UUID agentId,
-            @RequestBody(required = false) String offerSdp,
-            @RequestParam(required = false) String voice,
-            @RequestParam(required = false) String turnDetection,
-            @RequestParam(defaultValue = "true") boolean generateComplement,
-            @RequestParam(required = false) String vadThreshold,
-            @RequestParam(required = false) String vadPrefixPaddingMs,
-            @RequestParam(required = false) String vadSilenceDurationMs,
-            @RequestParam(required = false) String vadEagerness,
-            @RequestParam(required = false) String vadCreateResponse,
-            @RequestParam(required = false) String vadInterruptResponse,
-            @RequestParam(required = false) String inputNoiseReduction,
-            @RequestParam(required = false) String outputSpeed,
-            @RequestParam(required = false) String reasoningEffort,
-            @RequestParam(required = false) String maxOutputTokens,
-            @RequestParam(required = false) String includeInputTranscriptionLogprobs) {
-        if (agentId == null || offerSdp == null || offerSdp.isBlank()) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-        RealtimeCallSettings settings = new RealtimeCallSettings(voice, turnDetection, generateComplement,
-                vadThreshold, vadPrefixPaddingMs, vadSilenceDurationMs, vadEagerness, vadCreateResponse,
-                vadInterruptResponse, inputNoiseReduction, outputSpeed, reasoningEffort, maxOutputTokens,
-                includeInputTranscriptionLogprobs);
-        Optional<RealtimeCallInfo> call = this.realtimeCallService.createScopedCall(
-                accessCode(headerAccessCode, queryAccessCode), agentId, offerSdp, settings);
-        return call.map(ScopedDemoController::toRealtimeCallView)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
     @ExceptionHandler(DemoAccessDeniedException.class)
     public ResponseEntity<Void> unauthorized() {
         return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -310,7 +269,4 @@ public class ScopedDemoController {
         return request.getPayload() != null && !request.getPayload().isBlank();
     }
 
-    private static RealtimeCallView toRealtimeCallView(RealtimeCallInfo call) {
-        return new RealtimeCallView(call.getSdp(), call.getModel(), call.getCallId());
-    }
 }

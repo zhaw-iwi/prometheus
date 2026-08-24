@@ -166,18 +166,6 @@ const ENDPOINTS = [
     pathVariables: ["agentId"],
   },
   {
-    id: "demo-realtime-call",
-    group: "Realtime",
-    method: "POST",
-    path: "/demo/agents/{agentId}/realtime/call",
-    summary: "Create a PROMETHEUS-owned Realtime WebRTC call from an SDP offer.",
-    headers: { "Content-Type": "application/sdp", [ACCESS_CODE_HEADER]: "{accessCode}" },
-    query: { voice: "cedar", turnDetection: "server_vad", generateComplement: "true" },
-    pathVariables: ["agentId"],
-    bodyKind: "text",
-    body: "v=0\r\n...client SDP offer...",
-  },
-  {
     id: "admin-agent-types",
     group: "Admin",
     method: "GET",

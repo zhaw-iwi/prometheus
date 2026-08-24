@@ -15,7 +15,7 @@ const state = {
   monitorReconnectTimer: null,
   monitorReconnectAttempt: 0,
   isPageUnloading: false,
-  realtimeListening: false,
+  transcriptionListening: false,
   cameraRunning: false,
   activityEntries: [],
   activityWrap: true,
@@ -29,36 +29,12 @@ const state = {
   storageSnapshot: null,
 };
 
-const realtime = {
+const transcription = {
   transcriptionClient: null,
   transcriptionSettingsPanel: null,
   transcriptionAgentId: null,
   transcriptIngress: null,
-  peerConnection: null,
-  dataChannel: null,
-  micStream: null,
-  callId: null,
-  activeMode: null,
-  activeTurnDetection: null,
-  assistantTranscriptBuffer: "",
-  assistantAudioSeen: false,
-  assistantAudioActive: false,
-  lastAssistantTranscript: "",
-  lastAssistantTranscriptAt: 0,
-  userSpeechActive: false,
-  responseActive: false,
-  micRestoreTimer: null,
-  micMutedForAssistant: false,
-  playbackIssueActive: false,
-  lastPlaybackWarningAt: 0,
-  statsTimer: null,
-  lastAudioStats: null,
-  lastStatsWarningAt: 0,
-  lastBargeInCancelAt: 0,
-  pendingInputItemIds: new Set(),
-  processedInputItemIds: new Set(),
-  transcriptCandidates: [],
-  transcriptFlushTimer: null,
+  inputGated: false,
   manualTurnActive: false,
 };
 
@@ -70,14 +46,8 @@ const speechPlayback = {
 };
 
 const speechDevices = {
-  inputDeviceId: "",
   outputDeviceId: "",
   devicesLoaded: false,
-};
-
-const speechSettings = {
-  bargeInCancelEnabled: true,
-  echoGuardEnabled: false,
 };
 
 const cameraDevices = {
@@ -148,41 +118,14 @@ const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 const RECONNECT_JITTER = 0.2;
 const BEHAVIOUR_DUPLICATE_WINDOW_MS = 2500;
-const TRANSCRIPT_BATCH_DELAY_MS = 900;
-const REALTIME_MODE_CONTINUOUS = "continuous";
 const ACTIVITY_LOG_LIMIT = 300;
 const ACCESS_CODE_STORAGE_KEY = "prometheus.valerian.accessCode";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
-const SPEECH_INPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechInputDevice";
 const SPEECH_OUTPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechOutputDevice";
 const SPEECH_VOICE_STORAGE_KEY = "prometheus.valerian.speechVoice";
-const SPEECH_VAD_MODE_STORAGE_KEY = "prometheus.valerian.speechVadMode";
-const SPEECH_COMPLEMENT_STORAGE_KEY = "prometheus.valerian.speechComplement";
-const SPEECH_VAD_THRESHOLD_STORAGE_KEY = "prometheus.valerian.speechVadThreshold";
-const SPEECH_VAD_PREFIX_PADDING_MS_STORAGE_KEY = "prometheus.valerian.speechVadPrefixPaddingMs";
-const SPEECH_VAD_SILENCE_DURATION_MS_STORAGE_KEY = "prometheus.valerian.speechVadSilenceDurationMs";
-const SPEECH_VAD_EAGERNESS_STORAGE_KEY = "prometheus.valerian.speechVadEagerness";
-const SPEECH_VAD_INTERRUPT_RESPONSE_STORAGE_KEY = "prometheus.valerian.speechVadInterruptResponse";
-const SPEECH_INPUT_NOISE_REDUCTION_STORAGE_KEY = "prometheus.valerian.speechInputNoiseReduction";
 const SPEECH_OUTPUT_SPEED_STORAGE_KEY = "prometheus.valerian.speechOutputSpeed";
-const SPEECH_REASONING_EFFORT_STORAGE_KEY = "prometheus.valerian.speechReasoningEffort";
-const SPEECH_MAX_OUTPUT_TOKENS_STORAGE_KEY = "prometheus.valerian.speechMaxOutputTokens";
-const SPEECH_TRANSCRIPTION_LOGPROBS_STORAGE_KEY = "prometheus.valerian.speechTranscriptionLogprobs";
-const SPEECH_BARGE_IN_CANCEL_STORAGE_KEY = "prometheus.valerian.speechBargeInCancel";
-const SPEECH_ECHO_GUARD_STORAGE_KEY = "prometheus.valerian.speechEchoGuard";
 const CAMERA_DEVICE_STORAGE_KEY = "prometheus.valerian.cameraDevice";
 const THEME_STORAGE_KEY = "prometheus.valerian.theme";
-const REALTIME_ICE_FAILURE_MESSAGE = "Realtime WebRTC ICE failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
-const REALTIME_CONNECTION_FAILURE_MESSAGE = "Realtime WebRTC connection failed. Stop and restart speech; check network/STUN/TURN if it repeats.";
-const REALTIME_ECHO_GUARD_RELEASE_MS = 1200;
-const REALTIME_ECHO_GUARD_MAX_MUTE_MS = 30000;
-const REALTIME_PLAYBACK_WARNING_COOLDOWN_MS = 3000;
-const REALTIME_STATS_POLL_MS = 2000;
-const REALTIME_STATS_WARNING_COOLDOWN_MS = 5000;
-const REALTIME_BARGE_IN_CANCEL_COOLDOWN_MS = 750;
-const REALTIME_ECHO_TRANSCRIPT_MAX_AGE_MS = 45000;
-const REALTIME_ECHO_TRANSCRIPT_MIN_CHARS = 18;
-const REALTIME_ECHO_TRANSCRIPT_SIMILARITY = 0.78;
 const CAMERA_PERIOD_MS = 350;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
@@ -281,9 +224,8 @@ async function init() {
   loadStoredSpeechDeviceSelection();
   loadStoredSpeechSettings();
   loadStoredCameraDeviceSelection();
-  renderSpeechDeviceSelections([], []);
+  renderSpeechOutputDeviceSelection([]);
   renderCameraDeviceSelections([]);
-  registerAssistantAudioDiagnostics();
   showCockpit(false);
   applyInteractionProfile(null);
   resetStateView();
@@ -345,7 +287,7 @@ function wireUi() {
     state.activityShowTimestamps = event.target.checked;
     renderActivityLog();
   });
-  document.getElementById("toggle_realtime").addEventListener("click", () => toggleRealtime());
+  document.getElementById("toggle_transcription").addEventListener("click", () => toggleTranscription());
   document.getElementById("stop_speech_playback").addEventListener("click", () => {
     stopSpeechPlayback("operator_stop");
   });
@@ -358,17 +300,14 @@ function wireUi() {
   document.getElementById("continuous_speech_tab").addEventListener("shown.bs.tab", () => {
     refreshAudioDevices({ requestPermission: false, silent: true });
   });
-  speechSessionSettingControls().forEach((control) => {
-    control.addEventListener("change", saveSpeechSessionSettingSelection);
+  speechOutputSettingControls().forEach((control) => {
+    control.addEventListener("change", saveSpeechOutputSettingSelection);
   });
-  document.getElementById("speechBargeInCancelToggle").addEventListener("change", saveSpeechBargeInCancelSelection);
-  document.getElementById("speechEchoGuardToggle").addEventListener("change", saveSpeechEchoGuardSelection);
-  document.getElementById("speech_input_device_select").addEventListener("change", saveSpeechInputDeviceSelection);
   document.getElementById("speech_output_device_select").addEventListener("change", () => {
     saveSpeechOutputDeviceSelection();
   });
   document.getElementById("refresh_audio_devices").addEventListener("click", () => {
-    refreshAudioDevices({ requestPermission: true });
+    refreshAudioDevices();
   });
   document.getElementById("camera_device_select").addEventListener("change", () => {
     saveCameraDeviceSelection();
@@ -768,7 +707,7 @@ function sweepStaleControlOwners() {
 
 function refreshControlOwnershipUi() {
   updateCameraOwnershipControls();
-  setRealtimeControlsLocked(state.realtimeListening);
+  setTranscriptionControlsLocked(state.transcriptionListening);
 }
 
 function applyStoredTheme() {
@@ -1078,8 +1017,8 @@ async function connectToAgent(agentId) {
     return;
   }
   state.selectedAgentId = selectedAgentId;
-  if (state.realtimeListening) {
-    await stopRealtime();
+  if (state.transcriptionListening) {
+    await stopTranscription();
   }
   if (state.cameraRunning) {
     stopCamera({ silent: true });
@@ -1142,8 +1081,8 @@ async function loadAgentInfo() {
 
 async function disconnectAgent(options = {}) {
   await stopSpeechPlayback("agent_disconnect", { reset: true, silent: true });
-  if (state.realtimeListening) {
-    await stopRealtime();
+  if (state.transcriptionListening) {
+    await stopTranscription();
   }
   if (state.cameraRunning) {
     stopCamera({ silent: true });
@@ -2135,22 +2074,22 @@ function releaseSpeechAudioResource(resource) {
 
 function setSpeechPlaybackInputEnabled(enabled) {
   const inputEnabled = Boolean(enabled);
-  realtime.assistantAudioActive = !inputEnabled;
-  realtime.transcriptIngress?.setAccepting(inputEnabled);
-  if (realtime.transcriptionClient && state.realtimeListening) {
-    realtime.transcriptionClient.setInputEnabled(inputEnabled);
+  transcription.inputGated = !inputEnabled;
+  transcription.transcriptIngress?.setAccepting(inputEnabled);
+  if (transcription.transcriptionClient && state.transcriptionListening) {
+    transcription.transcriptionClient.setInputEnabled(inputEnabled);
   }
   if (!inputEnabled) {
-    realtime.manualTurnActive = false;
+    transcription.manualTurnActive = false;
     setText("continuous_speech_sensing_value", "-");
   }
-  if (state.realtimeListening) {
+  if (state.transcriptionListening) {
     const listen = document.getElementById("listen_status");
     listen.textContent = inputEnabled ? "Listening" : "Input Paused";
     listen.className = `status-pill is-${inputEnabled ? "listening" : "idle"}`;
   }
   updateTranscriptionManualControl();
-  setRealtimeControlsLocked(state.realtimeListening);
+  setTranscriptionControlsLocked(state.transcriptionListening);
 }
 
 function handleSpeechPlaybackStatus(status) {
@@ -2359,108 +2298,73 @@ function renderDisplay(display) {
   }
 }
 
-async function toggleRealtime() {
-  if (!state.realtimeListening) {
-    await startRealtime();
+async function toggleTranscription() {
+  if (!state.transcriptionListening) {
+    await startTranscription();
     return;
   }
-  await stopRealtime();
+  await stopTranscription();
 }
 
-async function startRealtime() {
+async function startTranscription() {
   if (!state.agentId) {
     return;
   }
   if (speechPlayback.coordinator?.snapshot().current) {
-    setRealtimeTransportStatus("Input Paused", "idle", "Stop current speech playback before starting transcription.");
+    setTranscriptionTransportStatus("Input Paused", "idle", "Stop current speech playback before starting transcription.");
     return;
   }
   if (!claimControlOwnership("microphone")) {
-    setRealtimeGlobalStatus("Mic In Use", "idle");
-    setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
+    setTranscriptionGlobalStatus("Mic In Use", "idle");
+    setTranscriptionTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
     setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
-    appendLog("realtime", "start blocked; microphone is active in another Valerian window.");
+    appendLog("transcription", "start blocked; microphone is active in another Valerian window.");
     return;
   }
-  realtime.activeMode = REALTIME_MODE_CONTINUOUS;
-  setRealtimeState(true);
-  resetRealtimeTranscriptGate();
+  setTranscriptionState(true);
   appendLog("transcription", "starting gpt-live-transcribe session.");
-  setRealtimeTransportStatus("Transcription Starting", "idle", "");
+  setTranscriptionTransportStatus("Transcription Starting", "idle", "");
   try {
     await ensureLiveTranscriptionUi();
-    const settings = realtime.transcriptionSettingsPanel.apiValues();
-    const mediaPreferences = realtime.transcriptionSettingsPanel.mediaValues();
-    realtime.transcriptionSettingsPanel.setLifecycle("CONNECTING");
-    const started = await realtime.transcriptionClient.start({ settings, mediaPreferences });
-    realtime.transcriptionSettingsPanel.setAppliedCapture(started.appliedCapture);
-    realtime.transcriptionSettingsPanel.setLifecycle("CONNECTED");
+    const settings = transcription.transcriptionSettingsPanel.apiValues();
+    const mediaPreferences = transcription.transcriptionSettingsPanel.mediaValues();
+    transcription.transcriptionSettingsPanel.setLifecycle("CONNECTING");
+    const started = await transcription.transcriptionClient.start({ settings, mediaPreferences });
+    transcription.transcriptionSettingsPanel.setAppliedCapture(started.appliedCapture);
+    transcription.transcriptionSettingsPanel.setLifecycle("CONNECTED");
     updateTranscriptionManualControl();
   } catch (error) {
     appendLog("transcription", "start failed: " + error.message);
-    await stopRealtime();
-    setRealtimeTransportStatus("Transcription Failed", "error", `Transcription start failed: ${error.message}`);
+    await stopTranscription();
+    setTranscriptionTransportStatus("Transcription Failed", "error", `Transcription start failed: ${error.message}`);
   }
 }
 
-async function stopRealtime() {
-  const stoppingMode = realtime.activeMode;
-  setRealtimeState(false, stoppingMode);
+async function stopTranscription() {
+  setTranscriptionState(false);
   await stopSpeechPlayback("transcription_stop", { silent: true });
-  if (realtime.transcriptionClient) {
-    await realtime.transcriptionClient.stop();
+  if (transcription.transcriptionClient) {
+    await transcription.transcriptionClient.stop();
   }
-  if (realtime.transcriptionSettingsPanel) {
-    realtime.transcriptionSettingsPanel.setAppliedCapture({});
-    realtime.transcriptionSettingsPanel.setLifecycle("IDLE");
+  if (transcription.transcriptionSettingsPanel) {
+    transcription.transcriptionSettingsPanel.setAppliedCapture({});
+    transcription.transcriptionSettingsPanel.setLifecycle("IDLE");
   }
-  realtime.manualTurnActive = false;
+  transcription.manualTurnActive = false;
+  transcription.inputGated = false;
   updateTranscriptionManualControl();
-  if (realtime.dataChannel) {
-    realtime.dataChannel.close();
-    realtime.dataChannel = null;
-  }
-  if (realtime.peerConnection) {
-    realtime.peerConnection.close();
-    realtime.peerConnection = null;
-  }
-  stopRealtimeStatsDiagnostics();
-  restoreRealtimeMicrophoneAfterAssistant();
-  if (realtime.micStream) {
-    realtime.micStream.getTracks().forEach((track) => track.stop());
-    realtime.micStream = null;
-  }
-  if (realtime.callId) {
-    closeRealtimeCall(realtime.callId);
-    realtime.callId = null;
-  }
-  realtime.activeMode = null;
-  realtime.activeTurnDetection = null;
-  const audio = document.getElementById("assistant_audio");
-  audio.pause();
-  audio.removeAttribute("src");
-  audio.srcObject = null;
-  audio.load();
-  realtime.responseActive = false;
-  realtime.assistantAudioSeen = false;
-  realtime.assistantAudioActive = false;
-  realtime.userSpeechActive = false;
-  realtime.playbackIssueActive = false;
-  realtime.lastAudioStats = null;
-  realtime.lastStatsWarningAt = 0;
-  resetRealtimeTranscriptGate();
-  setRealtimeTransportStatus("Transcription Idle", "idle", "");
+  setTranscriptionTransportStatus("Transcription Idle", "idle", "");
   appendLog("transcription", "stopped.");
   releaseControlOwnership("microphone");
 }
 
 async function ensureLiveTranscriptionUi() {
   if (!state.agentId) throw new Error("Connect an agent before starting transcription.");
-  if (realtime.transcriptionClient && realtime.transcriptionAgentId === state.agentId) {
-    return realtime.transcriptionClient;
+  if (transcription.transcriptionClient && transcription.transcriptionAgentId === state.agentId) {
+    return transcription.transcriptionClient;
   }
-  if (realtime.transcriptionClient) await realtime.transcriptionClient.stop();
-  realtime.transcriptIngress?.setAccepting(false);
+  if (transcription.transcriptionClient) await transcription.transcriptionClient.stop();
+  transcription.transcriptIngress?.setAccepting(false);
   const api = await waitForTranscriptionApi();
   const media = new api.TranscriptionMedia({
     onDiagnostic: handleLiveTranscriptionDiagnostic,
@@ -2468,7 +2372,7 @@ async function ensureLiveTranscriptionUi() {
   const ingress = new api.ScopedTranscriptIngress({
     agentId: state.agentId,
     accessCode: state.accessCode || "",
-    canAccept: () => !realtime.assistantAudioActive,
+    canAccept: () => !transcription.inputGated,
     onQueued: renderQueuedLiveTranscript,
     onAccepted: handleAcceptedLiveTranscript,
     onStatus: handleTranscriptIngressStatus,
@@ -2489,15 +2393,15 @@ async function ensureLiveTranscriptionUi() {
   });
   const descriptor = await client.initialize();
   const root = document.getElementById("live_transcription_settings_root");
-  realtime.transcriptionSettingsPanel = new api.TranscriptionSettingsPanel({
+  transcription.transcriptionSettingsPanel = new api.TranscriptionSettingsPanel({
     root,
     preferences: client.preferences,
     media,
     onValidation: () => updateTranscriptionManualControl(),
   });
-  realtime.transcriptionClient = client;
-  realtime.transcriptIngress = ingress;
-  realtime.transcriptionAgentId = state.agentId;
+  transcription.transcriptionClient = client;
+  transcription.transcriptIngress = ingress;
+  transcription.transcriptionAgentId = state.agentId;
   appendLog("transcription", `loaded ${descriptor.model} settings schema ${descriptor.schemaVersion}.`);
   updateTranscriptionManualControl();
   return client;
@@ -2520,7 +2424,7 @@ function handleLiveTranscriptionFinal({ epoch, itemId, text }) {
     appendLog("transcription", `ignored empty or noisy final transcript for ${itemId}.`);
     return;
   }
-  return realtime.transcriptIngress?.submit({ epoch, itemId, text: transcript }) || false;
+  return transcription.transcriptIngress?.submit({ epoch, itemId, text: transcript }) || false;
 }
 
 function renderQueuedLiveTranscript({ itemId, text }) {
@@ -2573,12 +2477,12 @@ function handleLiveTranscriptionState({ state: transportState, message = "", att
     stopped: ["Transcription Idle", "idle"],
   };
   const [label, mode] = mapping[transportState] || ["Transcription Idle", "idle"];
-  setRealtimeTransportStatus(label, mode, message);
+  setTranscriptionTransportStatus(label, mode, message);
   const lifecycle = transportState === "connected" ? "CONNECTED"
     : transportState === "reconnecting" ? "RECONNECTING"
       : transportState === "failed" ? "FAILED"
         : transportState === "connecting" ? "CONNECTING" : "IDLE";
-  realtime.transcriptionSettingsPanel?.setLifecycle(lifecycle);
+  transcription.transcriptionSettingsPanel?.setLifecycle(lifecycle);
   updateTranscriptionManualControl();
 }
 
@@ -2595,382 +2499,29 @@ function updateTranscriptionManualControl() {
   const button = document.getElementById("transcription_push_to_talk");
   let manual = false;
   try {
-    manual = realtime.transcriptionSettingsPanel?.apiValues()?.turnDetection?.type === "manual";
+    manual = transcription.transcriptionSettingsPanel?.apiValues()?.turnDetection?.type === "manual";
   } catch (_error) {
     manual = false;
   }
   button.classList.toggle("d-none", !manual);
-  button.disabled = !manual || realtime.transcriptionClient?.transport?.state !== "connected";
-  button.setAttribute("aria-pressed", realtime.manualTurnActive ? "true" : "false");
+  button.disabled = !manual || transcription.transcriptionClient?.transport?.state !== "connected";
+  button.setAttribute("aria-pressed", transcription.manualTurnActive ? "true" : "false");
 }
 
 function beginManualTranscriptionTurn(event) {
   event.preventDefault();
-  if (!realtime.transcriptionClient?.startManualTurn()) return;
-  realtime.manualTurnActive = true;
+  if (!transcription.transcriptionClient?.startManualTurn()) return;
+  transcription.manualTurnActive = true;
   event.currentTarget.setPointerCapture?.(event.pointerId);
   updateTranscriptionManualControl();
 }
 
 function finishManualTranscriptionTurn(event) {
   event.preventDefault();
-  if (!realtime.manualTurnActive) return;
-  realtime.manualTurnActive = false;
-  realtime.transcriptionClient?.commitManualTurn();
+  if (!transcription.manualTurnActive) return;
+  transcription.manualTurnActive = false;
+  transcription.transcriptionClient?.commitManualTurn();
   updateTranscriptionManualControl();
-}
-
-async function setupRealtimeConnection(mode = REALTIME_MODE_CONTINUOUS) {
-  const settings = currentRealtimeSettings(mode);
-  realtime.activeMode = mode;
-  realtime.activeTurnDetection = settings.turnDetection || "server_vad";
-  realtime.playbackIssueActive = false;
-  realtime.lastPlaybackWarningAt = 0;
-  realtime.assistantAudioActive = false;
-  realtime.userSpeechActive = false;
-  realtime.lastAudioStats = null;
-  realtime.lastStatsWarningAt = 0;
-  realtime.lastBargeInCancelAt = 0;
-  realtime.peerConnection = new RTCPeerConnection();
-  wireRealtimePeerDiagnostics(realtime.peerConnection);
-  realtime.peerConnection.ontrack = (event) => {
-    const audio = activeAssistantAudioElement();
-    registerRemoteAudioTrackDiagnostics(event.track);
-    audio.srcObject = event.streams[0];
-    applySelectedSpeechOutputDevice().finally(() => {
-      audio.play().catch(() => {
-        appendLog("realtime", "assistant audio autoplay was blocked.");
-      });
-    });
-  };
-  realtime.dataChannel = realtime.peerConnection.createDataChannel("oai-events");
-  realtime.dataChannel.addEventListener("message", handleRealtimeEvent);
-  realtime.dataChannel.addEventListener("close", () => {
-    if (state.realtimeListening) {
-      setRealtimeTransportStatus("Transport Failed", "error", "Realtime data channel closed unexpectedly. Stop and restart speech.");
-    }
-  });
-  realtime.dataChannel.addEventListener("error", () => {
-    if (state.realtimeListening) {
-      setRealtimeTransportStatus("Transport Failed", "error", "Realtime data channel failed. Stop and restart speech.");
-    }
-  });
-  realtime.micStream = await navigator.mediaDevices.getUserMedia({
-    audio: speechInputConstraints(),
-  });
-  logActiveSpeechInputSettings(realtime.micStream);
-  refreshAudioDevices({ requestPermission: false, silent: true });
-  setRealtimeMicrophoneEnabled(true);
-  realtime.micStream.getTracks().forEach((track) => realtime.peerConnection.addTrack(track, realtime.micStream));
-
-  const offer = await realtime.peerConnection.createOffer();
-  await realtime.peerConnection.setLocalDescription(offer);
-  const call = await createRealtimeCall(offer.sdp, settings);
-  realtime.callId = call.callId || call.id || null;
-  await realtime.peerConnection.setRemoteDescription({ type: "answer", sdp: call.sdp });
-  startRealtimeStatsDiagnostics();
-  appendLog("realtime", "WebRTC session established.");
-}
-
-async function createRealtimeCall(offerSdp, settings = currentRealtimeSettings()) {
-  const params = new URLSearchParams();
-  appendRealtimeCallParam(params, "voice", settings.voice);
-  params.set("turnDetection", settings.turnDetection || "server_vad");
-  params.set("generateComplement", String(settings.generateComplement));
-  appendRealtimeCallParam(params, "vadThreshold", settings.vadThreshold);
-  appendRealtimeCallParam(params, "vadPrefixPaddingMs", settings.vadPrefixPaddingMs);
-  appendRealtimeCallParam(params, "vadSilenceDurationMs", settings.vadSilenceDurationMs);
-  appendRealtimeCallParam(params, "vadEagerness", settings.vadEagerness);
-  appendRealtimeCallParam(params, "vadInterruptResponse", settings.vadInterruptResponse);
-  appendRealtimeCallParam(params, "inputNoiseReduction", settings.inputNoiseReduction);
-  appendRealtimeCallParam(params, "outputSpeed", settings.outputSpeed);
-  appendRealtimeCallParam(params, "reasoningEffort", settings.reasoningEffort);
-  appendRealtimeCallParam(params, "maxOutputTokens", settings.maxOutputTokens);
-  if (settings.includeInputTranscriptionLogprobs) {
-    appendRealtimeCallParam(params, "includeInputTranscriptionLogprobs", true);
-  }
-  const response = await scopedFetch(demoAgentPath(`/realtime/call?${params.toString()}`), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/sdp",
-    },
-    body: offerSdp,
-  });
-  if (!response.ok) {
-    throw new Error("realtime call creation failed.");
-  }
-  return await response.json();
-}
-
-function appendRealtimeCallParam(params, key, value) {
-  if (value === null || value === undefined || value === "") {
-    return;
-  }
-  params.set(key, String(value));
-}
-
-function closeRealtimeCall(callId) {
-  fetch(`/realtime/calls/${encodeURIComponent(callId)}`, { method: "DELETE" }).catch(() => {
-  });
-}
-
-function waitForDataChannelOpen(timeoutMs = 5000) {
-  if (realtime.dataChannel && realtime.dataChannel.readyState === "open") {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("data channel not ready.")), timeoutMs);
-    const handleOpen = () => {
-      clearTimeout(timeout);
-      realtime.dataChannel.removeEventListener("open", handleOpen);
-      resolve();
-    };
-    realtime.dataChannel.addEventListener("open", handleOpen);
-  });
-}
-
-function handleRealtimeEvent(event) {
-  let data = null;
-  try {
-    data = JSON.parse(event.data);
-  } catch (_) {
-    appendLog("realtime", "non-json event.");
-    return;
-  }
-  if (data.type === "input_audio_buffer.committed") {
-    rememberRealtimeInputItem(data.item_id);
-  } else if (data.type === "input_audio_buffer.cleared") {
-    clearRealtimePendingInputItems();
-  } else if (data.type === "input_audio_buffer.speech_started") {
-    handleRealtimeUserSpeechStarted();
-  } else if (data.type === "input_audio_buffer.speech_stopped") {
-    handleRealtimeUserSpeechStopped();
-  } else if (data.type === "conversation.item.input_audio_transcription.completed") {
-    queueRealtimeTranscriptCandidate(data);
-  } else if (data.type === "response.created") {
-    realtime.responseActive = true;
-    realtime.assistantAudioSeen = false;
-    markRealtimeAssistantAudioActive();
-    realtime.assistantTranscriptBuffer = "";
-    muteRealtimeMicrophoneForAssistant();
-  } else if (data.type === "response.audio.delta" || data.type === "response.output_audio.delta") {
-    realtime.assistantAudioSeen = true;
-    markRealtimeAssistantAudioActive();
-    muteRealtimeMicrophoneForAssistant();
-  } else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.output_text.delta") {
-    realtime.assistantAudioSeen = true;
-    markRealtimeAssistantAudioActive();
-    muteRealtimeMicrophoneForAssistant();
-    realtime.assistantTranscriptBuffer += data.delta || "";
-    setText("speech_preview", realtime.assistantTranscriptBuffer || "-");
-  } else if (data.type === "response.output_audio_transcript.done" || data.type === "response.output_text.done") {
-    const transcript = realtime.assistantTranscriptBuffer.trim() ||
-      String(data.transcript || data.text || "").trim();
-    if (transcript) {
-      setText("speech_preview", transcript);
-      rememberRealtimeAssistantTranscript(transcript);
-    }
-    realtime.assistantTranscriptBuffer = "";
-    scheduleRealtimeMicrophoneRestoreAfterAssistant();
-  } else if (data.type === "response.done" || data.type === "response.audio.done" ||
-    data.type === "response.output_audio.done" || data.type === "response.cancelled" ||
-    data.type === "response.canceled") {
-    realtime.assistantAudioSeen = false;
-    realtime.responseActive = false;
-    markRealtimeAssistantAudioDone();
-    scheduleRealtimeMicrophoneRestoreAfterAssistant();
-  }
-}
-
-function handleRealtimeUserSpeechStarted() {
-  realtime.userSpeechActive = true;
-  appendLog("realtime", "user speech started.");
-  if (realtime.assistantAudioActive && speechSettings.bargeInCancelEnabled) {
-    cancelRealtimeAssistantResponse("User barge-in detected; requested assistant cancellation.");
-  } else if (realtime.assistantAudioActive) {
-    appendLog("realtime", "user barge-in detected; cancellation is disabled.");
-  }
-}
-
-function handleRealtimeUserSpeechStopped() {
-  realtime.userSpeechActive = false;
-  appendLog("realtime", "user speech stopped.");
-}
-
-function markRealtimeAssistantAudioActive() {
-  realtime.assistantAudioActive = true;
-}
-
-function markRealtimeAssistantAudioDone() {
-  realtime.assistantAudioActive = false;
-}
-
-function cancelRealtimeAssistantResponse(reason) {
-  const now = Date.now();
-  if (now - realtime.lastBargeInCancelAt < REALTIME_BARGE_IN_CANCEL_COOLDOWN_MS) {
-    return false;
-  }
-  realtime.lastBargeInCancelAt = now;
-  const sent = sendRealtimeClientEvent({ type: "response.cancel" }, reason);
-  if (sent) {
-    realtime.assistantAudioActive = false;
-    realtime.assistantTranscriptBuffer = "";
-    setText("speech_preview", "-");
-  }
-  return sent;
-}
-
-function sendRealtimeClientEvent(payload, activityMessage = "") {
-  const channel = realtime.dataChannel;
-  if (!channel || channel.readyState !== "open") {
-    appendLog("realtime", `client event not sent; data channel is ${channel ? channel.readyState : "missing"}.`);
-    return false;
-  }
-  try {
-    channel.send(JSON.stringify(payload));
-    if (activityMessage) {
-      appendLog("realtime", activityMessage);
-    }
-    return true;
-  } catch (error) {
-    appendLog("realtime", `client event failed: ${errorMessage(error)}`);
-    return false;
-  }
-}
-
-function rememberRealtimeInputItem(itemId) {
-  if (!itemId || realtime.processedInputItemIds.has(itemId)) {
-    return;
-  }
-  realtime.pendingInputItemIds.add(itemId);
-}
-
-function queueRealtimeTranscriptCandidate(data) {
-  const transcript = data.transcript || "";
-  if (!transcript.trim()) {
-    markRealtimeTranscriptItemsProcessed([{ itemId: data.item_id || "" }]);
-    return;
-  }
-  realtime.transcriptCandidates.push({
-    itemId: data.item_id || "",
-    eventId: data.event_id || "",
-    transcript: transcript.trim(),
-  });
-  if (!realtime.transcriptFlushTimer) {
-    realtime.transcriptFlushTimer = setTimeout(flushRealtimeTranscriptCandidates, TRANSCRIPT_BATCH_DELAY_MS);
-  }
-}
-
-function flushRealtimeTranscriptCandidates() {
-  const candidates = realtime.transcriptCandidates.slice();
-  realtime.transcriptCandidates = [];
-  realtime.transcriptFlushTimer = null;
-  const hasEchoCandidate = candidates.some((candidate) => isProbableAssistantEcho(candidate.transcript));
-  const selected = selectRealtimeTranscriptCandidate(candidates);
-  markRealtimeTranscriptItemsProcessed(candidates);
-  if (!selected) {
-    appendLog("realtime", hasEchoCandidate
-      ? "Suppressed probable assistant echo transcript."
-      : "ignored noisy or duplicate user transcript.");
-    return;
-  }
-  appendMessage("user", selected.transcript);
-  renderSpeechSensingTranscript(selected.transcript);
-  appendLog("realtime", "user transcript completed.");
-}
-
-function selectRealtimeTranscriptCandidate(candidates) {
-  let selected = null;
-  for (const candidate of candidates) {
-    if (!candidate.transcript.trim() || realtimeTranscriptItemAlreadyProcessed(candidate) ||
-      !realtimeTranscriptItemMatchesPendingCommit(candidate) || isLikelyAsrHallucination(candidate.transcript) ||
-      isProbableAssistantEcho(candidate.transcript)) {
-      continue;
-    }
-    selected = candidate;
-  }
-  return selected;
-}
-
-function realtimeTranscriptItemAlreadyProcessed(candidate) {
-  return !!candidate.itemId && realtime.processedInputItemIds.has(candidate.itemId);
-}
-
-function realtimeTranscriptItemMatchesPendingCommit(candidate) {
-  return !candidate.itemId || realtime.pendingInputItemIds.size === 0 ||
-    realtime.pendingInputItemIds.has(candidate.itemId);
-}
-
-function markRealtimeTranscriptItemsProcessed(candidates) {
-  candidates.forEach((candidate) => {
-    if (!candidate.itemId) {
-      return;
-    }
-    realtime.processedInputItemIds.add(candidate.itemId);
-    realtime.pendingInputItemIds.delete(candidate.itemId);
-  });
-}
-
-function clearQueuedRealtimeTranscriptCandidates() {
-  realtime.transcriptCandidates = [];
-  if (realtime.transcriptFlushTimer) {
-    clearTimeout(realtime.transcriptFlushTimer);
-    realtime.transcriptFlushTimer = null;
-  }
-  clearRealtimePendingInputItems();
-}
-
-function clearRealtimePendingInputItems() {
-  realtime.pendingInputItemIds.clear();
-}
-
-function resetRealtimeTranscriptGate() {
-  clearQueuedRealtimeTranscriptCandidates();
-  realtime.processedInputItemIds = new Set();
-}
-
-function rememberRealtimeAssistantTranscript(transcript) {
-  const normalized = normalizeTranscriptForGate(transcript);
-  if (!normalized) {
-    return;
-  }
-  realtime.lastAssistantTranscript = transcript;
-  realtime.lastAssistantTranscriptAt = Date.now();
-}
-
-function isProbableAssistantEcho(transcript) {
-  const assistant = realtime.lastAssistantTranscript;
-  if (!assistant || Date.now() - realtime.lastAssistantTranscriptAt > REALTIME_ECHO_TRANSCRIPT_MAX_AGE_MS) {
-    return false;
-  }
-  const userText = normalizeTranscriptForGate(transcript);
-  const assistantText = normalizeTranscriptForGate(assistant);
-  if (userText.length < REALTIME_ECHO_TRANSCRIPT_MIN_CHARS ||
-    assistantText.length < REALTIME_ECHO_TRANSCRIPT_MIN_CHARS) {
-    return false;
-  }
-  if (userText === assistantText) {
-    return true;
-  }
-  if (userText.includes(assistantText) || assistantText.includes(userText)) {
-    return true;
-  }
-  return transcriptTokenSimilarity(userText, assistantText) >= REALTIME_ECHO_TRANSCRIPT_SIMILARITY;
-}
-
-function transcriptTokenSimilarity(left, right) {
-  const leftTokens = new Set(left.split(" ").filter((token) => token.length > 2));
-  const rightTokens = new Set(right.split(" ").filter((token) => token.length > 2));
-  if (!leftTokens.size || !rightTokens.size) {
-    return 0;
-  }
-  let intersection = 0;
-  leftTokens.forEach((token) => {
-    if (rightTokens.has(token)) {
-      intersection += 1;
-    }
-  });
-  return intersection / Math.max(leftTokens.size, rightTokens.size);
 }
 
 function isLikelyAsrHallucination(transcript) {
@@ -2989,51 +2540,22 @@ function normalizeTranscriptForGate(transcript) {
     .trim();
 }
 
-function applySessionSettings() {
-  if (!state.realtimeListening) {
-    return;
-  }
-  appendLog("realtime", "restart realtime to apply voice or mode changes.");
-}
-
-function speechSessionSettingControls() {
+function speechOutputSettingControls() {
   return [
     "speechVoiceInput",
-    "speechVadSelect",
-    "speechComplementToggle",
-    "speechVadThresholdInput",
-    "speechVadPrefixInput",
-    "speechVadSilenceInput",
-    "speechVadEagernessSelect",
-    "speechVadInterruptResponseSelect",
-    "speechInputNoiseReductionSelect",
     "speechOutputSpeedInput",
-    "speechReasoningEffortSelect",
-    "speechMaxOutputTokensInput",
-    "speechTranscriptionLogprobsToggle",
   ].map((id) => document.getElementById(id)).filter(Boolean);
 }
 
 function speechSettingStorageKey(storageName) {
   return {
     speechVoice: SPEECH_VOICE_STORAGE_KEY,
-    speechVadMode: SPEECH_VAD_MODE_STORAGE_KEY,
-    speechComplement: SPEECH_COMPLEMENT_STORAGE_KEY,
-    speechVadThreshold: SPEECH_VAD_THRESHOLD_STORAGE_KEY,
-    speechVadPrefixPaddingMs: SPEECH_VAD_PREFIX_PADDING_MS_STORAGE_KEY,
-    speechVadSilenceDurationMs: SPEECH_VAD_SILENCE_DURATION_MS_STORAGE_KEY,
-    speechVadEagerness: SPEECH_VAD_EAGERNESS_STORAGE_KEY,
-    speechVadInterruptResponse: SPEECH_VAD_INTERRUPT_RESPONSE_STORAGE_KEY,
-    speechInputNoiseReduction: SPEECH_INPUT_NOISE_REDUCTION_STORAGE_KEY,
     speechOutputSpeed: SPEECH_OUTPUT_SPEED_STORAGE_KEY,
-    speechReasoningEffort: SPEECH_REASONING_EFFORT_STORAGE_KEY,
-    speechMaxOutputTokens: SPEECH_MAX_OUTPUT_TOKENS_STORAGE_KEY,
-    speechTranscriptionLogprobs: SPEECH_TRANSCRIPTION_LOGPROBS_STORAGE_KEY,
   }[storageName] || "";
 }
 
 function loadStoredSpeechSettings() {
-  speechSessionSettingControls().forEach((control) => {
+  speechOutputSettingControls().forEach((control) => {
     const storageKey = speechSettingStorageKey(control.dataset.storageKey || "");
     if (!storageKey) {
       return;
@@ -3042,63 +2564,26 @@ function loadStoredSpeechSettings() {
     if (storedValue === null) {
       return;
     }
-    if (control.type === "checkbox") {
-      control.checked = storedValue === "true";
-    } else {
-      control.value = storedValue;
-    }
+    control.value = storedValue;
   });
-  speechSettings.bargeInCancelEnabled = localStorage.getItem(SPEECH_BARGE_IN_CANCEL_STORAGE_KEY) !== "false";
-  document.getElementById("speechBargeInCancelToggle").checked = speechSettings.bargeInCancelEnabled;
-  speechSettings.echoGuardEnabled = localStorage.getItem(SPEECH_ECHO_GUARD_STORAGE_KEY) === "true";
-  document.getElementById("speechEchoGuardToggle").checked = speechSettings.echoGuardEnabled;
 }
 
-function saveSpeechSessionSettingSelection(event) {
+function saveSpeechOutputSettingSelection(event) {
   const control = event.currentTarget;
   const storageKey = speechSettingStorageKey(control.dataset.storageKey || "");
   if (!storageKey) {
     return;
   }
-  const value = control.type === "checkbox" ? String(control.checked) : control.value.trim();
+  const value = control.value.trim();
   if (value) {
     localStorage.setItem(storageKey, value);
   } else {
     localStorage.removeItem(storageKey);
   }
-  applySessionSettings();
-}
-
-function saveSpeechBargeInCancelSelection() {
-  speechSettings.bargeInCancelEnabled = document.getElementById("speechBargeInCancelToggle").checked;
-  localStorage.setItem(SPEECH_BARGE_IN_CANCEL_STORAGE_KEY, String(speechSettings.bargeInCancelEnabled));
-  setSpeechDeviceStatus(speechSettings.bargeInCancelEnabled
-    ? "Barge-in cancellation enabled; user speech interrupts assistant playback."
-    : "Barge-in cancellation disabled; assistant playback will continue during user speech.", "ready");
-}
-
-function saveSpeechEchoGuardSelection() {
-  speechSettings.echoGuardEnabled = document.getElementById("speechEchoGuardToggle").checked;
-  localStorage.setItem(SPEECH_ECHO_GUARD_STORAGE_KEY, String(speechSettings.echoGuardEnabled));
-  if (speechSettings.echoGuardEnabled) {
-    setSpeechDeviceStatus("Half-duplex fallback enabled; microphone pauses during assistant playback.", "ready");
-    return;
-  }
-  restoreRealtimeMicrophoneAfterAssistant("Half-duplex fallback disabled; microphone resumed.");
-  setSpeechDeviceStatus("Half-duplex fallback disabled; full-duplex barge-in is active.", "ready");
 }
 
 function loadStoredSpeechDeviceSelection() {
-  speechDevices.inputDeviceId = localStorage.getItem(SPEECH_INPUT_DEVICE_STORAGE_KEY) || "";
   speechDevices.outputDeviceId = localStorage.getItem(SPEECH_OUTPUT_DEVICE_STORAGE_KEY) || "";
-}
-
-function saveSpeechInputDeviceSelection() {
-  speechDevices.inputDeviceId = document.getElementById("speech_input_device_select").value || "";
-  localStorage.setItem(SPEECH_INPUT_DEVICE_STORAGE_KEY, speechDevices.inputDeviceId);
-  setSpeechDeviceStatus(state.realtimeListening
-    ? "Microphone saved. Restart speech to use the new input device."
-    : "Microphone saved for the next speech session.", "ready");
 }
 
 async function saveSpeechOutputDeviceSelection() {
@@ -3116,28 +2601,17 @@ function speechOutputSelectionSupported() {
 }
 
 async function refreshAudioDevices(options = {}) {
-  const requestPermission = options.requestPermission === true;
   const silent = options.silent === true;
   if (!speechAudioSelectionSupported()) {
-    renderSpeechDeviceSelections([], []);
+    renderSpeechOutputDeviceSelection([]);
     setSpeechDeviceStatus("Audio device selection is not supported by this browser.", "error");
-    setRealtimeControlsLocked(state.realtimeListening);
+    setTranscriptionControlsLocked(state.transcriptionListening);
     return;
   }
-  if (requestPermission && controlOwnedByOther("microphone")) {
-    setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
-    setRealtimeControlsLocked(state.realtimeListening);
-    return;
-  }
-  let permissionStream = null;
   try {
-    if (requestPermission) {
-      permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const inputDevices = devices.filter((device) => device.kind === "audioinput");
     const outputDevices = devices.filter((device) => device.kind === "audiooutput");
-    renderSpeechDeviceSelections(inputDevices, outputDevices);
+    renderSpeechOutputDeviceSelection(outputDevices);
     speechDevices.devicesLoaded = true;
     if (!silent) {
       const outputNote = speechOutputSelectionSupported() ? "" : " Speaker selection is not supported by this browser.";
@@ -3147,33 +2621,22 @@ async function refreshAudioDevices(options = {}) {
     }
   } catch (error) {
     setSpeechDeviceStatus(`Audio device refresh failed: ${error.message}`, "error");
-    appendLog("realtime", `audio device refresh failed: ${error.message}`);
+    appendLog("speech-playback", `audio device refresh failed: ${error.message}`);
   } finally {
-    if (permissionStream) {
-      permissionStream.getTracks().forEach((track) => track.stop());
-    }
-    setRealtimeControlsLocked(state.realtimeListening);
+    setTranscriptionControlsLocked(state.transcriptionListening);
   }
 }
 
-function renderSpeechDeviceSelections(inputDevices, outputDevices) {
-  renderSpeechDeviceSelect(
-    document.getElementById("speech_input_device_select"),
-    inputDevices,
-    "audioinput",
-    "System / browser default",
-    speechDevices.inputDeviceId
-  );
+function renderSpeechOutputDeviceSelection(outputDevices) {
   renderSpeechDeviceSelect(
     document.getElementById("speech_output_device_select"),
     outputDevices,
-    "audiooutput",
     "System / browser default",
     speechDevices.outputDeviceId
   );
 }
 
-function renderSpeechDeviceSelect(select, devices, kind, defaultLabel, selectedDeviceId) {
+function renderSpeechDeviceSelect(select, devices, defaultLabel, selectedDeviceId) {
   if (!select) {
     return;
   }
@@ -3183,34 +2646,15 @@ function renderSpeechDeviceSelect(select, devices, kind, defaultLabel, selectedD
     if (!device.deviceId || device.deviceId === "default" || seen.has(device.deviceId)) {
       return;
     }
-    const label = device.label || `${kind === "audioinput" ? "Microphone" : "Speaker"} ${index + 1}`;
+    const label = device.label || `Speaker ${index + 1}`;
     select.appendChild(new Option(label, device.deviceId));
     seen.add(device.deviceId);
   });
   select.value = seen.has(selectedDeviceId) ? selectedDeviceId : "";
 }
 
-function selectedSpeechInputDeviceId() {
-  return document.getElementById("speech_input_device_select").value || "";
-}
-
 function selectedSpeechOutputDeviceId() {
   return document.getElementById("speech_output_device_select").value || "";
-}
-
-function speechInputConstraints() {
-  const constraints = {
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true,
-    channelCount: { ideal: 1 },
-    voiceIsolation: true,
-  };
-  const deviceId = selectedSpeechInputDeviceId();
-  if (deviceId) {
-    constraints.deviceId = { exact: deviceId };
-  }
-  return constraints;
 }
 
 async function applySelectedSpeechOutputDevice() {
@@ -3221,7 +2665,7 @@ async function applySelectedSpeechOutputDevice() {
       ? "Selected speaker cannot be applied because this browser does not support speaker selection."
       : "Speaker selection is not supported by this browser; using browser default output.";
     setSpeechDeviceStatus(message, deviceId ? "error" : "");
-    appendLog("realtime", message);
+    appendLog("speech-playback", message);
     return false;
   }
   try {
@@ -3231,7 +2675,7 @@ async function applySelectedSpeechOutputDevice() {
   } catch (error) {
     const message = `Speaker selection failed: ${error.message}`;
     setSpeechDeviceStatus(message, "error");
-    appendLog("realtime", message);
+    appendLog("speech-playback", message);
     return false;
   }
 }
@@ -3250,6 +2694,29 @@ function setSpeechDeviceStatus(text, mode = "") {
   el.classList.toggle("text-danger", mode === "error");
   el.classList.toggle("text-success", mode === "ready");
   el.classList.toggle("text-muted", mode !== "error" && mode !== "ready");
+}
+
+function setTranscriptionTransportStatus(text, mode = "idle", detail = "") {
+  const status = document.getElementById("transcription_transport_status");
+  if (status) {
+    status.textContent = text;
+    status.className = `status-pill is-${mode || "idle"}`;
+  }
+  const detailElement = document.getElementById("transcription_transport_detail");
+  if (detailElement) {
+    detailElement.textContent = detail;
+    detailElement.classList.toggle("text-danger", mode === "error");
+    detailElement.classList.toggle("text-muted", mode !== "error");
+  }
+}
+
+function setTranscriptionGlobalStatus(text, mode = "idle") {
+  const status = document.getElementById("transcription_status");
+  if (!status) {
+    return;
+  }
+  status.textContent = text;
+  status.className = `status-pill is-${mode || "idle"}`;
 }
 
 function loadStoredCameraDeviceSelection() {
@@ -3423,281 +2890,8 @@ function updateCameraOwnershipControls() {
   }
 }
 
-function wireRealtimePeerDiagnostics(peerConnection) {
-  if (!peerConnection) {
-    return;
-  }
-  setRealtimeTransportStatus("Transport Starting", "idle", "");
-  peerConnection.addEventListener("iceconnectionstatechange", () => {
-    handleRealtimeIceConnectionState(peerConnection.iceConnectionState);
-  });
-  peerConnection.addEventListener("connectionstatechange", () => {
-    handleRealtimeConnectionState(peerConnection.connectionState);
-  });
-  peerConnection.addEventListener("icegatheringstatechange", () => {
-    handleRealtimeIceGatheringState(peerConnection.iceGatheringState);
-  });
-  peerConnection.addEventListener("icecandidateerror", handleRealtimeIceCandidateError);
-}
-
-function handleRealtimeIceConnectionState(iceState) {
-  appendLog("realtime", `ICE connection state: ${iceState}.`);
-  if (iceState === "checking") {
-    setRealtimeTransportStatus("ICE Checking", "idle", "");
-  } else if (iceState === "connected" || iceState === "completed") {
-    setRealtimeTransportStatus("Transport Connected", "live", "");
-  } else if (iceState === "disconnected") {
-    setRealtimeTransportStatus("Transport Interrupted", "error", "Realtime WebRTC ICE disconnected; speech may recover or may need a restart.");
-  } else if (iceState === "failed") {
-    appendLog("realtime", REALTIME_ICE_FAILURE_MESSAGE);
-    setRealtimeTransportStatus("Transport Failed", "error", REALTIME_ICE_FAILURE_MESSAGE);
-    setRealtimeGlobalStatus("Realtime ICE Failed", "error");
-  } else if (iceState === "closed") {
-    setRealtimeTransportStatus("Transport Idle", "idle", "");
-  }
-}
-
-function handleRealtimeConnectionState(connectionState) {
-  appendLog("realtime", `Peer connection state: ${connectionState}.`);
-  if (connectionState === "connecting") {
-    setRealtimeTransportStatus("Transport Connecting", "idle", "");
-  } else if (connectionState === "connected") {
-    setRealtimeTransportStatus("Transport Connected", "live", "");
-  } else if (connectionState === "disconnected") {
-    setRealtimeTransportStatus("Transport Interrupted", "error", "Realtime WebRTC connection disconnected; speech may recover or may need a restart.");
-  } else if (connectionState === "failed") {
-    appendLog("realtime", REALTIME_CONNECTION_FAILURE_MESSAGE);
-    setRealtimeTransportStatus("Transport Failed", "error", REALTIME_CONNECTION_FAILURE_MESSAGE);
-    setRealtimeGlobalStatus("Realtime Failed", "error");
-  } else if (connectionState === "closed") {
-    setRealtimeTransportStatus("Transport Idle", "idle", "");
-  }
-}
-
-function handleRealtimeIceGatheringState(gatheringState) {
-  appendLog("realtime", `ICE gathering state: ${gatheringState}.`);
-  if (gatheringState === "gathering") {
-    setRealtimeTransportStatus("ICE Gathering", "idle", "");
-  }
-}
-
-function handleRealtimeIceCandidateError(event) {
-  const details = realtimeIceCandidateErrorDetails(event);
-  const message = `Realtime WebRTC ICE candidate error${details}. Check network/STUN/TURN if speech cannot connect.`;
-  appendLog("realtime", message);
-  setRealtimeTransportStatus("ICE Candidate Error", "error", message);
-}
-
-function realtimeIceCandidateErrorDetails(event) {
-  const parts = [];
-  if (event.errorCode) {
-    parts.push(`code ${event.errorCode}`);
-  }
-  if (event.errorText) {
-    parts.push(event.errorText);
-  }
-  if (event.url) {
-    parts.push(event.url);
-  }
-  return parts.length ? ` (${parts.join("; ")})` : "";
-}
-
-function setRealtimeTransportStatus(text, mode = "idle", detail = "") {
-  const status = document.getElementById("realtime_transport_status");
-  if (status) {
-    status.textContent = text;
-    status.className = `status-pill is-${mode || "idle"}`;
-  }
-  const detailEl = document.getElementById("realtime_transport_detail");
-  if (detailEl) {
-    detailEl.textContent = detail;
-    detailEl.classList.toggle("text-danger", mode === "error");
-    detailEl.classList.toggle("text-muted", mode !== "error");
-  }
-}
-
-function setRealtimeGlobalStatus(text, mode = "idle") {
-  const status = document.getElementById("realtime_status");
-  if (!status) {
-    return;
-  }
-  status.textContent = text;
-  status.className = `status-pill is-${mode || "idle"}`;
-}
-
-function currentRealtimeSettings() {
-  return {
-    voice: trimmedInputValue("speechVoiceInput"),
-    turnDetection: document.getElementById("speechVadSelect").value || "server_vad",
-    generateComplement: document.getElementById("speechComplementToggle").checked,
-    vadThreshold: parseNumberRange(document.getElementById("speechVadThresholdInput").value, 0, 1),
-    vadPrefixPaddingMs: parseIntegerRange(document.getElementById("speechVadPrefixInput").value, 0, 2000),
-    vadSilenceDurationMs: parseIntegerRange(document.getElementById("speechVadSilenceInput").value, 0, 3000),
-    vadEagerness: document.getElementById("speechVadEagernessSelect").value || "",
-    vadInterruptResponse: parseOptionalBoolean(document.getElementById("speechVadInterruptResponseSelect").value),
-    inputNoiseReduction: document.getElementById("speechInputNoiseReductionSelect").value || "",
-    outputSpeed: parseNumberRange(document.getElementById("speechOutputSpeedInput").value, 0.25, 1.5),
-    reasoningEffort: document.getElementById("speechReasoningEffortSelect").value || "",
-    maxOutputTokens: parseIntegerRange(document.getElementById("speechMaxOutputTokensInput").value, 1, 4096),
-    includeInputTranscriptionLogprobs: document.getElementById("speechTranscriptionLogprobsToggle").checked,
-  };
-}
-
-function trimmedInputValue(id) {
-  const element = document.getElementById(id);
-  return element ? element.value.trim() : "";
-}
-
-function parseNumberRange(value, min, max) {
-  if (value === null || value === undefined || String(value).trim() === "") {
-    return "";
-  }
-  const parsed = Number.parseFloat(String(value).trim());
-  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : "";
-}
-
-function parseIntegerRange(value, min, max) {
-  if (value === null || value === undefined || String(value).trim() === "") {
-    return "";
-  }
-  if (!/^-?\d+$/.test(String(value).trim())) {
-    return "";
-  }
-  const parsed = Number.parseInt(String(value).trim(), 10);
-  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : "";
-}
-
-function parseOptionalBoolean(value) {
-  if (value === "true" || value === "false") {
-    return value;
-  }
-  return "";
-}
-
 function activeAssistantAudioElement() {
   return document.getElementById("assistant_audio");
-}
-
-function setMicEnabled(enabled) {
-  if (!realtime.micStream) {
-    return;
-  }
-  realtime.micStream.getAudioTracks().forEach((track) => {
-    track.enabled = enabled;
-  });
-}
-
-function realtimeAudioTracks() {
-  return realtime.micStream ? realtime.micStream.getAudioTracks() : [];
-}
-
-function setRealtimeMicrophoneEnabled(enabled, reason = "") {
-  const tracks = realtimeAudioTracks();
-  if (!tracks.length) {
-    return false;
-  }
-  tracks.forEach((track) => {
-    track.enabled = enabled;
-  });
-  const muted = !enabled;
-  if (realtime.micMutedForAssistant !== muted && reason) {
-    appendLog("realtime", reason);
-  }
-  realtime.micMutedForAssistant = muted;
-  return true;
-}
-
-function clearRealtimeMicRestoreTimer() {
-  if (!realtime.micRestoreTimer) {
-    return;
-  }
-  clearTimeout(realtime.micRestoreTimer);
-  realtime.micRestoreTimer = null;
-}
-
-function muteRealtimeMicrophoneForAssistant() {
-  if (!speechSettings.echoGuardEnabled) {
-    return;
-  }
-  clearRealtimeMicRestoreTimer();
-  setRealtimeMicrophoneEnabled(false, "Half-duplex fallback paused the microphone while assistant audio is active.");
-  realtime.micRestoreTimer = setTimeout(() => {
-    realtime.micRestoreTimer = null;
-    restoreRealtimeMicrophoneAfterAssistant("Half-duplex fallback resumed the microphone after a response timeout.");
-  }, REALTIME_ECHO_GUARD_MAX_MUTE_MS);
-}
-
-function scheduleRealtimeMicrophoneRestoreAfterAssistant() {
-  if (!realtime.micMutedForAssistant) {
-    return;
-  }
-  clearRealtimeMicRestoreTimer();
-  realtime.micRestoreTimer = setTimeout(() => {
-    realtime.micRestoreTimer = null;
-    restoreRealtimeMicrophoneAfterAssistant("Half-duplex fallback resumed the microphone after assistant playback.");
-  }, REALTIME_ECHO_GUARD_RELEASE_MS);
-}
-
-function restoreRealtimeMicrophoneAfterAssistant(reason = "") {
-  clearRealtimeMicRestoreTimer();
-  setRealtimeMicrophoneEnabled(true, reason);
-}
-
-function registerAssistantAudioDiagnostics() {
-  const audio = activeAssistantAudioElement();
-  if (!audio) {
-    return;
-  }
-  audio.addEventListener("playing", () => clearAssistantAudioPlaybackIssue("Assistant audio playback resumed."));
-  audio.addEventListener("waiting", () => {
-    reportAssistantAudioPlaybackIssue("Assistant audio is buffering; playback may sound choppy.");
-  });
-  audio.addEventListener("stalled", () => {
-    reportAssistantAudioPlaybackIssue("Assistant audio stalled; playback may sound choppy.");
-  });
-  audio.addEventListener("error", () => {
-    reportAssistantAudioPlaybackIssue(`Assistant audio playback error: ${assistantAudioErrorMessage()}`);
-  });
-}
-
-function registerRemoteAudioTrackDiagnostics(track) {
-  if (!track || typeof track.addEventListener !== "function") {
-    return;
-  }
-  track.addEventListener("mute", () => {
-    reportAssistantAudioPlaybackIssue("Remote assistant audio track is muted by WebRTC; playback may be interrupted.");
-  });
-  track.addEventListener("unmute", () => clearAssistantAudioPlaybackIssue("Remote assistant audio track resumed."));
-  track.addEventListener("ended", () => {
-    reportAssistantAudioPlaybackIssue("Remote assistant audio track ended unexpectedly.");
-  });
-}
-
-function reportAssistantAudioPlaybackIssue(message) {
-  if (!state.realtimeListening) {
-    return;
-  }
-  const now = Date.now();
-  if (now - realtime.lastPlaybackWarningAt < REALTIME_PLAYBACK_WARNING_COOLDOWN_MS) {
-    return;
-  }
-  realtime.playbackIssueActive = true;
-  realtime.lastPlaybackWarningAt = now;
-  setRealtimeTransportStatus("Audio Warning", "error", message);
-  appendLog("realtime", message);
-}
-
-function clearAssistantAudioPlaybackIssue(message) {
-  if (!realtime.playbackIssueActive) {
-    return;
-  }
-  realtime.playbackIssueActive = false;
-  if (state.realtimeListening && message) {
-    appendLog("realtime", message);
-  }
-  if (state.realtimeListening) {
-    setRealtimeTransportStatus("Transport Connected", "live", "");
-  }
 }
 
 function assistantAudioErrorMessage() {
@@ -3719,139 +2913,6 @@ function assistantAudioErrorMessage() {
     return "source not supported";
   }
   return `media error ${error.code}`;
-}
-
-function startRealtimeStatsDiagnostics() {
-  stopRealtimeStatsDiagnostics();
-  const peerConnection = realtime.peerConnection;
-  if (!peerConnection || typeof peerConnection.getStats !== "function") {
-    return;
-  }
-  realtime.statsTimer = setInterval(() => {
-    pollRealtimeAudioStats();
-  }, REALTIME_STATS_POLL_MS);
-  pollRealtimeAudioStats();
-}
-
-function stopRealtimeStatsDiagnostics() {
-  if (!realtime.statsTimer) {
-    return;
-  }
-  clearInterval(realtime.statsTimer);
-  realtime.statsTimer = null;
-}
-
-async function pollRealtimeAudioStats() {
-  const peerConnection = realtime.peerConnection;
-  if (!peerConnection || typeof peerConnection.getStats !== "function") {
-    return;
-  }
-  let stats = null;
-  try {
-    stats = await peerConnection.getStats();
-  } catch (error) {
-    appendLog("realtime", `stats unavailable: ${errorMessage(error)}`);
-    return;
-  }
-  const sample = extractRealtimeAudioStats(stats);
-  if (!sample) {
-    return;
-  }
-  const warning = realtimeAudioStatsWarning(sample, realtime.lastAudioStats);
-  realtime.lastAudioStats = sample;
-  if (warning) {
-    reportRealtimeStatsIssue(warning);
-  }
-}
-
-function extractRealtimeAudioStats(stats) {
-  const sample = {
-    packetsLost: 0,
-    jitter: 0,
-    concealedSamples: 0,
-    jitterBufferDelay: 0,
-    jitterBufferEmittedCount: 0,
-    rtt: null,
-  };
-  let hasInboundAudio = false;
-  stats.forEach((report) => {
-    if (report.type === "inbound-rtp" && (report.kind === "audio" || report.mediaType === "audio")) {
-      hasInboundAudio = true;
-      sample.packetsLost += finiteNumber(report.packetsLost);
-      sample.jitter = Math.max(sample.jitter, finiteNumber(report.jitter));
-      sample.concealedSamples += finiteNumber(report.concealedSamples);
-      sample.jitterBufferDelay += finiteNumber(report.jitterBufferDelay);
-      sample.jitterBufferEmittedCount += finiteNumber(report.jitterBufferEmittedCount);
-    } else if (report.type === "candidate-pair" &&
-      (report.selected || (report.nominated && report.state === "succeeded"))) {
-      const rtt = finiteNumberOrNull(report.currentRoundTripTime);
-      if (rtt !== null) {
-        sample.rtt = rtt;
-      }
-    }
-  });
-  return hasInboundAudio ? sample : null;
-}
-
-function realtimeAudioStatsWarning(current, previous) {
-  if (!previous) {
-    return "";
-  }
-  const packetLossDelta = Math.max(0, current.packetsLost - previous.packetsLost);
-  const concealedDelta = Math.max(0, current.concealedSamples - previous.concealedSamples);
-  const emittedDelta = Math.max(0, current.jitterBufferEmittedCount - previous.jitterBufferEmittedCount);
-  const delayDelta = Math.max(0, current.jitterBufferDelay - previous.jitterBufferDelay);
-  const jitterMs = Math.round(current.jitter * 1000);
-  const jitterBufferMs = emittedDelta > 0 ? Math.round((delayDelta / emittedDelta) * 1000) : 0;
-  const rttMs = current.rtt === null ? 0 : Math.round(current.rtt * 1000);
-  const issues = [];
-  if (packetLossDelta > 0) {
-    issues.push(`${packetLossDelta} lost audio packets`);
-  }
-  if (concealedDelta > 960) {
-    issues.push(`${concealedDelta} concealed audio samples`);
-  }
-  if (jitterMs > 80) {
-    issues.push(`jitter ${jitterMs} ms`);
-  }
-  if (jitterBufferMs > 120) {
-    issues.push(`jitter buffer ${jitterBufferMs} ms`);
-  }
-  if (rttMs > 800) {
-    issues.push(`RTT ${rttMs} ms`);
-  }
-  return issues.length ? `Realtime audio stats warning: ${issues.join(", ")}.` : "";
-}
-
-function reportRealtimeStatsIssue(message) {
-  const now = Date.now();
-  if (now - realtime.lastStatsWarningAt < REALTIME_STATS_WARNING_COOLDOWN_MS) {
-    return;
-  }
-  realtime.lastStatsWarningAt = now;
-  setRealtimeTransportStatus("Audio Warning", "error", message);
-  appendLog("realtime", message);
-}
-
-function finiteNumber(value) {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : 0;
-}
-
-function finiteNumberOrNull(value) {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function logActiveSpeechInputSettings(stream) {
-  const track = stream && stream.getAudioTracks ? stream.getAudioTracks()[0] : null;
-  if (!track || typeof track.getSettings !== "function") {
-    return;
-  }
-  const settings = track.getSettings();
-  appendLog("realtime", `microphone processing: echoCancellation=${String(settings.echoCancellation)}, ` +
-    `noiseSuppression=${String(settings.noiseSuppression)}, autoGainControl=${String(settings.autoGainControl)}, ` +
-    `channelCount=${String(settings.channelCount)}.`);
 }
 
 async function startCamera() {
@@ -6161,7 +5222,7 @@ function setControlsEnabled(enabled) {
   document.getElementById("stop_camera").disabled = !enabled || !state.cameraRunning || controlOwnedByOther("camera");
   updateCameraDeviceControls();
   updateCameraOwnershipControls();
-  setRealtimeControlsLocked(state.realtimeListening);
+  setTranscriptionControlsLocked(state.transcriptionListening);
   updateAgentTypeControls();
   updateAgentSelectionControls();
 }
@@ -6186,78 +5247,58 @@ function setBehaviourStatus(text, mode) {
   el.className = `status-pill is-${mode || "idle"}`;
 }
 
-function setRealtimeState(isListening, mode = realtime.activeMode || REALTIME_MODE_CONTINUOUS) {
-  state.realtimeListening = isListening;
-  const continuousButton = document.getElementById("toggle_realtime");
-  const continuousListen = document.getElementById("listen_status");
-  const status = document.getElementById("realtime_status");
-  const continuousActive = isListening && mode === REALTIME_MODE_CONTINUOUS;
+function setTranscriptionState(isListening) {
+  state.transcriptionListening = isListening;
+  const transcriptionButton = document.getElementById("toggle_transcription");
+  const listenStatus = document.getElementById("listen_status");
+  const status = document.getElementById("transcription_status");
   if (isListening) {
-    continuousButton.innerHTML = continuousActive
-      ? '<i class="bi bi-mic-mute-fill me-2"></i>Stop Transcription'
-      : '<i class="bi bi-mic-fill me-2"></i>Start Transcription';
-    continuousButton.classList.toggle("is-listening", continuousActive);
-    continuousButton.disabled = !continuousActive;
-    continuousListen.textContent = continuousActive ? "Listening" : "Idle";
-    continuousListen.className = `status-pill is-${continuousActive ? "listening" : "idle"}`;
+    transcriptionButton.innerHTML = '<i class="bi bi-mic-mute-fill me-2"></i>Stop Transcription';
+    transcriptionButton.classList.add("is-listening");
+    transcriptionButton.disabled = false;
+    listenStatus.textContent = "Listening";
+    listenStatus.className = "status-pill is-listening";
     status.textContent = "Transcription Live";
     status.className = "status-pill is-live";
   } else {
-    continuousButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Transcription';
-    continuousButton.classList.remove("is-listening");
-    continuousButton.disabled = false;
-    continuousListen.textContent = "Idle";
-    continuousListen.className = "status-pill is-idle";
+    transcriptionButton.innerHTML = '<i class="bi bi-mic-fill me-2"></i>Start Transcription';
+    transcriptionButton.classList.remove("is-listening");
+    transcriptionButton.disabled = false;
+    listenStatus.textContent = "Idle";
+    listenStatus.className = "status-pill is-idle";
     status.textContent = "Transcription Idle";
     status.className = "status-pill is-idle";
   }
-  setRealtimeControlsLocked(isListening);
+  setTranscriptionControlsLocked(isListening);
 }
 
-function setRealtimeControlsLocked(locked) {
+function setTranscriptionControlsLocked(locked) {
   const remote = controlOwnedByOther("microphone");
   const connected = !!state.agentId;
   const outputActive = !!speechPlayback.coordinator?.snapshot().current;
-  const controlsLocked = locked || remote || !connected || outputActive;
-  speechSessionSettingControls().forEach((element) => {
-    element.disabled = controlsLocked;
+  speechOutputSettingControls().forEach((element) => {
+    element.disabled = outputActive;
   });
-  [
-    "speech_input_device_select",
-  ].forEach((id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.disabled = controlsLocked;
-    }
-  });
-  const bargeIn = document.getElementById("speechBargeInCancelToggle");
-  if (bargeIn) {
-    bargeIn.disabled = remote || !connected;
-  }
-  const echoGuard = document.getElementById("speechEchoGuardToggle");
-  if (echoGuard) {
-    echoGuard.disabled = remote || !connected;
-  }
   const outputSelect = document.getElementById("speech_output_device_select");
   if (outputSelect) {
-    outputSelect.disabled = controlsLocked || !speechAudioSelectionSupported() || !speechOutputSelectionSupported();
+    outputSelect.disabled = outputActive || !speechAudioSelectionSupported() || !speechOutputSelectionSupported();
   }
   const refreshButton = document.getElementById("refresh_audio_devices");
   if (refreshButton) {
-    refreshButton.disabled = controlsLocked || !speechAudioSelectionSupported();
+    refreshButton.disabled = outputActive || !speechAudioSelectionSupported();
   }
-  const toggle = document.getElementById("toggle_realtime");
-  if (toggle && !state.realtimeListening) {
+  const toggle = document.getElementById("toggle_transcription");
+  if (toggle && !state.transcriptionListening) {
     toggle.disabled = remote || !connected || outputActive;
   }
   const speechStatus = document.getElementById("speech_device_status");
-  if (remote && !state.realtimeListening) {
-    setRealtimeGlobalStatus("Mic In Use", "idle");
-    setRealtimeTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
+  if (remote && !state.transcriptionListening) {
+    setTranscriptionGlobalStatus("Mic In Use", "idle");
+    setTranscriptionTransportStatus("Mic In Use", "idle", "Microphone is active in another Valerian window.");
     setSpeechDeviceStatus("Microphone is active in another Valerian window.", "error");
-  } else if (!remote && !state.realtimeListening && document.getElementById("realtime_status").textContent === "Mic In Use") {
-    setRealtimeGlobalStatus("Transcription Idle", "idle");
-    setRealtimeTransportStatus("Transport Idle", "idle", "");
+  } else if (!remote && !state.transcriptionListening && document.getElementById("transcription_status").textContent === "Mic In Use") {
+    setTranscriptionGlobalStatus("Transcription Idle", "idle");
+    setTranscriptionTransportStatus("Transport Idle", "idle", "");
     if (speechStatus && speechStatus.textContent.includes("another Valerian window")) {
       setSpeechDeviceStatus("Audio devices use browser defaults.");
     }
@@ -6276,8 +5317,8 @@ function cleanupAll() {
   releaseAllControlOwnership();
   cleanupStreams();
   stopCamera({ silent: true });
-  if (state.realtimeListening) {
-    stopRealtime();
+  if (state.transcriptionListening) {
+    stopTranscription();
   }
 }
 

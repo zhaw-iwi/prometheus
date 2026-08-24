@@ -46,9 +46,9 @@ public class LiveTranscriptionSessionClient {
             throw new LiveTranscriptionProviderException(
                     "live transcription session creation is only supported for OpenAI");
         }
-        String clientSecretUrl = valueOrDefault(this.properties.getRealtimeClientSecretUrl(),
+        String clientSecretUrl = valueOrDefault(this.properties.getLiveTranscriptionClientSecretUrl(),
                 DEFAULT_CLIENT_SECRET_URL);
-        String webRtcUrl = valueOrDefault(this.properties.getRealtimeCallsUrl(), DEFAULT_WEBRTC_URL);
+        String webRtcUrl = valueOrDefault(this.properties.getLiveTranscriptionWebRtcUrl(), DEFAULT_WEBRTC_URL);
         JsonObject payload = this.payloadBuilder.buildClientSecretEnvelope(settings, CLIENT_SECRET_TTL_SECONDS);
         try {
             HttpRequest.Builder request = HttpRequest.newBuilder()
@@ -56,8 +56,8 @@ public class LiveTranscriptionSessionClient {
                     .header(this.properties.headerKeyNameForAPIKey(), this.properties.getKey())
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(payload)));
-            if (isPresent(this.properties.getRealtimeSafetyIdentifier())) {
-                request.header("OpenAI-Safety-Identifier", this.properties.getRealtimeSafetyIdentifier().trim());
+            if (isPresent(this.properties.getLiveTranscriptionSafetyIdentifier())) {
+                request.header("OpenAI-Safety-Identifier", this.properties.getLiveTranscriptionSafetyIdentifier().trim());
             }
             HttpResponse<String> response = this.httpClient.send(request.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < HttpURLConnection.HTTP_OK || response.statusCode() >= 300) {

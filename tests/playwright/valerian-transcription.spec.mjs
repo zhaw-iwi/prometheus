@@ -36,8 +36,8 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   await page.getByTestId("continuous-speech-tab").click();
   await page.getByTestId("live-transcription-settings-toggle").click();
   await expect(page.getByTestId("live-transcription-settings-root")).toContainText("gpt-live-transcribe");
-  await page.getByTestId("toggle-realtime").click();
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Connected");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "commit-1", item_id: "item-1" });
   await emitProviderEvent(page, {
@@ -100,8 +100,8 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
     autoGainControl: true,
   });
 
-  await page.getByTestId("toggle-realtime").click();
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Idle");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped))).toBe(true);
 });
 
@@ -111,8 +111,8 @@ test("manual turn commits, device changes persist, and transport reconnects", as
   await page.getByTestId("live-transcription-settings-toggle").click();
   await page.getByTestId("transcription-turnDetection-type").selectOption("manual");
   await page.getByTestId("transcription-input-device").selectOption("room-mic");
-  await page.getByTestId("toggle-realtime").click();
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Connected");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   const push = page.getByTestId("transcription-push-to-talk");
   await expect(push).toBeVisible();
@@ -128,7 +128,7 @@ test("manual turn commits, device changes persist, and transport reconnects", as
     peer.dispatchEvent(new Event("connectionstatechange"));
   });
   await expect.poll(() => page.evaluate(() => window.__transcriptionPeers.length)).toBe(2);
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Connected");
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
 });
 
@@ -136,10 +136,10 @@ test("permission denial is visible and releases ownership", async ({ page }) => 
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
   await page.evaluate(() => { window.__transcriptionMedia.deny = true; });
-  await page.getByTestId("toggle-realtime").click();
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Failed");
-  await expect(page.getByTestId("realtime-transport-detail")).toContainText("permission denied");
-  await expect(page.getByTestId("toggle-realtime")).toBeEnabled();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Failed");
+  await expect(page.getByTestId("transcription-transport-detail")).toContainText("permission denied");
+  await expect(page.getByTestId("toggle-transcription")).toBeEnabled();
 });
 
 test("two Valerian pages elect one output owner for the same live behaviour", async ({ page, context }) => {
@@ -168,8 +168,8 @@ test("two Valerian pages elect one output owner for the same live behaviour", as
 test("Stop and synthesis failure both reopen live transcription input", async ({ page }) => {
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
-  await page.getByTestId("toggle-realtime").click();
-  await expect(page.getByTestId("realtime-transport-status")).toHaveText("Transcription Connected");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("Stop this output."));
   await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
@@ -215,7 +215,7 @@ test("transcription settings states produce deterministic desktop and narrow vis
   await attach(page, testInfo, "transcription-settings-validation-desktop", page.getByTestId("live-transcription-settings-root"));
   await page.getByTestId("transcription-turnDetection-silenceDurationSeconds").fill("1.5");
   await page.getByTestId("transcription-turnDetection-silenceDurationSeconds").dispatchEvent("change");
-  await page.getByTestId("toggle-realtime").click();
+  await page.getByTestId("toggle-transcription").click();
   await attach(page, testInfo, "transcription-listening-desktop", page.locator("[data-column-panel=interaction]"));
 
   await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));

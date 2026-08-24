@@ -9,8 +9,6 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -46,7 +44,7 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @Service
-public class AgentApplicationService implements ApplicationEventPublisherAware {
+public class AgentApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentApplicationService.class);
 
     private final AgentRepository repository;
@@ -55,8 +53,6 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
     private final SocialSituationChangeDetector socialSituationChangeDetector;
-    private ApplicationEventPublisher eventPublisher = event -> {
-    };
 
     public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
             AgentBehaviourBroadcaster behaviourBroadcaster,
@@ -67,12 +63,6 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
         this.promptMessageAssembler = promptMessageAssembler;
         this.languageModelGateway = languageModelGateway;
         this.socialSituationChangeDetector = SocialSituationChangeDetector.defaultThresholds();
-    }
-
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher == null ? event -> {
-        } : eventPublisher;
     }
 
     public List<AgentInfoView> listAgents() {
@@ -194,9 +184,6 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
         Event response = agent.acknowledge(event, runtime);
         Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
         Event responseToReturn = computedResponse == null ? response : computedResponse;
-        if (resolvedProfile == OutputProfile.BACKEND_COMPLEMENT) {
-            this.applyOmittedModalities(responseToReturn, List.of("speech"));
-        }
         Agent saved = this.persistAndPublishMonitor(agent);
         this.publishBehaviour(saved, responseToReturn);
         return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
@@ -317,7 +304,6 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
             break;
         }
         safePublishBehaviour(agent.getId(), eventToPublish);
-        safePublishAssistantBehaviourEvent(agent.getId(), eventToPublish);
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {
@@ -346,17 +332,6 @@ public class AgentApplicationService implements ApplicationEventPublisherAware {
             this.behaviourBroadcaster.publish(agentId, event);
         } catch (Throwable failure) {
             LOGGER.debug("SSE behaviour publish failed in service boundary; agentId={}", agentId, failure);
-        }
-    }
-
-    private void safePublishAssistantBehaviourEvent(UUID agentId, Event event) {
-        if (agentId == null || event == null || !Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
-            return;
-        }
-        try {
-            this.eventPublisher.publishEvent(new AssistantBehaviourPublishedEvent(agentId, event));
-        } catch (Throwable failure) {
-            LOGGER.debug("Assistant behaviour application event publish failed; agentId={}", agentId, failure);
         }
     }
 

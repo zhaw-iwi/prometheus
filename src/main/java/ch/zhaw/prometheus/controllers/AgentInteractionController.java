@@ -18,10 +18,10 @@ import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @RestController
-public class AgentControllerRealtime {
+public class AgentInteractionController {
     private final AgentApplicationService agentService;
 
-    public AgentControllerRealtime(AgentApplicationService agentService) {
+    public AgentInteractionController(AgentApplicationService agentService) {
         this.agentService = agentService;
     }
 

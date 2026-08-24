@@ -48,7 +48,7 @@ class LiveTranscriptionSessionClientTest {
             writeResponse(exchange, 200, "{\"value\":\"ek_live_secret\"}");
         });
         OpenAIProperties properties = properties();
-        properties.setRealtimeSafetyIdentifier("stable-hash");
+        properties.setLiveTranscriptionSafetyIdentifier("stable-hash");
 
         LiveTranscriptionSessionInfo result = new LiveTranscriptionSessionClient(properties,
                 new LiveTranscriptionProviderPayloadBuilder()).createSession(settings());
@@ -83,8 +83,8 @@ class LiveTranscriptionSessionClientTest {
         OpenAIProperties properties = new OpenAIProperties();
         properties.setOpenaivsazureopenai("openai");
         properties.setKey("test-key");
-        properties.setRealtimeClientSecretUrl(serverUrl());
-        properties.setRealtimeCallsUrl("https://example.test/v1/realtime/calls");
+        properties.setLiveTranscriptionClientSecretUrl(serverUrl());
+        properties.setLiveTranscriptionWebRtcUrl("https://example.test/v1/realtime/calls");
         return properties;
     }
 

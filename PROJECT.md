@@ -38,7 +38,7 @@ code.
   acknowledge/generate semantics, and scheduled evaluation.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
-  and PROMETHEUS-authoritative Realtime speech orchestration.
+  typed live transcription, and output-only Speech synthesis.
 - Access-code-scoped live-transcription sessions and serialized finalized-turn
   ingress through the ordinary full-plan acknowledgement pipeline.
 - Streamed output-only Speech synthesis that resolves canonical speech from a
@@ -66,9 +66,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 154, live-only Valerian behaviour Speech
-  playback with ordered event identity, single-window output ownership, and
-  deterministic transcription input gating.
+- Last completed milestone: Milestone 155, removal of the combined Realtime
+  architecture and legacy profiles so scoped live transcription plus canonical
+  behaviour Speech is the only bundled agent speech path.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -7379,3 +7379,69 @@ output with transcription input across queued audio and multiple browser tabs.
 ### Next steps
 1. Implement milestone 155: remove the combined Realtime architecture and
    legacy profiles.
+
+## Milestone 155
+### Date
+2026-08-24
+
+### Goal
+Make transcription-first sensing and canonical output-only Speech the sole
+bundled agent speech architecture by removing the combined Realtime stack and
+all of its legacy profiles, configuration, client behavior, and documentation.
+
+### What changed
+- Deleted the combined SDP call controller, scoped call endpoint, orchestration,
+  sideband session/configuration, provider call/session DTOs and client, prompt
+  instruction adapter, application publication event, and their dedicated tests.
+- Collapsed output profiles to `FULL_PLAN`; Talk to Me now uses that ordinary
+  acknowledgement contract, and former Realtime/complement profiles are rejected.
+- Renamed the remaining transcription provider properties to an explicit
+  `liveTranscription*` namespace and removed generation-only Realtime settings.
+- Reduced Valerian to the shared `LiveTranscriptionClient` input boundary plus
+  canonical persisted-plan Speech playback. Removed the remote assistant track,
+  response creation/cancellation, combined-call SDP exchange, duplicated input
+  selection, assistant transcript batching, echo/barge-in heuristics, diagnostics,
+  and obsolete tuning controls.
+- Removed the combined call from API Workbench, renamed the global prompt and
+  acknowledge controller for its actual interaction role, and updated README,
+  project context, browser tests, and source-absence contracts.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SpeechArchitectureBrowserClientContractTest,SpeechArchitectureSourceContractTest,ValerianClientStaticResourceContractTest,ApiWorkbenchStaticResourceContractTest,OutputProfileUnitTest,ScopedTalkToMeSpeechServiceUnitTest,AgentClientCompatibilityWebMvcTest,PrometheusCorsConfigurationWebMvcTest,ScopedLiveTranscriptionControllerWebMvcTest,ScopedDemoControllerIntegrationTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `npm.cmd run test:talktome:visual`
+- `npm.cmd run test:apiworkbench:visual`
+- `\.\mvnw.cmd -q test`
+- `node --check src/main/resources/public/valerian/script.js`
+- `git diff --check`
+
+### Verification
+- The focused backend/profile/browser/source matrix passed 53 tests. It covers
+  the final profile set, removed-route `404` behavior, scoped current endpoints,
+  configuration names, and production-source absence of the combined stack.
+- The deterministic Node suites passed 18 transcription and 4 Speech playback
+  tests.
+- Playwright passed 7 Valerian transcription/playback scenarios, 5 Valerian
+  layout/ownership scenarios, the Talk to Me lifecycle, and 6 API Workbench
+  scenarios. These cover 19 browser scenarios in total.
+- The full Java suite passed 236 tests with zero failures, errors, or skips.
+  Surefire logged its existing forced-fork-shutdown warning after the successful
+  result. JavaScript syntax checks and `git diff --check` passed apart from Git's
+  line-ending notices.
+
+### Known issues and decisions
+- Removal of the former combined call/session endpoints, profiles, and property
+  names is intentional. Any external prototype still using them must migrate to
+  scoped live transcription, normal `FULL_PLAN` acknowledgement, behaviour SSE,
+  and event-identity Speech synthesis.
+- No live provider credential, physical microphone, Bluetooth speaker, or
+  quiet/noisy near-/far-field acoustic matrix was exercised in this milestone.
+  Those are the explicit acceptance work of milestone 156; mocked browser tests
+  do not establish real-room transcription or self-transcription performance.
+
+### Next steps
+1. Implement milestone 156: acoustic acceptance, resilience, and final branch
+   documentation.

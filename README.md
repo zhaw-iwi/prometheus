@@ -190,7 +190,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
-| `core.talk_to_me` | Deterministic exact-text Realtime speech utility. |
+| `core.talk_to_me` | Deterministic exact-text output-only speech utility. |
 | `usecases.healthcare.guessing_game` | Healthcare guessing game where Valerian guesses. |
 | `usecases.healthcare.guessing_game_user_guess` | Healthcare guessing game where the user guesses. |
 | `usecases.healthcare.healthcare_conversation` | Open healthcare conversation use case. |
@@ -208,8 +208,8 @@ main baseline catalog.
 - MySQL.
 - Maven Wrapper from this repository.
 - Node.js only when running the Playwright visual smoke tests.
-- OpenAI or Azure OpenAI configuration for prompt generation, Realtime speech,
-  and output-only Speech synthesis.
+- OpenAI or Azure OpenAI configuration for prompt generation, live
+  transcription, and output-only Speech synthesis.
 
 ## Local Setup
 
@@ -228,6 +228,11 @@ Minimum configuration:
 - `openai.openaivsazureopenai`
 - `openai.url`
 - `openai.key`
+- `openai.liveTranscriptionClientSecretUrl` and
+  `openai.liveTranscriptionWebRtcUrl` only when overriding the standard OpenAI
+  live-transcription endpoints
+- `openai.liveTranscriptionSafetyIdentifier` when a stable,
+  privacy-preserving provider safety identifier is required
 - `prometheus.speech.model` and `prometheus.speech.url` when overriding the
   shared output-only Speech synthesis defaults
 - `prometheus.admin.token` for Valerian Access Management
@@ -644,8 +649,7 @@ effects such as speech playback for them. Heartbeats remain SSE comments.
 
 ### 5. Request generated behaviour without a new perception event
 
-Some clients need backend complement behaviour after realtime speech, or want to
-ask the current state to generate again:
+Clients can ask the current state to generate another complete behaviour plan:
 
 ```http
 POST /demo/agents/{agentId}/behaviour/generate
@@ -653,16 +657,14 @@ X-Prometheus-Access-Code: VX102
 Content-Type: application/json
 
 {
-  "outputProfile": "BACKEND_COMPLEMENT",
-  "omitModalities": ["speech"]
+  "outputProfile": "FULL_PLAN",
+  "omitModalities": ["display"]
 }
 ```
 
-Valid output profiles are:
-
-- `FULL_PLAN`: speech and supported non-speech channels.
-- `REALTIME_SPEECH`: speech-only prompt contract for realtime speech.
-- `BACKEND_COMPLEMENT`: non-speech complement derived from the current context.
+`FULL_PLAN` is the only output profile. The profile can be omitted because it is
+also the default. `omitModalities` remains available when a renderer explicitly
+cannot consume one of the otherwise supported behaviour channels.
 
 The endpoint returns `200` when behaviour was generated, `409` when no behaviour
 was produced, `404` when the agent is missing, and `400` for an unknown profile.
@@ -701,42 +703,10 @@ not access-code scoped.
 | `GET` | `/{agentId}/monitor/stream` | Subscribe to monitor SSE. |
 
 The request and response shapes are the same as the scoped demo API, without the
-access-code header.
+access-code header. Where a `profile` or `outputProfile` is accepted, omit it or
+use `full_plan`; former speech/complement profiles are not supported.
 
-## Realtime Speech (legacy migration path)
-
-Realtime speech clients do not talk directly to OpenAI. They post a WebRTC SDP
-offer to PROMETHEUS:
-
-```http
-POST /demo/agents/{agentId}/realtime/call?voice=cedar&turnDetection=server_vad
-X-Prometheus-Access-Code: VX102
-Content-Type: application/sdp
-
-v=0
-...
-```
-
-PROMETHEUS creates the OpenAI Realtime call with the agent's current
-`REALTIME_SPEECH` prompt, keeps a backend sideband connection, accepts
-transcripts into the normal event pipeline, persists canonical assistant speech
-as `resp.behaviour_plan`, and asks Realtime to speak that exact text.
-
-Close calls with:
-
-```http
-DELETE /realtime/calls/{callId}
-```
-
-Transcription-only clients can request a session with:
-
-```http
-POST /realtime/transcription/session?agentId={agentId}
-```
-
-These combined and unscoped endpoints are retained temporarily for the
-standalone legacy client while the transcription-first branch is completed.
-Valerian and `/multilateral/listen` no longer use them.
+## Transcription-First Speech
 
 ### Scoped live transcription
 
@@ -779,9 +749,8 @@ with 1.5 seconds of silence, the selected agent's language, and medium delay.
 The response contains the ephemeral client secret, fixed model and session
 type, settings schema version, OpenAI WebRTC URL, and a non-sensitive effective
 settings summary. The prompt text and keywords are never echoed in that
-summary. The older unscoped transcription and combined Realtime call endpoints
-remain available only while the bundled clients are migrated on the feature
-branch; they are removed before the transcription-first cutover is complete.
+summary. There is no combined speech-to-speech session or unscoped
+transcription-session endpoint.
 
 ### Shared browser transcription engine
 
@@ -865,8 +834,8 @@ or events return `404`; events that are not usable speech behaviours return
 `409`; unsupported voices or speeds outside `0.25` through `4.0` return `400`.
 The defaults are `alloy` and `1.0`.
 
-Talk to Me does not create a Realtime call. It sends the observation and speech
-options to a scoped backend endpoint:
+Talk to Me sends the observation and speech options to a scoped backend
+endpoint:
 
 ```http
 POST /demo/talktome/agents/{agentId}/speech?voice=cedar&speed=1.25
@@ -878,14 +847,13 @@ Content-Type: application/json
 
 The dedicated endpoint first verifies that the scoped agent carries the
 `utility.talk_to_me` profile tag. PROMETHEUS then acknowledges the observation
-with the `REALTIME_SPEECH` output profile, persists the deterministic
+with the ordinary `FULL_PLAN` output profile, persists the deterministic
 `core.talk_to_me` speech plan, and passes that canonical speech string to
 `prometheus.speech.url` using `prometheus.speech.model` (default:
 `gpt-4o-mini-tts`). The Talk to Me endpoint retains its exact-text behavior and
 `utility.talk_to_me` agent-tag restriction while sharing provider configuration,
 voice/speed validation, and streamed HTTP audio mechanics with canonical
-behaviour speech. Realtime configuration and Realtime speech selection remain
-independent of these output-only paths.
+behaviour speech.
 
 ## Admin API
 
@@ -927,11 +895,11 @@ credential.
 ```text
 src/main/java/ch/zhaw/prometheus
   agentdefs/        Registered Valerian agent definitions.
-  application/      Application services for agents, access codes, Realtime, and scoped demos.
+  application/      Application services for agents, access codes, transcription, Speech, and scoped demos.
   controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
   logging/          SSE broadcasters.
   model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
-  spi/              OpenAI and Realtime integration boundary.
+  spi/              Language-model, live-transcription, and Speech integration boundaries.
 
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.

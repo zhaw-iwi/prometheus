@@ -359,6 +359,24 @@ class ScopedDemoControllerIntegrationTest {
         verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25);
     }
 
+    @Test
+    void removedCombinedRealtimeRoutesAreNotMapped() throws Exception {
+        UUID agentId = UUID.randomUUID();
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/realtime/call")
+                .contentType("application/sdp")
+                .content("offer"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(post("/" + agentId + "/realtime/call")
+                .contentType("application/sdp")
+                .content("offer"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(delete("/realtime/calls/legacy-call"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(post("/realtime/transcription/session"))
+                .andExpect(status().isNotFound());
+    }
+
     private AccessCodeView allowType(String code, String typeKey) {
         AccessCodeView created = this.adminService.createAccessCode(code, true);
         return this.adminService.replaceAllowedAgentTypes(created.getId(), List.of(typeKey)).orElseThrow();

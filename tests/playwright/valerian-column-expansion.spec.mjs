@@ -232,13 +232,11 @@ test("Valerian camera and microphone controls follow detached window ownership",
     }
     window.claimControlOwnership("microphone");
   });
-  await expect(page.locator("#realtime_status")).toHaveText("Mic In Use");
-  await expect(page.getByTestId("toggle-realtime")).toBeDisabled();
-  await expect(page.getByTestId("speech-vad")).toBeDisabled();
+  await expect(page.locator("#transcription_status")).toHaveText("Mic In Use");
+  await expect(page.getByTestId("toggle-transcription")).toBeDisabled();
   await interactionWindow.close();
-  await expect(page.locator("#realtime_status")).toHaveText("Transcription Idle");
-  await expect(page.getByTestId("toggle-realtime")).toBeEnabled();
-  await expect(page.getByTestId("speech-vad")).toBeEnabled();
+  await expect(page.locator("#transcription_status")).toHaveText("Transcription Idle");
+  await expect(page.getByTestId("toggle-transcription")).toBeEnabled();
 });
 
 test("Valerian cockpit columns expand into a wider live modal viewport", async ({ page }, testInfo) => {

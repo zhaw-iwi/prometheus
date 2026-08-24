@@ -89,7 +89,6 @@ PROMETHEUS currently provides:
 - behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
   resilience; behaviour delivery explicitly distinguishes live publication
   from initial/history/reconnect replay without changing persisted payloads;
-- PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
 - an access-code-scoped, typed `gpt-live-transcribe` session contract with
   agent-aware language defaults, strict settings validation, and ephemeral
   browser credentials;
@@ -171,10 +170,9 @@ semantics in model or application packages. Preserve the event, behaviour-plan,
 interaction-profile, storage, and event-history contracts.
 
 Published scoped client contracts include agent creation and info,
-`acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE, and
-typed live-transcription capabilities/session issuance. The combined Realtime
-call contract remains a temporary migration boundary until the planned legacy
-removal milestone. Exact paths and request shapes are maintained in
+`acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE,
+typed live-transcription capabilities/session issuance, and Speech synthesis
+from persisted behaviour identity. Exact paths and request shapes are maintained in
 `README.md` and exercised by controller contract tests. Browser SSE may use an
 access code query parameter because `EventSource` cannot set custom headers;
 other clients should prefer the access-code header.
@@ -200,8 +198,6 @@ Valerian and the multilateral listener share the transcription-first browser
 transport and serialized scoped `FULL_PLAN` ingress. Valerian adds a separate
 live-behaviour Speech playback queue; acknowledgement and replay are visual-only,
 and input is gated while the selected output device renders agent speech.
-Combined assistant-audio code remains only as migration debt until the removal
-milestone.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation
@@ -224,7 +220,8 @@ deployment is confirmed to be prototype data.
 
 - `model`: agents, states, events, policies, behaviour, regulation, social
   derivation, and domain rules.
-- `application`: runtime orchestration, scoped access, Realtime, and publishing.
+- `application`: runtime orchestration, scoped access, transcription, Speech,
+  and publishing.
 - `controllers`: HTTP/SSE boundaries and request/response contracts.
 - `agentdefs`: current production definitions and their prompts.
 - `src/main/resources/public`: Valerian, access management, Talk to Me, API

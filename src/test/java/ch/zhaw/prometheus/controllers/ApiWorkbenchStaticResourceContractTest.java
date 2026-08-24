@@ -84,7 +84,6 @@ class ApiWorkbenchStaticResourceContractTest {
         assertTrue(script.contains("/demo/agents/{agentId}/behaviour/stream"));
         assertTrue(script.contains("/demo/agents/{agentId}/monitor/stream"));
         assertTrue(script.contains("/demo/agents/{agentId}/prompt"));
-        assertTrue(script.contains("/demo/agents/{agentId}/realtime/call"));
         assertTrue(script.contains("/admin/agent-types"));
         assertTrue(script.contains("/admin/access-codes"));
         assertTrue(script.contains("/{agentId}/info"));
@@ -100,6 +99,7 @@ class ApiWorkbenchStaticResourceContractTest {
         assertFalse(script.contains("/visual/facial"));
         assertFalse(script.contains("/visual/social"));
         assertFalse(script.contains("/realtime/index.html"));
+        assertFalse(script.contains("/realtime/call"));
         assertFalse(script.contains("/monitor/index.html"));
         assertFalse(script.toLowerCase().contains("gigi"));
         assertFalse(script.toLowerCase().contains("tdsr"));

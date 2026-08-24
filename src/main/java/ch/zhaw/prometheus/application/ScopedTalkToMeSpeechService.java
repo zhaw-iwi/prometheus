@@ -33,7 +33,7 @@ public class ScopedTalkToMeSpeechService {
         }
 
         Optional<ResponseView> acknowledged = this.demoService.acknowledge(accessCode, agentId, request,
-                OutputProfile.REALTIME_SPEECH);
+                OutputProfile.FULL_PLAN);
         if (acknowledged.isEmpty()) {
             return Optional.empty();
         }
