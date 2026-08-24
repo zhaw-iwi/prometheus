@@ -39,6 +39,8 @@ import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient;
+import ch.zhaw.prometheus.spi.LiveTranscriptionSessionInfo;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -71,6 +73,9 @@ class ScopedDemoControllerIntegrationTest {
 
     @MockitoBean
     private LanguageModelGateway languageModelGateway;
+
+    @MockitoBean
+    private LiveTranscriptionSessionClient liveTranscriptionSessionClient;
 
     @BeforeEach
     void setUp() {
@@ -234,6 +239,35 @@ class ScopedDemoControllerIntegrationTest {
         this.mockMvc.perform(get("/demo/agents/" + agentId + "/monitor/stream")
                 .param("accessCode", "Q49q8"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void liveTranscriptionSessionIsIssuedOnlyForTheOwningAccessCode() throws Exception {
+        this.allowType("L49t9", TYPE_KEY);
+        this.allowType("O49t0", TYPE_KEY);
+        UUID agentId = this.createAgent("L49t9", TYPE_KEY);
+        when(this.liveTranscriptionSessionClient.createSession(any()))
+                .thenReturn(new LiveTranscriptionSessionInfo(
+                        "ek_scoped", "gpt-live-transcribe", "https://example.test/v1/realtime/calls"));
+
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/transcription/capabilities")
+                .header(HEADER, "L49t9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.settings[5].defaultValue[0]").value("en"));
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/transcription/session")
+                .header(HEADER, "L49t9")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").value("ek_scoped"))
+                .andExpect(jsonPath("$.effectiveSettings.languages[0]").value("en"));
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/transcription/session")
+                .header(HEADER, "O49t0")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isNotFound());
     }
 
     private AccessCodeView allowType(String code, String typeKey) {

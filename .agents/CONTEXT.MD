@@ -89,6 +89,9 @@ PROMETHEUS currently provides:
 - behaviour and monitor SSE streams with heartbeat, replay, cursor, and
   disconnect resilience;
 - PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
+- an access-code-scoped, typed `gpt-live-transcribe` session contract with
+  agent-aware language defaults, strict settings validation, and ephemeral
+  browser credentials; bundled clients have not yet migrated to it;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;

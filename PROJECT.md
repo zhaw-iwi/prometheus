@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 149, live-transcription migration
-  acceptance baseline and decision lock.
+- Last completed milestone: Milestone 150, typed scoped live-transcription
+  session contract.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -211,6 +211,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 147: Participate admin participant creation and identity editing
 - [x] Milestone 148: Participate phase-3 survey and access-code actions
 - [x] Milestone 149: Live-transcription migration acceptance baseline and decision lock
+- [x] Milestone 150: Typed scoped live-transcription session contract
 
 ## Milestone 1
 ### Date
@@ -7054,3 +7055,57 @@ combined OpenAI Realtime speech session with a transcription-first
 ### Next steps
 1. Implement milestone 150: the typed, access-code-scoped live-transcription
    session contract.
+
+## Milestone 150
+### Date
+2026-08-24
+
+### Goal
+Introduce the secure, typed backend boundary that Valerian and the multilateral
+listener will use to create transcription-only `gpt-live-transcribe` WebRTC
+sessions.
+
+### What changed
+- Added scoped capabilities and session endpoints under
+  `/demo/agents/{agentId}/transcription/...`; access-code ownership is checked
+  before provider credentials are issued.
+- Added strict settings types and normalization for far/near/off noise
+  reduction, local/manual turn detection, local silence duration, contextual
+  prompt, keywords, English/German language hints, and transcription delay.
+- Added an agent-language-aware settings descriptor and a non-sensitive
+  effective settings response that reports prompt presence and keyword count
+  without reflecting their contents.
+- Added a dedicated provider payload builder and ephemeral-secret client with a
+  fixed `type: transcription` / `gpt-live-transcribe` contract, explicit secret
+  lifetime, safety identifier forwarding, safe provider failures, and no
+  assistant-output fields.
+- Documented the new public contract while explicitly marking the former
+  endpoints as branch-local migration paths pending later removal.
+
+### How to test
+- `.\mvnw.cmd "-Dtest=ScopedDemoControllerIntegrationTest,LiveTranscriptionSettingsNormalizerTest,LiveTranscriptionProviderPayloadBuilderTest,LiveTranscriptionSessionClientTest,ScopedLiveTranscriptionServiceUnitTest,ScopedLiveTranscriptionControllerWebMvcTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- 22 focused unit, provider-contract, Web MVC, and scoped integration tests
+  passed.
+- The full Java regression suite passed: 254 tests, zero failures and zero
+  errors.
+- The fake provider received the exact typed session envelope and safe headers;
+  provider response bodies and API credentials were not reflected to callers.
+- A second valid access code received `404` rather than a session for an agent
+  it does not own; invalid/disabled codes retain the scoped `401` contract.
+
+### Known issues and decisions
+- Only `en` and `de` are exposed because they are the currently supported
+  PROMETHEUS/PROMISE operator languages. The official provider supports more
+  language codes, which can be added deliberately with descriptor and test
+  coverage.
+- The combined Realtime and old unscoped transcription endpoints remain only
+  until their bundled clients move to the new contract in subsequent
+  milestones.
+
+### Next steps
+1. Implement milestone 151: shared browser live-transcription transport,
+   ordering, media controls, and operator settings.

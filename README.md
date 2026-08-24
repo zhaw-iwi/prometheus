@@ -720,6 +720,51 @@ Transcription-only clients can request a session with:
 POST /realtime/transcription/session?agentId={agentId}
 ```
 
+### Scoped live transcription
+
+The transcription-first speech architecture uses an access-code-scoped,
+transcription-only session contract. Read its agent-language-aware settings
+descriptor first:
+
+```http
+GET /demo/agents/{agentId}/transcription/capabilities
+X-Prometheus-Access-Code: VX102
+```
+
+Then issue an ephemeral `gpt-live-transcribe` WebRTC session:
+
+```http
+POST /demo/agents/{agentId}/transcription/session
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
+{
+  "turnDetection": {
+    "type": "local_vad",
+    "silenceDurationSeconds": 1.5
+  },
+  "noiseReduction": "far_field",
+  "transcriptionPrompt": "A PROMETHEUS agent interaction.",
+  "transcriptionKeywords": ["PROMETHEUS", "Valerian"],
+  "languages": ["en", "de"],
+  "transcriptionDelay": "medium"
+}
+```
+
+Supported noise-reduction values are `near_field`, `far_field`, and `off`.
+Supported turn modes are `local_vad` and `manual`; both keep provider turn
+detection disabled so the browser commits explicit audio turns. Supported
+languages are currently `en` and `de`, and delay accepts `minimal`, `low`,
+`medium`, `high`, or `xhigh`. Omitted settings use far-field capture, local VAD
+with 1.5 seconds of silence, the selected agent's language, and medium delay.
+
+The response contains the ephemeral client secret, fixed model and session
+type, settings schema version, OpenAI WebRTC URL, and a non-sensitive effective
+settings summary. The prompt text and keywords are never echoed in that
+summary. The older unscoped transcription and combined Realtime call endpoints
+remain available only while the bundled clients are migrated on the feature
+branch; they are removed before the transcription-first cutover is complete.
+
 ### Output-only Speech
 
 Talk to Me does not create a Realtime call. It sends the observation and speech
