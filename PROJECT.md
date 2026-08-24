@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 148, participate phase-3 survey and
-  access-code actions.
+- Last completed milestone: Milestone 149, live-transcription migration
+  acceptance baseline and decision lock.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -210,6 +210,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 146: Participate admin-creation database foundation
 - [x] Milestone 147: Participate admin participant creation and identity editing
 - [x] Milestone 148: Participate phase-3 survey and access-code actions
+- [x] Milestone 149: Live-transcription migration acceptance baseline and decision lock
 
 ## Milestone 1
 ### Date
@@ -7004,3 +7005,52 @@ into another phase.
 ### Next steps
 1. Apply `database/migrations/20260816_participant_admin_fields.sql` to the
    deployment database, then deploy the updated `.web/participate/` files.
+
+## Milestone 149
+### Date
+2026-08-24
+
+### Goal
+Lock the architecture and measurable acceptance criteria for replacing the
+combined OpenAI Realtime speech session with a transcription-first
+`gpt-live-transcribe` input and canonical behaviour-speech output pipeline.
+
+### What changed
+- Added `.agents/PLAN_TRANSCRIBE.md` with eight sequential, independently
+  testable milestones covering the typed provider contract, shared browser
+  transport, `FULL_PLAN` acknowledgement, canonical speech synthesis, playback
+  coordination, legacy removal, and final acceptance.
+- Confirmed half-duplex input gating during agent playback, agent-aware language
+  defaults, far-field capture defaults, local/manual VAD, streaming Speech
+  output, single-tab playback ownership, live-only SSE speech, and removal of
+  the legacy output-profile split.
+- Added `.agents/TRANSCRIBE_SMOKE_RESULTS.md` with a fixed bilingual phrase
+  corpus, objective quality/reliability targets, environment matrix, and result
+  fields for baseline and final comparison.
+
+### How to test
+- Review the confirmed decision list and milestone exit criteria in
+  `.agents/PLAN_TRANSCRIBE.md`.
+- Review the phrase corpus, target definitions, and all required environment
+  rows in `.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
+- `git diff --check`
+
+### Verification
+- All architecture choices requested before implementation are recorded as
+  confirmed rather than open assumptions.
+- The acceptance record distinguishes deterministic repository verification
+  from acoustic measurements that require an operator and physical devices.
+- The coding environment cannot originate real wireless-microphone or
+  Bluetooth-speaker input, so those baseline rows are marked `NOT RUN` and are
+  not represented as passed.
+
+### Known issues and decisions
+- The physical baseline is an explicit manual verification limitation, not a
+  reason to retain the old full-duplex architecture or delay deterministic
+  implementation work.
+- `gpt-live-transcribe` does not provide a speaker identity contract; group
+  tests assess transcript and turn reliability, not diarization.
+
+### Next steps
+1. Implement milestone 150: the typed, access-code-scoped live-transcription
+   session contract.
