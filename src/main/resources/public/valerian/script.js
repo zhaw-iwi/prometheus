@@ -33,6 +33,7 @@ const realtime = {
   transcriptionClient: null,
   transcriptionSettingsPanel: null,
   transcriptionAgentId: null,
+  transcriptIngress: null,
   peerConnection: null,
   dataChannel: null,
   micStream: null,
@@ -2233,9 +2234,19 @@ async function ensureLiveTranscriptionUi() {
     return realtime.transcriptionClient;
   }
   if (realtime.transcriptionClient) await realtime.transcriptionClient.stop();
+  realtime.transcriptIngress?.setAccepting(false);
   const api = await waitForTranscriptionApi();
   const media = new api.TranscriptionMedia({
-    onDiagnostic: (diagnostic) => appendLog("transcription", JSON.stringify(diagnostic)),
+    onDiagnostic: handleLiveTranscriptionDiagnostic,
+  });
+  const ingress = new api.ScopedTranscriptIngress({
+    agentId: state.agentId,
+    accessCode: state.accessCode || "",
+    canAccept: () => !realtime.assistantAudioActive,
+    onQueued: renderQueuedLiveTranscript,
+    onAccepted: handleAcceptedLiveTranscript,
+    onStatus: handleTranscriptIngressStatus,
+    onDiagnostic: handleLiveTranscriptionDiagnostic,
   });
   const client = new api.LiveTranscriptionClient({
     agentId: state.agentId,
@@ -2248,7 +2259,7 @@ async function ensureLiveTranscriptionUi() {
     onFinal: handleLiveTranscriptionFinal,
     onState: handleLiveTranscriptionState,
     onInputState: handleLiveTranscriptionInputState,
-    onDiagnostic: (diagnostic) => appendLog("transcription", JSON.stringify(diagnostic)),
+    onDiagnostic: handleLiveTranscriptionDiagnostic,
   });
   const descriptor = await client.initialize();
   const root = document.getElementById("live_transcription_settings_root");
@@ -2259,6 +2270,7 @@ async function ensureLiveTranscriptionUi() {
     onValidation: () => updateTranscriptionManualControl(),
   });
   realtime.transcriptionClient = client;
+  realtime.transcriptIngress = ingress;
   realtime.transcriptionAgentId = state.agentId;
   appendLog("transcription", `loaded ${descriptor.model} settings schema ${descriptor.schemaVersion}.`);
   updateTranscriptionManualControl();
@@ -2276,15 +2288,53 @@ function waitForTranscriptionApi(timeoutMs = 5000) {
   });
 }
 
-function handleLiveTranscriptionFinal({ itemId, text }) {
+function handleLiveTranscriptionFinal({ epoch, itemId, text }) {
   const transcript = String(text || "").trim();
   if (!transcript || isLikelyAsrHallucination(transcript)) {
     appendLog("transcription", `ignored empty or noisy final transcript for ${itemId}.`);
     return;
   }
-  appendMessage("user", transcript);
-  renderSpeechSensingTranscript(transcript);
-  appendLog("transcription", `final transcript ${itemId} rendered.`);
+  return realtime.transcriptIngress?.submit({ epoch, itemId, text: transcript }) || false;
+}
+
+function renderQueuedLiveTranscript({ itemId, text }) {
+  appendMessage("user", text);
+  renderSpeechSensingTranscript(text);
+  appendLog("transcription", `final transcript ${itemId} queued.`);
+}
+
+async function handleAcceptedLiveTranscript({ itemId, text, acknowledgement }) {
+  if (acknowledgement && typeof acknowledgement.active === "boolean") {
+    setActiveStatus(acknowledgement.active);
+  }
+  renderLatestEvent({ type: "obs.user_utterance", payload: text });
+  appendLog("transcription", `final transcript ${itemId} accepted.`);
+  await Promise.all([loadStorage(), loadAgentState()]);
+}
+
+function handleTranscriptIngressStatus(status) {
+  const mapping = {
+    queued: ["Transcript Queued", "idle"],
+    acknowledging: ["Transcript Sending", "idle"],
+    accepted: ["Transcript Accepted", "live"],
+    rejected: ["Transcript Rejected", "error"],
+    "provider-error": ["Provider Error", "error"],
+  };
+  const [label, mode] = mapping[status.state] || ["Transcript Ready", "idle"];
+  const element = document.getElementById("transcription_ingress_status");
+  if (element) {
+    element.textContent = label;
+    element.className = `status-pill is-${mode}`;
+  }
+  appendLog("transcription-ingress", JSON.stringify(status));
+}
+
+function handleLiveTranscriptionDiagnostic(diagnostic) {
+  if (["provider_error", "provider_transcription_failed"].includes(diagnostic?.code)) {
+    handleTranscriptIngressStatus({ state: "provider-error", itemId: diagnostic.itemId || null,
+      reason: diagnostic.code });
+  }
+  appendLog("transcription", JSON.stringify(diagnostic));
 }
 
 function handleLiveTranscriptionState({ state: transportState, message = "", attempt = 0 }) {

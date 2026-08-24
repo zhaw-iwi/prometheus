@@ -21,6 +21,10 @@ test.beforeEach(async ({ context }) => {
 });
 
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
+  const acknowledgeRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/acknowledge")) acknowledgeRequests.push(request);
+  });
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
   await page.getByTestId("live-transcription-settings-toggle").click();
@@ -43,7 +47,30 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   });
 
   await expect(page.getByTestId("message-list").locator(".demo-message.user")).toHaveCount(1);
+  await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(0);
   await expect(page.getByTestId("message-list")).toContainText("Guten Morgen, PROMETHEUS.");
+  await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+  expect(acknowledgeRequests).toHaveLength(1);
+  expect(new URL(acknowledgeRequests[0].url()).searchParams.get("profile")).toBe("full_plan");
+  expect(acknowledgeRequests[0].headers()["x-prometheus-access-code"]).toBe(ACCESS_CODE);
+  expect(acknowledgeRequests[0].postDataJSON()).toEqual({
+    type: "obs.user_utterance", actor: "user", kind: "observation", payload: "Guten Morgen, PROMETHEUS.",
+  });
+
+  await page.evaluate((event) => {
+    handleBehaviourEnvelope(event);
+    handleBehaviourEnvelope(event);
+  }, behaviourEvent());
+  await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(1);
+  await expect(page.getByTestId("message-list")).toContainText("Guten Morgen. I heard you clearly.");
+  await expect(page.getByTestId("behaviour-channel-strip")).toContainText("Speech");
+
+  await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "commit-failed",
+    item_id: "item-failed" });
+  await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.failed",
+    event_id: "failed-1", item_id: "item-failed", error: { code: "audio_unintelligible" } });
+  await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Provider Error");
+  expect(acknowledgeRequests).toHaveLength(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests[0].audio)).toMatchObject({
     echoCancellation: true,
@@ -184,6 +211,12 @@ async function installApiMocks(context) {
         model: "gpt-live-transcribe", settingsSchemaVersion: 1,
         webRtcUrl: "https://api.openai.test/v1/realtime/calls", effectiveSettings: {} }));
     }
+    if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/acknowledge`) {
+      return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
+    }
+    if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/behaviour/generate`) {
+      return route.fulfill({ status: 200, body: "" });
+    }
     return route.fulfill({ status: 404, body: "" });
   });
   await context.route("https://api.openai.test/**", (route) => route.fulfill({
@@ -293,4 +326,20 @@ function capabilities() {
 
 function json(body) {
   return { status: 200, contentType: "application/json", body: JSON.stringify(body) };
+}
+
+function behaviourEvent() {
+  return {
+    type: "resp.behaviour_plan",
+    actor: "assistant",
+    kind: "response",
+    createdDate: "2026-08-24T10:00:00Z",
+    payload: JSON.stringify({
+      speech: "Guten Morgen. I heard you clearly.",
+      nonVerbal: { gesture: "ACKNOWLEDGE", facialExpression: { type: "warm", intensity: 0.7 },
+        gaze: { direction: "forward", focus: "speaker" } },
+      motion: { energy: 0.3 },
+      display: { text: "Listening" },
+    }),
+  };
 }

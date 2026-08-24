@@ -20,6 +20,8 @@ class RealtimeBrowserClientContractTest {
             "src/main/resources/public/transcription/client.js");
     private static final Path TRANSCRIPTION_EVENTS = Path.of(
             "src/main/resources/public/transcription/events.js");
+    private static final Path TRANSCRIPTION_INGRESS = Path.of(
+            "src/main/resources/public/transcription/ingress.js");
 
     @Test
     void valerianSpeechClientUsesPrometheusBoundRealtimeCallEndpoint() throws IOException {
@@ -150,6 +152,25 @@ class RealtimeBrowserClientContractTest {
         assertDoesNotContain(script, "response.cancel");
         assertDoesNotContain(script, "output_audio_buffer.clear");
         assertDoesNotContain(script, "interrupt_response");
+    }
+
+    @Test
+    void finalizedTranscriptsUseOneSharedScopedFullPlanIngress() throws IOException {
+        String valerian = Files.readString(VALERIAN_SCRIPT);
+        String multilateral = Files.readString(MULTILATERAL_LISTEN_SCRIPT);
+        String ingress = Files.readString(TRANSCRIPTION_INGRESS);
+
+        assertContains(valerian, "new api.ScopedTranscriptIngress");
+        assertContains(valerian, "handleAcceptedLiveTranscript");
+        assertContains(multilateral, "../../transcription/ingress.js");
+        assertContains(multilateral, "new ScopedTranscriptIngress");
+        assertContains(ingress, "/acknowledge?profile=${FULL_PLAN}");
+        assertContains(ingress, "type: \"obs.user_utterance\"");
+        assertContains(ingress, "X-Prometheus-Access-Code");
+        assertContains(ingress, "outputProfile: FULL_PLAN");
+        assertDoesNotContain(ingress, "realtime_speech");
+        assertDoesNotContain(ingress, "backend_complement");
+        assertDoesNotContain(multilateral, "`/${session.agentId}/acknowledge`");
     }
 
     private static void assertContains(String text, String expected) {

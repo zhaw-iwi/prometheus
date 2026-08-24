@@ -799,6 +799,26 @@ These suites mock microphone, WebRTC, SDP exchange, and provider events. They
 do not replace the real acoustic matrix in
 `.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
 
+Final provider transcripts enter PROMETHEUS through the same scoped event
+boundary as typed input:
+
+```http
+POST /demo/agents/{agentId}/acknowledge?profile=full_plan
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
+{"type":"obs.user_utterance","actor":"user","kind":"observation","payload":"Hello Valerian"}
+```
+
+The shared browser ingress serializes final turns, suppresses duplicate/stale
+provider terminals, and exposes queued, sending, accepted, rejected, and
+provider-error diagnostics. Partial or failed provider input is never sent.
+The acknowledgement response is used only for lifecycle/fallback decisions;
+canonical `resp.behaviour_plan` rendering remains driven by the behaviour SSE
+stream so the same plan cannot appear twice. If acknowledgement legitimately
+returns no response event, the client preserves typed-input semantics by
+requesting one normal `full_plan` generation.
+
 ### Output-only Speech
 
 Talk to Me does not create a Realtime call. It sends the observation and speech

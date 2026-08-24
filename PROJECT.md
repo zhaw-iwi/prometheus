@@ -58,8 +58,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 151, shared browser live-transcription
-  engine and operator settings.
+- Last completed milestone: Milestone 152, scoped `FULL_PLAN` transcript ingress
+  with ordered acknowledgement and SSE-authoritative behaviour rendering.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -212,6 +212,8 @@ and regulation diagnostics remain future work.
 - [x] Milestone 148: Participate phase-3 survey and access-code actions
 - [x] Milestone 149: Live-transcription migration acceptance baseline and decision lock
 - [x] Milestone 150: Typed scoped live-transcription session contract
+- [x] Milestone 151: Shared browser live-transcription engine and operator settings
+- [x] Milestone 152: Scoped full-plan transcript ingress
 
 ## Milestone 1
 ### Date
@@ -7176,3 +7178,66 @@ milestone.
 ### Next steps
 1. Implement milestone 152: serialize finalized speech through scoped
    `FULL_PLAN` acknowledgement and prove one accepted agent turn.
+
+## Milestone 152
+### Date
+2026-08-24
+
+### Goal
+Feed finalized live transcription into the ordinary scoped PROMETHEUS agent
+pipeline exactly once, using the same full multimodal plan semantics as typed
+input and leaving canonical behaviour rendering to SSE.
+
+### What changed
+- Added a shared serialized transcript ingress used by Valerian and the
+  multilateral listener. It preserves agent identity and the access-code header
+  while posting `obs.user_utterance` explicitly with `profile=full_plan`.
+- Added epoch/item deduplication, playback gating, and queued, acknowledging,
+  accepted, rejected, and provider-error diagnostics. Partial, empty, failed,
+  duplicate, stale, and gated input never reaches acknowledgement.
+- Preserved the typed-input fallback: an accepted acknowledgement with no
+  response event requests one ordinary `full_plan` generation.
+- Kept assistant plans out of the acknowledgement-render path. User input is
+  shown once when queued, while the existing behaviour SSE handler remains the
+  sole canonical renderer and deduplicates repeated envelopes.
+- Replaced the multilateral listener's unscoped acknowledgement call with the
+  same scoped ingress boundary and added an operator-visible Valerian ingress
+  status.
+
+### How to test
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `.\mvnw.cmd "-Dtest=ScopedDemoControllerIntegrationTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- The full Java regression suite passed: 256 tests, zero failures and zero
+  errors. The existing Surefire fork-shutdown warning appeared after successful
+  completion.
+- All 17 shared transcription unit tests, five mocked transcription Playwright
+  flows, and five existing Valerian visual/interaction flows passed.
+- Node coverage proves ordered acknowledgement, duplicate/empty/stale/gated
+  suppression, scoped access propagation, fallback generation, and rejected or
+  provider-failed input handling.
+- The scoped Spring integration test drives a final transcript through an RPS
+  agent and verifies one persisted `obs.user_utterance` followed by one
+  full-plan `resp.behaviour_plan` containing speech, nonverbal, motion, and
+  display channels.
+- Mocked Playwright drives WebRTC final/failure events through Valerian and the
+  multilateral listener. It verifies one user turn, no assistant rendering from
+  the HTTP acknowledgement, one SSE-rendered/deduplicated assistant plan, and
+  visible provider-error state.
+
+### Known issues and decisions
+- User text is displayed at the queued boundary, matching existing typed-input
+  ordering; a rejected acknowledgement remains visibly marked rejected and is
+  not reported as accepted.
+- Playback gating is already enforced at ingress from the existing assistant
+  activity signal. Milestone 154 will replace that signal with the canonical
+  Speech playback lifecycle and add the complete half-duplex state machine.
+- Provider, microphone, acoustic, wireless, and Bluetooth behavior remains
+  unverified until the physical smoke matrix is run.
+
+### Next steps
+1. Implement milestone 153: canonical persisted-behaviour Speech synthesis.

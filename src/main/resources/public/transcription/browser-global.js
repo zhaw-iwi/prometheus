@@ -1,4 +1,5 @@
 import { LiveTranscriptionClient } from "./client.js";
+import { ScopedTranscriptIngress } from "./ingress.js";
 import { TranscriptionEventRuntime, OrderedTranscriptAssembler } from "./events.js";
 import { BrowserLocalVad, LocalVadSegmenter } from "./local-vad.js";
 import { MicrophoneLease, TranscriptionMedia } from "./media.js";
@@ -8,6 +9,7 @@ import { TranscriptionTransport } from "./transport.js";
 
 globalThis.PrometheusTranscription = Object.freeze({
   LiveTranscriptionClient,
+  ScopedTranscriptIngress,
   TranscriptionEventRuntime,
   OrderedTranscriptAssembler,
   BrowserLocalVad,

@@ -96,6 +96,9 @@ PROMETHEUS currently provides:
   cross-tab microphone ownership, explicit local/manual turn commits,
   item-ordered final transcripts, reconnect/teardown, operator capture
   settings, and privacy-safe preference persistence;
+- serialized, duplicate-safe live-transcript ingress through the ordinary
+  scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
+  canonical behaviour rendering left to the existing SSE stream;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;

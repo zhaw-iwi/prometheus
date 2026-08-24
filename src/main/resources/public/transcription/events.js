@@ -126,6 +126,9 @@ export class TranscriptionEventRuntime {
       this.onDiagnostic({ code: "unexpected_assistant_event", eventType: event.type });
     } else if (event.type === "error") {
       this.onDiagnostic({ code: "provider_error", providerCode: safeCode(event.error?.code) });
+    } else if (event.type === FAILED) {
+      this.onDiagnostic({ code: "provider_transcription_failed", itemId: event.item_id || null,
+        providerCode: safeCode(event.error?.code) });
     } else if (event.type === "session.created" || event.type === "session.updated") {
       if (event.session?.type && event.session.type !== "transcription") {
         this.onDiagnostic({ code: "unexpected_session_type" });

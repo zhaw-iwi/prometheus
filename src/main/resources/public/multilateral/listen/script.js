@@ -1,8 +1,10 @@
 import { LiveTranscriptionClient } from "../../transcription/client.js";
+import { ScopedTranscriptIngress } from "../../transcription/ingress.js";
 import { TranscriptionMedia } from "../../transcription/media.js";
 import { TranscriptionSettingsPanel } from "../../transcription/settings-panel.js";
 
-const session = { agentId: null, accessCode: "", isListening: false, client: null, panel: null, manualActive: false };
+const session = { agentId: null, accessCode: "", isListening: false, client: null, ingress: null, panel: null,
+  manualActive: false };
 let utteranceCount = 0;
 
 window.addEventListener("load", async () => {
@@ -35,7 +37,15 @@ function wireUi() {
 async function initializeClient({ replace = false } = {}) {
   if (session.client && !replace) return session.client;
   if (session.client) await session.client.stop();
+  session.ingress?.setAccepting(false);
   const media = new TranscriptionMedia({ onDiagnostic: logDiagnostic });
+  session.ingress = new ScopedTranscriptIngress({
+    agentId: session.agentId,
+    accessCode: session.accessCode,
+    onAccepted: handleAcceptedTranscript,
+    onStatus: (status) => appendLog("transcription-ingress", JSON.stringify(status)),
+    onDiagnostic: logDiagnostic,
+  });
   const client = new LiveTranscriptionClient({
     agentId: session.agentId,
     accessCode: session.accessCode,
@@ -124,16 +134,19 @@ function handleTransportState({ state, message = "", attempt = 0 }) {
   updateManualControl();
 }
 
-async function handleFinalTranscript({ itemId, text }) {
+async function handleFinalTranscript({ epoch, itemId, text }) {
   const transcript = String(text || "").trim();
   if (!transcript || isLikelyAsrHallucination(transcript)) {
     appendLog("transcription", `Ignored noisy transcript ${itemId}.`);
     return;
   }
-  document.getElementById("live_transcript").textContent = transcript;
-  addTranscriptEntry(transcript);
-  appendLog("transcription", `Final transcript ${itemId}.`);
-  await acknowledgeTranscript(transcript);
+  await session.ingress.submit({ epoch, itemId, text: transcript });
+}
+
+function handleAcceptedTranscript({ itemId, text }) {
+  document.getElementById("live_transcript").textContent = text;
+  addTranscriptEntry(text);
+  appendLog("transcription", `Final transcript ${itemId} accepted.`);
 }
 
 function beginManualTurn(event) {
@@ -166,15 +179,6 @@ async function loadAgentInfo() {
   if (!response.ok) return;
   const data = await response.json();
   document.getElementById("agent_name").textContent = data.name || "Multilateral Listener";
-}
-
-async function acknowledgeTranscript(transcript) {
-  const response = await fetch(`/${session.agentId}/acknowledge`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ type: "obs.user_utterance", actor: "user", kind: "observation", payload: transcript }),
-  });
-  if (!response.ok) appendLog("prometheus", "acknowledge failed.");
 }
 
 function addTranscriptEntry(text) {

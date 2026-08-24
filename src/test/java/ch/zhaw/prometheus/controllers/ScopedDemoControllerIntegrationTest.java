@@ -1,7 +1,9 @@
 package ch.zhaw.prometheus.controllers;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,8 +32,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.zhaw.prometheus.application.AccessCodeAdminService;
+import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
@@ -268,6 +274,58 @@ class ScopedDemoControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void finalizedTranscriptUsesScopedFullPlanPipelineExactlyOnce() throws Exception {
+        String accessCode = "T49m3";
+        String transcript = "Ready for the next round";
+        this.allowType(accessCode, RockScissorPaper.KEY);
+        UUID agentId = this.createAgent(accessCode, RockScissorPaper.KEY);
+        when(this.languageModelGateway.decide(any())).thenAnswer(invocation -> {
+            List<PromptMessage> messages = invocation.getArgument(0);
+            return messages.stream().map(PromptMessage::getContent)
+                    .anyMatch(content -> content.contains("clearly ready to start a round"));
+        });
+
+        MvcResult result = this.mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge")
+                .header(HEADER, accessCode)
+                .queryParam("profile", "full_plan")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(java.util.Map.of(
+                        "type", Event.TYPE_USER_UTTERANCE,
+                        "actor", Event.ACTOR_USER,
+                        "kind", Event.KIND_OBSERVATION,
+                        "payload", transcript))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
+                .andReturn();
+
+        JsonNode responsePayload = this.objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("responseEvent").path("payload");
+        BehaviourPlan responsePlan = BehaviourPlan.fromJson(responsePayload.asText());
+        assertNotNull(responsePlan);
+        assertNotNull(responsePlan.getSpeech());
+        assertNotNull(responsePlan.getNonVerbal());
+        assertNotNull(responsePlan.getMotion());
+        assertNotNull(responsePlan.getDisplay());
+
+        List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
+        List<Event> matchingInputs = history.stream()
+                .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
+                .filter(event -> transcript.equals(event.getPayload()))
+                .toList();
+        assertEquals(1, matchingInputs.size());
+        int inputIndex = history.indexOf(matchingInputs.get(0));
+        List<Event> generatedPlans = history.subList(inputIndex + 1, history.size()).stream()
+                .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                .toList();
+        assertEquals(1, generatedPlans.size());
+        BehaviourPlan persistedPlan = BehaviourPlan.fromJson(generatedPlans.get(0).getPayload());
+        assertNotNull(persistedPlan.getSpeech());
+        assertNotNull(persistedPlan.getNonVerbal());
+        assertNotNull(persistedPlan.getMotion());
+        assertNotNull(persistedPlan.getDisplay());
     }
 
     private AccessCodeView allowType(String code, String typeKey) {
