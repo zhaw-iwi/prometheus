@@ -255,118 +255,6 @@ Open the main surfaces:
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
-The standalone German/English SIRA/PROMETHEUS public page lives under `.web/`.
-Open `.web/index.html` directly in a browser, or host the `.web/` directory as
-static files.
-
-The standalone German study participation site lives under `.web/participate/`.
-It is self-contained for deployment as a separate host root. Before deploying,
-copy `.web/participate/.env.example` to `.web/participate/.env`, fill in the
-database and mail values, and execute `.web/participate/database/schema.sql`
-followed by `.web/participate/database/seed.sql` in the target MySQL database.
-`ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
-added as BCC recipients on participant confirmation mails.
-
-The participation database also contains a singleton overall phase setting and
-survey URL, per-registration phase/result-interest state, and one hard-coded
-experiment assignment row per registration. Assignment completeness limits
-the effective participant phase: a missing half-day or time keeps the
-participant in phase 1;
-complete schedule data without complete access/role/team/room data permits only
-phase 2; complete assignment data permits phases 1 through 4. Phase 4 replaces
-the assignment display rather than extending it.
-
-Participants can return from any browser through **Bereits angemeldet?** using
-the e-mail address and date of birth from their active registration. A
-successful recovery reuses the registration's long-lived public token on that
-device; a failed match returns one generic error and does not disclose whether
-the e-mail address exists. The recovery dialog uses a compact centred layout,
-while the more complex registration wizard retains its wider dialog. The public
-JSON response is filtered on the server:
-
-- Phase 1 shows the saved signup summary.
-- Phase 2 sends and shows participant ID, half-day, time slot, and the stored
-  registration slot label as the date.
-- Phase 3 additionally sends and shows access code, role, team ID, room, and
-  the database-managed survey URL. The access code has an adjacent copy icon;
-  the survey opens from a button in a new browser tab. Neither value is sent
-  in phases 2 or 4.
-- Phase 4 sends no assignment fields, thanks the participant, and provides a
-  reversible results-information choice with its last-change timestamp.
-
-When the overall phase leaves phase 1, the **Mitmachen** action remains visible
-but becomes disabled, and the registration API closes. Recovery remains
-available. Registrations without a complete phase-2 schedule remain in phase 1
-regardless of the overall phase.
-The participant endpoints are `api/registration.php` (current cookie session),
-`api/identify.php` (e-mail/date-of-birth recovery), and
-`api/results-interest.php` (phase-4 choice). The header session button shows a
-door-entry action for unidentified visitors and delegates to **Bereits
-angemeldet?** in every overall phase. For identified participants it changes to
-a door-exit action backed by `api/logout.php`, which forgets only the browser
-cookie and does not delete or cancel the database registration.
-
-For an existing deployment, run the additive migration before importing the
-private Brainkick assignment seed:
-
-```powershell
-mysql -u USER -p DATABASE < .web/participate/database/migrations/20260814_participation_phases.sql
-mysql -u USER -p DATABASE < .web/participate/database/brainkick_seed.sql
-mysql -u USER -p DATABASE < .web/participate/database/migrations/20260816_participant_admin_fields.sql
-mysql -u USER -p DATABASE < .web/participate/database/brainkick_verify.sql
-```
-
-`brainkick_seed.sql` contains live access codes and is intentionally ignored by
-Git. Generate it locally from the private assignment CSV with:
-
-```powershell
-php .web/participate/database/generate_brainkick_seed.php INPUT.csv .web/participate/database/brainkick_seed.sql
-```
-
-The generator validates the fixed seven-column CSV contract, converts blank or
-literal `NULL` values to SQL `NULL`, sorts by participant ID, rejects duplicate
-participant IDs/access codes, and produces a repeatable upsert script. The
-migration initializes the overall phase to 1 and does not change existing
-registration rows. The participant-admin-fields migration makes the name and
-signup-slot snapshot optional, stores the singleton survey URL, and enables
-safe participant-ID edits by cascading ID changes to assignment and state rows.
-It preserves the deployment's current overall phase and can be applied more
-than once.
-
-The participation admin view is available at `/admin/` below that deployment
-root, for example `https://participate.siralab.ch/admin/`. It intentionally has
-no built-in authentication; protect or obscure the deployed folder name at the
-hosting level if needed. The table supports client-side search, sortable
-columns, an overall phase selector, nullable per-participant phase overrides,
-participant creation, registration/identity editing, fixed experiment-assignment
-editing, deletion of registrations, and CSV export of the full loaded
-registration set including effective phase, assignments, and results-interest
-state. Creating a participant requires only e-mail address and date of birth;
-name, signup slot, phase, participant ID, and assignment values are optional.
-An omitted ID is generated by MySQL. A supplied or edited ID and every e-mail
-address must be unique. New participants default to an explicit phase-1
-override when no phase is selected, receive a secure recovery token, and can
-immediately use **Bereits angemeldet?** without confirmation or an admin-sent
-mail. Missing schedule/access data limits effective
-phases even when a higher overall phase or override is requested. Empty
-assignment editor values are stored as SQL `NULL`. Changing the overall phase
-from phase 1 closes `api/register.php`; individual overrides do not reopen
-signup. Deleting a registration removes its e-mail reservation, assignment,
-participant state, and server-token summary, so the participant can register
-again from the same browser while signup is open.
-
-For local backend testing, use the provided `.env.test` and reset the local
-MySQL test database:
-
-```powershell
-$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path
-php .web/participate/tests/setup_test_db.php
-php .web/participate/tests/phase_rules_test.php
-php .web/participate/tests/brainkick_seed_generator_test.php
-php .web/participate/tests/migration_smoke_test.php
-php -S 127.0.0.1:8091 -t .web/participate
-```
-
 ## Testing
 
 Run the Java regression suite:
@@ -381,28 +269,9 @@ Run JavaScript syntax checks for the bundled clients:
 node --check src/main/resources/public/valerian/script.js
 node --check src/main/resources/public/apiworkbench/script.js
 node --check src/main/resources/public/talktome/script.js
-node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
 node --check tests/playwright/talktome.spec.mjs
-node --check tests/playwright/participate.spec.mjs
-node --check playwright.participate.config.mjs
-php -l .web/participate/index.php
-php -l .web/participate/config/bootstrap.php
-php -l .web/participate/config/phases.php
-php -l .web/participate/api/register.php
-php -l .web/participate/api/registration.php
-php -l .web/participate/api/identify.php
-php -l .web/participate/api/logout.php
-php -l .web/participate/api/results-interest.php
-php -l .web/participate/admin/delete.php
-php -l .web/participate/admin/index.php
-php -l .web/participate/admin/update.php
-php -l .web/participate/tests/setup_test_db.php
-php -l .web/participate/tests/phase_rules_test.php
-php -l .web/participate/tests/brainkick_seed_generator_test.php
-php -l .web/participate/tests/migration_smoke_test.php
-node --check .web/participate/admin/admin.js
 ```
 
 Run the Playwright visual smoke tests:
@@ -413,7 +282,6 @@ npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
 npm run test:talktome:visual
-npm run test:participate:visual
 ```
 
 The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
@@ -432,27 +300,6 @@ Stop, and deletion. It replaces only the external OpenAI Speech and physical
 speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
-
-The participate Playwright test resets `sira_participate_test` through
-`.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
-`.web/participate/` with `.env.test`, and verifies the landing page,
-registration wizard, validation, privacy modal, MySQL-backed registration,
-logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
-mobile layout, and the `/admin/` registration table with search, sorting, and
-CSV export. It also verifies admin deletion and same-browser re-registration
-after deletion, overall and participant-specific phase management, assignment
-editing and null clearing, readiness limits, duplicate access-code rejection,
-and server-side signup closure outside phase 1. It also opens a clean browser
-context to verify e-mail/date-of-birth recovery, phase-2 response filtering,
-the full phase-3 display, phase-4 replacement, reversible persisted
-results-interest, closed-signup recovery, and the exported/admin-visible
-interest value. The phase-3 coverage verifies the exact filtered JSON payload,
-clipboard contents, the survey link's new-tab behavior, and desktop/mobile
-layouts; phases 2 and 4 verify that access code and survey URL are absent.
-Admin coverage also creates minimal and fully assigned
-participants while signup is closed, rejects duplicate IDs/e-mails, edits an
-ID with dependent data intact, verifies no confirmation mail, exercises public
-recovery, and checks the create dialog at desktop and mobile widths.
 
 ## Connecting External Clients
 
@@ -908,17 +755,7 @@ src/main/resources/public
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
-.web/
-  index.html        Standalone German/English SIRA/PROMETHEUS public page.
-  participate/      Standalone German study participation site.
-    admin/          Unprotected registration overview with search, sort, and CSV export.
-    api/            PHP JSON endpoints for signup, recovery, phases, and results interest.
-    assets/         Plain CSS and JavaScript for signup and participant phase views.
-    config/         Local environment, PDO, cookie, mail, and phase-rule helpers.
-    database/       Canonical schema/seed, additive migrations, and Brainkick seed tooling.
-    tests/          Phase rules, seed generation, migration, and local MySQL smoke tests.
-
-tests/playwright    Browser-level Valerian, Talk to Me, API Workbench, and participate smoke tests.
+tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke tests.
 ```
 
 ## Developing New Agents
