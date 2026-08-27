@@ -1,3 +1,12 @@
+INSERT INTO participation_phase_settings (id, default_phase, survey_url)
+VALUES (
+  1,
+  1,
+  'https://www.uzh.ch/zi/cl/surveys/index.php/922424?lang=de-easy'
+)
+ON DUPLICATE KEY UPDATE
+  survey_url = VALUES(survey_url);
+
 INSERT INTO participation_slots
   (slot_key, label, starts_at, ends_at, capacity, is_active, sort_order)
 VALUES

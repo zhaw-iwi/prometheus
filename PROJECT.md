@@ -61,8 +61,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 136, Talk to Me backend isolation.
-- No subsequent milestone has been selected.
+- Last completed milestone: Milestone 148, participate phase-3 survey and
+  access-code actions.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -234,6 +234,16 @@ and regulation diagnostics remain future work.
 - [x] Milestone 134: Talk to Me lifecycle layout and Realtime completion diagnostics
 - [x] Milestone 135: Talk to Me exact-text Speech renderer
 - [x] Milestone 136: Talk to Me backend isolation
+- [x] Milestone 139: Participate phase and assignment foundation
+- [x] Milestone 140: Participate admin phase and assignment management
+- [x] Milestone 141: Participate recovery, phase views, and results interest
+- [x] Milestone 142: Participate phase date label
+- [x] Milestone 143: Participate header session action
+- [x] Milestone 144: Participate phase-aware signup and recovery actions
+- [x] Milestone 145: Compact participate recovery dialog
+- [x] Milestone 146: Participate admin-creation database foundation
+- [x] Milestone 147: Participate admin participant creation and identity editing
+- [x] Milestone 148: Participate phase-3 survey and access-code actions
 
 ## Milestone 1
 ### Date
@@ -6997,3 +7007,675 @@ Valerian Cockpit and the shared scoped/Realtime application paths.
   design. Talk to Me adds its profile-tag restriction on top of that boundary.
 - Live OpenAI credentials and audible speaker hardware remain outside automated
   regression coverage.
+
+## Milestone 139
+### Date
+2026-08-14
+
+### Goal
+Establish the persistence, deployment, deterministic phase rules, and private
+Brainkick assignment import foundation for the standalone participation site
+before adding its administrative and participant-facing phase workflows.
+
+### What changed
+- Added `participation_phase_settings` as the singleton overall/default phase
+  setting, initialized to phase 1.
+- Added `participation_assignments` as a one-to-one, cascade-deleted extension
+  of registrations with the experiment's fixed access code, role, team,
+  half-day, time, and room fields.
+- Added `participation_participant_state` for nullable per-registration phase
+  overrides and the future reversible results-interest value/timestamp.
+- Added deterministic phase rules in `config/phases.php`:
+  - missing half-day or time data limits a participant to phase 1;
+  - complete schedule data with incomplete phase-3 data limits them to phase 2;
+  - complete assignments permit phases 1 through 4;
+  - phase 4 exposes no assignment data.
+- Kept the canonical `database/schema.sql` and `database/seed.sql` synchronized
+  with the model.
+- Added the MariaDB-compatible, repeatable additive migration
+  `database/migrations/20260814_participation_phases.sql`.
+- Added `database/generate_brainkick_seed.php`, which validates the private
+  seven-column CSV, converts blank/literal `NULL` values to SQL `NULL`, rejects
+  duplicate IDs/access codes, orders rows by participant ID, and generates a
+  repeatable assignment upsert.
+- Generated the requested `database/brainkick_seed.sql` with 57 live
+  assignments. It remains on the local deployment workspace but is ignored by
+  Git because it contains live access codes.
+- Added `database/brainkick_verify.sql` for post-deployment counts and
+  incomplete-assignment review.
+- Ignored the private live database dump and generated Brainkick seed without
+  modifying or deleting either artifact.
+- Added pure phase-rule, generator, and disposable MariaDB migration smoke
+  tests. The migration test also exercises the private seed when it is present.
+- Updated README deployment, generation, verification, testing, and structure
+  documentation.
+
+### How to run
+- Fresh database:
+  - execute `.web/participate/database/schema.sql`;
+  - execute `.web/participate/database/seed.sql`.
+- Existing live database:
+  - execute `.web/participate/database/migrations/20260814_participation_phases.sql`;
+  - execute the locally generated `.web/participate/database/brainkick_seed.sql`;
+  - execute `.web/participate/database/brainkick_verify.sql` and review the results.
+- Regenerate the private data seed when needed:
+  - `php .web/participate/database/generate_brainkick_seed.php INPUT.csv .web/participate/database/brainkick_seed.sql`.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- The canonical schema and seed prepared `sira_participate_test` successfully.
+- Phase-rule tests passed.
+- Brainkick seed generator tests passed.
+- The disposable MariaDB migration smoke passed, including applying the
+  migration twice, applying the private 57-row seed twice, checking participant
+  4's SQL `NULL` fields, constraint enforcement, and cascade deletion.
+- The existing participation Playwright suite passed all 3 participant/admin
+  tests against the evolved schema.
+- PHP syntax and whitespace checks passed.
+
+### Known issues and decisions
+- This milestone intentionally adds no phase controls or new participant UI;
+  those are the next two milestones.
+- The generated Brainkick seed is a deployment artifact, not a versioned source
+  artifact, because it contains live access codes. Its generator and structural
+  verification are versioned.
+- Participant ID is the existing `participation_registrations.id`; the live CSV
+  contained 57 unique IDs and all matched the supplied 66-registration dump.
+- Registrations without schedule assignments, including participant 4 while
+  its time remains `NULL`, stay in phase 1 even when a higher default is later
+  selected.
+
+### Next steps
+1. Milestone 140: add overall/per-participant phase controls, assignment
+   editing, readiness diagnostics, and export fields to the admin site.
+
+## Milestone 140
+### Date
+2026-08-14
+
+### Goal
+Give participation administrators direct control over the overall/default
+phase, per-participant overrides, and the experiment's fixed assignment values
+while making incomplete-data phase limits explicit and testable.
+
+### What changed
+- Added an overall phase control to the participation admin page with a
+  confirmation step and an explicit signup-closure warning.
+- Added server-side signup closure in `api/register.php` whenever the overall
+  phase is not phase 1, including the stable `signup_closed` error code.
+- Added phase summary metrics and effective/requested phase diagnostics to the
+  registration table.
+- Added one modal editor per registration for:
+  - nullable individual phase override;
+  - half-day and time slot;
+  - access code, role, team ID, and room.
+- Empty assignment editor values are normalized to SQL `NULL`. Effective phase
+  is recalculated from the requested phase and data readiness, so incomplete
+  participants remain at the highest safe visible phase.
+- Added `admin/update.php` for validated overall-phase and participant updates,
+  including registration existence checks, field-length boundaries,
+  transactions, and duplicate access-code rejection.
+- Preserved individual overrides when the overall phase changes; choosing
+  `Standardphase übernehmen` stores a nullable override.
+- Extended admin search, sorting, metrics, and full-dataset CSV export with
+  effective phase, missing assignment data, all assignment fields, and the
+  results-interest value/timestamp prepared in milestone 139.
+- Preserved relative admin endpoint paths so the deployed admin directory can
+  continue to use its UUID-suffixed name.
+- Updated the admin layout for five phase metrics, the phase control, wide data
+  table, and responsive assignment modal.
+- Expanded the participation Playwright suite with overall/override phase
+  changes, incomplete-to-complete assignment progression, duplicate access-code
+  rejection, signup closure, CSV fields, and clearing a time slot back to NULL.
+- Updated README behavior, deployment, test, and admin documentation.
+
+### How to run
+- Prepare the test database and start the standalone PHP site as documented in
+  README.
+- Open `/admin/` (or the deployment's UUID-suffixed admin directory).
+- Use `Gesamtphase speichern` for the default phase.
+- Use `Bearbeiten` on a participant row for an override or fixed assignment
+  values.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP syntax checks passed for all participation PHP files.
+- JavaScript syntax checks passed for the admin client and Playwright suite.
+- Clean-schema setup, phase rules, seed generation, and the MariaDB
+  migration/private-seed smoke tests passed.
+- The participation Playwright suite passed all 4 participant/admin tests.
+- Headless Chromium screenshots of the 1440x1000 admin overview and assignment
+  modal were inspected; controls, metrics, table, backdrop, fields, and actions
+  were readable without overlap.
+- Whitespace checks passed.
+
+### Known issues and decisions
+- The participant page still uses the phase-1 presentation in this milestone;
+  higher-phase participant rendering and recovery belong to milestone 141.
+- The public signup button remains present until milestone 141, but direct
+  submissions are already rejected server-side outside phase 1.
+- Admin authentication remains intentionally external through the deployment's
+  hard-to-guess UUID-suffixed directory.
+- The in-app browser connection was unavailable in this environment; the
+  project-owned Playwright/Chromium suite and inspected screenshot artifacts
+  provided browser coverage instead.
+
+### Next steps
+1. Milestone 141: add email/date-of-birth recovery, phase-specific participant
+   data, closed-signup presentation, and reversible results-interest handling.
+
+## Milestone 141
+### Date
+2026-08-14
+
+### Goal
+Complete the standalone participation workflow with cross-device recovery,
+server-filtered phase 2/3/4 participant views, closed-signup presentation, and
+the reversible phase-4 results-information choice.
+
+### What changed
+- Added `api/identify.php` so a participant can recover an active registration
+  on another device with the normalized e-mail address and exact date of birth.
+  Successful recovery installs the existing long-lived public-token cookie on
+  that device; failed matching uses a generic response.
+- Centralized participant-row loading and public-session construction in
+  `config/bootstrap.php` so registration, recovery, and session refresh use the
+  same effective-phase and data-filtering contract.
+- Extended `api/registration.php` and `api/register.php` with the current
+  signup state, effective phase, phase label, filtered assignment, and
+  phase-appropriate results-interest state.
+- Enforced data minimization in PHP before JSON encoding:
+  - phase 2 exposes participant ID, half-day, and time slot only;
+  - phase 3 adds access code, role, team ID, and room;
+  - phase 4 returns an empty assignment object.
+- Added `api/results-interest.php` for an explicit boolean phase-4 choice. It
+  preserves any participant phase override and updates the stored last-change
+  timestamp on every save.
+- Reworked the participant page into four phase views while retaining the
+  original signup summary as phase 1. Phase 3 includes a copyable access code;
+  phase 4 replaces all assignment data with the requested thank-you message and
+  reversible results-information checkbox.
+- Added a **Bereits angemeldet?** recovery dialog and kept it available when
+  overall signup is closed. The visible signup action is hidden outside phase 1
+  for unidentified visitors, matching the server-side registration closure
+  added in milestone 140.
+- Expanded the Playwright suite to use a genuinely separate browser context for
+  recovery, reject a mismatched birth date, verify phase-2 response keys,
+  reject premature interest writes, progress through phases 3 and 4, verify
+  phase-4 replacement, persist yes then no, recover while signup is closed,
+  and confirm the final interest value in the admin table.
+- Updated README participant behavior, endpoint, deployment, structure, lint,
+  and browser-test documentation.
+
+### How to run
+- Deploy the complete `.web/participate/` directory after applying the
+  milestone-139 database migration and private Brainkick assignment seed.
+- Participants use **Mitmachen** only while the overall phase is 1.
+- Returning participants use **Bereits angemeldet?** with their signup e-mail
+  address and date of birth on any device.
+- Administrators progress the overall phase or a participant override through
+  the admin page; the participant view changes on the next request/reload.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/assets/app.js`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- Clean-schema setup, phase-rule, Brainkick generator, and repeatable
+  migration/private-seed smoke tests passed.
+- All 5 participation Playwright tests passed against MySQL and PHP's built-in
+  server, including the separate-device recovery and public JSON filtering
+  checks.
+- Headless Chromium screenshots of the 1440x1000 phase-3 assignment view and
+  phase-4 thank-you/interest view were inspected; content, controls, wrapping,
+  spacing, and replacement behavior were correct without overlap.
+- Whitespace checks passed.
+
+### Known issues and decisions
+- Recovery intentionally uses the approved e-mail/date-of-birth pair and does
+  not rotate the existing public token, so already identified devices remain
+  valid.
+- Invalid recovery matches deliberately return one generic error to avoid
+  disclosing whether an e-mail address exists.
+- Results interest is writable only when the participant's effective phase is
+  4. Saving an unchecked box stores an explicit `false`, distinct from the
+  initial unanswered `NULL` state.
+- Phase 4 deliberately transmits and displays no phase-3 assignment values.
+- No schema change was needed in this milestone; the canonical schema, seed,
+  additive migration, and private import from milestone 139 already include
+  the results-interest columns.
+- Admin authentication remains deployment-managed through the UUID-suffixed
+  directory as explicitly accepted for this version.
+
+### Next steps
+1. Deploy the migration, private assignment seed, verification query, and then
+   the complete `.web/participate/` application as documented in README.
+
+## Milestone 142
+### Date
+2026-08-14
+
+### Goal
+Show the registration's stored slot label as a fourth date entry in the
+participant's phase-2 and phase-3 schedule information.
+
+### What changed
+- Added `date` to the server-filtered visible assignment payload for phases 2
+  and 3, sourced directly from
+  `participation_registrations.slot_preference_label`.
+- Added a fourth `Datum` card after `Zeitfenster` in the participant UI.
+- Preserved the existing phase-4 replacement behavior, which still exposes no
+  assignment or date fields.
+- Extended phase-rule and Playwright assertions for the exact stored label in
+  both phase 2 and phase 3.
+- Updated README's phase-2 public data contract.
+
+### How to test
+- `php .web/participate/tests/phase_rules_test.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- Phase-rule tests passed, including phase-2/3 date presence and phase-4
+  replacement.
+- All 5 participation Playwright tests passed, including exact API key order
+  and rendered date-label assertions in phases 2 and 3.
+- The phase-2 participant panel was captured and visually inspected at desktop
+  width; all four cards fit without truncation or overlap.
+
+### Known issues and decisions
+- `Datum` deliberately displays the complete stored slot label rather than
+  parsing or reformatting it, as requested.
+- No database migration is required because the source column already exists
+  and is non-null in `participation_registrations`.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.
+
+## Milestone 143
+### Date
+2026-08-14
+
+### Goal
+Give participants a persistent header action beside the theme switch for
+starting signup when anonymous and logging out/forgetting the browser session
+when identified.
+
+### What changed
+- Added an accessible header session button with inline door-entry and
+  door-exit SVG icons beside the dark-mode switch.
+- Anonymous users see the entry icon. It delegates to the existing hero
+  **Mitmachen** action while signup is open; if signup is closed, it surfaces
+  the existing closed-signup state instead.
+- Identified participants see the exit icon and can clear the participation
+  cookie on the current device without deleting or cancelling their database
+  registration.
+- Added the idempotent `api/logout.php` endpoint and the shared secure cookie
+  clearing helper.
+- Kept cross-device recovery available after logout through **Bereits
+  angemeldet?**.
+- Extended Playwright coverage for anonymous/identified icon states, entry
+  action delegation, logout feedback, cookie removal, participant-view hiding,
+  and reusing the entry action after logout.
+- Updated README endpoint and logout-semantics documentation.
+
+### How to test
+- `php -l .web/participate/index.php`
+- `php -l .web/participate/config/bootstrap.php`
+- `php -l .web/participate/api/logout.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- All 5 participation Playwright tests passed, including the complete
+  entry-register-exit-logout-entry lifecycle and server confirmation that the
+  cookie no longer identifies a participant after logout.
+- Desktop header screenshots for anonymous and identified states were
+  inspected; both icons are clear, aligned, and visually consistent with the
+  adjacent theme control.
+- Mobile overflow coverage remains green.
+
+### Known issues and decisions
+- Logout means “forget this browser”: it intentionally preserves the
+  registration, assignment, phase, and results-interest data in the database.
+- The anonymous entry icon does not bypass signup closure. Returning
+  participants continue to use the recovery action when signup is closed.
+- No database migration is required.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.
+
+## Milestone 144
+### Date
+2026-08-14
+
+### Goal
+Keep returning-participant recovery consistently available from the header and
+make new-signup availability follow the overall experiment phase.
+
+### What changed
+- Changed the anonymous door-entry header action to open the existing
+  **Bereits angemeldet?** recovery dialog in every overall phase.
+- Kept **Mitmachen** enabled for anonymous visitors only while the overall phase
+  is phase 1.
+- Kept **Mitmachen** visible but disabled when the overall phase is 2, 3, or 4,
+  alongside the existing closed-signup explanation.
+- Preserved the identified-participant behavior: the hero action becomes **Zu
+  meinen Informationen**, while the header door-exit action logs out and forgets
+  the browser cookie.
+- Initialized **Mitmachen** as disabled in the static HTML until the current
+  server state is loaded, preventing a premature signup-dialog action.
+- Extended Playwright coverage for the Phase 1 enabled state, closed-phase
+  disabled state, and door-entry recovery behavior before signup, after logout,
+  and while signup is closed.
+- Updated README participant-action documentation.
+
+### How to test
+- `php -l .web/participate/index.php`
+- `node --check .web/participate/assets/app.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- PHP and JavaScript syntax checks passed.
+- All 5 participation Playwright tests passed.
+- The browser suite proved **Mitmachen** is enabled in phase 1, visible and
+  disabled after signup closes, and that the door-entry action opens recovery in
+  both states.
+- Desktop screenshots of the Phase 1, Phase 2, and Phase 2 recovery-dialog
+  states were inspected; the enabled/disabled distinction and recovery flow are
+  visually clear.
+- Existing mobile overflow, registration, logout, admin, phase, assignment, and
+  results-interest coverage remains green.
+
+### Known issues and decisions
+- Signup availability is derived from the existing `signupOpen` response field,
+  which is true only when the overall default phase is 1; no current-phase value
+  is hard-coded in the participant client.
+- A participant who is data-limited to effective phase 1 does not reopen global
+  signup when the overall phase is later than phase 1.
+- The server-side registration closure remains authoritative even if a client
+  bypasses the disabled button.
+- No database migration is required.
+
+### Next steps
+1. Deploy the updated `.web/participate/` application files; no SQL step is
+   required for this milestone.
+
+## Milestone 145
+### Date
+2026-08-14
+
+### Goal
+Give the returning-participant recovery form a balanced, compact dialog without
+changing the wider registration wizard.
+
+### What changed
+- Added a recovery-dialog-specific maximum width of `44rem` while preserving the
+  existing responsive viewport inset.
+- Let the recovery form fill that compact dialog so the heading, close control,
+  explanatory copy, fields, and actions share the same horizontal bounds.
+- Left the three-step registration and privacy dialog dimensions unchanged.
+- Added desktop assertions for maximum width, centring, and form/dialog width
+  alignment.
+- Extended the mobile participation test to open the recovery dialog and verify
+  that it remains within the viewport.
+- Documented the distinct compact recovery and wide registration layouts.
+
+### How to test
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All 5 participation Playwright tests passed.
+- Desktop geometry assertions proved that the recovery dialog is at most 720px,
+  centred in the 1440px viewport, and filled by the recovery form.
+- Mobile recovery-dialog and page-overflow assertions passed at 390px width.
+- The updated desktop recovery screenshot was inspected; content is balanced,
+  aligned, and no longer leaves a large empty region on the right.
+
+### Known issues and decisions
+- The recovery dialog is intentionally narrower than the registration wizard;
+  stretching two fields across the original 960px width would reduce visual
+  coherence and input readability.
+- Existing small-screen rules continue to stack the action buttons at full
+  width.
+- No database migration is required.
+
+### Next steps
+1. Deploy the updated `.web/participate/` stylesheet; no SQL step is required.
+
+## Milestone 146
+### Date
+2026-08-16
+
+### Goal
+Prepare the participation database for admin-created participants, editable
+participant IDs, and one database-managed experiment survey URL without
+changing participant or admin behavior yet.
+
+### What changed
+- Added the phpMyAdmin-compatible, repeatable
+  `database/migrations/20260816_participant_admin_fields.sql` migration based on
+  the updated private live database dump.
+- Made registration name and signup-slot snapshot fields nullable so an admin
+  can create a participant with only e-mail address and date of birth.
+- Added one required `survey_url` value to the singleton phase-settings row and
+  initialized it with the agreed UZH survey URL while preserving the current
+  overall phase.
+- Changed assignment and participant-state foreign keys to `ON UPDATE CASCADE`
+  while retaining `ON DELETE CASCADE`, making deliberate participant-ID edits
+  safe for dependent records.
+- Kept the canonical `schema.sql` and `seed.sql` aligned with the migration.
+- Reworked the migration smoke test to restore the ignored current live dump
+  into a disposable database when present, apply the new migration twice, and
+  verify nullable fields, the survey URL, update/delete cascades, duplicate-ID
+  rejection, and preservation of the live default phase. It retains a
+  synthetic legacy-schema fallback for environments without the private dump.
+
+### How to test
+- `php .web/participate/tests/migration_smoke_test.php`
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php -l .web/participate/tests/migration_smoke_test.php`
+- `git diff --check`
+
+### Verification
+- The repeatable migration passed against the updated private live database
+  dump on the local MySQL test server.
+- Clean canonical schema/seed setup, phase rules, and Brainkick seed-generator
+  tests passed.
+- Participant-ID updates moved both assignment and participant-state rows;
+  duplicate IDs were rejected and subsequent registration deletion still
+  cascaded to both children.
+
+### Known issues and decisions
+- This milestone intentionally adds no admin form or participant survey button;
+  those are delivered in milestones 147 and 148.
+- The private live dump remains ignored and was used only as a local migration
+  input. It was not modified or staged.
+- The URL is stored once on `participation_phase_settings`, not duplicated per
+  participant.
+
+### Next steps
+1. Milestone 147: add admin participant creation and complete registration-field
+   editing with browser/integration coverage.
+
+## Milestone 147
+### Date
+2026-08-16
+
+### Goal
+Let administrators create participants and edit their registration identity,
+signup slot, phase, and assignment data while preserving immediate public
+recovery access and database integrity.
+
+### What changed
+- Added **Teilnehmende Person erstellen** to the admin toolbar and expanded the
+  existing editor into a shared create/edit dialog.
+- The creation form requires only e-mail address and date of birth. Name,
+  participant ID, signup slot, phase, and all assignment fields are optional.
+- An omitted participant ID uses the database auto-increment. An explicit ID is
+  accepted only when it is a positive unique integer; the same rule applies to
+  ID edits.
+- Admin-created participants receive a cryptographically random public token,
+  active `received` status, `NULL` IP/user-agent values, and no confirmation
+  requirement or mail. They can immediately recover access with their e-mail
+  address and birth date.
+- Leaving the creation phase selector unchanged stores an explicit phase-1
+  override, even if the experiment-wide phase has already closed signup.
+  Explicit higher phases remain subject to the existing assignment-data
+  ceiling.
+- Signup slots are selected from `participation_slots`; clearing the selection
+  stores the slot reference and snapshot key/label as SQL `NULL`.
+- The edit dialog now supports participant ID, name, e-mail, birth date, signup
+  slot, phase, and all fixed assignment fields. Public token, timestamps,
+  network metadata, status, and results-interest history remain system-managed.
+- Registration, assignment, and participant-state changes are saved in one
+  transaction. Normalized e-mail, participant ID, and access code conflicts
+  return specific 409 responses; an ID change relies on milestone 146's update
+  cascades so dependent data follows the new ID.
+- Changed overall phase updates to update the existing singleton row directly,
+  keeping them compatible with the new required survey URL column.
+- Expanded the Playwright suite from five to six tests with minimal/full admin
+  creation, explicit and automatic IDs, phase defaulting while signup is
+  closed, duplicate ID/e-mail handling, ID/edit cascades, slot edits, recovery,
+  no-mail verification, CSV inclusion, and desktop/mobile dialog coverage.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All six participant/admin Playwright tests passed against the reset MySQL
+  schema and PHP server configured through `.env.test`.
+- A minimal admin-created participant recovered successfully with `NULL` name
+  and signup slot, stayed in phase 1 while the overall phase was 2, and
+  generated no mail artifact.
+- A complete explicit-ID participant reached phase 3, then retained its
+  assignment and recovery access after its ID, e-mail, name, and signup slot
+  were edited.
+- Duplicate create/edit IDs and normalized e-mail addresses returned the
+  expected conflict codes; both created records appeared in the full CSV.
+- Desktop create/edit and mobile create-dialog screenshots were inspected. The
+  desktop form is balanced in two columns; the mobile form stacks without
+  horizontal overflow and keeps actions reachable through dialog scrolling.
+
+### Known issues and decisions
+- Admin creation deliberately bypasses public signup closure; only the public
+  registration endpoint is closed outside phase 1.
+- Admin-created participants receive no confirmation e-mail and do not need to
+  confirm their address, as approved.
+- The participant ID is the registration primary key. After an edit, the
+  database is authoritative and future private CSV imports must use the new ID.
+- The in-app browser connection was unavailable; the project-owned
+  Playwright/Chromium setup provided interaction and visual coverage.
+
+### Next steps
+1. Milestone 148: expose the database-managed survey link only in phase 3 and
+   replace the access-code text action with an accessible adjacent copy icon.
+
+## Milestone 148
+### Date
+2026-08-16
+
+### Goal
+Expose the one database-managed experiment survey only to phase-3 participants
+and make the phase-3 access code directly copyable without leaking either value
+into another phase.
+
+### What changed
+- Read and validate the singleton survey URL on the server only when a
+  participant's effective phase is exactly 3.
+- Added `surveyUrl` to the phase-3 public assignment payload while preserving
+  the exact phase-2 schedule-only payload and the empty phase-4 payload.
+- Added a full-width **Umfrage** card with a button that opens the configured
+  URL in a new tab using `noopener noreferrer`.
+- Replaced the access-code text action with an accessible compact copy icon
+  immediately beside the code. The action uses the Clipboard API with the
+  existing fallback and confirmation message.
+- Extended PHP rule tests and Playwright lifecycle coverage for exact payload
+  keys, URL filtering, real clipboard contents, new-tab navigation, phase-2
+  and phase-4 absence, and responsive presentation.
+
+### How to test
+- `php .web/participate/tests/setup_test_db.php`
+- `php .web/participate/tests/phase_rules_test.php`
+- `php .web/participate/tests/brainkick_seed_generator_test.php`
+- `php .web/participate/tests/migration_smoke_test.php`
+- PHP syntax checks across `.web/participate/`
+- `node --check .web/participate/assets/app.js`
+- `node --check .web/participate/admin/admin.js`
+- `node --check tests/playwright/participate.spec.mjs`
+- `npm.cmd run test:participate:visual`
+- `git diff --check`
+
+### Verification
+- All six participant/admin Playwright tests passed against the reset MySQL
+  database and PHP server configured through `.env.test`.
+- Phase 3 returned the exact expected assignment keys, copied the access code
+  into the browser clipboard, and opened the configured survey URL in a new
+  tab.
+- Phase 2 exposed schedule data only; phase 4 replaced assignment data and
+  exposed neither the access code nor survey URL.
+- Desktop and 390-pixel mobile screenshots were inspected. The access-code
+  action remains adjacent to its value, the survey card is visually distinct,
+  and the mobile page has no horizontal overflow.
+
+### Known issues and decisions
+- The survey URL is one experiment-wide database setting rather than a
+  per-participant assignment field, as approved.
+- Invalid or non-HTTP(S) stored values are withheld from the public payload.
+- The in-app browser connection remained unavailable; the project-owned
+  Playwright/Chromium setup provided interaction and visual coverage.
+- Milestone 148 requires no additional migration; deploy the migration created
+  in milestone 146 before these application files.
+
+### Next steps
+1. Apply `database/migrations/20260816_participant_admin_fields.sql` to the
+   deployment database, then deploy the updated `.web/participate/` files.

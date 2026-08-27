@@ -251,36 +251,6 @@ Open the main surfaces:
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
-The standalone German/English SIRA/PROMETHEUS public page lives under `.web/`.
-Open `.web/index.html` directly in a browser, or host the `.web/` directory as
-static files.
-
-The standalone German study participation site lives under `.web/participate/`.
-It is self-contained for deployment as a separate host root. Before deploying,
-copy `.web/participate/.env.example` to `.web/participate/.env`, fill in the
-database and mail values, and execute `.web/participate/database/schema.sql`
-followed by `.web/participate/database/seed.sql` in the target MySQL database.
-`ADMIN_NOTIFY_EMAIL` may contain a comma-separated list of addresses that are
-added as BCC recipients on participant confirmation mails.
-
-The participation admin view is available at `/admin/` below that deployment
-root, for example `https://participate.siralab.ch/admin/`. It intentionally has
-no built-in authentication; protect or obscure the deployed folder name at the
-hosting level if needed. The table supports client-side search, sortable
-columns, deletion of registrations, and CSV export of the full loaded
-registration set. Deleting a registration removes its e-mail reservation and
-server-token summary, so the participant can register again from the same
-browser.
-
-For local backend testing, use the provided `.env.test` and reset the local
-MySQL test database:
-
-```powershell
-$env:PARTICIPATE_ENV_FILE = (Resolve-Path .web/participate/.env.test).Path
-php .web/participate/tests/setup_test_db.php
-php -S 127.0.0.1:8091 -t .web/participate
-```
-
 ## Testing
 
 Run the Java regression suite:
@@ -295,20 +265,9 @@ Run JavaScript syntax checks for the bundled clients:
 node --check src/main/resources/public/valerian/script.js
 node --check src/main/resources/public/apiworkbench/script.js
 node --check src/main/resources/public/talktome/script.js
-node --check .web/participate/assets/app.js
 node --check tests/playwright/valerian-column-expansion.spec.mjs
 node --check tests/playwright/apiworkbench.spec.mjs
 node --check tests/playwright/talktome.spec.mjs
-node --check tests/playwright/participate.spec.mjs
-node --check playwright.participate.config.mjs
-php -l .web/participate/index.php
-php -l .web/participate/config/bootstrap.php
-php -l .web/participate/api/register.php
-php -l .web/participate/api/registration.php
-php -l .web/participate/admin/delete.php
-php -l .web/participate/admin/index.php
-php -l .web/participate/tests/setup_test_db.php
-node --check .web/participate/admin/admin.js
 ```
 
 Run the Playwright visual smoke tests:
@@ -319,7 +278,6 @@ npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
 npm run test:talktome:visual
-npm run test:participate:visual
 ```
 
 The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
@@ -338,15 +296,6 @@ Stop, and deletion. It replaces only the external OpenAI Speech and physical
 speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
-
-The participate Playwright test resets `sira_participate_test` through
-`.web/participate/tests/setup_test_db.php`, starts PHP's built-in server for
-`.web/participate/` with `.env.test`, and verifies the landing page,
-registration wizard, validation, privacy modal, MySQL-backed registration,
-logged confirmation mail, duplicate e-mail rejection, returning-summary lookup,
-mobile layout, and the `/admin/` registration table with search, sorting, and
-CSV export. It also verifies admin deletion and same-browser re-registration
-after deletion.
 
 ## Connecting External Clients
 
@@ -716,17 +665,7 @@ src/main/resources/public
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
-.web/
-  index.html        Standalone German/English SIRA/PROMETHEUS public page.
-  participate/      Standalone German study participation site.
-    admin/          Unprotected registration overview with search, sort, and CSV export.
-    api/            PHP JSON endpoints for registration and returning-summary lookup.
-    assets/         Plain CSS and JavaScript for the landing page and wizard.
-    config/         Local `.env` loading, PDO, JSON, cookie, and mail helpers.
-    database/       MySQL schema and seed files for phpMyAdmin deployment.
-    tests/          Local MySQL reset helper for integration smoke tests.
-
-tests/playwright    Browser-level Valerian, Talk to Me, API Workbench, and participate smoke tests.
+tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke tests.
 ```
 
 ## Developing New Agents

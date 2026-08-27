@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/phases.php';
+
 const PARTICIPATE_COOKIE_NAME = 'sira_participate_registration';
 
 function participate_base_path(string $path = ''): string
@@ -166,6 +168,116 @@ function participate_public_registration(array $row): array
     ];
 }
 
+function participate_participant_select_sql(): string
+{
+    return "SELECT
+              r.id AS registration_id,
+              r.public_token,
+              r.full_name,
+              r.date_of_birth,
+              r.email,
+              r.slot_preference_key,
+              r.slot_preference_label,
+              r.created_at,
+              a.access_code,
+              a.participant_role,
+              a.team_id,
+              a.half_day_slot,
+              a.time_slot,
+              a.room,
+              s.phase_override,
+              s.results_interest,
+              s.results_interest_updated_at
+            FROM participation_registrations r
+            LEFT JOIN participation_assignments a ON a.registration_id = r.id
+            LEFT JOIN participation_participant_state s ON s.registration_id = r.id";
+}
+
+function participate_participant_by_token(PDO $pdo, string $token): ?array
+{
+    $statement = $pdo->prepare(
+        participate_participant_select_sql() .
+        " WHERE r.public_token = :token AND r.status = 'received' LIMIT 1"
+    );
+    $statement->execute(['token' => $token]);
+    $row = $statement->fetch();
+    return is_array($row) ? $row : null;
+}
+
+function participate_participant_by_id(PDO $pdo, int $registrationId): ?array
+{
+    $statement = $pdo->prepare(
+        participate_participant_select_sql() .
+        " WHERE r.id = :registration_id AND r.status = 'received' LIMIT 1"
+    );
+    $statement->execute(['registration_id' => $registrationId]);
+    $row = $statement->fetch();
+    return is_array($row) ? $row : null;
+}
+
+function participate_participant_by_identity(PDO $pdo, string $email, string $dateOfBirth): ?array
+{
+    $statement = $pdo->prepare(
+        participate_participant_select_sql() .
+        " WHERE r.email_normalized = :email_normalized
+            AND r.date_of_birth = :date_of_birth
+            AND r.status = 'received'
+          LIMIT 1"
+    );
+    $statement->execute([
+        'email_normalized' => participate_normalize_email($email),
+        'date_of_birth' => $dateOfBirth,
+    ]);
+    $row = $statement->fetch();
+    return is_array($row) ? $row : null;
+}
+
+function participate_public_participant_session(PDO $pdo, array $row, ?int $defaultPhase = null): array
+{
+    $assignment = [
+        'access_code' => $row['access_code'] ?? null,
+        'participant_role' => $row['participant_role'] ?? null,
+        'team_id' => $row['team_id'] ?? null,
+        'half_day_slot' => $row['half_day_slot'] ?? null,
+        'time_slot' => $row['time_slot'] ?? null,
+        'room' => $row['room'] ?? null,
+    ];
+    $override = ($row['phase_override'] ?? null) === null
+        ? null
+        : participate_phase_from_value((string) $row['phase_override']);
+    $default = $defaultPhase ?? participate_default_phase($pdo);
+    $phase = participate_phase_context($default, $override, $assignment);
+    $effectivePhase = $phase['effectivePhase'];
+    $surveyUrl = $effectivePhase === PARTICIPATE_PHASE_ASSIGNMENT
+        ? participate_survey_url($pdo)
+        : null;
+    $visibleAssignment = participate_visible_assignment(
+        (int) $row['registration_id'],
+        $assignment,
+        $effectivePhase,
+        $row['slot_preference_label'] ?? null,
+        $surveyUrl
+    );
+    $interest = ($row['results_interest'] ?? null) === null
+        ? null
+        : (bool) (int) $row['results_interest'];
+
+    return [
+        'registered' => true,
+        'signupOpen' => $default === PARTICIPATE_PHASE_SIGNUP,
+        'registration' => participate_public_registration($row),
+        'phase' => [
+            'number' => $effectivePhase,
+            'label' => participate_phase_label($effectivePhase),
+        ],
+        'assignment' => $visibleAssignment === [] ? (object) [] : $visibleAssignment,
+        'resultsInterest' => $effectivePhase === PARTICIPATE_PHASE_COMPLETE ? $interest : null,
+        'resultsInterestUpdatedAt' => $effectivePhase === PARTICIPATE_PHASE_COMPLETE
+            ? ($row['results_interest_updated_at'] ?? null)
+            : null,
+    ];
+}
+
 function participate_set_registration_cookie(string $token): void
 {
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
@@ -176,6 +288,19 @@ function participate_set_registration_cookie(string $token): void
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
+}
+
+function participate_clear_registration_cookie(): void
+{
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    setcookie(PARTICIPATE_COOKIE_NAME, '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    unset($_COOKIE[PARTICIPATE_COOKIE_NAME]);
 }
 
 function participate_get_registration_token(): ?string

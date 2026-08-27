@@ -12,6 +12,10 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let animationFrame = 0;
 let pointer = { x: 0.66, y: 0.42 };
 let savedRegistration = null;
+let participantSession = {
+  registered: false,
+  signupOpen: false
+};
 
 function currentTheme() {
   return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
@@ -136,54 +140,246 @@ function formatDate(value) {
 
 function summaryItems(values) {
   return [
-    ["Name", values.fullName || "-"],
-    ["Geburtsdatum", formatDate(values.dateOfBirth)],
-    ["E-Mail", values.email || "-"],
-    ["Terminpräferenz", values.slotPreferenceLabel || slotLabels[values.slotPreference] || "-"]
+    { label: "Name", value: values.fullName || "-" },
+    { label: "Geburtsdatum", value: formatDate(values.dateOfBirth) },
+    { label: "E-Mail", value: values.email || "-" },
+    {
+      label: "Terminpräferenz",
+      value: values.slotPreferenceLabel || slotLabels[values.slotPreference] || "-",
+      full: true
+    }
   ];
 }
 
-function renderSummary(target, values) {
+function renderItems(target, items) {
   if (!target) {
     return;
   }
   target.textContent = "";
-  summaryItems(values).forEach(([label, value], index) => {
+  items.forEach((entry) => {
     const item = document.createElement("div");
-    item.className = `summary-item${index === 3 ? " full" : ""}`;
+    item.className = `summary-item${entry.full ? " full" : ""}`;
+    if (entry.field) {
+      item.dataset.assignmentField = entry.field;
+    }
 
     const labelElement = document.createElement("span");
     labelElement.className = "metric-label";
-    labelElement.textContent = label;
+    labelElement.textContent = entry.label;
+
+    item.append(labelElement);
+    if (entry.href) {
+      const surveyLink = document.createElement("a");
+      surveyLink.className = "button primary survey-button";
+      surveyLink.href = entry.href;
+      surveyLink.target = "_blank";
+      surveyLink.rel = "noopener noreferrer";
+      surveyLink.setAttribute("aria-label", "Umfrage in neuem Tab öffnen");
+      surveyLink.innerHTML = `
+        <span>${entry.linkLabel || "Umfrage öffnen"}</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M14 5h5v5"></path>
+          <path d="M19 5l-8 8"></path>
+          <path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"></path>
+        </svg>`;
+      item.append(surveyLink);
+      target.append(item);
+      return;
+    }
 
     const valueElement = document.createElement("strong");
-    valueElement.textContent = value;
-
-    item.append(labelElement, valueElement);
+    valueElement.textContent = entry.value ?? "-";
+    if (entry.copy && entry.value) {
+      const valueRow = document.createElement("div");
+      valueRow.className = "summary-value-row";
+      const copyButton = document.createElement("button");
+      copyButton.className = "copy-button";
+      copyButton.type = "button";
+      copyButton.setAttribute("aria-label", `${entry.label} kopieren`);
+      copyButton.title = `${entry.label} kopieren`;
+      copyButton.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+          <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"></path>
+        </svg>`;
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(String(entry.value));
+          showAlert("Der Zugangscode wurde kopiert.");
+        } catch (error) {
+          showAlert(`Zugangscode: ${entry.value}`);
+        }
+      });
+      valueRow.append(valueElement, copyButton);
+      item.append(valueRow);
+    } else {
+      item.append(valueElement);
+    }
     target.append(item);
   });
 }
 
-function renderRegistrationUi(registration) {
+function renderSummary(target, values) {
+  renderItems(target, summaryItems(values));
+}
+
+function assignmentItems(assignment, phase) {
+  const items = [
+    { label: "Teilnehmenden-ID", value: assignment.participantId, field: "participantId" },
+    { label: "Halbtag", value: assignment.halfDaySlot, field: "halfDaySlot" },
+    { label: "Zeitfenster", value: assignment.timeSlot, field: "timeSlot" },
+    { label: "Datum", value: assignment.date, field: "date" }
+  ];
+  if (phase === 3) {
+    items.push(
+      { label: "Zugangscode", value: assignment.accessCode, field: "accessCode", copy: true },
+      { label: "Rolle", value: assignment.role, field: "role" },
+      { label: "Team-ID", value: assignment.teamId, field: "teamId" },
+      { label: "Raum", value: assignment.room, field: "room" }
+    );
+    if (assignment.surveyUrl) {
+      items.push({
+        label: "Umfrage",
+        field: "surveyUrl",
+        href: assignment.surveyUrl,
+        linkLabel: "Umfrage öffnen",
+        full: true
+      });
+    }
+  }
+  return items;
+}
+
+function formatTimestamp(value) {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value);
+  }
+  return parsed.toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderParticipantUi(session) {
+  participantSession = {
+    registered: false,
+    signupOpen: false,
+    ...session
+  };
+  savedRegistration = participantSession.registered ? participantSession.registration : null;
+
   const section = document.querySelector("[data-local-summary-section]");
   const target = document.querySelector("[data-local-summary]");
+  const heading = document.querySelector("[data-participant-heading]");
+  const panelTitle = document.querySelector("[data-participant-panel-title]");
+  const phaseLabel = document.querySelector("[data-participant-phase-label]");
+  const note = document.querySelector("[data-participant-note]");
+  const interestForm = document.querySelector("[data-results-interest-form]");
+  const interestCheckbox = interestForm?.elements.resultsInterest;
+  const interestStatus = document.querySelector("[data-interest-status]");
+  const signupButton = document.querySelector("[data-signup-action]");
+  const signupLabel = document.querySelector("[data-signup-label]");
+  const signupIcon = document.querySelector("[data-signup-icon]");
+  const signupStatus = document.querySelector("[data-signup-status]");
+  const sessionButton = document.querySelector("[data-participant-session-action]");
+  const sessionEntryIcon = document.querySelector("[data-session-entry-icon]");
+  const sessionExitIcon = document.querySelector("[data-session-exit-icon]");
+  const registered = participantSession.registered === true;
+
+  if (signupButton) {
+    signupButton.hidden = false;
+    signupButton.disabled = !registered && participantSession.signupOpen === false;
+  }
+  if (signupLabel) {
+    signupLabel.textContent = registered ? "Zu meinen Informationen" : "Mitmachen";
+  }
+  if (signupIcon) {
+    signupIcon.textContent = registered ? "→" : "+";
+  }
+  document.querySelectorAll("[data-open-recovery]").forEach((button) => {
+    button.hidden = registered;
+  });
+  if (signupStatus) {
+    signupStatus.hidden = registered || participantSession.signupOpen !== false;
+  }
+  if (sessionButton) {
+    const sessionLabel = registered
+      ? "Abmelden und Anmeldung auf diesem Gerät vergessen"
+      : "Anmeldung aufrufen";
+    sessionButton.dataset.sessionState = registered ? "registered" : "anonymous";
+    sessionButton.title = sessionLabel;
+    sessionButton.setAttribute("aria-label", sessionLabel);
+  }
+  if (sessionEntryIcon) {
+    sessionEntryIcon.toggleAttribute("hidden", registered);
+  }
+  if (sessionExitIcon) {
+    sessionExitIcon.toggleAttribute("hidden", !registered);
+  }
+
   if (!section || !target) {
     return;
   }
-  section.hidden = !registration;
-  if (registration) {
-    renderSummary(target, registration);
+  section.hidden = !registered;
+  if (!registered) {
+    target.textContent = "";
+    return;
+  }
+
+  const phase = Number(participantSession.phase?.number || 1);
+  phaseLabel.textContent = `Phase ${phase} · ${participantSession.phase?.label || "Anmeldung"}`;
+  target.hidden = phase === 4;
+  interestForm.hidden = phase !== 4;
+
+  if (phase === 1) {
+    heading.textContent = "Deine Anmeldung";
+    panelTitle.textContent = "Gespeicherte Zusammenfassung";
+    renderSummary(target, participantSession.registration);
+    note.innerHTML = "Du kannst deine Anmeldung auf diesem oder einem anderen Gerät mit deiner E-Mail-Adresse und deinem Geburtsdatum wieder aufrufen. Bei Fragen kontaktiere bitte <a href=\"mailto:alexandre.despindler@zhaw.ch\">alexandre.despindler@zhaw.ch</a>.";
+  } else if (phase === 2) {
+    heading.textContent = "Dein Termin";
+    panelTitle.textContent = "Terminübersicht";
+    renderItems(target, assignmentItems(participantSession.assignment || {}, phase));
+    note.textContent = "Weitere Informationen zu Zugangscode, Rolle, Team und Raum werden hier angezeigt, sobald deine vollständige Zuteilung freigegeben ist.";
+  } else if (phase === 3) {
+    heading.textContent = "Deine Zuteilung";
+    panelTitle.textContent = "Vollständige Teilnahmeinformationen";
+    renderItems(target, assignmentItems(participantSession.assignment || {}, phase));
+    note.textContent = "Bitte halte insbesondere deinen Zugangscode für die Teilnahme bereit.";
+  } else {
+    heading.textContent = "Vielen Dank für Deine Teilnahme";
+    panelTitle.textContent = "Ergebnisinformationen";
+    target.textContent = "";
+    if (interestCheckbox) {
+      interestCheckbox.checked = participantSession.resultsInterest === true;
+    }
+    if (interestStatus) {
+      if (participantSession.resultsInterest === null) {
+        interestStatus.textContent = "Noch keine Auswahl gespeichert.";
+      } else {
+        const choice = participantSession.resultsInterest ? "Ja" : "Nein";
+        const changed = formatTimestamp(participantSession.resultsInterestUpdatedAt);
+        interestStatus.textContent = `Gespeichert: ${choice}${changed ? ` · ${changed}` : ""}`;
+      }
+    }
+    note.textContent = "Du kannst diese Auswahl jederzeit ändern und erneut speichern.";
   }
 }
 
 async function refreshRegistrationUi() {
   try {
     const payload = await apiRequest("api/registration.php");
-    savedRegistration = payload.registered ? payload.registration : null;
+    renderParticipantUi(payload);
   } catch (error) {
-    savedRegistration = null;
+    renderParticipantUi({ registered: false, signupOpen: false });
   }
-  renderRegistrationUi(savedRegistration);
 }
 
 async function submitRegistration(values) {
@@ -191,8 +387,7 @@ async function submitRegistration(values) {
     method: "POST",
     body: JSON.stringify(values)
   });
-  savedRegistration = payload.registration || null;
-  renderRegistrationUi(savedRegistration);
+  renderParticipantUi(payload);
   return payload;
 }
 
@@ -338,6 +533,135 @@ function initWizard() {
   });
 
   showStep(0);
+}
+
+function initRecovery() {
+  const dialog = document.querySelector("[data-recovery-dialog]");
+  const form = document.querySelector("[data-recovery-form]");
+  const alert = document.querySelector("[data-recovery-alert]");
+  if (!dialog || !form || !alert) {
+    return;
+  }
+  let submitting = false;
+
+  document.querySelectorAll("[data-open-recovery]").forEach((button) => {
+    button.addEventListener("click", () => {
+      alert.hidden = true;
+      alert.textContent = "";
+      openDialog(dialog);
+    });
+  });
+  document.querySelectorAll("[data-close-recovery]").forEach((button) => {
+    button.addEventListener("click", () => closeDialog(dialog));
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (submitting) {
+      return;
+    }
+    const data = new FormData(form);
+    const values = {
+      email: String(data.get("email") || "").trim(),
+      dateOfBirth: String(data.get("dateOfBirth") || "").trim()
+    };
+    if (!form.elements.email.validity.valid || !values.dateOfBirth) {
+      alert.textContent = "Bitte gib deine E-Mail-Adresse und dein Geburtsdatum ein.";
+      alert.hidden = false;
+      return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitting = true;
+    submitButton.disabled = true;
+    submitButton.textContent = "Wird aufgerufen...";
+    try {
+      const payload = await apiRequest("api/identify.php", {
+        method: "POST",
+        body: JSON.stringify(values)
+      });
+      renderParticipantUi(payload);
+      closeDialog(dialog);
+      form.reset();
+      document.querySelector("[data-participant-section]")?.scrollIntoView({ behavior: "smooth" });
+      showAlert("Deine Anmeldung wurde auf diesem Gerät aufgerufen.");
+    } catch (error) {
+      alert.textContent = error.message;
+      alert.hidden = false;
+    } finally {
+      submitting = false;
+      submitButton.disabled = false;
+      submitButton.textContent = "Anmeldung aufrufen";
+    }
+  });
+}
+
+function initResultsInterest() {
+  const form = document.querySelector("[data-results-interest-form]");
+  if (!form) {
+    return;
+  }
+  let submitting = false;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (submitting || participantSession.phase?.number !== 4) {
+      return;
+    }
+    const submitButton = form.querySelector('button[type="submit"]');
+    const interest = form.elements.resultsInterest.checked;
+    submitting = true;
+    submitButton.disabled = true;
+    submitButton.textContent = "Wird gespeichert...";
+    try {
+      const payload = await apiRequest("api/results-interest.php", {
+        method: "POST",
+        body: JSON.stringify({ interest })
+      });
+      renderParticipantUi({
+        ...participantSession,
+        resultsInterest: payload.resultsInterest,
+        resultsInterestUpdatedAt: payload.resultsInterestUpdatedAt
+      });
+      showAlert("Deine Auswahl wurde gespeichert.");
+    } catch (error) {
+      showAlert(error.message);
+    } finally {
+      submitting = false;
+      submitButton.disabled = false;
+      submitButton.textContent = "Auswahl speichern";
+    }
+  });
+}
+
+function initParticipantSessionAction() {
+  const button = document.querySelector("[data-participant-session-action]");
+  if (!button) {
+    return;
+  }
+  let submitting = false;
+
+  button.addEventListener("click", async () => {
+    if (submitting) {
+      return;
+    }
+    if (participantSession.registered !== true) {
+      document.querySelector("[data-open-recovery]")?.click();
+      return;
+    }
+
+    submitting = true;
+    button.disabled = true;
+    try {
+      const payload = await apiRequest("api/logout.php", { method: "POST" });
+      renderParticipantUi(payload);
+      showAlert("Du wurdest abgemeldet. Die Anmeldung wurde auf diesem Gerät vergessen.");
+    } catch (error) {
+      showAlert(error.message);
+    } finally {
+      submitting = false;
+      button.disabled = false;
+    }
+  });
 }
 
 function initPrivacyDialog() {
@@ -512,6 +836,9 @@ reduceMotion.addEventListener("change", () => {
 
 updateThemeToggle(currentTheme());
 initWizard();
+initRecovery();
+initResultsInterest();
+initParticipantSessionAction();
 initPrivacyDialog();
 refreshRegistrationUi();
 resizeCanvas();

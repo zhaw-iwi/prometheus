@@ -47,6 +47,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -127,6 +131,13 @@ p {
   min-height: 4.25rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
 .brand-lockup {
   display: inline-flex;
   align-items: center;
@@ -196,6 +207,16 @@ p {
   padding: 0;
 }
 
+.session-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .footer-button {
   min-height: auto;
   border: 0;
@@ -223,6 +244,10 @@ p {
   cursor: wait;
   opacity: 0.68;
   transform: none;
+}
+
+[data-signup-action]:disabled {
+  cursor: not-allowed;
 }
 
 .button.primary {
@@ -344,6 +369,15 @@ h1 {
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 0.3rem;
+}
+
+.signup-status {
+  width: min(100%, 48rem);
+  margin: 0.85rem 0 0;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--surface-strong) 86%, transparent);
+  padding: 0.65rem 0.8rem;
+  color: var(--muted);
 }
 
 .content-band {
@@ -482,6 +516,10 @@ h1 {
 
 .privacy-dialog {
   width: min(760px, calc(100% - 1.5rem));
+}
+
+.recovery-dialog {
+  width: min(44rem, calc(100% - 1.5rem));
 }
 
 .registration-dialog::backdrop,
@@ -773,6 +811,7 @@ input:focus-visible,
 }
 
 .summary-item {
+  position: relative;
   display: grid;
   gap: 0.18rem;
   border: 1px solid var(--line);
@@ -789,6 +828,94 @@ input:focus-visible,
 .summary-note {
   margin-top: 0.85rem;
   margin-bottom: 0;
+}
+
+.summary-value-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.summary-value-row strong {
+  overflow-wrap: anywhere;
+}
+
+.copy-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2rem;
+  min-height: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+
+.copy-button:hover,
+.copy-button:focus-visible {
+  border-color: rgba(0, 176, 162, 0.5);
+  background: rgba(0, 176, 162, 0.1);
+}
+
+.copy-button svg,
+.survey-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.survey-button {
+  width: max-content;
+  margin-top: 0.25rem;
+}
+
+.results-interest {
+  display: grid;
+  gap: 1rem;
+}
+
+.interest-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-strong) 88%, rgba(0, 176, 162, 0.1));
+  padding: 1rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.interest-choice input {
+  width: 1.2rem;
+  min-height: 1.2rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--accent-2);
+}
+
+.interest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.interest-status {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.recovery-modal {
+  width: 100%;
 }
 
 .privacy-copy {
