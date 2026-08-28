@@ -66,7 +66,7 @@ class ScopedLiveTranscriptionControllerWebMvcTest {
                 "https://example.test/v1/realtime/calls",
                 new LiveTranscriptionEffectiveSettingsView(
                         new LiveTranscriptionEffectiveSettingsView.TurnDetection("local_vad", 1.5),
-                        "far_field", true, 1, List.of("de", "en"), "medium"));
+                        "far_field", true, 1, List.of("ar", "de"), "medium"));
         when(this.transcriptionService.createSession(eq("QUERY"), eq(agentId), any()))
                 .thenReturn(Optional.of(view));
 
@@ -80,7 +80,7 @@ class ScopedLiveTranscriptionControllerWebMvcTest {
                           "noiseReduction":"far_field",
                           "transcriptionPrompt":"PROMETHEUS meeting",
                           "transcriptionKeywords":["Valerian"],
-                          "languages":["de","en"],
+                          "languages":["ar","de"],
                           "transcriptionDelay":"medium"
                         }
                         """))
@@ -89,7 +89,8 @@ class ScopedLiveTranscriptionControllerWebMvcTest {
                 .andExpect(jsonPath("$.settingsSchemaVersion").value(1))
                 .andExpect(jsonPath("$.effectiveSettings.transcriptionPromptConfigured").value(true))
                 .andExpect(jsonPath("$.effectiveSettings.transcriptionKeywordCount").value(1))
-                .andExpect(jsonPath("$.effectiveSettings.languages[1]").value("en"));
+                .andExpect(jsonPath("$.effectiveSettings.languages[0]").value("ar"))
+                .andExpect(jsonPath("$.effectiveSettings.languages[1]").value("de"));
     }
 
     @Test

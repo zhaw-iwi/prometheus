@@ -62,6 +62,8 @@ public record LiveTranscriptionSettings(
     }
 
     public enum InputLanguage implements WireValue {
+        @JsonProperty("ar")
+        AR("ar"),
         @JsonProperty("de")
         DE("de"),
         @JsonProperty("en")
@@ -82,7 +84,11 @@ public record LiveTranscriptionSettings(
             if (languageCode == null) {
                 return EN;
             }
-            return "de".equalsIgnoreCase(languageCode.trim()) ? DE : EN;
+            return switch (languageCode.trim().toLowerCase(java.util.Locale.ROOT)) {
+                case "ar" -> AR;
+                case "de" -> DE;
+                default -> EN;
+            };
         }
     }
 

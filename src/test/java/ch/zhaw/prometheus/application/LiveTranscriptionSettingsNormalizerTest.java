@@ -33,6 +33,13 @@ class LiveTranscriptionSettingsNormalizerTest {
     }
 
     @Test
+    void arabicAgentLanguageDefaultsToArabicTranscription() {
+        LiveTranscriptionSettings settings = this.normalizer.normalize(null, " AR ");
+
+        assertEquals(List.of(InputLanguage.AR), settings.languages());
+    }
+
+    @Test
     void explicitSettingsAreTrimmedDeduplicatedAndImmutable() {
         LiveTranscriptionSettings settings = this.normalizer.normalize(
                 new LiveTranscriptionSettingsRequest(
@@ -40,7 +47,7 @@ class LiveTranscriptionSettingsNormalizerTest {
                         NoiseReduction.NEAR_FIELD,
                         " meeting context ",
                         List.of(" PROMETHEUS ", "PROMETHEUS", "ZHAW"),
-                        List.of(InputLanguage.EN, InputLanguage.DE, InputLanguage.EN),
+                        List.of(InputLanguage.AR, InputLanguage.EN, InputLanguage.DE, InputLanguage.AR),
                         TranscriptionDelay.HIGH),
                 "de");
 
@@ -48,7 +55,7 @@ class LiveTranscriptionSettingsNormalizerTest {
         assertEquals(NoiseReduction.NEAR_FIELD, settings.noiseReduction());
         assertEquals("meeting context", settings.transcriptionPrompt());
         assertEquals(List.of("PROMETHEUS", "ZHAW"), settings.transcriptionKeywords());
-        assertEquals(List.of(InputLanguage.EN, InputLanguage.DE), settings.languages());
+        assertEquals(List.of(InputLanguage.AR, InputLanguage.EN, InputLanguage.DE), settings.languages());
         assertEquals(TranscriptionDelay.HIGH, settings.transcriptionDelay());
         assertThrows(UnsupportedOperationException.class,
                 () -> settings.transcriptionKeywords().add("other"));

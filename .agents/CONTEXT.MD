@@ -90,8 +90,8 @@ PROMETHEUS currently provides:
   resilience; behaviour delivery explicitly distinguishes live publication
   from initial/history/reconnect replay without changing persisted payloads;
 - an access-code-scoped, typed `gpt-live-transcribe` session contract with
-  agent-aware language defaults, strict settings validation, and ephemeral
-  browser credentials;
+  Arabic, German, and English agent-aware language defaults, strict settings
+  validation, and ephemeral browser credentials;
 - one shared Valerian/multilateral browser transcription engine with
   cross-tab microphone ownership, explicit local/manual turn commits,
   item-ordered final transcripts, reconnect/teardown, operator capture

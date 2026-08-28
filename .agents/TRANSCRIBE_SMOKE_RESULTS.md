@@ -35,6 +35,10 @@ transcript and highlight incorrect critical tokens.
 | DE-2 | German | Valerian hoert drei Personen beim Brunnen trotz des Verkehrslaerms. | Valerian; drei Personen; Brunnen; Verkehrslaerm |
 | DE-3 | German | Maja bringt vierundvierzig blaue Mappen aus Raum vierzehn in Raum vierzig. | Maja; vierundvierzig; blaue; vierzehn; vierzig |
 | DE-4 | German | Das drahtlose Mikrofon ist fuenf Meter vom Bluetooth-Lautsprecher entfernt. | drahtlose Mikrofon; fuenf Meter; Bluetooth-Lautsprecher |
+| AR-1 | Arabic | بروميثيوس، لخص من فضلك موعد يوم الخميس الساعة الثانية والنصف بعد الظهر. | بروميثيوس؛ الخميس؛ الثانية والنصف |
+| AR-2 | Arabic | سمع فاليريان ثلاثة أشخاص بالقرب من النافورة رغم ضوضاء المرور. | فاليريان؛ ثلاثة أشخاص؛ النافورة؛ المرور |
+| AR-3 | Arabic | نقلت مايا أربعة وأربعين ملفاً أزرق من الغرفة الرابعة عشرة إلى الغرفة الأربعين. | مايا؛ أربعة وأربعين؛ أزرق؛ الرابعة عشرة؛ الأربعين |
+| AR-4 | Arabic | يبعد الميكروفون اللاسلكي خمسة أمتار عن مكبر الصوت الذي يعمل بالبلوتوث. | الميكروفون اللاسلكي؛ خمسة أمتار؛ البلوتوث |
 
 Use the written ASCII spellings only for comparison in this repository. The
 speaker may pronounce normal German umlauts and `ss` sounds.
@@ -97,11 +101,11 @@ final-transcript arrival respectively.
 | Combined baseline | Outdoor/background noise | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical audio unavailable to coding environment. |
 | Combined baseline | Wireless mic plus Bluetooth playback | EN-4, DE-4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical audio unavailable to coding environment. |
 | Combined baseline | Two or more speakers, non-overlapping then overlapping | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Speaker identity is not expected. |
-| Transcription-first | Near-field quiet | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Complete in milestone 7. |
-| Transcription-first | Far-field quiet | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Complete in milestone 7. |
-| Transcription-first | Outdoor/background noise | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Complete in milestone 7. |
-| Transcription-first | Wireless mic plus Bluetooth playback | EN-4, DE-4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Complete in milestone 7. |
-| Transcription-first | Two or more speakers, non-overlapping then overlapping | EN-1..4, DE-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Speaker identity is not expected. |
+| Transcription-first | Near-field quiet | EN-1..4, DE-1..4, AR-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical run required. |
+| Transcription-first | Far-field quiet | EN-1..4, DE-1..4, AR-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical run required. |
+| Transcription-first | Outdoor/background noise | EN-1..4, DE-1..4, AR-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical run required. |
+| Transcription-first | Wireless mic plus Bluetooth playback | EN-4, DE-4, AR-4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Physical run required. |
+| Transcription-first | Two or more speakers, non-overlapping then overlapping | EN-1..4, DE-1..4, AR-1..4 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Speaker identity is not expected. |
 
 ## Resilience checklist
 
@@ -122,6 +126,7 @@ final-transcript arrival respectively.
 
 - Combined Realtime baseline: `NOT RUN` in the coding environment because real
   acoustic hardware input is unavailable.
-- Transcription-first result: pending implementation and milestone-7 execution.
+- Transcription-first implementation: automated contracts pass; physical
+  English, German, and Arabic acoustic acceptance remains `NOT RUN`.
 - Accepted deviations: none.
 

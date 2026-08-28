@@ -31,6 +31,7 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.script.InteractionScript;
 import ch.zhaw.prometheus.spi.script.InteractionScript.BehaviourExpectation;
@@ -50,11 +51,15 @@ class TransitionDecisionActionReplayIntegrationTest {
     @Autowired
     private AgentRepository agentRepository;
 
+    @Autowired
+    private AccessCodeAgentRepository accessCodeAgentRepository;
+
     @LocalServerPort
     private int port;
 
     @BeforeEach
     void clearData() {
+        this.accessCodeAgentRepository.deleteAll();
         this.agentRepository.deleteAll();
     }
 

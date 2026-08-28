@@ -29,7 +29,7 @@ class LiveTranscriptionProviderPayloadBuilderTest {
                 NoiseReduction.FAR_FIELD,
                 "meeting context",
                 List.of("PROMETHEUS", "ZHAW"),
-                List.of(InputLanguage.DE, InputLanguage.EN),
+                List.of(InputLanguage.AR, InputLanguage.DE, InputLanguage.EN),
                 TranscriptionDelay.XHIGH);
 
         JsonObject actual = this.builder.buildClientSecretEnvelope(settings, 60);
@@ -43,7 +43,7 @@ class LiveTranscriptionProviderPayloadBuilderTest {
                         "model":"gpt-live-transcribe",
                         "prompt":"meeting context",
                         "keywords":["PROMETHEUS","ZHAW"],
-                        "languages":["de","en"],
+                        "languages":["ar","de","en"],
                         "delay":"xhigh"
                       },
                       "noise_reduction":{"type":"far_field"},

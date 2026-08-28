@@ -579,9 +579,9 @@ Content-Type: application/json
     "silenceDurationSeconds": 1.5
   },
   "noiseReduction": "far_field",
-  "transcriptionPrompt": "A PROMETHEUS agent interaction.",
-  "transcriptionKeywords": ["PROMETHEUS", "Valerian"],
-  "languages": ["en", "de"],
+  "transcriptionPrompt": "محادثة مع وكيل بروميثيوس.",
+  "transcriptionKeywords": ["بروميثيوس", "عائشة"],
+  "languages": ["ar"],
   "transcriptionDelay": "medium"
 }
 ```
@@ -589,7 +589,7 @@ Content-Type: application/json
 Supported noise-reduction values are `near_field`, `far_field`, and `off`.
 Supported turn modes are `local_vad` and `manual`; both keep provider turn
 detection disabled so the browser commits explicit audio turns. Supported
-languages are currently `en` and `de`, and delay accepts `minimal`, `low`,
+languages are currently `ar`, `de`, and `en`, and delay accepts `minimal`, `low`,
 `medium`, `high`, or `xhigh`. Omitted settings use far-field capture, local VAD
 with 1.5 seconds of silence, the selected agent's language, and medium delay.
 

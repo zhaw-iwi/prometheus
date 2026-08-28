@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.model.Agent;
 public interface AgentDefinition {
 
     String PACKAGE_PREFIX = "ch.zhaw.prometheus.agentdefs.";
+    String LANGUAGE_ARABIC = "ar";
     String LANGUAGE_ENGLISH = "en";
     String LANGUAGE_FRENCH = "fr";
     String LANGUAGE_GERMAN = "de";

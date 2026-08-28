@@ -66,9 +66,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 155, removal of the combined Realtime
-  architecture and legacy profiles so scoped live transcription plus canonical
-  behaviour Speech is the only bundled agent speech path.
+- Last completed milestone: Milestone 156, Arabic live-transcription support
+  across agent defaults, typed provider settings, browser controls, and
+  contract tests.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -223,6 +223,10 @@ and regulation diagnostics remain future work.
 - [x] Milestone 150: Typed scoped live-transcription session contract
 - [x] Milestone 151: Shared browser live-transcription engine and operator settings
 - [x] Milestone 152: Scoped full-plan transcript ingress
+- [x] Milestone 153: Canonical behaviour Speech synthesis
+- [x] Milestone 154: Live behaviour Speech playback coordination
+- [x] Milestone 155: Remove combined Realtime architecture and legacy profiles
+- [x] Milestone 156: Add Arabic live-transcription support
 
 ## Milestone 1
 ### Date
@@ -7445,3 +7449,54 @@ all of its legacy profiles, configuration, client behavior, and documentation.
 ### Next steps
 1. Implement milestone 156: acoustic acceptance, resilience, and final branch
    documentation.
+
+## Milestone 156
+### Date
+2026-08-28
+
+### Goal
+Add Arabic as a first-class live-transcription language so Arabic agents receive
+Arabic provider defaults through the same typed and scoped contract as the
+existing German and English agents.
+
+### What changed
+- Added the reusable `ar` agent-language constant and Arabic input-language
+  wire value, including case-insensitive Arabic agent-default mapping.
+- Exposed Arabic in the typed capabilities descriptor and derived the language
+  selection limit from the supported values instead of a two-language literal.
+- Covered Arabic defaults, scoped request decoding, effective settings, and the
+  exact provider payload in focused Java tests.
+- Updated the shared browser settings fixtures, README contract example, project
+  context, and the physical smoke matrix with an Arabic phrase corpus.
+- Hardened transition replay test cleanup to remove scoped access-code links
+  before deleting agents, keeping the persistent MySQL test database isolated
+  after browser journeys.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=LiveTranscriptionSettingsNormalizerTest,ScopedLiveTranscriptionServiceUnitTest,LiveTranscriptionProviderPayloadBuilderTest,ScopedLiveTranscriptionControllerWebMvcTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java transcription settings, service, provider-payload, and Web
+  MVC contracts passed.
+- All 18 shared transcription JavaScript unit tests passed.
+- Playwright passed all 7 Valerian transcription/playback scenarios and all 5
+  Valerian layout/ownership scenarios.
+- The full Java suite passed 237 tests with zero failures, errors, or skips.
+  Surefire emitted its existing forced-fork-shutdown warning after the
+  successful result.
+
+### Known issues and decisions
+- No live provider credential, Arabic speaker, physical microphone, speaker, or
+  venue acoustic matrix was exercised. The Arabic rows in
+  `.agents/TRANSCRIBE_SMOKE_RESULTS.md` remain explicitly `NOT RUN`.
+- Unknown agent languages continue to fall back to English; only explicitly
+  supported Arabic, German, and English codes are sent to the provider.
+
+### Next steps
+1. Merge the mainline live-transcription architecture into the customer-agent
+   branch and implement the Arabic Invest Qatar Aisha agent there.

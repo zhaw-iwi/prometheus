@@ -20,7 +20,7 @@ const descriptor = {
     setting("transcriptionPrompt", "text", "", { maxLength: 1024, sensitive: true }),
     setting("transcriptionKeywords", "string-list", [],
       { maxLength: 100, maxItems: 100, minItems: 0, itemPattern: "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._'/-]*$", sensitive: true }),
-    setting("languages", "multi-select", ["de"], { allowedValues: ["en", "de"], minItems: 1, maxItems: 2 }),
+    setting("languages", "multi-select", ["ar"], { allowedValues: ["ar", "de", "en"], minItems: 1, maxItems: 3 }),
     setting("transcriptionDelay", "select", "medium", { allowedValues: ["minimal", "low", "medium", "high", "xhigh"] }),
   ],
 };
@@ -34,7 +34,7 @@ test("descriptor defaults and media capture reflect the agreed group-listening p
     turnDetection: { type: "local_vad", silenceDurationSeconds: 1.5 },
     transcriptionPrompt: "",
     transcriptionKeywords: [],
-    languages: ["de"],
+    languages: ["ar"],
     transcriptionDelay: "medium",
   });
   assert.deepEqual(buildAudioConstraints(preferences.mediaValues()), {

@@ -450,7 +450,7 @@ function capabilities() {
       { ...base, key: "transcriptionPrompt", control: "text", defaultValue: "", maxLength: 1024, sensitive: true },
       { ...base, key: "transcriptionKeywords", control: "string-list", defaultValue: [], maxLength: 100,
         maxItems: 100, minItems: 0, itemPattern: "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._'/-]*$", sensitive: true },
-      { ...base, key: "languages", control: "multi-select", defaultValue: ["de"], allowedValues: ["en", "de"], minItems: 1, maxItems: 2 },
+      { ...base, key: "languages", control: "multi-select", defaultValue: ["ar"], allowedValues: ["ar", "de", "en"], minItems: 1, maxItems: 3 },
       { ...base, key: "transcriptionDelay", control: "select", defaultValue: "medium", allowedValues: ["minimal", "low", "medium", "high", "xhigh"] },
     ],
   };

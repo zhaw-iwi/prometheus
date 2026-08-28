@@ -22,6 +22,7 @@ public class LiveTranscriptionSettingsDescriptorFactory {
 
     public LiveTranscriptionCapabilitiesView descriptor(String agentLanguageCode) {
         String defaultLanguage = InputLanguage.fromAgentLanguage(agentLanguageCode).wireValue();
+        List<String> inputLanguages = wireValues(InputLanguage.values());
         List<Setting> settings = List.of(
                 select("noiseReduction", LiveTranscriptionSettingsNormalizer.DEFAULT_NOISE_REDUCTION.wireValue(),
                         wireValues(NoiseReduction.values()), "live-input-boundary", null, false),
@@ -40,8 +41,9 @@ public class LiveTranscriptionSettingsDescriptorFactory {
                         LiveTranscriptionSettingsNormalizer.KEYWORD_MAX_ITEMS, 0,
                         LiveTranscriptionSettingsNormalizer.KEYWORD_ITEM_PATTERN,
                         "live-input-boundary", null, true),
-                new Setting("languages", "multi-select", List.of(defaultLanguage), wireValues(InputLanguage.values()),
-                        null, null, null, null, 2, 1, null, "live-input-boundary", null, false),
+                new Setting("languages", "multi-select", List.of(defaultLanguage), inputLanguages,
+                        null, null, null, null, inputLanguages.size(), 1, null,
+                        "live-input-boundary", null, false),
                 select("transcriptionDelay", LiveTranscriptionSettingsNormalizer.DEFAULT_DELAY.wireValue(),
                         wireValues(TranscriptionDelay.values()), "live-input-boundary", null, false));
         return new LiveTranscriptionCapabilitiesView(

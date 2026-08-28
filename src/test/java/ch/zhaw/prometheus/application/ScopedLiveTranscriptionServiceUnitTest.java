@@ -26,18 +26,27 @@ class ScopedLiveTranscriptionServiceUnitTest {
         UUID agentId = UUID.randomUUID();
         when(demoService.getAgentInfo("ABCDE", agentId)).thenReturn(Optional.of(
                 new AgentInfoView(agentId, "Agent", "Description", true,
-                        AgentInteractionProfile.empty(), "de")));
+                        AgentInteractionProfile.empty(), "ar")));
         when(sessionClient.createSession(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(new LiveTranscriptionSessionInfo("ek_test", "gpt-live-transcribe",
                         "https://example.test/v1/realtime/calls"));
         ScopedLiveTranscriptionService service = service(demoService, sessionClient);
+
+        var capabilities = service.capabilities("ABCDE", agentId).orElseThrow();
+        var languages = capabilities.settings().stream()
+                .filter(setting -> "languages".equals(setting.key()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(java.util.List.of("ar"), languages.defaultValue());
+        assertEquals(java.util.List.of("ar", "de", "en"), languages.allowedValues());
+        assertEquals(3, languages.maxItems());
 
         var result = service.createSession("ABCDE", agentId,
                 new LiveTranscriptionSettingsRequest(null, null, null, null, null, null)).orElseThrow();
 
         assertEquals("ek_test", result.clientSecret());
         assertEquals("transcription", result.sessionType());
-        assertEquals(java.util.List.of("de"), result.effectiveSettings().languages());
+        assertEquals(java.util.List.of("ar"), result.effectiveSettings().languages());
         assertEquals("far_field", result.effectiveSettings().noiseReduction());
     }
 
