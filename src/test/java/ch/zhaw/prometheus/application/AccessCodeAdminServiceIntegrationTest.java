@@ -76,6 +76,7 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains("tdsr.core.fr.tour_conversation"));
         assertTrue(keys.contains("tdsr.core.it.rock_scissor_paper"));
         assertTrue(keys.contains("tdsr.core.en.tour_conversation_social_context"));
+        assertTrue(keys.contains(ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha.KEY));
         assertTrue(keys.contains("tdsr.shhd.de.epfl_active"));
         assertTrue(keys.contains("tdsr.shhd.en.epfl_active"));
         assertTrue(keys.contains("tdsr.shhd.it.supsi_active"));

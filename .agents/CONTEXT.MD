@@ -105,6 +105,9 @@ PROMETHEUS currently provides:
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
+- on the `agents` branch, an Arabic-only Aisha vertical slice that bounds one
+  structured model call with deterministic catalog candidates and emits
+  approved-answer Speech plus semantic gestures;
 - a regulation foundation with persisted specifications, snapshot context,
   modulation values, internal events, reset behavior, and tests;
 - Valerian Cockpit, Valerian Access Management, the public Talk to Me exact-text

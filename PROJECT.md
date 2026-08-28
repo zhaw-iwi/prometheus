@@ -69,9 +69,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 156, Arabic live-transcription support
-  across agent defaults, typed provider settings, browser controls, and
-  contract tests.
+- Last completed milestone: Milestone 157, an Arabic-only Aisha Invest Qatar
+  vertical slice with deterministic catalog retrieval, bounded paraphrasing,
+  semantic gestures, registration, and focused contracts.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -261,6 +261,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 154: Live behaviour Speech playback coordination
 - [x] Milestone 155: Remove combined Realtime architecture and legacy profiles
 - [x] Milestone 156: Add Arabic live-transcription support
+- [x] Milestone 157: Add the Aisha Arabic catalog-agent vertical slice
 
 ## Milestone 1
 ### Date
@@ -8173,5 +8174,54 @@ existing German and English agents.
   supported Arabic, German, and English codes are sent to the provider.
 
 ### Next steps
-1. Merge the mainline live-transcription architecture into the customer-agent
-   branch and implement the Arabic Invest Qatar Aisha agent there.
+1. Expand the Aisha catalog from the supplied customer workbook, produce the
+   review artifact, and verify full source-row coverage.
+
+## Milestone 157
+### Date
+2026-08-28
+
+### Goal
+Add the first end-to-end Aisha stage-host agent on the customer-specific
+`agents` branch, using Arabic verbal input, Modern Standard Arabic Speech, and
+semantic gestures without adding a RAG subsystem.
+
+### What changed
+- Registered `tdsr.aisha.invest_qatar_qa` in the branch-specific agent catalog
+  with Arabic language metadata and a speech-plus-gesture interaction profile.
+- Added a validated, versioned JSON catalog and deterministic Arabic
+  normalization, candidate ranking, and out-of-scope handling.
+- Added a compact policy that sends at most three approved candidate answers
+  and four prior events through one structured model call, rejects ungrounded or
+  non-Arabic output, preserves protected facts, and falls back to approved text.
+- Added deterministic Arabic greeting and boundary responses that require no
+  model call, plus semantic gesture selection owned by catalog entries.
+- Documented the seven-topic catalog as a provisional vertical slice rather
+  than customer-approved production content.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=AishaCatalogUnitTest,AishaCatalogPolicyUnitTest,AishaDefinitionContractTest,AccessCodeAdminServiceIntegrationTest" test`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- All 20 focused catalog, policy, agent-definition, and Spring
+  catalog-registration tests passed.
+- The full Java suite passed 390 tests with zero failures, errors, or skips.
+  Surefire emitted its existing forced-fork-shutdown warning after the
+  successful result.
+
+### Known issues and decisions
+- The included seven-topic `DEMO_DRAFT` proves the architecture only. It does
+  not yet translate or cover every supplied workbook row and is not customer
+  approved.
+- Arabic provider transcription and physical robot Speech/gesture execution
+  remain unverified in a live venue; milestone 156's acoustic matrix is still
+  `NOT RUN`.
+- Social sensing, facial-expression input, and weather sensitivity remain
+  outside this initial verbal-input milestone.
+
+### Next steps
+1. Build the complete source-traceable Arabic catalog from the supplied
+   workbook, generate the customer review workbook, and add catalog-wide
+   coverage/evaluation tests.

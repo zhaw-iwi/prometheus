@@ -204,6 +204,7 @@ experiment-specific application definitions as Spring beans via
 
 | Package/key prefix | Purpose |
 | --- | --- |
+| `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.davos.*` | Davos care-center and summit/hotel application agents for event demonstrations. |
@@ -213,6 +214,22 @@ experiment-specific application definitions as Spring beans via
 
 These branch-specific definitions stay outside the generic main baseline
 catalog so `main` can remain the reusable PROMETHEUS framework line.
+
+### Aisha Invest Qatar Q&A
+
+`tdsr.aisha.invest_qatar_qa` is an Arabic-only stage-host agent. It accepts
+`obs.user_utterance` and emits canonical Arabic Speech plus one semantic
+`nonVerbal.gesture`. Its policy deterministically narrows the versioned catalog
+to at most three candidates, then makes one structured model call to select and
+briefly paraphrase an approved answer. Invalid output falls back to the selected
+catalog wording; unmatched questions use a fixed Arabic boundary response
+without a model call.
+
+The packaged `aisha-catalog-v1.json` is currently a seven-topic `DEMO_DRAFT`
+vertical slice for runtime and stage-flow verification. It is not the translated
+or customer-approved workbook catalog. Customer review status, source-row
+traceability, and time-sensitive facts must be completed before the agent is
+presented as authoritative production content.
 
 ## Requirements
 

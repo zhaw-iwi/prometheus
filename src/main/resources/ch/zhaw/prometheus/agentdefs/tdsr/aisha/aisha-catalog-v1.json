@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "1.0-demo",
+  "reviewStatus": "DEMO_DRAFT",
+  "entries": [
+    {
+      "id": "greeting",
+      "questionAliasesAr": [
+        "السلام عليكم",
+        "مرحباً يا عائشة",
+        "أهلاً وسهلاً"
+      ],
+      "approvedAnswerAr": "وعليكم السلام، أهلاً وسهلاً بكم. أنا عائشة من استثمر قطر، ويسعدني مساعدتكم.",
+      "protectedFacts": [],
+      "gesture": "POLITE",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "invest_qatar_overview",
+      "questionAliasesAr": [
+        "ما هي استثمر قطر",
+        "ما هي وكالة ترويج الاستثمار في قطر",
+        "من أنتم"
+      ],
+      "approvedAnswerAr": "نحن وكالة ترويج الاستثمار في قطر، ونربط المستثمرين بالفرص والشركاء والجهات المعنية، وندعمهم خلال رحلتهم الاستثمارية في الدولة.",
+      "protectedFacts": [],
+      "gesture": "EXPLAIN",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "why_invest_in_qatar",
+      "questionAliasesAr": [
+        "لماذا أستثمر في قطر",
+        "ما الذي يجعل قطر وجهة استثمارية جذابة",
+        "ما مزايا الاستثمار في قطر"
+      ],
+      "approvedAnswerAr": "تجمع قطر بين اقتصاد مستقر، وموقع يربط الأسواق، وبنية تحتية متقدمة، وبيئة أعمال تدعم المستثمرين في تأسيس أعمالهم وتنميتها.",
+      "protectedFacts": [],
+      "gesture": "EXPLAIN",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "investor_support",
+      "questionAliasesAr": [
+        "كيف تساعدون المستثمرين",
+        "ما الخدمات التي تقدمها استثمر قطر",
+        "هل تدعمون المستثمر بعد وصوله إلى قطر"
+      ],
+      "approvedAnswerAr": "نساعد المستثمرين على فهم الفرص والمتطلبات، والتواصل مع الجهات والشركاء المناسبين، ومتابعة رحلتهم من الاستكشاف الأولي إلى التوسع.",
+      "protectedFacts": [],
+      "gesture": "ACKNOWLEDGE",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "priority_sectors",
+      "questionAliasesAr": [
+        "ما القطاعات الاستثمارية ذات الأولوية في قطر",
+        "في أي قطاعات يمكنني الاستثمار",
+        "ما أهم فرص الاستثمار في قطر"
+      ],
+      "approvedAnswerAr": "توجد فرص في قطاعات متعددة، من بينها التكنولوجيا والخدمات المالية واللوجستية والصناعات والرعاية الصحية والسياحة، ونساعدكم على تحديد الفرصة الأنسب لأهدافكم.",
+      "protectedFacts": [],
+      "gesture": "EXPLAIN",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "qatar_national_vision",
+      "questionAliasesAr": [
+        "ما علاقة الاستثمار برؤية قطر الوطنية",
+        "ما هي رؤية قطر الوطنية 2030",
+        "كيف يدعم الاستثمار رؤية قطر"
+      ],
+      "approvedAnswerAr": "تدعم رؤية قطر الوطنية 2030 بناء اقتصاد متنوع ومستدام، ويسهم الاستثمار النوعي في نقل المعرفة وتنمية القطاعات وخلق قيمة طويلة الأجل.",
+      "protectedFacts": ["2030"],
+      "gesture": "EXPLAIN",
+      "sourceRows": [],
+      "timeSensitive": false
+    },
+    {
+      "id": "contact_invest_qatar",
+      "questionAliasesAr": [
+        "كيف يمكنني التواصل معكم",
+        "أريد التحدث إلى فريق استثمر قطر",
+        "أين أجد معلومات التواصل"
+      ],
+      "approvedAnswerAr": "يمكنكم التواصل معنا عبر قنوات استثمر قطر الرسمية المنشورة على موقعنا الإلكتروني، وسيوجهكم فريقنا إلى الدعم المناسب.",
+      "protectedFacts": [],
+      "gesture": "POLITE",
+      "sourceRows": [],
+      "timeSensitive": false
+    }
+  ]
+}
