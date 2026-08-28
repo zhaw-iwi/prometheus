@@ -46,7 +46,7 @@
       border: 1px dashed rgba(12, 22, 24, 0.2);
     }
   </style>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </head>
 
 <body>
@@ -55,7 +55,7 @@
       <header class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end mb-4 reveal">
         <div>
           <div id="agent_name" class="page-title">Multilateral Listener</div>
-          <div class="page-subtitle">Realtime transcription for multi-speaker sessions.</div>
+          <div class="page-subtitle">Live transcription for multi-speaker sessions.</div>
         </div>
         <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
           <span id="listen_status" class="status-pill is-idle">Idle</span>
@@ -70,6 +70,9 @@
               <div class="card-header">Listening Controls</div>
               <div class="card-body">
                 <div class="metric-label mb-2">Capture</div>
+                <label class="form-label metric-label" for="access_code">Access code</label>
+                <input id="access_code" class="form-control form-control-sm" type="password" autocomplete="off"
+                  data-testid="listen-access-code" />
                 <button id="toggle_listen" class="btn btn-primary w-100 my-3" type="button">
                   <i class="bi bi-mic-fill me-2"></i>Start Listening
                 </button>
@@ -79,6 +82,19 @@
             </div>
 
             <div class="card reveal delay-2">
+              <div class="card-header">Live Transcription Settings</div>
+              <div class="card-body">
+                <div id="live_transcription_settings_root" data-testid="listen-transcription-settings">
+                  <div class="small text-muted">Enter an access code to load settings.</div>
+                </div>
+                <button id="transcription_push_to_talk" class="btn btn-outline-ink w-100 mt-3 d-none"
+                  type="button" aria-pressed="false" data-testid="listen-push-to-talk">
+                  <i class="bi bi-mic-fill me-2"></i>Hold to Talk
+                </button>
+              </div>
+            </div>
+
+            <div class="card reveal delay-3">
               <div class="card-header">Transcription Feed</div>
               <div class="card-body">
                 <div class="metric-label">Live Utterance</div>

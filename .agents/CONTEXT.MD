@@ -84,11 +84,24 @@ PROMETHEUS currently provides:
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
-- scoped access-code APIs and trusted global APIs, including exact-text Speech
-  synthesis;
-- behaviour and monitor SSE streams with heartbeat, replay, cursor, and
-  disconnect resilience;
-- PROMETHEUS-authoritative OpenAI Realtime speech orchestration;
+- scoped access-code APIs and trusted global APIs, including streamed Speech
+  synthesis from exact persisted behaviour-event identity;
+- behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
+  resilience; behaviour delivery explicitly distinguishes live publication
+  from initial/history/reconnect replay without changing persisted payloads;
+- an access-code-scoped, typed `gpt-live-transcribe` session contract with
+  Arabic, German, and English agent-aware language defaults, strict settings
+  validation, and ephemeral browser credentials;
+- one shared Valerian/multilateral browser transcription engine with
+  cross-tab microphone ownership, explicit local/manual turn commits,
+  item-ordered final transcripts, reconnect/teardown, operator capture
+  settings, and privacy-safe preference persistence;
+- serialized, duplicate-safe live-transcript ingress through the ordinary
+  scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
+  canonical behaviour rendering left to the existing SSE stream;
+- ordered Valerian Speech synthesis and selected-device playback driven only by
+  live persisted behaviour IDs, with replay suppression, per-agent cross-tab
+  output ownership, explicit Stop, and microphone gating across output;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -163,8 +176,9 @@ semantics in model or application packages. Preserve the event, behaviour-plan,
 interaction-profile, storage, and event-history contracts.
 
 Published scoped client contracts include agent creation and info,
-`acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE, and
-Realtime call orchestration. Exact paths and request shapes are maintained in
+`acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE,
+typed live-transcription capabilities/session issuance, and Speech synthesis
+from persisted behaviour identity. Exact paths and request shapes are maintained in
 `README.md` and exercised by controller contract tests. Browser SSE may use an
 access code query parameter because `EventSource` cannot set custom headers;
 other clients should prefer the access-code header.
@@ -182,10 +196,14 @@ model. Talk to Me is a reduced public client under
 `src/main/resources/public/talktome`; it uses explicit access-code-scoped agent
 lifecycle and backend-authoritative output-only OpenAI Speech synthesis without
 microphone capture or browser-authored speech responses. Its synthesis endpoint,
-application service, and configuration are Talk-to-Me-specific and reject agents
-without the `utility.talk_to_me` profile tag before acknowledgement. Valerian
-and the other speech-to-speech clients continue to use the unchanged shared
-scoped and Realtime contracts.
+application service, and agent-tag policy remain Talk-to-Me-specific and reject
+agents without the `utility.talk_to_me` profile tag before acknowledgement.
+Provider configuration, voice/speed validation, and streamed audio response
+mechanics are shared with the scoped canonical behaviour-speech endpoint.
+Valerian and the multilateral listener share the transcription-first browser
+transport and serialized scoped `FULL_PLAN` ingress. Valerian adds a separate
+live-behaviour Speech playback queue; acknowledgement and replay are visual-only,
+and input is gated while the selected output device renders agent speech.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation
@@ -208,7 +226,8 @@ deployment is confirmed to be prototype data.
 
 - `model`: agents, states, events, policies, behaviour, regulation, social
   derivation, and domain rules.
-- `application`: runtime orchestration, scoped access, Realtime, and publishing.
+- `application`: runtime orchestration, scoped access, transcription, Speech,
+  and publishing.
 - `controllers`: HTTP/SSE boundaries and request/response contracts.
 - `agentdefs`: current production definitions and their prompts.
 - `src/main/resources/public`: Valerian, access management, Talk to Me, API

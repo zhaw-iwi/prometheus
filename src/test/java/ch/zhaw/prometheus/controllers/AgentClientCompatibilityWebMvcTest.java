@@ -41,7 +41,7 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @SuppressWarnings("null")
-@WebMvcTest(controllers = { AgentController.class, AgentControllerRealtime.class, AgentMonitorController.class,
+@WebMvcTest(controllers = { AgentController.class, AgentInteractionController.class, AgentMonitorController.class,
         AgentBehaviourController.class })
 class AgentClientCompatibilityWebMvcTest {
 
@@ -86,11 +86,9 @@ class AgentClientCompatibilityWebMvcTest {
                 PromptMessage.user("I feel good today")));
         when(this.agentService.prompt(TEST_AGENT_ID, OutputProfile.FULL_PLAN))
                 .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
-        when(this.agentService.prompt(TEST_AGENT_ID, OutputProfile.REALTIME_SPEECH))
-                .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
         when(this.agentService.getAgentInfo(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentInfoView(TEST_AGENT_ID, "Example Conversational Agent",
-                        "Test fixture agent for chat, realtime, and monitor compatibility checks.", true,
+                        "Test fixture agent for interaction and monitor compatibility checks.", true,
                         AgentInteractionProfile.of(
                                 List.of(
                                         AgentInteractionProfile.OBS_USER_UTTERANCE,
@@ -147,7 +145,7 @@ class AgentClientCompatibilityWebMvcTest {
     }
 
     @Test
-    void realtimeClientFlowAcknowledgePromptAndAssistantAppend() throws Exception {
+    void globalInteractionFlowAcknowledgesAndExposesPromptAndHistory() throws Exception {
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/start"))
                 .andExpect(status().isOk());
 
@@ -269,8 +267,8 @@ class AgentClientCompatibilityWebMvcTest {
     }
 
     @Test
-    void promptReturnsBadRequestForUnknownProfile() throws Exception {
-        this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/prompt?profile=unknown_profile"))
+    void promptRejectsRemovedRealtimeSpeechProfile() throws Exception {
+        this.mockMvc.perform(get("/" + TEST_AGENT_ID + "/prompt?profile=realtime_speech"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -292,12 +290,12 @@ class AgentClientCompatibilityWebMvcTest {
     }
 
     @Test
-    void behaviourGenerateReturnsBadRequestForUnknownOutputProfile() throws Exception {
+    void behaviourGenerateRejectsRemovedBackendComplementProfile() throws Exception {
         this.mockMvc.perform(post("/" + TEST_AGENT_ID + "/behaviour/generate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
-                          "outputProfile":"no_such_profile"
+                          "outputProfile":"backend_complement"
                         }
                         """))
                 .andExpect(status().isBadRequest());

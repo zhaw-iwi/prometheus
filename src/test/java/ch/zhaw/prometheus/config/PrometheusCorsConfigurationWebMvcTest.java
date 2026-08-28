@@ -16,7 +16,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import ch.zhaw.prometheus.application.RealtimeCallOrchestrationService;
 import ch.zhaw.prometheus.application.ScopedDemoService;
 import ch.zhaw.prometheus.controllers.ScopedDemoController;
 
@@ -32,9 +31,6 @@ class PrometheusCorsConfigurationWebMvcTest {
 
     @MockitoBean
     private ScopedDemoService demoService;
-
-    @MockitoBean
-    private RealtimeCallOrchestrationService realtimeCallService;
 
     @Test
     void allowsExactExternalCockpitOriginForScopedJsonCalls() throws Exception {
@@ -53,10 +49,10 @@ class PrometheusCorsConfigurationWebMvcTest {
     }
 
     @Test
-    void allowsConfiguredLocalhostPatternForRealtimeSdpCalls() throws Exception {
+    void allowsConfiguredLocalhostPatternForLiveTranscriptionCalls() throws Exception {
         UUID agentId = UUID.randomUUID();
 
-        this.mockMvc.perform(options("/demo/agents/" + agentId + "/realtime/call")
+        this.mockMvc.perform(options("/demo/agents/" + agentId + "/transcription/session")
                 .header(HttpHeaders.ORIGIN, "http://127.0.0.1:5010")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS,

@@ -3,15 +3,19 @@ package ch.zhaw.prometheus.logging;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -94,6 +98,29 @@ class SseBroadcasterHardeningUnitTest {
                 "88888888-8888-8888-8888-888888888888");
 
         assertEquals(List.of(second), replay);
+    }
+
+    @Test
+    void behaviourFramesLabelReplayLiveAndHeartbeatWithoutChangingEventData() {
+        RecordingBehaviourBroadcaster broadcaster = new RecordingBehaviourBroadcaster();
+        UUID agentId = UUID.fromString("99999999-9999-4999-8999-999999999999");
+        Event first = eventWithId("11111111-aaaa-4111-8111-111111111111", "first");
+        Event replayed = eventWithId("22222222-bbbb-4222-8222-222222222222", "replayed");
+        Event live = eventWithId("33333333-cccc-4333-8333-333333333333", "live");
+        Agent agent = agentWithEvents(first, replayed);
+
+        broadcaster.subscribe(agentId, () -> Optional.of(agent), first.getId().toString());
+        broadcaster.publish(agentId, live);
+        broadcaster.heartbeat();
+
+        assertEquals(3, broadcaster.emitter.frames.size());
+        assertTrue(frameText(broadcaster.emitter.frames.get(0)).contains("event:behaviour-replay"));
+        assertTrue(frameText(broadcaster.emitter.frames.get(0)).contains("id:" + replayed.getId()));
+        assertSame(replayed, frameEvent(broadcaster.emitter.frames.get(0)));
+        assertTrue(frameText(broadcaster.emitter.frames.get(1)).contains("event:behaviour-live"));
+        assertTrue(frameText(broadcaster.emitter.frames.get(1)).contains("id:" + live.getId()));
+        assertSame(live, frameEvent(broadcaster.emitter.frames.get(1)));
+        assertTrue(frameText(broadcaster.emitter.frames.get(2)).contains(":heartbeat"));
     }
 
     @Test
@@ -189,6 +216,43 @@ class SseBroadcasterHardeningUnitTest {
             field.set(event, id);
         } catch (Exception exception) {
             throw new AssertionError(exception);
+        }
+    }
+
+    private static String frameText(SseEmitter.SseEventBuilder frame) {
+        return frame.build().stream()
+                .map(part -> part.getData() instanceof String value ? value : "")
+                .reduce("", String::concat);
+    }
+
+    private static Event frameEvent(SseEmitter.SseEventBuilder frame) {
+        return frame.build().stream()
+                .map(part -> part.getData())
+                .filter(Event.class::isInstance)
+                .map(Event.class::cast)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static final class RecordingBehaviourBroadcaster extends AgentBehaviourBroadcaster {
+        private final RecordingSseEmitter emitter = new RecordingSseEmitter();
+
+        @Override
+        protected SseEmitter createEmitter() {
+            return this.emitter;
+        }
+    }
+
+    private static final class RecordingSseEmitter extends SseEmitter {
+        private final List<SseEventBuilder> frames = new ArrayList<>();
+
+        private RecordingSseEmitter() {
+            super(0L);
+        }
+
+        @Override
+        public void send(SseEventBuilder builder) throws IOException {
+            this.frames.add(builder);
         }
     }
 

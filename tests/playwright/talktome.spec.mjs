@@ -45,7 +45,7 @@ test("public Talk to Me synthesizes and completes exact scoped speech", async ({
       speed: url.searchParams.get("speed"),
     });
 
-    const acknowledged = await request.post("/demo/agents/" + match[1] + "/acknowledge?profile=realtime_speech", {
+    const acknowledged = await request.post("/demo/agents/" + match[1] + "/acknowledge?profile=full_plan", {
       headers: { [ACCESS_CODE_HEADER]: ACCESS_CODE },
       data: body,
     });

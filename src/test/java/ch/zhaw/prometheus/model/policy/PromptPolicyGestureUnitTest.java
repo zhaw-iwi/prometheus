@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -43,40 +42,6 @@ class PromptPolicyGestureUnitTest {
         assertNotNull(plan);
         assertEquals("Thanks for sharing.", plan.getSpeech());
         assertNull(plan.getNonVerbal());
-        assertEquals(1, gateway.completeCallCount);
-    }
-
-    @Test
-    void realtimeSpeechProfileReturnsSpeechOnly() {
-        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        policy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
-
-        SequencedGateway gateway = new SequencedGateway(List.of("Spoken response only."));
-        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), new EventHistory(),
-                new PromptMessageAssembler(), gateway, OutputProfile.REALTIME_SPEECH);
-
-        assertNotNull(plan);
-        assertEquals("Spoken response only.", plan.getSpeech());
-        assertNull(plan.getNonVerbal());
-        assertEquals(1, gateway.completeCallCount);
-    }
-
-    @Test
-    void backendComplementProfileDerivesNonverbalWithoutSpeechGeneration() {
-        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        policy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
-        EventHistory history = new EventHistory();
-        history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                "{\"speech\":\"Thanks for sharing.\"}"));
-
-        SequencedGateway gateway = new SequencedGateway(List.of("ACKNOWLEDGE"));
-        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), history,
-                new PromptMessageAssembler(), gateway, OutputProfile.BACKEND_COMPLEMENT);
-
-        assertNotNull(plan);
-        assertNull(plan.getSpeech());
-        assertNotNull(plan.getNonVerbal());
-        assertEquals("ACKNOWLEDGE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
         assertEquals(1, gateway.completeCallCount);
     }
 
@@ -133,26 +98,6 @@ class PromptPolicyGestureUnitTest {
         assertEquals("scissor", plan.getMotion().getAsJsonObject().get("handSign").getAsString());
         assertFalse(plan.getMotion().getAsJsonObject().has("move"));
         assertFalse(plan.getMotion().getAsJsonObject().has("turn"));
-    }
-
-    @Test
-    void backendComplementProfileCanProduceTopLevelHandSign() {
-        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);
-        EventHistory history = new EventHistory();
-        history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                "{\"speech\":\"I choose rock.\"}"));
-
-        SequencedGateway gateway = new SequencedGateway(List.of(
-                "{\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"},\"motion\":{\"handSign\":\"rock\"}}"));
-        BehaviourPlan plan = policy.onRespond(new State("s", policy, List.of()), history,
-                new PromptMessageAssembler(), gateway, OutputProfile.BACKEND_COMPLEMENT);
-
-        assertNotNull(plan);
-        assertNull(plan.getSpeech());
-        assertEquals("ACKNOWLEDGE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
-        assertEquals("rock", plan.getMotion().getAsJsonObject().get("handSign").getAsString());
-        assertEquals(1, gateway.completeCallCount);
     }
 
     @Test

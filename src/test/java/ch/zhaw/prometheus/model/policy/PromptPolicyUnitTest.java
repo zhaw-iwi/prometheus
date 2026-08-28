@@ -1,7 +1,6 @@
 package ch.zhaw.prometheus.model.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -27,16 +26,6 @@ class PromptPolicyUnitTest {
         PromptPolicy composed = (PromptPolicy) inner.withOuterPolicy(outer);
 
         assertEquals("outer prompt inner prompt", composed.describe());
-    }
-
-    @Test
-    void describeIncludesRealtimeOutputContractWhenRequested() {
-        PromptPolicy policy = new PromptPolicy("base prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-
-        String described = policy.describe(OutputProfile.REALTIME_SPEECH);
-
-        assertTrue(described.contains("base prompt"));
-        assertTrue(described.contains("respond with natural spoken assistant text only"));
     }
 
     @Test

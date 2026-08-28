@@ -4,25 +4,12 @@ openai.url = https://api.openai.com/v1/chat/completions | [AZURE AI SERVICE API 
 openai.model = gpt-4 | unused for azure openai
 openai.key = openai api key here | azure ai service api key (key 1)
 
-# isolated output-only speech synthesis for Talk to Me
-prometheus.talktome.speech.model = gpt-4o-mini-tts
-prometheus.talktome.speech.url = https://api.openai.com/v1/audio/speech | [AZURE AI SERVICE SPEECH DEPLOYMENT ENDPOINT]
+# shared output-only speech synthesis for persisted behaviour plans and Talk to Me
+prometheus.speech.model = gpt-4o-mini-tts
+prometheus.speech.url = https://api.openai.com/v1/audio/speech | [AZURE AI SERVICE SPEECH DEPLOYMENT ENDPOINT]
 
-# for realtime only
-openai.realtimeModel = gpt-realtime-2
-# Speech-to-speech input transcription model used as audio.input.transcription.model
-# for /realtime/call WebRTC sessions. This is separate from the realtime response
-# model and from transcription-only sessions.
-openai.realtimeInputTranscriptionModel = gpt-4o-transcribe
-# Transcription-only session model used by /realtime/transcription/session
-# and /multilateral/listen. This property does not configure Valerian
-# speech-to-speech calls.
-openai.realtimeTranscriptionModel = gpt-realtime-whisper
-# Optional: ISO-639-1 language hint, e.g. en or de
-openai.realtimeTranscriptionLanguage =
-# Optional gpt-realtime-whisper delay: minimal, low, medium, high, xhigh
-openai.realtimeTranscriptionDelay =
+# scoped gpt-live-transcribe WebRTC session issuance
 # Optional stable, privacy-preserving user/application identifier
-openai.realtimeSafetyIdentifier =
-openai.realtimeClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets
-openai.realtimeCallsUrl = https://api.openai.com/v1/realtime/calls
+openai.liveTranscriptionSafetyIdentifier =
+openai.liveTranscriptionClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets
+openai.liveTranscriptionWebRtcUrl = https://api.openai.com/v1/realtime/calls

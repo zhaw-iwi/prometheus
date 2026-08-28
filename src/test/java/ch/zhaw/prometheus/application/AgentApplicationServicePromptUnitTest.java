@@ -25,7 +25,6 @@ import ch.zhaw.prometheus.model.policy.PromptEventContentAdapter;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
-import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -66,31 +65,6 @@ class AgentApplicationServicePromptUnitTest {
 
         assertTrue(result.getPromptMessages().stream()
                 .anyMatch(message -> "ASSEMBLER_MARKER".equals(message.getContent())));
-    }
-
-    @Test
-    void promptSupportsRealtimeSpeechProfileContract() {
-        UUID agentId = UUID.fromString("66666666-6666-6666-6666-666666666666");
-        State state = new State("s", new PromptPolicy("system-policy", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT),
-                List.of());
-        Agent agent = new Agent("a", "d", state);
-
-        AgentRepository repository = mock(AgentRepository.class);
-        AgentMonitorBroadcaster monitorBroadcaster = mock(AgentMonitorBroadcaster.class);
-        AgentBehaviourBroadcaster behaviourBroadcaster = mock(AgentBehaviourBroadcaster.class);
-        LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
-
-        PromptMessageAssembler assembler = new PromptMessageAssembler();
-
-        AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
-                behaviourBroadcaster, assembler, languageModelGateway);
-        when(repository.findById(agentId)).thenReturn(Optional.of(agent));
-
-        var result = service.prompt(agentId, OutputProfile.REALTIME_SPEECH).orElseThrow();
-
-        assertTrue(result.getPromptMessages().stream()
-                .anyMatch(message -> message.getRole().equals("system")
-                        && message.getContent().contains("respond with natural spoken assistant text only")));
     }
 
     @Test

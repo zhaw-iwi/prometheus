@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.spi;
 
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,10 +18,10 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
     private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     private final OpenAIProperties openAIProperties;
-    private final TalkToMeSpeechProperties speechProperties;
+    private final SpeechSynthesisProperties speechProperties;
 
     public OpenAISpeechSynthesisGateway(OpenAIProperties openAIProperties,
-            TalkToMeSpeechProperties speechProperties) {
+            SpeechSynthesisProperties speechProperties) {
         this.openAIProperties = openAIProperties;
         this.speechProperties = speechProperties;
     }
@@ -43,13 +44,15 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(payload)))
                     .build();
-            HttpResponse<byte[]> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<InputStream> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
+                response.body().close();
                 throw new SpeechSynthesisException(
                         "OpenAI Speech request returned status code " + response.statusCode());
             }
             String contentType = response.headers().firstValue("Content-Type").orElse("audio/mpeg");
-            return new SpeechAudio(response.body(), contentType);
+            long contentLength = response.headers().firstValueAsLong("Content-Length").orElse(-1L);
+            return SpeechAudio.streaming(response.body(), contentType, contentLength);
         } catch (SpeechSynthesisException failure) {
             throw failure;
         } catch (Exception failure) {

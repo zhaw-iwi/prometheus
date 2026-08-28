@@ -73,6 +73,17 @@ The cockpit is organised into three columns: sensing, verbal interaction by
 text or speech, and behaviour. Each column can be maximised or opened in a
 separate window when an experiment needs more screen space.
 
+Speech interaction is transcription-first: Valerian commits explicit browser
+audio turns to `gpt-live-transcribe`, sends only finalized transcripts through
+the ordinary scoped acknowledgement boundary, and synthesizes speech from the
+resulting persisted behaviour event. Only `behaviour-live` deliveries can
+produce audio; history and reconnect replay remain visual-only. While speech is
+loading or playing, microphone input is disabled and its pending provider state
+is cleared so the agent cannot transcribe itself. **Stop Playback** cancels
+queued/current audio and reopens input without changing the persisted plan. A
+per-agent browser lease selects one audible Valerian window, and playback uses
+the speaker, voice, and speed selected in the speech settings.
+
 #### Social Context Sensitivity
 
 ![Valerian social context sensing](.doc/figures/Valerian/valerian-cockpit-social.png)
@@ -82,7 +93,7 @@ This core agent demonstrates social-context sensing.
 - Sensing: visual detection of human presence, groups of humans, and whether
   people are attentive toward the agent.
 - Interaction: the agent comments on the social situation; users can also enter
-  utterances or run the interaction in speech-to-speech mode.
+  utterances or use transcription-first speech interaction.
 - Behaviour: the full behaviour spectrum, including speech, gesture, facial
   expression, gaze, motion, hand signs, and display output where supported.
 
@@ -94,7 +105,7 @@ This core agent demonstrates facial-expression sensing.
 
 - Sensing: visual detection of faces and emotion, valence, and arousal.
 - Interaction: the agent comments on the social situation; users can also enter
-  utterances or run the interaction in speech-to-speech mode.
+  utterances or use transcription-first speech interaction.
 - Behaviour: the full behaviour spectrum, including speech, gesture, facial
   expression, gaze, motion, hand signs, and display output where supported.
 
@@ -179,7 +190,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
-| `core.talk_to_me` | Deterministic exact-text Realtime speech utility. |
+| `core.talk_to_me` | Deterministic exact-text output-only speech utility. |
 | `usecases.healthcare.guessing_game` | Healthcare guessing game where Valerian guesses. |
 | `usecases.healthcare.guessing_game_user_guess` | Healthcare guessing game where the user guesses. |
 | `usecases.healthcare.healthcare_conversation` | Open healthcare conversation use case. |
@@ -209,8 +220,8 @@ catalog so `main` can remain the reusable PROMETHEUS framework line.
 - MySQL.
 - Maven Wrapper from this repository.
 - Node.js only when running the Playwright visual smoke tests.
-- OpenAI or Azure OpenAI configuration for prompt generation, Realtime speech,
-  and output-only Speech synthesis.
+- OpenAI or Azure OpenAI configuration for prompt generation, live
+  transcription, and output-only Speech synthesis.
 
 ## Local Setup
 
@@ -229,8 +240,13 @@ Minimum configuration:
 - `openai.openaivsazureopenai`
 - `openai.url`
 - `openai.key`
-- `prometheus.talktome.speech.model` and `prometheus.talktome.speech.url` when
-  overriding Talk to Me's output-only Speech defaults
+- `openai.liveTranscriptionClientSecretUrl` and
+  `openai.liveTranscriptionWebRtcUrl` only when overriding the standard OpenAI
+  live-transcription endpoints
+- `openai.liveTranscriptionSafetyIdentifier` when a stable,
+  privacy-preserving provider safety identifier is required
+- `prometheus.speech.model` and `prometheus.speech.url` when overriding the
+  shared output-only Speech synthesis defaults
 - `prometheus.admin.token` for Valerian Access Management
 
 Run the application:
@@ -458,7 +474,8 @@ Browser `EventSource` cannot set custom headers, so scoped browser clients pass
 
 Each behaviour event has:
 
-- SSE event name: `behaviour`
+- SSE event name: `behaviour-live` for a new publication or
+  `behaviour-replay` for initial/history/reconnect recovery
 - SSE id: persisted event id when available
 - SSE data: an `Event` object with type `resp.behaviour_plan`
 
@@ -485,12 +502,13 @@ The event `payload` is a JSON string containing a `BehaviourPlan`:
 
 Clients should ignore channels they cannot render. Reconnect with either the
 standard `Last-Event-ID` header or `?lastEventId=<id>` to replay missed
-behaviour events.
+behaviour events. Replayed events retain their original persisted IDs, data,
+and order, but are labeled `behaviour-replay`; clients must not repeat live-only
+effects such as speech playback for them. Heartbeats remain SSE comments.
 
 ### 5. Request generated behaviour without a new perception event
 
-Some clients need backend complement behaviour after realtime speech, or want to
-ask the current state to generate again:
+Clients can ask the current state to generate another complete behaviour plan:
 
 ```http
 POST /demo/agents/{agentId}/behaviour/generate
@@ -498,16 +516,14 @@ X-Prometheus-Access-Code: VX102
 Content-Type: application/json
 
 {
-  "outputProfile": "BACKEND_COMPLEMENT",
-  "omitModalities": ["speech"]
+  "outputProfile": "FULL_PLAN",
+  "omitModalities": ["display"]
 }
 ```
 
-Valid output profiles are:
-
-- `FULL_PLAN`: speech and supported non-speech channels.
-- `REALTIME_SPEECH`: speech-only prompt contract for realtime speech.
-- `BACKEND_COMPLEMENT`: non-speech complement derived from the current context.
+`FULL_PLAN` is the only output profile. The profile can be omitted because it is
+also the default. `omitModalities` remains available when a renderer explicitly
+cannot consume one of the otherwise supported behaviour channels.
 
 The endpoint returns `200` when behaviour was generated, `409` when no behaviour
 was produced, `404` when the agent is missing, and `400` for an unknown profile.
@@ -546,52 +562,139 @@ not access-code scoped.
 | `GET` | `/{agentId}/monitor/stream` | Subscribe to monitor SSE. |
 
 The request and response shapes are the same as the scoped demo API, without the
-access-code header.
+access-code header. Where a `profile` or `outputProfile` is accepted, omit it or
+use `full_plan`; former speech/complement profiles are not supported.
 
-## Realtime Speech
+## Transcription-First Speech
 
-Realtime speech clients do not talk directly to OpenAI. They post a WebRTC SDP
-offer to PROMETHEUS:
+### Scoped live transcription
+
+The transcription-first speech architecture uses an access-code-scoped,
+transcription-only session contract. Read its agent-language-aware settings
+descriptor first:
 
 ```http
-POST /demo/agents/{agentId}/realtime/call?voice=cedar&turnDetection=server_vad
+GET /demo/agents/{agentId}/transcription/capabilities
 X-Prometheus-Access-Code: VX102
-Content-Type: application/sdp
-
-v=0
-...
 ```
 
-PROMETHEUS creates the OpenAI Realtime call with the agent's current
-`REALTIME_SPEECH` prompt, keeps a backend sideband connection, accepts
-transcripts into the normal event pipeline, persists canonical assistant speech
-as `resp.behaviour_plan`, and asks Realtime to speak that exact text.
-
-Talk to Me uses the same authority boundary for output-only speech. Its browser
-posts a user-utterance observation containing the textarea value; the
-deterministic `core.talk_to_me` policy copies that value into the persisted
-speech channel, and the backend sideband issues the corresponding Realtime
-response. The browser does not send `session.update` or `response.create`.
-Realtime response status and its final output transcript remain browser-visible
-so the public client can distinguish normal completion, interruption, output
-limits, filtering, and transport/model failures.
-
-Close calls with:
+Then issue an ephemeral `gpt-live-transcribe` WebRTC session:
 
 ```http
-DELETE /realtime/calls/{callId}
+POST /demo/agents/{agentId}/transcription/session
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
+{
+  "turnDetection": {
+    "type": "local_vad",
+    "silenceDurationSeconds": 1.5
+  },
+  "noiseReduction": "far_field",
+  "transcriptionPrompt": "محادثة مع وكيل بروميثيوس.",
+  "transcriptionKeywords": ["بروميثيوس", "عائشة"],
+  "languages": ["ar"],
+  "transcriptionDelay": "medium"
+}
 ```
 
-Transcription-only clients can request a session with:
+Supported noise-reduction values are `near_field`, `far_field`, and `off`.
+Supported turn modes are `local_vad` and `manual`; both keep provider turn
+detection disabled so the browser commits explicit audio turns. Supported
+languages are currently `ar`, `de`, and `en`, and delay accepts `minimal`, `low`,
+`medium`, `high`, or `xhigh`. Omitted settings use far-field capture, local VAD
+with 1.5 seconds of silence, the selected agent's language, and medium delay.
+
+The response contains the ephemeral client secret, fixed model and session
+type, settings schema version, OpenAI WebRTC URL, and a non-sensitive effective
+settings summary. The prompt text and keywords are never echoed in that
+summary. There is no combined speech-to-speech session or unscoped
+transcription-session endpoint.
+
+### Shared browser transcription engine
+
+Valerian and `/multilateral/listen` use the same ES-module engine under
+`public/transcription`. It acquires a cross-tab microphone lease, applies the
+requested browser capture constraints, creates only a transcription WebRTC
+data channel, commits local-VAD or manual turns, orders terminal transcripts by
+provider item ID, and reconnects with a fresh scoped ephemeral secret. Partial
+transcripts are display-only; a provider assistant response or remote media
+track is reported as an unexpected diagnostic and is never rendered.
+
+The operator panel exposes provider noise reduction, local/manual turn mode,
+silence duration, context, keywords, expected languages, transcription delay,
+input device, echo cancellation, noise suppression, automatic gain control,
+and voice isolation when supported. The default group profile is far-field,
+local VAD with 1.5 seconds silence, the agent language, medium delay, browser
+echo/noise/gain processing enabled, and voice isolation disabled. Requested and
+browser-applied capture values are displayed separately. Context and keywords
+are intentionally not stored in local storage.
+
+Run its deterministic browser gates with:
+
+```powershell
+npm.cmd run test:transcription:unit
+npm.cmd run test:speech:unit
+npm.cmd run test:valerian:transcription
+npm.cmd run test:valerian:visual
+```
+
+These suites mock microphone, WebRTC, SDP exchange, and provider events. They
+do not replace the real acoustic matrix in
+`.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
+
+Final provider transcripts enter PROMETHEUS through the same scoped event
+boundary as typed input:
 
 ```http
-POST /realtime/transcription/session?agentId={agentId}
+POST /demo/agents/{agentId}/acknowledge?profile=full_plan
+X-Prometheus-Access-Code: VX102
+Content-Type: application/json
+
+{"type":"obs.user_utterance","actor":"user","kind":"observation","payload":"Hello Valerian"}
 ```
+
+The shared browser ingress serializes final turns, suppresses duplicate/stale
+provider terminals, and exposes queued, sending, accepted, rejected, and
+provider-error diagnostics. Partial or failed provider input is never sent.
+The acknowledgement response is used only for lifecycle/fallback decisions;
+canonical `resp.behaviour_plan` rendering remains driven by the behaviour SSE
+stream so the same plan cannot appear twice. If acknowledgement legitimately
+returns no response event, the client preserves typed-input semantics by
+requesting one normal `full_plan` generation.
+
+Valerian's output queue accepts only `behaviour-live` events with non-empty
+speech and a persisted SSE event ID. It processes those IDs in order and keeps
+completed, failed, and deliberately skipped IDs distinct, so duplicate live
+delivery and replay cannot speak twice. Synthesis begins through the canonical
+event-scoped endpoint below; playback is routed to the selected output device.
+The microphone remains gated across a queued burst and reopens after completion,
+Stop, synthesis/playback error, disconnect, or agent change. An expiring
+cross-tab output lease ensures that only one Valerian page speaks a particular
+agent's live event.
 
 ### Output-only Speech
 
-Talk to Me does not create a Realtime call. It sends the observation and speech
-options to a scoped backend endpoint:
+Any scoped client can request audio for the canonical speech in an already
+persisted behaviour-plan event:
+
+```http
+POST /demo/agents/{agentId}/behaviours/{eventId}/speech?voice=cedar&speed=1.25
+X-Prometheus-Access-Code: VX102
+```
+
+`eventId` is the UUID delivered as the behaviour SSE event ID. PROMETHEUS looks
+up that event only in the scoped agent's history, requires a
+`resp.behaviour_plan` with non-empty speech, and sends its exact persisted
+speech to the provider. This endpoint has no request body and therefore cannot
+synthesize browser-authored or foreign-agent text. It returns uncached,
+streamed provider audio with an explicit `audio/*` content type. Unknown agents
+or events return `404`; events that are not usable speech behaviours return
+`409`; unsupported voices or speeds outside `0.25` through `4.0` return `400`.
+The defaults are `alloy` and `1.0`.
+
+Talk to Me sends the observation and speech options to a scoped backend
+endpoint:
 
 ```http
 POST /demo/talktome/agents/{agentId}/speech?voice=cedar&speed=1.25
@@ -603,14 +706,13 @@ Content-Type: application/json
 
 The dedicated endpoint first verifies that the scoped agent carries the
 `utility.talk_to_me` profile tag. PROMETHEUS then acknowledges the observation
-with the `REALTIME_SPEECH` output profile, persists the deterministic
+with the ordinary `FULL_PLAN` output profile, persists the deterministic
 `core.talk_to_me` speech plan, and passes that canonical speech string to
-`prometheus.talktome.speech.url` using
-`prometheus.talktome.speech.model` (default: `gpt-4o-mini-tts`). The endpoint
-returns uncached MP3 audio. Unsupported voices or speeds outside `0.25` through
-`4.0` are rejected before synthesis. The shared scoped-agent controller,
-Realtime configuration, and Realtime speech selection remain independent of
-this output-only path.
+`prometheus.speech.url` using `prometheus.speech.model` (default:
+`gpt-4o-mini-tts`). The Talk to Me endpoint retains its exact-text behavior and
+`utility.talk_to_me` agent-tag restriction while sharing provider configuration,
+voice/speed validation, and streamed HTTP audio mechanics with canonical
+behaviour speech.
 
 ## Admin API
 
@@ -652,11 +754,11 @@ credential.
 ```text
 src/main/java/ch/zhaw/prometheus
   agentdefs/        Registered Valerian agent definitions.
-  application/      Application services for agents, access codes, Realtime, and scoped demos.
+  application/      Application services for agents, access codes, transcription, Speech, and scoped demos.
   controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
   logging/          SSE broadcasters.
   model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
-  spi/              OpenAI and Realtime integration boundary.
+  spi/              Language-model, live-transcription, and Speech integration boundaries.
 
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.

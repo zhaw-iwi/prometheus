@@ -22,14 +22,9 @@ public class OpenAIProperties {
     private String url;
     private String model;
     private String key;
-    private String realtimeModel;
-    private String realtimeInputTranscriptionModel;
-    private String realtimeTranscriptionModel;
-    private String realtimeTranscriptionLanguage;
-    private String realtimeTranscriptionDelay;
-    private String realtimeClientSecretUrl;
-    private String realtimeCallsUrl;
-    private String realtimeSafetyIdentifier;
+    private String liveTranscriptionClientSecretUrl;
+    private String liveTranscriptionWebRtcUrl;
+    private String liveTranscriptionSafetyIdentifier;
 
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
@@ -55,68 +50,28 @@ public class OpenAIProperties {
         this.model = model;
     }
 
-    public String getRealtimeModel() {
-        return this.realtimeModel;
+    public String getLiveTranscriptionClientSecretUrl() {
+        return this.liveTranscriptionClientSecretUrl;
     }
 
-    public void setRealtimeModel(String realtimeModel) {
-        this.realtimeModel = realtimeModel;
+    public void setLiveTranscriptionClientSecretUrl(String liveTranscriptionClientSecretUrl) {
+        this.liveTranscriptionClientSecretUrl = liveTranscriptionClientSecretUrl;
     }
 
-    public String getRealtimeInputTranscriptionModel() {
-        return this.realtimeInputTranscriptionModel;
+    public String getLiveTranscriptionWebRtcUrl() {
+        return this.liveTranscriptionWebRtcUrl;
     }
 
-    public void setRealtimeInputTranscriptionModel(String realtimeInputTranscriptionModel) {
-        this.realtimeInputTranscriptionModel = realtimeInputTranscriptionModel;
+    public void setLiveTranscriptionWebRtcUrl(String liveTranscriptionWebRtcUrl) {
+        this.liveTranscriptionWebRtcUrl = liveTranscriptionWebRtcUrl;
     }
 
-    public String getRealtimeTranscriptionModel() {
-        return this.realtimeTranscriptionModel;
+    public String getLiveTranscriptionSafetyIdentifier() {
+        return this.liveTranscriptionSafetyIdentifier;
     }
 
-    public void setRealtimeTranscriptionModel(String realtimeTranscriptionModel) {
-        this.realtimeTranscriptionModel = realtimeTranscriptionModel;
-    }
-
-    public String getRealtimeTranscriptionLanguage() {
-        return this.realtimeTranscriptionLanguage;
-    }
-
-    public void setRealtimeTranscriptionLanguage(String realtimeTranscriptionLanguage) {
-        this.realtimeTranscriptionLanguage = realtimeTranscriptionLanguage;
-    }
-
-    public String getRealtimeTranscriptionDelay() {
-        return this.realtimeTranscriptionDelay;
-    }
-
-    public void setRealtimeTranscriptionDelay(String realtimeTranscriptionDelay) {
-        this.realtimeTranscriptionDelay = realtimeTranscriptionDelay;
-    }
-
-    public String getRealtimeClientSecretUrl() {
-        return this.realtimeClientSecretUrl;
-    }
-
-    public void setRealtimeClientSecretUrl(String realtimeClientSecretUrl) {
-        this.realtimeClientSecretUrl = realtimeClientSecretUrl;
-    }
-
-    public String getRealtimeCallsUrl() {
-        return this.realtimeCallsUrl;
-    }
-
-    public void setRealtimeCallsUrl(String realtimeCallsUrl) {
-        this.realtimeCallsUrl = realtimeCallsUrl;
-    }
-
-    public String getRealtimeSafetyIdentifier() {
-        return this.realtimeSafetyIdentifier;
-    }
-
-    public void setRealtimeSafetyIdentifier(String realtimeSafetyIdentifier) {
-        this.realtimeSafetyIdentifier = realtimeSafetyIdentifier;
+    public void setLiveTranscriptionSafetyIdentifier(String liveTranscriptionSafetyIdentifier) {
+        this.liveTranscriptionSafetyIdentifier = liveTranscriptionSafetyIdentifier;
     }
 
     public String headerKeyNameForAPIKey() {

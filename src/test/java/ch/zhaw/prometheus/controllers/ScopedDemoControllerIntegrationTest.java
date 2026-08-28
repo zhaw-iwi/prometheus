@@ -1,15 +1,22 @@
 package ch.zhaw.prometheus.controllers;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -30,8 +37,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.zhaw.prometheus.application.AccessCodeAdminService;
+import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.PromptMessage;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
@@ -39,6 +50,10 @@ import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient;
+import ch.zhaw.prometheus.spi.LiveTranscriptionSessionInfo;
+import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -71,6 +86,12 @@ class ScopedDemoControllerIntegrationTest {
 
     @MockitoBean
     private LanguageModelGateway languageModelGateway;
+
+    @MockitoBean
+    private LiveTranscriptionSessionClient liveTranscriptionSessionClient;
+
+    @MockitoBean
+    private SpeechSynthesisGateway speechSynthesisGateway;
 
     @BeforeEach
     void setUp() {
@@ -234,6 +255,126 @@ class ScopedDemoControllerIntegrationTest {
         this.mockMvc.perform(get("/demo/agents/" + agentId + "/monitor/stream")
                 .param("accessCode", "Q49q8"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void liveTranscriptionSessionIsIssuedOnlyForTheOwningAccessCode() throws Exception {
+        this.allowType("L49t9", TYPE_KEY);
+        this.allowType("O49t0", TYPE_KEY);
+        UUID agentId = this.createAgent("L49t9", TYPE_KEY);
+        when(this.liveTranscriptionSessionClient.createSession(any()))
+                .thenReturn(new LiveTranscriptionSessionInfo(
+                        "ek_scoped", "gpt-live-transcribe", "https://example.test/v1/realtime/calls"));
+
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/transcription/capabilities")
+                .header(HEADER, "L49t9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.settings[5].defaultValue[0]").value("en"));
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/transcription/session")
+                .header(HEADER, "L49t9")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clientSecret").value("ek_scoped"))
+                .andExpect(jsonPath("$.effectiveSettings.languages[0]").value("en"));
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/transcription/session")
+                .header(HEADER, "O49t0")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void finalizedTranscriptUsesScopedFullPlanPipelineExactlyOnce() throws Exception {
+        String accessCode = "T49m3";
+        String transcript = "Ready for the next round";
+        this.allowType(accessCode, RockScissorPaper.KEY);
+        UUID agentId = this.createAgent(accessCode, RockScissorPaper.KEY);
+        when(this.languageModelGateway.decide(any())).thenAnswer(invocation -> {
+            List<PromptMessage> messages = invocation.getArgument(0);
+            return messages.stream().map(PromptMessage::getContent)
+                    .anyMatch(content -> content.contains("clearly ready to start a round"));
+        });
+
+        MvcResult result = this.mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge")
+                .header(HEADER, accessCode)
+                .queryParam("profile", "full_plan")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(java.util.Map.of(
+                        "type", Event.TYPE_USER_UTTERANCE,
+                        "actor", Event.ACTOR_USER,
+                        "kind", Event.KIND_OBSERVATION,
+                        "payload", transcript))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.responseEvent.type").value(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
+                .andReturn();
+
+        JsonNode responsePayload = this.objectMapper.readTree(result.getResponse().getContentAsString())
+                .path("responseEvent").path("payload");
+        BehaviourPlan responsePlan = BehaviourPlan.fromJson(responsePayload.asText());
+        assertNotNull(responsePlan);
+        assertNotNull(responsePlan.getSpeech());
+        assertNotNull(responsePlan.getNonVerbal());
+        assertNotNull(responsePlan.getMotion());
+        assertNotNull(responsePlan.getDisplay());
+
+        List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
+        List<Event> matchingInputs = history.stream()
+                .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
+                .filter(event -> transcript.equals(event.getPayload()))
+                .toList();
+        assertEquals(1, matchingInputs.size());
+        int inputIndex = history.indexOf(matchingInputs.get(0));
+        List<Event> generatedPlans = history.subList(inputIndex + 1, history.size()).stream()
+                .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                .toList();
+        assertEquals(1, generatedPlans.size());
+        BehaviourPlan persistedPlan = BehaviourPlan.fromJson(generatedPlans.get(0).getPayload());
+        assertNotNull(persistedPlan.getSpeech());
+        assertNotNull(persistedPlan.getNonVerbal());
+        assertNotNull(persistedPlan.getMotion());
+        assertNotNull(persistedPlan.getDisplay());
+
+        Event persistedEvent = generatedPlans.get(0);
+        byte[] audio = new byte[] { 4, 9, 3 };
+        when(this.speechSynthesisGateway.synthesize(persistedPlan.getSpeech(), "cedar", 1.25))
+                .thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+
+        MvcResult speechResult = this.mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/"
+                + persistedEvent.getId() + "/speech")
+                .header(HEADER, accessCode)
+                .queryParam("voice", "cedar")
+                .queryParam("speed", "1.25"))
+                .andExpect(status().isOk())
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        this.mockMvc.perform(asyncDispatch(speechResult))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().contentType("audio/mpeg"))
+                .andExpect(content().bytes(audio));
+        verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25);
+    }
+
+    @Test
+    void removedCombinedRealtimeRoutesAreNotMapped() throws Exception {
+        UUID agentId = UUID.randomUUID();
+
+        this.mockMvc.perform(post("/demo/agents/" + agentId + "/realtime/call")
+                .contentType("application/sdp")
+                .content("offer"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(post("/" + agentId + "/realtime/call")
+                .contentType("application/sdp")
+                .content("offer"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(delete("/realtime/calls/legacy-call"))
+                .andExpect(status().isNotFound());
+        this.mockMvc.perform(post("/realtime/transcription/session"))
+                .andExpect(status().isNotFound());
     }
 
     private AccessCodeView allowType(String code, String typeKey) {

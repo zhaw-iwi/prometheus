@@ -2,7 +2,6 @@ package ch.zhaw.prometheus.controllers;
 
 import java.util.UUID;
 
-import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +13,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.ScopedTalkToMeSpeechService;
-import ch.zhaw.prometheus.application.TalkToMeSpeechSettings;
+import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
 import ch.zhaw.prometheus.application.TalkToMeSpeechUnavailableException;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
-import ch.zhaw.prometheus.spi.SpeechAudio;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 
 @RestController
@@ -32,7 +31,7 @@ public class TalkToMeSpeechController {
     }
 
     @PostMapping(path = "/demo/talktome/agents/{agentId}/speech", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<byte[]> speech(
+    public ResponseEntity<StreamingResponseBody> speech(
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String headerAccessCode,
             @RequestParam(value = "accessCode", required = false) String queryAccessCode,
             @PathVariable @NonNull UUID agentId,
@@ -42,9 +41,9 @@ public class TalkToMeSpeechController {
         if (!isValidEventRequest(request)) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        TalkToMeSpeechSettings settings = new TalkToMeSpeechSettings(voice, speed);
+        SpeechSynthesisSettings settings = new SpeechSynthesisSettings(voice, speed);
         return this.speechService.synthesize(accessCode(headerAccessCode, queryAccessCode), agentId, request, settings)
-                .map(TalkToMeSpeechController::audioResponse)
+                .map(SpeechAudioHttpResponse::stream)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
@@ -81,10 +80,4 @@ public class TalkToMeSpeechController {
         return request.getPayload() != null && !request.getPayload().isBlank();
     }
 
-    private static ResponseEntity<byte[]> audioResponse(SpeechAudio audio) {
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .contentType(MediaType.parseMediaType(audio.getContentType()))
-                .body(audio.getContent());
-    }
 }

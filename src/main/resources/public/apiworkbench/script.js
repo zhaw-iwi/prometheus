@@ -138,7 +138,7 @@ const ENDPOINTS = [
     group: "Streams",
     method: "GET",
     path: "/demo/agents/{agentId}/behaviour/stream",
-    summary: "Subscribe to asynchronous behaviour-plan events. Browser EventSource uses accessCode as query.",
+    summary: "Subscribe to behaviour-plan events labeled behaviour-live for publication or behaviour-replay for recovery. Browser EventSource uses accessCode as query.",
     headers: { [ACCESS_CODE_HEADER]: "{accessCode}" },
     query: { accessCode: "{accessCode}", lastEventId: "" },
     pathVariables: ["agentId"],
@@ -164,18 +164,6 @@ const ENDPOINTS = [
     headers: { [ACCESS_CODE_HEADER]: "{accessCode}" },
     query: { profile: "full_plan" },
     pathVariables: ["agentId"],
-  },
-  {
-    id: "demo-realtime-call",
-    group: "Realtime",
-    method: "POST",
-    path: "/demo/agents/{agentId}/realtime/call",
-    summary: "Create a PROMETHEUS-owned Realtime WebRTC call from an SDP offer.",
-    headers: { "Content-Type": "application/sdp", [ACCESS_CODE_HEADER]: "{accessCode}" },
-    query: { voice: "cedar", turnDetection: "server_vad", generateComplement: "true" },
-    pathVariables: ["agentId"],
-    bodyKind: "text",
-    body: "v=0\r\n...client SDP offer...",
   },
   {
     id: "admin-agent-types",
@@ -753,7 +741,7 @@ function connectSseStream(endpoint) {
     elements.requestStatus.textContent = "Connected";
     appendSseEvent(endpoint, "open", { url });
   });
-  ["message", "behaviour", "snapshot", "heartbeat"].forEach((eventName) => {
+  ["message", "behaviour-live", "behaviour-replay", "snapshot", "heartbeat"].forEach((eventName) => {
     source.addEventListener(eventName, (event) => {
       appendSseEvent(endpoint, eventName, parseSseData(event.data));
     });
@@ -1074,7 +1062,8 @@ function sseSnippet(endpoint) {
     `const stream = new EventSource(${JSON.stringify(buildResolvedUrl(endpoint))});`,
     "stream.addEventListener(\"open\", () => console.log(\"SSE connected\"));",
     "stream.addEventListener(\"message\", event => console.log(event.data));",
-    "stream.addEventListener(\"behaviour\", event => console.log(JSON.parse(event.data)));",
+    "stream.addEventListener(\"behaviour-live\", event => console.log(JSON.parse(event.data)));",
+    "stream.addEventListener(\"behaviour-replay\", event => console.log(JSON.parse(event.data)));",
     "stream.addEventListener(\"snapshot\", event => console.log(JSON.parse(event.data)));",
     "stream.onerror = () => console.warn(\"SSE disconnected or unavailable\");",
   ].join("\n");

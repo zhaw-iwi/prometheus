@@ -36,7 +36,7 @@ public class TalkToMe implements AgentDefinition {
 
         Agent agent = new Agent(
                 "Talk to Me",
-                "Speaks submitted text exactly through a PROMETHEUS Realtime session.",
+                "Speaks submitted text exactly through PROMETHEUS output-only Speech synthesis.",
                 state);
         agent.setInteractionProfile(AgentInteractionProfile.of(
                 List.of(AgentInteractionProfile.OBS_USER_UTTERANCE),

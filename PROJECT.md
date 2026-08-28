@@ -41,7 +41,15 @@ code.
   acknowledge/generate semantics, and scheduled evaluation.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
-  and PROMETHEUS-authoritative Realtime speech orchestration.
+  typed live transcription, and output-only Speech synthesis.
+- Access-code-scoped live-transcription sessions and serialized finalized-turn
+  ingress through the ordinary full-plan acknowledgement pipeline.
+- Streamed output-only Speech synthesis that resolves canonical speech from a
+  persisted, scoped behaviour-event ID and shares provider mechanics with Talk
+  to Me without sharing its client policy.
+- Explicit live/replay behaviour SSE delivery and ordered Valerian playback of
+  live canonical Speech, with cross-tab output ownership, selected-device
+  routing, Stop semantics, and half-duplex transcription input gating.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -61,8 +69,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 148, participate phase-3 survey and
-  access-code actions.
+- Last completed milestone: Milestone 156, Arabic live-transcription support
+  across agent defaults, typed provider settings, browser controls, and
+  contract tests.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -244,6 +253,14 @@ and regulation diagnostics remain future work.
 - [x] Milestone 146: Participate admin-creation database foundation
 - [x] Milestone 147: Participate admin participant creation and identity editing
 - [x] Milestone 148: Participate phase-3 survey and access-code actions
+- [x] Milestone 149: Live-transcription migration acceptance baseline and decision lock
+- [x] Milestone 150: Typed scoped live-transcription session contract
+- [x] Milestone 151: Shared browser live-transcription engine and operator settings
+- [x] Milestone 152: Scoped full-plan transcript ingress
+- [x] Milestone 153: Canonical behaviour Speech synthesis
+- [x] Milestone 154: Live behaviour Speech playback coordination
+- [x] Milestone 155: Remove combined Realtime architecture and legacy profiles
+- [x] Milestone 156: Add Arabic live-transcription support
 
 ## Milestone 1
 ### Date
@@ -7679,3 +7696,482 @@ into another phase.
 ### Next steps
 1. Apply `database/migrations/20260816_participant_admin_fields.sql` to the
    deployment database, then deploy the updated `.web/participate/` files.
+
+## Milestone 149
+### Date
+2026-08-24
+
+### Goal
+Lock the architecture and measurable acceptance criteria for replacing the
+combined OpenAI Realtime speech session with a transcription-first
+`gpt-live-transcribe` input and canonical behaviour-speech output pipeline.
+
+### What changed
+- Added `.agents/PLAN_TRANSCRIBE.md` with eight sequential, independently
+  testable milestones covering the typed provider contract, shared browser
+  transport, `FULL_PLAN` acknowledgement, canonical speech synthesis, playback
+  coordination, legacy removal, and final acceptance.
+- Confirmed half-duplex input gating during agent playback, agent-aware language
+  defaults, far-field capture defaults, local/manual VAD, streaming Speech
+  output, single-tab playback ownership, live-only SSE speech, and removal of
+  the legacy output-profile split.
+- Added `.agents/TRANSCRIBE_SMOKE_RESULTS.md` with a fixed bilingual phrase
+  corpus, objective quality/reliability targets, environment matrix, and result
+  fields for baseline and final comparison.
+
+### How to test
+- Review the confirmed decision list and milestone exit criteria in
+  `.agents/PLAN_TRANSCRIBE.md`.
+- Review the phrase corpus, target definitions, and all required environment
+  rows in `.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
+- `git diff --check`
+
+### Verification
+- All architecture choices requested before implementation are recorded as
+  confirmed rather than open assumptions.
+- The acceptance record distinguishes deterministic repository verification
+  from acoustic measurements that require an operator and physical devices.
+- The coding environment cannot originate real wireless-microphone or
+  Bluetooth-speaker input, so those baseline rows are marked `NOT RUN` and are
+  not represented as passed.
+
+### Known issues and decisions
+- The physical baseline is an explicit manual verification limitation, not a
+  reason to retain the old full-duplex architecture or delay deterministic
+  implementation work.
+- `gpt-live-transcribe` does not provide a speaker identity contract; group
+  tests assess transcript and turn reliability, not diarization.
+
+### Next steps
+1. Implement milestone 150: the typed, access-code-scoped live-transcription
+   session contract.
+
+## Milestone 150
+### Date
+2026-08-24
+
+### Goal
+Introduce the secure, typed backend boundary that Valerian and the multilateral
+listener will use to create transcription-only `gpt-live-transcribe` WebRTC
+sessions.
+
+### What changed
+- Added scoped capabilities and session endpoints under
+  `/demo/agents/{agentId}/transcription/...`; access-code ownership is checked
+  before provider credentials are issued.
+- Added strict settings types and normalization for far/near/off noise
+  reduction, local/manual turn detection, local silence duration, contextual
+  prompt, keywords, English/German language hints, and transcription delay.
+- Added an agent-language-aware settings descriptor and a non-sensitive
+  effective settings response that reports prompt presence and keyword count
+  without reflecting their contents.
+- Added a dedicated provider payload builder and ephemeral-secret client with a
+  fixed `type: transcription` / `gpt-live-transcribe` contract, explicit secret
+  lifetime, safety identifier forwarding, safe provider failures, and no
+  assistant-output fields.
+- Documented the new public contract while explicitly marking the former
+  endpoints as branch-local migration paths pending later removal.
+
+### How to test
+- `.\mvnw.cmd "-Dtest=ScopedDemoControllerIntegrationTest,LiveTranscriptionSettingsNormalizerTest,LiveTranscriptionProviderPayloadBuilderTest,LiveTranscriptionSessionClientTest,ScopedLiveTranscriptionServiceUnitTest,ScopedLiveTranscriptionControllerWebMvcTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- 22 focused unit, provider-contract, Web MVC, and scoped integration tests
+  passed.
+- The full Java regression suite passed: 254 tests, zero failures and zero
+  errors.
+- The fake provider received the exact typed session envelope and safe headers;
+  provider response bodies and API credentials were not reflected to callers.
+- A second valid access code received `404` rather than a session for an agent
+  it does not own; invalid/disabled codes retain the scoped `401` contract.
+
+### Known issues and decisions
+- Only `en` and `de` are exposed because they are the currently supported
+  PROMETHEUS/PROMISE operator languages. The official provider supports more
+  language codes, which can be added deliberately with descriptor and test
+  coverage.
+- The combined Realtime and old unscoped transcription endpoints remain only
+  until their bundled clients move to the new contract in subsequent
+  milestones.
+
+### Next steps
+1. Implement milestone 151: shared browser live-transcription transport,
+   ordering, media controls, and operator settings.
+
+## Milestone 151
+### Date
+2026-08-24
+
+### Goal
+Move Valerian and the multilateral listener onto one deterministic
+`gpt-live-transcribe` browser engine with operator-visible provider and capture
+settings, while preserving the agent acknowledgement cutover for the next
+milestone.
+
+### What changed
+- Added shared ES modules for validated preferences, media constraints and a
+  cross-tab microphone lease, local VAD, item-ordered provider events, WebRTC
+  transport/reconnect, the scoped transcription client, and the settings UI.
+- Made partial transcripts display-only and serialized finalized turns by
+  committed provider item ID. Duplicate terminals and events from stale
+  connection epochs cannot emit a second final turn.
+- Made assistant response/audio events and remote media diagnostic-only; the
+  shared transport never renders provider assistant output.
+- Switched Valerian microphone startup from the combined Realtime call to the
+  scoped transcription session. Added the same shared client to
+  `/multilateral/listen`, retaining that page's existing transcript display and
+  acknowledgement behavior until the scoped acknowledgement milestone.
+- Added local/manual turn controls, far/near/off provider noise reduction,
+  context, keywords, expected languages, transcription delay, microphone
+  selection, browser echo/noise/gain controls, optional voice isolation, and
+  requested/applied capture diagnostics. Sensitive context and keywords are
+  never persisted.
+- Added automatic fresh-secret reconnect and teardown of tracks, channels,
+  peers, VAD audio contexts, timers, and stale epochs.
+
+### How to test
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `.\mvnw.cmd "-Dtest=RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- 13 Node unit tests passed for settings privacy and validation, media
+  constraints, local VAD, out-of-order and duplicate provider terminals, stale
+  epochs, assistant-event isolation, manual commits, teardown, and reconnect.
+- Five mocked Playwright flows passed for permission denial, connect,
+  partial/final transcript display, duplicate suppression, manual commit,
+  microphone selection, reconnect, stop, shared multilateral use, responsive
+  settings states, and visual artifacts.
+- The existing five-test Valerian visual/interaction suite passed after the
+  shared settings capability was added to its deterministic API fixture.
+- Static browser contracts passed for both clients and the shared scoped module
+  wiring. The full Java suite passed: 254 tests, zero failures and zero errors;
+  Surefire logged its existing forced-fork-shutdown warning after the results.
+
+### Known issues and decisions
+- Valerian intentionally does not acknowledge the new final transcript yet;
+  milestone 152 adds the serialized scoped `FULL_PLAN` boundary and its
+  exactly-once persistence tests.
+- The former combined Realtime Java/backend code and hidden legacy settings
+  markup remain migration debt until the explicit deletion milestone. Bundled
+  Valerian and multilateral microphone startup no longer use those endpoints.
+- All WebRTC/browser tests are mocked. No live OpenAI credential, acoustic
+  environment, wireless microphone, or Bluetooth speaker was exercised.
+
+### Next steps
+1. Implement milestone 152: serialize finalized speech through scoped
+   `FULL_PLAN` acknowledgement and prove one accepted agent turn.
+
+## Milestone 152
+### Date
+2026-08-24
+
+### Goal
+Feed finalized live transcription into the ordinary scoped PROMETHEUS agent
+pipeline exactly once, using the same full multimodal plan semantics as typed
+input and leaving canonical behaviour rendering to SSE.
+
+### What changed
+- Added a shared serialized transcript ingress used by Valerian and the
+  multilateral listener. It preserves agent identity and the access-code header
+  while posting `obs.user_utterance` explicitly with `profile=full_plan`.
+- Added epoch/item deduplication, playback gating, and queued, acknowledging,
+  accepted, rejected, and provider-error diagnostics. Partial, empty, failed,
+  duplicate, stale, and gated input never reaches acknowledgement.
+- Preserved the typed-input fallback: an accepted acknowledgement with no
+  response event requests one ordinary `full_plan` generation.
+- Kept assistant plans out of the acknowledgement-render path. User input is
+  shown once when queued, while the existing behaviour SSE handler remains the
+  sole canonical renderer and deduplicates repeated envelopes.
+- Replaced the multilateral listener's unscoped acknowledgement call with the
+  same scoped ingress boundary and added an operator-visible Valerian ingress
+  status.
+
+### How to test
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `.\mvnw.cmd "-Dtest=ScopedDemoControllerIntegrationTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd test`
+- `git diff --check`
+
+### Verification
+- The full Java regression suite passed: 256 tests, zero failures and zero
+  errors. The existing Surefire fork-shutdown warning appeared after successful
+  completion.
+- All 17 shared transcription unit tests, five mocked transcription Playwright
+  flows, and five existing Valerian visual/interaction flows passed.
+- Node coverage proves ordered acknowledgement, duplicate/empty/stale/gated
+  suppression, scoped access propagation, fallback generation, and rejected or
+  provider-failed input handling.
+- The scoped Spring integration test drives a final transcript through an RPS
+  agent and verifies one persisted `obs.user_utterance` followed by one
+  full-plan `resp.behaviour_plan` containing speech, nonverbal, motion, and
+  display channels.
+- Mocked Playwright drives WebRTC final/failure events through Valerian and the
+  multilateral listener. It verifies one user turn, no assistant rendering from
+  the HTTP acknowledgement, one SSE-rendered/deduplicated assistant plan, and
+  visible provider-error state.
+
+### Known issues and decisions
+- User text is displayed at the queued boundary, matching existing typed-input
+  ordering; a rejected acknowledgement remains visibly marked rejected and is
+  not reported as accepted.
+- Playback gating is already enforced at ingress from the existing assistant
+  activity signal. Milestone 154 will replace that signal with the canonical
+  Speech playback lifecycle and add the complete half-duplex state machine.
+- Provider, microphone, acoustic, wireless, and Bluetooth behavior remains
+  unverified until the physical smoke matrix is run.
+
+### Next steps
+1. Implement milestone 153: canonical persisted-behaviour Speech synthesis.
+
+## Milestone 153
+### Date
+2026-08-24
+
+### Goal
+Provide output-only Speech synthesis from the exact persisted behaviour event
+selected by an authorized client, while sharing provider infrastructure with
+Talk to Me and accepting no browser-authored speech text on the new boundary.
+
+### What changed
+- Added an access-code-scoped behaviour Speech endpoint keyed by agent and
+  behaviour event UUID. It searches only the scoped agent history, requires a
+  valid `resp.behaviour_plan`, and synthesizes its exact non-empty speech.
+- Generalized the Talk-to-Me-specific provider properties and voice/speed
+  settings into shared Speech synthesis infrastructure. Talk to Me retains its
+  dedicated agent-tag restriction, acknowledgement, and exact-text policy.
+- Changed the provider gateway and both HTTP endpoints to stream uncached audio
+  with normalized `audio/*` metadata. Closing or failing the downstream copy
+  closes the upstream provider stream.
+- Removed the obsolete `prometheus.talktome.speech.*` configuration classes and
+  keys in favor of `prometheus.speech.*`.
+- Documented the canonical endpoint, ownership and error semantics, defaults,
+  shared configuration, and streaming behavior.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SpeechSynthesisSettingsUnitTest,ScopedBehaviourSpeechServiceUnitTest,SpeechAudioUnitTest,OpenAISpeechSynthesisGatewayUnitTest,BehaviourSpeechControllerWebMvcTest,TalkToMeSpeechControllerWebMvcTest,ScopedTalkToMeSpeechServiceUnitTest,TalkToMeScopedIntegrationTest,ScopedDemoControllerIntegrationTest" test`
+- `npm.cmd run test:talktome:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java matrix passed 30 tests covering shared settings, canonical
+  event lookup and parsing, provider mapping/error handling, streamed audio,
+  both Web MVC boundaries, Talk to Me policy, and scoped integration.
+- The scoped integration path acknowledged a real RPS transcript, selected the
+  resulting persisted behaviour UUID, and verified that the provider received
+  exactly that plan's speech before the endpoint streamed the mocked audio.
+- The full current Java suite passed 270 tests with zero failures, errors, or
+  skips. Surefire logged its existing forced-fork-shutdown warning after the
+  successful result.
+- The Talk to Me Playwright lifecycle/synthesis smoke passed one test unchanged,
+  and `git diff --check` passed apart from Git's line-ending notices.
+
+### Known issues and decisions
+- `prometheus.talktome.speech.*` is intentionally not retained as a compatibility
+  alias; affected prototype deployments must rename the two properties.
+- The provider contract uses a local chunked fake server. No live OpenAI/Azure
+  credential, browser disconnect during an active provider stream, physical
+  audio device, or acoustic environment was exercised.
+- Valerian does not consume the new endpoint yet. Milestone 154 owns live-only
+  SSE playback, ordering, output ownership, half-duplex microphone gating, and
+  Stop behavior.
+
+### Next steps
+1. Implement milestone 154: Valerian playback and explicit turn coordination.
+
+## Milestone 154
+### Date
+2026-08-24
+
+### Goal
+Complete Valerian's transcription-first speech loop by making live behaviour
+delivery explicit, synthesizing persisted speech exactly once, and coordinating
+output with transcription input across queued audio and multiple browser tabs.
+
+### What changed
+- Split behaviour SSE delivery into `behaviour-live` publications and
+  `behaviour-replay` initial/history/reconnect recovery while preserving each
+  event's persisted ID, payload object, ordering, cursor behavior, and heartbeat.
+- Updated Valerian and API Workbench to consume both named deliveries. Valerian
+  renders both visually but sends only live, non-empty, event-ID-addressed speech
+  to the canonical scoped synthesis endpoint.
+- Added a reusable ordered browser playback queue with event-ID deduplication,
+  distinct completed/failed/skipped tracking, cancellation, resource cleanup,
+  failure recovery, selected speaker routing, and operator status/Stop controls.
+- Added an expiring per-agent cross-tab output lease so duplicate Valerian pages
+  elect one audible owner for a live behaviour.
+- Gated transcript ingress and provider microphone input before synthesis starts,
+  cleared stale input/VAD state, and reopened a fresh provider epoch only after
+  the whole output burst completes or Stop/error/disconnect releases it.
+- Documented the live/replay contract and the Valerian half-duplex playback
+  lifecycle in the README and project context.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SseBroadcasterHardeningUnitTest,RealtimeBrowserClientContractTest,ValerianClientStaticResourceContractTest,ApiWorkbenchStaticResourceContractTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `npm.cmd run test:apiworkbench:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java SSE/client contract matrix passed 34 tests. Its broadcaster
+  capture proves live/replay labels, unchanged data identity and persisted IDs,
+  cursor replay ordering, and comment heartbeats.
+- The deterministic Node suites passed 18 transcription tests and 4 playback
+  tests, including ordered recovery, deduplication, replay suppression, Stop,
+  lease conflict/recovery, and fresh input epochs around the output gate.
+- The fake-boundary Valerian Playwright suite passed 7 scenarios, including the
+  full transcript -> acknowledgement -> live SSE -> one TTS request -> playback
+  path, acknowledgement/live deduplication, silent replay, two-page ownership,
+  and input reopening after Stop or synthesis failure. Its state screenshots
+  cover listening, loading, speaking, stopped, and error layouts.
+- The broader Valerian visual suite passed 5 tests and API Workbench passed 6,
+  including a real browser `EventSource` consuming `behaviour-live`.
+- The full current Java suite passed 272 tests with zero failures, errors, or
+  skips. Surefire logged its existing forced-fork-shutdown warning after the
+  successful result. JavaScript syntax checks and `git diff --check` passed
+  apart from Git's line-ending notices.
+
+### Known issues and decisions
+- No real OpenAI/Azure credential, physical microphone, Bluetooth speaker, or
+  quiet/noisy near-/far-field acoustic matrix was exercised. Those remain the
+  required live smoke before release and before claiming self-transcription is
+  eliminated in a real room.
+- The browser output lease is deliberately advisory and recovers by expiry if a
+  tab crashes. Provider synthesis failure, media failure, or autoplay rejection
+  is visible and reopens input rather than retrying speech implicitly.
+- The old combined Realtime call/sideband implementation still exists only as
+  migration debt. Milestone 155 removes that architecture, its profiles and
+  configuration, after which the transcription-first path becomes the sole
+  bundled agent speech path.
+
+### Next steps
+1. Implement milestone 155: remove the combined Realtime architecture and
+   legacy profiles.
+
+## Milestone 155
+### Date
+2026-08-24
+
+### Goal
+Make transcription-first sensing and canonical output-only Speech the sole
+bundled agent speech architecture by removing the combined Realtime stack and
+all of its legacy profiles, configuration, client behavior, and documentation.
+
+### What changed
+- Deleted the combined SDP call controller, scoped call endpoint, orchestration,
+  sideband session/configuration, provider call/session DTOs and client, prompt
+  instruction adapter, application publication event, and their dedicated tests.
+- Collapsed output profiles to `FULL_PLAN`; Talk to Me now uses that ordinary
+  acknowledgement contract, and former Realtime/complement profiles are rejected.
+- Renamed the remaining transcription provider properties to an explicit
+  `liveTranscription*` namespace and removed generation-only Realtime settings.
+- Reduced Valerian to the shared `LiveTranscriptionClient` input boundary plus
+  canonical persisted-plan Speech playback. Removed the remote assistant track,
+  response creation/cancellation, combined-call SDP exchange, duplicated input
+  selection, assistant transcript batching, echo/barge-in heuristics, diagnostics,
+  and obsolete tuning controls.
+- Removed the combined call from API Workbench, renamed the global prompt and
+  acknowledge controller for its actual interaction role, and updated README,
+  project context, browser tests, and source-absence contracts.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=SpeechArchitectureBrowserClientContractTest,SpeechArchitectureSourceContractTest,ValerianClientStaticResourceContractTest,ApiWorkbenchStaticResourceContractTest,OutputProfileUnitTest,ScopedTalkToMeSpeechServiceUnitTest,AgentClientCompatibilityWebMvcTest,PrometheusCorsConfigurationWebMvcTest,ScopedLiveTranscriptionControllerWebMvcTest,ScopedDemoControllerIntegrationTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `npm.cmd run test:talktome:visual`
+- `npm.cmd run test:apiworkbench:visual`
+- `\.\mvnw.cmd -q test`
+- `node --check src/main/resources/public/valerian/script.js`
+- `git diff --check`
+
+### Verification
+- The focused backend/profile/browser/source matrix passed 53 tests. It covers
+  the final profile set, removed-route `404` behavior, scoped current endpoints,
+  configuration names, and production-source absence of the combined stack.
+- The deterministic Node suites passed 18 transcription and 4 Speech playback
+  tests.
+- Playwright passed 7 Valerian transcription/playback scenarios, 5 Valerian
+  layout/ownership scenarios, the Talk to Me lifecycle, and 6 API Workbench
+  scenarios. These cover 19 browser scenarios in total.
+- The full Java suite passed 236 tests with zero failures, errors, or skips.
+  Surefire logged its existing forced-fork-shutdown warning after the successful
+  result. JavaScript syntax checks and `git diff --check` passed apart from Git's
+  line-ending notices.
+
+### Known issues and decisions
+- Removal of the former combined call/session endpoints, profiles, and property
+  names is intentional. Any external prototype still using them must migrate to
+  scoped live transcription, normal `FULL_PLAN` acknowledgement, behaviour SSE,
+  and event-identity Speech synthesis.
+- No live provider credential, physical microphone, Bluetooth speaker, or
+  quiet/noisy near-/far-field acoustic matrix was exercised in this milestone.
+  Those are the explicit acceptance work of milestone 156; mocked browser tests
+  do not establish real-room transcription or self-transcription performance.
+
+### Next steps
+1. Implement milestone 156: acoustic acceptance, resilience, and final branch
+   documentation.
+
+## Milestone 156
+### Date
+2026-08-28
+
+### Goal
+Add Arabic as a first-class live-transcription language so Arabic agents receive
+Arabic provider defaults through the same typed and scoped contract as the
+existing German and English agents.
+
+### What changed
+- Added the reusable `ar` agent-language constant and Arabic input-language
+  wire value, including case-insensitive Arabic agent-default mapping.
+- Exposed Arabic in the typed capabilities descriptor and derived the language
+  selection limit from the supported values instead of a two-language literal.
+- Covered Arabic defaults, scoped request decoding, effective settings, and the
+  exact provider payload in focused Java tests.
+- Updated the shared browser settings fixtures, README contract example, project
+  context, and the physical smoke matrix with an Arabic phrase corpus.
+- Hardened transition replay test cleanup to remove scoped access-code links
+  before deleting agents, keeping the persistent MySQL test database isolated
+  after browser journeys.
+
+### How to test
+- `\.\mvnw.cmd -q "-Dtest=LiveTranscriptionSettingsNormalizerTest,ScopedLiveTranscriptionServiceUnitTest,LiveTranscriptionProviderPayloadBuilderTest,ScopedLiveTranscriptionControllerWebMvcTest" test`
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- The focused Java transcription settings, service, provider-payload, and Web
+  MVC contracts passed.
+- All 18 shared transcription JavaScript unit tests passed.
+- Playwright passed all 7 Valerian transcription/playback scenarios and all 5
+  Valerian layout/ownership scenarios.
+- The full Java suite passed 237 tests with zero failures, errors, or skips.
+  Surefire emitted its existing forced-fork-shutdown warning after the
+  successful result.
+
+### Known issues and decisions
+- No live provider credential, Arabic speaker, physical microphone, speaker, or
+  venue acoustic matrix was exercised. The Arabic rows in
+  `.agents/TRANSCRIBE_SMOKE_RESULTS.md` remain explicitly `NOT RUN`.
+- Unknown agent languages continue to fall back to English; only explicitly
+  supported Arabic, German, and English codes are sent to the provider.
+
+### Next steps
+1. Merge the mainline live-transcription architecture into the customer-agent
+   branch and implement the Arabic Invest Qatar Aisha agent there.

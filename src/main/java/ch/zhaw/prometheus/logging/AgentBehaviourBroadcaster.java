@@ -20,6 +20,8 @@ import ch.zhaw.prometheus.model.event.Event;
 
 @Component
 public class AgentBehaviourBroadcaster {
+    public static final String LIVE_EVENT_NAME = "behaviour-live";
+    public static final String REPLAY_EVENT_NAME = "behaviour-replay";
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentBehaviourBroadcaster.class);
     private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L;
 
@@ -114,7 +116,7 @@ public class AgentBehaviourBroadcaster {
 
     private void sendInitialBehaviour(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Event event) {
         try {
-            emitter.send(behaviourEvent(event));
+            emitter.send(behaviourEvent(event, REPLAY_EVENT_NAME));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -123,7 +125,7 @@ public class AgentBehaviourBroadcaster {
 
     private void sendBehaviour(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Event event) {
         try {
-            emitter.send(behaviourEvent(event));
+            emitter.send(behaviourEvent(event, LIVE_EVENT_NAME));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -157,8 +159,8 @@ public class AgentBehaviourBroadcaster {
         }
     }
 
-    private static SseEmitter.SseEventBuilder behaviourEvent(Event event) {
-        SseEmitter.SseEventBuilder builder = SseEmitter.event().name("behaviour").data(event);
+    private static SseEmitter.SseEventBuilder behaviourEvent(Event event, String eventName) {
+        SseEmitter.SseEventBuilder builder = SseEmitter.event().name(eventName).data(event);
         String id = sseEventId(event);
         if (id != null) {
             builder.id(id);
