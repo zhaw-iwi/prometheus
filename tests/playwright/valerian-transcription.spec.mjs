@@ -25,6 +25,19 @@ test.beforeEach(async ({ context }) => {
   await installBrowserMediaMocks(context);
 });
 
+test("history hydration and initial SSE replay render one assistant message", async ({ page }) => {
+  const greeting = behaviourEvent("Welcome from persisted history.");
+  await page.route(`**/demo/agents/${AGENT_ID}/eventhistory`, (route) => route.fulfill(json([greeting])));
+
+  await openConnectedValerian(page);
+  await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(1);
+
+  await emitBehaviourSse(page, "behaviour-replay", REPLAY_BEHAVIOUR_ID, greeting);
+
+  await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(1);
+  await expect(page.getByTestId("message-list")).toContainText("Welcome from persisted history.");
+});
+
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
   const acknowledgeRequests = [];
   const speechRequests = [];

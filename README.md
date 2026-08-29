@@ -84,6 +84,26 @@ queued/current audio and reopens input without changing the persisted plan. A
 per-agent browser lease selects one audible Valerian window, and playback uses
 the speaker, voice, and speed selected in the speech settings.
 
+#### Cockpit lifecycle contract
+
+The sensing, interaction, and behaviour columns represent the currently
+connected agent only. An empty column contains no agent-derived history,
+starter message, sensing value, or behaviour value; operator lifecycle notices
+belong in diagnostics rather than the conversation.
+
+| Lifecycle state or action | Cockpit columns |
+| --- | --- |
+| Access screen, accepted access code, selected agent type, or newly created instance | Empty. Selecting or creating an instance does not imply a connection. |
+| Connect to a new instance | Cleared first, then initialized from that agent's current starter behaviour and subsequent events. |
+| Connect to a previously used instance | Cleared first, then hydrated in persisted order with its conversation and the latest facial, social, hand-sign, weather, and behaviour values. |
+| Switch instance, failed connection, or disconnect | Empty. Disconnect retains the selected instance so it can be reconnected explicitly. |
+| Reset a connected instance | Cleared first, then initialized from the reset agent's new starter behaviour. |
+| Log out and access the cockpit again | Empty, with access, selection, diagnostics, and agent URL identity removed. |
+
+An explicit `agentId`/`agent` URL is the intentional exception: it identifies a
+specific agent for direct-link and detached-column use and therefore attempts
+that connection on load.
+
 #### Social Context Sensitivity
 
 ![Valerian social context sensing](.doc/figures/Valerian/valerian-cockpit-social.png)
@@ -493,6 +513,9 @@ standard `Last-Event-ID` header or `?lastEventId=<id>` to replay missed
 behaviour events. Replayed events retain their original persisted IDs, data,
 and order, but are labeled `behaviour-replay`; clients must not repeat live-only
 effects such as speech playback for them. Heartbeats remain SSE comments.
+Valerian correlates both persisted event IDs and stable event-envelope
+fingerprints so an initial-history response followed by an SSE replay renders
+the same behaviour only once.
 
 ### 5. Request generated behaviour without a new perception event
 

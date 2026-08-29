@@ -697,6 +697,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("handleBehaviourEnvelope(event, { fromHistory: true });"));
         assertTrue(script.contains("event.type === \"obs.user_utterance\""));
         assertTrue(script.contains("renderHistoricalUserUtterance(event);"));
+        assertTrue(script.contains("renderHistoricalSensingEvent(event);"));
+        assertTrue(script.contains("function renderEmotionFromHistory"));
+        assertTrue(script.contains("function renderSocialFromHistory"));
         assertTrue(script.contains("function renderHistoricalUserUtterance"));
         assertTrue(script.contains("const text = eventPayloadText(event && event.payload);"));
         assertTrue(script.contains("appendMessage(\"user\", text);"));
@@ -711,7 +714,7 @@ class ValerianClientStaticResourceContractTest {
 
         assertTrue(script.contains("recentBehaviourPayloads: new Map()"));
         assertTrue(script.contains("BEHAVIOUR_DUPLICATE_WINDOW_MS"));
-        assertTrue(script.contains("function behaviourEventKey"));
+        assertTrue(script.contains("function behaviourEventKeys"));
         assertTrue(script.contains("function recentBehaviourPayloadSeen"));
         assertTrue(script.contains("function rememberRecentBehaviourPayload"));
         assertTrue(script.contains("function pruneRecentBehaviourPayloads"));
@@ -719,8 +722,20 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("resetBehaviourDeduplication();"));
         assertTrue(script.contains("state.recentBehaviourPayloads.set(payload, Date.now());"));
         assertTrue(script.contains("state.recentBehaviourPayloads.delete(payload);"));
-        assertTrue(script.contains("state.seenBehaviourKeys.has(key)"));
+        assertTrue(script.contains("keys.some((key) => state.seenBehaviourKeys.has(key))"));
         assertTrue(script.contains("state.seenBehaviourKeys.add(key)"));
+    }
+
+    @Test
+    void valerianClientHasExplicitOperationalColumnLifecycle() throws IOException {
+        String script = Files.readString(SCRIPT);
+
+        assertTrue(script.contains("function resetCockpitColumns"));
+        assertTrue(script.contains("function resetSensingState"));
+        assertTrue(script.contains("resetCockpitColumns();"));
+        assertTrue(script.contains("clearAgentIdFromLocation();"));
+        assertTrue(script.contains("clearActivityLog();"));
+        assertFalse(script.contains("appendSystemMessage("));
     }
 
     @Test

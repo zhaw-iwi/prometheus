@@ -230,9 +230,9 @@ async function init() {
   applyInteractionProfile(null);
   resetStateView();
   resetStorageList();
+  resetCockpitColumns();
   refreshAudioDevices({ requestPermission: false, silent: true });
   refreshCameraDevices({ requestPermission: false, silent: true });
-  appendSystemMessage("Select or create an agent instance, then connect.");
 
   state.selectedAgentId = getAgentIdFromLocation();
   const storedAccessCode = sessionStorage.getItem(ACCESS_CODE_STORAGE_KEY);
@@ -488,7 +488,7 @@ function openDetachedColumn(columnKey) {
     return;
   }
   if (!state.agentId) {
-    appendSystemMessage("Connect an agent before opening a separate window.");
+    appendLog("app", "Connect an agent before opening a separate window.");
     return;
   }
   if (state.accessCode) {
@@ -805,6 +805,8 @@ async function openAccessSession(accessCode, options = {}) {
     state.accessCode = session.accessCode || accessCode;
     state.agentTypes = Array.isArray(session.agentTypes) ? session.agentTypes : [];
     state.agents = Array.isArray(session.agents) ? session.agents : [];
+    resetCockpitColumns();
+    clearActivityLog();
     sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode);
     document.getElementById("active_access_code").textContent = `Access ${state.accessCode}`;
     showCockpit(true);
@@ -820,15 +822,14 @@ async function openAccessSession(accessCode, options = {}) {
       updateSelectedAgentStatus();
       setControlsEnabled(false);
     }
-    if (!options.fromStorage) {
-      appendSystemMessage("Access accepted. Create or select an agent instance.");
-    }
     return true;
   } catch (error) {
     sessionStorage.removeItem(ACCESS_CODE_STORAGE_KEY);
     state.accessCode = null;
     state.agentTypes = [];
     state.agents = [];
+    resetCockpitColumns();
+    clearActivityLog();
     renderAgentTypes();
     renderAgents();
     showCockpit(false);
@@ -850,11 +851,13 @@ async function clearAccessSession() {
   state.agentTypes = [];
   state.agents = [];
   state.selectedAgentId = null;
+  clearAgentIdFromLocation();
   document.getElementById("access_code_input").value = "";
   document.getElementById("agent_id_input").value = "";
   setAccessStatus("");
   renderAgentTypes();
   renderAgents();
+  clearActivityLog();
   showCockpit(false);
   setControlsEnabled(false);
 }
@@ -958,7 +961,7 @@ async function createAgentInstance() {
       await selectAgent(createdId, { updateInput: true, updateSelect: true });
     }
     setAgentTypeStatus("Instance created.", "success");
-    appendSystemMessage(`Created ${prometheusFacingText(agent.name || createdId || "agent instance")}.`);
+    appendLog("app", `created ${prometheusFacingText(agent.name || createdId || "agent instance")}.`);
   } catch (error) {
     setAgentTypeStatus("Create failed.", "error");
     appendLog("app", "create agent failed: " + error.message);
@@ -988,7 +991,7 @@ async function deleteSelectedAgent() {
     }
     renderAgents();
     updateSelectedAgentStatus();
-    appendSystemMessage("Agent instance deleted.");
+    setAgentTypeStatus("Agent instance deleted.", "success");
   } catch (error) {
     appendLog("app", "delete failed: " + error.message);
   }
@@ -1013,7 +1016,7 @@ async function connectToAgent(agentId) {
   const selectedAgentId = typeof agentId === "string" ? agentId.trim() : "";
   if (!selectedAgentId) {
     await disconnectAgent({ preserveInput: false, silent: true });
-    appendSystemMessage("Missing agent ID.");
+    appendLog("app", "connect blocked: missing agent ID.");
     return;
   }
   state.selectedAgentId = selectedAgentId;
@@ -1025,6 +1028,7 @@ async function connectToAgent(agentId) {
   }
   await stopSpeechPlayback("agent_switch", { reset: true, silent: true });
   cleanupStreams();
+  resetCockpitColumns();
   state.agentId = selectedAgentId;
   document.getElementById("agent_id_input").value = selectedAgentId;
   document.getElementById("agent_select").value = selectedAgentId;
@@ -1035,14 +1039,12 @@ async function connectToAgent(agentId) {
   setControlsEnabled(false);
   const infoLoaded = await loadAgentInfo();
   if (!infoLoaded) {
-    appendSystemMessage("Agent not found or unavailable.");
+    appendLog("app", "agent not found or unavailable.");
     await disconnectAgent({ preserveInput: true, silent: true });
     return;
   }
   await ensureLiveTranscriptionUi();
   await ensureSpeechPlaybackCoordinator();
-  clearMessages();
-  appendSystemMessage("Connected.");
   await loadEventHistory();
   await loadStorage();
   await loadAgentState();
@@ -1092,6 +1094,7 @@ async function disconnectAgent(options = {}) {
   state.agentInfo = null;
   state.lastBehaviourEventId = null;
   resetBehaviourDeduplication();
+  resetCockpitColumns();
   if (!options.preserveInput) {
     document.getElementById("agent_id_input").value = "";
     state.selectedAgentId = null;
@@ -1106,7 +1109,7 @@ async function disconnectAgent(options = {}) {
   updateSelectedAgentStatus();
   updateConnectionButton();
   if (!options.silent && options.message) {
-    appendSystemMessage(options.message);
+    appendLog("app", options.message);
   }
 }
 
@@ -1314,20 +1317,75 @@ async function loadEventHistory() {
     for (const event of events || []) {
       if (event.type === "resp.behaviour_plan") {
         handleBehaviourEnvelope(event, { fromHistory: true });
-      } else if (event.type === "obs.hand.sign") {
-        renderUserSignFromPayload(event.payload);
-      } else if (event.type === "obs.social.situation_change") {
-        renderLatestEvent(event);
-      } else if (event.type === "obs.weather.current" || event.type === "obs.weather.forecast") {
-        renderWeatherFromPayload(event.type, event.payload);
       } else if (event.type === "obs.user_utterance") {
         renderHistoricalUserUtterance(event);
+      } else {
+        renderHistoricalSensingEvent(event);
       }
     }
     return events || [];
   } catch (error) {
     appendLog("app", "event history failed: " + error.message);
     return [];
+  }
+}
+
+function renderHistoricalSensingEvent(event) {
+  if (!event || !event.type || !event.payload) {
+    return;
+  }
+  if (event.type === "obs.emotion.face") {
+    renderEmotionFromHistory(event.payload);
+  } else if (["obs.human.presence", "obs.social.grouping", "obs.social.context"].includes(event.type)) {
+    renderSocialFromHistory(event.type, event.payload);
+  } else if (event.type === "obs.hand.sign") {
+    renderUserSignFromPayload(event.payload);
+  } else if (event.type === "obs.weather.current" || event.type === "obs.weather.forecast") {
+    renderWeatherFromPayload(event.type, event.payload);
+  }
+}
+
+function renderEmotionFromHistory(payload) {
+  try {
+    const emotion = JSON.parse(payload);
+    renderEmotionMetrics(emotion, emotion.faceDetectionConfidence);
+    setEmotionEmitStatus("From history", "idle");
+  } catch (_) {
+    resetEmotionReport();
+  }
+}
+
+function renderSocialFromHistory(type, payload) {
+  try {
+    const parsed = JSON.parse(payload);
+    const groups = Array.isArray(parsed.groups)
+      ? parsed.groups.map((group) => ({ members: group.memberIds || group.members || [] }))
+      : [];
+    const trackedIds = Array.isArray(parsed.trackedIds) ? parsed.trackedIds : [];
+    const people = Array.isArray(parsed.people)
+      ? parsed.people.map((person) => ({
+        id: person.id,
+        score: person.detectionConfidence,
+        activity: person.movement?.state,
+        movementState: person.movement?.state,
+        movementConfidence: person.movement?.confidence,
+        attention: person.attention,
+      }))
+      : trackedIds.map((id) => ({ id, score: 0 }));
+    const humanCount = Number(parsed.humanCount ?? people.length ?? 0);
+    const social = {
+      humanCount,
+      groupCount: Number(parsed.groupCount ?? groups.filter((group) => group.members.length >= 2).length),
+      singletonCount: Number(parsed.singletonCount ?? groups.filter((group) => group.members.length === 1).length),
+      largestGroupSize: Number(parsed.largestGroupSize
+        ?? groups.reduce((largest, group) => Math.max(largest, group.members.length), 0)),
+      groups: type === "obs.human.presence" && groups.length === 0
+        ? trackedIds.map((id) => ({ members: [id] }))
+        : groups,
+    };
+    renderSocialMetrics(social, people);
+  } catch (_) {
+    renderSocialMetrics(null, []);
   }
 }
 
@@ -1752,7 +1810,13 @@ async function resetAgent() {
     return;
   }
   try {
-    await stopSpeechPlayback("agent_reset", { silent: true });
+    await stopSpeechPlayback("agent_reset", { reset: true, silent: true });
+    if (state.transcriptionListening) {
+      await stopTranscription();
+    }
+    if (state.cameraRunning) {
+      stopCamera({ silent: true });
+    }
     const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
@@ -1760,10 +1824,10 @@ async function resetAgent() {
     }
     const data = await response.json();
     setActiveStatus(data.active);
-    clearMessages();
     resetBehaviourDeduplication();
-    resetBehaviourPanels();
-    resetSpeechSensingPanel();
+    resetCockpitColumns();
+    await ensureLiveTranscriptionUi();
+    await ensureSpeechPlaybackCoordinator();
     handleResponseEvent(data.responseEvent);
     await loadAgentState();
     await loadStorage();
@@ -1889,12 +1953,12 @@ function handleBehaviourEnvelope(event, options = {}) {
     return;
   }
   queueBehaviourSpeech(plan, options);
-  const key = behaviourEventKey(event, options.eventId);
-  if ((key && state.seenBehaviourKeys.has(key))
+  const keys = behaviourEventKeys(event, options.eventId);
+  if (keys.some((key) => state.seenBehaviourKeys.has(key))
     || (!options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
     return;
   }
-  if (key) {
+  for (const key of keys) {
     state.seenBehaviourKeys.add(key);
   }
   if (!options.fromHistory) {
@@ -1912,14 +1976,15 @@ function resetBehaviourDeduplication() {
   state.recentBehaviourPayloads.clear();
 }
 
-function behaviourEventKey(event, eventId = "") {
+function behaviourEventKeys(event, eventId = "") {
+  const keys = [];
   if (eventId) {
-    return `id:${eventId}`;
+    keys.push(`id:${eventId}`);
   }
-  if (!event || !event.createdDate || !event.payload) {
-    return null;
+  if (event && event.createdDate && event.payload) {
+    keys.push(`envelope:${event.createdDate}|${event.payload}`);
   }
-  return `${event.createdDate}|${event.payload}`;
+  return keys;
 }
 
 function recentBehaviourPayloadSeen(payload) {
@@ -5005,11 +5070,13 @@ function renderUserSignFromPayload(payload) {
     const parsed = JSON.parse(payload);
     const sign = normalizeSign(parsed.sign);
     if (sign) {
+      const confidence = asUnitNumber(parsed.confidence ?? 1);
+      setText("hand_sign_value", `${SIGNS[sign].label} ${confidence.toFixed(2)}`);
       renderUserSign(sign);
       renderHandSignReport(sign, {
         source: parsed.source,
         detectionMode: parsed.detectionMode,
-        confidence: parsed.confidence,
+        confidence,
         cannedGesture: parsed.cannedGesture,
         stabilityFrames: parsed.stabilityFrames,
         statusText: "From history",
@@ -5131,12 +5198,50 @@ function appendMessage(role, text) {
   list.scrollTop = list.scrollHeight;
 }
 
-function appendSystemMessage(text) {
-  appendMessage("system", text);
-}
-
 function clearMessages() {
   document.getElementById("messages").innerHTML = "";
+}
+
+function resetCockpitColumns() {
+  clearMessages();
+  const textInput = document.getElementById("text_input");
+  if (textInput) {
+    textInput.value = "";
+  }
+  resetSpeechSensingPanel();
+  const ingressStatus = document.getElementById("transcription_ingress_status");
+  if (ingressStatus) {
+    ingressStatus.textContent = "Transcript Ready";
+    ingressStatus.className = "status-pill is-idle";
+  }
+  transcription.transcriptIngress?.setAccepting(false);
+  transcription.manualTurnActive = false;
+  transcription.inputGated = false;
+  setTranscriptionState(false);
+  setTranscriptionTransportStatus("Transport Idle", "idle", "");
+  setSpeechPlaybackStatus("Playback Ready", "idle", false);
+  resetSensingState();
+  resetBehaviourPanels();
+  setBehaviourStatus("Behaviour Idle", "idle");
+}
+
+function resetSensingState() {
+  resetEmotionReport();
+  renderSocialMetrics(null, []);
+  setText("hand_sign_value", "-");
+  resetHandSignReport("No sign");
+  resetWeatherState();
+  camera.tracks.clear();
+  camera.lastEmotion = null;
+  camera.lastEmotionEmitAt = 0;
+  camera.lastPresenceSignature = null;
+  camera.lastGroupingSignature = null;
+  camera.lastSocialContextSignature = null;
+  camera.lastSocialEmitAt = 0;
+  camera.stableGestureKey = null;
+  camera.stableGestureCount = 0;
+  resetCameraEmissionGate();
+  setCameraStatus("Camera Idle", "idle");
 }
 
 function appendLog(scope, message) {
@@ -5354,6 +5459,17 @@ function getAgentIdFromLocation() {
     return params.get("agentId") || params.get("agent");
   }
   return search.substring(1);
+}
+
+function clearAgentIdFromLocation() {
+  const url = new URL(window.location.href);
+  if (url.search && !url.search.includes("=")) {
+    url.search = "";
+  } else {
+    url.searchParams.delete("agentId");
+    url.searchParams.delete("agent");
+  }
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 function scopedFetch(url, options = {}) {
