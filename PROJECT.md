@@ -51,6 +51,9 @@ code.
   live canonical Speech, with event-envelope correlation across history
   hydration and replay, cross-tab output ownership, selected-device routing,
   Stop semantics, and half-duplex transcription input gating.
+- A connection-scoped Valerian cockpit lifecycle that clears operational
+  sensing, interaction, and behaviour state outside an active connection and
+  hydrates persisted conversation, sensing, and behaviour history on connect.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -70,9 +73,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 158, Valerian event-envelope correlation
-  across history hydration and SSE replay so one persisted starter behaviour is
-  rendered only once when an agent connects.
+- Last completed milestone: Milestone 159, Valerian connection-scoped cockpit
+  lifecycle and cross-transport behaviour replay correlation.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -264,6 +266,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 156: Add Arabic live-transcription support
 - [x] Milestone 157: Add the Aisha Arabic catalog-agent vertical slice
 - [x] Milestone 158: Deduplicate Valerian history hydration and SSE replay
+- [x] Milestone 159: Enforce the Valerian cockpit lifecycle and replay correlation
 
 ## Milestone 1
 ### Date
@@ -8274,5 +8277,72 @@ event.
 ### Next steps
 1. Deploy the published `agents` tip and confirm a newly created Aisha instance
    displays its starter greeting once.
+2. Resume the complete workbook-backed Aisha catalog when a compliant
+   spreadsheet runtime or explicitly authorized fallback is available.
+
+## Milestone 159
+### Date
+2026-08-29
+
+### Goal
+Make Valerian's sensing, interaction, and behaviour columns represent only the
+currently connected agent, and prevent the same persisted behaviour from being
+rendered twice when history loading and SSE replay overlap.
+
+### What changed
+- Defined and implemented an explicit cockpit lifecycle: access, selection, and
+  creation remain empty; connection clears then hydrates; switch, failed
+  connection, disconnect, logout, and re-entry clear agent-derived UI state.
+- Removed lifecycle notices from the interaction transcript and kept them in
+  diagnostics, so transcript content represents agent conversation only.
+- Extended history hydration from utterances and behaviour to persisted facial,
+  social, hand-sign, and weather observations.
+- Cleared access, selected-agent URL identity, diagnostics, playback,
+  transcription, sensing, and behaviour state on logout while preserving local
+  operator preferences such as selected devices and capture settings.
+- Correlated behaviour delivery by both persisted ID and stable event envelope,
+  covering history responses whose following SSE replay uses a different
+  transport identity.
+- Added a deterministic full lifecycle Playwright scenario, a replay-overlap
+  regression, static client contracts, and the public lifecycle specification.
+
+### How to test
+- `npm.cmd run test:valerian:lifecycle`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd -q test`
+- `node --check src/main/resources/public/valerian/script.js`
+- `git diff --check`
+
+### Verification
+- The deterministic lifecycle browser scenario passed access, create, connect,
+  disconnect, used-agent hydration, logout, and clean re-entry assertions.
+- The Valerian transcription/playback browser suite passed all 8 scenarios,
+  including one-render behavior when history and SSE replay overlap.
+- All 5 existing Valerian layout, detached-window ownership, and sensing
+  scenarios passed.
+- The focused static client contract passed 14 tests, and the full Java suite
+  passed 385 tests with zero failures, errors, or skips. Surefire emitted its
+  existing forced-fork-shutdown warning after the successful result.
+- After merging into `agents`, the focused Valerian and Aisha contracts passed
+  and that branch's full Java suite passed 391 tests with zero failures, errors,
+  or skips.
+- JavaScript syntax and `git diff --check` passed apart from Git's line-ending
+  notices.
+
+### Known issues and decisions
+- An explicit `agentId`/`agent` URL remains an intentional auto-connect path for
+  direct links and detached columns; logout removes that identity before
+  re-entry.
+- Device, voice, capture, and other browser-local operator preferences persist
+  across logout. Agent-derived operational state and diagnostics do not.
+- The deployed Heroku instance was not used as the acceptance environment for
+  this change; deterministic browser tests exercise the lifecycle against
+  controlled API, history, and SSE boundaries.
+
+### Next steps
+1. Deploy the published `agents` tip and confirm the lifecycle with Aisha in the
+   target Heroku environment.
 2. Resume the complete workbook-backed Aisha catalog when a compliant
    spreadsheet runtime or explicitly authorized fallback is available.

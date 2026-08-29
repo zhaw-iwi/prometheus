@@ -103,6 +103,9 @@ PROMETHEUS currently provides:
   live persisted behaviour IDs, with event-envelope correlation across history
   hydration and replay, per-agent cross-tab output ownership, explicit Stop,
   and microphone gating across output;
+- an explicit Valerian cockpit lifecycle in which operational columns stay
+  empty until connection, hydrate only from the connected agent, and clear on
+  switch, failed connection, disconnect, logout, or re-entry;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -207,7 +210,10 @@ mechanics are shared with the scoped canonical behaviour-speech endpoint.
 Valerian and the multilateral listener share the transcription-first browser
 transport and serialized scoped `FULL_PLAN` ingress. Valerian adds a separate
 live-behaviour Speech playback queue; acknowledgement and replay are visual-only,
-and input is gated while the selected output device renders agent speech.
+and input is gated while the selected output device renders agent speech. Its
+sensing, interaction, and behaviour columns are connection-scoped: access,
+selection, creation, disconnect, and logout do not retain agent-derived UI
+state, while connection hydrates the selected agent's persisted history.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation
