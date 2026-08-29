@@ -1,4 +1,5 @@
 const LIVE_DELIVERY = "live";
+const RESUME_DELIVERY = "resume";
 const LEASE_PREFIX = "prometheus.valerian.output-lease.v1.";
 
 export class BehaviourSpeechPlaybackQueue {
@@ -28,9 +29,11 @@ export class BehaviourSpeechPlaybackQueue {
 
   enqueue(candidate) {
     const item = normalizeItem(candidate);
-    if (!item || this.known.has(item.eventId)) return false;
+    if (!item) return false;
+    const repeatable = item.delivery === RESUME_DELIVERY;
+    if (!repeatable && this.known.has(item.eventId)) return false;
     this.known.add(item.eventId);
-    if (item.delivery !== LIVE_DELIVERY) {
+    if (item.delivery !== LIVE_DELIVERY && !repeatable) {
       this.skipped.add(item.eventId);
       this.status("skipped", item, { reason: "replay_or_non_live" });
       return false;
@@ -211,7 +214,8 @@ function normalizeItem(candidate) {
   const eventId = typeof candidate?.eventId === "string" ? candidate.eventId.trim() : "";
   const speech = typeof candidate?.speech === "string" ? candidate.speech : "";
   const delivery = typeof candidate?.delivery === "string" ? candidate.delivery.trim().toLowerCase() : "";
-  return eventId && speech.trim() ? { eventId, speech, delivery } : null;
+  const speechRequired = delivery !== RESUME_DELIVERY;
+  return eventId && (!speechRequired || speech.trim()) ? { eventId, speech, delivery } : null;
 }
 
 function safeMessage(error) {

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -71,6 +72,22 @@ class BehaviourSpeechControllerWebMvcTest {
     }
 
     @Test
+    void returnsLatestEligiblePersistedSpeechIdentityWithoutSynthesizingIt() throws Exception {
+        when(this.speechService.latestAssistantSpeechEventId("abc12", AGENT_ID))
+                .thenReturn(Optional.of(EVENT_ID))
+                .thenReturn(Optional.empty());
+
+        this.mockMvc.perform(get(latestPath()).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/json"))
+                .andExpect(content().json("{\"eventId\":\"" + EVENT_ID + "\"}"));
+        this.mockMvc.perform(get(latestPath()).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12"))
+                .andExpect(status().isNoContent());
+
+        verify(this.speechService, never()).synthesize(any(), any(), any(), any());
+    }
+
+    @Test
     void returnsNotFoundForForeignAgentOrUnknownEvent() throws Exception {
         when(this.speechService.synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), any()))
                 .thenReturn(Optional.empty());
@@ -118,5 +135,9 @@ class BehaviourSpeechControllerWebMvcTest {
 
     private static String path() {
         return "/demo/agents/" + AGENT_ID + "/behaviours/" + EVENT_ID + "/speech";
+    }
+
+    private static String latestPath() {
+        return "/demo/agents/" + AGENT_ID + "/behaviours/latest/speech";
     }
 }

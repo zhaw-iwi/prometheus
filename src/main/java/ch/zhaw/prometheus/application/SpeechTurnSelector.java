@@ -10,7 +10,7 @@ final class SpeechTurnSelector {
     private SpeechTurnSelector() {
     }
 
-    static Optional<String> latestAssistantSpeechIfLatestUtterance(List<Event> history) {
+    static Optional<Event> latestAssistantBehaviourIfLatestUtterance(List<Event> history) {
         if (history == null || history.isEmpty()) {
             return Optional.empty();
         }
@@ -24,7 +24,7 @@ final class SpeechTurnSelector {
             }
             String speech = speechFromEvent(event);
             if (isPresent(speech)) {
-                return Optional.of(speech.trim());
+                return Optional.of(event);
             }
         }
         return Optional.empty();

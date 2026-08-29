@@ -76,13 +76,16 @@ separate window when an experiment needs more screen space.
 Speech interaction is transcription-first: Valerian commits explicit browser
 audio turns to `gpt-live-transcribe`, sends only finalized transcripts through
 the ordinary scoped acknowledgement boundary, and synthesizes speech from the
-resulting persisted behaviour event. Only `behaviour-live` deliveries can
-produce audio; history and reconnect replay remain visual-only. While speech is
-loading or playing, microphone input is disabled and its pending provider state
-is cleared so the agent cannot transcribe itself. **Stop Playback** cancels
-queued/current audio and reopens input without changing the persisted plan. A
-per-agent browser lease selects one audible Valerian window, and playback uses
-the speaker, voice, and speed selected in the speech settings.
+resulting persisted behaviour event. New `behaviour-live` deliveries can
+produce audio; ordinary history and reconnect replay remain visual-only. When
+an operator starts transcription, Valerian also requests and speaks the latest
+eligible assistant utterance in the agent's current state before opening
+microphone input. While speech is loading or playing, microphone input is
+disabled and its pending provider state is cleared so the agent cannot
+transcribe itself. **Stop Playback** cancels queued/current audio and reopens
+input without changing the persisted plan. A per-agent browser lease selects
+one audible Valerian window, and playback uses the speaker, voice, and speed
+selected in the speech settings.
 
 #### Cockpit lifecycle contract
 
@@ -674,20 +677,37 @@ stream so the same plan cannot appear twice. If acknowledgement legitimately
 returns no response event, the client preserves typed-input semantics by
 requesting one normal `full_plan` generation.
 
-Valerian's output queue accepts only `behaviour-live` events with non-empty
-speech and a persisted SSE event ID. It processes those IDs in order and keeps
+Valerian's output queue accepts `behaviour-live` events with non-empty speech
+and a persisted SSE event ID. It processes those IDs in order and keeps
 completed, failed, and deliberately skipped IDs distinct, so duplicate live
-delivery and replay cannot speak twice. Synthesis begins through the canonical
-event-scoped endpoint below; playback is routed to the selected output device.
-The microphone remains gated across a queued burst and reopens after completion,
+delivery and ordinary history/reconnect replay cannot speak twice. An explicit
+transcription start may enqueue the current state's latest eligible assistant
+event again; this intentional resume delivery is repeatable on later starts and
+still synthesizes only the persisted plan. Synthesis begins through the
+canonical event-scoped endpoint below, and playback is routed to the selected
+output device. The microphone remains gated across a queued burst and opens
+only after resume playback has been attempted; it reopens after completion,
 Stop, synthesis/playback error, disconnect, or agent change. An expiring
 cross-tab output lease ensures that only one Valerian page speaks a particular
-agent's live event.
+agent's event.
 
 ### Output-only Speech
 
 Any scoped client can request audio for the canonical speech in an already
 persisted behaviour-plan event:
+
+```http
+GET /demo/agents/{agentId}/behaviours/latest/speech
+X-Prometheus-Access-Code: VX102
+```
+
+This discovery endpoint returns `{ "eventId": "..." }` only when the latest
+utterance in the agent's current-state history is an assistant behaviour plan
+with speech. A later user utterance makes it return `204`, preventing stale
+assistant speech from being replayed while a response is still pending. It
+does not synthesize audio or mutate the agent.
+
+Use the returned persisted identity with the canonical synthesis endpoint:
 
 ```http
 POST /demo/agents/{agentId}/behaviours/{eventId}/speech?voice=cedar&speed=1.25

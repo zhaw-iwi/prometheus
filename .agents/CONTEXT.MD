@@ -99,9 +99,11 @@ PROMETHEUS currently provides:
 - serialized, duplicate-safe live-transcript ingress through the ordinary
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;
-- ordered Valerian Speech synthesis and selected-device playback driven only by
-  live persisted behaviour IDs, with ID/envelope replay correlation, per-agent
-  cross-tab output ownership, explicit Stop, and microphone gating across output;
+- ordered Valerian Speech synthesis and selected-device playback driven by
+  persisted behaviour IDs, with live-delivery deduplication, ordinary replay
+  suppression, explicit latest-assistant playback when transcription starts,
+  ID/envelope replay correlation, per-agent cross-tab output ownership,
+  explicit Stop, and microphone gating across output;
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;

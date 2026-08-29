@@ -48,6 +48,22 @@ test("keeps input gated across failure recovery and reopens it after the ordered
   assert.ok(states.includes("speaking:recovered"));
 });
 
+test("explicit resume delivery can replay the same persisted event on each speech-mode start", async () => {
+  const calls = [];
+  const queue = new BehaviourSpeechPlaybackQueue({
+    synthesize: async (candidate) => candidate.eventId,
+    play: async (_resource, candidate) => { calls.push(candidate.eventId); },
+  });
+
+  assert.equal(queue.enqueue({ eventId: "starter", delivery: "resume" }), true);
+  await queue.whenIdle();
+  assert.equal(queue.enqueue({ eventId: "starter", speech: "Welcome.", delivery: "live" }), false);
+  assert.equal(queue.enqueue({ eventId: "starter", delivery: "resume" }), true);
+  await queue.whenIdle();
+
+  assert.deepEqual(calls, ["starter", "starter"]);
+});
+
 test("Stop aborts current playback, skips queued IDs, releases ownership, and reopens input", async () => {
   const gate = [];
   const leaseCalls = [];

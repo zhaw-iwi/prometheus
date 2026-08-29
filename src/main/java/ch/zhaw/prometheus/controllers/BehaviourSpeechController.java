@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -17,6 +18,7 @@ import ch.zhaw.prometheus.application.BehaviourSpeechUnavailableException;
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.ScopedBehaviourSpeechService;
 import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
+import ch.zhaw.prometheus.controllers.views.BehaviourSpeechReferenceView;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 
 @RestController
@@ -39,6 +41,16 @@ public class BehaviourSpeechController {
         return this.speechService.synthesize(accessCode(headerAccessCode, queryAccessCode), agentId, eventId, settings)
                 .map(SpeechAudioHttpResponse::stream)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/demo/agents/{agentId}/behaviours/latest/speech")
+    public ResponseEntity<BehaviourSpeechReferenceView> latestSpeech(
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable @NonNull UUID agentId) {
+        return this.speechService.latestAssistantSpeechEventId(accessCode(headerAccessCode, queryAccessCode), agentId)
+                .map(eventId -> ResponseEntity.ok(new BehaviourSpeechReferenceView(eventId)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @ExceptionHandler(DemoAccessDeniedException.class)
