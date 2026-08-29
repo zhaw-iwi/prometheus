@@ -48,8 +48,9 @@ code.
   persisted, scoped behaviour-event ID and shares provider mechanics with Talk
   to Me without sharing its client policy.
 - Explicit live/replay behaviour SSE delivery and ordered Valerian playback of
-  live canonical Speech, with cross-tab output ownership, selected-device
-  routing, Stop semantics, and half-duplex transcription input gating.
+  live canonical Speech, with event-envelope correlation across history
+  hydration and replay, cross-tab output ownership, selected-device routing,
+  Stop semantics, and half-duplex transcription input gating.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -69,9 +70,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 157, an Arabic-only Aisha Invest Qatar
-  vertical slice with deterministic catalog retrieval, bounded paraphrasing,
-  semantic gestures, registration, and focused contracts.
+- Last completed milestone: Milestone 158, Valerian event-envelope correlation
+  across history hydration and SSE replay so one persisted starter behaviour is
+  rendered only once when an agent connects.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -262,6 +263,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 155: Remove combined Realtime architecture and legacy profiles
 - [x] Milestone 156: Add Arabic live-transcription support
 - [x] Milestone 157: Add the Aisha Arabic catalog-agent vertical slice
+- [x] Milestone 158: Deduplicate Valerian history hydration and SSE replay
 
 ## Milestone 1
 ### Date
@@ -8225,3 +8227,52 @@ semantic gestures without adding a RAG subsystem.
 1. Build the complete source-traceable Arabic catalog from the supplied
    workbook, generate the customer review workbook, and add catalog-wide
    coverage/evaluation tests.
+
+## Milestone 158
+### Date
+2026-08-29
+
+### Goal
+Prevent Valerian from rendering an agent's persisted starter behaviour twice
+when initial event-history hydration is followed by SSE replay of the same
+event.
+
+### What changed
+- Replaced Valerian's mutually exclusive behaviour identity choice with a set
+  containing both the persisted SSE ID, when available, and a stable
+  `createdDate + payload` envelope fingerprint.
+- Preserved live-only Speech behavior by keeping audio queueing independent of
+  visual transcript deduplication.
+- Added a Playwright regression that hydrates a persisted greeting, replays the
+  exact envelope with an SSE ID, and asserts one assistant message remains.
+- Documented the history/replay correlation in the Valerian SSE contract and
+  current project context.
+
+### How to test
+- `npm.cmd run test:valerian:transcription`
+- `\.\mvnw.cmd -q "-Dtest=ValerianClientStaticResourceContractTest" test`
+- `\.\mvnw.cmd -q test`
+- `git diff --check`
+
+### Verification
+- All 8 Valerian transcription, replay, playback, ownership, and responsive
+  browser scenarios passed, including the new history/SSE regression.
+- All 13 Valerian static-resource contract tests passed.
+- The full Java suite passed 390 tests with zero failures, errors, or skips.
+  Surefire emitted its existing forced-fork-shutdown warning after the
+  successful result.
+
+### Known issues and decisions
+- The supplied Heroku screenshot and matching code paths established the
+  defect, but the deployed site was not re-tested interactively because the
+  in-session browser connection could not initialize. Local deterministic
+  browser coverage exercises the same Valerian paths.
+- Event-history JSON does not expose the persisted event ID, so history-to-SSE
+  correlation uses the otherwise identical creation timestamp and payload. The
+  existing short recent-payload guard remains unchanged.
+
+### Next steps
+1. Deploy the published `agents` tip and confirm a newly created Aisha instance
+   displays its starter greeting once.
+2. Resume the complete workbook-backed Aisha catalog when a compliant
+   spreadsheet runtime or explicitly authorized fallback is available.

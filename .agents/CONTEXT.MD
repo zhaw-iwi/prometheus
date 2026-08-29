@@ -100,8 +100,9 @@ PROMETHEUS currently provides:
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;
 - ordered Valerian Speech synthesis and selected-device playback driven only by
-  live persisted behaviour IDs, with replay suppression, per-agent cross-tab
-  output ownership, explicit Stop, and microphone gating across output;
+  live persisted behaviour IDs, with event-envelope correlation across history
+  hydration and replay, per-agent cross-tab output ownership, explicit Stop,
+  and microphone gating across output;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;

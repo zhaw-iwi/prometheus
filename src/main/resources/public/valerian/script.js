@@ -1889,12 +1889,12 @@ function handleBehaviourEnvelope(event, options = {}) {
     return;
   }
   queueBehaviourSpeech(plan, options);
-  const key = behaviourEventKey(event, options.eventId);
-  if ((key && state.seenBehaviourKeys.has(key))
+  const keys = behaviourEventKeys(event, options.eventId);
+  if (keys.some((key) => state.seenBehaviourKeys.has(key))
     || (!options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
     return;
   }
-  if (key) {
+  for (const key of keys) {
     state.seenBehaviourKeys.add(key);
   }
   if (!options.fromHistory) {
@@ -1912,14 +1912,15 @@ function resetBehaviourDeduplication() {
   state.recentBehaviourPayloads.clear();
 }
 
-function behaviourEventKey(event, eventId = "") {
+function behaviourEventKeys(event, eventId = "") {
+  const keys = [];
   if (eventId) {
-    return `id:${eventId}`;
+    keys.push(`id:${eventId}`);
   }
-  if (!event || !event.createdDate || !event.payload) {
-    return null;
+  if (event && event.createdDate && event.payload) {
+    keys.push(`envelope:${event.createdDate}|${event.payload}`);
   }
-  return `${event.createdDate}|${event.payload}`;
+  return keys;
 }
 
 function recentBehaviourPayloadSeen(payload) {

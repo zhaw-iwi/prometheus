@@ -521,7 +521,9 @@ Clients should ignore channels they cannot render. Reconnect with either the
 standard `Last-Event-ID` header or `?lastEventId=<id>` to replay missed
 behaviour events. Replayed events retain their original persisted IDs, data,
 and order, but are labeled `behaviour-replay`; clients must not repeat live-only
-effects such as speech playback for them. Heartbeats remain SSE comments.
+effects such as speech playback for them. Valerian also correlates replay with
+the hydrated event-envelope fingerprint so one persisted behaviour is not
+rendered twice during initial connection. Heartbeats remain SSE comments.
 
 ### 5. Request generated behaviour without a new perception event
 
