@@ -38,12 +38,44 @@ test("history hydration and initial SSE replay render one assistant message", as
   await expect(page.getByTestId("message-list")).toContainText("Welcome from persisted history.");
 });
 
+test("starting transcription speaks the latest persisted assistant utterance before opening input", async ({ page }) => {
+  const greeting = behaviourEvent("Welcome back from persisted history.");
+  const speechRequests = [];
+  await page.route(`**/demo/agents/${AGENT_ID}/eventhistory`, (route) => route.fulfill(json([greeting])));
+  await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, (route) => route.fulfill(json({
+    eventId: REPLAY_BEHAVIOUR_ID,
+  })));
+  page.on("request", (request) => {
+    if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) {
+      speechRequests.push(request);
+    }
+  });
+
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  expect(speechRequests).toHaveLength(1);
+  expect(new URL(speechRequests[0].url()).pathname)
+    .toBe(`/demo/agents/${AGENT_ID}/behaviours/${REPLAY_BEHAVIOUR_ID}/speech`);
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(0);
+  expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(0);
+
+  await page.evaluate(() => window.__finishSpeechPlayback());
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
+  expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
+});
+
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
   const acknowledgeRequests = [];
   const speechRequests = [];
   page.on("request", (request) => {
     if (new URL(request.url()).pathname.endsWith("/acknowledge")) acknowledgeRequests.push(request);
-    if (new URL(request.url()).pathname.endsWith("/speech")) speechRequests.push(request);
+    if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) {
+      speechRequests.push(request);
+    }
   });
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
@@ -159,10 +191,10 @@ test("two Valerian pages elect one output owner for the same live behaviour", as
   const other = await context.newPage();
   const requests = [];
   page.on("request", (request) => {
-    if (new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
+    if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
   });
   other.on("request", (request) => {
-    if (new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
+    if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) requests.push(request);
   });
   await openConnectedValerian(page);
   await openConnectedValerian(other);
@@ -307,6 +339,9 @@ async function installApiMocks(context) {
       return route.fulfill(json({ clientSecret: "ephemeral-test", sessionType: "transcription",
         model: "gpt-live-transcribe", settingsSchemaVersion: 1,
         webRtcUrl: "https://api.openai.test/v1/realtime/calls", effectiveSettings: {} }));
+    }
+    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/behaviours/latest/speech`) {
+      return route.fulfill({ status: 204, body: "" });
     }
     if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/acknowledge`) {
       return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));

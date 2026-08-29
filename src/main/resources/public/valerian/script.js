@@ -2375,6 +2375,7 @@ async function startTranscription() {
   if (!state.agentId) {
     return;
   }
+  const startingAgentId = state.agentId;
   if (speechPlayback.coordinator?.snapshot().current) {
     setTranscriptionTransportStatus("Input Paused", "idle", "Stop current speech playback before starting transcription.");
     return;
@@ -2390,6 +2391,10 @@ async function startTranscription() {
   appendLog("transcription", "starting gpt-live-transcribe session.");
   setTranscriptionTransportStatus("Transcription Starting", "idle", "");
   try {
+    await replayLatestAssistantSpeech();
+    if (!state.transcriptionListening || state.agentId !== startingAgentId) {
+      return;
+    }
     await ensureLiveTranscriptionUi();
     const settings = transcription.transcriptionSettingsPanel.apiValues();
     const mediaPreferences = transcription.transcriptionSettingsPanel.mediaValues();
@@ -2402,6 +2407,34 @@ async function startTranscription() {
     appendLog("transcription", "start failed: " + error.message);
     await stopTranscription();
     setTranscriptionTransportStatus("Transcription Failed", "error", `Transcription start failed: ${error.message}`);
+  }
+}
+
+async function replayLatestAssistantSpeech() {
+  try {
+    const response = await scopedFetch(demoAgentPath("/behaviours/latest/speech"));
+    if (response.status === 204 || response.status === 404) {
+      appendLog("speech-playback", "no latest assistant utterance is eligible for restart playback.");
+      return false;
+    }
+    if (!response.ok) {
+      throw new Error(`Latest assistant speech lookup failed (${response.status}).`);
+    }
+    const reference = await response.json();
+    const eventId = typeof reference?.eventId === "string" ? reference.eventId.trim() : "";
+    if (!eventId) {
+      throw new Error("Latest assistant speech lookup returned no event identity.");
+    }
+    const coordinator = await ensureSpeechPlaybackCoordinator();
+    if (!coordinator.enqueue({ eventId, delivery: "resume" })) {
+      return false;
+    }
+    await coordinator.whenIdle();
+    return true;
+  } catch (error) {
+    appendLog("speech-playback", `latest assistant replay failed: ${error.message}`);
+    handleSpeechPlaybackStatus({ state: "failed", eventId: null, message: error.message });
+    return false;
   }
 }
 

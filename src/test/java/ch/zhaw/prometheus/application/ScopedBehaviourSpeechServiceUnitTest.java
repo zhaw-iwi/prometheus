@@ -56,6 +56,23 @@ class ScopedBehaviourSpeechServiceUnitTest {
     }
 
     @Test
+    void selectsLatestAssistantSpeechEventOnlyWhenItIsTheLatestUtteranceInTheCurrentState() {
+        Event assistant = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
+                "{\"speech\":\"Welcome back.\"}");
+        Event user = event(UUID.randomUUID(), Event.TYPE_USER_UTTERANCE, "One more question");
+        when(this.demoService.getAgentCurrentStateEventHistory("abc12", AGENT_ID))
+                .thenReturn(Optional.of(List.of(assistant)))
+                .thenReturn(Optional.of(List.of(assistant, user)))
+                .thenReturn(Optional.empty());
+
+        assertEquals(EVENT_ID,
+                this.service.latestAssistantSpeechEventId("abc12", AGENT_ID).orElseThrow());
+        assertTrue(this.service.latestAssistantSpeechEventId("abc12", AGENT_ID).isEmpty());
+        assertTrue(this.service.latestAssistantSpeechEventId("abc12", AGENT_ID).isEmpty());
+        verifyNoInteractions(this.speechGateway);
+    }
+
+    @Test
     void rejectsForeignAgentAndUnknownOrForeignEventBeforeProviderCall() {
         when(this.demoService.getAgentEventHistory("abc12", AGENT_ID)).thenReturn(Optional.empty());
         assertTrue(this.service.synthesize("abc12", AGENT_ID, EVENT_ID, SETTINGS).isEmpty());
@@ -97,7 +114,7 @@ class ScopedBehaviourSpeechServiceUnitTest {
 
     private static Event event(UUID id, String type, String payload) {
         Event event = org.mockito.Mockito.mock(Event.class);
-        when(event.getId()).thenReturn(id);
+        org.mockito.Mockito.lenient().when(event.getId()).thenReturn(id);
         org.mockito.Mockito.lenient().when(event.getType()).thenReturn(type);
         org.mockito.Mockito.lenient().when(event.getPayload()).thenReturn(payload);
         return event;

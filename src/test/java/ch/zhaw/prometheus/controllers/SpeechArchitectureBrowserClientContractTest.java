@@ -120,7 +120,7 @@ class SpeechArchitectureBrowserClientContractTest {
     }
 
     @Test
-    void valerianSpeaksOnlyLivePersistedBehaviourThroughOrderedOutputOwnership() throws IOException {
+    void valerianSpeaksLiveAndExplicitRestartBehaviourThroughOrderedOutputOwnership() throws IOException {
         String index = Files.readString(VALERIAN_INDEX);
         String script = Files.readString(VALERIAN_SCRIPT);
         String playback = Files.readString(SPEECH_PLAYBACK);
@@ -131,9 +131,11 @@ class SpeechArchitectureBrowserClientContractTest {
         assertContains(script, "[\"behaviour-live\", \"behaviour-replay\"]");
         assertContains(script, "delivery: eventName === \"behaviour-live\" ? \"live\" : \"replay\"");
         assertContains(script, "/behaviours/${encodeURIComponent(item.eventId)}/speech");
+        assertContains(script, "/behaviours/latest/speech");
+        assertContains(script, "delivery: \"resume\"");
         assertContains(script, "transcription.transcriptIngress?.setAccepting(inputEnabled)");
         assertContains(script, "transcription.transcriptionClient.setInputEnabled(inputEnabled)");
-        assertContains(playback, "item.delivery !== LIVE_DELIVERY");
+        assertContains(playback, "RESUME_DELIVERY");
         assertContains(playback, "prometheus.valerian.output-lease.v1.");
         assertContains(playback, "this.current.controller.abort(reason)");
         assertDoesNotContain(script, "addEventListener(\"behaviour\",");

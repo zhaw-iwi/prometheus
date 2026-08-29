@@ -48,9 +48,10 @@ code.
   persisted, scoped behaviour-event ID and shares provider mechanics with Talk
   to Me without sharing its client policy.
 - Explicit live/replay behaviour SSE delivery and ordered Valerian playback of
-  live canonical Speech, with event-envelope correlation across history
-  hydration and replay, cross-tab output ownership, selected-device routing,
-  Stop semantics, and half-duplex transcription input gating.
+  canonical Speech for live events plus intentional latest-assistant playback
+  when transcription starts, with cross-tab output ownership, selected-device
+  routing, Stop semantics, half-duplex transcription input gating, ordinary
+  replay suppression, and ID/envelope replay correlation.
 - A connection-scoped Valerian cockpit lifecycle that clears operational
   sensing, interaction, and behaviour state outside an active connection and
   hydrates persisted conversation, sensing, and behaviour history on connect.
@@ -73,8 +74,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 159, Valerian connection-scoped cockpit
-  lifecycle and cross-transport behaviour replay correlation.
+- Last completed milestone: Milestone 160, latest-assistant playback when
+  Valerian transcription starts.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -267,6 +268,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 157: Add the Aisha Arabic catalog-agent vertical slice
 - [x] Milestone 158: Deduplicate Valerian history hydration and SSE replay
 - [x] Milestone 159: Enforce the Valerian cockpit lifecycle and replay correlation
+- [x] Milestone 160: Restore latest-assistant playback when transcription starts
 
 ## Milestone 1
 ### Date
@@ -8344,5 +8346,80 @@ rendered twice when history loading and SSE replay overlap.
 ### Next steps
 1. Deploy the published `agents` tip and confirm the lifecycle with Aisha in the
    target Heroku environment.
+2. Resume the complete workbook-backed Aisha catalog when a compliant
+   spreadsheet runtime or explicitly authorized fallback is available.
+
+## Milestone 160
+### Date
+2026-08-29
+
+### Goal
+Restore the speech-mode start contract lost during the transcription-first
+migration: if the connected agent's current state already ends with an
+assistant utterance, speak that persisted utterance before opening live input.
+
+### What changed
+- Reused the current-state latest-utterance selector and made it return the
+  eligible persisted behaviour event rather than detached speech text.
+- Added a scoped read-only endpoint that exposes only that eligible event ID;
+  canonical synthesis continues through the existing event-addressed Speech
+  endpoint and cannot accept browser-authored text.
+- Added an explicit, repeatable resume delivery to Valerian's playback queue.
+  Ordinary history and reconnect replay remain visual-only and duplicate live
+  deliveries remain suppressed.
+- Made Start Transcription await the resume playback attempt before creating
+  the live-transcription session or requesting microphone media. Stop, agent
+  changes, lookup failures, and synthesis/playback failures retain their
+  existing safe cleanup behavior.
+- Added focused selector/service, MVC, static-resource, queue, and browser
+  coverage for starter/previous assistant speech, stale-user blocking,
+  repeated starts, and playback-before-input ordering.
+- Updated the README and project context with the restored lifecycle contract.
+
+### How to test
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `\.\mvnw.cmd -q "-Dtest=ScopedBehaviourSpeechServiceUnitTest,BehaviourSpeechControllerWebMvcTest,SpeechArchitectureBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `\.\mvnw.cmd -q test`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check src/main/resources/public/speech/playback.js`
+- `git diff --check`
+
+### Verification
+- The focused Java service, MVC, and browser/static contract matrix passed 30
+  tests with zero failures, errors, or skips.
+- All 5 Speech playback queue unit tests passed, including repeatable explicit
+  resume delivery without weakening ordinary replay and live-ID deduplication.
+- The Valerian transcription/playback Playwright suite passed all 9 scenarios;
+  the new regression proves canonical starter/previous speech plays before any
+  transcription-session or microphone-media request.
+- All 5 broader Valerian layout, detached-window ownership, and sensing
+  Playwright scenarios passed.
+- The full Java suite passed 387 tests across 91 suites with zero failures,
+  errors, or skips. Surefire emitted its existing forced-fork-shutdown warning
+  after the successful reports were written.
+- After merging into `agents`, the combined shared Speech and Aisha focused
+  matrix passed 40 tests, and that branch's full Java suite passed 393 tests
+  across 91 suites with zero failures, errors, or skips. The branch also
+  repeated the 5 queue, 9 transcription/playback, and 5 broader Valerian
+  browser scenarios successfully.
+- JavaScript syntax and `git diff --check` passed apart from Git's line-ending
+  notices.
+
+### Known issues and decisions
+- A later current-state user utterance deliberately blocks replay of an older
+  assistant utterance, matching the earlier latest-utterance rule and avoiding
+  stale speech while a response is pending.
+- Automated browser tests fake the provider, browser audio, and microphone
+  boundaries. Audible output through deployment credentials and the target
+  stage hardware remains a manual smoke.
+- The in-app browser runtime could not initialize its local automation
+  connection in this environment, so deterministic repository Playwright
+  coverage is the browser acceptance boundary for this milestone.
+
+### Next steps
+1. Deploy the published `agents` tip and audibly confirm Aisha's persisted
+   greeting is spoken before live Arabic transcription opens.
 2. Resume the complete workbook-backed Aisha catalog when a compliant
    spreadsheet runtime or explicitly authorized fallback is available.

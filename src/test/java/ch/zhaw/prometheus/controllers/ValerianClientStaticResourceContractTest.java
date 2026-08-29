@@ -246,6 +246,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("new api.ScopedTranscriptIngress"));
         assertTrue(script.contains("function startTranscription"));
         assertTrue(script.contains("function stopTranscription"));
+        assertTrue(script.contains("function replayLatestAssistantSpeech"));
+        assertTrue(script.contains("/behaviours/latest/speech"));
+        assertTrue(script.contains("delivery: \"resume\""));
         assertTrue(script.contains("function refreshAudioDevices"));
         assertTrue(script.contains("device.kind === \"audiooutput\""));
         assertTrue(script.contains("function applySelectedSpeechOutputDevice"));

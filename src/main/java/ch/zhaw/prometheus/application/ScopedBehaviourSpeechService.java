@@ -37,6 +37,13 @@ public class ScopedBehaviourSpeechService {
         return Optional.of(this.speechGateway.synthesize(speech, settings.getVoice(), settings.getSpeed()));
     }
 
+    public Optional<UUID> latestAssistantSpeechEventId(String accessCode, UUID agentId) {
+        return this.demoService.getAgentCurrentStateEventHistory(accessCode, agentId)
+                .flatMap(SpeechTurnSelector::latestAssistantBehaviourIfLatestUtterance)
+                .filter(event -> event.getId() != null)
+                .map(Event::getId);
+    }
+
     static String canonicalSpeech(Event event) {
         if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
             throw new BehaviourSpeechUnavailableException("event is not a behaviour plan");
