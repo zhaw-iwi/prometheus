@@ -33,7 +33,7 @@ Implementation branch: `features/designer`, created from `main` at
 | --- | --- |
 | 1. Executable JSON contract | Complete |
 | 2. Semantic validation and prompt composition | Complete |
-| 3. Component registry, compiler, and cache | Planned |
+| 3. Component registry, compiler, and cache | Complete |
 | 4. Immutable runtime state-machine engine | Planned |
 | 5. Prompt-based main catalog in JSON | Planned |
 | 6. Deterministic main components and complete JSON catalog | Planned |

@@ -552,6 +552,17 @@ public final class DefinitionSemanticValidator {
             boolean initializer) {
         if (component != null) {
             components.add(new LocatedComponent(component, pointer, initializer));
+            if (component.config() != null && component.config().path("selectors").isArray()) {
+                for (int index = 0; index < component.config().path("selectors").size(); index++) {
+                    JsonNode nested = component.config().path("selectors").get(index);
+                    if (nested.path("kind").isTextual() && nested.path("version").canConvertToInt()
+                            && nested.path("config").isObject()) {
+                        addComponent(components, new ComponentEnvelope(nested.path("kind").asText(),
+                                nested.path("version").asInt(), nested.path("config")),
+                                pointer + "/config/selectors/" + index, initializer);
+                    }
+                }
+            }
         }
     }
 

@@ -39,7 +39,11 @@ public enum SemanticDiagnosticCode {
     BLANK_PROMPT_SECTION(DiagnosticSeverity.ERROR),
     PROMPT_SECTION_TOO_LARGE(DiagnosticSeverity.ERROR),
     PROMPT_TOO_LARGE(DiagnosticSeverity.ERROR),
-    DEFINITION_PROMPTS_TOO_LARGE(DiagnosticSeverity.ERROR);
+    DEFINITION_PROMPTS_TOO_LARGE(DiagnosticSeverity.ERROR),
+    UNKNOWN_COMPONENT(DiagnosticSeverity.ERROR),
+    INVALID_COMPONENT_CONFIG(DiagnosticSeverity.ERROR),
+    COMPONENT_CATEGORY_MISMATCH(DiagnosticSeverity.ERROR),
+    COMPONENT_COMPILATION_FAILED(DiagnosticSeverity.ERROR);
 
     private final DiagnosticSeverity severity;
 

@@ -787,7 +787,7 @@ src/main/java/ch/zhaw/prometheus
   agentdefs/        Registered Valerian agent definitions.
   application/      Application services for agents, access codes, transcription, Speech, and scoped demos.
   controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
-  definition/       Declarative agent JSON document mapping and structural validation foundation.
+  definition/       Declarative JSON mapping, validation, component SPI, compiler, and revision cache.
   logging/          SSE broadcasters.
   model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
   spi/              Language-model, live-transcription, and Speech integration boundaries.
@@ -808,11 +808,14 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 ## Developing New Agents
 
 The declarative migration is in progress on `features/designer`. Schema version
-1, typed document mapping, structural/semantic validation, deterministic prompt
-composition, and canonical content hashing are available under `definition/`
-and `agent-definitions/schema/`, but the running catalog still uses the Java
-definitions below until the ordered Phase II cutover is complete. Do not treat
-the temporary coexistence as a permanent second authoring path.
+1, typed document mapping, structural/semantic/component validation,
+deterministic prompt composition, canonical hashing, the trusted registered
+component SPI, immutable compilation, and a revision/hash-guarded single-flight
+cache are available under `definition/` and `agent-definitions/schema/`. The
+running catalog still uses the Java definitions below until the ordered Phase II
+cutover is complete. Do not treat the temporary coexistence as a permanent
+second authoring path. Component authors should follow
+`definition/component/README.md`; JSON never names a Java class or bean.
 
 1. Start from an existing definition in `agentdefs/core` or
    `agentdefs/usecases/healthcare`.
