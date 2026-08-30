@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-10 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-11 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -136,7 +136,15 @@ semantic diagnostics, and projects the deterministic typed-component palette
 without implementation class or bean names. A full isolated-H2 Spring request
 smoke verified the 12-definition catalog, canonical export/validation, all 23
 component descriptors, and unauthorized rejection without mutating a bundled
-revision or the normal configured database.
+revision or the normal configured database. Milestone 11 adds admin-token-
+protected disposable previews for current unsaved JSON and saved drafts. Each
+bounded, idle-expiring in-memory session compiles through the production
+compiler and runs the production engine/components while retaining its mutable
+state, storage, history, transcript, and safe diagnostics outside every
+definition, agent, access-code, and history repository. Close/expiry discards
+the session. A full Spring/H2 request smoke exercised a saved exact-text draft,
+confirmed deterministic output and close-to-404 behavior, and observed zero
+global, admin access-code, and scoped agents while the preview was open.
 
 ## Bundled main catalog inventory
 

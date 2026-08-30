@@ -1,0 +1,65 @@
+package ch.zhaw.prometheus.definition.preview;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
+
+import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
+import ch.zhaw.prometheus.definition.instance.DeclarativeAgentRepository;
+import ch.zhaw.prometheus.definition.repository.DefinitionRepository;
+import ch.zhaw.prometheus.definition.runtime.RuntimeEvent;
+import ch.zhaw.prometheus.spi.LanguageModelGateway;
+
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:designer_preview_isolation;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+        "spring.datasource.username=sa", "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=validate", "spring.flyway.enabled=true",
+        "debug=false", "logging.level.root=WARN"
+})
+@Transactional
+class DesignerPreviewPersistenceIsolationIntegrationTest {
+    @Autowired
+    private DesignerPreviewService previews;
+
+    @Autowired
+    private DefinitionLifecycleService lifecycle;
+
+    @Autowired
+    private DefinitionRepository definitions;
+
+    @Autowired
+    private DeclarativeAgentRepository agents;
+
+    @MockitoBean
+    private LanguageModelGateway languageModelGateway;
+
+    @Test
+    void savedPreviewUsesProductionDefinitionWithoutCreatingDefinitionOrAgentRecords() {
+        var stored = this.lifecycle.cloneRevision("core.talk_to_me", 1, "designer.preview_isolation", 1);
+        int definitionCount = this.definitions.findDefinitions().size();
+        int revisionCount = this.definitions.findRevisions("designer.preview_isolation").size();
+        assertTrue(this.agents.findAll().isEmpty());
+
+        var created = this.previews.create(stored.canonicalJson(), DesignerPreviewService.PreviewSource.SAVED,
+                stored.id());
+        var result = this.previews.acknowledge(created.id(),
+                new RuntimeEvent("obs.user_utterance", "user", "observation", "isolated preview"));
+
+        assertEquals("isolated preview", result.transcript().getLast().behaviour().speech());
+        assertEquals(stored.id(), result.storedRevisionId());
+        assertEquals(definitionCount, this.definitions.findDefinitions().size());
+        assertEquals(revisionCount, this.definitions.findRevisions("designer.preview_isolation").size());
+        assertTrue(this.agents.findAll().isEmpty());
+        verifyNoInteractions(this.languageModelGateway);
+        this.previews.close(created.id());
+        assertEquals(0, this.previews.sessionCount());
+    }
+}

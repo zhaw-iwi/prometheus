@@ -12,13 +12,32 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ch.zhaw.prometheus.controllers.DesignerDefinitionController.DefinitionDiagnosticView;
 import ch.zhaw.prometheus.definition.compiled.DefinitionCompilationException;
 import ch.zhaw.prometheus.definition.document.AgentDefinitionFormatException;
+import ch.zhaw.prometheus.definition.preview.PreviewExecutionException;
+import ch.zhaw.prometheus.definition.preview.PreviewLimitException;
+import ch.zhaw.prometheus.definition.preview.PreviewNotFoundException;
 import ch.zhaw.prometheus.definition.repository.DefinitionLifecycleException;
 import ch.zhaw.prometheus.definition.repository.DefinitionNotFoundException;
 import ch.zhaw.prometheus.definition.repository.DefinitionOptimisticLockException;
 import ch.zhaw.prometheus.definition.validation.AgentDefinitionSchemaException;
 
-@RestControllerAdvice(assignableTypes = DesignerDefinitionController.class)
+@RestControllerAdvice(assignableTypes = { DesignerDefinitionController.class, DesignerPreviewController.class })
 public class DesignerDefinitionApiExceptionHandler {
+
+    @ExceptionHandler(PreviewNotFoundException.class)
+    ResponseEntity<DefinitionApiError> previewNotFound() {
+        return error(HttpStatus.NOT_FOUND, "PREVIEW_NOT_FOUND", "The preview does not exist or has expired");
+    }
+
+    @ExceptionHandler(PreviewLimitException.class)
+    ResponseEntity<DefinitionApiError> previewLimit() {
+        return error(HttpStatus.TOO_MANY_REQUESTS, "PREVIEW_LIMIT", "The preview resource limit was reached");
+    }
+
+    @ExceptionHandler(PreviewExecutionException.class)
+    ResponseEntity<DefinitionApiError> previewExecution() {
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "PREVIEW_EXECUTION_FAILED",
+                "The preview could not start at a trusted component boundary");
+    }
 
     @ExceptionHandler(DefinitionNotFoundException.class)
     ResponseEntity<DefinitionApiError> notFound() {

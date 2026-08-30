@@ -818,6 +818,12 @@ Valerian Designer uses the same header for the complete definition lifecycle:
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/archive` | Archive a non-active published revision. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/clone` | Copy a revision into a new designer draft identity/revision. |
 | `GET` | `/admin/agent-definitions/component-catalog` | List registered component schemas, defaults, examples, capabilities, and UI copy. |
+| `POST` | `/admin/agent-definitions/previews` | Compile and open an isolated preview from unsaved JSON or a saved draft. |
+| `GET` | `/admin/agent-definitions/previews/{previewId}` | Inspect active state, storage, history, transcript, and safe diagnostics. |
+| `POST` | `/admin/agent-definitions/previews/{previewId}/events` | Submit one runtime event to the preview. |
+| `POST` | `/admin/agent-definitions/previews/{previewId}/generate` | Request behaviour generation with production runtime semantics. |
+| `POST` | `/admin/agent-definitions/previews/{previewId}/reset` | Reset the disposable runtime to its initial state and storage. |
+| `DELETE` | `/admin/agent-definitions/previews/{previewId}` | Close and discard the preview immediately. |
 
 Create, import, and validation accept `{"definition": <schema-v1-document>}`.
 Draft replacement adds `"optimisticVersion"`; publish, activate, and archive
@@ -828,6 +834,18 @@ fields cannot forge repository metadata. Validation/publication failures return
 stable diagnostic codes and JSON Pointers. Optimistic and lifecycle conflicts
 return `409`, unknown resources `404`, malformed requests `400`, and structural
 or publication validation failures `422`.
+
+Preview creation accepts either `{"definition": <current-schema-v1-document>}`
+or `{"key": "...", "revision": 1}` for an existing draft. A valid unsaved
+document does not need to be saved or published. Preview sessions use the same
+compiler, runtime engine, and registered components as production, but remain
+in bounded in-memory storage only: they never create definition, agent,
+access-code, event-history, or behaviour-history records. Idle access refreshes
+the default 15-minute TTL; close or expiry makes the identifier return `404`.
+The defaults are configurable with `prometheus.designer.preview.ttl`,
+`max-sessions`, `max-operations`, `max-event-payload-chars`, and
+`cleanup-delay-ms` under the same property prefix. Resource exhaustion returns
+`429`; component-start failures return a safe `422` without provider details.
 
 Access codes must be exactly five ASCII letters or digits. The backend treats
 them as case-sensitive.

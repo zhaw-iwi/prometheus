@@ -166,6 +166,15 @@ publish/cache installation, sorted catalog access, and canonical export/import
 through the real parser/compiler/lifecycle with in-memory persistence;
 `JpaPersistenceAdapterTest` covers the database-backed ordered catalog query.
 
+Milestone 11 adds `DesignerPreviewServiceUnitTest` for production-engine state,
+storage, event/behaviour trace, session isolation, deterministic fake-model
+failure rollback, safe diagnostics, TTL/close, and resource bounds.
+`DesignerPreviewControllerWebMvcTest` covers the complete token-protected HTTP
+surface and stable error mapping, including rejection of a saved non-draft.
+`DesignerPreviewPersistenceIsolationIntegrationTest` runs a saved draft through
+the full Spring/Flyway/H2 repository stack and proves that definition/revision
+counts and production agents remain unchanged without a model-provider call.
+
 ## Main-catalog parity tests
 
 The migration gate covers exactly these keys:
