@@ -29,11 +29,38 @@ class ComponentRegistryUnitTest {
         ComponentRegistry registry = BuiltInComponentCatalog.createRegistry();
 
         assertTrue(registry.find("prometheus.policy.prompt", 1).isPresent());
+        assertTrue(registry.find("prometheus.policy.exact-text", 1).isPresent());
+        assertTrue(registry.find("prometheus.policy.rps-reveal", 1).isPresent());
+        assertTrue(registry.find("prometheus.action.rps-evaluate-round", 1).isPresent());
         assertTrue(registry.find("prometheus.resource.typed-choices", 1).isPresent());
         assertFalse(registry.find("prometheus.policy.prompt", 2).isPresent());
         assertEquals("Prompt policy", registry.find("prometheus.policy.prompt", 1).orElseThrow()
                 .uiMetadata().label());
-        assertTrue(registry.definitions().size() >= 15);
+        assertEquals(23, registry.definitions().size());
+    }
+
+    @Test
+    void everyPaletteEntryHasSchemaValidDefaultsExamplesAndSafeUiCopy() {
+        ComponentRegistry registry = BuiltInComponentCatalog.createRegistry();
+
+        for (AgentComponentDefinition definition : registry.definitions()) {
+            ComponentUiMetadata ui = definition.uiMetadata();
+            assertFalse(ui.label().isBlank(), definition.key().toString());
+            assertFalse(ui.description().isBlank(), definition.key().toString());
+            assertFalse(ui.examples().isEmpty(), definition.key().toString());
+            ComponentEnvelope defaultEnvelope = new ComponentEnvelope(definition.key().kind(),
+                    definition.key().version(), ui.defaultConfig().value());
+            assertEquals(List.of(), registry.validateConfig(defaultEnvelope), definition.key().toString());
+            registry.compile(defaultEnvelope);
+            for (ImmutableJson example : ui.examples()) {
+                ComponentEnvelope exampleEnvelope = new ComponentEnvelope(definition.key().kind(),
+                        definition.key().version(), example.value());
+                assertEquals(List.of(), registry.validateConfig(exampleEnvelope), definition.key().toString());
+            }
+            String serialized = ui.defaultConfig() + ui.examples().toString();
+            assertFalse(serialized.matches("(?is).*\\b(?:class(?:name)?|bean(?:name)?|scripts?|sourcecode)\\b.*"),
+                    definition.key().toString());
+        }
     }
 
     @Test

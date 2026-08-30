@@ -3,9 +3,13 @@ package ch.zhaw.prometheus.definition.catalog;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -18,8 +22,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity;
 import ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour;
+import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame;
 import ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity;
+import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGame;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGameUserGuess;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation;
@@ -48,8 +54,10 @@ class BundledDefinitionCatalogUnitTest {
     private static final List<AgentDefinition> LEGACY_ORACLES = List.of(
             new FacialExpressionSensitivity(),
             new MultimodalBehaviour(),
+            new RockScissorPaper(),
             new RoleClarificationGuessingGame(),
             new SocialContextSensitivity(),
+            new TalkToMe(),
             new SingleStateGuessingGame(),
             new SingleStateGuessingGameUserGuess(),
             new SingleStateHealthcareConversation(),
@@ -61,12 +69,12 @@ class BundledDefinitionCatalogUnitTest {
             .map(AgentDefinition::key).sorted().toList();
 
     @Test
-    void mainCatalogLoadsTenSortedSchemaAndCompilerValidatedDefinitions() {
+    void mainCatalogLoadsTwelveSortedSchemaAndCompilerValidatedDefinitions() {
         BundledDefinitionCatalog catalog = BundledDefinitionCatalog.loadMainCatalog();
 
         assertEquals(EXPECTED_KEYS, catalog.definitions().stream()
                 .map(definition -> definition.document().key()).toList());
-        assertEquals(10, catalog.definitions().size());
+        assertEquals(12, catalog.definitions().size());
         DefinitionCompiler compiler = new DefinitionCompiler(BuiltInComponentCatalog.createRegistry());
         for (BundledAgentDefinition bundled : catalog.definitions()) {
             assertEquals(1, bundled.document().schemaVersion());
@@ -99,6 +107,21 @@ class BundledDefinitionCatalogUnitTest {
                     migrated.interaction().supportedBehaviourModalities(), oracle.key());
             assertEquals(currentProfile.getProfileTags(), migrated.interaction().profileTags(), oracle.key());
             assertEquals(currentProfile.getProfileTags(), migrated.metadata().tags(), oracle.key());
+        }
+    }
+
+    @Test
+    void productionJsonContainsNoImplementationNamesBeansOrScripts() throws IOException {
+        for (BundledAgentDefinition bundled : BundledDefinitionCatalog.loadMainCatalog().definitions()) {
+            String resource = "/agent-definitions/catalog/main/" + bundled.resource();
+            try (InputStream input = BundledDefinitionCatalogUnitTest.class.getResourceAsStream(resource)) {
+                assertNotNull(input, resource);
+                String json = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertFalse(json.matches("(?is).*\\\"(?:class|className|bean|beanName|script|scripts|sourceCode)\\\".*"),
+                        bundled.document().key());
+                assertFalse(json.contains("ch.zhaw.prometheus"), bundled.document().key());
+                assertFalse(json.contains(".java"), bundled.document().key());
+            }
         }
     }
 
@@ -139,11 +162,71 @@ class BundledDefinitionCatalogUnitTest {
 
             assertTrue(creation.instance().isActive(), bundled.document().key());
             assertTrue(creation.instance().snapshot().started(), bundled.document().key());
+            if ("core.talk_to_me".equals(bundled.document().key())) {
+                assertNull(creation.startup().behaviour());
+                assertEquals(0, gateway.generated);
+                continue;
+            }
             assertNotNull(creation.startup().behaviour(), bundled.document().key());
             assertEquals("deterministic speech", creation.startup().behaviour().speech(), bundled.document().key());
             assertEquals(1, gateway.generated, bundled.document().key());
             assertFalse(gateway.lastPrompts.responsePrompt().isBlank(), bundled.document().key());
         }
+    }
+
+    @Test
+    void talkToMeRuntimeEmitsSubmittedTextExactlyWithoutModelGeneration() {
+        CompiledAgentDefinition definition = BundledDefinitionCatalog.loadMainCatalog()
+                .require("core.talk_to_me").compiled();
+        AgentRuntimeEngine engine = new AgentRuntimeEngine();
+        RecordingGateway gateway = new RecordingGateway();
+        AgentRuntimeContext context = new AgentRuntimeContext(new BuiltInRuntimeComponentExecutor(gateway),
+                new Random(1));
+        var creation = engine.create(1, definition, context);
+        String text = "Grüezi, \"Zürich\"!\nLine two 🌍";
+
+        var result = engine.acknowledge(creation.instance(),
+                new RuntimeEvent("obs.user_utterance", "user", "observation", text, List.of("talk")), context);
+
+        assertEquals(List.of("repeat"), result.acceptedTransitionIds());
+        assertEquals(text, result.behaviour().speech());
+        assertEquals(0, gateway.generated);
+    }
+
+    @Test
+    void rpsRuntimeCoversRepeatAndFinalPathsWithDeterministicComponents() {
+        CompiledAgentDefinition definition = BundledDefinitionCatalog.loadMainCatalog()
+                .require("core.rock_scissor_paper").compiled();
+        AgentRuntimeEngine engine = new AgentRuntimeEngine();
+        ScriptedRpsGateway gateway = new ScriptedRpsGateway();
+        AgentRuntimeContext context = new AgentRuntimeContext(new BuiltInRuntimeComponentExecutor(gateway),
+                new Random(1));
+        var creation = engine.create(1, definition, context);
+
+        var reveal = engine.acknowledge(creation.instance(), userEvent("ready", "start"), context);
+        assertEquals(List.of("start_to_reveal"), reveal.acceptedTransitionIds());
+        assertEquals("Rock, scissor, paper", reveal.behaviour().speech());
+        assertEquals("rock", reveal.behaviour().motion().value().path("handSign").asText());
+
+        var firstResult = engine.acknowledge(creation.instance(), handEvent("scissor", "reveal"), context);
+        assertEquals(List.of("reveal_to_result"), firstResult.acceptedTransitionIds());
+        assertEquals("agent", firstResult.after().storage().get("rps_last_round").value().path("winner").asText());
+        assertEquals(1, firstResult.after().storage().get("rps_rounds").value().size());
+        assertTrue(firstResult.behaviour().speech().startsWith("I win: rock beats scissor"));
+
+        var secondReveal = engine.acknowledge(creation.instance(), userEvent("again", "result"), context);
+        assertEquals(List.of("result_to_reveal"), secondReveal.acceptedTransitionIds());
+        assertEquals("scissor", secondReveal.behaviour().motion().value().path("handSign").asText());
+
+        var secondResult = engine.acknowledge(creation.instance(), handEvent("rock", "reveal"), context);
+        assertEquals("user", secondResult.after().storage().get("rps_last_round").value().path("winner").asText());
+        assertEquals(2, secondResult.after().storage().get("rps_rounds").value().size());
+
+        var finished = engine.acknowledge(creation.instance(), userEvent("stop", "result"), context);
+        assertEquals(List.of("context_end"), finished.acceptedTransitionIds());
+        assertFalse(creation.instance().isActive());
+        assertTrue(gateway.lastPrompts.responsePrompt().contains("rock-scissor-paper lab game is finished"));
+        assertEquals(2, gateway.generated);
     }
 
     @Test
@@ -194,6 +277,15 @@ class BundledDefinitionCatalogUnitTest {
         return new AgentRuntimeContext(new BuiltInRuntimeComponentExecutor(new RecordingGateway()), new Random(seed));
     }
 
+    private static RuntimeEvent userEvent(String payload, String leaf) {
+        return new RuntimeEvent("obs.user_utterance", "user", "observation", payload, List.of("context", leaf));
+    }
+
+    private static RuntimeEvent handEvent(String sign, String leaf) {
+        return new RuntimeEvent("obs.hand.sign", "sensor", "observation", "{\"sign\":\"" + sign + "\"}",
+                List.of("context", leaf));
+    }
+
     private static final class RecordingGateway implements RuntimeModelGateway {
         private int generated;
         private RuntimePromptBundle lastPrompts;
@@ -214,6 +306,38 @@ class BundledDefinitionCatalogUnitTest {
         @Override
         public JsonNode extract(String prompt, JsonNode outputSchema, RuntimeInvocation invocation) {
             return JsonNodeFactory.instance.objectNode();
+        }
+    }
+
+    private static final class ScriptedRpsGateway implements RuntimeModelGateway {
+        private int generated;
+        private RuntimePromptBundle lastPrompts;
+
+        @Override
+        public RuntimeBehaviour generate(RuntimePromptBundle prompts, RuntimeInvocation invocation) {
+            this.generated++;
+            this.lastPrompts = prompts;
+            return RuntimeBehaviour.speechOnly("model speech " + this.generated);
+        }
+
+        @Override
+        public boolean decide(String prompt, RuntimeInvocation invocation) {
+            String payload = invocation.history().isEmpty() ? "" : invocation.history().getLast().payload();
+            if ("stop".equals(payload)) {
+                return true;
+            }
+            if ("ready".equals(payload)) {
+                return prompt.contains("ready to start a round");
+            }
+            if ("again".equals(payload)) {
+                return prompt.contains("play another round");
+            }
+            return false;
+        }
+
+        @Override
+        public JsonNode extract(String prompt, JsonNode outputSchema, RuntimeInvocation invocation) {
+            throw new AssertionError("RPS has no extraction action");
         }
     }
 }

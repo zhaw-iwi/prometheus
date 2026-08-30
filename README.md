@@ -203,12 +203,13 @@ larger audience should see live listening state or generated meeting reports.
 Production agent definitions live under
 `src/main/java/ch/zhaw/prometheus/agentdefs`. Definitions implement
 `AgentDefinition`, expose a stable key, and are discovered as Spring beans.
-During the ordered declarative migration, revision-1 JSON for the ten
-prompt-oriented definitions is also bundled under
+During the ordered declarative migration, revision-1 JSON for all twelve
+definitions is also bundled under
 `src/main/resources/agent-definitions/catalog/main` and compiled in catalog
-contracts. Talk to Me and RPS remain the next migration step. The running
-catalog continues to use Spring-discovered definitions until the Phase II
-cutover; this coexistence is temporary.
+contracts. Talk to Me exact text and RPS rules/output run through trusted
+registered deterministic components in that harness. The running catalog
+continues to use Spring-discovered definitions until the Phase II cutover; this
+coexistence is temporary.
 
 The main branch ships the Valerian baseline catalog:
 
@@ -818,7 +819,7 @@ The declarative migration is in progress on `features/designer`. Schema version
 1, typed document mapping, structural/semantic/component validation,
 deterministic prompt composition, canonical hashing, the trusted registered
 component SPI, immutable compilation, a revision/hash-guarded single-flight
-cache, the generic per-instance runtime engine, and ten bundled prompt-oriented
+cache, the generic per-instance runtime engine, and all twelve bundled main
 JSON revisions are available under `definition/` and `agent-definitions/`.
 The running catalog still uses the Java definitions below until the ordered Phase II
 cutover is complete. Do not treat the temporary coexistence as a permanent

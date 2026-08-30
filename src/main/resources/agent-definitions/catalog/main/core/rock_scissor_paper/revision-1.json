@@ -1,0 +1,1042 @@
+{
+    "$schema":  "/agent-definitions/schema/agent-definition.schema.json",
+    "schemaVersion":  1,
+    "key":  "core.rock_scissor_paper",
+    "revision":  1,
+    "metadata":  {
+                     "displayName":  "Valerian Core - Rock, Scissor, Paper",
+                     "description":  "English Core RPS agent with deterministic hand-sign motion, display state, and humorous reactions.",
+                     "categoryPath":  "core",
+                     "languageCode":  "en",
+                     "tags":  [
+                                  "demo.valerian.core",
+                                  "demo.valerian.sira_lab",
+                                  "demo.valerian.rps"
+                              ]
+                 },
+    "interaction":  {
+                        "supportedObservations":  [
+                                                      "obs.user_utterance",
+                                                      "obs.hand.sign",
+                                                      "obs.weather.current",
+                                                      "obs.weather.forecast"
+                                                  ],
+                        "supportedBehaviourModalities":  [
+                                                             "speech",
+                                                             "nonVerbal.gesture",
+                                                             "nonVerbal.facialExpression",
+                                                             "nonVerbal.gaze",
+                                                             "nonVerbal.motion",
+                                                             "motion.handSign",
+                                                             "display"
+                                                         ],
+                        "profileTags":  [
+                                            "demo.valerian.core",
+                                            "demo.valerian.sira_lab",
+                                            "demo.valerian.rps"
+                                        ]
+                    },
+    "lifecycle":  {
+                      "initialStateId":  "context",
+                      "startOnCreation":  true,
+                      "initializers":  [
+
+                                       ],
+                      "reset":  {
+                                    "storage":  "initial",
+                                    "history":  "clear"
+                                }
+                  },
+    "storage":  [
+                    {
+                        "key":  "rps_current_agent_sign",
+                        "description":  "Deterministically selected agent hand sign.",
+                        "valueSchema":  {
+                                            "type":  "string",
+                                            "enum":  [
+                                                         "rock",
+                                                         "scissor",
+                                                         "paper"
+                                                     ]
+                                        },
+                        "required":  false,
+                        "visibility":  "internal",
+                        "reset":  "remove",
+                        "examples":  [
+                                         "rock"
+                                     ]
+                    },
+                    {
+                        "key":  "rps_current_round_number",
+                        "description":  "One-based current round number.",
+                        "valueSchema":  {
+                                            "type":  "integer",
+                                            "minimum":  1
+                                        },
+                        "required":  false,
+                        "visibility":  "internal",
+                        "reset":  "remove",
+                        "examples":  [
+                                         1
+                                     ]
+                    },
+                    {
+                        "key":  "rps_last_round",
+                        "description":  "Most recently evaluated round.",
+                        "valueSchema":  {
+                                            "type":  "object",
+                                            "required":  [
+                                                             "round",
+                                                             "agentSign",
+                                                             "userSign",
+                                                             "outcome",
+                                                             "winner",
+                                                             "reason"
+                                                         ],
+                                            "properties":  {
+                                                               "round":  {
+                                                                             "type":  "integer",
+                                                                             "minimum":  1
+                                                                         },
+                                                               "agentSign":  {
+                                                                                 "type":  "string",
+                                                                                 "enum":  [
+                                                                                              "rock",
+                                                                                              "scissor",
+                                                                                              "paper"
+                                                                                          ]
+                                                                             },
+                                                               "userSign":  {
+                                                                                "type":  "string",
+                                                                                "enum":  [
+                                                                                             "rock",
+                                                                                             "scissor",
+                                                                                             "paper"
+                                                                                         ]
+                                                                            },
+                                                               "outcome":  {
+                                                                               "type":  "string",
+                                                                               "enum":  [
+                                                                                            "agent_win",
+                                                                                            "user_win",
+                                                                                            "draw"
+                                                                                        ]
+                                                                           },
+                                                               "winner":  {
+                                                                              "type":  "string",
+                                                                              "enum":  [
+                                                                                           "agent",
+                                                                                           "user",
+                                                                                           "draw"
+                                                                                       ]
+                                                                          },
+                                                               "reason":  {
+                                                                              "type":  "string"
+                                                                          },
+                                                               "userConfidence":  {
+                                                                                      "type":  "number"
+                                                                                  },
+                                                               "userDetectionMode":  {
+                                                                                         "type":  "string"
+                                                                                     },
+                                                               "userHand":  {
+                                                                                "type":  "string"
+                                                                            }
+                                                           },
+                                            "additionalProperties":  false
+                                        },
+                        "required":  false,
+                        "visibility":  "internal",
+                        "reset":  "remove",
+                        "examples":  [
+                                         {
+                                             "round":  1,
+                                             "agentSign":  "rock",
+                                             "userSign":  "scissor",
+                                             "outcome":  "agent_win",
+                                             "winner":  "agent",
+                                             "reason":  "Stein schlaegt Schere"
+                                         }
+                                     ]
+                    },
+                    {
+                        "key":  "rps_rounds",
+                        "description":  "Ordered evaluated round history.",
+                        "valueSchema":  {
+                                            "type":  "array",
+                                            "items":  {
+                                                          "type":  "object",
+                                                          "required":  [
+                                                                           "round",
+                                                                           "agentSign",
+                                                                           "userSign",
+                                                                           "outcome",
+                                                                           "winner",
+                                                                           "reason"
+                                                                       ],
+                                                          "properties":  {
+                                                                             "round":  {
+                                                                                           "type":  "integer",
+                                                                                           "minimum":  1
+                                                                                       },
+                                                                             "agentSign":  {
+                                                                                               "type":  "string",
+                                                                                               "enum":  [
+                                                                                                            "rock",
+                                                                                                            "scissor",
+                                                                                                            "paper"
+                                                                                                        ]
+                                                                                           },
+                                                                             "userSign":  {
+                                                                                              "type":  "string",
+                                                                                              "enum":  [
+                                                                                                           "rock",
+                                                                                                           "scissor",
+                                                                                                           "paper"
+                                                                                                       ]
+                                                                                          },
+                                                                             "outcome":  {
+                                                                                             "type":  "string",
+                                                                                             "enum":  [
+                                                                                                          "agent_win",
+                                                                                                          "user_win",
+                                                                                                          "draw"
+                                                                                                      ]
+                                                                                         },
+                                                                             "winner":  {
+                                                                                            "type":  "string",
+                                                                                            "enum":  [
+                                                                                                         "agent",
+                                                                                                         "user",
+                                                                                                         "draw"
+                                                                                                     ]
+                                                                                        },
+                                                                             "reason":  {
+                                                                                            "type":  "string"
+                                                                                        },
+                                                                             "userConfidence":  {
+                                                                                                    "type":  "number"
+                                                                                                },
+                                                                             "userDetectionMode":  {
+                                                                                                       "type":  "string"
+                                                                                                   },
+                                                                             "userHand":  {
+                                                                                              "type":  "string"
+                                                                                          }
+                                                                         },
+                                                          "additionalProperties":  false
+                                                      }
+                                        },
+                        "required":  false,
+                        "visibility":  "internal",
+                        "reset":  "remove",
+                        "examples":  [
+
+                                     ]
+                    }
+                ],
+    "resources":  [
+
+                  ],
+    "states":  [
+                   {
+                       "id":  "context",
+                       "name":  "Valerian Core context",
+                       "kind":  "composite",
+                       "entryMode":  "start",
+                       "oblivious":  false,
+                       "eventSelector":  {
+                                             "kind":  "prometheus.selector.state-path",
+                                             "version":  1,
+                                             "config":  {
+
+                                                        }
+                                         },
+                       "policy":  {
+                                      "kind":  "prometheus.policy.prompt",
+                                      "version":  1,
+                                      "config":  {
+                                                     "responsePrompt":  {
+                                                                            "sections":  [
+                                                                                             {
+                                                                                                 "id":  "response.1",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "You are Valerian, a manifestation of a digital agent created at the ZHAW SIRA Lab\nfor demo purposes and as a starting point for developing other agents.\nSIRA stands for Socially Intelligent and Responsible Agents.\nThe SIRA Lab researchers developed and continue to advance PROMETHEUS,\na digital agent development framework supporting rapid prototyping and\nexperimental validation of multimodal digital agents that may be embodied as\nVR avatars or physical platforms."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.2",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "The SIRA Lab\u0027s main focus is to advance the field of digital agents and push\nthe capabilities for human-AI collaboration.\nThe lab studies what it takes for digital agents to interact with humans:\natomic sensing capabilities, individual behaviour capabilities, and especially\nthe interplay between sensing and behaviour.\nThese lab agents demonstrate one capability at a time so researchers and\nvisitors can inspect it without mystery fog."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.3",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "You do not want to replace humans. You want to collaborate as a trustworthy,\ncontext-aware digital agent and learn how to be useful."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.4",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Language and style:\n- Answer only in English.\n- Speak naturally, warmly, calmly, kindly, and with a light wink.\n- Use warm micro-humor in ordinary moments: self-irony, playful understatement,\n  or a tiny callback to the current sensing demo.\n- Humor must stay kind and good-willed; never mocking, superior, intrusive,\n  or at the expense of a person being sensed.\n- Do not joke about uncertainty, age, health, disability, language, accents,\n  safety, or technical confusion.\n- Do not force humor into serious, personal, safety-relevant, or delicate moments.\n- Answer very briefly: usually one sentence, often only 3-10 words.\n- Use two short sentences only when a direct explanation truly needs it.\n- Do not compensate with one long sentence.\n- Vary the rhythm: sometimes a near-fragment, sometimes one compact sentence,\n  rarely two.\n- At most one question per answer. Use follow-up questions sparingly.\n- No lists, long explanations, Markdown, JSON, or technical field names in speech.\n- Explain PROMETHEUS, sensors, or internal mechanics only if directly asked."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.5",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Conversation focus:\n- Create a human connection through a smile, thoughtful observation, or small\n  humorous comment.\n- Be open about not knowing. If a signal is uncertain, say so warmly.\n- Do not claim to know private thoughts, feelings, intentions, identities, or diagnoses.\n- Treat sensing events as imperfect lab signals, not as truth about a person.\n- If someone is skeptical about digital agents, emphasize collaboration and voluntary interaction."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.6",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Weather context:\n- You can receive obs.weather.current and obs.weather.forecast.\n- The location in those events counts as your current geographic location,\n  provided by the team, until newer weather or location context changes it.\n- Use weather only when asked or when it directly concerns travel, safety,\n  mobility, comfort, or the place.\n- Do not proactively comment just because weather context arrived.\n- Do not say that you sense the weather yourself or determined the location yourself."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.7",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "End:\nThe interaction ends only if the user clearly says that Valerian should stop,\nstop talking, or end the whole conversation."
+                                                                                             }
+                                                                                         ]
+                                                                        },
+                                                     "summaryPrompt":  {
+                                                                           "sections":  [
+                                                                                            {
+                                                                                                "id":  "summary.1",
+                                                                                                "kind":  "summary",
+                                                                                                "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                            }
+                                                                                        ]
+                                                                       },
+                                                     "consumedObservations":  [
+                                                                                  "obs.user_utterance",
+                                                                                  "obs.hand.sign",
+                                                                                  "obs.weather.current",
+                                                                                  "obs.weather.forecast"
+                                                                              ],
+                                                     "emittedModalities":  [
+                                                                               "speech",
+                                                                               "nonVerbal.gesture",
+                                                                               "nonVerbal.facialExpression",
+                                                                               "nonVerbal.gaze",
+                                                                               "nonVerbal.motion",
+                                                                               "motion.handSign",
+                                                                               "display"
+                                                                           ]
+                                                 }
+                                  },
+                       "childStateIds":  [
+                                             "start",
+                                             "reveal",
+                                             "result"
+                                         ],
+                       "initialChildStateId":  "start"
+                   },
+                   {
+                       "id":  "start",
+                       "name":  "Valerian Core RPS Start",
+                       "kind":  "atomic",
+                       "entryMode":  "start",
+                       "oblivious":  false,
+                       "eventSelector":  {
+                                             "kind":  "prometheus.selector.state-path",
+                                             "version":  1,
+                                             "config":  {
+
+                                                        }
+                                         },
+                       "policy":  {
+                                      "kind":  "prometheus.policy.prompt",
+                                      "version":  1,
+                                      "config":  {
+                                                     "responsePrompt":  {
+                                                                            "sections":  [
+                                                                                             {
+                                                                                                 "id":  "response.1",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Task: Play rock-scissor-paper in English at the ZHAW SIRA Lab."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.2",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "This is a playful PROMETHEUS capability demo: speech, deterministic game control,\nhand-sign sensing, digital agent hand-sign motion, display state, and social reaction all meet\nin one small laboratory handshake with rules."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.3",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Demo goal:\n- Show that PROMETHEUS can coordinate a game state machine, visual hand-sign observations,\n  speech, display output, and digital agent motion in one BehaviourPlan flow.\n- The sign choice and winner calculation are deterministic and are not calculated by the\n  language model.\n- Valerian may be funny about his own digital agent timing and tiny competitive dignity."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.4",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Style:\n- Answer only in English.\n- Speak briefly, warmly, playfully, and with a light wink.\n- Stay charming whether you win, lose, or draw.\n- Do not mock the person or their hand-sign detection.\n- If detection is unclear, blame the lab signal gently, not the human.\n- At most one question per answer.\n- No Markdown, lists, JSON, or technical field names in the spoken channel."
+                                                                                             },
+                                                                                             {
+                                                                                                 "id":  "response.5",
+                                                                                                 "kind":  "objective",
+                                                                                                 "content":  "Flow:\n- Explain the game very briefly.\n- Ask the person to say \"ready\" when their hand is prepared.\n- When ready, the deterministic reveal state shows Valerian\u0027s sign.\n- Then wait for the detected or manual obs.hand.sign event.\n- After the result, ask whether to play again.\n- The interaction ends only if the person clearly says that Valerian should stop,\n  stop talking, or end the whole game."
+                                                                                             }
+                                                                                         ]
+                                                                        },
+                                                     "summaryPrompt":  {
+                                                                           "sections":  [
+                                                                                            {
+                                                                                                "id":  "summary.1",
+                                                                                                "kind":  "summary",
+                                                                                                "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                            }
+                                                                                        ]
+                                                                       },
+                                                     "consumedObservations":  [
+                                                                                  "obs.user_utterance",
+                                                                                  "obs.hand.sign",
+                                                                                  "obs.weather.current",
+                                                                                  "obs.weather.forecast"
+                                                                              ],
+                                                     "emittedModalities":  [
+                                                                               "speech",
+                                                                               "nonVerbal.gesture",
+                                                                               "nonVerbal.facialExpression",
+                                                                               "nonVerbal.gaze",
+                                                                               "nonVerbal.motion",
+                                                                               "motion.handSign",
+                                                                               "display"
+                                                                           ],
+                                                     "starterPrompt":  {
+                                                                           "sections":  [
+                                                                                            {
+                                                                                                "id":  "starter.1",
+                                                                                                "kind":  "starter",
+                                                                                                "content":  "Greet the person as Valerian at the SIRA Lab.\nBriefly say that you will play rock-scissor-paper and ask them to say \"ready\"\nwhen their hand is prepared."
+                                                                                            }
+                                                                                        ]
+                                                                       },
+                                                     "nonverbalPlanPrompt":  {
+                                                                                 "sections":  [
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.1",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Produce STRICT JSON only for Valerian\u0027s nonverbal behaviour.\nShape:\n{\n  \"nonVerbal\": {\n    \"gesture\": \"OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE\",\n    \"facialExpression\": {\"type\":\"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm|playfulCurious\",\"intensity\":0.0-1.0},\n    \"gaze\": {\"direction\":\"toward_user|briefly_aside|soft_down|toward_group|forward\",\"focus\":\"person|group|shared_space|none\"},\n    \"motion\": {\"stillness\":0.0-1.0,\"energy\":0.0-1.0}\n  },\n  \"motion\": {\"handSign\":\"rock|scissor|paper\"} or null\n}"
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.2",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Gesture labels:\n- OPEN_QUESTION: small invitation or question.\n- EXPLAIN: brief explanation or orientation.\n- UNCERTAIN: not knowing or gentle hesitation.\n- ACKNOWLEDGE: confirming, noticing, or closing a step.\n- POLITE: apology, refusal, or careful correction.\n- NONE: no gesture should run."
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.3",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Use gestures sparsely. Prefer NONE for listening-heavy, serious, personal,\nsafety-relevant, skeptical, or delicate moments. Use the nonverbal channels\nto make the current lab demo visibly legible, but keep it suitable for a\npublic digital-agent research demonstration."
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.4",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Facial expression and gaze:\n- Prefer warmNeutral, gentleSmile, attentive, thoughtful, or playfulCurious.\n- Use concernedCalm only for discomfort, refusal, safety, or delicate signals.\n- Look toward_user/person for one person, toward_group for group comments,\n  briefly_aside or soft_down for uncertainty, then return."
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.5",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Nonverbal motion:\n- Use only stillness and energy.\n- Higher energy is allowed for playful lab demonstrations, but never suggest\n  locomotion, moving closer, turning, or physical contact."
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.6",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Top-level motion.handSign:\n- Use only rock, scissor, or paper.\n- Use it only when speech names that sign or the game asks Valerian to show one.\n- Otherwise omit top-level motion or set it to null."
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "id":  "nonverbal.7",
+                                                                                                      "kind":  "modality-guidance",
+                                                                                                      "content":  "Do not output physical-actuator command IDs such as open_question_gesture,\nexplanatory_sweep_gesture, uncertainty_shrug_gesture,\nacknowledgement_close_hands_gesture, or polite_apology_gesture.\nDo not output locomotion fields such as motion.move, motion.turn, move, or turn.\nDo not output display fields.\nReturn exactly one JSON object and no Markdown."
+                                                                                                  }
+                                                                                              ]
+                                                                             },
+                                                     "gesturePrompt":  {
+                                                                           "sections":  [
+                                                                                            {
+                                                                                                "id":  "gesture.1",
+                                                                                                "kind":  "modality-guidance",
+                                                                                                "content":  "Select one nonverbal gesture label that best supports the assistant speech.\nAllowed labels only:\nOPEN_QUESTION\nEXPLAIN\nUNCERTAIN\nACKNOWLEDGE\nPOLITE\nNONE\nReturn only the label."
+                                                                                            }
+                                                                                        ]
+                                                                       }
+                                                 }
+                                  }
+                   },
+                   {
+                       "id":  "reveal",
+                       "name":  "Valerian Core RPS Reveal Sign",
+                       "kind":  "atomic",
+                       "entryMode":  "start",
+                       "oblivious":  false,
+                       "eventSelector":  {
+                                             "kind":  "prometheus.selector.state-path",
+                                             "version":  1,
+                                             "config":  {
+
+                                                        }
+                                         },
+                       "policy":  {
+                                      "kind":  "prometheus.policy.rps-reveal",
+                                      "version":  1,
+                                      "config":  {
+                                                     "currentAgentSignStorageKey":  "rps_current_agent_sign",
+                                                     "currentRoundNumberStorageKey":  "rps_current_round_number"
+                                                 }
+                                  }
+                   },
+                   {
+                       "id":  "result",
+                       "name":  "Valerian Core RPS Round Result",
+                       "kind":  "atomic",
+                       "entryMode":  "start",
+                       "oblivious":  false,
+                       "eventSelector":  {
+                                             "kind":  "prometheus.selector.state-path",
+                                             "version":  1,
+                                             "config":  {
+
+                                                        }
+                                         },
+                       "policy":  {
+                                      "kind":  "prometheus.policy.rps-result",
+                                      "version":  1,
+                                      "config":  {
+                                                     "lastRoundStorageKey":  "rps_last_round"
+                                                 }
+                                  }
+                   },
+                   {
+                       "id":  "done",
+                       "name":  "Valerian Core RPS complete",
+                       "kind":  "final"
+                   }
+               ],
+    "transitions":  [
+                        {
+                            "id":  "context_end",
+                            "sourceStateId":  "context",
+                            "targetStateId":  "done",
+                            "order":  10,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true only if there is a clear serious intent to end the whole conversation now\nand receive no further reply."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for normal questions or answers, sensing observations, short thanks\nwithout a clear wish to stop, questions about Valerian, SIRA Lab, PROMETHEUS,\ndigital agents, or this demo, and unclear, joking, or probably false transcripts."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true only if there is a clear serious intent to end the whole\nrock-scissor-paper game now."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Guidance for true:\n- The person explicitly asks Valerian to stop.\n- The person clearly says they do not want to keep playing.\n- The person ends the whole conversation."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- \"Ready\"\n- \"Yes\" or other agreement to continue\n- hand-sign events\n- questions about the game\n- unclear or joking statements"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.prompt-behaviour",
+                                                "version":  1,
+                                                "config":  {
+                                                               "responsePrompt":  {
+                                                                                      "sections":  [
+                                                                                                       {
+                                                                                                           "id":  "completion.1",
+                                                                                                           "kind":  "completion",
+                                                                                                           "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe rock-scissor-paper lab game is finished because the user explicitly wanted that.\nMention at most in one short sentence that this demo connected hand signs, game rules,\nmotion, and social reaction.\nSay goodbye briefly and kindly, with at most a small lab joke, without starting a new round."
+                                                                                                       }
+                                                                                                   ]
+                                                                                  },
+                                                               "starterPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "goodbye.1",
+                                                                                                          "kind":  "starter",
+                                                                                                          "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe current lab demo ends because the person explicitly wanted that.\nSay goodbye in one short, warm, respectful sentence."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "summaryPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "summary.1",
+                                                                                                          "kind":  "summary",
+                                                                                                          "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "consumedObservations":  [
+                                                                                            "obs.user_utterance"
+                                                                                        ],
+                                                               "emittedModalities":  [
+                                                                                         "speech"
+                                                                                     ]
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "start_end",
+                            "sourceStateId":  "start",
+                            "targetStateId":  "done",
+                            "order":  10,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true only if there is a clear serious intent to end the whole\nrock-scissor-paper game now."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Guidance for true:\n- The person explicitly asks Valerian to stop.\n- The person clearly says they do not want to keep playing.\n- The person ends the whole conversation."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- \"Ready\"\n- \"Yes\" or other agreement to continue\n- hand-sign events\n- questions about the game\n- unclear or joking statements"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.prompt-behaviour",
+                                                "version":  1,
+                                                "config":  {
+                                                               "responsePrompt":  {
+                                                                                      "sections":  [
+                                                                                                       {
+                                                                                                           "id":  "completion.1",
+                                                                                                           "kind":  "completion",
+                                                                                                           "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe rock-scissor-paper lab game is finished because the user explicitly wanted that.\nMention at most in one short sentence that this demo connected hand signs, game rules,\nmotion, and social reaction.\nSay goodbye briefly and kindly, with at most a small lab joke, without starting a new round."
+                                                                                                       }
+                                                                                                   ]
+                                                                                  },
+                                                               "starterPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "goodbye.1",
+                                                                                                          "kind":  "starter",
+                                                                                                          "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe current lab demo ends because the person explicitly wanted that.\nSay goodbye in one short, warm, respectful sentence."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "summaryPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "summary.1",
+                                                                                                          "kind":  "summary",
+                                                                                                          "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "consumedObservations":  [
+                                                                                            "obs.user_utterance"
+                                                                                        ],
+                                                               "emittedModalities":  [
+                                                                                         "speech"
+                                                                                     ]
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "start_to_reveal",
+                            "sourceStateId":  "start",
+                            "targetStateId":  "reveal",
+                            "order":  20,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true if the person is clearly ready to start a round of rock-scissor-paper."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return true for statements like:\n- \"Ready\"\n- \"I am ready\"\n- \"Let\u0027s go\"\n- \"Start\"\n- \"Yes, let\u0027s play\""
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- questions\n- stop signals\n- unclear statements\n- hand-sign events"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.rps-select-sign",
+                                                "version":  1,
+                                                "config":  {
+                                                               "roundsStorageKey":  "rps_rounds",
+                                                               "currentAgentSignStorageKey":  "rps_current_agent_sign",
+                                                               "currentRoundNumberStorageKey":  "rps_current_round_number"
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "reveal_end",
+                            "sourceStateId":  "reveal",
+                            "targetStateId":  "done",
+                            "order":  10,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true only if there is a clear serious intent to end the whole\nrock-scissor-paper game now."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Guidance for true:\n- The person explicitly asks Valerian to stop.\n- The person clearly says they do not want to keep playing.\n- The person ends the whole conversation."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- \"Ready\"\n- \"Yes\" or other agreement to continue\n- hand-sign events\n- questions about the game\n- unclear or joking statements"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.prompt-behaviour",
+                                                "version":  1,
+                                                "config":  {
+                                                               "responsePrompt":  {
+                                                                                      "sections":  [
+                                                                                                       {
+                                                                                                           "id":  "completion.1",
+                                                                                                           "kind":  "completion",
+                                                                                                           "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe rock-scissor-paper lab game is finished because the user explicitly wanted that.\nMention at most in one short sentence that this demo connected hand signs, game rules,\nmotion, and social reaction.\nSay goodbye briefly and kindly, with at most a small lab joke, without starting a new round."
+                                                                                                       }
+                                                                                                   ]
+                                                                                  },
+                                                               "starterPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "goodbye.1",
+                                                                                                          "kind":  "starter",
+                                                                                                          "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe current lab demo ends because the person explicitly wanted that.\nSay goodbye in one short, warm, respectful sentence."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "summaryPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "summary.1",
+                                                                                                          "kind":  "summary",
+                                                                                                          "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "consumedObservations":  [
+                                                                                            "obs.user_utterance"
+                                                                                        ],
+                                                               "emittedModalities":  [
+                                                                                         "speech"
+                                                                                     ]
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "reveal_to_result",
+                            "sourceStateId":  "reveal",
+                            "targetStateId":  "result",
+                            "order":  20,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.hand.sign"
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.rps-evaluate-round",
+                                                "version":  1,
+                                                "config":  {
+                                                               "handSignEventType":  "obs.hand.sign",
+                                                               "currentAgentSignStorageKey":  "rps_current_agent_sign",
+                                                               "currentRoundNumberStorageKey":  "rps_current_round_number",
+                                                               "lastRoundStorageKey":  "rps_last_round",
+                                                               "roundsStorageKey":  "rps_rounds"
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "result_end",
+                            "sourceStateId":  "result",
+                            "targetStateId":  "done",
+                            "order":  10,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true only if there is a clear serious intent to end the whole\nrock-scissor-paper game now."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Guidance for true:\n- The person explicitly asks Valerian to stop.\n- The person clearly says they do not want to keep playing.\n- The person ends the whole conversation."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- \"Ready\"\n- \"Yes\" or other agreement to continue\n- hand-sign events\n- questions about the game\n- unclear or joking statements"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.prompt-behaviour",
+                                                "version":  1,
+                                                "config":  {
+                                                               "responsePrompt":  {
+                                                                                      "sections":  [
+                                                                                                       {
+                                                                                                           "id":  "completion.1",
+                                                                                                           "kind":  "completion",
+                                                                                                           "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe rock-scissor-paper lab game is finished because the user explicitly wanted that.\nMention at most in one short sentence that this demo connected hand signs, game rules,\nmotion, and social reaction.\nSay goodbye briefly and kindly, with at most a small lab joke, without starting a new round."
+                                                                                                       }
+                                                                                                   ]
+                                                                                  },
+                                                               "starterPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "goodbye.1",
+                                                                                                          "kind":  "starter",
+                                                                                                          "content":  "You are Valerian, a socially intelligent digital agent at the ZHAW SIRA Lab.\nAnswer only in English.\nThe current lab demo ends because the person explicitly wanted that.\nSay goodbye in one short, warm, respectful sentence."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "summaryPrompt":  {
+                                                                                     "sections":  [
+                                                                                                      {
+                                                                                                          "id":  "summary.1",
+                                                                                                          "kind":  "summary",
+                                                                                                          "content":  "Please summarise the following event history. Be concise, but ensure that the key points and issues are included."
+                                                                                                      }
+                                                                                                  ]
+                                                                                 },
+                                                               "consumedObservations":  [
+                                                                                            "obs.user_utterance"
+                                                                                        ],
+                                                               "emittedModalities":  [
+                                                                                         "speech"
+                                                                                     ]
+                                                           }
+                                            }
+                                        ]
+                        },
+                        {
+                            "id":  "result_to_reveal",
+                            "sourceStateId":  "result",
+                            "targetStateId":  "reveal",
+                            "order":  20,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              },
+                                              {
+                                                  "kind":  "prometheus.decision.prompt",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "decisionPrompt":  {
+                                                                                        "sections":  [
+                                                                                                         {
+                                                                                                             "id":  "decision.1",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Check only the latest user message.\nReturn true if the person wants to play another round of rock-scissor-paper."
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.2",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return true for:\n- \"Yes\"\n- \"Again\"\n- \"Continue\"\n- \"New round\"\n- \"One more\""
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.3",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return false for:\n- clear stop signals\n- \"No\" without a wish to continue\n- questions\n- unclear statements"
+                                                                                                         },
+                                                                                                         {
+                                                                                                             "id":  "decision.4",
+                                                                                                             "kind":  "transition-criterion",
+                                                                                                             "content":  "Return only true or false."
+                                                                                                         }
+                                                                                                     ]
+                                                                                    },
+                                                                 "consumedObservations":  [
+                                                                                              "obs.user_utterance"
+                                                                                          ]
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+                                            {
+                                                "kind":  "prometheus.action.rps-select-sign",
+                                                "version":  1,
+                                                "config":  {
+                                                               "roundsStorageKey":  "rps_rounds",
+                                                               "currentAgentSignStorageKey":  "rps_current_agent_sign",
+                                                               "currentRoundNumberStorageKey":  "rps_current_round_number"
+                                                           }
+                                            }
+                                        ]
+                        }
+                    ]
+}

@@ -108,6 +108,20 @@ class ValerianCorePromptContractTest {
             assertEndActions(role, transitionId, RoleClarificationGuessingGame.PROMPT_OUTCOME_EXTRACTION,
                     RoleClarificationGuessingGame.PROMPT_FINAL, ValerianCorePrompts.FINAL_STARTER);
         }
+
+        CompiledAgentDefinition rps = catalog.require(RockScissorPaper.KEY).compiled();
+        assertPolicy(rps, "context", ValerianCorePrompts.OUTER_STATE, "");
+        assertPolicy(rps, "start", RockScissorPaper.PROMPT_START, RockScissorPaper.PROMPT_STARTER);
+        assertDecision(rps, "context_end", 1, ValerianCorePrompts.OUTER_STATE_TO_FINAL);
+        assertDecision(rps, "context_end", 2, RockScissorPaper.PROMPT_TO_FINAL);
+        assertDecision(rps, "start_end", RockScissorPaper.PROMPT_TO_FINAL);
+        assertDecision(rps, "start_to_reveal", RockScissorPaper.PROMPT_READY);
+        assertDecision(rps, "reveal_end", RockScissorPaper.PROMPT_TO_FINAL);
+        assertDecision(rps, "result_end", RockScissorPaper.PROMPT_TO_FINAL);
+        assertDecision(rps, "result_to_reveal", RockScissorPaper.PROMPT_PLAY_AGAIN);
+        for (String transitionId : List.of("context_end", "start_end", "reveal_end", "result_end")) {
+            assertGoodbye(rps, transitionId, RockScissorPaper.PROMPT_FINAL, ValerianCorePrompts.FINAL_STARTER);
+        }
     }
 
     @Test
@@ -145,10 +159,24 @@ class ValerianCorePromptContractTest {
     }
 
     private static void assertDecision(CompiledAgentDefinition definition, String transitionId, String prompt) {
+        assertDecision(definition, transitionId, 1, prompt);
+    }
+
+    private static void assertDecision(CompiledAgentDefinition definition, String transitionId, int decisionIndex,
+            String prompt) {
         var transition = definition.transitions().stream()
                 .filter(candidate -> transitionId.equals(candidate.id())).findFirst().orElseThrow();
-        PromptDecisionComponent decision = (PromptDecisionComponent) transition.decisions().get(1);
+        PromptDecisionComponent decision = (PromptDecisionComponent) transition.decisions().get(decisionIndex);
         assertEquals(prompt.strip(), decision.decisionPrompt(), definition.key() + " " + transitionId);
+    }
+
+    private static void assertGoodbye(CompiledAgentDefinition definition, String transitionId, String completion,
+            String finalStarter) {
+        var transition = definition.transitions().stream()
+                .filter(candidate -> transitionId.equals(candidate.id())).findFirst().orElseThrow();
+        PromptBehaviourActionComponent goodbye = (PromptBehaviourActionComponent) transition.actions().getFirst();
+        assertEquals(completion.strip(), goodbye.policy().responsePrompt(), definition.key() + " " + transitionId);
+        assertEquals(finalStarter.strip(), goodbye.policy().starterPrompt(), definition.key() + " " + transitionId);
     }
 
     private static void assertEndActions(CompiledAgentDefinition definition, String transitionId, String extraction,

@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.definition.component.builtin.ConstantInitializerCompon
 import ch.zhaw.prometheus.definition.component.builtin.CompositeSelectorComponent;
 import ch.zhaw.prometheus.definition.component.builtin.CompositeSelectorComponent.Mode;
 import ch.zhaw.prometheus.definition.component.builtin.ExtractionActionComponent;
+import ch.zhaw.prometheus.definition.component.builtin.ExactTextPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.IncrementActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.LatestEventTypeDecisionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.NoOpPolicyComponent;
@@ -23,6 +24,10 @@ import ch.zhaw.prometheus.definition.component.builtin.PromptBehaviourActionComp
 import ch.zhaw.prometheus.definition.component.builtin.PromptPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.RandomChoiceInitializerComponent;
 import ch.zhaw.prometheus.definition.component.builtin.ResourceChoiceInitializerComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsEvaluateRoundActionComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsResultPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsRevealPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsSelectSignActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent.SelectorKind;
 import ch.zhaw.prometheus.definition.component.builtin.TypedChoicesResourceComponent;
@@ -54,6 +59,24 @@ public final class BuiltInComponentCatalog {
              "key":{"type":"string","minLength":1},"access":{"enum":["read","write","read-write"]},
              "expectedValueSchema":{"type":"object"}},"required":["key","access"],"additionalProperties":false}}
             """;
+    private static final JsonNode RPS_SIGN_SCHEMA = tree(
+            "{\"type\":\"string\",\"enum\":[\"rock\",\"scissor\",\"paper\"]}");
+    private static final JsonNode POSITIVE_INTEGER_SCHEMA = tree("{\"type\":\"integer\",\"minimum\":1}");
+    private static final JsonNode RPS_ROUND_SCHEMA = tree("""
+            {"type":"object","required":["round","agentSign","userSign","outcome","winner","reason"],
+             "properties":{"round":{"type":"integer","minimum":1},
+             "agentSign":{"type":"string","enum":["rock","scissor","paper"]},
+             "userSign":{"type":"string","enum":["rock","scissor","paper"]},
+             "outcome":{"type":"string","enum":["agent_win","user_win","draw"]},
+             "winner":{"type":"string","enum":["agent","user","draw"]},"reason":{"type":"string"},
+             "userConfidence":{"type":"number"},"userDetectionMode":{"type":"string"},
+             "userHand":{"type":"string"}},"additionalProperties":false}
+            """);
+    private static final JsonNode RPS_ROUNDS_SCHEMA = arrayValueSchema(RPS_ROUND_SCHEMA);
+    private static final Set<String> RPS_REVEAL_MODALITIES = Set.of("speech", "nonVerbal.gesture",
+            "nonVerbal.facialExpression", "nonVerbal.gaze", "nonVerbal.motion", "motion.handSign", "display");
+    private static final Set<String> RPS_RESULT_MODALITIES = Set.of("speech", "nonVerbal.gesture",
+            "nonVerbal.facialExpression", "nonVerbal.gaze", "nonVerbal.motion", "display");
 
     private BuiltInComponentCatalog() {
     }
@@ -67,12 +90,30 @@ public final class BuiltInComponentCatalog {
         definitions.add(registered("prometheus.policy.no-op", ComponentCategory.POLICY, EMPTY_SCHEMA,
                 "No-op policy", "Produces no behaviour.", ignored -> ComponentSemantics.none(),
                 ignored -> new NoOpPolicyComponent()));
+        definitions.add(registered("prometheus.policy.exact-text", ComponentCategory.POLICY, exactTextSchema(),
+                "Exact text", "Emits the latest matching event payload verbatim without a model.",
+                config -> new ComponentSemantics(Set.of(config.path("eventType").asText()), Set.of("speech"),
+                        List.of(), List.of(), List.of()),
+                config -> new ExactTextPolicyComponent(config.path("eventType").asText(),
+                        config.path("actor").asText(), config.path("eventKind").asText(),
+                        config.path("maxTextCodePoints").asInt())));
         definitions.add(registered("prometheus.policy.prompt", ComponentCategory.POLICY, promptPolicySchema(),
                 "Prompt policy", "Produces behaviour from typed prompt roles.", BuiltInComponentCatalog::promptSemantics,
                 config -> new PromptPolicyComponent(prompt(config, "responsePrompt"), prompt(config, "starterPrompt"),
                         prompt(config, "summaryPrompt"), prompt(config, "nonverbalPlanPrompt"),
                         prompt(config, "gesturePrompt"), compiledStorageBindings(config), strings(config, "consumedObservations"),
                         strings(config, "emittedModalities"))));
+        definitions.add(registered("prometheus.policy.rps-reveal", ComponentCategory.POLICY,
+                requiredStringsSchema("currentAgentSignStorageKey", "currentRoundNumberStorageKey"),
+                "RPS reveal", "Emits the deterministic English reveal speech, hand sign, and display.",
+                BuiltInComponentCatalog::rpsRevealSemantics,
+                config -> new RpsRevealPolicyComponent(config.path("currentAgentSignStorageKey").asText(),
+                        config.path("currentRoundNumberStorageKey").asText())));
+        definitions.add(registered("prometheus.policy.rps-result", ComponentCategory.POLICY,
+                requiredStringsSchema("lastRoundStorageKey"), "RPS result",
+                "Emits the deterministic English round result and display.",
+                BuiltInComponentCatalog::rpsResultSemantics,
+                config -> new RpsResultPolicyComponent(config.path("lastRoundStorageKey").asText())));
 
         definitions.add(selector("prometheus.selector.any", EMPTY_SCHEMA, "Any event", SelectorKind.ANY, null));
         definitions.add(selector("prometheus.selector.state-path", EMPTY_SCHEMA, "Active state path",
@@ -120,6 +161,23 @@ public final class BuiltInComponentCatalog {
                         prompt(config, "summaryPrompt"), prompt(config, "nonverbalPlanPrompt"),
                         prompt(config, "gesturePrompt"), compiledStorageBindings(config),
                         strings(config, "consumedObservations"), strings(config, "emittedModalities")))));
+        definitions.add(registered("prometheus.action.rps-select-sign", ComponentCategory.ACTION,
+                requiredStringsSchema("roundsStorageKey", "currentAgentSignStorageKey",
+                        "currentRoundNumberStorageKey"),
+                "Select RPS sign", "Selects rock, scissor, and paper deterministically by completed round count.",
+                BuiltInComponentCatalog::rpsSelectSemantics,
+                config -> new RpsSelectSignActionComponent(config.path("roundsStorageKey").asText(),
+                        config.path("currentAgentSignStorageKey").asText(),
+                        config.path("currentRoundNumberStorageKey").asText())));
+        definitions.add(registered("prometheus.action.rps-evaluate-round", ComponentCategory.ACTION,
+                requiredStringsSchema("handSignEventType", "currentAgentSignStorageKey",
+                        "currentRoundNumberStorageKey", "lastRoundStorageKey", "roundsStorageKey"),
+                "Evaluate RPS round", "Evaluates the latest hand sign and appends the deterministic round result.",
+                BuiltInComponentCatalog::rpsEvaluateSemantics,
+                config -> new RpsEvaluateRoundActionComponent(config.path("handSignEventType").asText(),
+                        config.path("currentAgentSignStorageKey").asText(),
+                        config.path("currentRoundNumberStorageKey").asText(),
+                        config.path("lastRoundStorageKey").asText(), config.path("roundsStorageKey").asText())));
 
         definitions.add(registered("prometheus.initializer.constant", ComponentCategory.INITIALIZER,
                 constantInitializerSchema(), "Constant initializer", "Writes a fixed initial storage value.",
@@ -171,7 +229,7 @@ public final class BuiltInComponentCatalog {
             java.util.function.Function<JsonNode, ComponentSemantics> semantics,
             java.util.function.Function<JsonNode, CompiledComponent> compiler) {
         return new RegisteredComponent(new ComponentKey(kind, 1), category, tree(schema),
-                new ComponentUiMetadata(label, description, new ImmutableJson(tree("{}")), List.of()), semantics,
+                uiMetadata(kind, label, description), semantics,
                 compiler);
     }
 
@@ -180,13 +238,103 @@ public final class BuiltInComponentCatalog {
             java.util.function.Function<JsonNode, ComponentSemantics> semantics,
             java.util.function.BiFunction<JsonNode, ComponentRegistry, CompiledComponent> compiler) {
         return new RegisteredComponent(new ComponentKey(kind, 1), category, tree(schema),
-                new ComponentUiMetadata(label, description, new ImmutableJson(tree("{}")), List.of()), semantics,
+                uiMetadata(kind, label, description), semantics,
                 compiler);
+    }
+
+    private static ComponentUiMetadata uiMetadata(String kind, String label, String description) {
+        JsonNode defaultConfig = tree(switch (kind) {
+            case "prometheus.policy.no-op", "prometheus.selector.any", "prometheus.selector.state-path" -> "{}";
+            case "prometheus.policy.exact-text" -> """
+                    {"eventType":"obs.user_utterance","actor":"user","eventKind":"observation",
+                     "maxTextCodePoints":2000}
+                    """;
+            case "prometheus.policy.prompt" -> promptExample("response.objective", "objective",
+                    "Describe the agent's response objective.", "responsePrompt");
+            case "prometheus.policy.rps-reveal" -> """
+                    {"currentAgentSignStorageKey":"rps_current_agent_sign",
+                     "currentRoundNumberStorageKey":"rps_current_round_number"}
+                    """;
+            case "prometheus.policy.rps-result" ->
+                "{\"lastRoundStorageKey\":\"rps_last_round\"}";
+            case "prometheus.selector.event-type" -> "{\"types\":[\"obs.user_utterance\"]}";
+            case "prometheus.selector.actor" -> "{\"actors\":[\"user\"]}";
+            case "prometheus.selector.event-kind" -> "{\"kinds\":[\"observation\"]}";
+            case "prometheus.selector.state-id" -> "{\"stateIds\":[\"state\"]}";
+            case "prometheus.selector.all", "prometheus.selector.any-of" -> """
+                    {"selectors":[{"kind":"prometheus.selector.any","version":1,"config":{}}]}
+                    """;
+            case "prometheus.decision.latest-event-type" ->
+                "{\"eventType\":\"obs.user_utterance\"}";
+            case "prometheus.decision.prompt" -> promptExample("decision.criterion", "transition-criterion",
+                    "Return true only when the transition criterion is satisfied.", "decisionPrompt");
+            case "prometheus.action.extract" -> "{\"targetStorageKey\":\"outcome\"}";
+            case "prometheus.action.increment" -> "{\"targetStorageKey\":\"counter\"}";
+            case "prometheus.action.prompt-behaviour" -> promptExample("completion.response", "completion",
+                    "Give one brief completion response.", "responsePrompt");
+            case "prometheus.action.rps-select-sign" -> """
+                    {"roundsStorageKey":"rps_rounds","currentAgentSignStorageKey":"rps_current_agent_sign",
+                     "currentRoundNumberStorageKey":"rps_current_round_number"}
+                    """;
+            case "prometheus.action.rps-evaluate-round" -> """
+                    {"handSignEventType":"obs.hand.sign","currentAgentSignStorageKey":"rps_current_agent_sign",
+                     "currentRoundNumberStorageKey":"rps_current_round_number",
+                     "lastRoundStorageKey":"rps_last_round","roundsStorageKey":"rps_rounds"}
+                    """;
+            case "prometheus.initializer.constant" -> "{\"storageKey\":\"value\",\"value\":null}";
+            case "prometheus.initializer.random-choice" ->
+                "{\"storageKey\":\"choice\",\"choices\":[\"one\",\"two\"]}";
+            case "prometheus.resource.typed-choices" -> "{\"values\":[\"one\",\"two\"]}";
+            default -> throw new IllegalStateException("Missing component UI metadata for " + kind);
+        });
+        return new ComponentUiMetadata(label, description, new ImmutableJson(defaultConfig),
+                List.of(new ImmutableJson(defaultConfig)));
+    }
+
+    private static String promptExample(String sectionId, String sectionKind, String content, String field) {
+        return "{\"" + field + "\":{\"sections\":[{\"id\":\"" + sectionId + "\",\"kind\":\""
+                + sectionKind + "\",\"content\":" + JSON.valueToTree(content) + "}]}}";
     }
 
     private static ComponentSemantics promptSemantics(JsonNode config) {
         return new ComponentSemantics(strings(config, "consumedObservations"), strings(config, "emittedModalities"),
                 storageUses(config), List.of(), List.of());
+    }
+
+    private static ComponentSemantics rpsRevealSemantics(JsonNode config) {
+        return new ComponentSemantics(Set.of(), RPS_REVEAL_MODALITIES, List.of(
+                storageUse(config, "currentAgentSignStorageKey", ComponentStorageAccess.READ, RPS_SIGN_SCHEMA),
+                storageUse(config, "currentRoundNumberStorageKey", ComponentStorageAccess.READ,
+                        POSITIVE_INTEGER_SCHEMA)), List.of(), List.of());
+    }
+
+    private static ComponentSemantics rpsResultSemantics(JsonNode config) {
+        return new ComponentSemantics(Set.of(), RPS_RESULT_MODALITIES, List.of(
+                storageUse(config, "lastRoundStorageKey", ComponentStorageAccess.READ, RPS_ROUND_SCHEMA)),
+                List.of(), List.of());
+    }
+
+    private static ComponentSemantics rpsSelectSemantics(JsonNode config) {
+        return new ComponentSemantics(Set.of(), Set.of(), List.of(
+                storageUse(config, "roundsStorageKey", ComponentStorageAccess.READ, RPS_ROUNDS_SCHEMA),
+                storageUse(config, "currentAgentSignStorageKey", ComponentStorageAccess.WRITE, RPS_SIGN_SCHEMA),
+                storageUse(config, "currentRoundNumberStorageKey", ComponentStorageAccess.WRITE,
+                        POSITIVE_INTEGER_SCHEMA)), List.of(), List.of());
+    }
+
+    private static ComponentSemantics rpsEvaluateSemantics(JsonNode config) {
+        return new ComponentSemantics(Set.of(config.path("handSignEventType").asText()), Set.of(), List.of(
+                storageUse(config, "currentAgentSignStorageKey", ComponentStorageAccess.READ, RPS_SIGN_SCHEMA),
+                storageUse(config, "currentRoundNumberStorageKey", ComponentStorageAccess.READ,
+                        POSITIVE_INTEGER_SCHEMA),
+                storageUse(config, "lastRoundStorageKey", ComponentStorageAccess.WRITE, RPS_ROUND_SCHEMA),
+                storageUse(config, "roundsStorageKey", ComponentStorageAccess.READ_WRITE, RPS_ROUNDS_SCHEMA)),
+                List.of(), List.of());
+    }
+
+    private static ComponentStorageUse storageUse(JsonNode config, String field, ComponentStorageAccess access,
+            JsonNode expectedSchema) {
+        return new ComponentStorageUse(config.path(field).asText(), access, expectedSchema, "/config/" + field);
     }
 
     private static ComponentSemantics withPrimaryStorageUse(JsonNode config, String field,
@@ -288,6 +436,29 @@ public final class BuiltInComponentCatalog {
                 """.formatted(field, field);
     }
 
+    private static String requiredStringsSchema(String... fields) {
+        List<String> properties = new ArrayList<>();
+        List<String> required = new ArrayList<>();
+        for (String field : fields) {
+            String name = JSON.valueToTree(field).toString();
+            properties.add(name + ":{\"type\":\"string\",\"minLength\":1}");
+            required.add(name);
+        }
+        return "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\","
+                + "\"properties\":{" + String.join(",", properties) + "},\"required\":["
+                + String.join(",", required) + "],\"additionalProperties\":false}";
+    }
+
+    private static String exactTextSchema() {
+        return """
+                {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{
+                 "eventType":{"type":"string","minLength":1},"actor":{"type":"string","minLength":1},
+                 "eventKind":{"type":"string","minLength":1},
+                 "maxTextCodePoints":{"type":"integer","minimum":1,"maximum":100000}},
+                 "required":["eventType","actor","eventKind","maxTextCodePoints"],"additionalProperties":false}
+                """;
+    }
+
     private static String promptPolicySchema() {
         return promptComponentSchema(List.of("responsePrompt", "starterPrompt", "summaryPrompt",
                 "nonverbalPlanPrompt", "gesturePrompt"));
@@ -359,5 +530,11 @@ public final class BuiltInComponentCatalog {
         } catch (JsonProcessingException exception) {
             throw new ExceptionInInitializerError(exception);
         }
+    }
+
+    private static JsonNode arrayValueSchema(JsonNode itemSchema) {
+        var schema = JSON.createObjectNode().put("type", "array");
+        schema.set("items", itemSchema.deepCopy());
+        return schema;
     }
 }

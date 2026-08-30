@@ -36,7 +36,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 3. Component registry, compiler, and cache | Complete |
 | 4. Immutable runtime state-machine engine | Complete |
 | 5. Prompt-based main catalog in JSON | Complete |
-| 6. Deterministic main components and complete JSON catalog | Planned |
+| 6. Deterministic main components and complete JSON catalog | Complete |
 | 7. Definition repository, revisions, and seed import | Planned |
 | 8. Runtime/application cutover and legacy deletion | Planned |
 | 9. Final MySQL migration smoke gate | Planned |
@@ -281,6 +281,14 @@ whole-agent assembly.
 - Commit and push before Milestone 6.
 
 ### Milestone 6 - Deterministic main components and complete JSON catalog
+
+**Status: Complete.** Talk to Me and RPS are bundled as revision-1 JSON. Five
+strict deterministic component kinds preserve exact text, RPS selection,
+evaluation, reveal, and result behavior without provider calls. All twelve
+definitions compile and start through the declarative catalog harness; reusable
+exact-text validation and English RPS rendering live outside whole-agent
+assembly. Production discovery remains on the temporary Java path until the
+ordered cutover.
 
 **Outcome**
 

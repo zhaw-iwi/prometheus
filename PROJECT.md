@@ -73,7 +73,7 @@ and regulation diagnostics remain future work.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-5 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-6 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -82,12 +82,14 @@ and regulation diagnostics remain future work.
   engine over explicit mutable instance snapshots. The engine preserves nested
   transition precedence, entry modes, history/reset behavior, ordered decisions
   and actions, and final inactivity while returning explicit change sets. Ten
-  prompt-oriented main definitions now have bundled revision-1 JSON and a
-  deterministic manifest with exact current prompt/profile parity. Typed
-  resource-backed therapy context and final-transition prompt behaviour compile
-  through registered components and start through the generic runtime with
-  deterministic fakes. The production catalog/runtime remains on the existing
-  path until the ordered Phase II cutover; Designer Milestone 6 is next.
+  main definitions now have bundled revision-1 JSON and a deterministic
+  manifest with exact current prompt/profile parity. Typed resource-backed
+  therapy context, exact-text output, deterministic RPS behavior, and
+  final-transition prompt behaviour compile through registered components and
+  run through the generic engine with deterministic fakes. Component palette
+  entries expose strict schemas plus safe defaults/examples. The production
+  catalog/runtime remains on the existing path until the ordered Phase II
+  cutover; Designer Milestone 7 persistence and seed import is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

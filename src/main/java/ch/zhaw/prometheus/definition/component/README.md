@@ -37,3 +37,23 @@ reference `prometheus.resource.typed-choices`. Resource references are resolved
 to immutable values at compilation; runtime randomness still comes only from
 the caller-owned `RandomGenerator`. Prompt storage interpolation is limited to
 explicit typed `storageBindings`.
+
+## Schema-version-1 catalog
+
+Every entry exposes a strict configuration schema and safe schema-valid UI
+default/example metadata. The complete built-in palette is:
+
+| Category | Kinds |
+| --- | --- |
+| Policy | `prometheus.policy.no-op`, `prometheus.policy.prompt`, `prometheus.policy.exact-text`, `prometheus.policy.rps-reveal`, `prometheus.policy.rps-result` |
+| Selector | `prometheus.selector.any`, `prometheus.selector.state-path`, `prometheus.selector.event-type`, `prometheus.selector.actor`, `prometheus.selector.event-kind`, `prometheus.selector.state-id`, `prometheus.selector.all`, `prometheus.selector.any-of` |
+| Decision | `prometheus.decision.latest-event-type`, `prometheus.decision.prompt` |
+| Action | `prometheus.action.extract`, `prometheus.action.increment`, `prometheus.action.prompt-behaviour`, `prometheus.action.rps-select-sign`, `prometheus.action.rps-evaluate-round` |
+| Initializer | `prometheus.initializer.constant`, `prometheus.initializer.random-choice` |
+| Resource | `prometheus.resource.typed-choices` |
+
+Exact-text and RPS kinds are provider-free. Their JSON contains only typed event
+and storage references; implementation names, beans, and executable content are
+not configuration. The RPS actions use the existing deterministic sign/rules
+domain, while reveal/result output shares a provider-free renderer with the
+temporary production adapters.

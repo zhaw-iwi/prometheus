@@ -1,0 +1,89 @@
+{
+    "$schema":  "/agent-definitions/schema/agent-definition.schema.json",
+    "schemaVersion":  1,
+    "key":  "core.talk_to_me",
+    "revision":  1,
+    "metadata":  {
+                     "displayName":  "Talk to Me",
+                     "description":  "Speaks submitted text exactly through PROMETHEUS output-only Speech synthesis.",
+                     "categoryPath":  "core",
+                     "languageCode":  "en",
+                     "tags":  [
+                                  "utility.talk_to_me"
+                              ]
+                 },
+    "interaction":  {
+                        "supportedObservations":  [
+                                                      "obs.user_utterance"
+                                                  ],
+                        "supportedBehaviourModalities":  [
+                                                             "speech"
+                                                         ],
+                        "profileTags":  [
+                                            "utility.talk_to_me"
+                                        ]
+                    },
+    "lifecycle":  {
+                      "initialStateId":  "talk",
+                      "startOnCreation":  true,
+                      "initializers":  [
+
+                                       ],
+                      "reset":  {
+                                    "storage":  "initial",
+                                    "history":  "clear"
+                                }
+                  },
+    "storage":  [
+
+                ],
+    "resources":  [
+
+                  ],
+    "states":  [
+                   {
+                       "id":  "talk",
+                       "name":  "Talk to Me",
+                       "kind":  "atomic",
+                       "entryMode":  "start",
+                       "oblivious":  false,
+                       "eventSelector":  {
+                                             "kind":  "prometheus.selector.state-path",
+                                             "version":  1,
+                                             "config":  {
+
+                                                        }
+                                         },
+                       "policy":  {
+                                      "kind":  "prometheus.policy.exact-text",
+                                      "version":  1,
+                                      "config":  {
+                                                     "eventType":  "obs.user_utterance",
+                                                     "actor":  "user",
+                                                     "eventKind":  "observation",
+                                                     "maxTextCodePoints":  2000
+                                                 }
+                                  }
+                   }
+               ],
+    "transitions":  [
+                        {
+                            "id":  "repeat",
+                            "sourceStateId":  "talk",
+                            "targetStateId":  "talk",
+                            "order":  10,
+                            "decisions":  [
+                                              {
+                                                  "kind":  "prometheus.decision.latest-event-type",
+                                                  "version":  1,
+                                                  "config":  {
+                                                                 "eventType":  "obs.user_utterance"
+                                                             }
+                                              }
+                                          ],
+                            "actions":  [
+
+                                        ]
+                        }
+                    ]
+}

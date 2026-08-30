@@ -15,6 +15,8 @@ import ch.zhaw.prometheus.definition.component.CompiledDecision;
 import ch.zhaw.prometheus.definition.component.CompiledPolicy;
 import ch.zhaw.prometheus.definition.component.CompiledSelector;
 import ch.zhaw.prometheus.definition.component.builtin.CompositeSelectorComponent;
+import ch.zhaw.prometheus.definition.component.builtin.ExactTextPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.ExactTextSupport;
 import ch.zhaw.prometheus.definition.component.builtin.ExtractionActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.IncrementActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.LatestEventTypeDecisionComponent;
@@ -22,6 +24,10 @@ import ch.zhaw.prometheus.definition.component.builtin.NoOpPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptDecisionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptBehaviourActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsEvaluateRoundActionComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsResultPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsRevealPolicyComponent;
+import ch.zhaw.prometheus.definition.component.builtin.RpsSelectSignActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent;
 
 /** Runtime semantics for the framework-owned compiled component records. */
@@ -87,6 +93,14 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
         if (action instanceof PromptBehaviourActionComponent prompt) {
             return generateWithPolicies(List.of(prompt.policy()), invocation, true);
         }
+        if (action instanceof RpsSelectSignActionComponent select) {
+            RpsRuntimeSupport.select(select, storage);
+            return null;
+        }
+        if (action instanceof RpsEvaluateRoundActionComponent evaluate) {
+            RpsRuntimeSupport.evaluate(evaluate, invocation, storage);
+            return null;
+        }
         throw unsupported(action);
     }
 
@@ -113,6 +127,10 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
 
     private RuntimeBehaviour generateWithPolicies(List<CompiledPolicy> policies, RuntimeInvocation invocation,
             boolean starting) {
+        DeterministicPolicyResult deterministic = deterministicPolicy(policies, invocation);
+        if (deterministic.handled()) {
+            return deterministic.behaviour();
+        }
         List<PromptPolicyComponent> prompts = new ArrayList<>();
         for (CompiledPolicy policy : policies) {
             if (policy instanceof PromptPolicyComponent prompt) {
@@ -135,6 +153,36 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
                 resolveBindings(deepest(prompts, PromptPolicyComponent::gesturePrompt), bound.storage()), starting);
         RuntimeBehaviour behaviour = this.modelGateway.generate(promptBundle, bound);
         return behaviour == null || behaviour.isEmpty() ? null : behaviour;
+    }
+
+    private static DeterministicPolicyResult deterministicPolicy(List<CompiledPolicy> policies,
+            RuntimeInvocation invocation) {
+        for (int index = policies.size() - 1; index >= 0; index--) {
+            CompiledPolicy policy = policies.get(index);
+            if (policy instanceof ExactTextPolicyComponent exact) {
+                return new DeterministicPolicyResult(true, exactText(exact, invocation));
+            }
+            if (policy instanceof RpsRevealPolicyComponent reveal) {
+                return new DeterministicPolicyResult(true, RpsRuntimeSupport.reveal(reveal, invocation.storage()));
+            }
+            if (policy instanceof RpsResultPolicyComponent result) {
+                return new DeterministicPolicyResult(true, RpsRuntimeSupport.result(result, invocation.storage()));
+            }
+        }
+        return new DeterministicPolicyResult(false, null);
+    }
+
+    private static RuntimeBehaviour exactText(ExactTextPolicyComponent component, RuntimeInvocation invocation) {
+        for (int index = invocation.history().size() - 1; index >= 0; index--) {
+            RuntimeEvent event = invocation.history().get(index);
+            if (!component.eventType().equals(event.type()) || !component.actor().equals(event.actor())
+                    || !component.eventKind().equals(event.kind())) {
+                continue;
+            }
+            String text = ExactTextSupport.acceptedText(event.payload(), component.maxTextCodePoints());
+            return text == null ? null : RuntimeBehaviour.speechOnly(text);
+        }
+        return null;
     }
 
     private static RuntimeInvocation bound(RuntimeInvocation invocation, List<CompiledStorageBinding> bindings) {
@@ -175,5 +223,8 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
     private static UnsupportedOperationException unsupported(Object component) {
         return new UnsupportedOperationException("No runtime executor for compiled component "
                 + component.getClass().getName());
+    }
+
+    private record DeterministicPolicyResult(boolean handled, RuntimeBehaviour behaviour) {
     }
 }

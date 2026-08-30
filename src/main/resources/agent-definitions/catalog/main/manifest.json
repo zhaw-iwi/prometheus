@@ -12,6 +12,11 @@
                         "resource":  "core/multimodal_behaviour/revision-1.json"
                     },
                     {
+                        "key":  "core.rock_scissor_paper",
+                        "revision":  1,
+                        "resource":  "core/rock_scissor_paper/revision-1.json"
+                    },
+                    {
                         "key":  "core.role_clarification_guessing_game",
                         "revision":  1,
                         "resource":  "core/role_clarification_guessing_game/revision-1.json"
@@ -20,6 +25,11 @@
                         "key":  "core.social_context_sensitivity",
                         "revision":  1,
                         "resource":  "core/social_context_sensitivity/revision-1.json"
+                    },
+                    {
+                        "key":  "core.talk_to_me",
+                        "revision":  1,
+                        "resource":  "core/talk_to_me/revision-1.json"
                     },
                     {
                         "key":  "usecases.healthcare.guessing_game",

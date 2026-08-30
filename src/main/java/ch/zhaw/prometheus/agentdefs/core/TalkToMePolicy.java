@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.agentdefs.core;
 
 import java.util.List;
 
+import ch.zhaw.prometheus.definition.component.builtin.ExactTextSupport;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
@@ -55,10 +56,7 @@ public class TalkToMePolicy extends Policy {
     }
 
     private static BehaviourPlan speechOnlyIfValid(String text) {
-        if (text == null || text.isBlank()
-                || text.codePointCount(0, text.length()) > MAX_TEXT_CODE_POINTS) {
-            return null;
-        }
-        return BehaviourPlan.speechOnly(text);
+        String accepted = ExactTextSupport.acceptedText(text, MAX_TEXT_CODE_POINTS);
+        return accepted == null ? null : BehaviourPlan.speechOnly(accepted);
     }
 }

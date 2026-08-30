@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-5 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-6 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -104,7 +104,28 @@ and revision/hash-guarded single-flight cache are database-, provider-,
 persistence-, and Spring-free. Compiled graphs share no mutable instance state.
 The generic runtime now executes explicit per-instance state/storage/history
 snapshots with trusted injected component dependencies and observable change
-sets. Ten prompt-oriented main definitions are bundled as validated revision-1
-JSON with exact prompt/profile parity, including resource-backed deterministic
-therapy context. The production Java-authored catalog/runtime remains active
-until the ordered Phase II cutover; Talk to Me and RPS migration is Milestone 6.
+sets. All twelve main definitions are bundled as validated revision-1 JSON with
+exact prompt/profile parity, resource-backed deterministic therapy context,
+exact-text output, and deterministic RPS components. The production
+Java-authored catalog/runtime remains active until the ordered Phase II cutover;
+definition persistence and seed import is Milestone 7.
+
+## Bundled main catalog inventory
+
+The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`
+maps these stable keys to revision-1 resources:
+
+| Key | Resource below `catalog/main/` |
+| --- | --- |
+| `core.facial_expression_sensitivity` | `core/facial_expression_sensitivity/revision-1.json` |
+| `core.multimodal_behaviour` | `core/multimodal_behaviour/revision-1.json` |
+| `core.rock_scissor_paper` | `core/rock_scissor_paper/revision-1.json` |
+| `core.role_clarification_guessing_game` | `core/role_clarification_guessing_game/revision-1.json` |
+| `core.social_context_sensitivity` | `core/social_context_sensitivity/revision-1.json` |
+| `core.talk_to_me` | `core/talk_to_me/revision-1.json` |
+| `usecases.healthcare.guessing_game` | `usecases/healthcare/guessing_game/revision-1.json` |
+| `usecases.healthcare.guessing_game_user_guess` | `usecases/healthcare/guessing_game_user_guess/revision-1.json` |
+| `usecases.healthcare.healthcare_conversation` | `usecases/healthcare/healthcare_conversation/revision-1.json` |
+| `usecases.healthcare.smart_goal_coaching` | `usecases/healthcare/smart_goal_coaching/revision-1.json` |
+| `usecases.healthcare.therapy_appointment_reminder` | `usecases/healthcare/therapy_appointment_reminder/revision-1.json` |
+| `usecases.healthcare.therapy_appointment_reminder_intro` | `usecases/healthcare/therapy_appointment_reminder_intro/revision-1.json` |
