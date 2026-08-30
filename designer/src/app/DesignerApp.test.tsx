@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ADMIN_TOKEN_STORAGE_KEY, type DefinitionSummary, type RequestFunction } from "../api/designerApi";
@@ -97,6 +97,26 @@ describe("DesignerApp catalog", () => {
     await user.click(screen.getByTestId("retry-catalog"));
     expect(await screen.findByTestId("catalog-populated")).not.toBeNull();
     expect(request).toHaveBeenCalledTimes(4);
+  });
+
+  it("keeps canonical import content available when the backend reports an identity conflict", async () => {
+    const user = userEvent.setup();
+    const request = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/imports") && init?.method === "POST") {
+        return Promise.resolve(response({ code: "LIFECYCLE_CONFLICT", diagnostics: [] }, 409));
+      }
+      return Promise.resolve(response([]));
+    }) as RequestFunction;
+    render(<DesignerApp request={request} />);
+
+    await screen.findByTestId("catalog-empty");
+    await user.click(screen.getByTestId("show-import-definition"));
+    const document = '{"schemaVersion":1,"key":"designer.conflict","revision":1}';
+    fireEvent.change(screen.getByTestId("import-definition-json"), { target: { value: document } });
+    await user.click(screen.getByTestId("import-definition"));
+
+    expect((await screen.findByTestId("import-message")).textContent).toContain("already exist");
+    expect((screen.getByTestId("import-definition-json") as HTMLTextAreaElement).value).toBe(document);
   });
 });
 

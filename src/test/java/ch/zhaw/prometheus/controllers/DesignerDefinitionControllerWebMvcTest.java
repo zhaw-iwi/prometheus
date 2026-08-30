@@ -131,6 +131,7 @@ class DesignerDefinitionControllerWebMvcTest {
         when(this.lifecycle.validate(anyString())).thenReturn(new DefinitionValidationResult(List.of(
                 ValidationDiagnostic.of(SemanticDiagnosticCode.UNUSED_OBSERVATION, "/interaction",
                         "Unused observation", "Remove or use it"))));
+        when(this.lifecycle.validateForPublication(anyString())).thenReturn(new DefinitionValidationResult(List.of()));
         when(this.lifecycle.publish(KEY, 1, 0)).thenReturn(published);
         when(this.lifecycle.activate(KEY, 1, 1)).thenReturn(activated);
         when(this.lifecycle.listRevisions(KEY)).thenReturn(List.of(published));
@@ -154,6 +155,19 @@ class DesignerDefinitionControllerWebMvcTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true))
                 .andExpect(jsonPath("$.diagnostics[0].code").value("UNUSED_OBSERVATION"))
                 .andExpect(jsonPath("$.diagnostics[0].pointer").value("/interaction"));
+        this.mockMvc.perform(post("/admin/agent-definitions/prompt-previews").header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"definition":{"states":[{"policy":{"config":{"responsePrompt":{"sections":[
+                        {"id":"purpose","kind":"objective","content":"First"},
+                        {"id":"guardrail","kind":"constraint","content":"Second"}]}}}}]}}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].pointer").value("/states/0/policy/config/responsePrompt"))
+                .andExpect(jsonPath("$[0].label").value("Response Prompt"))
+                .andExpect(jsonPath("$[0].composed").value("First\n\nSecond"));
+        this.mockMvc.perform(post("/admin/agent-definitions/publication-readiness").header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON).content(documentRequest()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true));
         this.mockMvc.perform(post("/admin/agent-definitions/" + KEY + "/revisions/1/publish")
                 .header(HEADER, TOKEN).contentType(MediaType.APPLICATION_JSON).content(versionRequest(0)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PUBLISHED"));
@@ -192,6 +206,8 @@ class DesignerDefinitionControllerWebMvcTest {
                         "Missing initial state", "Select an existing state")));
         when(this.lifecycle.publish(KEY, 1, 0))
                 .thenThrow(new DefinitionCompilationException("invalid", invalid));
+        when(this.lifecycle.validateForPublication(anyString()))
+                .thenThrow(new DefinitionCompilationException("invalid", invalid));
 
         this.mockMvc.perform(post("/admin/agent-definitions").header(HEADER, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON).content("{"))
@@ -212,6 +228,11 @@ class DesignerDefinitionControllerWebMvcTest {
                 .andExpect(jsonPath("$.code").value("SCHEMA_VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.diagnostics[0].code").value("SCHEMA_PATTERN"))
                 .andExpect(jsonPath("$.diagnostics[0].pointer").value("/key"));
+        this.mockMvc.perform(post("/admin/agent-definitions/publication-readiness").header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON).content(documentRequest()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.diagnostics[0].code").value("MISSING_INITIAL_STATE"));
         this.mockMvc.perform(post("/admin/agent-definitions/" + KEY + "/revisions/1/publish")
                 .header(HEADER, TOKEN).contentType(MediaType.APPLICATION_JSON).content(versionRequest(0)))
                 .andExpect(status().isUnprocessableEntity())
@@ -238,6 +259,8 @@ class DesignerDefinitionControllerWebMvcTest {
                 post("/admin/agent-definitions").contentType(MediaType.APPLICATION_JSON).content("{}"),
                 post("/admin/agent-definitions/imports").contentType(MediaType.APPLICATION_JSON).content("{}"),
                 post("/admin/agent-definitions/validation").contentType(MediaType.APPLICATION_JSON).content("{}"),
+                post("/admin/agent-definitions/prompt-previews").contentType(MediaType.APPLICATION_JSON).content("{}"),
+                post("/admin/agent-definitions/publication-readiness").contentType(MediaType.APPLICATION_JSON).content("{}"),
                 put("/admin/agent-definitions/" + KEY + "/revisions/1")
                         .contentType(MediaType.APPLICATION_JSON).content("{}"),
                 post("/admin/agent-definitions/" + KEY + "/revisions/1/publish")

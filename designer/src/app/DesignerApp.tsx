@@ -4,10 +4,12 @@ import {
   type ComponentDefinition,
   DesignerApiError,
   fetchDesignerWorkspace,
+  importDefinitionDraft,
   type DefinitionSummary,
   type RequestFunction,
 } from "../api/designerApi";
 import { DefinitionAuthoringEditor } from "../authoring/DefinitionAuthoringEditor";
+import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { designerRouteHash, parseDesignerRoute, type DesignerRoute } from "../routing/designerRoute";
 
 interface DesignerAppProps {
@@ -74,8 +76,8 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  const loadCatalog = useCallback(async (token: string) => {
-    setCatalog({ kind: "loading" });
+  const loadCatalog = useCallback(async (token: string, background = false) => {
+    if (!background) setCatalog({ kind: "loading" });
     try {
       const workspace = await fetchDesignerWorkspace(token, request);
       setCatalog({ kind: "ready", ...workspace });
@@ -160,7 +162,11 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
           <CatalogError message={catalog.message} onRetry={() => void loadCatalog(adminToken)} />
         )}
         {catalog.kind === "ready" && route.kind === "catalog" && (
-          <Catalog definitions={catalog.definitions} onNavigate={navigate} />
+          <Catalog definitions={catalog.definitions} adminToken={adminToken} request={request}
+            onNavigate={navigate} onImported={(key, revision) => {
+              rawNavigate({ kind: "editor", key, revision });
+              void loadCatalog(adminToken, true);
+            }} />
         )}
         {catalog.kind === "ready" && route.kind !== "catalog" && (
           <Editor route={route} definitions={catalog.definitions} components={catalog.components}
@@ -169,7 +175,14 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
             onSaved={(key, revision) => {
               setEditorDirty(false);
               rawNavigate({ kind: "editor", key, revision });
-              void loadCatalog(adminToken);
+              void loadCatalog(adminToken, true);
+            }}
+            onWorkspaceChanged={(target) => {
+              if (target) {
+                setEditorDirty(false);
+                rawNavigate({ kind: "editor", ...target });
+              }
+              void loadCatalog(adminToken, true);
             }} />
         )}
       </main>
@@ -202,7 +215,7 @@ function CatalogError({ message, onRetry }: { message: string; onRetry: () => vo
   );
 }
 
-function PageHeading({ onCreate }: { onCreate?: () => void }) {
+function PageHeading({ onCreate, onImport }: { onCreate?: () => void; onImport?: () => void }) {
   return (
     <div className="page-heading">
       <div>
@@ -210,19 +223,63 @@ function PageHeading({ onCreate }: { onCreate?: () => void }) {
         <h1>Definition catalog</h1>
         <p>Open an existing revision or begin a new guided agent design.</p>
       </div>
-      {onCreate && <button className="button primary" type="button" onClick={onCreate}
-        data-testid="create-definition">Create agent</button>}
+      {(onCreate || onImport) && <div className="button-row">
+        {onImport && <button className="button secondary" type="button" onClick={onImport}
+          data-testid="show-import-definition">Import JSON</button>}
+        {onCreate && <button className="button primary" type="button" onClick={onCreate}
+          data-testid="create-definition">Create agent</button>}
+      </div>}
     </div>
   );
 }
 
-function Catalog({ definitions, onNavigate }: {
+function Catalog({ definitions, adminToken, request, onNavigate, onImported }: {
   definitions: DefinitionSummary[];
+  adminToken: string;
+  request: RequestFunction;
   onNavigate: (route: DesignerRoute) => void;
+  onImported: (key: string, revision: number) => void;
 }) {
+  const [showImport, setShowImport] = useState(false);
+  const [importJson, setImportJson] = useState("");
+  const [importMessage, setImportMessage] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  const importDefinition = async () => {
+    let parsed: AgentDefinitionV1;
+    try {
+      parsed = JSON.parse(importJson) as AgentDefinitionV1;
+    } catch (error) {
+      setImportMessage(`Import JSON could not be parsed: ${error instanceof Error ? error.message : "invalid JSON"}`);
+      return;
+    }
+    setImporting(true);
+    setImportMessage("");
+    try {
+      const imported = await importDefinitionDraft(parsed, adminToken, request);
+      setImportMessage(`Imported ${imported.key} revision ${imported.revision} as an editable draft.`);
+      onImported(imported.key, imported.revision);
+    } catch (error) {
+      setImportMessage(error instanceof DesignerApiError && error.status === 409
+        ? "That key and revision already exist. Change the imported key or revision and try again."
+        : error instanceof Error ? error.message : "The definition could not be imported.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <section className="catalog-page" data-testid="definition-catalog">
-      <PageHeading onCreate={() => onNavigate({ kind: "new" })} />
+      <PageHeading onCreate={() => onNavigate({ kind: "new" })} onImport={() => setShowImport((shown) => !shown)} />
+      {showImport && <section className="import-panel" aria-labelledby="import-title" data-testid="import-panel">
+        <div className="section-heading"><div><span className="eyebrow">Canonical JSON</span><h2 id="import-title">Import a definition draft</h2></div></div>
+        <p>Import uses the backend schema and canonicalizer. Existing key/revision identities are never overwritten.</p>
+        <label className="field-stack">Definition JSON<textarea value={importJson}
+          onChange={(change) => setImportJson(change.target.value)} data-testid="import-definition-json" /></label>
+        <div className="button-row"><button className="button primary" type="button" disabled={importing || !importJson.trim()}
+          onClick={() => void importDefinition()} data-testid="import-definition">{importing ? "Importing…" : "Import draft"}</button></div>
+        {importMessage && <p className="inline-message" role="status" data-testid="import-message">{importMessage}</p>}
+      </section>}
       {definitions.length === 0 ? (
         <div className="center-state compact-state" data-testid="catalog-empty">
           <span className="state-icon" aria-hidden="true">+</span>
@@ -265,7 +322,8 @@ function Catalog({ definitions, onNavigate }: {
   );
 }
 
-function Editor({ route, definitions, components, adminToken, request, onNavigate, onDirtyChange, onSaved }: {
+function Editor({ route, definitions, components, adminToken, request, onNavigate, onDirtyChange, onSaved,
+  onWorkspaceChanged }: {
   route: Exclude<DesignerRoute, { kind: "catalog" }>;
   definitions: DefinitionSummary[];
   components: ComponentDefinition[];
@@ -274,10 +332,14 @@ function Editor({ route, definitions, components, adminToken, request, onNavigat
   onNavigate: (route: DesignerRoute) => void;
   onDirtyChange: (dirty: boolean) => void;
   onSaved: (key: string, revision: number) => void;
+  onWorkspaceChanged: (target?: { key: string; revision: number }) => void;
 }) {
   const definition = useMemo(() => route.kind === "editor"
     ? definitions.find((candidate) => candidate.key === route.key)
     : undefined, [definitions, route]);
+  const selectedRevision = route.kind === "editor"
+    ? definition?.revisions.find((candidate) => candidate.revision === route.revision)
+    : undefined;
   const title = route.kind === "new" ? "New agent draft" : definition?.displayName ?? route.key;
   const subtitle = route.kind === "new"
     ? "Start with a focused purpose. The designer will reveal complexity only when it becomes useful."
@@ -293,11 +355,13 @@ function Editor({ route, definitions, components, adminToken, request, onNavigat
           <h1>{title}</h1>
           <p>{subtitle}</p>
         </div>
-        <span className="draft-pill">Draft workspace</span>
+        <span className="draft-pill">{route.kind === "new" || selectedRevision?.status === "DRAFT"
+          ? "Draft workspace" : selectedRevision?.status === "PUBLISHED" ? "Published revision"
+            : selectedRevision?.status === "ARCHIVED" ? "Archived revision" : "Revision workspace"}</span>
       </div>
       <DefinitionAuthoringEditor key={route.kind === "new" ? "new" : `${route.key}:${route.revision}`}
-        route={route} components={components} adminToken={adminToken} request={request}
-        onDirtyChange={onDirtyChange} onSaved={onSaved} />
+        route={route} components={components} definitionSummary={definition} adminToken={adminToken} request={request}
+        onDirtyChange={onDirtyChange} onSaved={onSaved} onWorkspaceChanged={onWorkspaceChanged} />
     </section>
   );
 }

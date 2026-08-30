@@ -3,12 +3,24 @@ import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { createDefaultDefinition } from "../authoring/editorModel";
 import {
   ADMIN_TOKEN_HEADER,
+  activateDefinitionRevision,
+  archiveDefinitionRevision,
+  cloneDefinitionRevision,
+  closeDefinitionPreview,
   createDefinitionDraft,
+  createDefinitionPreview,
   DesignerApiError,
   fetchDefinitionCatalog,
+  fetchPromptPreviews,
   fetchDesignerWorkspace,
+  generatePreviewBehaviour,
+  importDefinitionDraft,
+  publishDefinitionRevision,
+  resetDefinitionPreview,
+  submitPreviewEvent,
   updateDefinitionDraft,
   validateDefinition,
+  validateDefinitionForPublication,
 } from "./designerApi";
 
 function response(payload: unknown, status = 200): Response {
@@ -68,5 +80,56 @@ describe("designer API", () => {
     ]);
     expect(JSON.parse(String(request.mock.calls[1][1]?.body)).optimisticVersion).toBe(4);
     expect(new Headers(request.mock.calls[2][1]?.headers).get("Content-Type")).toBe("application/json");
+  });
+
+  it("maps prompt, lifecycle, import, and disposable preview requests without inventing auth", async () => {
+    const definition = createDefaultDefinition();
+    definition.key = "designer.review";
+    const preview = { id: "preview-1", transcript: [] };
+    const request = vi.fn()
+      .mockResolvedValueOnce(response([]))
+      .mockResolvedValueOnce(response({ valid: true, diagnostics: [] }))
+      .mockResolvedValueOnce(response({ definition }, 201))
+      .mockResolvedValueOnce(response({ status: "PUBLISHED" }))
+      .mockResolvedValueOnce(response({ activeRevision: 1 }))
+      .mockResolvedValueOnce(response({ status: "ARCHIVED" }))
+      .mockResolvedValueOnce(response({ key: "designer.clone", revision: 2 }, 201))
+      .mockResolvedValueOnce(response(preview, 201))
+      .mockResolvedValueOnce(response(preview))
+      .mockResolvedValueOnce(response(preview))
+      .mockResolvedValueOnce(response(preview))
+      .mockResolvedValueOnce({ ok: true, status: 204 });
+
+    await fetchPromptPreviews(definition, "token", request);
+    await validateDefinitionForPublication(definition, "token", request);
+    await importDefinitionDraft(definition, "token", request);
+    await publishDefinitionRevision(definition.key, 1, 3, "token", request);
+    await activateDefinitionRevision(definition.key, 1, 7, "token", request);
+    await archiveDefinitionRevision(definition.key, 1, 4, "token", request);
+    await cloneDefinitionRevision(definition.key, 1, "designer.clone", 2, "token", request);
+    await createDefinitionPreview(definition, "token", request);
+    await submitPreviewEvent("preview-1", { type: "obs.text", actor: "user", kind: "observation", payload: "hello" }, "token", request);
+    await generatePreviewBehaviour("preview-1", "token", request);
+    await resetDefinitionPreview("preview-1", "token", request);
+    await closeDefinitionPreview("preview-1", "token", request);
+
+    expect(request.mock.calls.map((call) => [call[0], call[1]?.method])).toEqual([
+      ["/admin/agent-definitions/prompt-previews", "POST"],
+      ["/admin/agent-definitions/publication-readiness", "POST"],
+      ["/admin/agent-definitions/imports", "POST"],
+      ["/admin/agent-definitions/designer.review/revisions/1/publish", "POST"],
+      ["/admin/agent-definitions/designer.review/revisions/1/activate", "POST"],
+      ["/admin/agent-definitions/designer.review/revisions/1/archive", "POST"],
+      ["/admin/agent-definitions/designer.review/revisions/1/clone", "POST"],
+      ["/admin/agent-definitions/previews", "POST"],
+      ["/admin/agent-definitions/previews/preview-1/events", "POST"],
+      ["/admin/agent-definitions/previews/preview-1/generate", "POST"],
+      ["/admin/agent-definitions/previews/preview-1/reset", "POST"],
+      ["/admin/agent-definitions/previews/preview-1", "DELETE"],
+    ]);
+    expect(JSON.parse(String(request.mock.calls[4][1]?.body))).toEqual({ optimisticVersion: 7 });
+    for (const call of request.mock.calls) {
+      expect(new Headers(call[1]?.headers).get(ADMIN_TOKEN_HEADER)).toBe("token");
+    }
   });
 });

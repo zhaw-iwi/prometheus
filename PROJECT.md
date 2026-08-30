@@ -168,8 +168,23 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   validated a four-state healthcare composite and two-state RPS cycle without
   JSON editing or external providers; both returned zero diagnostics, graph and
   list screenshots were inspected, and the browser reported no console/page
-  errors or horizontal overflow. Designer Milestone 15, Review, JSON, preview,
-  and publication UX, is next.
+  errors or horizontal overflow. Review now provides a plain-language summary,
+  backend diagnostics grouped and linked across all six steps, safe alternate
+  editing of the same canonical JSON document, and backend-composed read-only
+  prompt previews. Its disposable workspace exposes event templates/advanced
+  JSON, active state, trace, storage diffs, behaviour, reset, expiry recovery,
+  and explicit cleanup. Confirmed publish, activate-for-new-instances, export,
+  clone, and non-active archive actions remain separate from navigation and
+  ordinary save; catalog import preserves conflicting source JSON instead of
+  overwriting an identity. The suite now has 45 focused frontend tests, and the
+  authenticated prompt-preview endpoint is covered with the complete designer
+  WebMvc contracts. A live Spring/isolated-H2 Playwright run created and
+  validated `designer.m15_acceptance_1437`, generated deterministic exact-text
+  behaviour without a provider, reset/closed its preview, published and
+  activated revision 1, exported it, cloned/published/activated revision 2, and
+  archived revision 1. Three full-page states were visually inspected and the
+  run reported no console or page errors. Designer Milestone 16, final
+  Playwright, packaging, and acceptance, is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

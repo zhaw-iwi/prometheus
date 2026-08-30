@@ -71,8 +71,30 @@ containment, initial situations, edges, cycles, and self-moves; select a node or
 edge to open its inspector. Use **Keyboard list** for the equivalent add, edit,
 delete, reorder, containment, initial-child, and transition operations with
 ordinary buttons and tables. Backend graph diagnostics link to and mark the
-affected situation or move. Preview and publication arrive in the next
-designer milestone.
+affected situation or move.
+
+Review summarizes all five authoring areas and groups backend errors/warnings
+by guided step; each diagnostic link returns focus to the relevant field,
+situation, or move. **Technical details** is an alternate editor for the same
+canonical document: **Apply JSON to guided form** parses locally, asks the
+backend to enforce the schema, and preserves the last valid form when either
+stage fails. Composed prompt previews are read-only and come from the backend's
+deterministic composer.
+
+**Disposable Preview** compiles the current in-memory document without saving
+it. Choose a declared event template or enter advanced event JSON, then inspect
+the active situation, event/transition trace, storage changes, and generated
+behaviour. Reset restores initial runtime state; **Close and discard** removes
+the in-memory session. Preview never publishes, activates, or creates an agent.
+
+Publication is deliberately separate from ordinary navigation and save:
+validate the exact saved draft, confirm **Publish revision** to make its JSON
+immutable, then optionally **Activate for new instances**. Activation does not
+move existing instances off their pinned revision. Review also exports exact
+canonical JSON, clones any revision into an explicit editable key/revision, and
+archives only published revisions that are not active. The catalog's **Import
+JSON** action creates a new imported draft and never overwrites an existing
+key/revision identity.
 
 ### Valerian Access Management
 
@@ -853,6 +875,8 @@ Valerian Designer uses the same header for the complete definition lifecycle:
 | `POST` | `/admin/agent-definitions/imports` | Import a document as an imported draft. |
 | `PUT` | `/admin/agent-definitions/{key}/revisions/{revision}` | Replace a draft at an expected optimistic version. |
 | `POST` | `/admin/agent-definitions/validation` | Validate a saved or unsaved definition without publishing. |
+| `POST` | `/admin/agent-definitions/publication-readiness` | Validate and fully compile the exact document before enabling publication. |
+| `POST` | `/admin/agent-definitions/prompt-previews` | Structurally validate a definition and compose its typed prompts read-only. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/publish` | Validate, compile, and immutably publish a draft. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/activate` | Make a published revision active for new instances. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/archive` | Archive a non-active published revision. |
@@ -874,6 +898,11 @@ fields cannot forge repository metadata. Validation/publication failures return
 stable diagnostic codes and JSON Pointers. Optimistic and lifecycle conflicts
 return `409`, unknown resources `404`, malformed requests `400`, and structural
 or publication validation failures `422`.
+
+Prompt preview accepts the same `{"definition": ...}` envelope and returns an
+ordered array of `{pointer, label, composed}` values after structural
+validation. Composition uses the server's production newline normalization and
+section ordering; clients must treat `composed` as read-only.
 
 Preview creation accepts either `{"definition": <current-schema-v1-document>}`
 or `{"key": "...", "revision": 1}` for an existing draft. A valid unsaved

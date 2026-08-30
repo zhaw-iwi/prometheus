@@ -14,6 +14,16 @@ describe("DefinitionAuthoringEditor persistence", () => {
       .toMatchObject({ stepId: "state-flow", fieldId: "graph-diagnostic-state-main" });
     expect(targetForDiagnostic({ code: "EDGE", severity: "ERROR", pointer: "/transitions/0/targetStateId", message: "Edge", hint: null }, definition))
       .toMatchObject({ stepId: "state-flow", fieldId: "graph-diagnostic-transition-stay" });
+    expect(targetForDiagnostic({ code: "ACTION", severity: "ERROR", pointer: "/transitions/0/actions/0/config", message: "Action", hint: null }, definition))
+      .toMatchObject({ stepId: "reactions", fieldId: "reaction-stay" });
+    expect(targetForDiagnostic({ code: "PROMPT", severity: "ERROR", pointer: "/states/0/policy/config/responsePrompt/sections/0", message: "Prompt", hint: null }, definition))
+      .toMatchObject({ stepId: "behaviour" });
+    expect(targetForDiagnostic({ code: "OBS", severity: "WARNING", pointer: "/interaction/supportedObservations/0", message: "Observation", hint: null }, definition))
+      .toMatchObject({ stepId: "sensing" });
+    expect(targetForDiagnostic({ code: "VERIFY", severity: "WARNING", pointer: "/verification/scenarios/0", message: "Scenario", hint: null }, definition))
+      .toMatchObject({ stepId: "review" });
+    expect(targetForDiagnostic({ code: "NAME", severity: "ERROR", pointer: "/metadata/displayName", message: "Name", hint: null }, definition))
+      .toMatchObject({ stepId: "purpose" });
   });
 
   it("creates a complete explicit single-state draft and displays backend diagnostics", async () => {
@@ -104,6 +114,29 @@ describe("DefinitionAuthoringEditor persistence", () => {
     expect(screen.getByTestId("dirty-state").textContent).toBe("Unsaved changes");
     expect(event.defaultPrevented).toBe(true);
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("enables publication only after backend compilation readiness and never transitions lifecycle on navigation", async () => {
+    const user = userEvent.setup();
+    const source = validDefinition("designer.readiness", "Readiness");
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (!init?.method) return response(revision(source, 2));
+      if (path.endsWith("/prompt-previews")) return response([]);
+      if (path.endsWith("/publication-readiness")) return response({ valid: true, diagnostics: [] });
+      throw new Error(`Unexpected ${path}`);
+    }) as RequestFunction;
+    render(<DefinitionAuthoringEditor route={{ kind: "editor", key: source.key, revision: 1 }} components={[]}
+      adminToken="token" request={request} onDirtyChange={() => undefined} onSaved={() => undefined} />);
+
+    await screen.findByLabelText(/What should this agent be called/);
+    await user.click(screen.getByTestId("step-target-review"));
+    expect((screen.getByTestId("publish-revision") as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByTestId("validate-review"));
+    await waitFor(() => expect((screen.getByTestId("publish-revision") as HTMLButtonElement).disabled).toBe(false));
+
+    expect((request as ReturnType<typeof vi.fn>).mock.calls.map((call: unknown[]) => String(call[0])).filter((path: string) =>
+      /\/(publish|activate|archive)$/.test(path))).toEqual([]);
   });
 });
 

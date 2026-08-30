@@ -120,6 +120,14 @@ public class DefinitionLifecycleService {
     }
 
     @Transactional(readOnly = true)
+    public DefinitionValidationResult validateForPublication(String json) {
+        AgentDefinitionDocument document = this.definitionJson.parse(json);
+        DefinitionValidationResult validation = this.compiler.validate(document);
+        this.compiler.compile(document);
+        return validation;
+    }
+
+    @Transactional(readOnly = true)
     public String export(String key, int revisionNumber) {
         return requireRevision(key, revisionNumber).canonicalJson();
     }

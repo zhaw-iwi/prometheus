@@ -130,6 +130,7 @@ public class DefinitionLifecycleServiceUnitTest {
         assertEquals("clone:core.talk_to_me:1", clone.sourceDetail());
         assertEquals(2, this.json.parse(this.lifecycle.export(this.source.key(), 2)).revision());
         assertTrue(this.lifecycle.validate(clone.canonicalJson()).isValid());
+        assertTrue(this.lifecycle.validateForPublication(clone.canonicalJson()).isValid());
 
         var published = this.lifecycle.publish(this.source.key(), 2, clone.optimisticVersion());
         assertEquals(DefinitionStatus.PUBLISHED, published.status());
@@ -158,6 +159,8 @@ public class DefinitionLifecycleServiceUnitTest {
         var validation = this.lifecycle.validate(this.json.canonicalJson(invalid));
         assertTrue(validation.diagnostics().stream()
                 .anyMatch(diagnostic -> diagnostic.code().name().equals("MISSING_INITIAL_STATE")));
+        assertThrows(DefinitionCompilationException.class,
+                () -> this.lifecycle.validateForPublication(this.json.canonicalJson(invalid)));
     }
 
     public static AgentDefinitionDocument withRevision(AgentDefinitionDocument document, int revision) {

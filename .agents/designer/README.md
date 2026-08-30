@@ -180,6 +180,19 @@ healthcare composite and a two-state RPS cycle with self-transition without JSON
 editing; inspected graph/list screenshots had no console errors or horizontal
 overflow.
 
+Milestone 15 completes the Review journey over that same document. Validation
+diagnostics are grouped by all six guided steps and retain pointer-based focus.
+The advanced JSON textarea applies only after local parsing and backend schema
+validation, preserving the last valid guided form on failure. Prompt previews
+come from the backend `PromptComposer`; they are never separately editable.
+Disposable preview UI uses the Milestone 11 session boundary for templates or
+advanced event JSON, active path, storage diffs, behaviour/transition trace,
+reset, expiry handling, and close-on-discard/unmount cleanup. Confirmed
+publish, activation, export, clone, and non-active archive operations are
+available only from Review, while canonical import lives in the catalog and
+preserves content on identity conflict. Navigation and ordinary draft save do
+not invoke a lifecycle transition.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

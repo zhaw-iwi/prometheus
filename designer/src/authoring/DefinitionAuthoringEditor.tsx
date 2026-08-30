@@ -4,15 +4,19 @@ import {
   type ComponentDefinition,
   type DefinitionDiagnostic,
   type DefinitionRevisionView,
+  type DefinitionSummary,
   DesignerApiError,
   fetchDefinitionRevision,
   type RequestFunction,
   updateDefinitionDraft,
   validateDefinition,
+  validateDefinitionForPublication,
 } from "../api/designerApi";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import type { DesignerRoute } from "../routing/designerRoute";
-import { DesignerStepper, type ValidationTarget } from "../stepper/DesignerStepper";
+import { DesignerStepper, type DesignerStepId, type ValidationTarget } from "../stepper/DesignerStepper";
+import { ReviewPanel, type ApplyResult } from "../review/ReviewPanel";
+import { diagnosticStep } from "../review/reviewModel";
 import { BehaviourPanel, PurposePanel, SensingPanel } from "./AuthoringPanels";
 import { ReactionPanel } from "./ReactionPanel";
 import { StateFlowPanel } from "./StateFlowPanel";
@@ -28,19 +32,23 @@ import {
 interface DefinitionAuthoringEditorProps {
   route: Exclude<DesignerRoute, { kind: "catalog" }>;
   components: ComponentDefinition[];
+  definitionSummary?: DefinitionSummary;
   adminToken: string;
   request: RequestFunction;
   onDirtyChange: (dirty: boolean) => void;
   onSaved: (key: string, revision: number) => void;
+  onWorkspaceChanged?: (target?: { key: string; revision: number }) => void;
 }
 
 export function DefinitionAuthoringEditor({
   route,
   components,
+  definitionSummary,
   adminToken,
   request,
   onDirtyChange,
   onSaved,
+  onWorkspaceChanged = () => undefined,
 }: DefinitionAuthoringEditorProps) {
   const isNew = route.kind === "new";
   const initial = useMemo(() => isNew ? createDefaultDefinition() : null, [isNew]);
@@ -56,6 +64,8 @@ export function DefinitionAuthoringEditor({
   const [diagnostics, setDiagnostics] = useState<DefinitionDiagnostic[]>([]);
   const [validationTarget, setValidationTarget] = useState<ValidationTarget | null>(null);
   const [conflict, setConflict] = useState<DefinitionRevisionView | null>(null);
+  const [validatedFingerprint, setValidatedFingerprint] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState<DesignerStepId>("purpose");
 
   useEffect(() => {
     if (route.kind !== "editor") return;
@@ -69,6 +79,7 @@ export function DefinitionAuthoringEditor({
         setForm(definitionToAuthoringForm(revision.definition));
         setBaseline(serializedDefinition(revision.definition));
         setKeyConfirmed(true);
+        setValidatedFingerprint(null);
         setLoadError("");
       })
       .catch((error) => {
@@ -124,6 +135,7 @@ export function DefinitionAuthoringEditor({
       setForm(definitionToAuthoringForm(saved.definition));
       setBaseline(serializedDefinition(saved.definition));
       setDiagnostics(validation.diagnostics);
+      setValidatedFingerprint(null);
       setValidationTarget(null);
       setSaveMessage(validation.valid
         ? "Draft saved and backend validation passed."
@@ -157,6 +169,7 @@ export function DefinitionAuthoringEditor({
     setSource(conflict.definition);
     setForm(definitionToAuthoringForm(conflict.definition));
     setBaseline(serializedDefinition(conflict.definition));
+    setValidatedFingerprint(null);
     setConflict(null);
     setSaveMessage("Loaded the newer server draft.");
   };
@@ -166,6 +179,7 @@ export function DefinitionAuthoringEditor({
     setPersisted(conflict);
     setSource(document);
     setBaseline(serializedDefinition(conflict.definition));
+    setValidatedFingerprint(null);
     setConflict(null);
     setSaveMessage("Local changes are preserved. Save again to replace the newer server draft.");
   };
@@ -174,6 +188,7 @@ export function DefinitionAuthoringEditor({
     setForm(next);
     setDiagnostics([]);
     setValidationTarget(null);
+    setValidatedFingerprint(null);
   };
 
   const changeDefinition = (next: AgentDefinitionV1) => {
@@ -181,6 +196,51 @@ export function DefinitionAuthoringEditor({
     setForm(definitionToAuthoringForm(next));
     setDiagnostics([]);
     setValidationTarget(null);
+    setValidatedFingerprint(null);
+  };
+
+  const runValidation = async (): Promise<boolean> => {
+    setSaveMessage("");
+    try {
+      const validation = await validateDefinitionForPublication(document, adminToken, request);
+      setDiagnostics(validation.diagnostics);
+      setValidatedFingerprint(validation.valid ? serializedDefinition(document) : null);
+      setSaveMessage(validation.valid
+        ? "Backend validation and compilation checks passed for this document."
+        : "Backend validation found issues. Follow the Review links to correct them.");
+      return validation.valid;
+    } catch (error) {
+      if (error instanceof DesignerApiError) {
+        setDiagnostics(error.diagnostics);
+        setValidatedFingerprint(null);
+        setSaveMessage(error.message);
+      } else {
+        setSaveMessage("Backend validation could not be completed. Check the application and retry.");
+      }
+      return false;
+    }
+  };
+
+  const applyDefinitionJson = async (next: AgentDefinitionV1): Promise<ApplyResult> => {
+    try {
+      const validation = await validateDefinition(next, adminToken, request);
+      changeDefinition(next);
+      setDiagnostics(validation.diagnostics);
+      setValidatedFingerprint(null);
+      return {
+        applied: true,
+        message: validation.valid
+          ? "JSON applied to the guided form and backend validation passed. Save to persist it."
+          : "JSON applied to the guided form. Backend semantic diagnostics are shown in Review.",
+      };
+    } catch (error) {
+      if (error instanceof DesignerApiError) {
+        setDiagnostics(error.diagnostics);
+        setSaveMessage(error.message);
+        return { applied: false, message: `${error.message} The guided form was not changed.` };
+      }
+      return { applied: false, message: "The backend could not validate this JSON. The guided form was not changed." };
+    }
   };
 
   const panels = {
@@ -192,6 +252,12 @@ export function DefinitionAuthoringEditor({
       onChange={changeDefinition} />,
     "state-flow": <StateFlowPanel definition={document} components={components} diagnostics={diagnostics}
       onChange={changeDefinition} />,
+    review: <ReviewPanel definition={document} persisted={persisted} definitionSummary={definitionSummary}
+      diagnostics={diagnostics} active={activeStep === "review"} dirty={dirty}
+      validationCurrent={validatedFingerprint === serializedDefinition(document)} adminToken={adminToken}
+      request={request} onValidate={runValidation} onApplyDefinition={applyDefinitionJson}
+      onDiagnosticSelect={(diagnostic) => setValidationTarget(targetForDiagnostic(diagnostic, document))}
+      onRevisionChange={setPersisted} onWorkspaceChanged={onWorkspaceChanged} />,
   };
 
   return (
@@ -199,7 +265,10 @@ export function DefinitionAuthoringEditor({
       <div className="editor-toolbar" data-testid="editor-toolbar">
         <div className="draft-state">
           <span className={`dirty-dot${dirty ? " active" : ""}`} aria-hidden="true"></span>
-          <strong data-testid="dirty-state">{dirty ? "Unsaved changes" : persisted ? "Saved draft" : "New draft"}</strong>
+          <strong data-testid="dirty-state">{dirty ? "Unsaved changes" : persisted
+            ? persisted.status === "DRAFT" ? "Saved draft"
+              : persisted.status === "PUBLISHED" ? "Published revision" : "Archived revision"
+            : "New draft"}</strong>
           {persisted && <small>{persisted.status} · Version {persisted.optimisticVersion}</small>}
         </div>
         <button className="button primary" type="button" onClick={() => void save()}
@@ -231,7 +300,7 @@ export function DefinitionAuthoringEditor({
           ))}</ul>
         </section>
       )}
-      <DesignerStepper panels={panels} validationTarget={validationTarget} />
+      <DesignerStepper panels={panels} validationTarget={validationTarget} onStepChange={setActiveStep} />
     </>
   );
 }
@@ -241,10 +310,17 @@ export function targetForDiagnostic(
   definition?: AgentDefinitionV1,
 ): ValidationTarget {
   const pointer = diagnostic.pointer;
+  const step = diagnosticStep(diagnostic);
+  if (step === "review") {
+    return { stepId: "review", fieldId: "review-validation-title", message: diagnostic.message };
+  }
   if (pointer.startsWith("/interaction/supportedObservations")) {
     return { stepId: "sensing", fieldId: "designer-step-sensing", message: diagnostic.message };
   }
   if (pointer.startsWith("/interaction/supportedBehaviourModalities")) {
+    return { stepId: "behaviour", fieldId: "designer-step-behaviour", message: diagnostic.message };
+  }
+  if (step === "behaviour") {
     return { stepId: "behaviour", fieldId: "designer-step-behaviour", message: diagnostic.message };
   }
   const stateMatch = pointer.match(/^\/states\/(\d+)/);
@@ -255,7 +331,13 @@ export function targetForDiagnostic(
   const transitionMatch = pointer.match(/^\/transitions\/(\d+)/);
   if (transitionMatch) {
     const id = definition?.transitions[Number(transitionMatch[1])]?.id;
+    if (step === "reactions") {
+      return { stepId: "reactions", fieldId: id ? `reaction-${id}` : "designer-step-reactions", message: diagnostic.message };
+    }
     return { stepId: "state-flow", fieldId: id ? `graph-diagnostic-transition-${id}` : "designer-step-state-flow", message: diagnostic.message };
+  }
+  if (step === "state-flow") {
+    return { stepId: "state-flow", fieldId: "designer-step-state-flow", message: diagnostic.message };
   }
   const fieldId = pointer === "/key" ? "purpose-key"
     : pointer.startsWith("/metadata/displayName") ? "purpose-display-name"

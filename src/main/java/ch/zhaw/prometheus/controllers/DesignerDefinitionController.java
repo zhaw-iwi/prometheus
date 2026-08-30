@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.controllers;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -26,6 +27,8 @@ import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
 import ch.zhaw.prometheus.definition.component.AgentComponentDefinition;
 import ch.zhaw.prometheus.definition.component.ComponentCategory;
 import ch.zhaw.prometheus.definition.component.ComponentRegistry;
+import ch.zhaw.prometheus.definition.document.PromptDefinition;
+import ch.zhaw.prometheus.definition.prompt.PromptComposer;
 import ch.zhaw.prometheus.definition.repository.DefinitionProvenance;
 import ch.zhaw.prometheus.definition.repository.DefinitionStatus;
 import ch.zhaw.prometheus.definition.repository.StoredDefinition;
@@ -41,6 +44,7 @@ import ch.zhaw.prometheus.definition.validation.ValidationDiagnostic;
 @RequestMapping("/admin/agent-definitions")
 public class DesignerDefinitionController {
     private static final String ADMIN_TOKEN_HEADER = AdminAccessCodeController.ADMIN_TOKEN_HEADER;
+    private static final PromptComposer PROMPT_COMPOSER = new PromptComposer();
 
     private final DefinitionLifecycleService lifecycle;
     private final ComponentRegistry components;
@@ -141,6 +145,31 @@ public class DesignerDefinitionController {
             return unauthorized();
         }
         return ResponseEntity.ok(validationView(this.lifecycle.validate(documentJson(request))));
+    }
+
+    @PostMapping("/prompt-previews")
+    public ResponseEntity<List<PromptPreviewView>> promptPreviews(
+            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token,
+            @RequestBody(required = false) DefinitionDocumentRequest request) {
+        if (!isAuthorized(token)) {
+            return unauthorized();
+        }
+        String json = documentJson(request);
+        this.lifecycle.validate(json);
+        List<PromptPreviewView> previews = new java.util.ArrayList<>();
+        collectPromptPreviews(request.definition(), "", previews);
+        previews.sort(java.util.Comparator.comparing(PromptPreviewView::pointer));
+        return ResponseEntity.ok(List.copyOf(previews));
+    }
+
+    @PostMapping("/publication-readiness")
+    public ResponseEntity<DefinitionValidationView> publicationReadiness(
+            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token,
+            @RequestBody(required = false) DefinitionDocumentRequest request) {
+        if (!isAuthorized(token)) {
+            return unauthorized();
+        }
+        return ResponseEntity.ok(validationView(this.lifecycle.validateForPublication(documentJson(request))));
     }
 
     @PostMapping("/{key}/revisions/{revisionNumber}/publish")
@@ -312,6 +341,41 @@ public class DesignerDefinitionController {
         return java.util.stream.StreamSupport.stream(array.spliterator(), false).map(JsonNode::asText).toList();
     }
 
+    private void collectPromptPreviews(JsonNode node, String pointer, List<PromptPreviewView> previews) {
+        if (node == null) {
+            return;
+        }
+        if (node.isObject()) {
+            node.fields().forEachRemaining(field -> {
+                String childPointer = pointer + "/" + escapePointer(field.getKey());
+                if (field.getKey().toLowerCase(Locale.ROOT).endsWith("prompt")
+                        && field.getValue().path("sections").isArray()) {
+                    try {
+                        PromptDefinition prompt = this.objectMapper.treeToValue(field.getValue(), PromptDefinition.class);
+                        previews.add(new PromptPreviewView(childPointer, promptLabel(field.getKey()),
+                                PROMPT_COMPOSER.compose(prompt)));
+                    } catch (JsonProcessingException exception) {
+                        throw new IllegalArgumentException("Prompt definition is malformed", exception);
+                    }
+                }
+                collectPromptPreviews(field.getValue(), childPointer, previews);
+            });
+        } else if (node.isArray()) {
+            for (int index = 0; index < node.size(); index++) {
+                collectPromptPreviews(node.get(index), pointer + "/" + index, previews);
+            }
+        }
+    }
+
+    private static String escapePointer(String value) {
+        return value.replace("~", "~0").replace("/", "~1");
+    }
+
+    private static String promptLabel(String value) {
+        String spaced = value.replaceAll("([a-z0-9])([A-Z])", "$1 $2");
+        return spaced.substring(0, 1).toUpperCase(Locale.ROOT) + spaced.substring(1);
+    }
+
     private static List<String> categoryPath(JsonNode value) {
         if (value.isTextual()) {
             return List.of(value.asText().split("\\."));
@@ -347,6 +411,9 @@ public class DesignerDefinitionController {
     }
 
     public record DefinitionValidationView(boolean valid, List<DefinitionDiagnosticView> diagnostics) {
+    }
+
+    public record PromptPreviewView(String pointer, String label, String composed) {
     }
 
     public record DefinitionDiagnosticView(String code, String severity, String pointer, String message, String hint) {
