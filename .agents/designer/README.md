@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-8 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-9 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -120,9 +120,14 @@ resolve active JSON revisions through the compiled cache and generic runtime.
 The Java whole-agent path, copied static-graph persistence, obsolete
 repositories, and ad hoc single-state endpoint are deleted. Flyway version 2
 removes the named legacy tables and rebuilds scoped links to declarative
-instances; Hibernate validates the final schema. The real dedicated-MySQL smoke
-gate remains Milestone 9. Database preservation and removal scope are recorded
-in `DATABASE_TRANSITION.md`.
+instances; Hibernate validates the final schema. Milestone 9 adds a
+default-excluded, double-opt-in local-MySQL smoke harness with a strict dedicated
+schema-name guard. It exercises the foreign-key-connected legacy cutover,
+bundled import/idempotence/prewarm, deterministic RPS publication/activation/export,
+revision-pinned runtime persistence across restart, access-code preservation,
+archived-revision execution, final-schema inspection, and verified target
+cleanup without provider calls. Database preservation and removal scope are
+recorded in `DATABASE_TRANSITION.md`.
 
 ## Bundled main catalog inventory
 

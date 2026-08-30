@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-8 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-9 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -100,8 +100,16 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   preserving access-code identities/allowed keys and all declarative data;
   Hibernate validates rather than mutates the final schema. The full Java suite
   passes against deterministic fakes and disposable H2/MySQL-mode databases.
-  Designer Milestone 9, the explicitly opted-in dedicated real-MySQL smoke
-  gate, is next and has not yet been claimed.
+  The default-excluded Milestone 9 smoke also passed against the verified
+  dedicated `prometheus_designer_smoke_codex` schema on local MySQL 9.4. It
+  exercised the foreign-key-connected V1/V2 cutover, Hibernate validation,
+  twelve-definition import/idempotence/prewarm, RPS draft lifecycle/export,
+  revision-pinned runtime persistence across a fresh Spring context,
+  access-code preservation, archived-revision execution, final-schema
+  inspection, and verified schema cleanup without provider calls. MySQL 9.4 is
+  newer than the bundled Flyway version's declared MySQL support ceiling (8.1),
+  so its upgrade warning remains a dependency risk even though the smoke
+  passed. Phase II is complete; Designer Milestone 10 lifecycle API is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

@@ -189,7 +189,7 @@ credentials to reach the server, but it must require an explicit dedicated
 database/schema name and opt-in flag. It must refuse to run when the target is
 the configured normal application database.
 
-Recommended contract:
+Implemented contract:
 
 - JUnit tag: `local-db-smoke`;
 - explicit enable flag such as `PROMETHEUS_DESIGNER_DB_SMOKE=true`;
@@ -213,6 +213,20 @@ The smoke sequence proves:
 8. No obsolete definition-graph tables remain in a clean final schema.
 
 Use deterministic Talk to Me/RPS paths so the smoke never needs a provider key.
+
+Implemented command (PowerShell):
+
+```powershell
+$env:PROMETHEUS_DESIGNER_DB_SMOKE='true'
+$env:PROMETHEUS_DESIGNER_DB_SMOKE_SCHEMA='prometheus_designer_smoke_local'
+.\mvnw.cmd -Plocal-db-smoke "-Dtest=LocalMysqlSmokeTest" test
+```
+
+The ordinary Surefire configuration excludes the `local-db-smoke` tag. The
+profile includes it, but the test still refuses to run without the exact enable
+flag and a `prometheus_designer_smoke_*` schema different from the normal
+configured database. It reads credentials without logging them, rebuilds only
+the verified target, and verifies target removal after success.
 
 ## Frontend tests
 

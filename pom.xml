@@ -20,6 +20,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+		<prometheus.test.excluded-groups>local-db-smoke</prometheus.test.excluded-groups>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -86,7 +87,23 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludedGroups>${prometheus.test.excluded-groups}</excludedGroups>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>local-db-smoke</id>
+			<properties>
+				<prometheus.test.excluded-groups>not-local-db-smoke</prometheus.test.excluded-groups>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>

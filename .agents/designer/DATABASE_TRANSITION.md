@@ -70,8 +70,11 @@ The production application now performs every scoped/global lifecycle operation
 through revision-pinned declarative instances. Startup reports preserved
 allowed-agent-type keys that do not resolve to an active definition; it does
 not reinterpret them. Version 2 has executed under Flyway and Hibernate
-validation against disposable H2 databases in MySQL mode. Real MySQL execution
-is intentionally deferred to the guarded Milestone 9 smoke gate.
+validation against disposable H2 databases in MySQL mode and against a guarded
+dedicated local MySQL schema. The MySQL smoke seeded every named legacy table
+with representative foreign keys, preserved access-code configuration,
+restarted Spring, inspected the final schema, and verified removal of its
+dedicated target afterward.
 
 No wildcard table selection, database-wide clean, or broad schema drop is
 permitted. The final migration must name each confirmed table and constraint.
@@ -81,7 +84,8 @@ permitted. The final migration must name each confirmed table and constraint.
 - Ordinary unit/service tests use in-memory repository adapters.
 - Flyway ordering, DDL syntax, Hibernate validation, and native-JSON round trips
   use a disposable H2 database in MySQL mode.
-- Real MySQL migration verification belongs to Milestone 9 and requires the
-  documented explicit opt-in plus a verified dedicated test database/schema.
+- Real MySQL migration verification uses the Milestone 9 `local-db-smoke`
+  profile and requires the documented explicit opt-in plus a verified dedicated
+  test database/schema.
 - The database URL in `application.properties` is never a smoke-test target and
   must never be cleaned or dropped.

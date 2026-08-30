@@ -305,8 +305,24 @@ Run the Java regression suite:
 The suite uses deterministic language-model fakes and disposable H2 databases
 in MySQL mode for Flyway, native-JSON persistence, and Hibernate-validation
 contracts. It does not call OpenAI, Azure, Speech, transcription, or browser
-sensors. Real MySQL verification is a separate explicitly opted-in smoke gate;
-never point it at the normally configured application database.
+sensors. The destructive real-MySQL smoke is excluded from ordinary test runs.
+
+Run it only against an explicitly named dedicated local schema:
+
+```powershell
+$env:PROMETHEUS_DESIGNER_DB_SMOKE='true'
+$env:PROMETHEUS_DESIGNER_DB_SMOKE_SCHEMA='prometheus_designer_smoke_local'
+.\mvnw.cmd -Plocal-db-smoke "-Dtest=LocalMysqlSmokeTest" test
+```
+
+The smoke reads server credentials internally from the uncommitted local
+`application.properties`, refuses a schema without the
+`prometheus_designer_smoke_` prefix or one matching the normal configured
+database, and creates/drops only that verified schema. It seeds a legacy graph
+and preserved access-code assignment, runs Flyway plus Hibernate validation,
+restarts Spring, and verifies all eight migration/lifecycle/runtime assertions
+from `.agents/designer/TESTING.md`. Never point it at the normal application
+database.
 
 Run JavaScript syntax checks for the bundled clients:
 
