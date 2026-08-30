@@ -1,0 +1,38 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.bad_final",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Bad final",
+    "description": "The final state illegally contains a policy.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "done",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "done",
+      "name": "Done",
+      "kind": "final",
+      "policy": null
+    }
+  ],
+  "transitions": []
+}

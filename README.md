@@ -787,9 +787,13 @@ src/main/java/ch/zhaw/prometheus
   agentdefs/        Registered Valerian agent definitions.
   application/      Application services for agents, access codes, transcription, Speech, and scoped demos.
   controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
+  definition/       Declarative agent JSON document mapping and structural validation foundation.
   logging/          SSE broadcasters.
   model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
   spi/              Language-model, live-transcription, and Speech integration boundaries.
+
+src/main/resources/agent-definitions
+  schema/           Executable schema-version-1 whole-agent JSON contract.
 
 src/main/resources/public
   apiworkbench/     Guided REST/SSE API workbench for client developers.
@@ -802,6 +806,13 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 ```
 
 ## Developing New Agents
+
+The declarative migration is in progress on `features/designer`. Schema version
+1, typed document mapping, structural validation, and canonical content hashing
+are available under `definition/` and `agent-definitions/schema/`, but the
+running catalog still uses the Java definitions below until the ordered Phase
+II cutover is complete. Do not treat the temporary coexistence as a permanent
+second authoring path.
 
 1. Start from an existing definition in `agentdefs/core` or
    `agentdefs/usecases/healthcare`.

@@ -1,0 +1,47 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.escape_hatch",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Escape hatch",
+    "description": "The component config attempts to name a Java class.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "main",
+      "name": "Main",
+      "kind": "atomic",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": {
+        "kind": "prometheus.policy.no-op",
+        "version": 1,
+        "config": {
+          "className": "example.UntrustedPolicy"
+        }
+      }
+    }
+  ],
+  "transitions": []
+}

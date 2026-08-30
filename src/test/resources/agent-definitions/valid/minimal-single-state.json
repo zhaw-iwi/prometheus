@@ -1,0 +1,52 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.minimal",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Minimal agent",
+    "description": "A minimal valid single-state definition.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": ["test.fixture"]
+  },
+  "interaction": {
+    "supportedObservations": ["obs.user_utterance"],
+    "supportedBehaviourModalities": ["speech"],
+    "profileTags": ["test.fixture"]
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": true,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "main",
+      "name": "Main",
+      "kind": "atomic",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": {
+        "kind": "prometheus.selector.state-path",
+        "version": 1,
+        "config": {}
+      },
+      "policy": {
+        "kind": "prometheus.policy.no-op",
+        "version": 1,
+        "config": {}
+      }
+    }
+  ],
+  "transitions": [],
+  "verification": {
+    "scenarios": []
+  }
+}

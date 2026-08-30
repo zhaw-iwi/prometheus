@@ -1,0 +1,42 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.bad_composite",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Bad composite",
+    "description": "The composite state has no child list.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "root",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "root",
+      "name": "Root",
+      "kind": "composite",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": null,
+      "initialChildStateId": "main"
+    }
+  ],
+  "transitions": []
+}

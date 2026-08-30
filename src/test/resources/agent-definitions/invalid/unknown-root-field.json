@@ -1,0 +1,42 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.unknown_root",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Unknown root",
+    "description": "Contains a deliberately unknown root property.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "main",
+      "name": "Main",
+      "kind": "atomic",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": null
+    }
+  ],
+  "transitions": [],
+  "regulation": {}
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.bad_storage",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Bad storage",
+    "description": "The storage value schema uses an unsupported type.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [
+    {
+      "key": "outcome",
+      "valueSchema": {
+        "type": "executable"
+      },
+      "required": false,
+      "visibility": "outcome",
+      "reset": "initial"
+    }
+  ],
+  "resources": [],
+  "states": [
+    {
+      "id": "main",
+      "name": "Main",
+      "kind": "atomic",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": null
+    }
+  ],
+  "transitions": []
+}

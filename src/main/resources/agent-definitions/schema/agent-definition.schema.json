@@ -1,0 +1,741 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prometheus.zhaw.ch/agent-definitions/schema/agent-definition.schema.json",
+  "title": "PROMETHEUS agent definition",
+  "description": "Schema version 1 of the sole whole-agent definition format.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "key",
+    "revision",
+    "metadata",
+    "interaction",
+    "lifecycle",
+    "storage",
+    "resources",
+    "states",
+    "transitions"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "/agent-definitions/schema/agent-definition.schema.json"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "key": {
+      "$ref": "#/$defs/definitionKey"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "interaction": {
+      "$ref": "#/$defs/interaction"
+    },
+    "lifecycle": {
+      "$ref": "#/$defs/lifecycle"
+    },
+    "storage": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/storageDeclaration"
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/definitionResource"
+      }
+    },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/state"
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transition"
+      }
+    },
+    "verification": {
+      "$ref": "#/$defs/verification"
+    }
+  },
+  "$defs": {
+    "nonBlankString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "stableId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$"
+    },
+    "definitionKey": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*(?:\\.[a-z][a-z0-9_-]*)+$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "description",
+        "categoryPath",
+        "languageCode",
+        "tags"
+      ],
+      "properties": {
+        "displayName": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "categoryPath": {
+          "$ref": "#/$defs/stableId"
+        },
+        "languageCode": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stableId"
+          }
+        }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supportedObservations",
+        "supportedBehaviourModalities",
+        "profileTags"
+      ],
+      "properties": {
+        "supportedObservations": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "obs.user_utterance",
+              "obs.emotion.face",
+              "obs.human.presence",
+              "obs.social.grouping",
+              "obs.social.context",
+              "obs.social.situation_change",
+              "obs.hand.sign",
+              "obs.weather.current",
+              "obs.weather.forecast"
+            ]
+          }
+        },
+        "supportedBehaviourModalities": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "speech",
+              "nonVerbal.gesture",
+              "nonVerbal.facialExpression",
+              "nonVerbal.gaze",
+              "nonVerbal.motion",
+              "motion.handSign",
+              "display"
+            ]
+          }
+        },
+        "profileTags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stableId"
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "initialStateId",
+        "startOnCreation",
+        "initializers",
+        "reset"
+      ],
+      "properties": {
+        "initialStateId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "startOnCreation": {
+          "type": "boolean"
+        },
+        "initializers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentEnvelope"
+          }
+        },
+        "reset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "storage",
+            "history"
+          ],
+          "properties": {
+            "storage": {
+              "const": "initial"
+            },
+            "history": {
+              "const": "clear"
+            }
+          }
+        }
+      }
+    },
+    "storageDeclaration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "valueSchema",
+        "required",
+        "visibility",
+        "reset"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/stableId"
+        },
+        "description": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "valueSchema": {
+          "$ref": "#/$defs/embeddedValueSchema"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "visibility": {
+          "enum": [
+            "internal",
+            "outcome"
+          ]
+        },
+        "reset": {
+          "enum": [
+            "initial",
+            "preserve",
+            "remove"
+          ]
+        },
+        "initialValue": {
+          "$ref": "#/$defs/safeJsonValue"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        }
+      }
+    },
+    "embeddedValueSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "null",
+            "boolean",
+            "integer",
+            "number",
+            "string",
+            "array",
+            "object"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/embeddedValueSchema"
+          }
+        },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/stableId"
+          }
+        },
+        "additionalProperties": {
+          "type": "boolean"
+        },
+        "items": {
+          "$ref": "#/$defs/embeddedValueSchema"
+        },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        },
+        "const": {
+          "$ref": "#/$defs/safeJsonValue"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "minItems": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxItems": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "state": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/atomicState"
+        },
+        {
+          "$ref": "#/$defs/compositeState"
+        },
+        {
+          "$ref": "#/$defs/finalState"
+        }
+      ]
+    },
+    "atomicState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "entryMode",
+        "oblivious",
+        "eventSelector",
+        "policy"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "name": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "kind": {
+          "const": "atomic"
+        },
+        "entryMode": {
+          "$ref": "#/$defs/entryMode"
+        },
+        "oblivious": {
+          "type": "boolean"
+        },
+        "eventSelector": {
+          "$ref": "#/$defs/nullableComponentEnvelope"
+        },
+        "policy": {
+          "$ref": "#/$defs/nullableComponentEnvelope"
+        }
+      }
+    },
+    "compositeState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "entryMode",
+        "oblivious",
+        "eventSelector",
+        "policy",
+        "childStateIds",
+        "initialChildStateId"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "name": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "kind": {
+          "const": "composite"
+        },
+        "entryMode": {
+          "$ref": "#/$defs/entryMode"
+        },
+        "oblivious": {
+          "type": "boolean"
+        },
+        "eventSelector": {
+          "$ref": "#/$defs/nullableComponentEnvelope"
+        },
+        "policy": {
+          "$ref": "#/$defs/nullableComponentEnvelope"
+        },
+        "childStateIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/stableId"
+          }
+        },
+        "initialChildStateId": {
+          "$ref": "#/$defs/stableId"
+        }
+      }
+    },
+    "finalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "name": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "kind": {
+          "const": "final"
+        }
+      }
+    },
+    "entryMode": {
+      "enum": [
+        "start",
+        "reprocess-event"
+      ]
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceStateId",
+        "targetStateId",
+        "order",
+        "decisions",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "sourceStateId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "targetStateId": {
+          "$ref": "#/$defs/stableId"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentEnvelope"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/componentEnvelope"
+          }
+        }
+      }
+    },
+    "componentEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "version",
+        "config"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/stableId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "config": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/safePropertyName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        }
+      }
+    },
+    "nullableComponentEnvelope": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/componentEnvelope"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "definitionResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "config"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "kind": {
+          "$ref": "#/$defs/stableId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "config": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/safePropertyName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sections"
+      ],
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/promptSection"
+          }
+        }
+      }
+    },
+    "promptSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "content"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stableId"
+        },
+        "kind": {
+          "$ref": "#/$defs/stableId"
+        },
+        "content": {
+          "$ref": "#/$defs/nonBlankString"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarios"
+      ],
+      "properties": {
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificationScenario"
+          }
+        }
+      }
+    },
+    "verificationScenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "events",
+        "expected"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonBlankString"
+        },
+        "initializerSeed": {
+          "type": "integer"
+        },
+        "initialStorage": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/stableId"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificationEvent"
+          }
+        },
+        "expected": {
+          "$ref": "#/$defs/verificationExpectation"
+        }
+      }
+    },
+    "verificationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/stableId"
+        },
+        "actor": {
+          "$ref": "#/$defs/stableId"
+        },
+        "kind": {
+          "$ref": "#/$defs/stableId"
+        },
+        "payload": {
+          "type": "string"
+        }
+      }
+    },
+    "verificationExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "activeStatePath": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stableId"
+          }
+        },
+        "storage": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/stableId"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        },
+        "behaviourFragments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        }
+      }
+    },
+    "safePropertyName": {
+      "type": "string",
+      "pattern": "^(?!(?:[cC][lL][aA][sS][sS](?:[nN][aA][mM][eE])?|[bB][eE][aA][nN](?:[nN][aA][mM][eE])?|[sS][cC][rR][iI][pP][tT][sS]?|[sS][oO][uU][rR][cC][eE][cC][oO][dD][eE])$).+$"
+    },
+    "safeJsonValue": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/safePropertyName"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/safeJsonValue"
+          }
+        }
+      ]
+    }
+  }
+}

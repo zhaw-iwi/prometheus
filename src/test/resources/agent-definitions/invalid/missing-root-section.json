@@ -1,0 +1,26 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.missing_root",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Missing root",
+    "description": "The interaction section is deliberately absent.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": true,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [],
+  "transitions": []
+}

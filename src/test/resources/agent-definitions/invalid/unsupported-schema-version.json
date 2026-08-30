@@ -1,0 +1,41 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 2,
+  "key": "core.unsupported_version",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Unsupported version",
+    "description": "Uses a deliberately unsupported schema version.",
+    "categoryPath": "core",
+    "languageCode": "en",
+    "tags": []
+  },
+  "interaction": {
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
+  },
+  "lifecycle": {
+    "initialStateId": "main",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "main",
+      "name": "Main",
+      "kind": "atomic",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": null
+    }
+  ],
+  "transitions": []
+}

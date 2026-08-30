@@ -1,0 +1,72 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "core.composite_fixture",
+  "revision": 2,
+  "metadata": {
+    "displayName": "Composite fixture",
+    "description": "Exercises atomic, composite, and final state records.",
+    "categoryPath": "core",
+    "languageCode": null,
+    "tags": ["test.fixture", "state.flow"]
+  },
+  "interaction": {
+    "supportedObservations": ["obs.user_utterance", "obs.social.context"],
+    "supportedBehaviourModalities": ["speech", "display"],
+    "profileTags": ["test.fixture"]
+  },
+  "lifecycle": {
+    "initialStateId": "session",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {
+      "storage": "initial",
+      "history": "clear"
+    }
+  },
+  "storage": [],
+  "resources": [],
+  "states": [
+    {
+      "id": "session",
+      "name": "Session",
+      "kind": "composite",
+      "entryMode": "start",
+      "oblivious": false,
+      "eventSelector": null,
+      "policy": null,
+      "childStateIds": ["conversation", "done"],
+      "initialChildStateId": "conversation"
+    },
+    {
+      "id": "conversation",
+      "name": "Conversation",
+      "kind": "atomic",
+      "entryMode": "reprocess-event",
+      "oblivious": true,
+      "eventSelector": {
+        "kind": "prometheus.selector.event-type",
+        "version": 1,
+        "config": {
+          "types": ["obs.user_utterance"]
+        }
+      },
+      "policy": null
+    },
+    {
+      "id": "done",
+      "name": "Done",
+      "kind": "final"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "finish",
+      "sourceStateId": "conversation",
+      "targetStateId": "done",
+      "order": 10,
+      "decisions": [],
+      "actions": []
+    }
+  ]
+}
