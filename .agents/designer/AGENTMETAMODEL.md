@@ -93,9 +93,8 @@ timestamps, optimistic version, and active revision. Author/owner fields may be
 added when PROMETHEUS has a real identity model; they must not pretend that an
 admin token identifies a person.
 
-Category is data. It must never be derived from a Java package as the current
-[`AgentDefinition`](../../src/main/java/ch/zhaw/prometheus/agentdefs/AgentDefinition.java)
-does.
+Category is data. It is read from revision JSON and must never be derived from a
+Java package or implementation type.
 
 ## 2. Sensing contract
 
@@ -430,17 +429,18 @@ and deterministic execution.
 - Migration of the `agents` branch
 - Client-specific sensor, rendering, voice, and credential settings
 
-## Existing test anchors
+## Current test anchors
 
-The migration should adapt or replace these nearby contracts rather than lose
-their semantics:
-
-- `AgentDefinitionRegistryUnitTest` for catalog identity and construction;
-- `SeedAgentInteractionProfileContractTest` for capability declarations;
-- `StateTransitionUnitTest` and outer-state tests for graph behavior;
-- `PromptPolicyUnitTest` for prompt composition and generation;
-- `AgentInteractionProfilePersistenceUnitTest` for existing persistence
-  expectations that must move to definition-revision tests;
-- RPS and Talk to Me policy/action tests for deterministic components;
+- `BundledDefinitionCatalogUnitTest` for the exact twelve keys, capability
+  declarations, prompt parity, compilation, and representative execution;
+- `AgentRuntimeEngineUnitTest` for nested graph behavior and reset/history
+  semantics;
+- `PromptComposerUnitTest` and `LanguageModelRuntimeGatewayUnitTest` for prompt
+  composition and the provider boundary;
+- `DeclarativeAgentInstanceServiceUnitTest` and `JpaPersistenceAdapterTest` for
+  revision pins and mutable runtime persistence;
+- `DeterministicRuntimeComponentsUnitTest` and RPS rules/sign tests for trusted
+  provider-free component behavior;
+- `LegacyRuntimeRemovalContractTest` for the no-fallback structural gate;
 - Aisha and localized prompt contracts on `agents` as selective design
   references only.

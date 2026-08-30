@@ -37,9 +37,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.zhaw.prometheus.application.AccessCodeAdminService;
-import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
-import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -48,14 +46,21 @@ import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
-import ch.zhaw.prometheus.repositories.AgentRepository;
+import ch.zhaw.prometheus.definition.instance.DeclarativeAgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionInfo;
 import ch.zhaw.prometheus.spi.SpeechAudio;
 import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:scoped_demo;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+        "spring.datasource.username=sa", "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=validate", "spring.flyway.enabled=true",
+        "debug=false", "logging.level.root=WARN"
+})
 @AutoConfigureMockMvc
 @Transactional
 class ScopedDemoControllerIntegrationTest {
@@ -82,7 +87,7 @@ class ScopedDemoControllerIntegrationTest {
     private AccessCodeAgentRepository accessCodeAgents;
 
     @Autowired
-    private AgentRepository agents;
+    private DeclarativeAgentRepository agents;
 
     @MockitoBean
     private LanguageModelGateway languageModelGateway;
@@ -213,8 +218,8 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
 
-        assertFalse(this.agents.existsById(agentId));
-        assertFalse(this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(
+        assertTrue(this.agents.find(agentId).isEmpty());
+        assertFalse(this.accessCodeAgents.findByAccessCode_IdAndAgentId(
                 this.accessCodes.findByCode("C49c5").orElseThrow().getId(), agentId).isPresent());
     }
 
@@ -224,16 +229,15 @@ class ScopedDemoControllerIntegrationTest {
         AccessCodeView codeB = this.allowType("T49t7", TYPE_KEY);
         UUID agentId = this.createAgent("S49s6", TYPE_KEY);
         AccessCode accessCodeB = this.accessCodes.findById(codeB.getId()).orElseThrow();
-        Agent agent = this.agents.findById(agentId).orElseThrow();
-        this.accessCodeAgents.save(new AccessCodeAgent(accessCodeB, agent));
+        this.accessCodeAgents.save(new AccessCodeAgent(accessCodeB, agentId));
 
         this.mockMvc.perform(delete("/demo/agents/" + agentId)
                 .header(HEADER, "S49s6"))
                 .andExpect(status().isNoContent());
 
-        assertFalse(this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(codeA.getId(), agentId).isPresent());
-        assertTrue(this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(codeB.getId(), agentId).isPresent());
-        assertTrue(this.agents.existsById(agentId));
+        assertFalse(this.accessCodeAgents.findByAccessCode_IdAndAgentId(codeA.getId(), agentId).isPresent());
+        assertTrue(this.accessCodeAgents.findByAccessCode_IdAndAgentId(codeB.getId(), agentId).isPresent());
+        assertTrue(this.agents.find(agentId).isPresent());
 
         this.mockMvc.perform(get("/demo/agents")
                 .header(HEADER, "T49t7"))
@@ -290,8 +294,8 @@ class ScopedDemoControllerIntegrationTest {
     void finalizedTranscriptUsesScopedFullPlanPipelineExactlyOnce() throws Exception {
         String accessCode = "T49m3";
         String transcript = "Ready for the next round";
-        this.allowType(accessCode, RockScissorPaper.KEY);
-        UUID agentId = this.createAgent(accessCode, RockScissorPaper.KEY);
+        this.allowType(accessCode, "core.rock_scissor_paper");
+        UUID agentId = this.createAgent(accessCode, "core.rock_scissor_paper");
         when(this.languageModelGateway.decide(any())).thenAnswer(invocation -> {
             List<PromptMessage> messages = invocation.getArgument(0);
             return messages.stream().map(PromptMessage::getContent)
@@ -320,7 +324,8 @@ class ScopedDemoControllerIntegrationTest {
         assertNotNull(responsePlan.getMotion());
         assertNotNull(responsePlan.getDisplay());
 
-        List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
+        List<Event> history = this.agents.find(agentId).orElseThrow().history().stream()
+                .map(Event::fromRuntime).toList();
         List<Event> matchingInputs = history.stream()
                 .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
                 .filter(event -> transcript.equals(event.getPayload()))

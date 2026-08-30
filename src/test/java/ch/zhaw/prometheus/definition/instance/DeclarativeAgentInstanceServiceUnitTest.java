@@ -61,6 +61,9 @@ class DeclarativeAgentInstanceServiceUnitTest {
         lifecycle.activate(secondDocument.key(), 2, identity.optimisticVersion());
         assertEquals(published.id(), lifecycle.requireActiveRevision(secondDocument.key()).id());
 
+        var createdAfterActivation = service.create(bundled.document().key(), context);
+        assertEquals(published.id(), createdAfterActivation.instance().definitionRevisionId());
+
         var reset = service.reset(created.instance().id(), context);
 
         assertEquals(pinnedRevision, reset.instance().definitionRevisionId());

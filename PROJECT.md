@@ -1,8 +1,8 @@
 # PROJECT.md
 
 ## Short project summary
-PROMETHEUS is an event-driven Java framework for explicit state-machine agent
-control, a developing regulation layer, and multimodal behaviour plans.
+PROMETHEUS is an event-driven Java framework for declarative state-machine
+agent control and multimodal behaviour plans.
 
 ## How to use this file
 
@@ -20,13 +20,13 @@ code.
 ### Product and architecture
 
 - PROMETHEUS is a Java 21/Spring Boot framework for mapping multimodal `Event`
-  inputs to persisted multimodal `BehaviourPlan` outputs.
-- Explicit `Agent`/`State`/`OuterState`/`Transition` control owns tasks,
-  commitments, and final authority.
+  inputs to persisted multimodal behaviour-plan outputs.
+- Canonical JSON revisions define explicit nested states, transitions,
+  policies, decisions, and actions; immutable compiled graphs own control flow.
 - `AgentInteractionProfile` declares accepted observations and emitted
   modalities.
-- The reusable main-branch catalog consists of Spring-discovered definitions
-  under `agentdefs/core` and `agentdefs/usecases/healthcare`.
+- The reusable catalog consists of twelve bundled revision-1 JSON definitions
+  imported into database-backed definition identities and revisions.
 - Valerian, Valerian Access Management, the public Talk to Me speech client,
   API Workbench, and the multilateral displays consume public backend
   contracts. Standalone sites under `.web` are auxiliary deployments outside
@@ -34,8 +34,10 @@ code.
 
 ### Implemented runtime capabilities
 
-- Persisted state machines, storage, event history, prompt policies, explicit
-  acknowledge/generate semantics, and scheduled evaluation.
+- Lightweight revision-pinned instances persist active state, storage, event
+  history, status, and optimistic version separately from compiled definitions.
+- The generic runtime provides prompt policies, explicit start/acknowledge/
+  generate/reset semantics, nested transition precedence, and final inactivity.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   typed live transcription, and output-only Speech synthesis.
@@ -56,24 +58,19 @@ code.
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
   manual environmental inputs and deterministic social-situation derivation.
-- A persisted regulation foundation with snapshot context, modulation values,
-  internal opportunities, reset behavior, and focused tests.
 
 ### Known capability gap
 
-The intended social regulation/internal motivation system is not complete.
-Production agents currently use no-op regulation. The Zurich prototype responds
-only to ticks and user utterances, emits an affiliation opportunity from a
-dependency threshold, and does not yet integrate multimodal social evidence.
-Its modulation bundle is retained on the agent but is not consumed by prompt or
-behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
-and regulation diagnostics remain future work.
+Regulation is intentionally absent from schema version 1 and the first
+designer. A future regulation milestone must explicitly scope motivation,
+multimodal social evidence, task arbitration, safety precedence, interrupts,
+and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 ### Current milestone state
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-7 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-8 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -81,12 +78,13 @@ and regulation diagnostics remain future work.
   a revision/hash-guarded concurrency-safe prewarm cache, and a generic runtime
   engine over explicit mutable instance snapshots. The engine preserves nested
   transition precedence, entry modes, history/reset behavior, ordered decisions
-  and actions, and final inactivity while returning explicit change sets. Ten
+  and actions, and final inactivity while returning explicit change sets. Twelve
   main definitions now have bundled revision-1 JSON and a deterministic
   manifest with exact current prompt/profile parity. Typed resource-backed
   therapy context, exact-text output, deterministic RPS behavior, and
   final-transition prompt behaviour compile through registered components and
-  run through the generic engine with deterministic fakes. Component palette
+  run through the generic engine with deterministic fakes. All twelve stable
+  public keys are supplied exclusively by the JSON catalog. Component palette
   entries expose strict schemas plus safe defaults/examples. Definition
   identities/revisions now store canonical JSON, hashes, lifecycle/provenance,
   optimistic versions, and active pointers behind repository ports and native
@@ -94,9 +92,16 @@ and regulation diagnostics remain future work.
   definition/revision/lightweight-instance aggregates. Bundled startup import is
   deterministic and idempotent, never replaces an existing active revision,
   and prewarms active compiled revisions. New creation/reset services retain a
-  permanent revision pin. The production catalog/runtime remains on the old
-  path until the ordered Phase II cutover; Designer Milestone 8 runtime cutover
-  and complete legacy deletion is next.
+  permanent revision pin. Global, scoped, access-code, monitor, lifecycle, and
+  Talk to Me flows now use active JSON revisions and the generic runtime. The
+  Java whole-agent registry/factories, static-graph JPA hierarchy, legacy
+  repositories, ad hoc single-state endpoint, and obsolete graph tables are
+  deleted. Flyway version 2 performs the named destructive cutover while
+  preserving access-code identities/allowed keys and all declarative data;
+  Hibernate validates rather than mutates the final schema. The full Java suite
+  passes against deterministic fakes and disposable H2/MySQL-mode databases.
+  Designer Milestone 9, the explicitly opted-in dedicated real-MySQL smoke
+  gate, is next and has not yet been claimed.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

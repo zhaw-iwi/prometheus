@@ -8,12 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import ch.zhaw.prometheus.application.AgentApplicationService;
-import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.model.Agent;
 
@@ -53,15 +50,6 @@ public class AgentMetaController {
             return new ResponseEntity<Agent>(HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<Agent>(agentMaybe.get(), HttpStatus.OK);
-    }
-
-    @PostMapping("agent/singlestate")
-    public ResponseEntity<AgentInfoView> create(@RequestBody SingleStateAgentCreateDTO data) {
-        Optional<AgentInfoView> created = this.agentService.createSingleStateAgent(data);
-        if (created.isEmpty()) {
-            return new ResponseEntity<AgentInfoView>(HttpStatus.BAD_REQUEST);
-        }
-        return new ResponseEntity<>(created.get(), HttpStatus.OK);
     }
 }
 

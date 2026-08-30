@@ -24,6 +24,7 @@ import jakarta.persistence.UniqueConstraint;
 public class AccessCode {
     @Id
     @GeneratedValue
+    @Column(name = "id", columnDefinition = "binary(16)")
     private UUID id;
 
     @Column(name = "code", columnDefinition = "varchar(5) collate utf8mb4_bin not null")

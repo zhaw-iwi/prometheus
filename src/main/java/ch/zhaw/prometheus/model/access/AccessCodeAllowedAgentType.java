@@ -20,6 +20,7 @@ import jakarta.persistence.UniqueConstraint;
 public class AccessCodeAllowedAgentType {
     @Id
     @GeneratedValue
+    @Column(name = "id", columnDefinition = "binary(16)")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

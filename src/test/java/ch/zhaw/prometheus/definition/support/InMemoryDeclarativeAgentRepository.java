@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.definition.support;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,11 @@ public final class InMemoryDeclarativeAgentRepository implements DeclarativeAgen
     @Override
     public synchronized Optional<PersistedDeclarativeAgent> find(UUID id) {
         return Optional.ofNullable(this.instances.get(id));
+    }
+
+    @Override
+    public synchronized List<PersistedDeclarativeAgent> findAll() {
+        return List.copyOf(this.instances.values());
     }
 
     @Override
@@ -52,6 +58,11 @@ public final class InMemoryDeclarativeAgentRepository implements DeclarativeAgen
     public synchronized boolean existsByDefinitionRevisionId(long revisionId) {
         return this.instances.values().stream()
                 .anyMatch(instance -> instance.definitionRevisionId() == revisionId);
+    }
+
+    @Override
+    public synchronized void delete(UUID id) {
+        this.instances.remove(id);
     }
 
     private static PersistedDeclarativeAgent copy(PersistedDeclarativeAgent instance, long version,

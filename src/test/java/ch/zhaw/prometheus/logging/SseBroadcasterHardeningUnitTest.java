@@ -25,7 +25,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.event.Event;
-import ch.zhaw.prometheus.model.event.EventHistory;
 
 class SseBroadcasterHardeningUnitTest {
 
@@ -129,7 +128,7 @@ class SseBroadcasterHardeningUnitTest {
         UUID agentId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         Agent agent = mock(Agent.class);
         when(agent.getId()).thenReturn(agentId);
-        when(agent.getCurrentState()).thenReturn(null);
+        when(agent.getActiveStateNames()).thenReturn(List.of());
         when(agent.getStorage()).thenReturn(Map.of());
         when(agent.getName()).thenReturn("agent");
         when(agent.getDescription()).thenReturn("desc");
@@ -196,27 +195,14 @@ class SseBroadcasterHardeningUnitTest {
 
     private static Agent agentWithEvents(Event... events) {
         Agent agent = mock(Agent.class);
-        EventHistory history = mock(EventHistory.class);
-        when(history.toList()).thenReturn(List.of(events));
-        when(agent.getEventHistory()).thenReturn(history);
+        when(agent.getEventHistory()).thenReturn(List.of(events));
         return agent;
     }
 
     private static Event eventWithId(String id, String speech) {
-        Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
-                "{\"speech\":\"" + speech + "\"}");
-        setId(event, UUID.fromString(id));
-        return event;
-    }
-
-    private static void setId(Event event, UUID id) {
-        try {
-            Field field = Event.class.getDeclaredField("id");
-            field.setAccessible(true);
-            field.set(event, id);
-        } catch (Exception exception) {
-            throw new AssertionError(exception);
-        }
+        return new Event(UUID.fromString(id), java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, Event.KIND_RESPONSE,
+                "{\"speech\":\"" + speech + "\"}", List.of());
     }
 
     private static String frameText(SseEmitter.SseEventBuilder frame) {

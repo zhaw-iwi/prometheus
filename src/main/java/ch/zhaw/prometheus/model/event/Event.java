@@ -6,23 +6,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.hibernate.annotations.CreationTimestamp;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import ch.zhaw.prometheus.spi.GsonExclude;
-import jakarta.persistence.Column;
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OrderColumn;
+import ch.zhaw.prometheus.definition.runtime.RuntimeEvent;
 
-@Entity
+/** Public event transport retained independently from runtime JSON persistence. */
 public class Event {
     public static final String TYPE_USER_UTTERANCE = "obs.user_utterance";
     public static final String TYPE_FACE_EMOTION = "obs.emotion.face";
@@ -36,9 +24,6 @@ public class Event {
     public static final String TYPE_ASSISTANT_BEHAVIOUR_PLAN = "resp.behaviour_plan";
     public static final String TYPE_SYSTEM_PROMPT = "sys.prompt";
     public static final String TYPE_SYSTEM_TICK = "sys.tick";
-    public static final String TYPE_INTERNAL_REGULATION_OPPORTUNITY = "int.regulation.opportunity";
-    public static final String TYPE_INTERNAL_REGULATION_INTERRUPT_SOFT = "int.regulation.interrupt.soft";
-    public static final String TYPE_INTERNAL_REGULATION_INTERRUPT_HARD = "int.regulation.interrupt.hard";
     public static final String KIND_OBSERVATION = "observation";
     public static final String KIND_RESPONSE = "response";
     public static final String KIND_SYSTEM = "system";
@@ -46,42 +31,40 @@ public class Event {
     public static final String ACTOR_ASSISTANT = "assistant";
     public static final String ACTOR_SYSTEM = "system";
 
-    @Id
-    @GeneratedValue
-    @GsonExclude
-    private UUID id;
-
-    protected Event() {
-
-    }
-
-    @GsonExclude
-    private String type;
-    private String actor;
-    private String kind;
-    @Column(length = 4096)
+    private final UUID id;
+    private final Instant createdDate;
+    private final String type;
+    private final String actor;
+    private final String kind;
     private String payload;
-
-    @CreationTimestamp
-    @Column(name = "createdDate", nullable = false, updatable = false)
-    private Instant createdDate;
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "event_state_path", joinColumns = @JoinColumn(name = "event_id"))
-    @OrderColumn(name = "path_index")
-    @Column(name = "state_name")
-    @GsonExclude
     private List<String> statePath;
-    @ManyToOne
-    @JoinColumn(name = "event_history_id")
-    @GsonExclude
-    private EventHistory eventHistory;
 
     public Event(String type, String actor, String kind, String payload) {
+        this(UUID.randomUUID(), Instant.now(), type, actor, kind, payload, List.of());
+    }
+
+    public Event(UUID id, Instant createdDate, String type, String actor, String kind, String payload,
+            List<String> statePath) {
+        this.id = id == null ? UUID.randomUUID() : id;
+        this.createdDate = createdDate == null ? Instant.now() : createdDate;
         this.type = type;
         this.actor = actor;
         this.kind = kind;
         this.payload = payload;
-        this.statePath = new ArrayList<>();
+        this.statePath = statePath == null ? new ArrayList<>() : new ArrayList<>(statePath);
+    }
+
+    public static Event fromRuntime(RuntimeEvent event) {
+        if (event == null) {
+            return null;
+        }
+        return new Event(event.id(), event.createdAt(), event.type(), event.actor(), event.kind(), event.payload(),
+                event.statePath());
+    }
+
+    public RuntimeEvent toRuntime() {
+        return new RuntimeEvent(this.id, this.createdDate, this.type, this.actor, this.kind, this.payload,
+                this.getStatePath());
     }
 
     public static Event observation(String type, String actor, String payload) {
@@ -104,68 +87,30 @@ public class Event {
         return system(TYPE_SYSTEM_TICK, "tick");
     }
 
-    public String getType() {
-        return this.type;
-    }
+    public String getType() { return this.type; }
 
     @JsonIgnore
-    public UUID getId() {
-        return this.id;
-    }
+    public UUID getId() { return this.id; }
 
-    public String getActor() {
-        return this.actor;
-    }
-
-    public String getKind() {
-        return this.kind;
-    }
-
-    public String getPayload() {
-        return this.payload;
-    }
-
-    public void setPayload(String payload) {
-        this.payload = payload;
-    }
-
-    public Instant getCreatedDate() {
-        return createdDate;
-    }
-
-    public List<String> getStatePath() {
-        if (this.statePath == null) {
-            this.statePath = new ArrayList<>();
-        }
-        return List.copyOf(this.statePath);
-    }
+    public String getActor() { return this.actor; }
+    public String getKind() { return this.kind; }
+    public String getPayload() { return this.payload; }
+    public void setPayload(String payload) { this.payload = payload; }
+    public Instant getCreatedDate() { return this.createdDate; }
+    public List<String> getStatePath() { return List.copyOf(this.statePath); }
 
     public void setStatePath(List<String> statePath) {
-        if (statePath == null) {
-            this.statePath = new ArrayList<>();
-            return;
-        }
-        this.statePath = new ArrayList<>(statePath);
+        this.statePath = statePath == null ? new ArrayList<>() : new ArrayList<>(statePath);
     }
 
     public Event withStatePath(String... stateNames) {
-        if (stateNames == null) {
-            this.statePath = new ArrayList<>();
-            return this;
-        }
-        this.statePath = new ArrayList<>(Arrays.asList(stateNames));
+        this.statePath = stateNames == null ? new ArrayList<>() : new ArrayList<>(Arrays.asList(stateNames));
         return this;
-    }
-
-    public void setEventHistory(EventHistory eventHistory) {
-        this.eventHistory = eventHistory;
     }
 
     @Override
     public String toString() {
-        return "{type=\"" + type + "\", actor=\"" + actor + "\", kind=\"" + kind
-                + "\", payload=\"" + payload + "\", statePath=\""
-                + statePath + "\"}";
+        return "{type=\"" + this.type + "\", actor=\"" + this.actor + "\", kind=\"" + this.kind
+                + "\", payload=\"" + this.payload + "\", statePath=\"" + this.statePath + "\"}";
     }
 }
-

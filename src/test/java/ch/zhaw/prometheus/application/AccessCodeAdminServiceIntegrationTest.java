@@ -17,17 +17,20 @@ import org.springframework.transaction.annotation.Transactional;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
-import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
-import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeAllowedAgentTypeRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
-import ch.zhaw.prometheus.repositories.AgentRepository;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:access_admin;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+        "spring.datasource.username=sa", "spring.datasource.password=",
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect",
+        "spring.jpa.hibernate.ddl-auto=validate", "spring.flyway.enabled=true",
+        "debug=false", "logging.level.root=WARN"
+})
 @Transactional
 class AccessCodeAdminServiceIntegrationTest {
     private static final String CORE_SOCIAL_CONTEXT = "core.social_context_sensitivity";
@@ -47,7 +50,7 @@ class AccessCodeAdminServiceIntegrationTest {
     private AccessCodeAgentRepository accessCodeAgents;
 
     @Autowired
-    private AgentRepository agents;
+    private AgentApplicationService agents;
 
     @BeforeEach
     void clearAccessCodeData() {
@@ -177,15 +180,14 @@ class AccessCodeAdminServiceIntegrationTest {
     void listsAgentsAssociatedWithAccessCode() {
         AccessCodeView created = this.service.createAccessCode("agt48", true);
         AccessCode accessCode = this.accessCodes.findById(created.getId()).orElseThrow();
-        Agent agent = this.agents.save(new Agent("Scoped Agent", "Visible through access code",
-                new State("start", new NoOpPolicy(), List.of())));
-        this.accessCodeAgents.save(new AccessCodeAgent(accessCode, agent));
+        var agent = this.agents.create("core.talk_to_me").agent();
+        this.accessCodeAgents.save(new AccessCodeAgent(accessCode, agent.getId()));
 
         List<AgentInfoView> visibleAgents = this.service.listAgents(created.getId()).orElseThrow();
 
         assertEquals(1, visibleAgents.size());
         assertEquals(agent.getId(), visibleAgents.get(0).getID());
-        assertEquals("Scoped Agent", visibleAgents.get(0).getName());
+        assertEquals("Talk to Me", visibleAgents.get(0).getName());
         assertTrue(this.service.listAgents(java.util.UUID.randomUUID()).isEmpty());
     }
 

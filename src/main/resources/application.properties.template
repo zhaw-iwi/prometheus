@@ -5,7 +5,7 @@ spring.datasource.username=root
 spring.datasource.password=achselle9
 
 spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.MySQLDialect
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
 
 # log level
 logging.level.ch.zhaw.prometheus=INFO

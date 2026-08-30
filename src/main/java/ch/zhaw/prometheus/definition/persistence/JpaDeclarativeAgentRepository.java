@@ -27,7 +27,7 @@ import ch.zhaw.prometheus.definition.runtime.RuntimeEvent;
 @Repository
 @Transactional
 public class JpaDeclarativeAgentRepository implements DeclarativeAgentRepository {
-    private static final JsonMapper JSON = new JsonMapper();
+    private static final JsonMapper JSON = JsonMapper.builder().findAndAddModules().build();
     private static final TypeReference<List<RuntimeEvent>> EVENTS = new TypeReference<>() {
     };
 
@@ -44,6 +44,12 @@ public class JpaDeclarativeAgentRepository implements DeclarativeAgentRepository
     @Transactional(readOnly = true)
     public Optional<PersistedDeclarativeAgent> find(UUID id) {
         return this.instances.findById(id).map(JpaDeclarativeAgentRepository::map);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PersistedDeclarativeAgent> findAll() {
+        return this.instances.findAll().stream().map(JpaDeclarativeAgentRepository::map).toList();
     }
 
     @Override
@@ -86,6 +92,12 @@ public class JpaDeclarativeAgentRepository implements DeclarativeAgentRepository
     @Transactional(readOnly = true)
     public boolean existsByDefinitionRevisionId(long revisionId) {
         return this.instances.existsByDefinitionRevision_Id(revisionId);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        this.instances.deleteById(id);
+        this.instances.flush();
     }
 
     private static PersistedDeclarativeAgent map(DeclarativeAgentInstanceEntity entity) {

@@ -19,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
-import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
@@ -41,7 +40,7 @@ class ScopedTalkToMeSpeechServiceUnitTest {
         EventRequest request = new EventRequest();
         AgentInfoView talkToMe = new AgentInfoView(agentId, "Talk to Me", "Voice-only agent", true,
                 AgentInteractionProfile.of(List.of("obs.user_utterance"), List.of("speech"),
-                        List.of(TalkToMe.PROFILE_TAG)));
+                        List.of("utility.talk_to_me")));
         Event response = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 BehaviourPlan.speechOnly("Hello there").toJson());
         SpeechAudio audio = new SpeechAudio(new byte[] { 1, 2, 3 }, "audio/mpeg");

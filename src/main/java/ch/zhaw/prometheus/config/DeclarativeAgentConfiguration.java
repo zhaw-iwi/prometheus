@@ -4,6 +4,8 @@ import org.flywaydb.core.api.MigrationVersion;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
+import org.hibernate.cfg.AvailableSettings;
 
 import ch.zhaw.prometheus.definition.application.DefinitionRevisionSources;
 import ch.zhaw.prometheus.definition.compiled.CompiledDefinitionCache;
@@ -22,6 +24,11 @@ public class DeclarativeAgentConfiguration {
         return configuration -> configuration
                 .baselineOnMigrate(true)
                 .baselineVersion(MigrationVersion.fromVersion("0"));
+    }
+
+    @Bean
+    HibernatePropertiesCustomizer validateFinalSchema() {
+        return properties -> properties.put(AvailableSettings.HBM2DDL_AUTO, "validate");
     }
 
     @Bean

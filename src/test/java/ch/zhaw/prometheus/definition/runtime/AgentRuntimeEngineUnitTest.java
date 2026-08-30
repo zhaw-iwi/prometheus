@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.google.gson.JsonElement;
 
 import ch.zhaw.prometheus.definition.compiled.CompiledAgentDefinition;
 import ch.zhaw.prometheus.definition.compiled.DefinitionCompiler;
@@ -29,19 +28,6 @@ import ch.zhaw.prometheus.definition.component.CompiledPolicy;
 import ch.zhaw.prometheus.definition.component.CompiledSelector;
 import ch.zhaw.prometheus.definition.component.builtin.IncrementActionComponent;
 import ch.zhaw.prometheus.definition.document.AgentDefinitionJson;
-import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.OuterState;
-import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.Transition;
-import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
-import ch.zhaw.prometheus.model.event.Event;
-import ch.zhaw.prometheus.model.event.EventHistory;
-import ch.zhaw.prometheus.model.policy.Policy;
-import ch.zhaw.prometheus.model.policy.PolicyRuntime;
-import ch.zhaw.prometheus.model.policy.PromptMessage;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class AgentRuntimeEngineUnitTest {
     private AgentRuntimeEngine engine;
@@ -187,30 +173,6 @@ class AgentRuntimeEngineUnitTest {
                 && event.statePath().equals(List.of("root", "main"))));
     }
 
-    @Test
-    void representativeOuterTransitionTraceMatchesLegacyEngine() {
-        AgentRuntimeInstance declarative = createInstance();
-        this.engine.start(declarative, this.context);
-        this.engine.acknowledge(declarative, event("obs.user_utterance", "route"), this.context);
-
-        State oldOuterWin = new State("outer_win", new FixedPolicy(), List.of());
-        State oldInnerLose = new State("inner_lose", new FixedPolicy(), List.of());
-        State oldMain = new State("main", new FixedPolicy(),
-                List.of(new Transition(new LatestEventTypeDecision("obs.user_utterance"), oldInnerLose)));
-        OuterState oldRoot = new OuterState("outer", "root",
-                List.of(new Transition(new LatestEventTypeDecision("obs.user_utterance"), oldOuterWin)), oldMain);
-        Agent legacy = new Agent("legacy", "trace", oldRoot);
-        PolicyRuntime oldRuntime = new PolicyRuntime(new PromptMessageAssembler(), new NoOpLanguageModelGateway());
-        legacy.start(oldRuntime);
-        legacy.acknowledge(Event.observation("obs.user_utterance", "user", "route"), oldRuntime);
-
-        List<String> legacyTypes = legacy.getEventHistory().toList().stream().map(Event::getType).toList();
-        List<List<String>> legacyPaths = legacy.getEventHistory().toList().stream().map(Event::getStatePath).toList();
-        assertEquals(legacyTypes, declarative.history().stream().map(RuntimeEvent::type).toList());
-        assertEquals(legacyPaths, declarative.history().stream().map(RuntimeEvent::statePath).toList());
-        assertEquals(legacy.getCurrentState().getName(), declarative.activeLeafStateId());
-    }
-
     private AgentRuntimeInstance createInstance() {
         return this.engine.create(101, this.definition, this.context).instance();
     }
@@ -280,36 +242,4 @@ class AgentRuntimeEngineUnitTest {
         }
     }
 
-    private static final class FixedPolicy extends Policy {
-        @Override
-        public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
-                LanguageModelGateway languageModelGateway) {
-            return BehaviourPlan.speechOnly("start:" + state.getName());
-        }
-
-        @Override
-        public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
-                LanguageModelGateway languageModelGateway) {
-            return BehaviourPlan.speechOnly("response:" + state.getName());
-        }
-
-        @Override
-        public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,
-                LanguageModelGateway languageModelGateway) {
-            return "";
-        }
-
-        @Override
-        public String describe() {
-            return "fixed";
-        }
-    }
-
-    private static final class NoOpLanguageModelGateway implements LanguageModelGateway {
-        @Override public String complete(List<PromptMessage> messages) { return ""; }
-        @Override public boolean decide(List<PromptMessage> messages) { return false; }
-        @Override public JsonElement extract(List<PromptMessage> messages) { return null; }
-        @Override public JsonElement summarise(List<PromptMessage> messages) { return null; }
-        @Override public String summariseOffline(List<PromptMessage> messages) { return ""; }
-    }
 }

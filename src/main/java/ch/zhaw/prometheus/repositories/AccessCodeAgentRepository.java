@@ -11,9 +11,9 @@ import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 public interface AccessCodeAgentRepository extends JpaRepository<AccessCodeAgent, UUID> {
     List<AccessCodeAgent> findByAccessCodeId(UUID accessCodeId);
 
-    Optional<AccessCodeAgent> findByAccessCode_IdAndAgent_Id(UUID accessCodeId, UUID agentId);
+    Optional<AccessCodeAgent> findByAccessCode_IdAndAgentId(UUID accessCodeId, UUID agentId);
 
-    boolean existsByAccessCode_IdAndAgent_Id(UUID accessCodeId, UUID agentId);
+    boolean existsByAccessCode_IdAndAgentId(UUID accessCodeId, UUID agentId);
 
-    long countByAgent_Id(UUID agentId);
+    long countByAgentId(UUID agentId);
 }

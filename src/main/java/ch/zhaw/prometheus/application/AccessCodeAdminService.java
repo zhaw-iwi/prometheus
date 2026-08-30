@@ -13,14 +13,12 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import ch.zhaw.prometheus.agentdefs.AgentDefinition;
-import ch.zhaw.prometheus.agentdefs.AgentDefinitionRegistry;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.controllers.views.AccessCodePresetEntryView;
 import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
-import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.definition.application.ActiveAgentDefinitionCatalog;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.model.access.AccessCodeAllowedAgentType;
@@ -33,21 +31,25 @@ public class AccessCodeAdminService {
 
     private final AccessCodeRepository accessCodes;
     private final AccessCodeAgentRepository accessCodeAgents;
-    private final AgentDefinitionRegistry agentDefinitions;
+    private final ActiveAgentDefinitionCatalog agentDefinitions;
     private final AccessCodePresetCatalog accessCodePresets;
+    private final AgentApplicationService agents;
 
     public AccessCodeAdminService(AccessCodeRepository accessCodes, AccessCodeAgentRepository accessCodeAgents,
-            AgentDefinitionRegistry agentDefinitions, AccessCodePresetCatalog accessCodePresets) {
+            ActiveAgentDefinitionCatalog agentDefinitions, AccessCodePresetCatalog accessCodePresets,
+            AgentApplicationService agents) {
         this.accessCodes = accessCodes;
         this.accessCodeAgents = accessCodeAgents;
         this.agentDefinitions = agentDefinitions;
         this.accessCodePresets = accessCodePresets;
+        this.agents = agents;
     }
 
     public List<AdminAgentTypeView> listAgentTypes() {
         return this.agentDefinitions.list().stream()
-                .map(definition -> new AdminAgentTypeView(definition.key(), definition.displayName(),
-                        definition.description(), definition.packagePath()))
+                .map(active -> new AdminAgentTypeView(active.compiled().key(),
+                        active.compiled().metadata().displayName(), active.compiled().metadata().description(),
+                        active.packagePath()))
                 .toList();
     }
 
@@ -132,9 +134,7 @@ public class AccessCodeAdminService {
         }
         List<AgentInfoView> result = new ArrayList<>();
         for (AccessCodeAgent link : this.accessCodeAgents.findByAccessCodeId(id)) {
-            Agent agent = link.getAgent();
-            result.add(new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                    agent.getInteractionProfile(), agent.getLanguageCode()));
+            this.agents.getAgentInfo(link.getAgentId()).ifPresent(result::add);
         }
         return Optional.of(result);
     }
@@ -154,7 +154,7 @@ public class AccessCodeAdminService {
             if (key == null || key.isBlank()) {
                 throw new IllegalArgumentException("agent type key must not be blank");
             }
-            if (this.agentDefinitions.findByKey(key).isEmpty()) {
+            if (this.agentDefinitions.find(key).isEmpty()) {
                 throw new IllegalArgumentException("unknown agent type key: " + key);
             }
             if (!resolved.add(key)) {

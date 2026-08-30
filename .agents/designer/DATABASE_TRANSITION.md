@@ -20,9 +20,8 @@ applies version `1`. A new empty schema applies version `1` directly. Startup
 imports the ordered bundled manifest idempotently and prewarms active published
 revisions. An existing active revision is never replaced by the seed importer.
 
-Milestone 7 deliberately leaves the old runtime tables and Java-authored
-catalog in use. The new instance table is not yet exposed through controllers.
-This coexistence ends at the Milestone 8 Phase II gate.
+Milestone 7 deliberately left the old runtime tables and Java-authored catalog
+in use. Milestone 8 ended that coexistence through the version-2 cutover below.
 
 ## Data classification for the Phase II gate
 
@@ -46,12 +45,11 @@ If an allowed-agent-type row contains a key outside the twelve-key catalog,
 Milestone 8 must report it during its preflight. It must not silently reinterpret
 or map that key.
 
-## Precisely scoped Milestone 8 removal plan
+## Milestone 8 final cutover
 
-The destructive migration is not part of version 1. Before authoring it,
-Milestone 8 must verify the following Hibernate-derived names against the
-dedicated test schema's `information_schema` and then encode the dependency
-order explicitly:
+Flyway migration `V2__cut_over_to_declarative_runtime.sql` is the explicit
+destructive migration. It encodes the following named targets in dependency
+order:
 
 1. Remove rows from `access_code_agent`, preserving `access_code` and
    `access_code_allowed_agent_type`.
@@ -65,8 +63,15 @@ order explicitly:
    declarative-instance link required by the unchanged scoped API. Do not retain
    a compatibility foreign key to legacy `agent`.
 5. Delete the matching legacy entities, repositories, whole-agent factories,
-   endpoints/DTO paths, tests, and documentation in the same milestone, then
-   switch Hibernate from schema mutation to schema validation.
+   endpoints/DTO paths, tests, and documentation, then switch Hibernate from
+   schema mutation to schema validation.
+
+The production application now performs every scoped/global lifecycle operation
+through revision-pinned declarative instances. Startup reports preserved
+allowed-agent-type keys that do not resolve to an active definition; it does
+not reinterpret them. Version 2 has executed under Flyway and Hibernate
+validation against disposable H2 databases in MySQL mode. Real MySQL execution
+is intentionally deferred to the guarded Milestone 9 smoke gate.
 
 No wildcard table selection, database-wide clean, or broad schema drop is
 permitted. The final migration must name each confirmed table and constraint.

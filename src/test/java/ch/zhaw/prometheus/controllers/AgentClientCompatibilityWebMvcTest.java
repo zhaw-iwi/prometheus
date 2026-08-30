@@ -32,12 +32,9 @@ import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.AgentStateInfoView;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
-import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
-import ch.zhaw.prometheus.model.policy.PolicyResult;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
-import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @SuppressWarnings("null")
@@ -78,14 +75,11 @@ class AgentClientCompatibilityWebMvcTest {
                 Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "I feel good today"),
                 appendedAssistant)));
 
-        State promptState = new State("conversation",
-                new PromptPolicy("system prompt", null, PromptPolicy.DEFAULT_SUMMARISE_PROMPT), List.of());
-        PolicyResult policyResult = new PolicyResult(promptState, List.of(
-                PromptMessage.system("system prompt"),
-                PromptMessage.assistant("Hello, I am ready when you are."),
-                PromptMessage.user("I feel good today")));
         when(this.agentService.prompt(TEST_AGENT_ID, OutputProfile.FULL_PLAN))
-                .thenReturn(Optional.of(new PolicyResponseView(policyResult, true)));
+                .thenReturn(Optional.of(new PolicyResponseView("conversation", List.of(
+                        PromptMessage.system("system prompt"),
+                        PromptMessage.assistant("Hello, I am ready when you are."),
+                        PromptMessage.user("I feel good today")), true, false)));
         when(this.agentService.getAgentInfo(TEST_AGENT_ID))
                 .thenReturn(Optional.of(new AgentInfoView(TEST_AGENT_ID, "Example Conversational Agent",
                         "Test fixture agent for interaction and monitor compatibility checks.", true,

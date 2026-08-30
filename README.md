@@ -200,16 +200,14 @@ larger audience should see live listening state or generated meeting reports.
 
 ## Current Agent Catalog
 
-Production agent definitions live under
-`src/main/java/ch/zhaw/prometheus/agentdefs`. Definitions implement
-`AgentDefinition`, expose a stable key, and are discovered as Spring beans.
-During the ordered declarative migration, revision-1 JSON for all twelve
-definitions is also bundled under
-`src/main/resources/agent-definitions/catalog/main` and compiled in catalog
-contracts. Talk to Me exact text and RPS rules/output run through trusted
-registered deterministic components in that harness. The running catalog
-continues to use Spring-discovered definitions until the Phase II cutover; this
-coexistence is temporary.
+Production agent definitions are canonical JSON revisions stored in the
+database. The twelve revision-1 seeds live under
+`src/main/resources/agent-definitions/catalog/main`; startup imports missing
+identities idempotently, activates the initial published revision, and prewarms
+the immutable compiled runtime cache. New instances resolve the active revision
+once and retain that revision pin. Talk to Me exact text and RPS rules/output
+use trusted registered deterministic component kinds; JSON never names Java
+classes or Spring beans.
 
 The main branch ships the Valerian baseline catalog:
 
@@ -273,15 +271,16 @@ Run the application:
 .\mvnw.cmd spring-boot:run
 ```
 
-PROMETHEUS uses source-controlled Flyway migrations for the declarative-agent
-aggregates. On startup, an existing pre-Flyway schema is baselined at version 0,
-the additive version-1 migration creates definition, revision, and lightweight
-instance tables, and the twelve bundled JSON revisions are imported
-idempotently. Existing active revisions are preserved and all active published
-revisions are compiled into the warm cache before readiness. Do not use Flyway
-`clean` against the configured database. The current transition keeps the
-legacy runtime active until the ordered Phase II cutover; the preservation and
-removal runbook is in `.agents/designer/DATABASE_TRANSITION.md`.
+PROMETHEUS uses source-controlled Flyway migrations and Hibernate schema
+validation. On startup, an existing pre-Flyway schema is baselined at version
+0, version 1 creates definition/revision/lightweight-instance aggregates, and
+version 2 performs the explicit runtime cutover. Version 2 preserves access-code
+identities, allowed type keys, and declarative revisions/instances, but removes
+the disposable legacy copied runtime graphs and their access-code links. The
+twelve bundled JSON revisions are then imported idempotently; existing active
+revisions are preserved and prewarmed before readiness. Never use Flyway
+`clean` against the configured database. Review
+`.agents/designer/DATABASE_TRANSITION.md` before upgrading an existing schema.
 
 The default local URL is `http://localhost:8080`; it redirects to Valerian
 Cockpit.
@@ -302,6 +301,12 @@ Run the Java regression suite:
 ```powershell
 .\mvnw.cmd test
 ```
+
+The suite uses deterministic language-model fakes and disposable H2 databases
+in MySQL mode for Flyway, native-JSON persistence, and Hibernate-validation
+contracts. It does not call OpenAI, Azure, Speech, transcription, or browser
+sensors. Real MySQL verification is a separate explicitly opted-in smoke gate;
+never point it at the normally configured application database.
 
 Run JavaScript syntax checks for the bundled clients:
 
@@ -582,7 +587,6 @@ not access-code scoped.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/agent` | List persisted agents. |
-| `POST` | `/agent/singlestate` | Create an ad-hoc single-state agent. |
 | `GET` | `/{agentId}/info` | Agent metadata and interaction profile. |
 | `POST` | `/{agentId}/start` | Start the current state. |
 | `DELETE` | `/{agentId}/reset` | Reset the agent. |
@@ -801,12 +805,11 @@ credential.
 
 ```text
 src/main/java/ch/zhaw/prometheus
-  agentdefs/        Registered Valerian agent definitions.
   application/      Application services for agents, access codes, transcription, Speech, and scoped demos.
   controllers/      HTTP, SSE, admin, scoped demo, and static-client endpoints.
-  definition/       Declarative mapping, validation, components, compiler/cache, and generic runtime.
+  definition/       JSON mapping, lifecycle/persistence, validation, components, compiler/cache, and runtime.
   logging/          SSE broadcasters.
-  model/            Agent, state machine, event, behaviour, policy, regulation, and RPS domain model.
+  model/            Lightweight agent/event views plus shared behaviour, sensing, and RPS domain types.
   spi/              Language-model, live-transcription, and Speech integration boundaries.
 
 src/main/resources/agent-definitions
@@ -825,28 +828,22 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 
 ## Developing New Agents
 
-The declarative migration is in progress on `features/designer`. Schema version
-1, typed document mapping, structural/semantic/component validation,
-deterministic prompt composition, canonical hashing, the trusted registered
-component SPI, immutable compilation, a revision/hash-guarded single-flight
-cache, the generic per-instance runtime engine, and all twelve bundled main
-JSON revisions are available under `definition/` and `agent-definitions/`.
-The running catalog still uses the Java definitions below until the ordered Phase II
-cutover is complete. Do not treat the temporary coexistence as a permanent
-second authoring path. Component authors should follow
-`definition/component/README.md`; JSON never names a Java class or bean.
+JSON is the only whole-agent definition language. Use schema version 1 at
+`src/main/resources/agent-definitions/schema/agent-definition.schema.json` and
+start from a bundled revision under `catalog/main`. Keep the stable definition
+key outside the document lifecycle, give every state a stable ID, declare the
+interaction profile, storage, resources, policies, transitions, decisions, and
+actions explicitly, and reference only registered `(kind, version)` component
+pairs. Published revisions are immutable; activation affects only subsequently
+created instances, while existing instances keep their revision pin.
 
-1. Start from an existing definition in `agentdefs/core` or
-   `agentdefs/usecases/healthcare`.
-2. Define prompts for state entry, response generation, transitions, actions,
-   and outcome extraction.
-3. Declare an `AgentInteractionProfile` that lists required observations and
-   emitted behaviour modalities.
-4. Implement `AgentDefinition` with a stable key and expose it as a Spring bean.
-5. Use `createInstance(...)` for startup behaviour that should run immediately
-   after scoped creation.
-6. Add prompt/profile contract tests and update README/API examples if the
-   public contract changes.
+Bundled additions require a canonical revision JSON resource, a deterministic
+manifest entry, schema/semantic/component validation, compilation/runtime
+coverage, and public catalog documentation. Trusted Java extensions are limited
+to reusable typed component kinds. Component authors must follow
+`src/main/java/ch/zhaw/prometheus/definition/component/README.md`; component
+configuration must be strict data and must never contain a Java class, bean
+name, credential, or executable script.
 
 Prefer clear replacement over compatibility shims while the framework remains
 prototype-oriented.

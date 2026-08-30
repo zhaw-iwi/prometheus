@@ -1,321 +1,272 @@
 package ch.zhaw.prometheus.application;
 
-import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.random.RandomGenerator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
-import ch.zhaw.prometheus.agentdefs.AgentDefinition;
-import ch.zhaw.prometheus.controllers.AgentMetaType;
-import ch.zhaw.prometheus.controllers.dto.SingleStateAgentCreateDTO;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.AgentStateInfoView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
+import ch.zhaw.prometheus.definition.compiled.CompiledAgentDefinition;
+import ch.zhaw.prometheus.definition.compiled.CompiledAtomicState;
+import ch.zhaw.prometheus.definition.compiled.CompiledCompositeState;
+import ch.zhaw.prometheus.definition.compiled.CompiledState;
+import ch.zhaw.prometheus.definition.compiled.ImmutableJson;
+import ch.zhaw.prometheus.definition.component.CompiledPolicy;
+import ch.zhaw.prometheus.definition.compiled.CompiledStorageBinding;
+import ch.zhaw.prometheus.definition.component.builtin.PromptPolicyComponent;
+import ch.zhaw.prometheus.definition.instance.DeclarativeAgentExecution;
+import ch.zhaw.prometheus.definition.instance.DeclarativeAgentInstanceService;
+import ch.zhaw.prometheus.definition.instance.DeclarativeAgentNotFoundException;
+import ch.zhaw.prometheus.definition.instance.LoadedDeclarativeAgent;
+import ch.zhaw.prometheus.definition.instance.PersistedDeclarativeAgent;
+import ch.zhaw.prometheus.definition.instance.RuntimeInstanceStatus;
+import ch.zhaw.prometheus.definition.runtime.AgentRuntimeContext;
+import ch.zhaw.prometheus.definition.runtime.BuiltInRuntimeComponentExecutor;
+import ch.zhaw.prometheus.definition.runtime.LanguageModelRuntimeGateway;
+import ch.zhaw.prometheus.definition.runtime.RuntimeBehaviour;
+import ch.zhaw.prometheus.definition.runtime.RuntimeComponentExecutor;
+import ch.zhaw.prometheus.definition.runtime.RuntimeEvent;
+import ch.zhaw.prometheus.definition.runtime.RuntimeInvocation;
+import ch.zhaw.prometheus.definition.runtime.RuntimePromptBundle;
+import ch.zhaw.prometheus.definition.runtime.RuntimeStorage;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
-import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.Decision;
-import ch.zhaw.prometheus.model.Final;
-import ch.zhaw.prometheus.model.State;
-import ch.zhaw.prometheus.model.Storage;
-import ch.zhaw.prometheus.model.Transition;
-import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
-import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
-import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
-import ch.zhaw.prometheus.model.policy.PolicyRuntime;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
-import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.social.SocialSituationChangeDetector;
-import ch.zhaw.prometheus.repositories.AgentRepository;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @Service
 public class AgentApplicationService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentApplicationService.class);
 
-    private final AgentRepository repository;
+    private final DeclarativeAgentInstanceService instances;
     private final AgentMonitorBroadcaster monitorBroadcaster;
     private final AgentBehaviourBroadcaster behaviourBroadcaster;
-    private final PromptMessageAssembler promptMessageAssembler;
-    private final LanguageModelGateway languageModelGateway;
+    private final LanguageModelRuntimeGateway modelGateway;
     private final SocialSituationChangeDetector socialSituationChangeDetector;
 
-    public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
-            AgentBehaviourBroadcaster behaviourBroadcaster,
-            PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
-        this.repository = repository;
+    public AgentApplicationService(DeclarativeAgentInstanceService instances,
+            AgentMonitorBroadcaster monitorBroadcaster, AgentBehaviourBroadcaster behaviourBroadcaster,
+            LanguageModelRuntimeGateway modelGateway) {
+        this.instances = instances;
         this.monitorBroadcaster = monitorBroadcaster;
         this.behaviourBroadcaster = behaviourBroadcaster;
-        this.promptMessageAssembler = promptMessageAssembler;
-        this.languageModelGateway = languageModelGateway;
+        this.modelGateway = modelGateway;
         this.socialSituationChangeDetector = SocialSituationChangeDetector.defaultThresholds();
     }
 
+    public CreatedDeclarativeAgent create(String definitionKey) {
+        var creation = this.instances.create(definitionKey, context(List.of()));
+        LoadedDeclarativeAgent loaded = this.instances.find(creation.instance().id()).orElseThrow();
+        Agent agent = toAgent(loaded);
+        Event startup = lastBehaviour(creation.startup().appendedEvents());
+        safePublishMonitor(agent);
+        publishBehaviour(agent.getId(), startup);
+        return new CreatedDeclarativeAgent(agent, startup);
+    }
+
+    public boolean delete(UUID agentId) {
+        return this.instances.delete(agentId);
+    }
+
     public List<AgentInfoView> listAgents() {
-        List<Agent> agents = this.repository.findAll();
-        List<AgentInfoView> result = new ArrayList<>();
-        for (Agent current : agents) {
-            result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
-                    current.isActive(), current.getInteractionProfile(), current.getLanguageCode()));
-        }
-        return result;
+        return this.instances.findAll().stream().map(AgentApplicationService::toAgent)
+                .map(AgentApplicationService::toInfo).toList();
     }
 
     public List<Agent> listAgentAggregates() {
-        return this.repository.findAll();
+        return this.instances.findAll().stream().map(AgentApplicationService::toAgent).toList();
     }
 
-    public Optional<Agent> getAgentById(UUID agentID) {
-        return this.findAgent(agentID);
+    public Optional<Agent> getAgentById(UUID agentId) {
+        return this.instances.find(agentId).map(AgentApplicationService::toAgent);
     }
 
-    public Optional<AgentInfoView> getAgentInfo(UUID agentID) {
-        return this.findAgent(agentID).map(agent -> new AgentInfoView(agent.getId(), agent.getName(),
-                agent.getDescription(), agent.isActive(), agent.getInteractionProfile(), agent.getLanguageCode()));
+    public Optional<AgentInfoView> getAgentInfo(UUID agentId) {
+        return getAgentById(agentId).map(AgentApplicationService::toInfo);
     }
 
-    public Optional<String> getAgentLanguageCode(UUID agentID) {
-        return this.findAgent(agentID)
-                .map(Agent::getLanguageCode)
-                .filter(AgentApplicationService::isPresent);
+    public Optional<String> getAgentLanguageCode(UUID agentId) {
+        return getAgentById(agentId).map(Agent::getLanguageCode).filter(AgentApplicationService::present);
     }
 
-    public Optional<AgentStateInfoView> getAgentState(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public Optional<AgentStateInfoView> getAgentState(UUID agentId) {
+        return getAgentById(agentId).map(agent -> {
+            List<String> path = agent.getActiveStateNames();
+            String name = path.isEmpty() ? null : path.getFirst();
+            String inner = path.size() < 2 ? null : path.getLast();
+            List<String> innerNames = path.size() < 2 ? List.of() : path.subList(1, path.size());
+            return new AgentStateInfoView(name, inner, innerNames);
+        });
+    }
+
+    public Optional<List<String>> getAgentStates(UUID agentId) {
+        return getAgentById(agentId).map(Agent::listStates);
+    }
+
+    public Optional<List<StorageEntryView>> getAgentStorage(UUID agentId) {
+        return getAgentById(agentId).map(agent -> agent.getStorage().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> new StorageEntryView(entry.getKey(), entry.getValue().toString())).toList());
+    }
+
+    public Optional<List<Event>> getAgentEventHistory(UUID agentId) {
+        return getAgentById(agentId).map(Agent::getEventHistory);
+    }
+
+    public Optional<List<Event>> getAgentCurrentStateEventHistory(UUID agentId) {
+        return getAgentById(agentId).map(Agent::getCurrentStateEventHistory);
+    }
+
+    public Optional<ResponseView> start(UUID agentId) {
+        try {
+            DeclarativeAgentExecution execution = this.instances.start(agentId, context(List.of()));
+            return Optional.of(response(execution));
+        } catch (DeclarativeAgentNotFoundException notFound) {
             return Optional.empty();
         }
-        Agent agent = agentMaybe.get();
-        State currentState = agent.getCurrentState();
-        if (currentState == null) {
-            return Optional.empty();
-        }
-        String stateName = currentState.getName();
-        String innerName = null;
-        List<String> innerNames = List.of();
-        if (currentState instanceof ch.zhaw.prometheus.model.OuterState outerState
-                && outerState.getInnerCurrent() != null) {
-            innerName = outerState.getInnerCurrent().getName();
-            innerNames = outerState.getInnerCurrentChain();
-        }
-        return Optional.of(new AgentStateInfoView(stateName, innerName, innerNames));
     }
 
-    public Optional<List<String>> getAgentStates(UUID agentID) {
-        return this.findAgent(agentID).map(Agent::listStates);
+    public BehaviourGenerationOutcome generate(UUID agentId, List<String> omitModalities) {
+        return generate(agentId, omitModalities, OutputProfile.FULL_PLAN);
     }
 
-    public Optional<List<StorageEntryView>> getAgentStorage(UUID agentID) {
-        return this.findAgent(agentID).map(agent -> agent.getStorage().entrySet().stream()
-                .sorted(java.util.Map.Entry.comparingByKey())
-                .map((entry) -> new StorageEntryView(entry.getKey(),
-                        entry.getValue() == null ? "null" : entry.getValue().toString()))
-                .toList());
-    }
-
-    public Optional<List<Event>> getAgentEventHistory(UUID agentID) {
-        return this.findAgent(agentID).map(agent -> agent.getEventHistory().toList());
-    }
-
-    public Optional<List<Event>> getAgentCurrentStateEventHistory(UUID agentID) {
-        return this.findAgent(agentID).map(Agent::getCurrentStateEventHistory);
-    }
-
-    public Optional<ResponseView> start(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        Event starter = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, starter);
-        return Optional.of(new ResponseView(starter, agent.isActive()));
-    }
-
-    public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities) {
-        return this.generate(agentID, omitModalities, OutputProfile.FULL_PLAN);
-    }
-
-    public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public BehaviourGenerationOutcome generate(UUID agentId, List<String> omitModalities, OutputProfile profile) {
+        try {
+            DeclarativeAgentExecution execution = this.instances.generate(agentId, context(omitModalities));
+            Event event = lastBehaviour(execution.result().appendedEvents());
+            publish(execution.instance(), event);
+            return event == null ? BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED
+                    : BehaviourGenerationOutcome.GENERATED;
+        } catch (DeclarativeAgentNotFoundException notFound) {
             return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
         }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event response = agent.generate(this.runtime(resolvedProfile));
-        if (response == null) {
-            return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
-        }
-        this.applyOmittedModalities(response, omitModalities);
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return BehaviourGenerationOutcome.GENERATED;
     }
 
-    public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
-        return this.acknowledge(agentID, request, OutputProfile.FULL_PLAN);
+    public Optional<ResponseView> acknowledge(UUID agentId, EventRequest request) {
+        return acknowledge(agentId, request, OutputProfile.FULL_PLAN);
     }
 
-    public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public Optional<ResponseView> acknowledge(UUID agentId, EventRequest request, OutputProfile profile) {
+        try {
+            Event source = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            DeclarativeAgentExecution execution = this.instances.acknowledge(agentId, source.toRuntime(),
+                    context(List.of()));
+            Event response = lastBehaviour(execution.result().appendedEvents());
+            if (Event.TYPE_SOCIAL_GROUPING.equals(source.getType())) {
+                EventHistory history = new EventHistory(execution.instance().history().stream()
+                        .map(Event::fromRuntime).toList());
+                Optional<Event> computed = this.socialSituationChangeDetector.detect(history);
+                if (computed.isPresent()) {
+                    execution = this.instances.acknowledge(agentId, computed.get().toRuntime(), context(List.of()));
+                    Event computedResponse = lastBehaviour(execution.result().appendedEvents());
+                    if (computedResponse != null) {
+                        response = computedResponse;
+                    }
+                }
+            }
+            publish(execution.instance(), response);
+            return Optional.of(new ResponseView(response, isActive(execution.instance())));
+        } catch (DeclarativeAgentNotFoundException notFound) {
             return Optional.empty();
         }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        PolicyRuntime runtime = this.runtime(resolvedProfile);
-        Event response = agent.acknowledge(event, runtime);
-        Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
-        Event responseToReturn = computedResponse == null ? response : computedResponse;
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, responseToReturn);
-        return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
     }
 
-    public Optional<ResponseView> reset(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public Optional<ResponseView> reset(UUID agentId) {
+        try {
+            return Optional.of(response(this.instances.resetAndStart(agentId, context(List.of()))));
+        } catch (DeclarativeAgentNotFoundException notFound) {
             return Optional.empty();
         }
-        Agent agent = agentMaybe.get();
-        agent.reset();
-        Event response = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return Optional.of(new ResponseView(response, agent.isActive()));
     }
 
-    public Optional<PolicyResponseView> prompt(UUID agentID) {
-        return this.prompt(agentID, OutputProfile.FULL_PLAN);
+    public Optional<PolicyResponseView> prompt(UUID agentId) {
+        return prompt(agentId, OutputProfile.FULL_PLAN);
     }
 
-    public Optional<PolicyResponseView> prompt(UUID agentID, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public Optional<PolicyResponseView> prompt(UUID agentId, OutputProfile profile) {
+        return this.instances.find(agentId).map(loaded -> {
+            PersistedDeclarativeAgent stored = loaded.instance();
+            CompiledAgentDefinition definition = loaded.definition();
+            List<CompiledState> path = definition.pathTo(stored.activeLeafStateId());
+            List<PromptPolicyComponent> policies = path.stream().map(AgentApplicationService::policy)
+                    .filter(PromptPolicyComponent.class::isInstance).map(PromptPolicyComponent.class::cast).toList();
+            String responsePrompt = policies.stream().map(PromptPolicyComponent::responsePrompt)
+                    .filter(AgentApplicationService::present).map(String::trim)
+                    .collect(java.util.stream.Collectors.joining("\n\n"));
+            Map<String, ImmutableJson> boundStorage = boundStorage(stored.storage(), policies);
+            RuntimeInvocation invocation = new RuntimeInvocation(stored.activeLeafStateId(),
+                    path.stream().map(CompiledState::id).toList(), stored.history(), boundStorage);
+            RuntimePromptBundle prompts = new RuntimePromptBundle(resolve(responsePrompt, boundStorage),
+                    resolve(deepest(policies, PromptPolicyComponent::starterPrompt), boundStorage),
+                    resolve(deepest(policies, PromptPolicyComponent::summaryPrompt), boundStorage),
+                    resolve(deepest(policies, PromptPolicyComponent::nonverbalPlanPrompt), boundStorage),
+                    resolve(deepest(policies, PromptPolicyComponent::gesturePrompt), boundStorage), !stored.started());
+            List<ch.zhaw.prometheus.model.policy.PromptMessage> messages = responsePrompt.isBlank()
+                    ? List.of() : this.modelGateway.promptMessages(prompts, invocation);
+            String stateName = path.isEmpty() ? null : path.getLast().name();
+            return new PolicyResponseView(stateName, messages, isActive(stored),
+                    !stored.started());
+        });
+    }
+
+    public Optional<SseEmitter> subscribeMonitor(UUID agentId) {
+        if (this.instances.find(agentId).isEmpty()) {
             return Optional.empty();
         }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        return Optional.of(
-                new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler, resolvedProfile),
-                        agent.isActive()));
+        return Optional.of(this.monitorBroadcaster.subscribe(agentId, () -> getAgentById(agentId)));
     }
 
-    public Optional<SseEmitter> subscribeMonitor(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
+    public Optional<SseEmitter> subscribeBehaviour(UUID agentId) {
+        return subscribeBehaviour(agentId, null);
+    }
+
+    public Optional<SseEmitter> subscribeBehaviour(UUID agentId, String lastEventId) {
+        if (this.instances.find(agentId).isEmpty()) {
             return Optional.empty();
         }
-        SseEmitter emitter = this.monitorBroadcaster.subscribe(agentID, () -> this.findAgent(agentID));
-        return Optional.of(emitter);
+        return Optional.of(this.behaviourBroadcaster.subscribe(agentId, () -> getAgentById(agentId), lastEventId));
     }
 
-    public Optional<SseEmitter> subscribeBehaviour(UUID agentID) {
-        return this.subscribeBehaviour(agentID, null);
+    private ResponseView response(DeclarativeAgentExecution execution) {
+        Event event = lastBehaviour(execution.result().appendedEvents());
+        publish(execution.instance(), event);
+        return new ResponseView(event, isActive(execution.instance()));
     }
 
-    public Optional<SseEmitter> subscribeBehaviour(UUID agentID, String lastEventId) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        SseEmitter emitter = this.behaviourBroadcaster.subscribe(agentID, () -> this.findAgent(agentID), lastEventId);
-        return Optional.of(emitter);
+    private void publish(PersistedDeclarativeAgent stored, Event event) {
+        this.instances.find(stored.id()).map(AgentApplicationService::toAgent).ifPresent(this::safePublishMonitor);
+        publishBehaviour(stored.id(), event);
     }
 
-    public Optional<AgentInfoView> createSingleStateAgent(SingleStateAgentCreateDTO data) {
-        if (data == null || AgentMetaType.singleState.getValue() != data.getType()) {
-            return Optional.empty();
-        }
-
-        Storage storage = new Storage();
-        Decision trigger = new StaticDecision(data.getTriggerToFinalPrompt());
-        Decision guard = new StaticDecision(data.getGuardToFinalPrompt());
-        Action action = new StaticExtractionAction(data.getActionToFinalPrompt(), storage, "summary");
-        Transition transition = new Transition(List.of(trigger, guard), List.of(action),
-                new Final("User Exit Final"));
-        PromptPolicy policy = new PromptPolicy(data.getStatePrompt(),
-                data.getStateStarterPrompt(), PromptPolicy.DEFAULT_SUMMARISE_PROMPT);
-        policy.setNonVerbalGesturePrompt(data.getStateNonVerbalGesturePrompt());
-        State state = new State(data.getStateName(), policy, List.of(transition));
-
-        Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
-        agent.setLanguageCode(valueOrDefault(data.getLanguageCode(), AgentDefinition.LANGUAGE_ENGLISH));
-        Event starter = agent.start(this.runtime());
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
-        this.publishBehaviour(saved, starter);
-        return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
-                saved.getInteractionProfile(), saved.getLanguageCode()));
-    }
-
-    public Agent persistCreatedAgent(AgentCreationResult creation) {
-        if (creation == null) {
-            throw new IllegalArgumentException("agent creation result must not be null");
-        }
-        Agent saved = this.repository.save(creation.agent());
-        safePublishMonitor(saved);
-        this.publishBehaviour(saved, creation.starterEvent());
-        return saved;
-    }
-
-    private Optional<Agent> findAgent(UUID agentID) {
-        return this.repository.findById(agentID);
-    }
-
-    private Agent persistAndPublishMonitor(Agent agent) {
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
-        return saved;
-    }
-
-    private void publishBehaviour(Agent agent, Event responseEvent) {
-        if (agent == null || responseEvent == null) {
+    private void publishBehaviour(UUID agentId, Event event) {
+        if (event == null) {
             return;
         }
-        Event eventToPublish = responseEvent;
-        List<Event> events = agent.getEventHistory().toList();
-        for (int i = events.size() - 1; i >= 0; i--) {
-            Event candidate = events.get(i);
-            if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(candidate.getType())) {
-                continue;
-            }
-            if (!java.util.Objects.equals(candidate.getPayload(), responseEvent.getPayload())) {
-                continue;
-            }
-            eventToPublish = candidate;
-            break;
+        try {
+            this.behaviourBroadcaster.publish(agentId, event);
+        } catch (Throwable failure) {
+            LOGGER.debug("SSE behaviour publish failed in service boundary; agentId={}", agentId, failure);
         }
-        safePublishBehaviour(agent.getId(), eventToPublish);
-    }
-
-    private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {
-        if (agent == null || sourceEvent == null || runtime == null) {
-            return null;
-        }
-        if (!Event.TYPE_SOCIAL_GROUPING.equals(sourceEvent.getType())) {
-            return null;
-        }
-        return this.socialSituationChangeDetector.detect(agent.getEventHistory())
-                .map(change -> agent.acknowledge(change, runtime))
-                .orElse(null);
     }
 
     private void safePublishMonitor(Agent agent) {
@@ -327,75 +278,161 @@ public class AgentApplicationService {
         }
     }
 
-    private void safePublishBehaviour(UUID agentId, Event event) {
-        try {
-            this.behaviourBroadcaster.publish(agentId, event);
-        } catch (Throwable failure) {
-            LOGGER.debug("SSE behaviour publish failed in service boundary; agentId={}", agentId, failure);
+    private AgentRuntimeContext context(List<String> omitModalities) {
+        RuntimeComponentExecutor executor = new BuiltInRuntimeComponentExecutor(this.modelGateway);
+        Set<String> omitted = normalizedModalities(omitModalities);
+        if (!omitted.isEmpty()) {
+            executor = new FilteringExecutor(executor, omitted);
         }
+        return new AgentRuntimeContext(executor, RandomGenerator.getDefault());
     }
 
-    private void applyOmittedModalities(Event responseEvent, List<String> omitModalities) {
-        if (responseEvent == null || omitModalities == null || omitModalities.isEmpty()) {
-            return;
-        }
-        if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(responseEvent.getType())) {
-            return;
-        }
-        BehaviourPlan plan = BehaviourPlan.fromJson(responseEvent.getPayload());
-        if (plan == null) {
-            return;
-        }
-        Set<String> normalized = new HashSet<>();
-        for (String modality : omitModalities) {
-            String key = normalizeModality(modality);
-            if (key != null) {
-                normalized.add(key);
+    private static Agent toAgent(LoadedDeclarativeAgent loaded) {
+        PersistedDeclarativeAgent stored = loaded.instance();
+        CompiledAgentDefinition definition = loaded.definition();
+        List<CompiledState> path = definition.pathTo(stored.activeLeafStateId());
+        Map<String, JsonNode> storage = new LinkedHashMap<>();
+        stored.storage().forEach((key, value) -> storage.put(key, value.value()));
+        return new Agent(stored.id(), stored.definitionRevisionId(), definition.key(),
+                definition.metadata().displayName(), definition.metadata().description(),
+                isActive(stored),
+                AgentInteractionProfile.of(definition.interaction().supportedObservations(),
+                        definition.interaction().supportedBehaviourModalities(), definition.interaction().profileTags()),
+                definition.metadata().languageCode(), path.stream().map(CompiledState::id).toList(),
+                path.stream().map(CompiledState::name).toList(),
+                definition.statesById().values().stream().map(CompiledState::name).distinct().toList(), storage,
+                stored.history().stream().map(Event::fromRuntime).toList());
+    }
+
+    private static AgentInfoView toInfo(Agent agent) {
+        return new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
+                agent.getInteractionProfile(), agent.getLanguageCode());
+    }
+
+    private static boolean isActive(PersistedDeclarativeAgent agent) {
+        return agent.status() == RuntimeInstanceStatus.ACTIVE;
+    }
+
+    private static Event lastBehaviour(List<RuntimeEvent> events) {
+        for (int index = events.size() - 1; index >= 0; index--) {
+            RuntimeEvent event = events.get(index);
+            if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.type())) {
+                return Event.fromRuntime(event);
             }
         }
-        if (normalized.contains("speech")) {
-            plan.setSpeech(null);
-        }
-        if (normalized.contains("nonverbal")) {
-            plan.setNonVerbal(null);
-        }
-        if (normalized.contains("motion")) {
-            plan.setMotion(null);
-        }
-        if (normalized.contains("display")) {
-            plan.setDisplay(null);
-        }
-        responseEvent.setPayload(plan.toJson());
+        return null;
     }
 
-    private static String normalizeModality(String modality) {
-        if (modality == null || modality.isBlank()) {
-            return null;
+    private static CompiledPolicy policy(CompiledState state) {
+        if (state instanceof CompiledAtomicState atomic) {
+            return atomic.policy();
         }
-        String value = modality.trim().toLowerCase().replace("-", "").replace("_", "");
-        return switch (value) {
-            case "speech" -> "speech";
-            case "nonverbal" -> "nonverbal";
-            case "motion" -> "motion";
-            case "display" -> "display";
-            default -> null;
-        };
+        if (state instanceof CompiledCompositeState composite) {
+            return composite.policy();
+        }
+        return null;
     }
 
-    private static boolean isPresent(String value) {
-        return value != null && !value.trim().isEmpty();
+    private static Map<String, ImmutableJson> boundStorage(Map<String, ImmutableJson> storage,
+            List<PromptPolicyComponent> policies) {
+        Map<String, ImmutableJson> result = new LinkedHashMap<>();
+        policies.stream().flatMap(policy -> policy.storageBindings().stream())
+                .map(CompiledStorageBinding::key).distinct().forEach(key -> {
+                    ImmutableJson value = storage.get(key);
+                    if (value != null) {
+                        result.put(key, value);
+                    }
+                });
+        return result;
     }
 
-    private static String valueOrDefault(String value, String fallback) {
-        return isPresent(value) ? value : fallback;
+    private static String resolve(String prompt, Map<String, ImmutableJson> storage) {
+        String resolved = prompt == null ? "" : prompt;
+        for (var entry : storage.entrySet()) {
+            resolved = resolved.replace("${" + entry.getKey() + "}", entry.getValue().toString());
+        }
+        return resolved;
     }
 
-    public PolicyRuntime runtime() {
-        return this.runtime(OutputProfile.FULL_PLAN);
+    private static String deepest(List<PromptPolicyComponent> policies,
+            java.util.function.Function<PromptPolicyComponent, String> value) {
+        for (int index = policies.size() - 1; index >= 0; index--) {
+            String candidate = value.apply(policies.get(index));
+            if (present(candidate)) {
+                return candidate;
+            }
+        }
+        return "";
     }
 
-    public PolicyRuntime runtime(OutputProfile outputProfile) {
-        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway, resolved);
+    private static Set<String> normalizedModalities(List<String> omitModalities) {
+        Set<String> result = new HashSet<>();
+        if (omitModalities == null) {
+            return result;
+        }
+        for (String value : omitModalities) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            String normalized = value.trim().toLowerCase().replace("-", "").replace("_", "");
+            if (Set.of("speech", "nonverbal", "motion", "display").contains(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return result;
+    }
+
+    private static boolean present(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static final class FilteringExecutor implements RuntimeComponentExecutor {
+        private final RuntimeComponentExecutor delegate;
+        private final Set<String> omitted;
+
+        private FilteringExecutor(RuntimeComponentExecutor delegate, Set<String> omitted) {
+            this.delegate = delegate;
+            this.omitted = Set.copyOf(omitted);
+        }
+
+        @Override
+        public RuntimeBehaviour start(List<ch.zhaw.prometheus.definition.component.CompiledPolicy> policies,
+                RuntimeInvocation invocation) {
+            return filter(this.delegate.start(policies, invocation));
+        }
+
+        @Override
+        public RuntimeBehaviour generate(List<ch.zhaw.prometheus.definition.component.CompiledPolicy> policies,
+                RuntimeInvocation invocation) {
+            return filter(this.delegate.generate(policies, invocation));
+        }
+
+        @Override
+        public boolean decide(ch.zhaw.prometheus.definition.component.CompiledDecision decision,
+                RuntimeInvocation invocation) {
+            return this.delegate.decide(decision, invocation);
+        }
+
+        @Override
+        public RuntimeBehaviour execute(ch.zhaw.prometheus.definition.component.CompiledAction action,
+                RuntimeInvocation invocation, RuntimeStorage storage) {
+            return filter(this.delegate.execute(action, invocation, storage));
+        }
+
+        @Override
+        public boolean selects(ch.zhaw.prometheus.definition.component.CompiledSelector selector, RuntimeEvent event,
+                String evaluatingStateId) {
+            return this.delegate.selects(selector, event, evaluatingStateId);
+        }
+
+        private RuntimeBehaviour filter(RuntimeBehaviour behaviour) {
+            if (behaviour == null) {
+                return null;
+            }
+            return new RuntimeBehaviour(this.omitted.contains("speech") ? null : behaviour.speech(),
+                    this.omitted.contains("nonverbal") ? null : behaviour.nonVerbal(),
+                    this.omitted.contains("motion") ? null : behaviour.motion(),
+                    this.omitted.contains("display") ? null : behaviour.display());
+        }
     }
 }

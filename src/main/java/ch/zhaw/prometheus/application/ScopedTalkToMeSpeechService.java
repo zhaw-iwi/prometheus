@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
@@ -17,6 +16,7 @@ import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 @Service
 public class ScopedTalkToMeSpeechService {
+    private static final String TALK_TO_ME_PROFILE_TAG = "utility.talk_to_me";
     private final ScopedDemoService demoService;
     private final SpeechSynthesisGateway speechGateway;
 
@@ -43,7 +43,7 @@ public class ScopedTalkToMeSpeechService {
     }
 
     private static boolean isTalkToMe(AgentInfoView agentInfo) {
-        return agentInfo.getInteractionProfile().getProfileTags().contains(TalkToMe.PROFILE_TAG);
+        return agentInfo.getInteractionProfile().getProfileTags().contains(TALK_TO_ME_PROFILE_TAG);
     }
 
     private static Optional<String> speechFromBehaviourEvent(Event event) {

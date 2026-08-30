@@ -2,7 +2,7 @@ package ch.zhaw.prometheus.model.access;
 
 import java.util.UUID;
 
-import ch.zhaw.prometheus.model.Agent;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -19,22 +19,22 @@ import jakarta.persistence.UniqueConstraint;
 public class AccessCodeAgent {
     @Id
     @GeneratedValue
+    @Column(name = "id", columnDefinition = "binary(16)")
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "access_code_id", nullable = false)
     private AccessCode accessCode;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "agent_id", nullable = false)
-    private Agent agent;
+    @Column(name = "agent_id", nullable = false, columnDefinition = "binary(16)")
+    private UUID agentId;
 
     protected AccessCodeAgent() {
     }
 
-    public AccessCodeAgent(AccessCode accessCode, Agent agent) {
+    public AccessCodeAgent(AccessCode accessCode, UUID agentId) {
         this.accessCode = accessCode;
-        this.agent = agent;
+        this.agentId = agentId;
     }
 
     public UUID getId() {
@@ -45,7 +45,7 @@ public class AccessCodeAgent {
         return this.accessCode;
     }
 
-    public Agent getAgent() {
-        return this.agent;
+    public UUID getAgentId() {
+        return this.agentId;
     }
 }

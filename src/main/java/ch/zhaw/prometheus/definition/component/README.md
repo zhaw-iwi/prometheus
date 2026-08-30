@@ -54,6 +54,6 @@ default/example metadata. The complete built-in palette is:
 
 Exact-text and RPS kinds are provider-free. Their JSON contains only typed event
 and storage references; implementation names, beans, and executable content are
-not configuration. The RPS actions use the existing deterministic sign/rules
-domain, while reveal/result output shares a provider-free renderer with the
-temporary production adapters.
+not configuration. The RPS actions use the deterministic sign/rules domain,
+while reveal/result output shares the provider-free renderer used by the
+generic runtime.

@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Provider-free English RPS behaviour shared by legacy adapters and declarative components. */
+/** Provider-free English RPS behaviour owned by the registered declarative components. */
 public final class CoreRpsBehaviour {
     public static final String REVEAL_SPEECH = "Rock, scissor, paper";
     public static final String TITLE = "Rock, Scissor, Paper";

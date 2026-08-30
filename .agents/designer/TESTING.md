@@ -294,6 +294,14 @@ and repository search that there is:
 Do not rely on a source-string assertion as the sole evidence; compile and
 execute all twelve JSON definitions through the production path.
 
+Milestone 8 enforces this gate with `LegacyRuntimeRemovalContractTest`, the
+exact-key and representative execution contracts in
+`BundledDefinitionCatalogUnitTest`, controller/scoped/access integration tests,
+Flyway final-schema assertions, JPA reload coverage, and the complete Java
+suite. The production and current-documentation searches contain no whole-agent
+Java authoring path or dormant fallback. Real MySQL remains a separate
+Milestone 9 requirement.
+
 ## Verification reporting
 
 For every milestone report:

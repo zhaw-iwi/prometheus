@@ -81,6 +81,13 @@ class JpaPersistenceAdapterTest {
                 List.of(new RuntimeEvent("obs.user_utterance", "user", "observation", "hello", List.of("talk"))),
                 true, RuntimeInstanceStatus.ACTIVE, 0, null, null);
         var created = this.instances.create(instance);
+        var reloaded = this.instances.find(instanceId).orElseThrow();
+        assertEquals("talk", reloaded.activeLeafStateId());
+        assertEquals("current", reloaded.storage().get("message").value().asText());
+        assertEquals("hello", reloaded.history().getFirst().payload());
+        assertEquals("talk", reloaded.history().getFirst().statePath().getFirst());
+        assertTrue(reloaded.history().getFirst().id() != null);
+        assertTrue(reloaded.history().getFirst().createdAt() != null);
         var updated = this.instances.update(created.withRuntime("talk", created.initialStorage(), List.of(), false,
                 RuntimeInstanceStatus.ACTIVE), created.optimisticVersion());
 

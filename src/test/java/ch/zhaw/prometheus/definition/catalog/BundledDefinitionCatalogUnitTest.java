@@ -19,19 +19,6 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
-import ch.zhaw.prometheus.agentdefs.AgentDefinition;
-import ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity;
-import ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour;
-import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
-import ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame;
-import ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity;
-import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGame;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGameUserGuess;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateTherapyAppointmentReminder;
-import ch.zhaw.prometheus.agentdefs.usecases.healthcare.TwoStateTherapyAppointmentReminder;
 import ch.zhaw.prometheus.definition.compiled.CompiledAgentDefinition;
 import ch.zhaw.prometheus.definition.compiled.CompiledAtomicState;
 import ch.zhaw.prometheus.definition.compiled.CompiledCompositeState;
@@ -47,26 +34,21 @@ import ch.zhaw.prometheus.definition.runtime.RuntimeEvent;
 import ch.zhaw.prometheus.definition.runtime.RuntimeInvocation;
 import ch.zhaw.prometheus.definition.runtime.RuntimeModelGateway;
 import ch.zhaw.prometheus.definition.runtime.RuntimePromptBundle;
-import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 class BundledDefinitionCatalogUnitTest {
-    private static final List<AgentDefinition> LEGACY_ORACLES = List.of(
-            new FacialExpressionSensitivity(),
-            new MultimodalBehaviour(),
-            new RockScissorPaper(),
-            new RoleClarificationGuessingGame(),
-            new SocialContextSensitivity(),
-            new TalkToMe(),
-            new SingleStateGuessingGame(),
-            new SingleStateGuessingGameUserGuess(),
-            new SingleStateHealthcareConversation(),
-            new SingleStateSmartGoalCoaching(),
-            new SingleStateTherapyAppointmentReminder(),
-            new TwoStateTherapyAppointmentReminder());
-
-    private static final List<String> EXPECTED_KEYS = LEGACY_ORACLES.stream()
-            .map(AgentDefinition::key).sorted().toList();
+    private static final List<String> EXPECTED_KEYS = List.of(
+            "core.facial_expression_sensitivity",
+            "core.multimodal_behaviour",
+            "core.rock_scissor_paper",
+            "core.role_clarification_guessing_game",
+            "core.social_context_sensitivity",
+            "core.talk_to_me",
+            "usecases.healthcare.guessing_game",
+            "usecases.healthcare.guessing_game_user_guess",
+            "usecases.healthcare.healthcare_conversation",
+            "usecases.healthcare.smart_goal_coaching",
+            "usecases.healthcare.therapy_appointment_reminder",
+            "usecases.healthcare.therapy_appointment_reminder_intro");
 
     @Test
     void mainCatalogLoadsTwelveSortedSchemaAndCompilerValidatedDefinitions() {
@@ -86,28 +68,6 @@ class BundledDefinitionCatalogUnitTest {
             assertEquals(List.of(), compiler.validate(bundled.document()).diagnostics(), bundled.document().key());
         }
         assertThrows(IllegalArgumentException.class, () -> catalog.require("missing.definition"));
-    }
-
-    @Test
-    void metadataAndInteractionProfilesMatchCurrentPublicDefinitions() {
-        BundledDefinitionCatalog catalog = BundledDefinitionCatalog.loadMainCatalog();
-
-        for (AgentDefinition oracle : LEGACY_ORACLES) {
-            Agent current = oracle.createAgent();
-            CompiledAgentDefinition migrated = catalog.require(oracle.key()).compiled();
-            AgentInteractionProfile currentProfile = current.getInteractionProfile();
-
-            assertEquals(current.getName(), migrated.metadata().displayName(), oracle.key());
-            assertEquals(current.getDescription(), migrated.metadata().description(), oracle.key());
-            assertEquals(oracle.languageCode(), migrated.metadata().languageCode(), oracle.key());
-            assertEquals(String.join(".", oracle.packagePath()), migrated.metadata().categoryPath(), oracle.key());
-            assertEquals(currentProfile.getSupportedObservations(), migrated.interaction().supportedObservations(),
-                    oracle.key());
-            assertEquals(currentProfile.getSupportedBehaviourModalities(),
-                    migrated.interaction().supportedBehaviourModalities(), oracle.key());
-            assertEquals(currentProfile.getProfileTags(), migrated.interaction().profileTags(), oracle.key());
-            assertEquals(currentProfile.getProfileTags(), migrated.metadata().tags(), oracle.key());
-        }
     }
 
     @Test

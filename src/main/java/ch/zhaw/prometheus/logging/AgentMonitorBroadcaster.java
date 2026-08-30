@@ -17,8 +17,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ch.zhaw.prometheus.controllers.views.AgentMonitorSnapshotView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.Agent;
-import ch.zhaw.prometheus.model.OuterState;
-import ch.zhaw.prometheus.model.State;
 
 @Component
 public class AgentMonitorBroadcaster {
@@ -134,14 +132,10 @@ public class AgentMonitorBroadcaster {
     }
 
     private AgentMonitorSnapshotView toSnapshot(Agent agent) {
-        State currentState = agent.getCurrentState();
-        String stateName = currentState == null ? null : currentState.getName();
-        String innerName = null;
-        List<String> innerNames = List.of();
-        if (currentState instanceof OuterState outerState && outerState.getInnerCurrent() != null) {
-            innerName = outerState.getInnerCurrent().getName();
-            innerNames = outerState.getInnerCurrentChain();
-        }
+        List<String> path = agent.getActiveStateNames();
+        String stateName = path.isEmpty() ? null : path.getFirst();
+        String innerName = path.size() < 2 ? null : path.getLast();
+        List<String> innerNames = path.size() < 2 ? List.of() : path.subList(1, path.size());
         List<StorageEntryView> storageEntries = agent.getStorage().entrySet().stream()
                 .sorted(java.util.Map.Entry.comparingByKey())
                 .map((entry) -> new StorageEntryView(entry.getKey(),

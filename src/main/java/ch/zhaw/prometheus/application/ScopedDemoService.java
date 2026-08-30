@@ -11,10 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
-import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
-import ch.zhaw.prometheus.agentdefs.AgentDefinition;
-import ch.zhaw.prometheus.agentdefs.AgentDefinitionRegistry;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.controllers.views.AgentStateInfoView;
@@ -23,254 +19,155 @@ import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
-import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.definition.application.ActiveAgentDefinitionCatalog;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.model.access.AccessCodeAllowedAgentType;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.repositories.AccessCodeAgentRepository;
 import ch.zhaw.prometheus.repositories.AccessCodeRepository;
-import ch.zhaw.prometheus.repositories.AgentRepository;
-import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @Service
 public class ScopedDemoService {
     private final AccessCodeRepository accessCodes;
     private final AccessCodeAgentRepository accessCodeAgents;
-    private final AgentRepository agents;
-    private final AgentDefinitionRegistry agentDefinitions;
-    private final AgentApplicationService agentService;
-    private final PromptMessageAssembler promptMessageAssembler;
-    private final LanguageModelGateway languageModelGateway;
+    private final ActiveAgentDefinitionCatalog definitions;
+    private final AgentApplicationService agents;
 
     public ScopedDemoService(AccessCodeRepository accessCodes, AccessCodeAgentRepository accessCodeAgents,
-            AgentRepository agents, AgentDefinitionRegistry agentDefinitions, AgentApplicationService agentService,
-            PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
+            ActiveAgentDefinitionCatalog definitions, AgentApplicationService agents) {
         this.accessCodes = accessCodes;
         this.accessCodeAgents = accessCodeAgents;
+        this.definitions = definitions;
         this.agents = agents;
-        this.agentDefinitions = agentDefinitions;
-        this.agentService = agentService;
-        this.promptMessageAssembler = promptMessageAssembler;
-        this.languageModelGateway = languageModelGateway;
     }
 
     public DemoSessionView openSession(String accessCodeValue) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
-        return new DemoSessionView(accessCode.getCode(), this.listAllowedAgentTypes(accessCode),
-                this.listLinkedAgents(accessCode));
+        AccessCode accessCode = requireEnabledAccessCode(accessCodeValue);
+        return new DemoSessionView(accessCode.getCode(), listAllowedAgentTypes(accessCode), listLinkedAgents(accessCode));
     }
 
     public List<AdminAgentTypeView> listAgentTypes(String accessCodeValue) {
-        return this.listAllowedAgentTypes(this.requireEnabledAccessCode(accessCodeValue));
+        return listAllowedAgentTypes(requireEnabledAccessCode(accessCodeValue));
     }
 
     public List<AgentInfoView> listAgents(String accessCodeValue) {
-        return this.listLinkedAgents(this.requireEnabledAccessCode(accessCodeValue));
+        return listLinkedAgents(requireEnabledAccessCode(accessCodeValue));
     }
 
     @Transactional
-    public AgentInfoView createAgent(String accessCodeValue, String agentDefinitionKey) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
-        String key = this.requireAgentDefinitionKey(agentDefinitionKey);
-        if (!this.allowedKeys(accessCode).contains(key)) {
+    public AgentInfoView createAgent(String accessCodeValue, String definitionKey) {
+        AccessCode accessCode = requireEnabledAccessCode(accessCodeValue);
+        String key = requireDefinitionKey(definitionKey);
+        if (!allowedKeys(accessCode).contains(key) || this.definitions.find(key).isEmpty()) {
             throw new DemoAgentTypeForbiddenException(key);
         }
-        AgentDefinition definition = this.agentDefinitions.findByKey(key)
-                .orElseThrow(() -> new DemoAgentTypeForbiddenException(key));
-        AgentCreationResult created = definition.createInstance(
-                new AgentCreationContext(this.promptMessageAssembler, this.languageModelGateway));
-        applyDefinitionLanguage(created.agent(), definition);
-        Agent saved = this.agentService.persistCreatedAgent(created);
-        this.accessCodeAgents.save(new AccessCodeAgent(accessCode, saved));
-        return this.toAgentInfo(saved);
+        CreatedDeclarativeAgent created = this.agents.create(key);
+        this.accessCodeAgents.save(new AccessCodeAgent(accessCode, created.agent().getId()));
+        return this.agents.getAgentInfo(created.agent().getId()).orElseThrow();
     }
 
     @Transactional
     public boolean deleteAgent(String accessCodeValue, UUID agentId) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
+        AccessCode accessCode = requireEnabledAccessCode(accessCodeValue);
         if (agentId == null) {
             return false;
         }
-        Optional<AccessCodeAgent> link = this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(accessCode.getId(),
+        Optional<AccessCodeAgent> link = this.accessCodeAgents.findByAccessCode_IdAndAgentId(accessCode.getId(),
                 agentId);
         if (link.isEmpty()) {
             return false;
         }
         this.accessCodeAgents.delete(link.get());
         this.accessCodeAgents.flush();
-        if (this.accessCodeAgents.countByAgent_Id(agentId) == 0) {
-            this.agents.deleteById(agentId);
+        if (this.accessCodeAgents.countByAgentId(agentId) == 0) {
+            this.agents.delete(agentId);
         }
         return true;
     }
 
-    public Optional<AgentInfoView> getAgentInfo(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
+    public Optional<AgentInfoView> getAgentInfo(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentInfo(id) : Optional.empty();
+    }
+    public Optional<List<Event>> getAgentEventHistory(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentEventHistory(id) : Optional.empty();
+    }
+    public Optional<List<Event>> getAgentCurrentStateEventHistory(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentCurrentStateEventHistory(id) : Optional.empty();
+    }
+    public Optional<AgentStateInfoView> getAgentState(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentState(id) : Optional.empty();
+    }
+    public Optional<List<String>> getAgentStates(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentStates(id) : Optional.empty();
+    }
+    public Optional<List<StorageEntryView>> getAgentStorage(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentStorage(id) : Optional.empty();
+    }
+    public Optional<ResponseView> start(String code, UUID id) {
+        return visible(code, id) ? this.agents.start(id) : Optional.empty();
+    }
+    public Optional<ResponseView> reset(String code, UUID id) {
+        return visible(code, id) ? this.agents.reset(id) : Optional.empty();
+    }
+    public Optional<ResponseView> acknowledge(String code, UUID id, EventRequest request, OutputProfile profile) {
+        return visible(code, id) ? this.agents.acknowledge(id, request, profile) : Optional.empty();
+    }
+    public BehaviourGenerationOutcome generate(String code, UUID id, List<String> omitted, OutputProfile profile) {
+        return visible(code, id) ? this.agents.generate(id, omitted, profile)
+                : BehaviourGenerationOutcome.AGENT_NOT_FOUND;
+    }
+    public Optional<SseEmitter> subscribeBehaviour(String code, UUID id, String lastEventId) {
+        return visible(code, id) ? this.agents.subscribeBehaviour(id, lastEventId) : Optional.empty();
+    }
+    public Optional<SseEmitter> subscribeMonitor(String code, UUID id) {
+        return visible(code, id) ? this.agents.subscribeMonitor(id) : Optional.empty();
+    }
+    public Optional<PolicyResponseView> prompt(String code, UUID id, OutputProfile profile) {
+        return visible(code, id) ? this.agents.prompt(id, profile) : Optional.empty();
+    }
+    public Optional<String> getAgentLanguageCode(String code, UUID id) {
+        return visible(code, id) ? this.agents.getAgentLanguageCode(id) : Optional.empty();
+    }
+
+    private boolean visible(String code, UUID id) {
+        AccessCode accessCode = requireEnabledAccessCode(code);
+        return id != null && this.accessCodeAgents.existsByAccessCode_IdAndAgentId(accessCode.getId(), id);
+    }
+
+    private AccessCode requireEnabledAccessCode(String value) {
+        if (value == null || !AccessCodeAdminService.ACCESS_CODE_PATTERN.matcher(value).matches()) {
+            throw new DemoAccessDeniedException();
         }
-        return this.agentService.getAgentInfo(agentId);
-    }
-
-    public Optional<List<Event>> getAgentEventHistory(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentEventHistory(agentId);
-    }
-
-    public Optional<List<Event>> getAgentCurrentStateEventHistory(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentCurrentStateEventHistory(agentId);
-    }
-
-    public Optional<AgentStateInfoView> getAgentState(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentState(agentId);
-    }
-
-    public Optional<List<String>> getAgentStates(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentStates(agentId);
-    }
-
-    public Optional<List<StorageEntryView>> getAgentStorage(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentStorage(agentId);
-    }
-
-    public Optional<ResponseView> start(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.start(agentId);
-    }
-
-    public Optional<ResponseView> reset(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.reset(agentId);
-    }
-
-    public Optional<ResponseView> acknowledge(String accessCodeValue, UUID agentId, EventRequest request,
-            OutputProfile outputProfile) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.acknowledge(agentId, request, outputProfile);
-    }
-
-    public BehaviourGenerationOutcome generate(String accessCodeValue, UUID agentId, List<String> omitModalities,
-            OutputProfile outputProfile) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
-        }
-        return this.agentService.generate(agentId, omitModalities, outputProfile);
-    }
-
-    public Optional<SseEmitter> subscribeBehaviour(String accessCodeValue, UUID agentId, String lastEventId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.subscribeBehaviour(agentId, lastEventId);
-    }
-
-    public Optional<SseEmitter> subscribeMonitor(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.subscribeMonitor(agentId);
-    }
-
-    public Optional<PolicyResponseView> prompt(String accessCodeValue, UUID agentId, OutputProfile outputProfile) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.prompt(agentId, outputProfile);
-    }
-
-    public Optional<String> getAgentLanguageCode(String accessCodeValue, UUID agentId) {
-        if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
-            return Optional.empty();
-        }
-        return this.agentService.getAgentLanguageCode(agentId);
-    }
-
-    private boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
-        return agentId != null && this.accessCodeAgents.existsByAccessCode_IdAndAgent_Id(accessCode.getId(), agentId);
-    }
-
-    private AccessCode requireEnabledAccessCode(String accessCodeValue) {
-        this.requireAccessCodeFormat(accessCodeValue);
-        return this.accessCodes.findByCode(accessCodeValue)
-                .filter(AccessCode::isEnabled)
+        return this.accessCodes.findByCode(value).filter(AccessCode::isEnabled)
                 .orElseThrow(DemoAccessDeniedException::new);
     }
 
-    private void requireAccessCodeFormat(String accessCodeValue) {
-        if (accessCodeValue == null || !AccessCodeAdminService.ACCESS_CODE_PATTERN.matcher(accessCodeValue).matches()) {
-            throw new DemoAccessDeniedException();
-        }
-    }
-
-    private String requireAgentDefinitionKey(String agentDefinitionKey) {
-        if (agentDefinitionKey == null || agentDefinitionKey.isBlank()) {
+    private static String requireDefinitionKey(String key) {
+        if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("agentDefinitionKey must be provided");
         }
-        return agentDefinitionKey;
+        return key;
     }
 
     private List<AdminAgentTypeView> listAllowedAgentTypes(AccessCode accessCode) {
-        return this.allowedKeys(accessCode).stream()
-                .sorted()
-                .map(this.agentDefinitions::findByKey)
-                .flatMap(Optional::stream)
-                .map(definition -> new AdminAgentTypeView(definition.key(), definition.displayName(),
-                        definition.description(), definition.packagePath()))
-                .toList();
+        return allowedKeys(accessCode).stream().sorted().map(this.definitions::find).flatMap(Optional::stream)
+                .map(active -> new AdminAgentTypeView(active.compiled().key(),
+                        active.compiled().metadata().displayName(), active.compiled().metadata().description(),
+                        active.packagePath())).toList();
     }
 
     private List<AgentInfoView> listLinkedAgents(AccessCode accessCode) {
         return this.accessCodeAgents.findByAccessCodeId(accessCode.getId()).stream()
-                .map(AccessCodeAgent::getAgent)
-                .map(this::toAgentInfo)
+                .map(AccessCodeAgent::getAgentId).map(this.agents::getAgentInfo).flatMap(Optional::stream)
                 .sorted(Comparator.comparing(AgentInfoView::getName, String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(view -> view.getID().toString()))
                 .toList();
     }
 
-    private Set<String> allowedKeys(AccessCode accessCode) {
-        return accessCode.getAllowedAgentTypes().stream()
-                .map(AccessCodeAllowedAgentType::getAgentTypeKey)
+    private static Set<String> allowedKeys(AccessCode accessCode) {
+        return accessCode.getAllowedAgentTypes().stream().map(AccessCodeAllowedAgentType::getAgentTypeKey)
                 .collect(Collectors.toSet());
-    }
-
-    private AgentInfoView toAgentInfo(Agent agent) {
-        return new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                agent.getInteractionProfile(), agent.getLanguageCode());
-    }
-
-    private static void applyDefinitionLanguage(Agent agent, AgentDefinition definition) {
-        if (agent == null || definition == null || isPresent(agent.getLanguageCode())
-                || !isPresent(definition.languageCode())) {
-            return;
-        }
-        agent.setLanguageCode(definition.languageCode());
-    }
-
-    private static boolean isPresent(String value) {
-        return value != null && !value.trim().isEmpty();
     }
 }

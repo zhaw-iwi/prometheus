@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-7 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-8 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -106,17 +106,23 @@ The generic runtime now executes explicit per-instance state/storage/history
 snapshots with trusted injected component dependencies and observable change
 sets. All twelve main definitions are bundled as validated revision-1 JSON with
 exact prompt/profile parity, resource-backed deterministic therapy context,
-exact-text output, and deterministic RPS components. The production
-Java-authored catalog/runtime remains active until the ordered Phase II cutover;
-definition identities and revisions now persist canonical JSON in native JSON
-columns behind repository ports, with lifecycle/optimistic rules, explicit
-activation, and an additive Flyway migration. The deterministic startup importer
-is idempotent, preserves a designer-selected active revision, and prewarms all
-active published revisions. Lightweight instance persistence pins state,
-storage, initial storage, and history to one revision; creation/reset contracts
-retain that pin. The production Java-authored catalog/runtime remains active
-until the ordered Milestone 8 Phase II cutover. Database preservation and exact
-legacy-removal scope are recorded in `DATABASE_TRANSITION.md`.
+exact-text output, and deterministic RPS components. Definition identities and
+revisions persist canonical JSON in native JSON columns behind repository
+ports, with lifecycle/optimistic rules and explicit activation. The
+deterministic startup importer is idempotent, preserves a designer-selected
+active revision, and prewarms all active published revisions. Lightweight
+instances pin state, storage, initial storage, and history to one revision;
+creation/reset contracts retain that pin.
+
+Milestone 8 completed the production cutover. Global and scoped controllers,
+access-code type listing, monitoring, Talk to Me, and lifecycle operations now
+resolve active JSON revisions through the compiled cache and generic runtime.
+The Java whole-agent path, copied static-graph persistence, obsolete
+repositories, and ad hoc single-state endpoint are deleted. Flyway version 2
+removes the named legacy tables and rebuilds scoped links to declarative
+instances; Hibernate validates the final schema. The real dedicated-MySQL smoke
+gate remains Milestone 9. Database preservation and removal scope are recorded
+in `DATABASE_TRANSITION.md`.
 
 ## Bundled main catalog inventory
 

@@ -83,7 +83,7 @@ public class AgentBehaviourBroadcaster {
     }
 
     static List<Event> replayBehaviourEvents(Agent agent, String lastEventId) {
-        List<Event> events = agent.getEventHistory().toList();
+        List<Event> events = agent.getEventHistory();
         List<Event> behaviourEvents = new ArrayList<>();
         for (Event current : events) {
             if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(current.getType())) {
