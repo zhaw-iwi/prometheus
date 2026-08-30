@@ -4,7 +4,7 @@
   "scripts": {
     "designer:dev": "vite --config designer/vite.config.ts",
     "designer:typecheck": "tsc --project designer/tsconfig.json --noEmit",
-    "designer:test": "vitest run --config designer/vite.config.ts",
+    "designer:test": "node designer/scripts/run-vitest.mjs",
     "designer:build": "vite build --config designer/vite.config.ts",
     "designer:verify": "npm run designer:typecheck && npm run designer:test && npm run designer:build",
     "test:designer:visual": "playwright test --config=playwright.designer-visual.config.mjs",

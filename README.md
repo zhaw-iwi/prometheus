@@ -366,6 +366,12 @@ npm ci --ignore-scripts
 npm run designer:verify
 ```
 
+`designer:test` uses the source-owned launcher in `designer/scripts` to
+canonicalize the working directory before starting Vitest. This keeps Windows
+Maven/IDE invocations reliable when `-f` supplies a lower-case drive letter, a
+path spelling that otherwise triggers the Vitest 4.1.x split-runner-context
+bug.
+
 The generated designer bundle is written to `target/generated-resources` and is
 never edited or committed as source.
 

@@ -273,6 +273,11 @@ Vitest, and the Vite production build) and
 `ValerianDesignerStaticResourceContractTest` plus the redirect contract. Maven
 uses its pinned frontend toolchain and runs the same verification during
 `generate-resources`; generated assets live only in `target/generated-resources`.
+The `designer:test` script canonicalizes its working directory through
+`designer/scripts/run-vitest.mjs` before launching Vitest. This is required on
+Windows when Maven or an IDE preserves a lower-case drive letter from `-f`;
+Vitest 4.1.x otherwise resolves its runner and test modules into different
+contexts.
 The initial 12 frontend tests cover token/catalog API mapping, hash routes,
 loading/error/empty/populated catalog states, the six exact step labels,
 direct/next/back navigation, ARIA state, bounds, and validation-target focus.
