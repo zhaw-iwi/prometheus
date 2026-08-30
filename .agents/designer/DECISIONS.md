@@ -171,3 +171,17 @@ and runtime unit tests; then adds application/controller integration tests,
 opt-in local MySQL smoke tests, frontend component tests, and Playwright visual
 and lifecycle tests. External OpenAI/Azure, Speech, and transcription calls are
 always replaced with deterministic fakes in automated tests.
+
+## D14. The designer frontend is source-built and Spring-served
+
+The designer source lives under `designer/` and uses React, TypeScript, Vite,
+and the React Flow package selected for the State flow milestone. Exact versions
+are locked in `package-lock.json`. Maven owns a pinned Node/npm toolchain, runs
+the frontend verification during `generate-resources`, and places the production
+bundle under `target/generated-resources/public/valerian-design` for Spring to
+serve. Generated JavaScript and CSS are not source-controlled or edited by
+hand.
+
+The application uses same-origin relative API paths and the existing
+`X-Prometheus-Admin-Token` session-storage convention. Source and bundle must
+contain no credential, provider secret, or development-only API host.

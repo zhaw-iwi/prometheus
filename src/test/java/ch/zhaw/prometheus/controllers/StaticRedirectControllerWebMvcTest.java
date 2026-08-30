@@ -62,6 +62,17 @@ class StaticRedirectControllerWebMvcTest {
     }
 
     @Test
+    void redirectsValerianDesignerAliasesToItsBuiltIndexPreservingQuery() throws Exception {
+        this.mockMvc.perform(get("/valerian-design?view=catalog"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/valerian-design/index.html?view=catalog"));
+
+        this.mockMvc.perform(get("/valerian-design/?view=catalog"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/valerian-design/index.html?view=catalog"));
+    }
+
+    @Test
     void redirectsApiWorkbenchToStaticIndexPreservingQuery() throws Exception {
         this.mockMvc.perform(get("/apiworkbench?view=streams"))
                 .andExpect(status().is3xxRedirection())

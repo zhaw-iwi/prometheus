@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-11 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-12 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -145,6 +145,16 @@ definition, agent, access-code, and history repository. Close/expiry discards
 the session. A full Spring/H2 request smoke exercised a saved exact-text draft,
 confirmed deterministic output and close-to-404 behavior, and observed zero
 global, admin access-code, and scoped agents while the preview was open.
+Milestone 12 adds the source-owned React/TypeScript/Vite application at
+`/valerian-design/`. Maven installs pinned Node/npm releases, verifies the
+frontend, and emits its production bundle only under generated build resources;
+no compiled bundle is hand-maintained in source. The shell reuses the existing
+admin-token session convention, lists the definition catalog, routes new and
+existing revisions, and implements the exact accessible six-step desktop/mobile
+stepper from `STEPPER.md`. Focused Vitest contracts cover routing, API states,
+catalog states, navigation, ARIA/bounds, and validation targeting; Spring
+contracts prove redirects, generated static assets, the admin header, and the
+absence of credentials/development API URLs.
 
 ## Bundled main catalog inventory
 

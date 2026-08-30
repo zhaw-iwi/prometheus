@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-11 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-12 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -117,7 +117,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   schema/semantic codes and JSON Pointers, distinguishes malformed/not-found/
   optimistic/lifecycle/validation outcomes, and never exposes component
   implementation names or accepts repository metadata from definition JSON.
-  The full Java suite passes 303 tests, and a full Spring app on isolated H2
+  The full Java suite passes 306 tests, and a full Spring app on isolated H2
   returned all twelve definitions, canonical Talk-to-Me export plus valid
   validation, all 23 component descriptors, and `401` without the admin token.
   The admin-token preview API now compiles current unsaved JSON or a saved draft
@@ -131,8 +131,18 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   local Spring request smoke previewed an exact-text saved draft, returned the
   submitted speech at active path `talk`, closed to `404`, and showed 13 expected
   definitions plus zero global, admin access-code, and scoped agents while the
-  preview was open. Designer Milestone 12, the frontend foundation and exact
-  six-step component, is next.
+  preview was open. `/valerian-design/` now serves a source-built
+  React/TypeScript/Vite shell whose pinned Node/npm toolchain, type check, tests,
+  and production build are integrated into Maven without committed generated
+  bundles. It reuses the admin-token session contract, renders all catalog
+  states, routes new/existing revisions, and provides the exact accessible
+  Purpose, Sensing, Behaviour, Reactions, State flow, and Review stepper with
+  desktop chevrons and a stacked mobile layout. Twelve focused frontend tests
+  and Spring static/redirect/bundle-safety contracts pass. Manual Playwright
+  inspection covered the populated desktop catalog plus desktop and 390-pixel
+  mobile editor layouts with six tabs, no horizontal overflow, and no browser
+  console errors. Designer Milestone 13, Purpose, Sensing, and Behaviour
+  authoring, is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

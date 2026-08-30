@@ -49,6 +49,17 @@ and authoritative while the regulation layer develops.
 
 ## Bundled Clients
 
+### Valerian Designer
+
+URL: `http://localhost:8080/valerian-design/`
+
+Valerian Designer is the administrative authoring surface for declarative agent
+definitions. Enter the existing PROMETHEUS admin token to browse the revision
+catalog and open the guided Purpose, Sensing, Behaviour, Reactions, State flow,
+and Review workflow. The current foundation supplies catalog and editor routing;
+the following designer milestones add the authoring controls and publication
+lifecycle.
+
 ### Valerian Access Management
 
 URL: `http://localhost:8080/valerian-admin/`
@@ -235,7 +246,9 @@ main baseline catalog.
 - Java 21 or newer.
 - MySQL.
 - Maven Wrapper from this repository.
-- Node.js only when running the Playwright visual smoke tests.
+- Maven downloads the pinned Node.js/npm toolchain used to build and test
+  Valerian Designer. A compatible system Node.js is needed only for direct
+  frontend commands and Playwright tests.
 - OpenAI or Azure OpenAI configuration for prompt generation, live
   transcription, and output-only Speech synthesis.
 
@@ -288,6 +301,7 @@ Cockpit.
 Open the main surfaces:
 
 - Valerian Cockpit: `http://localhost:8080/valerian/`
+- Valerian Designer: `http://localhost:8080/valerian-design/`
 - Valerian Access Management: `http://localhost:8080/valerian-admin/`
 - Talk to Me: `http://localhost:8080/public/talktome`
 - API Workbench: `http://localhost:8080/apiworkbench/`
@@ -306,6 +320,18 @@ The suite uses deterministic language-model fakes and disposable H2 databases
 in MySQL mode for Flyway, native-JSON persistence, and Hibernate-validation
 contracts. It does not call OpenAI, Azure, Speech, transcription, or browser
 sensors. The destructive real-MySQL smoke is excluded from ordinary test runs.
+
+The ordinary Maven lifecycle also installs the pinned frontend toolchain and
+runs the Valerian Designer type check, focused tests, and production build. To
+run that verification directly with a compatible local Node.js installation:
+
+```powershell
+npm ci --ignore-scripts
+npm run designer:verify
+```
+
+The generated designer bundle is written to `target/generated-resources` and is
+never edited or committed as source.
 
 Run it only against an explicitly named dedicated local schema:
 
@@ -885,6 +911,7 @@ src/main/resources/public
   valerian/         Valerian cockpit.
   valerian-admin/   Valerian access management.
 
+designer/           React/TypeScript/Vite source for Valerian Designer.
 tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke tests.
 ```
 

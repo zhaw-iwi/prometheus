@@ -17,6 +17,11 @@ public class StaticRedirectController {
         return redirectWithQuery("/valerian-admin/index.html", request);
     }
 
+    @GetMapping({ "/valerian-design", "/valerian-design/" })
+    public String valerianDesigner(HttpServletRequest request) {
+        return redirectWithQuery("/valerian-design/index.html", request);
+    }
+
     @GetMapping({ "/apiworkbench", "/apiworkbench/" })
     public String apiWorkbench(HttpServletRequest request) {
         return redirectWithQuery("/apiworkbench/index.html", request);

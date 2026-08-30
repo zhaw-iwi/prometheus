@@ -268,6 +268,18 @@ Add a Spring static-resource contract test for `/valerian-design/`, its trailing
 slash behavior, expected built assets, admin-token header, and absence of inline
 credentials.
 
+Milestone 12 establishes this layer with `npm run designer:verify` (TypeScript,
+Vitest, and the Vite production build) and
+`ValerianDesignerStaticResourceContractTest` plus the redirect contract. Maven
+uses its pinned frontend toolchain and runs the same verification during
+`generate-resources`; generated assets live only in `target/generated-resources`.
+The initial 12 frontend tests cover token/catalog API mapping, hash routes,
+loading/error/empty/populated catalog states, the six exact step labels,
+direct/next/back navigation, ARIA state, bounds, and validation-target focus.
+Manual local inspection covered the populated desktop catalog, desktop chevron
+stepper, and 390-pixel stacked mobile stepper with no horizontal overflow or
+browser console errors.
+
 ## Playwright visual and lifecycle tests
 
 Follow `playwright.config.mjs` and the existing Valerian/API Workbench/Talk to Me
