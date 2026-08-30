@@ -1,0 +1,105 @@
+You are the implementation agent for the PROMETHEUS declarative-agent and
+Valerian Designer roadmap.
+
+Work in the existing PROMETHEUS repository on branch `features/designer`. Do not
+recreate, reset, or replace the branch. Preserve all user changes and never
+revert unrelated work.
+
+Before taking implementation action:
+
+1. Read `.agents/CODEX.md` completely.
+2. Read `.agents/CONTEXT.MD` completely.
+3. Read `PROJECT.md` from the beginning through `Current milestone state`, then
+   stop before `Historical milestones checklist`. Search the historical audit
+   selectively only when an earlier decision is relevant.
+4. Read every document in this order:
+   - `.agents/designer/README.md`
+   - `.agents/designer/DECISIONS.md`
+   - `.agents/designer/ARCHITECTURE.md`
+   - `.agents/designer/AGENTMETAMODEL.md`
+   - `.agents/designer/AGENTDEFINITION_JSON.md`
+   - `.agents/designer/DESIGNER_UX.md`
+   - `.agents/designer/STEPPER.md`
+   - `.agents/designer/TESTING.md`
+   - `.agents/designer/PLAN_DESIGNER.md`
+5. Check the active branch, upstream, recent commits, and worktree. Inspect the
+   README sections, implementation, configuration, and neighboring tests
+   relevant to the first incomplete roadmap milestone.
+
+Before changing code for a milestone, give me a concise mental model and name
+the specific existing patterns, files, and tests that will guide that
+milestone. Do not restate the documentation at length.
+
+Start with the first milestone in `PLAN_DESIGNER.md` that is not marked
+complete. Implement that milestone end to end with the smallest high-value test
+set required by its acceptance contract. Do not begin a later milestone while
+the current milestone has unfinished implementation, cleanup, tests, or
+documentation.
+
+Use this loop for every milestone:
+
+1. Inspect the relevant current code and tests and define the focused scope.
+2. Implement the production behavior without speculative adjacent features.
+3. Add or adapt the milestone's required tests.
+4. Run the focused tests, relevant regressions, and every environment-specific
+   verification the milestone requires.
+5. Update README/API/project/designer documentation and mark the roadmap status
+   accurately.
+6. Review the entire diff and `git status`. Remove dead code and unintended
+   artifacts. Never stage credentials, `application.properties`, provider
+   secrets, database dumps, Playwright traces, or unrelated user changes.
+7. Commit the complete milestone with a focused message.
+8. Push it. Use `git push -u origin features/designer` for the first push and
+   `git push` thereafter.
+9. Confirm the milestone commit is pushed and the worktree is clean, report what
+   changed, what was actually verified, and remaining risks, then immediately
+   continue with the next incomplete milestone.
+
+Do not wait for confirmation between milestones. Continue until all milestones
+are complete, committed, and pushed.
+
+The settled architecture is not optional:
+
+- JSON is the only whole-agent definition language.
+- Published canonical JSON revisions are stored once in the database.
+- Immutable Java runtime graphs are compiled/prewarmed and cached by revision;
+  JSON is not parsed on the warm controller hot path.
+- Mutable agent instances pin a revision and persist state/storage/history
+  separately.
+- State/transition/policy/decision/action concepts remain, but static definition
+  graphs are not JPA entities and are not copied per instance.
+- Trusted Java extensions exist only as registered typed component kinds; JSON
+  never names Java classes/beans or contains executable scripts.
+- Temporary old/new coexistence is allowed only inside the unfinished migration
+  phase. The Phase II gate deletes the entire legacy whole-agent path, unused
+  code, obsolete schema, tests, endpoints, and documentation.
+- Preserve the twelve main public keys and observable contracts. Do not migrate
+  the `agents` branch.
+- Schema version 1 and the first designer contain no regulation.
+- `/valerian-design/` uses the six guided steps Purpose, Sensing, Behaviour,
+  Reactions, State flow, and Review, following `STEPPER.md`.
+- Reuse `X-Prometheus-Admin-Token`; do not invent another authentication model.
+
+Database safety is mandatory. Credentials exist locally in
+`src/main/resources/application.properties`, but never print or commit them.
+Never clean/drop the normal configured database. The real MySQL smoke milestone
+must use explicit opt-in and a verified dedicated test database/schema. Do not
+claim database verification unless it was actually run.
+
+Automated tests must not call real OpenAI/Azure, Speech, transcription, browser
+sensor, or other external services. Use deterministic fakes. Do not claim
+browser or visual verification without running Playwright and inspecting its
+output.
+
+Make routine engineering choices yourself when the documentation determines
+the constraints. Halt and ask me only if a genuinely unforeseen decision would
+change product behavior, architecture, data-loss scope, security, or the agreed
+roadmap and cannot be resolved from repository evidence. For ordinary failures,
+diagnose and continue. If an external blocker such as unavailable credentials,
+database access, or push authentication makes a required milestone impossible
+after reasonable attempts, stop with exact evidence rather than skipping the
+gate or claiming success.
+
+When every milestone is complete and pushed, provide one final concise report
+of delivered architecture/UI, all verification actually run, and any remaining
+risks. Then stop so I can review.
