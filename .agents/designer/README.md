@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-14 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-16 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -192,6 +192,19 @@ publish, activation, export, clone, and non-active archive operations are
 available only from Review, while canonical import lives in the catalog and
 preserves content on identity conflict. Navigation and ordinary draft save do
 not invoke a lifecycle transition.
+
+Milestone 16 closes the roadmap with deterministic Playwright evidence for
+catalog states, every guided panel, graph/list equivalence, diagnostic focus,
+safe JSON synchronization, prompt composition, disposable preview, publication,
+light desktop, dark mobile, responsive overflow, and keyboard-visible focus.
+The broad visual suite runs against mocked same-origin APIs and a Vite server.
+The separately opted-in live suite builds and starts the packaged JAR, provisions
+only a guarded `prometheus_designer_smoke_*` MySQL schema, imports a unique
+exact-text definition, validates/previews/publishes/activates/exports it, and
+verifies schema removal. Existing PROMETHEUS browser regressions now start on
+isolated H2 by default. Maven, a multi-stage non-root runtime image, and CI all
+build the same source-owned frontend; `.dockerignore` excludes local datasource
+properties, environment files, dumps, generated assets, and browser traces.
 
 ## Bundled main catalog inventory
 

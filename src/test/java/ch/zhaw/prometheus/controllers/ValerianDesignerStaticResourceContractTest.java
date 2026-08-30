@@ -71,4 +71,27 @@ class ValerianDesignerStaticResourceContractTest {
         assertFalse(lower.contains("root-token"));
         assertFalse(lower.contains("openai.key"));
     }
+
+    @Test
+    void containerAndCiBuildTheVerifiedFrontendWithoutCopyingLocalSecrets() throws IOException {
+        String dockerfile = Files.readString(Path.of("Dockerfile"));
+        String dockerignore = Files.readString(Path.of(".dockerignore"));
+        String qualityWorkflow = Files.readString(Path.of(".github/workflows/quality.yml"));
+        String deploymentWorkflow = Files.readString(Path.of(".github/workflows/deployment.yml"));
+
+        assertTrue(dockerfile.contains("AS build"));
+        assertTrue(dockerfile.contains("clean package -DskipTests"));
+        assertTrue(dockerfile.contains("FROM eclipse-temurin:21-jre-alpine"));
+        assertTrue(dockerfile.contains("USER prometheus"));
+        assertTrue(dockerfile.contains("ENTRYPOINT [\"java\", \"-jar\""));
+        assertFalse(dockerfile.contains("spring-boot:run"));
+        assertTrue(dockerignore.lines().anyMatch("src/main/resources/application.properties"::equals));
+        assertTrue(dockerignore.lines().anyMatch("!src/main/resources/db/migration/*.sql"::equals));
+        assertTrue(dockerignore.lines().anyMatch("test-results"::equals));
+        assertTrue(dockerignore.lines().anyMatch("playwright-report"::equals));
+        assertTrue(qualityWorkflow.contains("clean test"));
+        assertTrue(qualityWorkflow.contains("test:designer:visual"));
+        assertTrue(qualityWorkflow.contains("docker build"));
+        assertTrue(deploymentWorkflow.contains("clean test"));
+    }
 }

@@ -1,15 +1,20 @@
-FROM eclipse-temurin:21.0.1_12-jdk-alpine
+FROM eclipse-temurin:21-jdk-alpine AS build
 
-WORKDIR /prometheus
+WORKDIR /workspace
 
 COPY . .
 
-# Cleanup file
 RUN sed -i 's/\r$//' mvnw
 RUN chmod +x mvnw
+RUN ./mvnw --batch-mode --no-transfer-progress clean package -DskipTests
 
-# Build JAR
-RUN ./mvnw clean install -DskipTests
+FROM eclipse-temurin:21-jre-alpine
 
-# Run application with production profile
-CMD ./mvnw spring-boot:run -Dspring-boot.run.profiles=prod
+WORKDIR /app
+RUN addgroup -S prometheus && adduser -S prometheus -G prometheus
+COPY --from=build --chown=prometheus:prometheus /workspace/target/prometheus-0.0.1-SNAPSHOT.jar /app/prometheus.jar
+
+USER prometheus
+EXPOSE 8080
+ENV SPRING_PROFILES_ACTIVE=prod
+ENTRYPOINT ["java", "-jar", "/app/prometheus.jar"]

@@ -310,6 +310,16 @@ state/child, priorities, the RPS cycle/self-transition, no horizontal overflow,
 and no browser console/page errors. The normal configured database was never
 opened.
 
+Milestone 15 expands the frontend suite to 45 tests. Review contracts cover
+six-step diagnostic grouping/focus, local JSON parse recovery plus backend-
+validated apply, backend-composed prompt display, preview transcript and
+cleanup, exact-document publication readiness, lifecycle confirmations,
+activation semantics, import conflict preservation, export, clone, and archive.
+Controller/service tests separately cover the authenticated prompt-composition
+and full compile-readiness endpoints. A live Spring application on isolated H2
+completed the create/save/validate/preview/publish/activate/export/clone/archive
+journey with deterministic exact-text behaviour and no provider call.
+
 ## Playwright visual and lifecycle tests
 
 Follow `playwright.config.mjs` and the existing Valerian/API Workbench/Talk to Me
@@ -349,6 +359,30 @@ Against the running Spring application and dedicated local test database:
 
 This test replaces external model/speech boundaries with deterministic fakes.
 It must never modify the twelve bundled definitions.
+
+Milestone 16 implements these browser gates in
+`playwright.designer-visual.config.mjs` and
+`playwright.designer-live.config.mjs`. The five-test mocked suite records stable
+PNG evidence for locked/loading/error/empty/populated catalogs, all six panels,
+prompt adoption, composite graph and keyboard list, linked diagnostics, JSON
+failure/success, composed prompts, preview/behaviour, publication, desktop
+light mode, and 390-pixel dark mode. Assertions cover overflow, stacked stepper,
+focus outline, dialogs, downloads, and browser errors. Inspected captures had no
+clipping, overlap, low-contrast controls, or accidental secret values.
+
+The one-test live suite requires `PROMETHEUS_DESIGNER_DB_SMOKE=true` and an
+explicit `prometheus_designer_smoke_*` schema. It builds the production JAR,
+creates only that verified schema, starts the JAR with a test admin-token
+override, and drives a unique exact-text draft through import, full readiness,
+preview event/generate, publish, activate, export equality, close, and verified
+schema removal. The broader `LocalMysqlSmokeTest` was also rerun on MySQL 9.4,
+including migration/runtime restart and cleanup. The 22 PROMETHEUS Playwright
+regressions passed against isolated H2, and the six Participate regressions
+passed with their separate test server/database configuration. No OpenAI,
+Azure, Speech, transcription provider, or physical sensor service was called.
+The packaged JAR served `/valerian-design/`; a local container build was
+attempted but could not start because no Docker daemon was available, while the
+checked-in CI gate performs that build.
 
 ## Structural legacy-removal checks
 

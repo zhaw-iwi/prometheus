@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-14 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-16 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -117,7 +117,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   schema/semantic codes and JSON Pointers, distinguishes malformed/not-found/
   optimistic/lifecycle/validation outcomes, and never exposes component
   implementation names or accepts repository metadata from definition JSON.
-  The full Java suite passes 306 tests, and a full Spring app on isolated H2
+  The full Java suite passes 307 tests, and a full Spring app on isolated H2
   returned all twelve definitions, canonical Talk-to-Me export plus valid
   validation, all 23 component descriptors, and `401` without the admin token.
   The admin-token preview API now compiles current unsaved JSON or a saved draft
@@ -183,8 +183,27 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   behaviour without a provider, reset/closed its preview, published and
   activated revision 1, exported it, cloned/published/activated revision 2, and
   archived revision 1. Three full-page states were visually inspected and the
-  run reported no console or page errors. Designer Milestone 16, final
-  Playwright, packaging, and acceptance, is next.
+  run reported no console or page errors. Milestone 16 completes the designer
+  roadmap with five deterministic mocked Playwright scenarios covering all
+  catalog states, all six panels, prompt adoption, graph/list, linked
+  diagnostics, safe JSON apply, composed prompts, preview/publication, keyboard
+  focus, light desktop, and dark 390-pixel mobile rendering. Inspected PNGs had
+  no clipping, overlap, horizontal overflow, browser errors, or accidental
+  secrets. The shared 22-test PROMETHEUS Playwright suite now defaults to an
+  isolated H2 server and passed alongside the separate six-test Participate
+  suite. A packaged-JAR Playwright run on guarded dedicated MySQL imported a
+  unique exact-text draft, passed full compilation readiness, rendered its
+  state/empty storage/deterministic behaviour, published, activated, exported
+  equal canonical JSON, closed the preview, and verified schema removal. The
+  broader migration/runtime `LocalMysqlSmokeTest` also passed again on MySQL
+  9.4 and removed its distinct dedicated schema. The frontend remains at 45
+  focused tests; the Java suite includes a packaging/security contract for the
+  multi-stage non-root image, secret-excluding Docker context, and CI frontend/
+  browser/container gates. The packaged application served
+  `/valerian-design/`. A local container build was attempted, but no Docker
+  daemon was available, so that build remains delegated to the checked-in CI
+  gate; no provider-
+  dependent behavior was claimed or run.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

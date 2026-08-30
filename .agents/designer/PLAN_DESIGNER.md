@@ -46,7 +46,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 13. Purpose, Sensing, and Behaviour authoring | Complete |
 | 14. Reactions and State flow authoring | Complete |
 | 15. Review, JSON, preview, and publication UX | Complete |
-| 16. Playwright, packaging, and final acceptance | Planned |
+| 16. Playwright, packaging, and final acceptance | Complete |
 
 ## Phase I - Declarative foundation
 

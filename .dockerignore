@@ -1,0 +1,12 @@
+.git
+.github
+.agents
+.vscode
+node_modules
+target
+test-results
+playwright-report
+src/main/resources/application.properties
+**/.env
+**/*.sql
+!src/main/resources/db/migration/*.sql

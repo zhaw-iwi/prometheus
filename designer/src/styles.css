@@ -12,6 +12,7 @@
   --accent-soft: #e5f4ee;
   --paper: #ffffff;
   --paper-soft: #f7f9f8;
+  --surface: #ffffff;
   --navy: #102d35;
   --shadow: 0 20px 55px rgba(21, 44, 48, .09);
   --stepper-ink: var(--ink);
@@ -575,6 +576,52 @@ p { color: var(--muted); line-height: 1.62; }
   .capability-grid { grid-template-columns: 1fr; }
   .section-heading { flex-direction: column; }
   .review-summary, .preview-status { grid-template-columns: 1fr; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    color: #e7f0ed;
+    background: #0d1716;
+    --ink: #e7f0ed;
+    --muted: #a7b8b4;
+    --line: #344b47;
+    --accent: #55c5b4;
+    --accent-dark: #82dacd;
+    --accent-soft: #183d38;
+    --paper: #152321;
+    --paper-soft: #192a27;
+    --surface: #182825;
+    --navy: #081412;
+    --shadow: 0 20px 55px rgba(0, 0, 0, .28);
+    --stepper-ink: #e7f0ed;
+    --stepper-muted: #a7b8b4;
+    --stepper-line: #344b47;
+    --stepper-accent: #55c5b4;
+    --stepper-bg: #152321;
+    --stepper-step-bg: #182825;
+    --stepper-step-active-bg: #1a403a;
+  }
+  body { background: radial-gradient(circle at 12% 2%, rgba(65, 187, 169, .13), transparent 28rem), #0d1716; }
+  .access-card, .editor-toolbar { background: rgba(21, 35, 33, .96); }
+  .button.secondary, .button.danger, .token-row input, .field-control input, .field-control textarea,
+  .capability-card, .strategy-card, .prompt-field, .review-summary > div, .diagnostic-group,
+  .preview-status span, .choice-chip, .field-stack input, .field-stack textarea, .clone-form input,
+  .preview-transcript li, .prompt-preview { color: var(--ink); background: var(--surface); }
+  .definition-card code, .prompt-field details p { color: var(--muted); }
+  .card-footer, .strategy-card details, .prompt-field details, .step-actions { border-color: var(--line); }
+  .skeleton, .prompt-preview pre, .preview-transcript pre, .technical-details > pre,
+  .strategy-card pre { background: #0f1d1b; }
+  .validation-alert { color: #ffc3ba; background: #49241f; }
+  .notice-banner, .diagnostic-summary { background: #17302c; }
+  .conflict-banner, .capability-sync, .graph-diagnostic-targets { color: #f5dba6; background: #3b311d; }
+  .validation-state.valid, .inline-message, .behaviour-summary { color: #bcebdd; background: #173b35; }
+  .validation-state.stale { color: #f5dba6; background: #3b311d; }
+  .diagnostic-group h4 { background: #1c302d; }
+  .diagnostic-group button:hover, .button.secondary:hover, .choice-chip:hover { background: #20413b; }
+  .react-flow__node.situation-node.final { background: #263331; border-color: #82928f; }
+  .status-badge, .draft-pill, .foundation-badge, .schema-chip, .selection-count { color: #bcebdd; background: #1a403a; }
+  .field-control input:disabled { color: #91a29e; background: #263431; }
 }
 
 @media (prefers-reduced-motion: reduce) {

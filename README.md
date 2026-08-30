@@ -369,6 +369,18 @@ npm run designer:verify
 The generated designer bundle is written to `target/generated-resources` and is
 never edited or committed as source.
 
+Run the deterministic designer browser suite against mocked same-origin APIs:
+
+```powershell
+npm run test:designer:visual
+```
+
+It records inspectable evidence under `test-results/designer-visual` for all
+catalog states, the six guided panels, graph/list editing, diagnostics,
+prompt/JSON/preview/publication states, keyboard focus, light desktop, and dark
+390-pixel mobile layout. Browser evidence and traces are generated artifacts and
+must not be committed.
+
 Run it only against an explicitly named dedicated local schema:
 
 ```powershell
@@ -384,6 +396,21 @@ database, and creates/drops only that verified schema. It seeds a legacy graph
 and preserved access-code assignment, runs Flyway plus Hibernate validation,
 restarts Spring, and verifies all eight migration/lifecycle/runtime assertions
 from `.agents/designer/TESTING.md`. Never point it at the normal application
+database.
+
+The packaged Designer lifecycle uses the same opt-in and schema guard:
+
+```powershell
+$env:PROMETHEUS_DESIGNER_DB_SMOKE='true'
+$env:PROMETHEUS_DESIGNER_DB_SMOKE_SCHEMA='prometheus_designer_smoke_live_local'
+npm run test:designer:live
+```
+
+This command builds the production JAR, creates only the verified dedicated
+schema, starts the packaged application with a test admin token, imports a
+unique deterministic exact-text definition, validates/previews/publishes/
+activates/exports it, stops the application, and verifies schema removal. It
+never modifies the twelve bundled definitions or the normal configured
 database.
 
 Run JavaScript syntax checks for the bundled clients:
@@ -405,16 +432,21 @@ npx playwright install chromium
 npm run test:valerian:visual
 npm run test:apiworkbench:visual
 npm run test:talktome:visual
+npx playwright test --config=playwright.config.mjs
+npm run test:participate:visual
 ```
 
-The Valerian Playwright test starts or reuses `http://127.0.0.1:8080`, creates
+The shared PROMETHEUS Playwright configuration starts
+`http://127.0.0.1:8080` on an isolated in-memory H2 schema by default; it does
+not open the normal configured database. The Valerian test creates
 or re-enables access code `VX102` through the admin API, and checks the facial
 expression report, social context report, and behaviour board. The API
 Workbench Playwright test uses deterministic mocked API responses to verify the
 guided lifecycle, snippets, request execution, and SSE viewer. Set
-`PROMETHEUS_ADMIN_TOKEN` when your local `prometheus.admin.token` differs from
-the test default. Set `PROMETHEUS_SKIP_WEBSERVER=true` when the app is already
-running.
+`PROMETHEUS_ADMIN_TOKEN` to change the isolated test token. Set
+`PROMETHEUS_SKIP_WEBSERVER=true` only when a deliberately configured test
+application is already running. Designer visual/live and Participate specs have
+separate configurations and are excluded from shared-config discovery.
 
 The Talk to Me Playwright test uses the running Spring application and its
 configured test database for access-code assignment, scoped agent lifecycle,
@@ -955,7 +987,7 @@ src/main/resources/public
   valerian-admin/   Valerian access management.
 
 designer/           React/TypeScript/Vite source for Valerian Designer.
-tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke tests.
+tests/playwright    Browser-level Designer, Valerian, Talk to Me, Participate, and API Workbench tests.
 ```
 
 ## Developing New Agents
@@ -991,6 +1023,14 @@ The repository contains Heroku/container-oriented resources:
 
 Production deployments must provide database credentials and OpenAI credentials
 through environment variables or platform config vars.
+
+The Dockerfile is a multi-stage build: Maven installs the pinned frontend
+toolchain and runs `designer:verify` while packaging, then only the executable
+JAR is copied into a non-root Java 21 runtime image. `.dockerignore` prevents
+local `application.properties`, environment files, database dumps, generated
+build output, and Playwright evidence from entering the build context. The
+`quality` workflow runs the complete Maven/frontend gate, mocked Designer
+Playwright suite, and container build before publishing is considered.
 
 ## Project Notes
 
