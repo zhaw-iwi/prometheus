@@ -24,15 +24,26 @@ public final class AgentRuntimeInstance {
 
     AgentRuntimeInstance(long definitionRevisionId, CompiledAgentDefinition definition,
             String activeLeafStateId, Map<String, ImmutableJson> initialStorage) {
+        this(definitionRevisionId, definition, activeLeafStateId, initialStorage, initialStorage, List.of(), false);
+    }
+
+    AgentRuntimeInstance(long definitionRevisionId, CompiledAgentDefinition definition,
+            String activeLeafStateId, Map<String, ImmutableJson> initialStorage,
+            Map<String, ImmutableJson> storage, List<RuntimeEvent> history, boolean started) {
         if (definitionRevisionId < 1 || definition == null) {
             throw new IllegalArgumentException("revision ID must be positive and definition must not be null");
+        }
+        if (definition.state(activeLeafStateId) == null) {
+            throw new IllegalArgumentException("active state is not present in the pinned definition: "
+                    + activeLeafStateId);
         }
         this.definitionRevisionId = definitionRevisionId;
         this.definition = definition;
         this.activeLeafStateId = activeLeafStateId;
         this.initialStorage = new LinkedHashMap<>(initialStorage);
-        this.storage = new LinkedHashMap<>(initialStorage);
-        this.history = new ArrayList<>();
+        this.storage = new LinkedHashMap<>(storage);
+        this.history = new ArrayList<>(history);
+        this.started = started;
     }
 
     public long definitionRevisionId() {
@@ -80,6 +91,10 @@ public final class AgentRuntimeInstance {
 
     Map<String, ImmutableJson> initialStorage() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(this.initialStorage));
+    }
+
+    public Map<String, ImmutableJson> initialStorageSnapshot() {
+        return initialStorage();
     }
 
     RuntimeStorage mutableStorage() {

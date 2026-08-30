@@ -73,7 +73,7 @@ and regulation diagnostics remain future work.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-6 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-7 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -87,9 +87,16 @@ and regulation diagnostics remain future work.
   therapy context, exact-text output, deterministic RPS behavior, and
   final-transition prompt behaviour compile through registered components and
   run through the generic engine with deterministic fakes. Component palette
-  entries expose strict schemas plus safe defaults/examples. The production
-  catalog/runtime remains on the existing path until the ordered Phase II
-  cutover; Designer Milestone 7 persistence and seed import is next.
+  entries expose strict schemas plus safe defaults/examples. Definition
+  identities/revisions now store canonical JSON, hashes, lifecycle/provenance,
+  optimistic versions, and active pointers behind repository ports and native
+  JSON JPA mappings. Additive Flyway migration version 1 creates only the new
+  definition/revision/lightweight-instance aggregates. Bundled startup import is
+  deterministic and idempotent, never replaces an existing active revision,
+  and prewarms active compiled revisions. New creation/reset services retain a
+  permanent revision pin. The production catalog/runtime remains on the old
+  path until the ordered Phase II cutover; Designer Milestone 8 runtime cutover
+  and complete legacy deletion is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

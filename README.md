@@ -273,6 +273,16 @@ Run the application:
 .\mvnw.cmd spring-boot:run
 ```
 
+PROMETHEUS uses source-controlled Flyway migrations for the declarative-agent
+aggregates. On startup, an existing pre-Flyway schema is baselined at version 0,
+the additive version-1 migration creates definition, revision, and lightweight
+instance tables, and the twelve bundled JSON revisions are imported
+idempotently. Existing active revisions are preserved and all active published
+revisions are compiled into the warm cache before readiness. Do not use Flyway
+`clean` against the configured database. The current transition keeps the
+legacy runtime active until the ordered Phase II cutover; the preservation and
+removal runbook is in `.agents/designer/DATABASE_TRANSITION.md`.
+
 The default local URL is `http://localhost:8080`; it redirects to Valerian
 Cockpit.
 

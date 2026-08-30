@@ -150,6 +150,9 @@ must never retain instance state between invocations.
 
 ## Persistence model
 
+The implemented additive transition and the exact Phase II preservation/removal
+runbook are recorded in `DATABASE_TRANSITION.md`.
+
 The exact table and column names should follow project conventions, but the
 following aggregate boundaries are required.
 

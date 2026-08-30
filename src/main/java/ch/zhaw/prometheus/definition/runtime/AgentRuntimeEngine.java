@@ -46,6 +46,16 @@ public final class AgentRuntimeEngine {
         return new AgentRuntimeCreation(instance, startup);
     }
 
+    public AgentRuntimeInstance restore(long definitionRevisionId, CompiledAgentDefinition definition,
+            String activeLeafStateId, Map<String, ImmutableJson> initialStorage,
+            Map<String, ImmutableJson> storage, List<RuntimeEvent> history, boolean started) {
+        if (initialStorage == null || storage == null || history == null) {
+            throw new IllegalArgumentException("Persisted runtime collections must not be null");
+        }
+        return new AgentRuntimeInstance(definitionRevisionId, definition, activeLeafStateId,
+                initialStorage, storage, history, started);
+    }
+
     public AgentRuntimeResult start(AgentRuntimeInstance instance, AgentRuntimeContext context) {
         require(instance, context);
         AgentInstanceSnapshot before = instance.snapshot();

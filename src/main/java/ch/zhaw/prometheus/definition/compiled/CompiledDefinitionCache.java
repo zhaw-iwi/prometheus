@@ -67,6 +67,26 @@ public final class CompiledDefinitionCache {
         }
     }
 
+    /** Installs an already validated and compiled revision after its publication commit. */
+    public CompiledAgentDefinition install(DefinitionRevisionSource source, CompiledAgentDefinition compiled) {
+        if (source == null || compiled == null) {
+            throw new IllegalArgumentException("source and compiled definition must not be null");
+        }
+        if (!source.contentHash().equals(compiled.contentHash())
+                || !source.definition().key().equals(compiled.key())
+                || source.definition().revision() != compiled.revision()) {
+            throw new IllegalArgumentException("Compiled definition does not match its revision source");
+        }
+        CompletableFuture<CompiledAgentDefinition> completed = CompletableFuture.completedFuture(compiled);
+        CacheEntry candidate = new CacheEntry(source.contentHash(), completed);
+        CacheEntry existing = this.entries.putIfAbsent(source.revisionId(), candidate);
+        if (existing == null) {
+            return compiled;
+        }
+        requireMatchingHash(source, existing);
+        return await(existing.compiled());
+    }
+
     public List<CompiledAgentDefinition> prewarm(List<DefinitionRevisionSource> revisions) {
         if (revisions == null) {
             throw new IllegalArgumentException("revisions must not be null");

@@ -37,7 +37,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 4. Immutable runtime state-machine engine | Complete |
 | 5. Prompt-based main catalog in JSON | Complete |
 | 6. Deterministic main components and complete JSON catalog | Complete |
-| 7. Definition repository, revisions, and seed import | Planned |
+| 7. Definition repository, revisions, and seed import | Complete |
 | 8. Runtime/application cutover and legacy deletion | Planned |
 | 9. Final MySQL migration smoke gate | Planned |
 | 10. Designer lifecycle API | Planned |
