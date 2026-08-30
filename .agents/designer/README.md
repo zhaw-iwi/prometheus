@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-13 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-14 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -167,6 +167,18 @@ structured diagnostics, and two-choice optimistic-conflict recovery use the
 existing lifecycle API. Versioned UI examples remain inert until explicitly
 adopted. A live isolated-H2 browser workflow created and reloaded a draft with
 its key, prompt, sensing, and speech selections intact and clean.
+Milestone 14 makes Reactions a guided projection of the same ordered transition
+records used by the runtime, including declared observations, source/target,
+conditions, actions, prompt response guidance, priority, catalog-schema-driven
+advanced fields, and explicit capability synchronization. State flow renders
+the same state/transition arrays through React Flow and an equivalent keyboard
+table. Atomic, composite, and final states; containment and initial children;
+entry, selector, policy, decisions/actions; cycles; and self-transitions remain
+canonical JSON only. Backend pointers mark and focus exact graph elements. A
+live isolated-H2 browser workflow authored and backend-validated a four-state
+healthcare composite and a two-state RPS cycle with self-transition without JSON
+editing; inspected graph/list screenshots had no console errors or horizontal
+overflow.
 
 ## Bundled main catalog inventory
 

@@ -3,10 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { DefinitionRevisionView, RequestFunction } from "../api/designerApi";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
-import { DefinitionAuthoringEditor } from "./DefinitionAuthoringEditor";
+import { DefinitionAuthoringEditor, targetForDiagnostic } from "./DefinitionAuthoringEditor";
 import { createDefaultDefinition } from "./editorModel";
 
 describe("DefinitionAuthoringEditor persistence", () => {
+  it("maps backend graph pointers to stable situation and move targets", () => {
+    const definition = createDefaultDefinition();
+    definition.transitions.push({ id: "stay", sourceStateId: "main", targetStateId: "main", order: 10, decisions: [], actions: [] });
+    expect(targetForDiagnostic({ code: "STATE", severity: "ERROR", pointer: "/states/0/policy", message: "State", hint: null }, definition))
+      .toMatchObject({ stepId: "state-flow", fieldId: "graph-diagnostic-state-main" });
+    expect(targetForDiagnostic({ code: "EDGE", severity: "ERROR", pointer: "/transitions/0/targetStateId", message: "Edge", hint: null }, definition))
+      .toMatchObject({ stepId: "state-flow", fieldId: "graph-diagnostic-transition-stay" });
+  });
+
   it("creates a complete explicit single-state draft and displays backend diagnostics", async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();

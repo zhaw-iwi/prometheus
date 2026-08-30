@@ -39,6 +39,38 @@ export interface AtomicStateDefinition {
   [key: string]: unknown;
 }
 
+export interface CompositeStateDefinition {
+  id: string;
+  name: string;
+  kind: "composite";
+  entryMode: "start" | "reprocess-event";
+  oblivious: boolean;
+  eventSelector: ComponentEnvelope | null;
+  policy: ComponentEnvelope | null;
+  childStateIds: string[];
+  initialChildStateId: string;
+  [key: string]: unknown;
+}
+
+export interface FinalStateDefinition {
+  id: string;
+  name: string;
+  kind: "final";
+  [key: string]: unknown;
+}
+
+export type StateDefinition = AtomicStateDefinition | CompositeStateDefinition | FinalStateDefinition;
+
+export interface TransitionDefinition {
+  id: string;
+  sourceStateId: string;
+  targetStateId: string;
+  order: number;
+  decisions: ComponentEnvelope[];
+  actions: ComponentEnvelope[];
+  [key: string]: unknown;
+}
+
 export interface AgentDefinitionV1 {
   $schema: "/agent-definitions/schema/agent-definition.schema.json";
   schemaVersion: 1;
@@ -54,8 +86,8 @@ export interface AgentDefinitionV1 {
   };
   storage: JsonObject[];
   resources: JsonObject[];
-  states: Array<AtomicStateDefinition | JsonObject>;
-  transitions: JsonObject[];
+  states: StateDefinition[];
+  transitions: TransitionDefinition[];
   verification?: { scenarios: JsonObject[] };
 }
 

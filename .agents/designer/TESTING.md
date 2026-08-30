@@ -293,6 +293,23 @@ key, purpose objective, user-utterance capability, and speech modality with a
 clean saved state and no browser console errors. The normal configured database
 and external providers were not used.
 
+Milestone 14 expands the frontend suite to 36 tests. Pure transformations cover
+reaction order/reference preservation, explicit capability synchronization,
+default-to-multi-state conversion, state/transition add/edit/delete/reorder,
+composite containment and initial-child order, cycles, and self-transitions.
+Component contracts cover guided reaction mapping, graph/list equivalence,
+keyboard operations, schema-derived component fields, and exact diagnostic
+navigation. A real Spring application using an explicitly overridden
+in-memory H2 datasource and H2 Hibernate dialect was then driven through the
+UI, with no JSON editing or external-service calls, to create and reload
+`designer.m14_healthcare_verified` and `designer.m14_rps_cycle`. Backend
+validation returned zero diagnostics for the four-state/three-transition
+healthcare composite and two-state/four-transition RPS cycle. Inspected
+Playwright graph and keyboard-list screenshots showed containment, initial
+state/child, priorities, the RPS cycle/self-transition, no horizontal overflow,
+and no browser console/page errors. The normal configured database was never
+opened.
+
 ## Playwright visual and lifecycle tests
 
 Follow `playwright.config.mjs` and the existing Valerian/API Workbench/Talk to Me

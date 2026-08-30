@@ -59,8 +59,20 @@ catalog and open the guided Purpose, Sensing, Behaviour, Reactions, State flow,
 and Review workflow. Purpose, Sensing, and Behaviour edit one schema-version-1
 document, including ordered prompt guidance, observation/output capabilities,
 registered response strategies, explicit save, backend diagnostics, and
-optimistic-conflict recovery. Reactions, graph editing, preview, and publication
-arrive in the following designer milestones.
+optimistic-conflict recovery. Reactions edit the same ordered transitions used
+by the runtime: choose a declared observation and situation, add ordered
+conditions/actions or response guidance, select a target, and reorder the
+first-match priority. Advanced component fields are rendered from the backend
+catalog schema, with an explicit action to synchronize undeclared capabilities.
+
+State flow starts with the explicit default situation and expands to atomic,
+group, and finished situations only when needed. Use **Visual graph** to inspect
+containment, initial situations, edges, cycles, and self-moves; select a node or
+edge to open its inspector. Use **Keyboard list** for the equivalent add, edit,
+delete, reorder, containment, initial-child, and transition operations with
+ordinary buttons and tables. Backend graph diagnostics link to and mark the
+affected situation or move. Preview and publication arrive in the next
+designer milestone.
 
 ### Valerian Access Management
 

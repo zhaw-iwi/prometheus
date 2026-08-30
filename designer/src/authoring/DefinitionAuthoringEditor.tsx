@@ -14,6 +14,8 @@ import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import type { DesignerRoute } from "../routing/designerRoute";
 import { DesignerStepper, type ValidationTarget } from "../stepper/DesignerStepper";
 import { BehaviourPanel, PurposePanel, SensingPanel } from "./AuthoringPanels";
+import { ReactionPanel } from "./ReactionPanel";
+import { StateFlowPanel } from "./StateFlowPanel";
 import {
   authoringFormToDefinition,
   createDefaultDefinition,
@@ -139,7 +141,7 @@ export function DefinitionAuthoringEditor({
         } else {
           setSaveMessage(error.message);
           const first = error.diagnostics[0];
-          if (first) setValidationTarget(targetForDiagnostic(first));
+          if (first) setValidationTarget(targetForDiagnostic(first, document));
         }
       } else {
         setSaveMessage("The draft could not be saved. Check the application and try again.");
@@ -168,11 +170,28 @@ export function DefinitionAuthoringEditor({
     setSaveMessage("Local changes are preserved. Save again to replace the newer server draft.");
   };
 
+  const changeForm = (next: AuthoringForm) => {
+    setForm(next);
+    setDiagnostics([]);
+    setValidationTarget(null);
+  };
+
+  const changeDefinition = (next: AgentDefinitionV1) => {
+    setSource(next);
+    setForm(definitionToAuthoringForm(next));
+    setDiagnostics([]);
+    setValidationTarget(null);
+  };
+
   const panels = {
-    purpose: <PurposePanel form={form} onChange={setForm} isNew={!persisted}
+    purpose: <PurposePanel form={form} onChange={changeForm} isNew={!persisted}
       keyConfirmed={keyConfirmed} onKeyConfirmed={setKeyConfirmed} />,
-    sensing: <SensingPanel form={form} onChange={setForm} />,
-    behaviour: <BehaviourPanel form={form} onChange={setForm} components={components} />,
+    sensing: <SensingPanel form={form} onChange={changeForm} />,
+    behaviour: <BehaviourPanel form={form} onChange={changeForm} components={components} />,
+    reactions: <ReactionPanel definition={document} components={components} diagnostics={diagnostics}
+      onChange={changeDefinition} />,
+    "state-flow": <StateFlowPanel definition={document} components={components} diagnostics={diagnostics}
+      onChange={changeDefinition} />,
   };
 
   return (
@@ -204,7 +223,7 @@ export function DefinitionAuthoringEditor({
           <div><strong>Backend validation</strong><span>{diagnostics.length} diagnostic{diagnostics.length === 1 ? "" : "s"}</span></div>
           <ul>{diagnostics.map((diagnostic, index) => (
             <li key={`${diagnostic.code}:${diagnostic.pointer}:${index}`}>
-              <button type="button" onClick={() => setValidationTarget(targetForDiagnostic(diagnostic))}>
+              <button type="button" onClick={() => setValidationTarget(targetForDiagnostic(diagnostic, document))}>
                 <span className={`diagnostic-severity ${diagnostic.severity.toLowerCase()}`}>{diagnostic.severity}</span>
                 {diagnostic.message}
               </button>
@@ -217,7 +236,10 @@ export function DefinitionAuthoringEditor({
   );
 }
 
-function targetForDiagnostic(diagnostic: DefinitionDiagnostic): ValidationTarget {
+export function targetForDiagnostic(
+  diagnostic: DefinitionDiagnostic,
+  definition?: AgentDefinitionV1,
+): ValidationTarget {
   const pointer = diagnostic.pointer;
   if (pointer.startsWith("/interaction/supportedObservations")) {
     return { stepId: "sensing", fieldId: "designer-step-sensing", message: diagnostic.message };
@@ -225,8 +247,15 @@ function targetForDiagnostic(diagnostic: DefinitionDiagnostic): ValidationTarget
   if (pointer.startsWith("/interaction/supportedBehaviourModalities")) {
     return { stepId: "behaviour", fieldId: "designer-step-behaviour", message: diagnostic.message };
   }
-  if (pointer.startsWith("/states")) {
-    return { stepId: "behaviour", fieldId: "designer-step-behaviour", message: diagnostic.message };
+  const stateMatch = pointer.match(/^\/states\/(\d+)/);
+  if (stateMatch) {
+    const id = definition?.states[Number(stateMatch[1])]?.id;
+    return { stepId: "state-flow", fieldId: id ? `graph-diagnostic-state-${id}` : "designer-step-state-flow", message: diagnostic.message };
+  }
+  const transitionMatch = pointer.match(/^\/transitions\/(\d+)/);
+  if (transitionMatch) {
+    const id = definition?.transitions[Number(transitionMatch[1])]?.id;
+    return { stepId: "state-flow", fieldId: id ? `graph-diagnostic-transition-${id}` : "designer-step-state-flow", message: diagnostic.message };
   }
   const fieldId = pointer === "/key" ? "purpose-key"
     : pointer.startsWith("/metadata/displayName") ? "purpose-display-name"

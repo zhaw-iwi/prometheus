@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-13 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-14 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -154,8 +154,22 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   A live isolated-H2 browser run created and reloaded
   `designer.m13_browser_draft`, retaining its locked key, purpose prompt,
   user-utterance sensing, and speech modality in a clean saved state with no
-  browser errors. Designer Milestone 14, Reactions and State flow authoring, is
-  next.
+  browser errors. Reactions now edit the canonical ordered transition records
+  through declared observations, source/target situations, decisions, actions,
+  response guidance, and first-match priority. Advanced component fields come
+  from the registered backend schemas and missing observations/modalities are
+  synchronized only through an explicit author action. State flow renders the
+  same canonical states/transitions through React Flow and an equivalent
+  keyboard table, covering atomic/composite/final states, containment and
+  initial children, entry/selectors/policies, cycles, self-transitions, and
+  node/edge inspectors. Backend diagnostic pointers focus and visibly mark the
+  exact graph element. The suite now has 36 focused frontend tests. A live
+  Spring/isolated-H2 Playwright run authored, saved, reloaded, and backend-
+  validated a four-state healthcare composite and two-state RPS cycle without
+  JSON editing or external providers; both returned zero diagnostics, graph and
+  list screenshots were inspected, and the browser reported no console/page
+  errors or horizontal overflow. Designer Milestone 15, Review, JSON, preview,
+  and publication UX, is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

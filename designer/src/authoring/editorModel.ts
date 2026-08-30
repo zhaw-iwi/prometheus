@@ -130,7 +130,8 @@ export function authoringFormToDefinition(
     profileTags: stableList(form.profileTags),
   };
 
-  const stateIndex = definition.states.findIndex((state) => state.id === definition.lifecycle.initialStateId);
+  const initialState = initialAtomicState(definition);
+  const stateIndex = definition.states.findIndex((state) => state.id === initialState?.id);
   if (stateIndex >= 0 && definition.states[stateIndex].kind === "atomic") {
     const state = cloneJson(definition.states[stateIndex]) as AtomicStateDefinition;
     const config = cloneJson(form.strategyConfig);
@@ -251,8 +252,16 @@ export function serializedDefinition(definition: AgentDefinitionV1): string {
 }
 
 function initialAtomicState(definition: AgentDefinitionV1): AtomicStateDefinition | undefined {
-  const state = definition.states.find((candidate) => candidate.id === definition.lifecycle.initialStateId);
-  return state?.kind === "atomic" ? state as AtomicStateDefinition : undefined;
+  let stateId = definition.lifecycle.initialStateId;
+  const visited = new Set<string>();
+  while (stateId && !visited.has(stateId)) {
+    visited.add(stateId);
+    const state = definition.states.find((candidate) => candidate.id === stateId);
+    if (!state || state.kind === "final") return undefined;
+    if (state.kind === "atomic") return state;
+    stateId = state.initialChildStateId;
+  }
+  return undefined;
 }
 
 function promptSections(config: JsonObject): PromptSection[] {

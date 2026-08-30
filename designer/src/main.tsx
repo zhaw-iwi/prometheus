@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import "@xyflow/react/dist/style.css";
 import { DesignerApp } from "./app/DesignerApp";
 import "./styles.css";
 
