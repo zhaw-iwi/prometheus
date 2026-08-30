@@ -33,6 +33,11 @@ public final class InMemoryDefinitionRepository implements DefinitionRepository 
     }
 
     @Override
+    public synchronized List<StoredDefinition> findDefinitions() {
+        return this.definitions.values().stream().sorted(Comparator.comparing(StoredDefinition::key)).toList();
+    }
+
+    @Override
     public synchronized StoredDefinition createDefinition(String key) {
         if (findDefinition(key).isPresent()) {
             throw new DefinitionLifecycleException("Definition key already exists: " + key);

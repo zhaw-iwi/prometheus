@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-9 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-10 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -127,7 +127,16 @@ bundled import/idempotence/prewarm, deterministic RPS publication/activation/exp
 revision-pinned runtime persistence across restart, access-code preservation,
 archived-revision execution, final-schema inspection, and verified target
 cleanup without provider calls. Database preservation and removal scope are
-recorded in `DATABASE_TRANSITION.md`.
+recorded in `DATABASE_TRANSITION.md`. Milestone 10 exposes the full definition
+catalog/draft/import/clone/validate/publish/activate/archive/export lifecycle at
+`/admin/agent-definitions`, guarded by the existing admin token. It preserves
+canonical documents and server-owned provenance/lifecycle metadata, maps
+optimistic and lifecycle conflicts consistently, returns structured schema and
+semantic diagnostics, and projects the deterministic typed-component palette
+without implementation class or bean names. A full isolated-H2 Spring request
+smoke verified the 12-definition catalog, canonical export/validation, all 23
+component descriptors, and unauthorized rejection without mutating a bundled
+revision or the normal configured database.
 
 ## Bundled main catalog inventory
 

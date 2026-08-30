@@ -20,6 +20,7 @@ import ch.zhaw.prometheus.definition.repository.DefinitionStatus;
 import ch.zhaw.prometheus.definition.repository.NewDefinitionRevision;
 import ch.zhaw.prometheus.definition.repository.StoredDefinition;
 import ch.zhaw.prometheus.definition.repository.StoredDefinitionRevision;
+import ch.zhaw.prometheus.definition.validation.DefinitionValidationResult;
 
 @Service
 @Transactional
@@ -100,6 +101,38 @@ public class DefinitionLifecycleService {
             throw new DefinitionLifecycleException("The active revision cannot be archived");
         }
         return this.repository.changeStatus(revision.id(), expectedOptimisticVersion, DefinitionStatus.ARCHIVED);
+    }
+
+    public StoredDefinitionRevision cloneRevision(String sourceKey, int sourceRevisionNumber, String targetKey,
+            int targetRevisionNumber) {
+        StoredDefinitionRevision sourceRevision = requireRevision(sourceKey, sourceRevisionNumber);
+        AgentDefinitionDocument source = this.definitionJson.parse(sourceRevision.canonicalJson());
+        AgentDefinitionDocument clone = new AgentDefinitionDocument(source.schema(), source.schemaVersion(),
+                targetKey, targetRevisionNumber, source.metadata(), source.interaction(), source.lifecycle(),
+                source.storage(), source.resources(), source.states(), source.transitions(), source.verification());
+        return createDraft(this.definitionJson.canonicalJson(clone), DefinitionProvenance.DESIGNER,
+                "clone:" + sourceKey + ":" + sourceRevisionNumber);
+    }
+
+    @Transactional(readOnly = true)
+    public DefinitionValidationResult validate(String json) {
+        return this.compiler.validate(this.definitionJson.parse(json));
+    }
+
+    @Transactional(readOnly = true)
+    public String export(String key, int revisionNumber) {
+        return requireRevision(key, revisionNumber).canonicalJson();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StoredDefinition> listDefinitions() {
+        return this.repository.findDefinitions();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StoredDefinitionRevision> listRevisions(String key) {
+        requireDefinition(key);
+        return this.repository.findRevisions(key);
     }
 
     @Transactional(readOnly = true)

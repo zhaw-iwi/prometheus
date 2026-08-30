@@ -40,7 +40,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 7. Definition repository, revisions, and seed import | Complete |
 | 8. Runtime/application cutover and legacy deletion | Complete |
 | 9. Final MySQL migration smoke gate | Complete |
-| 10. Designer lifecycle API | Planned |
+| 10. Designer lifecycle API | Complete |
 | 11. Disposable preview API | Planned |
 | 12. Designer frontend foundation and stepper | Planned |
 | 13. Purpose, Sensing, and Behaviour authoring | Planned |

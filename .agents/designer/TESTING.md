@@ -156,6 +156,16 @@ Follow nearby patterns in `AdminAccessCodeControllerWebMvcTest`,
 `ScopedDemoControllerIntegrationTest`, `TalkToMeScopedIntegrationTest`, and
 static-resource contract tests.
 
+Milestone 10 implements these API contracts in
+`DesignerDefinitionControllerWebMvcTest`, including token rejection across the
+entire endpoint surface, canonical reads/export, every lifecycle mutation,
+server-owned import provenance, structured schema/semantic diagnostics,
+not-found/conflict/immutability rules, and a safe deterministic component
+catalog. `DefinitionLifecycleServiceUnitTest` exercises clone, validate,
+publish/cache installation, sorted catalog access, and canonical export/import
+through the real parser/compiler/lifecycle with in-memory persistence;
+`JpaPersistenceAdapterTest` covers the database-backed ordered catalog query.
+
 ## Main-catalog parity tests
 
 The migration gate covers exactly these keys:

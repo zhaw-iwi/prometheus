@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-9 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-10 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -109,7 +109,18 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   inspection, and verified schema cleanup without provider calls. MySQL 9.4 is
   newer than the bundled Flyway version's declared MySQL support ceiling (8.1),
   so its upgrade warning remains a dependency risk even though the smoke
-  passed. Phase II is complete; Designer Milestone 10 lifecycle API is next.
+  passed. Phase II is complete. The admin-token-protected
+  `/admin/agent-definitions` API now exposes ordered catalog/revision reads,
+  canonical export, designer draft creation, server-owned import provenance,
+  optimistic draft replacement, validation, publication, activation, archive,
+  clone, and the registered component palette. Its stable error contract keeps
+  schema/semantic codes and JSON Pointers, distinguishes malformed/not-found/
+  optimistic/lifecycle/validation outcomes, and never exposes component
+  implementation names or accepts repository metadata from definition JSON.
+  The full Java suite passes 295 tests, and a full Spring app on isolated H2
+  returned all twelve definitions, canonical Talk-to-Me export plus valid
+  validation, all 23 component descriptors, and `401` without the admin token.
+  Designer Milestone 11, isolated disposable preview sessions, is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

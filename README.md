@@ -792,7 +792,7 @@ X-Prometheus-Admin-Token: <prometheus.admin.token>
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/admin/agent-types` | List registered `AgentDefinition` types with package metadata. |
+| `GET` | `/admin/agent-types` | List active declarative agent types with catalog metadata. |
 | `GET` | `/admin/access-code-presets` | List backend-defined access-code presets. |
 | `POST` | `/admin/access-code-presets/{presetKey}/apply` | Create a preset bundle transactionally. |
 | `POST` | `/admin/access-codes` | Create an access code. |
@@ -800,6 +800,34 @@ X-Prometheus-Admin-Token: <prometheus.admin.token>
 | `PATCH` | `/admin/access-codes/{id}` | Enable or disable a code. |
 | `PUT` | `/admin/access-codes/{id}/agent-types` | Replace assigned agent type keys. |
 | `GET` | `/admin/access-codes/{id}/agents` | List agents linked to a code. |
+
+Valerian Designer uses the same header for the complete definition lifecycle:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/admin/agent-definitions` | List definition identities, active pointers, and revision summaries. |
+| `GET` | `/admin/agent-definitions/{key}` | Retrieve one definition summary. |
+| `GET` | `/admin/agent-definitions/{key}/revisions/{revision}` | Retrieve repository metadata and the definition document. |
+| `GET` | `/admin/agent-definitions/{key}/revisions/{revision}/export` | Export the exact canonical JSON document. |
+| `POST` | `/admin/agent-definitions` | Create a designer-owned draft. |
+| `POST` | `/admin/agent-definitions/imports` | Import a document as an imported draft. |
+| `PUT` | `/admin/agent-definitions/{key}/revisions/{revision}` | Replace a draft at an expected optimistic version. |
+| `POST` | `/admin/agent-definitions/validation` | Validate a saved or unsaved definition without publishing. |
+| `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/publish` | Validate, compile, and immutably publish a draft. |
+| `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/activate` | Make a published revision active for new instances. |
+| `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/archive` | Archive a non-active published revision. |
+| `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/clone` | Copy a revision into a new designer draft identity/revision. |
+| `GET` | `/admin/agent-definitions/component-catalog` | List registered component schemas, defaults, examples, capabilities, and UI copy. |
+
+Create, import, and validation accept `{"definition": <schema-v1-document>}`.
+Draft replacement adds `"optimisticVersion"`; publish, activate, and archive
+accept `{"optimisticVersion": <repository-version>}`. Clone accepts
+`{"targetKey": "...", "targetRevision": 2}`. The server assigns status,
+provenance, timestamps, hashes, and optimistic versions; similarly named import
+fields cannot forge repository metadata. Validation/publication failures return
+stable diagnostic codes and JSON Pointers. Optimistic and lifecycle conflicts
+return `409`, unknown resources `404`, malformed requests `400`, and structural
+or publication validation failures `422`.
 
 Access codes must be exactly five ASCII letters or digits. The backend treats
 them as case-sensitive.

@@ -73,6 +73,8 @@ class JpaPersistenceAdapterTest {
         assertEquals(json.canonicalJson(document),
                 this.definitions.findRevision(revision.id()).orElseThrow().canonicalJson());
         assertEquals(revision.id(), identity.activeRevisionId());
+        assertEquals(List.of(document.key()), this.definitions.findDefinitions().stream()
+                .map(definition -> definition.key()).toList());
 
         UUID instanceId = UUID.randomUUID();
         PersistedDeclarativeAgent instance = new PersistedDeclarativeAgent(instanceId, revision.id(), "talk",

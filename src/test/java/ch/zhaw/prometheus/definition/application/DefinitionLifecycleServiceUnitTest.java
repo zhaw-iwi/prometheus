@@ -116,6 +116,50 @@ public class DefinitionLifecycleServiceUnitTest {
                 () -> this.lifecycle.activate(this.source.key(), 2, identity.optimisticVersion()));
     }
 
+    @Test
+    void designerListCloneValidateAndCanonicalExportUseTheRealCompilerAndRepositoryPath() {
+        new BundledDefinitionImporter(this.repository, this.json).importMainCatalog();
+
+        assertEquals(12, this.lifecycle.listDefinitions().size());
+        assertEquals("core.facial_expression_sensitivity", this.lifecycle.listDefinitions().getFirst().key());
+        assertEquals(1, this.lifecycle.listRevisions(this.source.key()).size());
+
+        var clone = this.lifecycle.cloneRevision(this.source.key(), 1, this.source.key(), 2);
+        assertEquals(DefinitionStatus.DRAFT, clone.status());
+        assertEquals(DefinitionProvenance.DESIGNER, clone.provenance());
+        assertEquals("clone:core.talk_to_me:1", clone.sourceDetail());
+        assertEquals(2, this.json.parse(this.lifecycle.export(this.source.key(), 2)).revision());
+        assertTrue(this.lifecycle.validate(clone.canonicalJson()).isValid());
+
+        var published = this.lifecycle.publish(this.source.key(), 2, clone.optimisticVersion());
+        assertEquals(DefinitionStatus.PUBLISHED, published.status());
+        assertEquals(1, this.cache.size());
+        String exported = this.lifecycle.export(this.source.key(), 2);
+        assertEquals(published.canonicalJson(), exported);
+        assertThrows(DefinitionLifecycleException.class,
+                () -> this.lifecycle.createDraft(published.canonicalJson(), DefinitionProvenance.IMPORTED,
+                        "designer-api-import"));
+
+        InMemoryDefinitionRepository importRepository = new InMemoryDefinitionRepository();
+        AgentDefinitionJson importJson = new AgentDefinitionJson();
+        DefinitionCompiler importCompiler = new DefinitionCompiler(BuiltInComponentCatalog.createRegistry(),
+                importJson);
+        DefinitionRevisionSources importSources = new DefinitionRevisionSources(importRepository, importJson);
+        DefinitionLifecycleService importLifecycle = new DefinitionLifecycleService(importRepository, importJson,
+                importCompiler, new CompiledDefinitionCache(importCompiler, importSources, null), importSources);
+        var imported = importLifecycle.createDraft(exported, DefinitionProvenance.IMPORTED,
+                "designer-api-import");
+        assertEquals(exported, imported.canonicalJson());
+        assertEquals(DefinitionProvenance.IMPORTED, imported.provenance());
+
+        AgentDefinitionDocument invalid = withLifecycle(withRevision(this.source, 3),
+                new AgentLifecycle("missing_state", this.source.lifecycle().startOnCreation(),
+                        this.source.lifecycle().initializers(), this.source.lifecycle().reset()));
+        var validation = this.lifecycle.validate(this.json.canonicalJson(invalid));
+        assertTrue(validation.diagnostics().stream()
+                .anyMatch(diagnostic -> diagnostic.code().name().equals("MISSING_INITIAL_STATE")));
+    }
+
     public static AgentDefinitionDocument withRevision(AgentDefinitionDocument document, int revision) {
         return new AgentDefinitionDocument(document.schema(), document.schemaVersion(), document.key(), revision,
                 document.metadata(), document.interaction(), document.lifecycle(), document.storage(),

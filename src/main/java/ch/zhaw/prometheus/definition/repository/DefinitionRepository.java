@@ -8,6 +8,8 @@ public interface DefinitionRepository {
 
     Optional<StoredDefinition> findDefinition(long id);
 
+    List<StoredDefinition> findDefinitions();
+
     StoredDefinition createDefinition(String key);
 
     Optional<StoredDefinitionRevision> findRevision(String key, int revisionNumber);

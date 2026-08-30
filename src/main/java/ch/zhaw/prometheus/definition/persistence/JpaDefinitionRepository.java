@@ -47,6 +47,12 @@ public class JpaDefinitionRepository implements DefinitionRepository {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<StoredDefinition> findDefinitions() {
+        return this.definitions.findAllByOrderByDefinitionKey().stream().map(JpaDefinitionRepository::map).toList();
+    }
+
+    @Override
     public StoredDefinition createDefinition(String key) {
         try {
             return map(this.definitions.saveAndFlush(new AgentDefinitionIdentityEntity(key)));
