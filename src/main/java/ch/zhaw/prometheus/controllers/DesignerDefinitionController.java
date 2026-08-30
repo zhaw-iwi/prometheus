@@ -216,7 +216,7 @@ public class DesignerDefinitionController {
         return new DefinitionSummaryView(definition.key(), definition.activeRevisionId(), activeRevisionNumber,
                 definition.optimisticVersion(), document.path("metadata").path("displayName").asText(),
                 document.path("metadata").path("description").asText(),
-                textValues(document.path("metadata").path("categoryPath")),
+                categoryPath(document.path("metadata").path("categoryPath")),
                 document.path("metadata").path("languageCode").isNull() ? null
                         : document.path("metadata").path("languageCode").asText(),
                 revisions.stream().map(DesignerDefinitionController::revisionSummary).toList());
@@ -310,6 +310,13 @@ public class DesignerDefinitionController {
             return List.of();
         }
         return java.util.stream.StreamSupport.stream(array.spliterator(), false).map(JsonNode::asText).toList();
+    }
+
+    private static List<String> categoryPath(JsonNode value) {
+        if (value.isTextual()) {
+            return List.of(value.asText().split("\\."));
+        }
+        return textValues(value);
     }
 
     public record DefinitionDocumentRequest(JsonNode definition) {

@@ -63,17 +63,40 @@ describe("DesignerApp catalog", () => {
     expect(window.location.hash).toBe("#/definitions/designer.test/revisions/2");
   });
 
+  it("warns before internal navigation discards an edited draft", async () => {
+    const user = userEvent.setup();
+    const request = vi.fn().mockResolvedValue(response([]));
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal("confirm", confirm);
+    render(<DesignerApp request={request} />);
+
+    await screen.findByTestId("catalog-empty");
+    await user.click(screen.getByTestId("create-definition"));
+    await user.type(screen.getByLabelText(/What should this agent be called/), "Unsaved draft");
+    await user.click(screen.getByRole("button", { name: "Open definition catalog" }));
+
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved designer changes?");
+    expect(window.location.hash).toBe("#/new");
+    vi.unstubAllGlobals();
+  });
+
   it("renders an actionable error state and retries", async () => {
     const user = userEvent.setup();
-    const request = vi.fn()
-      .mockResolvedValueOnce(response({}, 500))
-      .mockResolvedValueOnce(response([definition]));
+    let failed = false;
+    const request = vi.fn((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (!failed && path === "/admin/agent-definitions") {
+        failed = true;
+        return Promise.resolve(response({}, 500));
+      }
+      return Promise.resolve(response(path.endsWith("component-catalog") ? [] : [definition]));
+    });
     render(<DesignerApp request={request} />);
 
     expect(await screen.findByTestId("catalog-error")).not.toBeNull();
     await user.click(screen.getByTestId("retry-catalog"));
     expect(await screen.findByTestId("catalog-populated")).not.toBeNull();
-    expect(request).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenCalledTimes(4);
   });
 });
 
@@ -90,6 +113,6 @@ describe("DesignerApp token entry", () => {
 
     expect(await screen.findByTestId("catalog-empty")).not.toBeNull();
     expect(sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY)).toBe("entered-token");
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   });
 });

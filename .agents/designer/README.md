@@ -96,7 +96,7 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-12 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-13 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
@@ -155,6 +155,18 @@ stepper from `STEPPER.md`. Focused Vitest contracts cover routing, API states,
 catalog states, navigation, ARIA/bounds, and validation targeting; Spring
 contracts prove redirects, generated static assets, the admin header, and the
 absence of credentials/development API URLs.
+Milestone 13 turns the first three steps into schema-version-1 authoring forms
+over one complete in-memory document. Purpose controls identity, category,
+language, tags, stable-key confirmation, and ordered typed prompt sections;
+Sensing declares observation capabilities with current-use indicators;
+Behaviour declares modalities, filters registered policy strategies by their
+catalog schema/capabilities, and renders a read-only capability summary. The
+generated document always contains the explicit `main` atomic state. Backend
+validation remains authoritative, while explicit save, dirty/navigation state,
+structured diagnostics, and two-choice optimistic-conflict recovery use the
+existing lifecycle API. Versioned UI examples remain inert until explicitly
+adopted. A live isolated-H2 browser workflow created and reloaded a draft with
+its key, prompt, sensing, and speech selections intact and clean.
 
 ## Bundled main catalog inventory
 

@@ -43,7 +43,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 10. Designer lifecycle API | Complete |
 | 11. Disposable preview API | Complete |
 | 12. Designer frontend foundation and stepper | Complete |
-| 13. Purpose, Sensing, and Behaviour authoring | Planned |
+| 13. Purpose, Sensing, and Behaviour authoring | Complete |
 | 14. Reactions and State flow authoring | Planned |
 | 15. Review, JSON, preview, and publication UX | Planned |
 | 16. Playwright, packaging, and final acceptance | Planned |

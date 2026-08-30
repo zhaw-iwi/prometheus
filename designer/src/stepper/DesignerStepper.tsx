@@ -104,7 +104,7 @@ export function DesignerStepper({
               </div>
               <span className="foundation-badge">Foundation</span>
             </div>
-            <div className="step-placeholder">
+            <div className={`step-placeholder${panels[step.id] ? " populated" : ""}`}>
               {panels[step.id] ?? <p>This guided authoring panel is prepared for the next roadmap milestone.</p>}
             </div>
             <div className="step-actions">

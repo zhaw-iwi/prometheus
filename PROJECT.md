@@ -70,7 +70,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-12 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-13 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -141,8 +141,21 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   and Spring static/redirect/bundle-safety contracts pass. Manual Playwright
   inspection covered the populated desktop catalog plus desktop and 390-pixel
   mobile editor layouts with six tabs, no horizontal overflow, and no browser
-  console errors. Designer Milestone 13, Purpose, Sensing, and Behaviour
-  authoring, is next.
+  console errors. Purpose, Sensing, and Behaviour now project onto one complete
+  schema-version-1 document without replacing untouched graph/resource data.
+  The forms cover stable identity/key confirmation, language/category/tags, 17
+  ordered typed prompt fields, all nine observation capabilities, all seven
+  behaviour modalities, backend-metadata-driven compatible policy strategies,
+  and a read-only behaviour summary. New documents contain the explicit `main`
+  atomic state. Save/validation uses the existing admin lifecycle API with
+  dirty and navigation warnings, structured backend diagnostics, and explicit
+  server-versus-local optimistic-conflict recovery; the frontend does not
+  duplicate semantic validation. The suite now has 24 focused frontend tests.
+  A live isolated-H2 browser run created and reloaded
+  `designer.m13_browser_draft`, retaining its locked key, purpose prompt,
+  user-utterance sensing, and speech modality in a clean saved state with no
+  browser errors. Designer Milestone 14, Reactions and State flow authoring, is
+  next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

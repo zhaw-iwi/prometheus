@@ -280,6 +280,19 @@ Manual local inspection covered the populated desktop catalog, desktop chevron
 stepper, and 390-pixel stacked mobile stepper with no horizontal overflow or
 browser console errors.
 
+Milestone 13 expands the frontend suite to 24 tests. Pure mapping contracts
+cover JSON/form round trips without losing untouched graph/resource content,
+the explicit `main` state, stable prompt-section order, capability propagation,
+and strategy compatibility. Component tests distinguish viewing from adopting
+examples and exercise the first three panels. Editor/API tests cover create and
+update request mapping, backend diagnostics, dirty/before-unload/internal
+navigation warnings, save success, and explicit optimistic-conflict recovery.
+A real local Spring application on disposable H2 was then driven through the UI
+to create `designer.m13_browser_draft`; a full page reload returned the locked
+key, purpose objective, user-utterance capability, and speech modality with a
+clean saved state and no browser console errors. The normal configured database
+and external providers were not used.
+
 ## Playwright visual and lifecycle tests
 
 Follow `playwright.config.mjs` and the existing Valerian/API Workbench/Talk to Me

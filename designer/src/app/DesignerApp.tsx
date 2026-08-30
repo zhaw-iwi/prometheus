@@ -1,13 +1,14 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ADMIN_TOKEN_STORAGE_KEY,
+  type ComponentDefinition,
   DesignerApiError,
-  fetchDefinitionCatalog,
+  fetchDesignerWorkspace,
   type DefinitionSummary,
   type RequestFunction,
 } from "../api/designerApi";
+import { DefinitionAuthoringEditor } from "../authoring/DefinitionAuthoringEditor";
 import { designerRouteHash, parseDesignerRoute, type DesignerRoute } from "../routing/designerRoute";
-import { DesignerStepper } from "../stepper/DesignerStepper";
 
 interface DesignerAppProps {
   request?: RequestFunction;
@@ -16,7 +17,7 @@ interface DesignerAppProps {
 type CatalogState =
   | { kind: "locked" }
   | { kind: "loading" }
-  | { kind: "ready"; definitions: DefinitionSummary[] }
+  | { kind: "ready"; definitions: DefinitionSummary[]; components: ComponentDefinition[] }
   | { kind: "error"; message: string };
 
 function storedAdminToken(): string {
@@ -47,11 +48,12 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
   const [adminToken, setAdminToken] = useState(storedAdminToken);
   const [tokenDraft, setTokenDraft] = useState("");
   const [route, setRoute] = useState<DesignerRoute>(() => parseDesignerRoute(window.location.hash));
+  const [editorDirty, setEditorDirty] = useState(false);
   const [catalog, setCatalog] = useState<CatalogState>(() => adminToken
     ? { kind: "loading" }
     : { kind: "locked" });
 
-  const navigate = useCallback((next: DesignerRoute) => {
+  const rawNavigate = useCallback((next: DesignerRoute) => {
     const hash = designerRouteHash(next);
     if (window.location.hash === hash) {
       setRoute(next);
@@ -59,6 +61,12 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
       window.location.hash = hash;
     }
   }, []);
+
+  const navigate = useCallback((next: DesignerRoute) => {
+    if (editorDirty && !window.confirm("Discard unsaved designer changes?")) return;
+    setEditorDirty(false);
+    rawNavigate(next);
+  }, [editorDirty, rawNavigate]);
 
   useEffect(() => {
     const onHashChange = () => setRoute(parseDesignerRoute(window.location.hash));
@@ -69,8 +77,8 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
   const loadCatalog = useCallback(async (token: string) => {
     setCatalog({ kind: "loading" });
     try {
-      const definitions = await fetchDefinitionCatalog(token, request);
-      setCatalog({ kind: "ready", definitions });
+      const workspace = await fetchDesignerWorkspace(token, request);
+      setCatalog({ kind: "ready", ...workspace });
     } catch (error) {
       const message = error instanceof DesignerApiError
         ? error.message
@@ -97,10 +105,12 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
   };
 
   const forgetToken = () => {
+    if (editorDirty && !window.confirm("Discard unsaved designer changes?")) return;
     removeAdminToken();
     setAdminToken("");
     setCatalog({ kind: "locked" });
-    navigate({ kind: "catalog" });
+    setEditorDirty(false);
+    rawNavigate({ kind: "catalog" });
   };
 
   if (!adminToken) {
@@ -153,7 +163,14 @@ export function DesignerApp({ request = fetch }: DesignerAppProps) {
           <Catalog definitions={catalog.definitions} onNavigate={navigate} />
         )}
         {catalog.kind === "ready" && route.kind !== "catalog" && (
-          <Editor route={route} definitions={catalog.definitions} onNavigate={navigate} />
+          <Editor route={route} definitions={catalog.definitions} components={catalog.components}
+            adminToken={adminToken} request={request} onNavigate={navigate}
+            onDirtyChange={setEditorDirty}
+            onSaved={(key, revision) => {
+              setEditorDirty(false);
+              rawNavigate({ kind: "editor", key, revision });
+              void loadCatalog(adminToken);
+            }} />
         )}
       </main>
     </div>
@@ -219,7 +236,9 @@ function Catalog({ definitions, onNavigate }: {
         <div className="catalog-grid" data-testid="catalog-populated">
           {definitions.map((definition) => {
             const latest = definition.revisions.at(-1);
-            const revision = definition.activeRevision ?? latest?.revision ?? 1;
+            const revision = latest?.status === "DRAFT"
+              ? latest.revision
+              : definition.activeRevision ?? latest?.revision ?? 1;
             return (
               <article className="definition-card" key={definition.key}>
                 <div className="card-meta">
@@ -246,10 +265,15 @@ function Catalog({ definitions, onNavigate }: {
   );
 }
 
-function Editor({ route, definitions, onNavigate }: {
+function Editor({ route, definitions, components, adminToken, request, onNavigate, onDirtyChange, onSaved }: {
   route: Exclude<DesignerRoute, { kind: "catalog" }>;
   definitions: DefinitionSummary[];
+  components: ComponentDefinition[];
+  adminToken: string;
+  request: RequestFunction;
   onNavigate: (route: DesignerRoute) => void;
+  onDirtyChange: (dirty: boolean) => void;
+  onSaved: (key: string, revision: number) => void;
 }) {
   const definition = useMemo(() => route.kind === "editor"
     ? definitions.find((candidate) => candidate.key === route.key)
@@ -271,12 +295,9 @@ function Editor({ route, definitions, onNavigate }: {
         </div>
         <span className="draft-pill">Draft workspace</span>
       </div>
-      {route.kind === "editor" && !definition ? (
-        <div className="center-state compact-state" data-testid="definition-missing">
-          <h2>Definition not found</h2>
-          <p>Return to the catalog and choose an available revision.</p>
-        </div>
-      ) : <DesignerStepper />}
+      <DefinitionAuthoringEditor key={route.kind === "new" ? "new" : `${route.key}:${route.revision}`}
+        route={route} components={components} adminToken={adminToken} request={request}
+        onDirtyChange={onDirtyChange} onSaved={onSaved} />
     </section>
   );
 }

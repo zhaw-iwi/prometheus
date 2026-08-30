@@ -56,9 +56,11 @@ URL: `http://localhost:8080/valerian-design/`
 Valerian Designer is the administrative authoring surface for declarative agent
 definitions. Enter the existing PROMETHEUS admin token to browse the revision
 catalog and open the guided Purpose, Sensing, Behaviour, Reactions, State flow,
-and Review workflow. The current foundation supplies catalog and editor routing;
-the following designer milestones add the authoring controls and publication
-lifecycle.
+and Review workflow. Purpose, Sensing, and Behaviour edit one schema-version-1
+document, including ordered prompt guidance, observation/output capabilities,
+registered response strategies, explicit save, backend diagnostics, and
+optimistic-conflict recovery. Reactions, graph editing, preview, and publication
+arrive in the following designer milestones.
 
 ### Valerian Access Management
 

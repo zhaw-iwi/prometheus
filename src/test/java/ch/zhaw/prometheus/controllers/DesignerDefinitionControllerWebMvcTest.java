@@ -50,7 +50,7 @@ class DesignerDefinitionControllerWebMvcTest {
     private static final String KEY = "designer.test";
     private static final String DOCUMENT = """
             {"key":"designer.test","metadata":{"displayName":"Designer Test","description":"Test definition",
-            "categoryPath":["designer"],"languageCode":"en"}}
+            "categoryPath":"designer.tests","languageCode":"en"}}
             """;
 
     @Autowired
@@ -89,6 +89,8 @@ class DesignerDefinitionControllerWebMvcTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].key").value(KEY))
                 .andExpect(jsonPath("$[0].displayName").value("Designer Test"))
+                .andExpect(jsonPath("$[0].categoryPath[0]").value("designer"))
+                .andExpect(jsonPath("$[0].categoryPath[1]").value("tests"))
                 .andExpect(jsonPath("$[0].activeRevision").value(1))
                 .andExpect(jsonPath("$[0].revisions[0].provenance").value("BUNDLED"));
         this.mockMvc.perform(get("/admin/agent-definitions/" + KEY).header(HEADER, TOKEN))
