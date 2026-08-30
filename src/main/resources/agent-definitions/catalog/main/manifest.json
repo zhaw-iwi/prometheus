@@ -1,0 +1,55 @@
+{
+    "schemaVersion":  1,
+    "entries":  [
+                    {
+                        "key":  "core.facial_expression_sensitivity",
+                        "revision":  1,
+                        "resource":  "core/facial_expression_sensitivity/revision-1.json"
+                    },
+                    {
+                        "key":  "core.multimodal_behaviour",
+                        "revision":  1,
+                        "resource":  "core/multimodal_behaviour/revision-1.json"
+                    },
+                    {
+                        "key":  "core.role_clarification_guessing_game",
+                        "revision":  1,
+                        "resource":  "core/role_clarification_guessing_game/revision-1.json"
+                    },
+                    {
+                        "key":  "core.social_context_sensitivity",
+                        "revision":  1,
+                        "resource":  "core/social_context_sensitivity/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.guessing_game",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/guessing_game/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.guessing_game_user_guess",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/guessing_game_user_guess/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.healthcare_conversation",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/healthcare_conversation/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.smart_goal_coaching",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/smart_goal_coaching/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.therapy_appointment_reminder",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/therapy_appointment_reminder/revision-1.json"
+                    },
+                    {
+                        "key":  "usecases.healthcare.therapy_appointment_reminder_intro",
+                        "revision":  1,
+                        "resource":  "usecases/healthcare/therapy_appointment_reminder_intro/revision-1.json"
+                    }
+                ]
+}

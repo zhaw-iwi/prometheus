@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import ch.zhaw.prometheus.definition.component.BuiltInComponentCatalog;
 import ch.zhaw.prometheus.definition.component.CompiledAction;
 import ch.zhaw.prometheus.definition.component.CompiledSelector;
+import ch.zhaw.prometheus.definition.compiled.ImmutableJson;
 import ch.zhaw.prometheus.definition.document.ComponentEnvelope;
 
 class BuiltInRuntimeComponentExecutorUnitTest {
@@ -65,6 +66,47 @@ class BuiltInRuntimeComponentExecutorUnitTest {
         assertEquals("Extract outcome.", model.lastExtractionPrompt);
     }
 
+    @Test
+    void promptBehaviourActionResolvesOnlyExplicitStorageBindings() throws Exception {
+        var registry = BuiltInComponentCatalog.createRegistry();
+        FakeModel model = new FakeModel();
+        model.generatedBehaviour = RuntimeBehaviour.speechOnly("goodbye");
+        RuntimeComponentExecutor executor = new BuiltInRuntimeComponentExecutor(model);
+        CompiledAction prompt = (CompiledAction) registry.compile(new ComponentEnvelope(
+                "prometheus.action.prompt-behaviour", 1, JSON.readTree("""
+                        {
+                          "responsePrompt":{"sections":[
+                            {"id":"complete","kind":"completion","content":"Use ${therapyAppointmentContext}."}]},
+                          "starterPrompt":{"sections":[
+                            {"id":"goodbye","kind":"starter","content":"Close ${therapyAppointmentContext}."}]},
+                          "storageBindings":[{"key":"therapyAppointmentContext","access":"read",
+                            "expectedValueSchema":{"type":"object"}}],
+                          "consumedObservations":["obs.user_utterance"],
+                          "emittedModalities":["speech"]
+                        }
+                        """)));
+        Map<String, ImmutableJson> storage = Map.of(
+                "therapyAppointmentContext", new ImmutableJson(JSON.readTree("{\"label\":\"physiotherapy\"}")),
+                "unboundSecret", new ImmutableJson(JSON.readTree("\"must not leak\"")));
+
+        RuntimeBehaviour behaviour = executor.execute(prompt,
+                new RuntimeInvocation("main", List.of("main"), List.of(), storage), noOpStorage());
+
+        assertEquals("goodbye", behaviour.speech());
+        assertEquals("Use {\"label\":\"physiotherapy\"}.", model.lastGeneratedPrompts.responsePrompt());
+        assertEquals("Close {\"label\":\"physiotherapy\"}.", model.lastGeneratedPrompts.starterPrompt());
+        assertEquals(List.of("therapyAppointmentContext"), model.lastInvocation.storage().keySet().stream().toList());
+        assertFalse(model.lastGeneratedPrompts.responsePrompt().contains("must not leak"));
+    }
+
+    private static RuntimeStorage noOpStorage() {
+        return new RuntimeStorage() {
+            @Override public JsonNode get(String key) { return null; }
+            @Override public void put(String key, JsonNode value) { }
+            @Override public void remove(String key) { }
+        };
+    }
+
     private static CompiledSelector selector(ch.zhaw.prometheus.definition.component.ComponentRegistry registry,
             String kind, String config) throws Exception {
         return (CompiledSelector) registry.compile(new ComponentEnvelope(kind, 1, JSON.readTree(config)));
@@ -72,10 +114,15 @@ class BuiltInRuntimeComponentExecutorUnitTest {
 
     private static final class FakeModel implements RuntimeModelGateway {
         private String lastExtractionPrompt;
+        private RuntimeBehaviour generatedBehaviour;
+        private RuntimePromptBundle lastGeneratedPrompts;
+        private RuntimeInvocation lastInvocation;
 
         @Override
         public RuntimeBehaviour generate(RuntimePromptBundle prompts, RuntimeInvocation invocation) {
-            return null;
+            this.lastGeneratedPrompts = prompts;
+            this.lastInvocation = invocation;
+            return this.generatedBehaviour;
         }
 
         @Override

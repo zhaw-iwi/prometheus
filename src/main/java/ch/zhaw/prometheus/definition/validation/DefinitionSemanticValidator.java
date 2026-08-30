@@ -50,7 +50,7 @@ public final class DefinitionSemanticValidator {
         List<ValidationDiagnostic> diagnostics = new ArrayList<>();
         Map<String, StateRef> states = indexStates(definition, diagnostics);
         Map<String, StorageRef> storage = indexStorage(definition, diagnostics);
-        Set<String> resources = indexResources(definition, diagnostics);
+        Map<String, DefinitionResource> resources = indexResources(definition, diagnostics);
         List<LocatedComponent> components = locateComponents(definition);
 
         Map<String, ParentRef> parents = validateContainment(definition, states, diagnostics);
@@ -96,12 +96,12 @@ public final class DefinitionSemanticValidator {
         return storage;
     }
 
-    private static Set<String> indexResources(AgentDefinitionDocument definition,
+    private static Map<String, DefinitionResource> indexResources(AgentDefinitionDocument definition,
             List<ValidationDiagnostic> diagnostics) {
-        Set<String> resources = new HashSet<>();
+        Map<String, DefinitionResource> resources = new LinkedHashMap<>();
         for (int index = 0; index < definition.resources().size(); index++) {
             DefinitionResource resource = definition.resources().get(index);
-            if (!resources.add(resource.id())) {
+            if (resources.putIfAbsent(resource.id(), resource) != null) {
                 diagnostics.add(diagnostic(SemanticDiagnosticCode.DUPLICATE_RESOURCE_ID,
                         "/resources/" + index + "/id",
                         "Resource ID '" + resource.id() + "' is already used.",
@@ -405,7 +405,8 @@ public final class DefinitionSemanticValidator {
     }
 
     private void validateComponents(AgentDefinitionDocument definition, List<LocatedComponent> components,
-            Map<String, StateRef> states, Map<String, StorageRef> storage, Set<String> resources,
+            Map<String, StateRef> states, Map<String, StorageRef> storage,
+            Map<String, DefinitionResource> resources,
             List<ValidationDiagnostic> diagnostics) {
         Set<String> supportedObservations = Set.copyOf(definition.interaction().supportedObservations());
         Set<String> supportedModalities = Set.copyOf(definition.interaction().supportedBehaviourModalities());
@@ -455,11 +456,20 @@ public final class DefinitionSemanticValidator {
                 }
             }
             for (ComponentReference reference : semantics.resourceReferences()) {
-                if (!resources.contains(reference.id())) {
+                DefinitionResource resource = resources.get(reference.id());
+                if (resource == null) {
                     diagnostics.add(diagnostic(SemanticDiagnosticCode.MISSING_RESOURCE_REFERENCE,
                             located.pointer() + normalizeRelativePointer(reference.configPointer()),
                             "Component references unknown resource '" + reference.id() + "'.",
                             "Declare the resource or change the component configuration."));
+                } else if (reference.expectedComponent() != null
+                        && (!reference.expectedComponent().kind().equals(resource.kind())
+                                || reference.expectedComponent().version() != resource.version())) {
+                    diagnostics.add(diagnostic(SemanticDiagnosticCode.RESOURCE_COMPONENT_MISMATCH,
+                            located.pointer() + normalizeRelativePointer(reference.configPointer()),
+                            "Resource '" + reference.id() + "' is not a " + reference.expectedComponent()
+                                    + " component.",
+                            "Reference a resource with the required registered kind and version."));
                 }
             }
             for (ComponentReference reference : semantics.stateReferences()) {

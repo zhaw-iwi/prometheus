@@ -19,8 +19,10 @@ import ch.zhaw.prometheus.definition.component.builtin.IncrementActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.LatestEventTypeDecisionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.NoOpPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptDecisionComponent;
+import ch.zhaw.prometheus.definition.component.builtin.PromptBehaviourActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.RandomChoiceInitializerComponent;
+import ch.zhaw.prometheus.definition.component.builtin.ResourceChoiceInitializerComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent.SelectorKind;
 import ch.zhaw.prometheus.definition.component.builtin.TypedChoicesResourceComponent;
@@ -110,6 +112,14 @@ public final class BuiltInComponentCatalog {
                         config.path("targetStorageKey").asText(), ComponentStorageAccess.READ_WRITE,
                         tree("{\"type\":\"integer\",\"minimum\":0}"), "/config/targetStorageKey")), List.of(), List.of()),
                 config -> new IncrementActionComponent(config.path("targetStorageKey").asText())));
+        definitions.add(registered("prometheus.action.prompt-behaviour", ComponentCategory.ACTION,
+                promptPolicySchema(), "Prompt behaviour", "Emits completion or transition behaviour from prompts.",
+                BuiltInComponentCatalog::promptSemantics,
+                config -> new PromptBehaviourActionComponent(new PromptPolicyComponent(
+                        prompt(config, "responsePrompt"), prompt(config, "starterPrompt"),
+                        prompt(config, "summaryPrompt"), prompt(config, "nonverbalPlanPrompt"),
+                        prompt(config, "gesturePrompt"), compiledStorageBindings(config),
+                        strings(config, "consumedObservations"), strings(config, "emittedModalities")))));
 
         definitions.add(registered("prometheus.initializer.constant", ComponentCategory.INITIALIZER,
                 constantInitializerSchema(), "Constant initializer", "Writes a fixed initial storage value.",
@@ -118,9 +128,12 @@ public final class BuiltInComponentCatalog {
                         new ImmutableJson(config.get("value")))));
         definitions.add(registered("prometheus.initializer.random-choice", ComponentCategory.INITIALIZER,
                 randomInitializerSchema(), "Random choice initializer", "Selects an initial value using an injected RNG.",
-                config -> withPrimaryStorageUse(config, "storageKey", ComponentStorageAccess.WRITE),
-                config -> new RandomChoiceInitializerComponent(config.path("storageKey").asText(),
-                        immutableList(config.path("choices")))));
+                BuiltInComponentCatalog::randomInitializerSemantics,
+                config -> config.has("choicesResourceId")
+                        ? new ResourceChoiceInitializerComponent(config.path("storageKey").asText(),
+                                config.path("choicesResourceId").asText())
+                        : new RandomChoiceInitializerComponent(config.path("storageKey").asText(),
+                                immutableList(config.path("choices")))));
         definitions.add(registered("prometheus.resource.typed-choices", ComponentCategory.RESOURCE,
                 typedChoicesSchema(), "Typed choices", "Reusable immutable typed choices.",
                 ignored -> ComponentSemantics.none(),
@@ -182,6 +195,16 @@ public final class BuiltInComponentCatalog {
         uses.add(new ComponentStorageUse(config.path(field).asText(), access, config.get("outputSchema"),
                 "/config/" + field));
         return new ComponentSemantics(Set.of(), Set.of(), uses, List.of(), List.of());
+    }
+
+    private static ComponentSemantics randomInitializerSemantics(JsonNode config) {
+        ComponentSemantics storage = withPrimaryStorageUse(config, "storageKey", ComponentStorageAccess.WRITE);
+        List<ComponentReference> resources = config.has("choicesResourceId")
+                ? List.of(new ComponentReference(config.path("choicesResourceId").asText(),
+                        "/config/choicesResourceId", new ComponentKey("prometheus.resource.typed-choices", 1)))
+                : List.of();
+        return new ComponentSemantics(storage.consumedObservations(), storage.emittedBehaviourModalities(),
+                storage.storageUses(), resources, storage.stateReferences());
     }
 
     private static List<ComponentStorageUse> storageUses(JsonNode config) {
@@ -306,8 +329,10 @@ public final class BuiltInComponentCatalog {
     private static String randomInitializerSchema() {
         return """
                 {"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","properties":{
-                 "storageKey":{"type":"string","minLength":1},"choices":{"type":"array","minItems":1,"items":{}}},
-                 "required":["storageKey","choices"],"additionalProperties":false}
+                 "storageKey":{"type":"string","minLength":1},"choices":{"type":"array","minItems":1,"items":{}},
+                 "choicesResourceId":{"type":"string","minLength":1}},"required":["storageKey"],
+                 "oneOf":[{"required":["choices"],"not":{"required":["choicesResourceId"]}},
+                 {"required":["choicesResourceId"],"not":{"required":["choices"]}}],"additionalProperties":false}
                 """;
     }
 

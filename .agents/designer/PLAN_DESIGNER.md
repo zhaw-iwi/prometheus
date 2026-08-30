@@ -35,7 +35,7 @@ Implementation branch: `features/designer`, created from `main` at
 | 2. Semantic validation and prompt composition | Complete |
 | 3. Component registry, compiler, and cache | Complete |
 | 4. Immutable runtime state-machine engine | Complete |
-| 5. Prompt-based main catalog in JSON | Planned |
+| 5. Prompt-based main catalog in JSON | Complete |
 | 6. Deterministic main components and complete JSON catalog | Planned |
 | 7. Definition repository, revisions, and seed import | Planned |
 | 8. Runtime/application cutover and legacy deletion | Planned |
@@ -226,6 +226,13 @@ All twelve `main` agents move to JSON. The phase ends with one production path,
 a lightweight runtime instance, explicit schema migrations, and no legacy code.
 
 ### Milestone 5 - Prompt-based main catalog in JSON
+
+**Status: Complete.** Ten revision-1 JSON definitions and their deterministic
+manifest are bundled under `agent-definitions/catalog/main`. Exact current
+prompt/profile contracts are retained. Typed resource-backed random therapy
+context and final-transition prompt behaviour use registered components; the
+production Spring-discovered path remains intentionally unchanged until the
+Phase II cutover.
 
 **Outcome**
 

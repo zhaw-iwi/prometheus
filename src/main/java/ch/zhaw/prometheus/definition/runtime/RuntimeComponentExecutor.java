@@ -14,7 +14,7 @@ public interface RuntimeComponentExecutor {
 
     boolean decide(CompiledDecision decision, RuntimeInvocation invocation);
 
-    void execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage);
+    RuntimeBehaviour execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage);
 
     boolean selects(CompiledSelector selector, RuntimeEvent event, String evaluatingStateId);
 }

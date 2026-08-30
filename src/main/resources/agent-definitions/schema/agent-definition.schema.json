@@ -222,7 +222,7 @@
       ],
       "properties": {
         "key": {
-          "$ref": "#/$defs/stableId"
+          "$ref": "#/$defs/storageKey"
         },
         "description": {
           "$ref": "#/$defs/nonBlankString"
@@ -291,7 +291,7 @@
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/stableId"
+            "$ref": "#/$defs/safePropertyName"
           }
         },
         "additionalProperties": {
@@ -706,6 +706,10 @@
     "safePropertyName": {
       "type": "string",
       "pattern": "^(?!(?:[cC][lL][aA][sS][sS](?:[nN][aA][mM][eE])?|[bB][eE][aA][nN](?:[nN][aA][mM][eE])?|[sS][cC][rR][iI][pP][tT][sS]?|[sS][oO][uU][rR][cC][eE][cC][oO][dD][eE])$).+$"
+    },
+    "storageKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9]*(?:[._-][A-Za-z0-9]+)*$"
     },
     "safeJsonValue": {
       "oneOf": [

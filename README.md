@@ -203,6 +203,12 @@ larger audience should see live listening state or generated meeting reports.
 Production agent definitions live under
 `src/main/java/ch/zhaw/prometheus/agentdefs`. Definitions implement
 `AgentDefinition`, expose a stable key, and are discovered as Spring beans.
+During the ordered declarative migration, revision-1 JSON for the ten
+prompt-oriented definitions is also bundled under
+`src/main/resources/agent-definitions/catalog/main` and compiled in catalog
+contracts. Talk to Me and RPS remain the next migration step. The running
+catalog continues to use Spring-discovered definitions until the Phase II
+cutover; this coexistence is temporary.
 
 The main branch ships the Valerian baseline catalog:
 
@@ -793,6 +799,7 @@ src/main/java/ch/zhaw/prometheus
   spi/              Language-model, live-transcription, and Speech integration boundaries.
 
 src/main/resources/agent-definitions
+  catalog/main/     Deterministic manifest and bundled versioned definition JSON.
   schema/           Executable schema-version-1 whole-agent JSON contract.
 
 src/main/resources/public
@@ -811,9 +818,9 @@ The declarative migration is in progress on `features/designer`. Schema version
 1, typed document mapping, structural/semantic/component validation,
 deterministic prompt composition, canonical hashing, the trusted registered
 component SPI, immutable compilation, a revision/hash-guarded single-flight
-cache, and the generic per-instance runtime engine are available under
-`definition/` and `agent-definitions/schema/`. The running catalog still uses
-the Java definitions below until the ordered Phase II
+cache, the generic per-instance runtime engine, and ten bundled prompt-oriented
+JSON revisions are available under `definition/` and `agent-definitions/`.
+The running catalog still uses the Java definitions below until the ordered Phase II
 cutover is complete. Do not treat the temporary coexistence as a permanent
 second authoring path. Component authors should follow
 `definition/component/README.md`; JSON never names a Java class or bean.

@@ -12,6 +12,8 @@ Runtime rules preserve the current state-machine contract:
 - transitions for one source are checked by numeric order and stop at the first
   accepted transition;
 - decisions are ANDed with short-circuiting and actions execute in list order;
+- an action may emit transition behaviour (for example the registered final
+  prompt action); target-state policy output takes precedence when both exist;
 - `start` entry generates starter behaviour, while `reprocess-event` applies the
   same already-recorded event in the target without recording it twice;
 - oblivious entry removes only events whose path contains that state;

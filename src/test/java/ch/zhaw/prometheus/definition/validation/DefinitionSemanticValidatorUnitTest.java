@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import ch.zhaw.prometheus.definition.document.AgentDefinitionDocument;
 import ch.zhaw.prometheus.definition.document.AgentDefinitionJson;
 import ch.zhaw.prometheus.definition.document.ComponentEnvelope;
+import ch.zhaw.prometheus.definition.component.ComponentKey;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 class DefinitionSemanticValidatorUnitTest {
@@ -185,6 +186,29 @@ class DefinitionSemanticValidatorUnitTest {
     }
 
     @Test
+    void validatesReferencedResourceComponentKindAndVersion() throws IOException {
+        ObjectNode document = tree("valid/minimal-single-state.json");
+        ObjectNode resource = this.objectMapper.createObjectNode()
+                .put("id", "choices")
+                .put("kind", "prometheus.resource.typed-choices")
+                .put("version", 1);
+        resource.set("config", this.objectMapper.createObjectNode().set("values",
+                this.objectMapper.createArrayNode().add("one")));
+        ((ArrayNode) document.get("resources")).add(resource);
+        ObjectNode policy = (ObjectNode) document.at("/states/0/policy");
+        policy.put("kind", "test.component.requirements");
+        policy.set("config", this.objectMapper.createObjectNode()
+                .put("storageKey", "missing_storage")
+                .put("resourceId", "choices")
+                .put("stateId", "main"));
+
+        DefinitionValidationResult result = validator().validate(parse(document));
+
+        assertDiagnostic(result, SemanticDiagnosticCode.RESOURCE_COMPONENT_MISMATCH,
+                "/states/0/policy/config/resourceId");
+    }
+
+    @Test
     void validatesInitialValuesStorageShapesAndInitializerOwnership() throws IOException {
         ObjectNode invalidInitial = tree("valid/minimal-single-state.json");
         ((ArrayNode) invalidInitial.get("storage")).add(storage("result", "integer", true, "wrong"));
@@ -304,7 +328,8 @@ class DefinitionSemanticValidatorUnitTest {
                     Set.of(AgentInteractionProfile.MODALITY_DISPLAY),
                     List.of(new ComponentStorageUse(config.path("storageKey").asText(), ComponentStorageAccess.READ,
                             schema("string"), "/config/storageKey")),
-                    List.of(new ComponentReference(config.path("resourceId").asText(), "/config/resourceId")),
+                    List.of(new ComponentReference(config.path("resourceId").asText(), "/config/resourceId",
+                            new ComponentKey("test.resource.expected", 1))),
                     List.of(new ComponentReference(config.path("stateId").asText(), "/config/stateId")));
             case "test.action.read-array" -> new ComponentSemantics(Set.of(), Set.of(),
                     List.of(new ComponentStorageUse(config.path("storageKey").asText(), ComponentStorageAccess.READ,

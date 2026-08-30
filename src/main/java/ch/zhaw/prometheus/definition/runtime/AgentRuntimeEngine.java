@@ -88,14 +88,17 @@ public final class AgentRuntimeEngine {
                     throw new IllegalStateException("event reprocessing exceeded " + MAX_REPROCESS_TRANSITIONS
                             + " transitions");
                 }
-                executeActions(instance, accepted, context);
+                RuntimeBehaviour actionBehaviour = executeActions(instance, accepted, context);
                 transitions.add(accepted.transition().id());
                 CompiledState target = accepted.transition().targetState();
                 instance.setActiveLeafStateId(resolveInitialLeaf(target).id());
                 removed.addAll(enterActivePath(instance));
                 if (isStarting(target)) {
                     instance.setStarted(true);
-                    behaviour = instance.isActive() ? executePolicy(instance, context, true) : null;
+                    behaviour = instance.isActive() ? executePolicy(instance, context, true) : actionBehaviour;
+                    if (behaviour == null) {
+                        behaviour = actionBehaviour;
+                    }
                     appended.addAll(appendBehaviour(instance, behaviour));
                     break;
                 }
@@ -152,12 +155,17 @@ public final class AgentRuntimeEngine {
         return null;
     }
 
-    private static void executeActions(AgentRuntimeInstance instance, AcceptedTransition accepted,
+    private static RuntimeBehaviour executeActions(AgentRuntimeInstance instance, AcceptedTransition accepted,
             AgentRuntimeContext context) {
+        RuntimeBehaviour behaviour = null;
         for (var action : accepted.transition().actions()) {
-            context.components().execute(action, invocation(instance, accepted.sourceState(), context.components()),
-                    instance.mutableStorage());
+            RuntimeBehaviour emitted = context.components().execute(action,
+                    invocation(instance, accepted.sourceState(), context.components()), instance.mutableStorage());
+            if (emitted != null) {
+                behaviour = emitted;
+            }
         }
+        return behaviour;
     }
 
     private static RuntimeBehaviour executePolicy(AgentRuntimeInstance instance, AgentRuntimeContext context,

@@ -12,6 +12,9 @@ import ch.zhaw.prometheus.definition.component.CompiledInitializer;
 import ch.zhaw.prometheus.definition.component.CompiledPolicy;
 import ch.zhaw.prometheus.definition.component.CompiledResource;
 import ch.zhaw.prometheus.definition.component.CompiledSelector;
+import ch.zhaw.prometheus.definition.component.builtin.RandomChoiceInitializerComponent;
+import ch.zhaw.prometheus.definition.component.builtin.ResourceChoiceInitializerComponent;
+import ch.zhaw.prometheus.definition.component.builtin.TypedChoicesResourceComponent;
 import ch.zhaw.prometheus.definition.component.ComponentCategory;
 import ch.zhaw.prometheus.definition.component.ComponentConfigViolation;
 import ch.zhaw.prometheus.definition.component.ComponentKey;
@@ -117,8 +120,16 @@ public final class DefinitionCompiler implements CompiledDefinitionFactory {
         }
         List<CompiledInitializer> initializers = new ArrayList<>();
         for (int index = 0; index < definition.lifecycle().initializers().size(); index++) {
-            initializers.add(compileAt(definition.lifecycle().initializers().get(index), CompiledInitializer.class,
-                    "/lifecycle/initializers/" + index));
+            CompiledInitializer initializer = compileAt(definition.lifecycle().initializers().get(index),
+                    CompiledInitializer.class, "/lifecycle/initializers/" + index);
+            if (initializer instanceof ResourceChoiceInitializerComponent resourceChoice) {
+                CompiledResourceDefinition resource = resources.stream()
+                        .filter(candidate -> candidate.id().equals(resourceChoice.resourceId())).findFirst()
+                        .orElseThrow(() -> new IllegalStateException("validated initializer resource is missing"));
+                TypedChoicesResourceComponent typed = (TypedChoicesResourceComponent) resource.component();
+                initializer = new RandomChoiceInitializerComponent(resourceChoice.targetStorageKey(), typed.values());
+            }
+            initializers.add(initializer);
         }
         CompiledLifecycle lifecycle = new CompiledLifecycle(statesById.get(definition.lifecycle().initialStateId()),
                 definition.lifecycle().startOnCreation(), initializers, definition.lifecycle().reset().storage(),

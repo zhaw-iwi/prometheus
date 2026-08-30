@@ -20,6 +20,7 @@ import ch.zhaw.prometheus.definition.component.builtin.IncrementActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.LatestEventTypeDecisionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.NoOpPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptDecisionComponent;
+import ch.zhaw.prometheus.definition.component.builtin.PromptBehaviourActionComponent;
 import ch.zhaw.prometheus.definition.component.builtin.PromptPolicyComponent;
 import ch.zhaw.prometheus.definition.component.builtin.SelectorComponent;
 
@@ -55,13 +56,14 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
             if (prompt.decisionPrompt() == null || prompt.decisionPrompt().isBlank()) {
                 return false;
             }
-            return this.modelGateway.decide(prompt.decisionPrompt(), bound(invocation, prompt.storageBindings()));
+            RuntimeInvocation bound = bound(invocation, prompt.storageBindings());
+            return this.modelGateway.decide(resolveBindings(prompt.decisionPrompt(), bound.storage()), bound);
         }
         throw unsupported(decision);
     }
 
     @Override
-    public void execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage) {
+    public RuntimeBehaviour execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage) {
         if (action instanceof IncrementActionComponent increment) {
             JsonNode current = storage.get(increment.targetStorageKey());
             if (current == null || !current.isIntegralNumber()) {
@@ -69,17 +71,21 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
                         + increment.targetStorageKey());
             }
             storage.put(increment.targetStorageKey(), JsonNodeFactory.instance.numberNode(current.longValue() + 1));
-            return;
+            return null;
         }
         if (action instanceof ExtractionActionComponent extraction) {
-            JsonNode value = this.modelGateway.extract(extraction.extractionPrompt(),
+            RuntimeInvocation bound = bound(invocation, extraction.storageBindings());
+            JsonNode value = this.modelGateway.extract(resolveBindings(extraction.extractionPrompt(), bound.storage()),
                     extraction.outputSchema() == null ? null : extraction.outputSchema().value(),
-                    bound(invocation, extraction.storageBindings()));
+                    bound);
             if (value == null) {
                 throw new IllegalStateException("extraction returned no value for " + extraction.targetStorageKey());
             }
             storage.put(extraction.targetStorageKey(), value);
-            return;
+            return null;
+        }
+        if (action instanceof PromptBehaviourActionComponent prompt) {
+            return generateWithPolicies(List.of(prompt.policy()), invocation, true);
         }
         throw unsupported(action);
     }
@@ -119,14 +125,15 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
         if (responsePrompt.isBlank()) {
             return null;
         }
-        RuntimePromptBundle promptBundle = new RuntimePromptBundle(responsePrompt,
-                starting ? deepest(prompts, PromptPolicyComponent::starterPrompt) : "",
-                deepest(prompts, PromptPolicyComponent::summaryPrompt),
-                deepest(prompts, PromptPolicyComponent::nonverbalPlanPrompt),
-                deepest(prompts, PromptPolicyComponent::gesturePrompt), starting);
         List<CompiledStorageBinding> bindings = prompts.stream().flatMap(prompt -> prompt.storageBindings().stream())
                 .toList();
-        RuntimeBehaviour behaviour = this.modelGateway.generate(promptBundle, bound(invocation, bindings));
+        RuntimeInvocation bound = bound(invocation, bindings);
+        RuntimePromptBundle promptBundle = new RuntimePromptBundle(resolveBindings(responsePrompt, bound.storage()),
+                starting ? resolveBindings(deepest(prompts, PromptPolicyComponent::starterPrompt), bound.storage()) : "",
+                resolveBindings(deepest(prompts, PromptPolicyComponent::summaryPrompt), bound.storage()),
+                resolveBindings(deepest(prompts, PromptPolicyComponent::nonverbalPlanPrompt), bound.storage()),
+                resolveBindings(deepest(prompts, PromptPolicyComponent::gesturePrompt), bound.storage()), starting);
+        RuntimeBehaviour behaviour = this.modelGateway.generate(promptBundle, bound);
         return behaviour == null || behaviour.isEmpty() ? null : behaviour;
     }
 
@@ -144,6 +151,14 @@ public final class BuiltInRuntimeComponentExecutor implements RuntimeComponentEx
     private static String join(List<String> prompts) {
         return prompts.stream().filter(value -> value != null && !value.isBlank())
                 .map(String::trim).collect(java.util.stream.Collectors.joining(PROMPT_SEPARATOR));
+    }
+
+    private static String resolveBindings(String prompt, Map<String, ImmutableJson> storage) {
+        String resolved = prompt == null ? "" : prompt;
+        for (Map.Entry<String, ImmutableJson> entry : storage.entrySet()) {
+            resolved = resolved.replace("${" + entry.getKey() + "}", entry.getValue().toString());
+        }
+        return resolved;
     }
 
     private static String deepest(List<PromptPolicyComponent> prompts,

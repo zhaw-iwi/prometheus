@@ -30,3 +30,10 @@ that identity with the canonical SHA-256 hash. It single-flights concurrent
 compilation, removes failures, supports prewarming, and exposes content-free
 observer callbacks/counters. Mutable instance state and history never enter this
 cache.
+
+The prompt-catalog migration also registers `prometheus.action.prompt-behaviour`
+for final-transition output and lets `prometheus.initializer.random-choice`
+reference `prometheus.resource.typed-choices`. Resource references are resolved
+to immutable values at compilation; runtime randomness still comes only from
+the caller-owned `RandomGenerator`. Prompt storage interpolation is limited to
+explicit typed `storageBindings`.

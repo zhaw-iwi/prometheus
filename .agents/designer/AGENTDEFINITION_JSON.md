@@ -173,6 +173,13 @@ Required fields are `key`, `valueSchema`, `required`, `visibility`, and `reset`.
 `description`, `initialValue`, and designer examples in the `examples` array
 are optional.
 
+Storage keys are stable safe identifiers and retain existing catalog casing
+where it is already part of prompt binding (for example
+`therapyAppointmentContext`). State, transition, resource, and prompt-section
+IDs use the lowercase stable-ID convention.
+Embedded JSON value-schema property names may likewise retain safe existing
+casing; they are data fields, not definition IDs.
+
 `visibility` is `internal` or `outcome`. `reset` is `initial`, `preserve`, or
 `remove`; version 1 migrations should select only modes supported by existing
 runtime semantics and tests.

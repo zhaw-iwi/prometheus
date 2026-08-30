@@ -33,6 +33,7 @@ public enum SemanticDiagnosticCode {
     MULTIPLE_STORAGE_INITIALIZERS(DiagnosticSeverity.ERROR),
     REQUIRED_STORAGE_UNINITIALIZED(DiagnosticSeverity.ERROR),
     MISSING_RESOURCE_REFERENCE(DiagnosticSeverity.ERROR),
+    RESOURCE_COMPONENT_MISMATCH(DiagnosticSeverity.ERROR),
     MISSING_STATE_REFERENCE(DiagnosticSeverity.ERROR),
     INVALID_PROMPT_STRUCTURE(DiagnosticSeverity.ERROR),
     DUPLICATE_PROMPT_SECTION_ID(DiagnosticSeverity.ERROR),

@@ -267,11 +267,11 @@ class AgentRuntimeEngineUnitTest {
         }
 
         @Override
-        public void execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage) {
+        public RuntimeBehaviour execute(CompiledAction action, RuntimeInvocation invocation, RuntimeStorage storage) {
             if (action instanceof IncrementActionComponent increment) {
                 this.incrementValuesBeforeExecution.add(storage.get(increment.targetStorageKey()).longValue());
             }
-            this.delegate.execute(action, invocation, storage);
+            return this.delegate.execute(action, invocation, storage);
         }
 
         @Override
