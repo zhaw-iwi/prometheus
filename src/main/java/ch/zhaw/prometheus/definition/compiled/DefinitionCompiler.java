@@ -140,6 +140,11 @@ public final class DefinitionCompiler implements CompiledDefinitionFactory {
             transitions.add(new CompiledTransition(transition.id(), statesById.get(transition.sourceStateId()),
                     statesById.get(transition.targetStateId()), transition.order(), decisions, actions));
         }
+        Map<String, List<CompiledState>> statePaths = compileStatePaths(states, definition.states());
+        Map<String, List<CompiledTransition>> transitionsBySource = new LinkedHashMap<>();
+        transitions.stream().sorted(java.util.Comparator.comparingInt(CompiledTransition::order)).forEach(transition ->
+                transitionsBySource.computeIfAbsent(transition.sourceState().id(), ignored -> new ArrayList<>())
+                        .add(transition));
 
         return new CompiledAgentDefinition(definition.schemaVersion(), definition.key(), definition.revision(),
                 this.definitionJson.contentHash(definition),
@@ -148,7 +153,30 @@ public final class DefinitionCompiler implements CompiledDefinitionFactory {
                         definition.metadata().tags()),
                 new CompiledInteraction(definition.interaction().supportedObservations(),
                         definition.interaction().supportedBehaviourModalities(), definition.interaction().profileTags()),
-                lifecycle, storage, resources, states, statesById, transitions);
+                lifecycle, storage, resources, states, statesById, transitions, statePaths, transitionsBySource);
+    }
+
+    private static Map<String, List<CompiledState>> compileStatePaths(List<CompiledState> states,
+            List<StateDefinition> sourceStates) {
+        Map<String, String> parents = new LinkedHashMap<>();
+        for (StateDefinition state : sourceStates) {
+            if (state instanceof CompositeStateDefinition composite) {
+                composite.childStateIds().forEach(childId -> parents.put(childId, composite.id()));
+            }
+        }
+        Map<String, CompiledState> byId = new LinkedHashMap<>();
+        states.forEach(state -> byId.put(state.id(), state));
+        Map<String, List<CompiledState>> paths = new LinkedHashMap<>();
+        for (CompiledState state : states) {
+            java.util.ArrayDeque<CompiledState> path = new java.util.ArrayDeque<>();
+            CompiledState current = state;
+            while (current != null) {
+                path.addFirst(current);
+                current = byId.get(parents.get(current.id()));
+            }
+            paths.put(state.id(), List.copyOf(path));
+        }
+        return paths;
     }
 
     private CompiledStorageDefinition compileStorage(StorageDefinition storage) {

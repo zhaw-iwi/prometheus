@@ -96,11 +96,13 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestones 1-3 use NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-4 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
 typed document records, canonical serializer, structured semantic diagnostics,
 deterministic prompt composer, registered component catalog, immutable compiler,
 and revision/hash-guarded single-flight cache are database-, provider-,
 persistence-, and Spring-free. Compiled graphs share no mutable instance state.
-This foundation does not yet change the production Java-authored catalog or
-runtime path; the generic state-machine engine is Milestone 4.
+The generic runtime now executes explicit per-instance state/storage/history
+snapshots with trusted injected component dependencies and observable change
+sets. This foundation does not yet change the production Java-authored catalog
+or runtime path; prompt-based catalog migration begins in Milestone 5.

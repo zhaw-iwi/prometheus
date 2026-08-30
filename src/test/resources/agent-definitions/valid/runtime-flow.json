@@ -1,0 +1,121 @@
+{
+  "$schema": "/agent-definitions/schema/agent-definition.schema.json",
+  "schemaVersion": 1,
+  "key": "test.runtime_flow",
+  "revision": 1,
+  "metadata": {
+    "displayName": "Runtime flow",
+    "description": "Exercises the immutable declarative runtime.",
+    "categoryPath": "test",
+    "languageCode": "en",
+    "tags": ["test.runtime"]
+  },
+  "interaction": {
+    "supportedObservations": ["obs.user_utterance", "obs.emotion.face", "obs.human.presence", "obs.social.grouping", "obs.social.context", "obs.hand.sign", "obs.weather.current"],
+    "supportedBehaviourModalities": [],
+    "profileTags": ["test.runtime"]
+  },
+  "lifecycle": {
+    "initialStateId": "root",
+    "startOnCreation": false,
+    "initializers": [],
+    "reset": {"storage": "initial", "history": "clear"}
+  },
+  "storage": [
+    {
+      "key": "count",
+      "valueSchema": {"type": "integer", "minimum": 0},
+      "required": true,
+      "visibility": "outcome",
+      "reset": "initial",
+      "initialValue": 0,
+      "examples": [0, 2]
+    }
+  ],
+  "resources": [],
+  "states": [
+    {
+      "id": "root", "name": "Root", "kind": "composite", "entryMode": "start", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.state-path", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.prompt", "version": 1, "config": {
+        "responsePrompt": {"sections": [{"id": "outer", "kind": "context", "content": "Outer policy."}]}
+      }},
+      "childStateIds": ["main"], "initialChildStateId": "main"
+    },
+    {
+      "id": "main", "name": "Main", "kind": "atomic", "entryMode": "start", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.state-path", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.prompt", "version": 1, "config": {
+        "responsePrompt": {"sections": [{"id": "inner", "kind": "objective", "content": "Inner policy."}]},
+        "starterPrompt": {"sections": [{"id": "starter", "kind": "starter", "content": "Start main."}]}
+      }}
+    },
+    {
+      "id": "outer_win", "name": "Outer win", "kind": "atomic", "entryMode": "start", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.any", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.prompt", "version": 1, "config": {
+        "responsePrompt": {"sections": [{"id": "response", "kind": "objective", "content": "Outer transition won."}]},
+        "starterPrompt": {"sections": [{"id": "starter", "kind": "starter", "content": "Start outer win."}]}
+      }}
+    },
+    {
+      "id": "inner_lose", "name": "Inner lose", "kind": "atomic", "entryMode": "start", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.any", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.no-op", "version": 1, "config": {}}
+    },
+    {
+      "id": "ordered", "name": "Ordered", "kind": "atomic", "entryMode": "start", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.any", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.no-op", "version": 1, "config": {}}
+    },
+    {
+      "id": "forget", "name": "Forget", "kind": "atomic", "entryMode": "start", "oblivious": true,
+      "eventSelector": {"kind": "prometheus.selector.any", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.prompt", "version": 1, "config": {
+        "responsePrompt": {"sections": [{"id": "response", "kind": "objective", "content": "Forget history."}]},
+        "starterPrompt": {"sections": [{"id": "starter", "kind": "starter", "content": "Start forget."}]}
+      }}
+    },
+    {
+      "id": "relay", "name": "Relay", "kind": "atomic", "entryMode": "reprocess-event", "oblivious": false,
+      "eventSelector": {"kind": "prometheus.selector.any", "version": 1, "config": {}},
+      "policy": {"kind": "prometheus.policy.no-op", "version": 1, "config": {}}
+    },
+    {"id": "done", "name": "Done", "kind": "final"}
+  ],
+  "transitions": [
+    {"id": "inner-route", "sourceStateId": "main", "targetStateId": "inner_lose", "order": 50,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.user_utterance"}}], "actions": []},
+    {"id": "outer-route", "sourceStateId": "root", "targetStateId": "outer_win", "order": 90,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.user_utterance"}}], "actions": []},
+    {"id": "order-late", "sourceStateId": "main", "targetStateId": "inner_lose", "order": 20,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.emotion.face"}}], "actions": []},
+    {"id": "order-early", "sourceStateId": "main", "targetStateId": "ordered", "order": 10,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.emotion.face"}}], "actions": []},
+    {"id": "self", "sourceStateId": "main", "targetStateId": "main", "order": 30,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.human.presence"}}],
+      "actions": [
+        {"kind": "prometheus.action.increment", "version": 1, "config": {"targetStorageKey": "count"}},
+        {"kind": "prometheus.action.increment", "version": 1, "config": {"targetStorageKey": "count"}}
+      ]},
+    {"id": "to-forget", "sourceStateId": "main", "targetStateId": "forget", "order": 40,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.social.grouping"}}], "actions": []},
+    {"id": "back", "sourceStateId": "forget", "targetStateId": "main", "order": 10,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.social.context"}}], "actions": []},
+    {"id": "to-relay", "sourceStateId": "main", "targetStateId": "relay", "order": 60,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.hand.sign"}}], "actions": []},
+    {"id": "relay-done", "sourceStateId": "relay", "targetStateId": "done", "order": 10,
+      "decisions": [{"kind": "prometheus.decision.latest-event-type", "version": 1, "config": {"eventType": "obs.hand.sign"}}], "actions": []},
+    {"id": "and-short-circuit", "sourceStateId": "main", "targetStateId": "outer_win", "order": 70,
+      "decisions": [
+        {"kind": "prometheus.decision.prompt", "version": 1, "config": {
+          "decisionPrompt": {"sections": [{"id": "first", "kind": "transition-criterion", "content": "First decision."}]},
+          "consumedObservations": ["obs.weather.current"]
+        }},
+        {"kind": "prometheus.decision.prompt", "version": 1, "config": {
+          "decisionPrompt": {"sections": [{"id": "second", "kind": "transition-criterion", "content": "Second decision."}]},
+          "consumedObservations": ["obs.weather.current"]
+        }}
+      ], "actions": []}
+  ]
+}
