@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ch.zhaw.prometheus.definition.validation.AgentDefinitionSchemaValidator;
+import ch.zhaw.prometheus.definition.prompt.PromptComposer;
 
 public final class AgentDefinitionJson {
     private final ObjectMapper objectMapper;
@@ -96,7 +97,13 @@ public final class AgentDefinitionJson {
             List<Map.Entry<String, JsonNode>> fields = new ArrayList<>();
             node.fields().forEachRemaining(fields::add);
             fields.sort(Comparator.comparing(Map.Entry::getKey));
-            fields.forEach(field -> sorted.set(field.getKey(), sortObjectProperties(field.getValue())));
+            fields.forEach(field -> {
+                JsonNode value = field.getValue();
+                if ("content".equals(field.getKey()) && value.isTextual() && looksLikePromptSection(node)) {
+                    value = JsonNodeFactory.instance.textNode(PromptComposer.normalizeLineEndings(value.asText()));
+                }
+                sorted.set(field.getKey(), sortObjectProperties(value));
+            });
             return sorted;
         }
         if (node.isArray()) {
@@ -105,6 +112,10 @@ public final class AgentDefinitionJson {
             return sorted;
         }
         return node;
+    }
+
+    private static boolean looksLikePromptSection(JsonNode node) {
+        return node.path("id").isTextual() && node.path("kind").isTextual() && node.path("content").isTextual();
     }
 
     private static ObjectMapper createObjectMapper() {

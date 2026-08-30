@@ -73,11 +73,12 @@ and regulation diagnostics remain future work.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestone 1 complete. Schema version 1 now has an
+- Designer roadmap: Milestones 1-2 complete. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
-  deterministic canonical JSON/SHA-256 content hashing, and structural fixture
-  contracts. The production catalog/runtime remains on the existing path until
-  the ordered Phase II cutover; Designer Milestone 2 is next.
+  deterministic canonical JSON/SHA-256 content hashing, structured semantic
+  graph/capability/storage/prompt diagnostics, and exact prompt-section
+  composition. The production catalog/runtime remains on the existing path
+  until the ordered Phase II cutover; Designer Milestone 3 is next.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

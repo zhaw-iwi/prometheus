@@ -96,8 +96,9 @@ an unverified UI.
 
 ## Current implementation note
 
-Milestone 1 uses NetworkNT `json-schema-validator` 2.0.7, the maintained
+Milestones 1-2 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
-typed document records, canonical serializer, and fixture contracts are
-database-, provider-, persistence-, and Spring-free. This foundation does not
-yet change the production Java-authored catalog or runtime path.
+typed document records, canonical serializer, structured semantic diagnostics,
+and deterministic prompt composer are database-, provider-, persistence-, and
+Spring-free. This foundation does not yet change the production Java-authored
+catalog or runtime path.

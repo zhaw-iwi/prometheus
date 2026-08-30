@@ -808,11 +808,11 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 ## Developing New Agents
 
 The declarative migration is in progress on `features/designer`. Schema version
-1, typed document mapping, structural validation, and canonical content hashing
-are available under `definition/` and `agent-definitions/schema/`, but the
-running catalog still uses the Java definitions below until the ordered Phase
-II cutover is complete. Do not treat the temporary coexistence as a permanent
-second authoring path.
+1, typed document mapping, structural/semantic validation, deterministic prompt
+composition, and canonical content hashing are available under `definition/`
+and `agent-definitions/schema/`, but the running catalog still uses the Java
+definitions below until the ordered Phase II cutover is complete. Do not treat
+the temporary coexistence as a permanent second authoring path.
 
 1. Start from an existing definition in `agentdefs/core` or
    `agentdefs/usecases/healthcare`.

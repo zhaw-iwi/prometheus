@@ -63,9 +63,10 @@ class AgentDefinitionJsonUnitTest {
         ObjectMapper objectMapper = new ObjectMapper();
         ObjectNode source = (ObjectNode) objectMapper.readTree(readFixture("valid/minimal-single-state.json"));
         source.withObject("/metadata").withArray("tags").add("test.fixture");
-        source.withObject("/interaction").withArray("supportedObservations").add("obs.user_utterance");
-        source.withObject("/interaction").withArray("supportedBehaviourModalities").add("speech");
-        source.withObject("/interaction").withArray("profileTags").add("test.fixture");
+        source.withObject("/interaction").withArray("supportedObservations")
+                .add("obs.user_utterance").add("obs.user_utterance");
+        source.withObject("/interaction").withArray("supportedBehaviourModalities").add("speech").add("speech");
+        source.withObject("/interaction").withArray("profileTags").add("test.fixture").add("test.fixture");
 
         AgentDefinitionDocument document = this.definitionJson.parse(objectMapper.writeValueAsString(source));
 
@@ -89,6 +90,22 @@ class AgentDefinitionJsonUnitTest {
                 this.definitionJson.contentHash(this.definitionJson.parse(reordered)));
         assertTrue(this.definitionJson.contentHash(document).matches("[0-9a-f]{64}"));
         assertTrue(canonical.indexOf("\"$schema\"") < canonical.indexOf("\"interaction\""));
+    }
+
+    @Test
+    void canonicalHashNormalizesPromptSectionLineEndings() throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode crlfTree = (ObjectNode) objectMapper.readTree(
+                readFixture("valid/deterministic-components.json"));
+        ObjectNode lfTree = crlfTree.deepCopy();
+        ((ObjectNode) crlfTree.at("/states/0/policy/config/responsePrompt/sections/0"))
+                .put("content", "Describe the deterministic\r\nresult.");
+        ((ObjectNode) lfTree.at("/states/0/policy/config/responsePrompt/sections/0"))
+                .put("content", "Describe the deterministic\nresult.");
+        AgentDefinitionDocument crlf = this.definitionJson.parse(objectMapper.writeValueAsString(crlfTree));
+        AgentDefinitionDocument lf = this.definitionJson.parse(objectMapper.writeValueAsString(lfTree));
+
+        assertEquals(this.definitionJson.contentHash(crlf), this.definitionJson.contentHash(lf));
     }
 
     @ParameterizedTest

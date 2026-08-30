@@ -11,9 +11,9 @@
     "tags": ["test.fixture"]
   },
   "interaction": {
-    "supportedObservations": ["obs.user_utterance"],
-    "supportedBehaviourModalities": ["speech"],
-    "profileTags": ["test.fixture"]
+    "supportedObservations": [],
+    "supportedBehaviourModalities": [],
+    "profileTags": []
   },
   "lifecycle": {
     "initialStateId": "main",

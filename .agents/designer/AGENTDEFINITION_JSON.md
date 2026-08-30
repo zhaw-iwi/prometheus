@@ -181,6 +181,14 @@ runtime semantics and tests.
 document supported keywords and reject unsupported keywords rather than
 pretending to enforce them.
 
+Schema version 1 supports this recursive subset: required `type`; descriptive
+`title` and `description`; object `properties`, `required`, and boolean
+`additionalProperties`; array `items`, `minItems`, and `maxItems`; string
+`minLength` and `maxLength`; numeric `minimum` and `maximum`; and `enum` or
+`const`. Unknown keywords are structural errors. Semantic validation enforces
+keyword/type context, declared required properties, ordered bounds, initial
+values, and component storage-shape compatibility.
+
 ## Component envelope
 
 Policies, decisions, actions, initializers, selectors, and deterministic
