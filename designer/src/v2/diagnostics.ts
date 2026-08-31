@@ -25,10 +25,14 @@ export function targetForDiagnostic(
     const transitionMatch = pointer.match(/^\/transitions\/(\d+)/);
     const stateId = stateMatch ? definition?.states[Number(stateMatch[1])]?.id : undefined;
     const ruleId = transitionMatch ? definition?.transitions[Number(transitionMatch[1])]?.id : undefined;
+    const conditionMatch = pointer.match(/^\/transitions\/\d+\/decisions\/(\d+)/);
+    const effectMatch = pointer.match(/^\/transitions\/\d+\/actions\/(\d+)/);
     return {
       stepId,
       fieldId: stateId ? `interaction-situation-${stateId}`
-        : ruleId ? `interaction-rule-${ruleId}` : "designer-panel-interaction",
+        : ruleId && conditionMatch ? `interaction-rule-${ruleId}-condition-${conditionMatch[1]}`
+          : ruleId && effectMatch ? `interaction-rule-${ruleId}-effect-${effectMatch[1]}`
+            : ruleId ? `interaction-rule-${ruleId}` : "designer-panel-interaction",
       message: diagnostic.message,
     };
   }

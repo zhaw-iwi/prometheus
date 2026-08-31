@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1-V2.3 complete; V2.4 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.4 complete; V2.5 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -233,13 +233,21 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   guided Exact text settings, and grouped deterministic operation cards. Raw
   component envelopes are confined to Technical details; selecting a
   capability never creates a rule, situation, transition, or modality mapping.
-  The focused gate now passes 41 frontend tests, type checking, production
-  build, component/prompt/API and catalog regressions, eight mocked Playwright
-  scenarios with inspected light/dark desktop/mobile captures, and an isolated-
-  H2 browser workflow that created and reloaded both prompt and exact-text
-  drafts without provider calls or access to the normal configured database.
-  Interaction, Data & outcome, and Try remain visibly read-only until their
-  owning milestones.
+  V2.4 replaces the Interaction placeholder with one canonical storyboard for
+  implicit Main, durable situations, inherited/local guidance, Always and
+  situation-scoped rules, generated event triggers, semantic conditions,
+  ordered registered effects, and stay/move/finish. It creates situations
+  inline, lazily creates/reuses a final state, protects referenced situations,
+  exposes keyboard priority controls and exact diagnostic targets, and derives
+  a compact read-only flow without restoring the removed graph editor. The
+  focused gate now passes 49 frontend tests, type checking, production build,
+  component/prompt/API/catalog/compiler regressions, ten mocked Playwright
+  scenarios with inspected light/dark desktop/mobile Interaction captures, and
+  an explicit in-memory-H2 browser workflow that saved and compile-validated
+  orthogonal stay, semantic role branch, two-situation healthcare, and cloned
+  registered RPS cycle designs without JSON editing, provider calls, or access
+  to the normal configured database. Data & outcome and Try remain visibly
+  read-only until their owning milestones.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

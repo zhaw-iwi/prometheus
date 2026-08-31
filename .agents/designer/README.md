@@ -247,6 +247,17 @@ outputs, and owned data. Kind/version/config are disclosed only under Technical
 details. Focused H2 browser coverage creates and reloads prompt and exact-text
 drafts without touching the configured database or external providers.
 
+Designer V2 Milestone V2.4 replaces the Interaction placeholder with one
+canonical storyboard rather than separate reaction and graph editors. Main,
+durable situations, effective/local ordered guidance, Always and scoped rules,
+meaning-based conditions, ordered registered effects, and stay/move/finish all
+edit the existing state/transition document directly. Situation/final creation,
+reference-protected deletion, keyboard priority controls, exact diagnostic
+targets, and a compact derived flow retain imported composite, branch, cycle,
+and final topology. Mocked browser coverage and isolated H2 authoring validate
+the representative stay, branch, healthcare, and registered RPS flows without
+JSON editing, normal-database access, or provider calls.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

@@ -15,7 +15,8 @@ describe("DesignerDefinitionEditor V2 shell", () => {
     expect(targetForDiagnostic(diagnostic("/metadata/displayName"), definition)).toMatchObject({ stepId: "brief", fieldId: "brief-display-name" });
     expect(targetForDiagnostic(diagnostic("/interaction/supportedObservations/0"), definition)).toMatchObject({ stepId: "capabilities" });
     expect(targetForDiagnostic(diagnostic("/states/1/policy"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-situation-main" });
-    expect(targetForDiagnostic(diagnostic("/transitions/0/actions/0"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-rule-stay" });
+    expect(targetForDiagnostic(diagnostic("/transitions/0/decisions/1"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-rule-stay-condition-1" });
+    expect(targetForDiagnostic(diagnostic("/transitions/0/actions/0"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-rule-stay-effect-0" });
     expect(targetForDiagnostic(diagnostic("/storage/0/valueSchema"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
     expect(targetForDiagnostic(diagnostic("/verification/scenarios/0"), definition)).toMatchObject({ stepId: "try" });
     expect(targetForDiagnostic(diagnostic(""), definition)).toMatchObject({ stepId: "review" });

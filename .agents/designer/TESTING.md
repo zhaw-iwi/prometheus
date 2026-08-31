@@ -309,6 +309,20 @@ in-memory H2 datasource and creates/reloads one prompt draft and one exact-text
 draft through the guided UI. It neither reads the normal datasource credentials
 nor calls a model, Speech, transcription, or sensing provider.
 
+Milestone V2.4 expands the focused frontend suite to 49 tests. Pure interaction
+contracts cover global/self/cross/cycle/final projection, source-local priority,
+ANDed prompt conditions and examples, ordered effects, collision-free
+situation/final creation, deletion protection, and scoped entry/response
+guidance. Component tests exercise the single rule-card path, keyboard reorder,
+derived flow, and exact condition/effect diagnostic targets. Ten mocked
+Playwright scenarios now include unified authoring, branch/cycle/final no-edit
+projection, validation-error focus, desktop, dark 390-pixel mobile, and visible
+keyboard focus. The H2 gate uses the explicit
+`jdbc:h2:mem:prometheus_designer_v24` datasource to create/save/compile-validate
+orthogonal stay rules, a semantic role branch, a two-situation healthcare
+flow, and a cloned registered RPS cycle without canonical JSON editing. It does
+not read the normal datasource, call providers, or claim MySQL verification.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original

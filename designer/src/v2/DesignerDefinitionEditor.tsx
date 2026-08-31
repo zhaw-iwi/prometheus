@@ -21,6 +21,7 @@ import { ProjectionOverviewPanels } from "./ProjectionOverviewPanels";
 import { BriefPanel } from "./BriefPanel";
 import { CapabilitiesPanel } from "./CapabilitiesPanel";
 import { briefIssues } from "./briefModel";
+import { InteractionPanel } from "./InteractionPanel";
 import {
   createDefaultDefinition,
   projectDefinition,
@@ -231,7 +232,7 @@ export function DesignerDefinitionEditor({
     }
   };
 
-  const overviewPanels = ProjectionOverviewPanels({ projection, components });
+  const overviewPanels = ProjectionOverviewPanels({ projection });
   const panels = {
     ...overviewPanels,
     brief: <BriefPanel projection={projection} persisted={persisted !== null} keyConfirmed={keyConfirmed}
@@ -239,6 +240,8 @@ export function DesignerDefinitionEditor({
       onChange={changeDefinition} />,
     capabilities: <CapabilitiesPanel projection={projection} components={components} readOnly={readOnly}
       onChange={changeDefinition} onGoToInteraction={() => setActiveStep("interaction")} />,
+    interaction: <InteractionPanel projection={projection} components={components} readOnly={readOnly}
+      onChange={changeDefinition} onGoToCapabilities={() => setActiveStep("capabilities")} />,
     review: <ReviewPanel definition={document} persisted={persisted} definitionSummary={definitionSummary}
       diagnostics={diagnostics} active={activeStep === "review"} dirty={dirty}
       validationCurrent={validatedFingerprint === serializedDefinition(document)} adminToken={adminToken}

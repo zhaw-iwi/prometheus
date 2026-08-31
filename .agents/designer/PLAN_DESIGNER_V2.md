@@ -438,7 +438,7 @@ npm run test:designer:live
 | V2.1. Normative specification, reference corpus, and component descriptors | Complete |
 | V2.2. Lossless V2 projection and direct V1 shell removal | Complete |
 | V2.3. Brief and Capabilities | Complete |
-| V2.4. Unified Interaction workspace | Not started |
+| V2.4. Unified Interaction workspace | Complete |
 | V2.5. Data and outcome authoring | Not started |
 | V2.6. Executable Try scenarios and explanations | Not started |
 | V2.7. Review, Advanced views, and lifecycle completion | Not started |
@@ -621,6 +621,17 @@ installed operations without component or state-machine jargon.
 - Commit and push before V2.4.
 
 ## Milestone V2.4 - Unified Interaction workspace
+
+**Status: Complete.** Interaction now presents one storyboard over canonical
+states and ordered transitions: implicit Main, durable situations, inherited
+and local guidance, Always/situation rule cards, event and semantic conditions,
+ordered registered effects, and stay/move/finish. Inline situation/final
+creation, reference-protected deletion, exact diagnostic targets, keyboard
+priority controls, and a compact derived flow preserve advanced imported
+topologies without reintroducing a graph editor. Focused unit/browser contracts
+cover the five reference topologies, and isolated H2 authoring validates stay,
+branch, healthcare, and registered RPS cycles without JSON editing or provider
+calls.
 
 ### Outcome
 

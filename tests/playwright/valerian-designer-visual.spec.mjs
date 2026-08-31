@@ -88,7 +88,7 @@ test("Brief edits identity and adopts long ordered guidance only after explicit 
   await expect(page.getByText("The shown preview predates the latest edits.", { exact: false })).toBeVisible();
   await example.getByRole("button", { name: "Use as starting point" }).click();
   await expect(page.getByTestId("dirty-state")).toHaveText("Unsaved changes");
-  await expect(page.locator(".guidance-card")).toHaveCount(7);
+  await expect(page.getByTestId("step-panel-brief").locator(".guidance-card")).toHaveCount(7);
   const moveLater = page.getByRole("button", { name: "Move guidance later" }).first();
   await moveLater.focus();
   await page.keyboard.press("Tab");
@@ -136,6 +136,84 @@ test("Capabilities declares availability, shows usage, selects exact text, and g
   await attach(page.getByTestId("step-panel-capabilities"), testInfo, "v2-capabilities-exact-rps-light");
   await assertNoOverflow(page);
   expect(errors).toEqual([]);
+});
+
+test("Interaction authors one event-condition-effect rule path, destinations, finish, and keyboard order", async ({ page }, testInfo) => {
+  const errors = collectPageErrors(page);
+  const definition = JSON.parse(readFileSync(resolve("src/test/resources/agent-definitions/valid/composite-flow.json"), "utf8"));
+  definition.key = "designer.interaction_acceptance";
+  definition.metadata.displayName = "Interaction acceptance agent";
+  definition.transitions = [];
+  const conversation = definition.states.find((state) => state.id === "conversation");
+  conversation.policy = {
+    kind: "prometheus.policy.prompt", version: 1,
+    config: { responsePrompt: { sections: [] }, consumedObservations: [], emittedModalities: [] },
+  };
+  const scenario = await installDesignerApiMock(page, { definition });
+  await openFixture(page, definition.key);
+  await page.getByTestId("step-target-interaction").click();
+  const main = page.getByTestId("situation-card-conversation");
+  await main.getByLabel("When").selectOption("obs.social.context");
+  await main.getByRole("button", { name: "Add interaction rule" }).click();
+  let firstRule = main.locator(".interaction-rule-card").first();
+  await firstRule.getByRole("button", { name: "Add condition" }).click();
+  await firstRule.getByLabel("Decision criterion").fill("The person needs a clarification before continuing.");
+  await firstRule.getByRole("button", { name: "Add positive example" }).click();
+  await firstRule.getByLabel("Positive example").fill("They explicitly say that the instruction is unclear.");
+  await firstRule.getByLabel("Effect type").selectOption("prometheus.action.prompt-behaviour");
+  await firstRule.getByRole("button", { name: "Add effect" }).click();
+  await firstRule.getByLabel("Response guidance").fill("Acknowledge the uncertainty and ask one concise clarifying question.");
+  await firstRule.getByLabel("New destination situation").fill("Clarification");
+  await firstRule.getByRole("button", { name: "Create and continue there" }).click();
+  await expect(page.locator('input.situation-name-input[value="Clarification"]')).toBeVisible();
+
+  await main.getByRole("button", { name: "Add interaction rule" }).click();
+  const secondRule = main.locator(".interaction-rule-card").nth(1);
+  await secondRule.getByLabel("Rule continuation").selectOption("finish");
+  const moveEarlier = secondRule.getByRole("button", { name: "Move rule earlier" });
+  await moveEarlier.focus();
+  await expect(moveEarlier).toBeFocused();
+  await moveEarlier.press("Enter");
+  await expect(main.locator(".interaction-rule-card").first().getByLabel("Rule continuation")).toHaveValue("finish");
+  await expect(page.getByText("prometheus.decision.prompt")).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: "Meaning-based condition" })).toBeVisible();
+  await expect(page.getByTestId("derived-flow-overview")).toContainText("Clarification");
+  await attach(page.getByTestId("step-panel-interaction"), testInfo, "v2-interaction-unified-rule-light");
+  await assertNoOverflow(page);
+
+  await page.getByTestId("step-target-review").click();
+  const represented = JSON.parse(await page.getByTestId("canonical-json-editor").inputValue());
+  expect(represented.transitions).toHaveLength(2);
+  expect(represented.transitions.some((transition) => transition.targetStateId === "done")).toBe(true);
+  expect(represented.transitions.some((transition) => transition.decisions.some((item) => item.kind === "prometheus.decision.prompt")
+    && transition.actions.some((item) => item.kind === "prometheus.action.prompt-behaviour"))).toBe(true);
+  expect(scenario.definition.transitions).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("Interaction derives branch, cycle, and final storyboards without editing canonical topology", async ({ browser }) => {
+  const fixtures = [
+    ["core/role_clarification_guessing_game/revision-1.json", "Valerian Core guessing game - Valerian guesses", "Valerian Core guessing game - user guesses"],
+    ["core/rock_scissor_paper/revision-1.json", "Valerian Core RPS Reveal Sign", "Valerian Core RPS Round Result"],
+    ["usecases/healthcare/therapy_appointment_reminder_intro/revision-1.json", "Valerian Use Cases Healthcare therapy reminder introduction", "Valerian Use Cases Healthcare therapy reminder use case"],
+  ];
+  for (const [resource, firstSituation, secondSituation] of fixtures) {
+    const definition = JSON.parse(readFileSync(resolve(CATALOG_ROOT, resource), "utf8"));
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const errors = collectPageErrors(page);
+    await installDesignerApiMock(page, { definition });
+    await openFixture(page, definition.key);
+    await page.getByTestId("step-target-interaction").click();
+    await expect(page.locator(`input.situation-name-input[value="${firstSituation}"]`)).toBeVisible();
+    await expect(page.locator(`input.situation-name-input[value="${secondSituation}"]`)).toBeVisible();
+    await expect(page.getByTestId("derived-flow-overview")).toBeVisible();
+    await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+    await page.getByTestId("step-target-review").click();
+    expect(JSON.parse(await page.getByTestId("canonical-json-editor").inputValue())).toEqual(definition);
+    expect(errors).toEqual([]);
+    await context.close();
+  }
 });
 
 test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gates", async ({ page }, testInfo) => {
@@ -233,6 +311,12 @@ test("390-pixel mobile stacks the V2 stepper and keeps projected panels within t
   await assertNoOverflow(page);
   await page.getByTestId("step-target-capabilities").click();
   await attach(page, testInfo, "v2-capabilities-dark-mobile");
+  await assertNoOverflow(page);
+  await page.getByTestId("step-target-interaction").click();
+  await expect(page.getByTestId("interaction-authoring")).toBeVisible();
+  await page.getByTestId("interaction-authoring").getByRole("button", { name: "Add interaction rule" }).last().focus();
+  await expect(page.getByTestId("interaction-authoring").getByRole("button", { name: "Add interaction rule" }).last()).toBeFocused();
+  await attach(page, testInfo, "v2-interaction-dark-mobile");
   await assertNoOverflow(page);
   await page.getByTestId("step-target-data-outcome").click();
   await attach(page, testInfo, "v2-data-outcome-dark-mobile");
