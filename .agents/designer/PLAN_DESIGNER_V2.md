@@ -435,7 +435,7 @@ npm run test:designer:live
 | Milestone | Status |
 | --- | --- |
 | V2.1. Normative specification, reference corpus, and component descriptors | Complete |
-| V2.2. Lossless V2 projection and direct V1 shell removal | Not started |
+| V2.2. Lossless V2 projection and direct V1 shell removal | Complete |
 | V2.3. Brief and Capabilities | Not started |
 | V2.4. Unified Interaction workspace | Not started |
 | V2.5. Data and outcome authoring | Not started |
@@ -499,6 +499,13 @@ data, and outcome cards.
 - Commit and push before V2.2.
 
 ## Milestone V2.2 - Lossless V2 projection and direct V1 shell removal
+
+**Status: Complete.** The only Designer shell now uses the exact six V2 steps
+over a complete canonical-document projection. All twelve bundled revisions
+round-trip without edits; V2 pointer targets and collision-free generators are
+covered. The V1 form, panels, graph, tests, styles, and React Flow dependency
+are removed. Later guided panels are explicit safe read-only projections until
+their owning milestones.
 
 ### Outcome
 

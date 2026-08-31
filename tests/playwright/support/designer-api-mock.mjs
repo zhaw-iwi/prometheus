@@ -9,25 +9,27 @@ const FIXTURE = JSON.parse(readFileSync(
 export const VISUAL_KEY = "designer.visual_acceptance";
 
 export async function installDesignerApiMock(page, options = {}) {
-  const definition = structuredClone(FIXTURE);
-  definition.key = VISUAL_KEY;
-  definition.revision = 1;
-  definition.metadata.displayName = "Visual acceptance agent";
-  definition.metadata.description = "Deterministic fixture for the six-step designer release gate.";
-  definition.metadata.categoryPath = "designer.visual";
-  const conversation = definition.states.find((state) => state.id === "conversation");
-  conversation.policy = {
-    kind: "prometheus.policy.prompt", version: 1,
-    config: {
-      responsePrompt: { sections: [{ id: "response.context", kind: "context", content: "Outer policy." }] },
-      consumedObservations: ["obs.user_utterance", "obs.social.context"], emittedModalities: ["speech", "display"],
-    },
-  };
-  definition.transitions.push({
-    id: "repeat", sourceStateId: "conversation", targetStateId: "conversation", order: 20,
-    decisions: [{ kind: "prometheus.decision.latest-event-type", version: 1, config: { eventType: "obs.user_utterance" } }],
-    actions: [],
-  });
+  const definition = structuredClone(options.definition ?? FIXTURE);
+  if (!options.definition) {
+    definition.key = VISUAL_KEY;
+    definition.revision = 1;
+    definition.metadata.displayName = "Visual acceptance agent";
+    definition.metadata.description = "Deterministic fixture for the six-step V2 release gate.";
+    definition.metadata.categoryPath = "designer.visual";
+    const conversation = definition.states.find((state) => state.id === "conversation");
+    conversation.policy = {
+      kind: "prometheus.policy.prompt", version: 1,
+      config: {
+        responsePrompt: { sections: [{ id: "response.context", kind: "context", content: "Outer policy." }] },
+        consumedObservations: ["obs.user_utterance", "obs.social.context"], emittedModalities: ["speech", "display"],
+      },
+    };
+    definition.transitions.push({
+      id: "repeat", sourceStateId: "conversation", targetStateId: "conversation", order: 20,
+      decisions: [{ kind: "prometheus.decision.latest-event-type", version: 1, config: { eventType: "obs.user_utterance" } }],
+      actions: [],
+    });
+  }
   const scenario = {
     catalogMode: options.catalogMode ?? "populated",
     catalogDelay: options.catalogDelay ?? 0,
@@ -216,8 +218,8 @@ function summary(scenario) {
 
 function diagnosticFixture() {
   return [
-    { code: "DISPLAY_NAME_REQUIRED", severity: "ERROR", pointer: "/metadata/displayName", message: "Give the agent a clear display name.", hint: "Return to Purpose." },
-    { code: "TRANSITION_TARGET_INVALID", severity: "ERROR", pointer: "/transitions/0/targetStateId", message: "Choose an existing target situation.", hint: "Inspect the move in State flow." },
+    { code: "DISPLAY_NAME_REQUIRED", severity: "ERROR", pointer: "/metadata/displayName", message: "Give the agent a clear display name.", hint: "Return to Brief." },
+    { code: "TRANSITION_TARGET_INVALID", severity: "ERROR", pointer: "/transitions/0/targetStateId", message: "Choose an existing target situation.", hint: "Inspect the rule in Interaction." },
   ];
 }
 

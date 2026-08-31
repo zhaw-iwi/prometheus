@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1 complete; V2.2 is next. The maintained product
+- Designer V2 roadmap: V2.1 and V2.2 complete; V2.3 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -215,11 +215,20 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   and an explicit non-guided rationale; strict config schemas now include safe
   author-facing titles, descriptions, defaults, and examples. Registry,
   controller, and production-catalog coverage tests protect these descriptors
-  without changing runtime behavior. The current Maven gate passes 309 Java
-  tests plus all 45 frontend tests, type checking, and the production build.
-  The V1 source frontend is intentionally still present only until V2.2
-  performs the direct shell/projection replacement; there is no second route or
-  compatibility mode.
+  without changing runtime behavior. V2.2 now serves one six-step shell over a
+  typed, frontend-only projection that retains the complete canonical document
+  and maps scoped prompt guidance, capabilities, situations, ordinary policies,
+  rules, data roles/outcomes, and verification scenarios. The outer-context-
+  plus-Main baseline, immutable transforms, collision-free IDs/orders, and V2
+  pointer targets are covered. All twelve production revisions pass no-edit
+  round-trip tests, and mocked browser coverage opens/exports prompt,
+  exact-text, RPS, and healthcare revisions unchanged. Inspected light desktop
+  and dark 390-pixel screenshots had no overflow or browser errors. The V1
+  form/panels/graph/tests/styles and React Flow dependency are deleted; there is
+  no second route, flag, or compatibility mode. The focused gate passes 32
+  frontend tests, type checking, production build, generated-resource/redirect
+  Spring contracts, and six mocked Playwright scenarios. Later guided panels
+  are visibly read-only until their owning milestones.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

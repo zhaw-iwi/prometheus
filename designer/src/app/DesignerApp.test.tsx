@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ADMIN_TOKEN_STORAGE_KEY, type DefinitionSummary, type RequestFunction } from "../api/designerApi";
+import { createDefaultDefinition } from "../v2/projection";
 import { DesignerApp } from "./DesignerApp";
 
 function response(payload: unknown, status = 200): Response {
@@ -41,7 +42,9 @@ describe("DesignerApp catalog", () => {
 
   it("renders an empty state and routes create into the six-step editor", async () => {
     const user = userEvent.setup();
-    const request = vi.fn().mockResolvedValue(response([]));
+    const request = vi.fn((input: RequestInfo | URL) => Promise.resolve(
+      String(input).endsWith("/validation") ? response({ valid: true, diagnostics: [] }) : response([]),
+    ));
     render(<DesignerApp request={request} />);
 
     expect(await screen.findByTestId("catalog-empty")).not.toBeNull();
@@ -65,14 +68,23 @@ describe("DesignerApp catalog", () => {
 
   it("warns before internal navigation discards an edited draft", async () => {
     const user = userEvent.setup();
-    const request = vi.fn().mockResolvedValue(response([]));
+    const request = vi.fn((input: RequestInfo | URL) => Promise.resolve(
+      String(input).endsWith("/validation") ? response({ valid: true, diagnostics: [] }) : response([]),
+    ));
     const confirm = vi.fn().mockReturnValue(false);
     vi.stubGlobal("confirm", confirm);
     render(<DesignerApp request={request} />);
 
     await screen.findByTestId("catalog-empty");
     await user.click(screen.getByTestId("create-definition"));
-    await user.type(screen.getByLabelText(/What should this agent be called/), "Unsaved draft");
+    await user.click(screen.getByTestId("step-target-review"));
+    const changed = createDefaultDefinition();
+    changed.key = "designer.unsaved";
+    changed.metadata.displayName = "Unsaved draft";
+    changed.metadata.description = "A draft changed through the canonical V2 projection.";
+    fireEvent.change(screen.getByTestId("canonical-json-editor"), { target: { value: JSON.stringify(changed) } });
+    await user.click(screen.getByTestId("apply-canonical-json"));
+    await screen.findByText(/JSON applied to the V2 projection/);
     await user.click(screen.getByRole("button", { name: "Open definition catalog" }));
 
     expect(confirm).toHaveBeenCalledWith("Discard unsaved designer changes?");

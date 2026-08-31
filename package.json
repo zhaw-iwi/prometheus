@@ -19,7 +19,6 @@
     "test:talktome:visual": "playwright test --config=playwright.config.mjs tests/playwright/talktome.spec.mjs"
   },
   "dependencies": {
-    "@xyflow/react": "12.11.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

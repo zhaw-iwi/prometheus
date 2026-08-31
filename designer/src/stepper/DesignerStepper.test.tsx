@@ -15,25 +15,25 @@ describe("DesignerStepper", () => {
     ));
     expect(tabs[0].getAttribute("aria-current")).toBe("step");
     expect(tabs[0].getAttribute("aria-selected")).toBe("true");
-    expect((screen.getByTestId("step-panel-purpose") as HTMLElement).hidden).toBe(false);
+    expect((screen.getByTestId("step-panel-brief") as HTMLElement).hidden).toBe(false);
 
-    await user.click(screen.getByTestId("step-target-state-flow"));
+    await user.click(screen.getByTestId("step-target-data-outcome"));
 
-    expect(screen.getByTestId("step-target-state-flow").getAttribute("aria-current")).toBe("step");
-    expect(screen.getByTestId("step-target-purpose").hasAttribute("aria-current")).toBe(false);
-    expect((screen.getByTestId("step-panel-state-flow") as HTMLElement).hidden).toBe(false);
-    expect((screen.getByTestId("step-panel-purpose") as HTMLElement).hidden).toBe(true);
+    expect(screen.getByTestId("step-target-data-outcome").getAttribute("aria-current")).toBe("step");
+    expect(screen.getByTestId("step-target-brief").hasAttribute("aria-current")).toBe(false);
+    expect((screen.getByTestId("step-panel-data-outcome") as HTMLElement).hidden).toBe(false);
+    expect((screen.getByTestId("step-panel-brief") as HTMLElement).hidden).toBe(true);
   });
 
   it("navigates with next and back and clamps requests to valid bounds", async () => {
     const user = userEvent.setup();
     render(<DesignerStepper />);
 
-    expect((screen.getByTestId("step-back-purpose") as HTMLButtonElement).disabled).toBe(true);
-    await user.click(screen.getByTestId("step-next-purpose"));
-    expect(screen.getByTestId("step-target-sensing").getAttribute("aria-selected")).toBe("true");
-    await user.click(screen.getByTestId("step-back-sensing"));
-    expect(screen.getByTestId("step-target-purpose").getAttribute("aria-selected")).toBe("true");
+    expect((screen.getByTestId("step-back-brief") as HTMLButtonElement).disabled).toBe(true);
+    await user.click(screen.getByTestId("step-next-brief"));
+    expect(screen.getByTestId("step-target-capabilities").getAttribute("aria-selected")).toBe("true");
+    await user.click(screen.getByTestId("step-back-capabilities"));
+    expect(screen.getByTestId("step-target-brief").getAttribute("aria-selected")).toBe("true");
     expect(clampStepIndex(-10)).toBe(0);
     expect(clampStepIndex(99)).toBe(5);
 
@@ -43,13 +43,13 @@ describe("DesignerStepper", () => {
 
   it("opens and focuses the panel identified by a validation target", () => {
     const onStepChange = vi.fn();
-    const field = <input id="sensing-capability" aria-label="Sensing capability" />;
-    render(<DesignerStepper panels={{ sensing: field }} onStepChange={onStepChange}
-      validationTarget={{ stepId: "sensing", fieldId: "sensing-capability", message: "Choose a signal." }} />);
+    const field = <input id="capability-card" aria-label="Capability card" />;
+    render(<DesignerStepper panels={{ capabilities: field }} onStepChange={onStepChange}
+      validationTarget={{ stepId: "capabilities", fieldId: "capability-card", message: "Choose a capability." }} />);
 
-    expect((screen.getByTestId("step-panel-sensing") as HTMLElement).hidden).toBe(false);
-    expect(document.activeElement).toBe(screen.getByLabelText("Sensing capability"));
-    expect(screen.getByRole("alert").textContent).toContain("Choose a signal.");
-    expect(onStepChange).toHaveBeenCalledWith("sensing");
+    expect((screen.getByTestId("step-panel-capabilities") as HTMLElement).hidden).toBe(false);
+    expect(document.activeElement).toBe(screen.getByLabelText("Capability card"));
+    expect(screen.getByRole("alert").textContent).toContain("Choose a capability.");
+    expect(onStepChange).toHaveBeenCalledWith("capabilities");
   });
 });

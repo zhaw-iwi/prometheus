@@ -83,10 +83,12 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestone V2.1 establishes this maintained product contract and the backend
-component authoring descriptors. The direct source-frontend replacement occurs
-in V2.2; the previously delivered V1 panel sequence is historical and is not a
-supported alternate mode.
+V2 Milestones V2.1-V2.2 establish this product contract, backend component
+authoring descriptors, and the direct source-frontend replacement. The active
+shell projects the complete canonical document into the six V2 steps; panels
+scheduled for later milestones are explicitly read-only until their guided
+editors arrive. The V1 form/panels, graph implementation, tests, styles, and
+XYFlow dependency are removed rather than retained as an alternate mode.
 
 ### Valerian Access Management
 
@@ -375,12 +377,11 @@ npm run test:designer:visual
 
 The V2 suite records inspectable evidence under `test-results/designer-visual`
 for catalog states; Brief, Capabilities, Interaction, Data & outcome, Try, and
-Review; one-state and phased storyboards; linked diagnostics; scenarios;
-Advanced views; lifecycle states; keyboard focus; light desktop; and dark
-390-pixel mobile layout. During V2.1 the existing V1 screenshots remain only as
-a replacement baseline; V2 milestone gates must run and inspect the updated
-suite before claiming visual verification. Browser evidence and traces are
-generated artifacts and must not be committed.
+Review; no-edit prompt/exact-text/RPS/healthcare exports; linked diagnostics;
+lifecycle states; keyboard focus; light desktop; and dark 390-pixel mobile
+layout. Milestone gates must run and inspect the current screenshots before
+claiming visual verification. Browser evidence and traces are generated
+artifacts and must not be committed.
 
 Run it only against an explicitly named dedicated local schema:
 

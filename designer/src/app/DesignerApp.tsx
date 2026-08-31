@@ -8,7 +8,7 @@ import {
   type DefinitionSummary,
   type RequestFunction,
 } from "../api/designerApi";
-import { DefinitionAuthoringEditor } from "../authoring/DefinitionAuthoringEditor";
+import { DesignerDefinitionEditor } from "../v2/DesignerDefinitionEditor";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { designerRouteHash, parseDesignerRoute, type DesignerRoute } from "../routing/designerRoute";
 
@@ -359,7 +359,7 @@ function Editor({ route, definitions, components, adminToken, request, onNavigat
           ? "Draft workspace" : selectedRevision?.status === "PUBLISHED" ? "Published revision"
             : selectedRevision?.status === "ARCHIVED" ? "Archived revision" : "Revision workspace"}</span>
       </div>
-      <DefinitionAuthoringEditor key={route.kind === "new" ? "new" : `${route.key}:${route.revision}`}
+      <DesignerDefinitionEditor key={route.kind === "new" ? "new" : `${route.key}:${route.revision}`}
         route={route} components={components} definitionSummary={definition} adminToken={adminToken} request={request}
         onDirtyChange={onDirtyChange} onSaved={onSaved} onWorkspaceChanged={onWorkspaceChanged} />
     </section>

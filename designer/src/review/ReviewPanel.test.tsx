@@ -7,7 +7,7 @@ import type {
   PreviewSnapshot,
   RequestFunction,
 } from "../api/designerApi";
-import { createDefaultDefinition } from "../authoring/editorModel";
+import { createDefaultDefinition } from "../v2/projection";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { ReviewPanel } from "./ReviewPanel";
 
@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("ReviewPanel", () => {
-  it("preserves the guided form on parse failure and applies a valid JSON edit through backend validation", async () => {
+  it("preserves the projected document on parse failure and applies a valid JSON edit through backend validation", async () => {
     const user = userEvent.setup();
     const definition = validDefinition();
     const apply = vi.fn().mockResolvedValue({ applied: true, message: "Applied safely." });
@@ -25,7 +25,7 @@ describe("ReviewPanel", () => {
 
     fireEvent.change(screen.getByTestId("canonical-json-editor"), { target: { value: '{\n  "key":' } });
     await user.click(screen.getByTestId("apply-canonical-json"));
-    expect((await screen.findByTestId("json-message")).textContent).toContain("guided form was not changed");
+    expect((await screen.findByTestId("json-message")).textContent).toContain("projected document was not changed");
     expect(apply).not.toHaveBeenCalled();
 
     const changed = structuredClone(definition);

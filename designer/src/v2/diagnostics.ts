@@ -1,0 +1,49 @@
+import type { DefinitionDiagnostic } from "../api/designerApi";
+import type { AgentDefinitionV1 } from "../model/agentDefinition";
+import type { DesignerStepId, ValidationTarget } from "../stepper/DesignerStepper";
+
+export function diagnosticStep(diagnostic: DefinitionDiagnostic): DesignerStepId {
+  const pointer = diagnostic.pointer;
+  if (pointer.startsWith("/interaction")) return "capabilities";
+  if (pointer.startsWith("/states") || pointer.startsWith("/transitions")
+    || pointer === "/lifecycle/initialStateId" || pointer === "/lifecycle/startOnCreation") return "interaction";
+  if (pointer.startsWith("/storage") || pointer.startsWith("/resources")
+    || pointer.startsWith("/lifecycle/initializers") || pointer.startsWith("/lifecycle/reset")) return "data-outcome";
+  if (pointer.startsWith("/verification")) return "try";
+  if (pointer === "") return "review";
+  return "brief";
+}
+
+export function targetForDiagnostic(
+  diagnostic: DefinitionDiagnostic,
+  definition?: AgentDefinitionV1,
+): ValidationTarget {
+  const stepId = diagnosticStep(diagnostic);
+  const pointer = diagnostic.pointer;
+  if (stepId === "interaction") {
+    const stateMatch = pointer.match(/^\/states\/(\d+)/);
+    const transitionMatch = pointer.match(/^\/transitions\/(\d+)/);
+    const stateId = stateMatch ? definition?.states[Number(stateMatch[1])]?.id : undefined;
+    const ruleId = transitionMatch ? definition?.transitions[Number(transitionMatch[1])]?.id : undefined;
+    return {
+      stepId,
+      fieldId: stateId ? `interaction-situation-${stateId}`
+        : ruleId ? `interaction-rule-${ruleId}` : "designer-panel-interaction",
+      message: diagnostic.message,
+    };
+  }
+  if (stepId === "data-outcome") {
+    const storageMatch = pointer.match(/^\/storage\/(\d+)/);
+    const key = storageMatch ? definition?.storage[Number(storageMatch[1])]?.key : undefined;
+    return {
+      stepId,
+      fieldId: typeof key === "string" ? `data-item-${key}` : "designer-panel-data-outcome",
+      message: diagnostic.message,
+    };
+  }
+  const fieldId = stepId === "brief" && pointer.startsWith("/metadata/displayName") ? "brief-display-name"
+    : stepId === "brief" ? "designer-panel-brief"
+      : stepId === "capabilities" ? "designer-panel-capabilities"
+        : stepId === "try" ? "designer-panel-try" : "review-validation-title";
+  return { stepId, fieldId, message: diagnostic.message };
+}

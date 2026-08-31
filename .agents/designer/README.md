@@ -222,6 +222,17 @@ explicit rationale for non-guided components. Config schemas carry safe titles,
 descriptions, defaults, and examples. The frontend shell replacement begins in
 V2.2; no alternate route or compatibility mode is permitted.
 
+Designer V2 Milestone V2.2 replaces that shell directly. A typed frontend-only
+projection retains the complete canonical document while mapping identity, all
+ordinary-policy prompt fields and scoped guidance, capabilities, situations,
+policies, rules, data roles/outcomes, registered envelopes, and verification
+scenarios. It supplies focused immutable transforms, stable ID/order generation,
+and V2 diagnostic targets. The six V2 steps preserve save, dirty, conflict,
+validation, JSON, and lifecycle behavior; later guided panels are visibly
+read-only until their milestones. All twelve production revisions pass no-edit
+round-trip coverage. The V1 authoring modules/tests/styles and React Flow
+dependency are deleted, with no wrapper, route, flag, or compatibility mode.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

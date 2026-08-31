@@ -1,12 +1,12 @@
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from "react";
 
 export const DESIGNER_STEPS = [
-  { id: "purpose", title: "Purpose", caption: "Define its role and goal." },
-  { id: "sensing", title: "Sensing", caption: "Choose what it perceives." },
-  { id: "behaviour", title: "Behaviour", caption: "Choose how it responds." },
-  { id: "reactions", title: "Reactions", caption: "Connect inputs to outputs." },
-  { id: "state-flow", title: "State flow", caption: "Add conversational situations." },
-  { id: "review", title: "Review", caption: "Validate, test, and publish." },
+  { id: "brief", title: "Brief", caption: "Set purpose and conduct." },
+  { id: "capabilities", title: "Capabilities", caption: "Choose what it can notice and do." },
+  { id: "interaction", title: "Interaction", caption: "Design ordinary behavior and exceptions." },
+  { id: "data-outcome", title: "Data & outcome", caption: "Define context and results." },
+  { id: "try", title: "Try", caption: "Test concrete examples." },
+  { id: "review", title: "Review", caption: "Validate and publish." },
 ] as const;
 
 export type DesignerStepId = (typeof DESIGNER_STEPS)[number]["id"];

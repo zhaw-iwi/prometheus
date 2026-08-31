@@ -1,6 +1,8 @@
 import type { DefinitionDiagnostic } from "../api/designerApi";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { DESIGNER_STEPS, type DesignerStepId } from "../stepper/DesignerStepper";
+import { diagnosticStep } from "../v2/diagnostics";
+import { projectDefinition } from "../v2/projection";
 
 export interface DiagnosticGroup {
   stepId: DesignerStepId;
@@ -37,19 +39,6 @@ export function prettyDefinition(definition: AgentDefinitionV1): string {
   return `${JSON.stringify(definition, null, 2)}\n`;
 }
 
-export function diagnosticStep(diagnostic: DefinitionDiagnostic): DesignerStepId {
-  const pointer = diagnostic.pointer;
-  if (pointer.startsWith("/interaction/supportedObservations")) return "sensing";
-  if (pointer.startsWith("/interaction/supportedBehaviourModalities")) return "behaviour";
-  if (/^\/transitions\/\d+\/(?:decisions|actions)/.test(pointer)) return "reactions";
-  if (/^\/states\/\d+\/policy\/config\/.+Prompt/.test(pointer)) return "behaviour";
-  if (pointer.startsWith("/states") || pointer.startsWith("/transitions")
-    || pointer.startsWith("/lifecycle") || pointer.startsWith("/storage")
-    || pointer.startsWith("/resources")) return "state-flow";
-  if (pointer.startsWith("/verification") || pointer === "") return "review";
-  return "purpose";
-}
-
 export function groupDiagnostics(diagnostics: DefinitionDiagnostic[]): DiagnosticGroup[] {
   const severityRank = { ERROR: 0, WARNING: 1 } as const;
   const sorted = [...diagnostics].sort((left, right) => severityRank[left.severity] - severityRank[right.severity]
@@ -62,19 +51,20 @@ export function groupDiagnostics(diagnostics: DefinitionDiagnostic[]): Diagnosti
 }
 
 export function plainSummary(definition: AgentDefinitionV1): Array<{ label: string; value: string }> {
-  const rootStates = definition.states.filter((state) => !definition.states.some((candidate) =>
-    candidate.kind === "composite" && candidate.childStateIds.includes(state.id)));
+  const projection = projectDefinition(definition);
   return [
-    { label: "Purpose", value: definition.metadata.description || "No purpose description yet." },
-    { label: "Sensing", value: countLabel(definition.interaction.supportedObservations.length, "observation") },
-    { label: "Behaviour", value: countLabel(definition.interaction.supportedBehaviourModalities.length, "modality", "modalities") },
-    { label: "Reactions", value: countLabel(definition.transitions.length, "move") },
-    { label: "State flow", value: `${countLabel(definition.states.length, "situation")} · ${countLabel(rootStates.length, "top-level situation")}` },
+    { label: "Brief", value: definition.metadata.description || "No purpose description yet." },
+    { label: "Capabilities", value: `${countLabel(projection.capabilities.observations.length, "input")} · ${countLabel(projection.capabilities.behaviourModalities.length, "output")}` },
+    { label: "Interaction", value: `${countLabel(projection.situations.length, "situation")} · ${countLabel(projection.rules.length, "rule")}` },
+    { label: "Data & outcome", value: `${countLabel(projection.data.items.length, "data item")} · ${countLabel(projection.outcomes.items.length, "outcome")}` },
+    { label: "Try", value: countLabel(projection.verification.scenarios.length, "scenario") },
   ];
 }
 
-function countLabel(count: number, singular: string, plural = `${singular}s`): string {
-  return `${count} ${count === 1 ? singular : plural}`;
+export { diagnosticStep };
+
+function countLabel(count: number, singular: string): string {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
 }
 
 function parseOffset(message: string): number | null {

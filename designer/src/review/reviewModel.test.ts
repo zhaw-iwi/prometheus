@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DefinitionDiagnostic } from "../api/designerApi";
-import { createDefaultDefinition } from "../authoring/editorModel";
+import { createDefaultDefinition } from "../v2/projection";
 import { diagnosticStep, groupDiagnostics, parseDefinitionJson, plainSummary, prettyDefinition } from "./reviewModel";
 
 describe("review model", () => {
@@ -17,7 +17,9 @@ describe("review model", () => {
 
   it("groups ordered actionable diagnostics across every guided step", () => {
     const diagnostics: DefinitionDiagnostic[] = [
+      diagnostic("", "WARNING"),
       diagnostic("/verification/scenarios/0", "WARNING"),
+      diagnostic("/storage/0/valueSchema", "ERROR"),
       diagnostic("/transitions/0/actions/0/config", "ERROR"),
       diagnostic("/states/0/policy/config/responsePrompt/sections/0", "ERROR"),
       diagnostic("/states/0/id", "WARNING"),
@@ -27,9 +29,9 @@ describe("review model", () => {
     ];
 
     expect(groupDiagnostics(diagnostics).map((group) => group.stepId)).toEqual([
-      "purpose", "sensing", "behaviour", "reactions", "state-flow", "review",
+      "brief", "capabilities", "interaction", "data-outcome", "try", "review",
     ]);
-    expect(diagnosticStep(diagnostics[1])).toBe("reactions");
+    expect(diagnosticStep(diagnostics[3])).toBe("interaction");
     expect(groupDiagnostics(diagnostics)[2].diagnostics[0].severity).toBe("ERROR");
   });
 
@@ -39,7 +41,7 @@ describe("review model", () => {
     definition.transitions.push({ id: "stay", sourceStateId: "main", targetStateId: "main", order: 10, decisions: [], actions: [] });
 
     expect(plainSummary(definition).map((item) => item.value)).toEqual([
-      "No purpose description yet.", "1 observation", "0 modalities", "1 move", "1 situation · 1 top-level situation",
+      "No purpose description yet.", "1 input · 0 outputs", "1 situation · 1 rule", "0 data items · 0 outcomes", "0 scenarios",
     ]);
   });
 });

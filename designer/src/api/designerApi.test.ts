@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
-import { createDefaultDefinition } from "../authoring/editorModel";
+import { createDefaultDefinition } from "../v2/projection";
 import {
   ADMIN_TOKEN_HEADER,
   activateDefinitionRevision,

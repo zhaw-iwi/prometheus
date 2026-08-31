@@ -56,7 +56,7 @@ class ValerianDesignerStaticResourceContractTest {
 
         assertTrue(javascript.contains("X-Prometheus-Admin-Token"));
         assertTrue(javascript.contains("prometheus.valerianAdmin.adminToken"));
-        for (String title : new String[] { "Purpose", "Sensing", "Behaviour", "Reactions", "State flow",
+        for (String title : new String[] { "Brief", "Capabilities", "Interaction", "Data & outcome", "Try",
                 "Review" }) {
             assertTrue(javascript.contains(title));
         }

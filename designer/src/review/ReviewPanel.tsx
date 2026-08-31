@@ -125,7 +125,7 @@ export function ReviewPanel({
     const parsed = parseDefinitionJson(jsonDraft);
     if (!parsed.ok) {
       const location = parsed.failure.line === null ? "" : ` at line ${parsed.failure.line}, column ${parsed.failure.column}`;
-      setJsonMessage(`JSON parse error${location}. The guided form was not changed. ${parsed.failure.message}`);
+      setJsonMessage(`JSON parse error${location}. The projected document was not changed. ${parsed.failure.message}`);
       return;
     }
     setJsonApplying(true);
@@ -348,11 +348,11 @@ export function ReviewPanel({
 
       <details className="review-section technical-details" open>
         <summary>Technical details</summary>
-        <p>Canonical JSON edits replace the same guided form only after local parsing and backend structural validation.</p>
+        <p>Canonical JSON edits replace the same V2 projection only after local parsing and backend structural validation.</p>
         <label className="field-stack">Canonical definition JSON<textarea className="json-editor" value={jsonDraft}
           onChange={(change) => setJsonDraft(change.target.value)} spellCheck={false} data-testid="canonical-json-editor" /></label>
         <div className="button-row"><button className="button secondary" type="button" disabled={jsonApplying}
-          onClick={() => void applyJson()} data-testid="apply-canonical-json">Apply JSON to guided form</button></div>
+          onClick={() => void applyJson()} data-testid="apply-canonical-json">Apply JSON to V2 projection</button></div>
         {jsonMessage && <p className="inline-message" role="status" data-testid="json-message">{jsonMessage}</p>}
         <h4>Composed prompt previews</h4>
         {promptState === "loading" && <p aria-busy="true">Composing prompts…</p>}

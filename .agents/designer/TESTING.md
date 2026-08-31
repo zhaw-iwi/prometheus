@@ -282,6 +282,18 @@ annotations and authoring metadata, authenticated API projection, no
 implementation-name leakage, and guided-or-explicit-Advanced coverage for
 every component actually used by the twelve bundled definitions.
 
+Milestone V2.2 uses the production manifest itself for twelve-definition
+projection/round-trip tests. Focused Vitest coverage also protects unknown
+prompt sections and envelopes, schema/resource/initializer/scenario retention,
+the outer-context-plus-Main baseline, immutable transforms, stable IDs/orders,
+the exact six-step ARIA/navigation contract, V2 pointer targeting, and
+navigation-without-dirty-state. The mocked Playwright gate opens and exports
+representative prompt, exact-text, RPS, and healthcare revisions unchanged and
+inspects light desktop plus dark 390-pixel layouts without provider calls.
+`ValerianDesignerStaticResourceContractTest` asserts the V2 labels in the
+generated bundle; the milestone source search separately proves that V1 module
+names and step IDs no longer occur in production or current frontend tests.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original
