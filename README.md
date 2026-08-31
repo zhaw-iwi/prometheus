@@ -53,48 +53,40 @@ and authoritative while the regulation layer develops.
 
 URL: `http://localhost:8080/valerian-design/`
 
-Valerian Designer is the administrative authoring surface for declarative agent
-definitions. Enter the existing PROMETHEUS admin token to browse the revision
-catalog and open the guided Purpose, Sensing, Behaviour, Reactions, State flow,
-and Review workflow. Purpose, Sensing, and Behaviour edit one schema-version-1
-document, including ordered prompt guidance, observation/output capabilities,
-registered response strategies, explicit save, backend diagnostics, and
-optimistic-conflict recovery. Reactions edit the same ordered transitions used
-by the runtime: choose a declared observation and situation, add ordered
-conditions/actions or response guidance, select a target, and reorder the
-first-match priority. Advanced component fields are rendered from the backend
-catalog schema, with an explicit action to synchronize undeclared capabilities.
+Valerian Designer is the admin-token-protected authoring surface for canonical
+schema-version-1 agent definitions. Designer V2 is organized for domain experts
+as **Brief**, **Capabilities**, **Interaction**, **Data & outcome**, **Try**, and
+**Review**. These guided views retain the complete JSON document; they are not a
+second stored language.
 
-State flow starts with the explicit default situation and expands to atomic,
-group, and finished situations only when needed. Use **Visual graph** to inspect
-containment, initial situations, edges, cycles, and self-moves; select a node or
-edge to open its inspector. Use **Keyboard list** for the equivalent add, edit,
-delete, reorder, containment, initial-child, and transition operations with
-ordinary buttons and tables. Backend graph diagnostics link to and mark the
-affected situation or move.
+- **Brief** captures identity, purpose, audience, conduct, and ordered
+  agent-wide guidance.
+- **Capabilities** declares what the agent can notice, express, or perform.
+  Selecting a capability does not create flow. Exact text and RPS are guided
+  registered capabilities rather than scripts or raw Java configuration.
+- **Interaction** begins with one implicit Main interaction. Add another
+  situation only for a durable phase change. One ordered rule model covers
+  event/entry triggers, optional conditions, ordered effects, and
+  stay/move/finish; the graph is an optional derived Advanced view.
+- **Data & outcome** presents starting context, working data, learned
+  information, and outcome reports without hiding the canonical schemas,
+  resources, initializers, or bindings.
+- **Try** authors Given / When / Expect scenarios and executes them through an
+  isolated production compiler/runtime preview with safe trace explanations.
+- **Review** provides a reverse summary, authoritative linked diagnostics,
+  read-only composed prompts, canonical JSON/flow Advanced views, free-form
+  preview, and explicit lifecycle actions.
 
-Review summarizes all five authoring areas and groups backend errors/warnings
-by guided step; each diagnostic link returns focus to the relevant field,
-situation, or move. **Technical details** is an alternate editor for the same
-canonical document: **Apply JSON to guided form** parses locally, asks the
-backend to enforce the schema, and preserves the last valid form when either
-stage fails. Composed prompt previews are read-only and come from the backend's
-deterministic composer.
+Save, optimistic-conflict recovery, validation, publication, activation,
+canonical import/export, clone, and archive retain the established contracts.
+Publication is separate from save; activation affects new instances only.
+Disposable preview never publishes, activates, creates an agent, or enters
+production history, and close/expiry discards it.
 
-**Disposable Preview** compiles the current in-memory document without saving
-it. Choose a declared event template or enter advanced event JSON, then inspect
-the active situation, event/transition trace, storage changes, and generated
-behaviour. Reset restores initial runtime state; **Close and discard** removes
-the in-memory session. Preview never publishes, activates, or creates an agent.
-
-Publication is deliberately separate from ordinary navigation and save:
-validate the exact saved draft, confirm **Publish revision** to make its JSON
-immutable, then optionally **Activate for new instances**. Activation does not
-move existing instances off their pinned revision. Review also exports exact
-canonical JSON, clones any revision into an explicit editable key/revision, and
-archives only published revisions that are not active. The catalog's **Import
-JSON** action creates a new imported draft and never overwrites an existing
-key/revision identity.
+V2 Milestone V2.1 establishes this maintained product contract and the backend
+component authoring descriptors. The direct source-frontend replacement occurs
+in V2.2; the previously delivered V1 panel sequence is historical and is not a
+supported alternate mode.
 
 ### Valerian Access Management
 
@@ -312,7 +304,7 @@ Minimum configuration:
   privacy-preserving provider safety identifier is required
 - `prometheus.speech.model` and `prometheus.speech.url` when overriding the
   shared output-only Speech synthesis defaults
-- `prometheus.admin.token` for Valerian Access Management
+- `prometheus.admin.token` for Valerian Access Management and Valerian Designer
 
 Run the application:
 
@@ -381,11 +373,14 @@ Run the deterministic designer browser suite against mocked same-origin APIs:
 npm run test:designer:visual
 ```
 
-It records inspectable evidence under `test-results/designer-visual` for all
-catalog states, the six guided panels, graph/list editing, diagnostics,
-prompt/JSON/preview/publication states, keyboard focus, light desktop, and dark
-390-pixel mobile layout. Browser evidence and traces are generated artifacts and
-must not be committed.
+The V2 suite records inspectable evidence under `test-results/designer-visual`
+for catalog states; Brief, Capabilities, Interaction, Data & outcome, Try, and
+Review; one-state and phased storyboards; linked diagnostics; scenarios;
+Advanced views; lifecycle states; keyboard focus; light desktop; and dark
+390-pixel mobile layout. During V2.1 the existing V1 screenshots remain only as
+a replacement baseline; V2 milestone gates must run and inspect the updated
+suite before claiming visual verification. Browser evidence and traces are
+generated artifacts and must not be committed.
 
 Run it only against an explicitly named dedicated local schema:
 
@@ -919,7 +914,7 @@ Valerian Designer uses the same header for the complete definition lifecycle:
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/activate` | Make a published revision active for new instances. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/archive` | Archive a non-active published revision. |
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/clone` | Copy a revision into a new designer draft identity/revision. |
-| `GET` | `/admin/agent-definitions/component-catalog` | List registered component schemas, defaults, examples, capabilities, and UI copy. |
+| `GET` | `/admin/agent-definitions/component-catalog` | List registered component schemas, capabilities, UI copy, and V2 authoring descriptors. |
 | `POST` | `/admin/agent-definitions/previews` | Compile and open an isolated preview from unsaved JSON or a saved draft. |
 | `GET` | `/admin/agent-definitions/previews/{previewId}` | Inspect active state, storage, history, transcript, and safe diagnostics. |
 | `POST` | `/admin/agent-definitions/previews/{previewId}/events` | Submit one runtime event to the preview. |
@@ -936,6 +931,14 @@ fields cannot forge repository metadata. Validation/publication failures return
 stable diagnostic codes and JSON Pointers. Optimistic and lifecycle conflicts
 return `409`, unknown resources `404`, malformed requests `400`, and structural
 or publication validation failures `422`.
+
+Each component-catalog entry includes `authoringRole`, `exposure`, optional
+`capabilityGroup`, and `advancedReason` in addition to its strict config schema,
+safe defaults/examples, and semantic capabilities. `GUIDED` entries may become
+domain cards; `ADVANCED` and `GENERATED_INTERNAL` entries remain inspectable but
+carry an explicit reason they are not primary author choices. Config schemas
+include author-facing titles/descriptions/defaults/examples; the backend still
+owns validation.
 
 Prompt preview accepts the same `{"definition": ...}` envelope and returns an
 ordered array of `{pointer, label, composed}` values after structural

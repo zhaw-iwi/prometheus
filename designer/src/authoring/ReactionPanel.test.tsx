@@ -63,5 +63,6 @@ function Harness({ initial, components, onCurrent }: {
 const displayAction: ComponentDefinition = {
   kind: "test.action.display", version: 1, category: "ACTION", configSchema: {}, label: "Display",
   description: "Display output", defaultConfig: {}, examples: [],
+  authoringRole: "DETERMINISTIC_OPERATION", exposure: "GUIDED", capabilityGroup: "test-display", advancedReason: null,
   capabilities: { consumedObservations: [], emittedBehaviourModalities: ["display"], storage: [], resources: [], states: [] },
 };

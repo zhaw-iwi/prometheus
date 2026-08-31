@@ -1,9 +1,15 @@
-You are the implementation agent for the PROMETHEUS declarative-agent and
-Valerian Designer roadmap.
+You are the implementation agent for PROMETHEUS Valerian Designer V2.
 
-Work in the existing PROMETHEUS repository on branch `features/designer`. Do not
-recreate, reset, or replace the branch. Preserve all user changes and never
-revert unrelated work.
+Work in the existing PROMETHEUS repository on branch `features/designer`. Do
+not recreate, reset, replace, or rebase away the branch. Preserve all user
+changes and never revert unrelated work.
+
+The declarative runtime/database migration and Designer V1 roadmap are already
+complete. Your task is to replace the V1 guided frontend directly with the
+domain-expert V2 described in `.agents/designer/PLAN_DESIGNER_V2.md`. Do not
+create a second route, feature flag, compatibility mode, or parallel V1/V2
+frontend. Delete V1 code, tests, styles, help, and dependencies when their V2
+replacement is complete.
 
 Before taking implementation action:
 
@@ -22,84 +28,127 @@ Before taking implementation action:
    - `.agents/designer/STEPPER.md`
    - `.agents/designer/TESTING.md`
    - `.agents/designer/PLAN_DESIGNER.md`
-5. Check the active branch, upstream, recent commits, and worktree. Inspect the
-   README sections, implementation, configuration, and neighboring tests
-   relevant to the first incomplete roadmap milestone.
+   - `.agents/designer/PLAN_DESIGNER_V2.md`
+5. Treat `PLAN_DESIGNER_V2.md` as authoritative wherever old UI-specific text
+   still prescribes Purpose, Sensing, Behaviour, Reactions, State flow, and
+   Review. Preserve the older documents' runtime, persistence, lifecycle,
+   security, database, preview, accessibility, and testing rules.
+6. Check the active branch, upstream, recent commits, and worktree. Inspect the
+   current Designer source, package/build configuration, component catalog,
+   API contracts, all twelve bundled definitions, neighboring tests, README
+   sections, and Playwright support relevant to the first incomplete V2
+   milestone.
 
 Before changing code for a milestone, give me a concise mental model and name
-the specific existing patterns, files, and tests that will guide that
-milestone. Do not restate the documentation at length.
+the specific existing patterns, files, definitions, and tests that will guide
+that milestone. Do not restate the documentation at length.
 
-Start with the first milestone in `PLAN_DESIGNER.md` that is not marked
-complete. Implement that milestone end to end with the smallest high-value test
-set required by its acceptance contract. Do not begin a later milestone while
-the current milestone has unfinished implementation, cleanup, tests, or
+Start with the first milestone in `PLAN_DESIGNER_V2.md` that is not marked
+complete. Implement it end to end with the smallest high-value test set
+required by its acceptance contract. Do not begin a later milestone while the
+current milestone has unfinished implementation, cleanup, tests, or
 documentation.
 
 Use this loop for every milestone:
 
 1. Inspect the relevant current code and tests and define the focused scope.
 2. Implement the production behavior without speculative adjacent features.
-3. Add or adapt the milestone's required tests.
-4. Run the focused tests, relevant regressions, and every environment-specific
+3. Delete V1 code and artifacts made obsolete by the milestone; do not retain
+   wrappers or dormant flags for comparison.
+4. Add or adapt the milestone's required unit, integration, smoke, and/or
+   Playwright tests.
+5. Run the focused tests, relevant regressions, and every environment-specific
    verification the milestone requires.
-5. Update README/API/project/designer documentation and mark the roadmap status
+6. Update README/API/project/designer documentation and mark roadmap status
    accurately.
-6. Review the entire diff and `git status`. Remove dead code and unintended
+7. Review the entire diff and `git status`. Remove dead code and unintended
    artifacts. Never stage credentials, `application.properties`, provider
-   secrets, database dumps, Playwright traces, or unrelated user changes.
-7. Commit the complete milestone with a focused message.
-8. Push it. Use `git push -u origin features/designer` for the first push and
-   `git push` thereafter.
-9. Confirm the milestone commit is pushed and the worktree is clean, report what
-   changed, what was actually verified, and remaining risks, then immediately
-   continue with the next incomplete milestone.
+   secrets, database dumps, generated bundles, Playwright traces, or unrelated
+   user changes.
+8. Commit the complete milestone with a focused message.
+9. Push it. Use `git push -u origin features/designer` only if upstream is not
+   already configured; otherwise use `git push`.
+10. Confirm the milestone commit is pushed and the worktree is clean, report
+    what changed, what was actually verified, and remaining risks, then
+    immediately continue with the next incomplete milestone.
 
-Do not wait for confirmation between milestones. Continue until all milestones
-are complete, committed, and pushed.
+Do not wait for confirmation between milestones. Continue until every V2
+milestone is complete, committed, and pushed.
 
 The settled architecture is not optional:
 
-- JSON is the only whole-agent definition language.
+- JSON is the only whole-agent definition language. V2 is a frontend
+  projection over the complete canonical schema-version-1 document, never a
+  second persisted DSL or lossy replacement document.
 - Published canonical JSON revisions are stored once in the database.
 - Immutable Java runtime graphs are compiled/prewarmed and cached by revision;
   JSON is not parsed on the warm controller hot path.
 - Mutable agent instances pin a revision and persist state/storage/history
   separately.
-- State/transition/policy/decision/action concepts remain, but static definition
-  graphs are not JPA entities and are not copied per instance.
+- State/transition/policy/decision/action concepts remain in the runtime, but
+  static graphs are not JPA entities and are not copied per instance.
 - Trusted Java extensions exist only as registered typed component kinds; JSON
   never names Java classes/beans or contains executable scripts.
-- Temporary old/new coexistence is allowed only inside the unfinished migration
-  phase. The Phase II gate deletes the entire legacy whole-agent path, unused
-  code, obsolete schema, tests, endpoints, and documentation.
 - Preserve the twelve main public keys and observable contracts. Do not migrate
-  the `agents` branch.
-- Schema version 1 and the first designer contain no regulation.
-- `/valerian-design/` uses the six guided steps Purpose, Sensing, Behaviour,
-  Reactions, State flow, and Review, following `STEPPER.md`.
+  or modify the `agents` branch.
+- Schema version 1 and Designer V2 contain no regulation engine.
 - Reuse `X-Prometheus-Admin-Token`; do not invent another authentication model.
+- Preserve revision lifecycle, optimistic concurrency, canonical
+  import/export, publication/activation semantics, and disposable preview
+  isolation.
+
+The V2 product contract is not optional:
+
+- The primary audience is domain experts, including healthcare-professional
+  and Wirtschaftsinformatik students used in formative testing.
+- `/valerian-design/` has the six steps Brief, Capabilities, Interaction, Data
+  & outcome, Try, and Review.
+- Begin with one implicit Main interaction. Add situations only for durable
+  phase changes that alter future handling.
+- Capabilities describe what the agent can notice, express, or perform; they do
+  not automatically create flow.
+- Agent-wide and situation guidance use the same scoped, ordered guidance
+  concept.
+- One interaction-rule model covers event/entry trigger, optional conditions,
+  ordered effects, and stay/move/finish. Do not recreate separate Reactions and
+  State flow editing paths.
+- The graph and canonical JSON remain optional derived Advanced views of the
+  same document.
+- Present data as starting context, working data, learned information, or an
+  outcome report.
+- Present verification scenarios as Given / When / Expect and execute them
+  through the isolated production compiler/runtime boundary with safe trace
+  explanations.
+- All twelve bundled definitions must open and no-edit round-trip without
+  semantic loss. Exact text and RPS use guided registered capability cards.
+- Examples/templates remain inert until explicitly adopted; adopted templates
+  expand into inspectable canonical content.
+- Do not add AI generation, generic scripts, timers, continuously evaluated
+  `while` triggers, arbitrary tools, parallel-state features, or product
+  telemetry under this roadmap.
 
 Database safety is mandatory. Credentials exist locally in
 `src/main/resources/application.properties`, but never print or commit them.
-Never clean/drop the normal configured database. The real MySQL smoke milestone
-must use explicit opt-in and a verified dedicated test database/schema. Do not
-claim database verification unless it was actually run.
+Never clean/drop the normal configured database. Any real MySQL verification
+must use explicit opt-in and a verified dedicated
+`prometheus_designer_smoke_*` test schema/database. Do not claim database
+verification unless it was actually run and cleanup was verified.
 
 Automated tests must not call real OpenAI/Azure, Speech, transcription, browser
 sensor, or other external services. Use deterministic fakes. Do not claim
 browser or visual verification without running Playwright and inspecting its
-output.
+output. Do not claim container verification when no Docker daemon was
+available.
 
 Make routine engineering choices yourself when the documentation determines
 the constraints. Halt and ask me only if a genuinely unforeseen decision would
-change product behavior, architecture, data-loss scope, security, or the agreed
-roadmap and cannot be resolved from repository evidence. For ordinary failures,
-diagnose and continue. If an external blocker such as unavailable credentials,
-database access, or push authentication makes a required milestone impossible
-after reasonable attempts, stop with exact evidence rather than skipping the
-gate or claiming success.
+change product behavior, architecture, data-loss scope, security, or the
+agreed roadmap and cannot be resolved from repository evidence. For ordinary
+failures, diagnose and continue. If credentials, database access, push
+authentication, or another external blocker prevents a required gate after
+reasonable attempts, stop with exact evidence rather than skipping the gate or
+claiming success.
 
-When every milestone is complete and pushed, provide one final concise report
-of delivered architecture/UI, all verification actually run, and any remaining
-risks. Then stop so I can review.
+When every V2 milestone is complete and pushed, provide one final concise
+report of the delivered domain-expert Designer, all verification actually run,
+removed V1 surface, and remaining risks. Then stop so I can review.

@@ -20,18 +20,19 @@ The stepper is visual guidance and direct navigation. It is not a progress meter
 For `/valerian-design/`, this pattern is normative for the six editor sections
 defined in `DESIGNER_UX.md`:
 
-1. Purpose
-2. Sensing
-3. Behaviour
-4. Reactions
-5. State flow
-6. Review
+1. Brief — Set purpose and conduct.
+2. Capabilities — Choose what it can notice and do.
+3. Interaction — Design ordinary behavior and exceptions.
+4. Data & outcome — Define context and results.
+5. Try — Test concrete examples.
+6. Review — Validate and publish.
 
 Use a dynamic `--step-z` value rather than fixed four-step `nth-child` rules.
 The selected TypeScript frontend may implement the behavior as a framework
 component instead of copying the plain-JavaScript initializer, but it must
 preserve the specified DOM semantics, direct navigation, validation focus,
-responsive layout, and accessibility behavior.
+responsive layout, and accessibility behavior. The former V1 panel sequence is
+historical and is not a supported alternate label set.
 
 Add stable test selectors to the stepper root, each step target, and each panel
 without using visible labels as the only selector. Playwright must verify all

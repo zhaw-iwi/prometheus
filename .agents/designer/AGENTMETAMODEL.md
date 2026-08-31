@@ -386,21 +386,21 @@ The registry should expose at least:
 
 ## 13. Interaction mapping
 
-The designer presents the relationship in plain language:
+Designer V2 presents the relationship in domain language:
 
 ```text
-When <selected sensing event>
-while <state is active>
-if <all decisions accept>
-then <run actions and produce behaviour>
-and optionally <move to another state>.
+In <Always or a situation>,
+when <the situation begins or an event happens>,
+if <optional conditions>,
+then <respond, perform an installed operation, or update data>,
+and <stay, move to another situation, or finish>.
 ```
 
 This mapping does not introduce a second execution model. It is a guided view
-over state policies and transitions. A new agent starts with one implicit
-atomic state so authors can create useful mappings before learning graph
-concepts. Adding state flow makes the implicit state explicit and assigns the
-same mappings to states.
+over state policies and transitions. A new agent starts with one implicit Main
+interaction. Additional situations are added only for durable phase changes;
+capabilities remain orthogonal until ordinary guidance or a rule uses them. The
+optional graph is a derived Advanced view of the same canonical records.
 
 ## 14. Validation layers
 

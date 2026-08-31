@@ -4,7 +4,9 @@
 
 Tests establish that one versioned JSON definition can be validated, persisted,
 compiled once, executed through existing controller flows, authored safely, and
-published from the designer without retaining a legacy path.
+published from the designer without retaining a legacy path. Designer V2 adds a
+lossless domain projection over all twelve production definitions; the former
+V1 panel sequence is historical evidence, not a current test contract.
 
 The suite grows in this order:
 
@@ -151,6 +153,9 @@ Required contracts include:
 - all designer endpoints reject missing/invalid admin tokens;
 - existing scoped lifecycle and access-code flows continue to work;
 - preview cannot enter production agent/access-code listings.
+- component descriptors provide a deterministic V2 authoring role, exposure,
+  safe capability grouping/defaults/examples, and an explicit Advanced reason
+  for every non-guided component used by the bundled catalog.
 
 Follow nearby patterns in `AdminAccessCodeControllerWebMvcTest`,
 `ScopedDemoControllerIntegrationTest`, `TalkToMeScopedIntegrationTest`, and
@@ -250,16 +255,18 @@ the verified target, and verifies target removal after success.
 ## Frontend tests
 
 Use TypeScript type checking, linting if introduced, and focused component/unit
-tests for pure state transformations:
+tests for pure V2 projection transformations:
 
-- JSON/form round trip;
-- stepper index and direct navigation;
-- validation diagnostic grouping and field/node targeting;
-- reaction-to-state assignment;
-- graph ordering/containment transformations;
-- optimistic conflict state;
+- all-twelve no-edit canonical round trip and preservation of unknown content;
+- scoped agent-wide/situation guidance and ordinary-policy mapping;
+- capability selection remaining orthogonal to rules and situations;
+- global/situation rule mapping, order, stay/move/finish, and collision-free IDs;
+- data-role/outcome classification without schema/resource loss;
+- Given / When / Expect scenario mapping and deterministic result explanation;
+- six-step navigation, validation targeting, optimistic conflicts, and dirty
+  state;
 - example adoption versus mere viewing;
-- dirty-state and unsaved-navigation behavior.
+- Advanced JSON/flow/list equivalence with Guided edits.
 
 Backend schema/semantic validation remains authoritative. Do not duplicate the
 entire validator in TypeScript.
@@ -267,6 +274,19 @@ entire validator in TypeScript.
 Add a Spring static-resource contract test for `/valerian-design/`, its trailing
 slash behavior, expected built assets, admin-token header, and absence of inline
 credentials.
+
+Milestone V2.1 extends `ComponentRegistryUnitTest`,
+`DesignerDefinitionControllerWebMvcTest`, and
+`BundledDefinitionCatalogUnitTest`. Together they prove deterministic schema
+annotations and authoring metadata, authenticated API projection, no
+implementation-name leakage, and guided-or-explicit-Advanced coverage for
+every component actually used by the twelve bundled definitions.
+
+### Historical Designer V1 delivery evidence
+
+The Milestones 12-16 notes below record the removed/replaced frontend's original
+acceptance evidence. They do not prescribe current V2 labels, panels, or
+information architecture.
 
 Milestone 12 establishes this layer with `npm run designer:verify` (TypeScript,
 Vitest, and the Vite production build) and
@@ -336,14 +356,16 @@ Spring/MySQL lifecycle smoke where useful.
 At minimum verify:
 
 - catalog empty/loading/error/populated states;
-- all six stepper panels and direct navigation;
+- all six V2 stepper panels and direct navigation;
 - desktop chevrons and mobile stacked stepper;
-- Purpose, Sensing, Behaviour, and Reactions forms;
-- simple implicit-state view and multi-state graph workspace;
-- validation summary linking to a field and graph element;
-- prompt example adoption and composed-prompt preview;
-- advanced JSON parse error and successful synchronized update;
-- Review/Preview/Publish confirmation states;
+- Brief scoped guidance and Capabilities cards, including Exact text/RPS;
+- one Main interaction, optional situations, global/scoped rules, and
+  stay/move/finish without a required graph;
+- Starting context, Working data, Learned information, and Outcome report;
+- Given / When / Expect author/run/pass/fail explanations;
+- validation summary linking to an exact V2 field/card/rule;
+- example adoption, composed-prompt preview, and Advanced JSON/flow/list;
+- Review/free-preview/publication confirmation states;
 - light desktop and dark mobile layouts;
 - keyboard-visible focus for stepper and primary actions.
 

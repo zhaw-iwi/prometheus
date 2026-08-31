@@ -41,6 +41,12 @@ export interface ComponentDefinition {
   configSchema: JsonObject;
   label: string;
   description: string;
+  authoringRole: "RESPONSE_STRATEGY" | "RULE_TRIGGER" | "RULE_CONDITION" | "RULE_RESPONSE"
+    | "DETERMINISTIC_OPERATION" | "DATA_UPDATE" | "DATA_INITIALIZER" | "DATA_RESOURCE"
+    | "OUTCOME_EXTRACTION" | "TECHNICAL_SELECTOR";
+  exposure: "GUIDED" | "ADVANCED" | "GENERATED_INTERNAL";
+  capabilityGroup: string | null;
+  advancedReason: string | null;
   defaultConfig: JsonObject;
   examples: JsonObject[];
   capabilities: ComponentCapabilities;

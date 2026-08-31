@@ -70,7 +70,9 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
 
 - Last completed milestone: Milestone 160, latest-assistant playback when
   Valerian transcription starts.
-- Designer roadmap: Milestones 1-16 complete. Schema version 1 now has an
+- Declarative architecture and Designer V1 roadmap: Milestones 1-16 complete.
+  The former six-panel V1 sequence below is historical delivery evidence and is
+  superseded by the active V2 roadmap. Schema version 1 now has an
   executable draft-2020-12 schema, persistence-free typed document mapping,
   deterministic canonical JSON/SHA-256 content hashing, structured semantic
   graph/capability/storage/prompt/component diagnostics, exact prompt-section
@@ -117,9 +119,10 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   schema/semantic codes and JSON Pointers, distinguishes malformed/not-found/
   optimistic/lifecycle/validation outcomes, and never exposes component
   implementation names or accepts repository metadata from definition JSON.
-  The full Java suite passes 307 tests, and a full Spring app on isolated H2
-  returned all twelve definitions, canonical Talk-to-Me export plus valid
-  validation, all 23 component descriptors, and `401` without the admin token.
+  The V1 gate's full Java suite passed 307 tests, and a full Spring app on
+  isolated H2 returned all twelve definitions, canonical Talk-to-Me export plus
+  valid validation, all 23 component descriptors, and `401` without the admin
+  token.
   The admin-token preview API now compiles current unsaved JSON or a saved draft
   through the same production compiler/runtime/component boundary into bounded,
   idle-expiring in-memory sessions. It exposes active path, storage, history,
@@ -204,6 +207,19 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
+- Designer V2 roadmap: V2.1 complete; V2.2 is next. The maintained product
+  contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
+  Review over the same complete canonical document. The twelve production
+  definitions form four documented topology families. Component descriptors
+  expose authoring role, guided/Advanced/generated exposure, capability group,
+  and an explicit non-guided rationale; strict config schemas now include safe
+  author-facing titles, descriptions, defaults, and examples. Registry,
+  controller, and production-catalog coverage tests protect these descriptors
+  without changing runtime behavior. The current Maven gate passes 309 Java
+  tests plus all 45 frontend tests, type checking, and the production build.
+  The V1 source frontend is intentionally still present only until V2.2
+  performs the direct shell/projection replacement; there is no second route or
+  compatibility mode.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

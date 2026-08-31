@@ -31,6 +31,27 @@ compilation, removes failures, supports prewarming, and exposes content-free
 observer callbacks/counters. Mutable instance state and history never enter this
 cache.
 
+## Designer V2 authoring descriptors
+
+`ComponentUiMetadata` is the only backend source for guided component
+placement. Every registered component declares:
+
+- one `ComponentAuthoringRole`, such as response strategy, rule condition,
+  deterministic operation, data initializer/resource, or outcome extraction;
+- one exposure: `GUIDED`, `ADVANCED`, or `GENERATED_INTERNAL`;
+- a stable capability group for guided cards, allowing coordinated entries
+  such as the RPS policies/actions to appear as one installed operation;
+- an explicit reason for every Advanced or generated/internal component.
+
+Generated and Advanced entries remain in the component API for lossless
+technical inspection. They do not become primary card choices. Config schemas
+also carry author-facing root/property titles, descriptions, safe defaults, and
+examples; backend schema and semantic validation remain authoritative.
+
+The catalog coverage test walks the twelve production definitions. Any newly
+used component must therefore have either a guided group or a documented
+non-guided reason without adding client-side knowledge of Java implementations.
+
 The prompt-catalog migration also registers `prometheus.action.prompt-behaviour`
 for final-transition output and lets `prometheus.initializer.random-choice`
 reference `prometheus.resource.typed-choices`. Resource references are resolved

@@ -33,6 +33,7 @@ function Harness({ initial, onCurrent }: {
 
 const component: ComponentDefinition = {
   kind: "test.decision", version: 1, category: "DECISION", label: "Test decision", description: "Schema-driven test.",
+  authoringRole: "RULE_CONDITION", exposure: "GUIDED", capabilityGroup: "test-condition", advancedReason: null,
   configSchema: {
     type: "object",
     required: ["eventType"],

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
 import ch.zhaw.prometheus.definition.component.AgentComponentDefinition;
+import ch.zhaw.prometheus.definition.component.ComponentAuthoringExposure;
+import ch.zhaw.prometheus.definition.component.ComponentAuthoringRole;
 import ch.zhaw.prometheus.definition.component.ComponentCategory;
 import ch.zhaw.prometheus.definition.component.ComponentRegistry;
 import ch.zhaw.prometheus.definition.document.PromptDefinition;
@@ -310,6 +312,8 @@ public class DesignerDefinitionController {
         ComponentSemantics semantics = definition.semantics(definition.uiMetadata().defaultConfig().value());
         return new ComponentView(definition.key().kind(), definition.key().version(), definition.category(),
                 definition.configSchema(), definition.uiMetadata().label(), definition.uiMetadata().description(),
+                definition.uiMetadata().authoringRole(), definition.uiMetadata().exposure(),
+                definition.uiMetadata().capabilityGroup(), definition.uiMetadata().advancedReason(),
                 definition.uiMetadata().defaultConfig().value(), definition.uiMetadata().examples().stream()
                         .map(example -> example.value()).toList(),
                 new ComponentCapabilitiesView(sorted(semantics.consumedObservations()),
@@ -420,8 +424,9 @@ public class DesignerDefinitionController {
     }
 
     public record ComponentView(String kind, int version, ComponentCategory category, JsonNode configSchema,
-            String label, String description, JsonNode defaultConfig, List<JsonNode> examples,
-            ComponentCapabilitiesView capabilities) {
+            String label, String description, ComponentAuthoringRole authoringRole,
+            ComponentAuthoringExposure exposure, String capabilityGroup, String advancedReason,
+            JsonNode defaultConfig, List<JsonNode> examples, ComponentCapabilitiesView capabilities) {
     }
 
     public record ComponentCapabilitiesView(List<String> consumedObservations,

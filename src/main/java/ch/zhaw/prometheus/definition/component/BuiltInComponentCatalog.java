@@ -8,6 +8,8 @@ import java.util.Set;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ch.zhaw.prometheus.definition.compiled.ImmutableJson;
 import ch.zhaw.prometheus.definition.compiled.CompiledStorageBinding;
@@ -228,8 +230,9 @@ public final class BuiltInComponentCatalog {
             String label, String description,
             java.util.function.Function<JsonNode, ComponentSemantics> semantics,
             java.util.function.Function<JsonNode, CompiledComponent> compiler) {
-        return new RegisteredComponent(new ComponentKey(kind, 1), category, tree(schema),
-                uiMetadata(kind, label, description), semantics,
+        ComponentUiMetadata uiMetadata = uiMetadata(kind, label, description);
+        return new RegisteredComponent(new ComponentKey(kind, 1), category,
+                authoringSchema(tree(schema), uiMetadata), uiMetadata, semantics,
                 compiler);
     }
 
@@ -237,8 +240,9 @@ public final class BuiltInComponentCatalog {
             String label, String description,
             java.util.function.Function<JsonNode, ComponentSemantics> semantics,
             java.util.function.BiFunction<JsonNode, ComponentRegistry, CompiledComponent> compiler) {
-        return new RegisteredComponent(new ComponentKey(kind, 1), category, tree(schema),
-                uiMetadata(kind, label, description), semantics,
+        ComponentUiMetadata uiMetadata = uiMetadata(kind, label, description);
+        return new RegisteredComponent(new ComponentKey(kind, 1), category,
+                authoringSchema(tree(schema), uiMetadata), uiMetadata, semantics,
                 compiler);
     }
 
@@ -287,8 +291,125 @@ public final class BuiltInComponentCatalog {
             case "prometheus.resource.typed-choices" -> "{\"values\":[\"one\",\"two\"]}";
             default -> throw new IllegalStateException("Missing component UI metadata for " + kind);
         });
+        AuthoringSpec authoring = authoringSpec(kind);
         return new ComponentUiMetadata(label, description, new ImmutableJson(defaultConfig),
-                List.of(new ImmutableJson(defaultConfig)));
+                List.of(new ImmutableJson(defaultConfig)), authoring.role(), authoring.exposure(),
+                authoring.capabilityGroup(), authoring.advancedReason());
+    }
+
+    private static AuthoringSpec authoringSpec(String kind) {
+        return switch (kind) {
+            case "prometheus.policy.no-op" -> AuthoringSpec.advanced(ComponentAuthoringRole.RESPONSE_STRATEGY,
+                    "Used only for technical situations that intentionally have no ordinary response.");
+            case "prometheus.policy.exact-text" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.RESPONSE_STRATEGY, "exact-text-response");
+            case "prometheus.policy.prompt" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.RESPONSE_STRATEGY, "prompt-response");
+            case "prometheus.policy.rps-reveal", "prometheus.policy.rps-result",
+                    "prometheus.action.rps-select-sign", "prometheus.action.rps-evaluate-round" ->
+                AuthoringSpec.guided(ComponentAuthoringRole.DETERMINISTIC_OPERATION, "rock-scissor-paper");
+            case "prometheus.selector.any", "prometheus.selector.state-path",
+                    "prometheus.selector.event-type", "prometheus.selector.actor",
+                    "prometheus.selector.event-kind", "prometheus.selector.state-id",
+                    "prometheus.selector.all", "prometheus.selector.any-of" ->
+                AuthoringSpec.advanced(ComponentAuthoringRole.TECHNICAL_SELECTOR,
+                        "Event-history selection is derived by guided authoring and remains inspectable in Advanced.");
+            case "prometheus.decision.latest-event-type" -> AuthoringSpec.generated(
+                    ComponentAuthoringRole.RULE_TRIGGER,
+                    "Generated from a rule's selected event trigger and inspectable in Advanced.");
+            case "prometheus.decision.prompt" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.RULE_CONDITION, "semantic-condition");
+            case "prometheus.action.extract" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.OUTCOME_EXTRACTION, "outcome-report");
+            case "prometheus.action.increment" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.DATA_UPDATE, "increment-value");
+            case "prometheus.action.prompt-behaviour" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.RULE_RESPONSE, "prompt-response");
+            case "prometheus.initializer.constant", "prometheus.initializer.random-choice" ->
+                AuthoringSpec.guided(ComponentAuthoringRole.DATA_INITIALIZER, "starting-context");
+            case "prometheus.resource.typed-choices" -> AuthoringSpec.guided(
+                    ComponentAuthoringRole.DATA_RESOURCE, "starting-context");
+            default -> throw new IllegalStateException("Missing component authoring metadata for " + kind);
+        };
+    }
+
+    private static JsonNode authoringSchema(JsonNode source, ComponentUiMetadata uiMetadata) {
+        ObjectNode schema = (ObjectNode) source.deepCopy();
+        schema.put("title", uiMetadata.label());
+        schema.put("description", uiMetadata.description());
+        schema.set("default", uiMetadata.defaultConfig().value());
+        ArrayNode examples = schema.putArray("examples");
+        uiMetadata.examples().forEach(example -> examples.add(example.value()));
+
+        JsonNode properties = schema.path("properties");
+        if (properties.isObject()) {
+            properties.fields().forEachRemaining(field -> {
+                if (!(field.getValue() instanceof ObjectNode property)) {
+                    return;
+                }
+                property.put("title", fieldTitle(field.getKey()));
+                property.put("description", fieldDescription(field.getKey()));
+                JsonNode defaultValue = uiMetadata.defaultConfig().value().get(field.getKey());
+                if (defaultValue != null) {
+                    property.set("default", defaultValue);
+                }
+                ArrayNode fieldExamples = property.putArray("examples");
+                uiMetadata.examples().stream().map(example -> example.value().get(field.getKey()))
+                        .filter(java.util.Objects::nonNull).forEach(fieldExamples::add);
+            });
+        }
+        return schema;
+    }
+
+    private static String fieldTitle(String field) {
+        String words = field.replaceAll("([a-z0-9])([A-Z])", "$1 $2").replace('-', ' ');
+        return Character.toUpperCase(words.charAt(0)) + words.substring(1);
+    }
+
+    private static String fieldDescription(String field) {
+        return switch (field) {
+            case "eventType", "handSignEventType" -> "Canonical observation event type used by this component.";
+            case "actor" -> "Actor whose matching event may be used.";
+            case "eventKind" -> "Runtime event family that may be used.";
+            case "maxTextCodePoints" -> "Maximum accepted text length in Unicode code points.";
+            case "responsePrompt" -> "Ordered guidance for ordinary or transition response behaviour.";
+            case "starterPrompt" -> "Ordered guidance used when a situation begins.";
+            case "summaryPrompt" -> "Ordered guidance for summarizing the interaction.";
+            case "nonverbalPlanPrompt" -> "Ordered guidance for coordinated nonverbal behaviour.";
+            case "gesturePrompt" -> "Ordered guidance for gesture-only behaviour.";
+            case "decisionPrompt" -> "Ordered plain-language criterion and examples for this condition.";
+            case "extractionPrompt" -> "Ordered guidance for producing the outcome structure.";
+            case "storageBindings" -> "Declared data values read or written by this component.";
+            case "consumedObservations" -> "Observation capabilities this component may consume.";
+            case "emittedModalities" -> "Output modalities this component may emit.";
+            case "types", "actors", "kinds", "stateIds", "selectors" ->
+                "Technical event-history selection values.";
+            case "targetStorageKey", "storageKey", "roundsStorageKey", "currentAgentSignStorageKey",
+                    "currentRoundNumberStorageKey", "lastRoundStorageKey" ->
+                "Stable key of the definition-owned data used by this component.";
+            case "outputSchema" -> "Strict JSON shape produced for the outcome value.";
+            case "value" -> "Fixed starting value written during initialization.";
+            case "choices" -> "Inline values from which one deterministic seeded choice is made.";
+            case "choicesResourceId" -> "Definition resource containing the available starting values.";
+            case "values" -> "Reusable typed values owned by this definition resource.";
+            default -> "Typed configuration value for this registered component.";
+        };
+    }
+
+    private record AuthoringSpec(ComponentAuthoringRole role, ComponentAuthoringExposure exposure,
+            String capabilityGroup, String advancedReason) {
+
+        private static AuthoringSpec guided(ComponentAuthoringRole role, String capabilityGroup) {
+            return new AuthoringSpec(role, ComponentAuthoringExposure.GUIDED, capabilityGroup, null);
+        }
+
+        private static AuthoringSpec advanced(ComponentAuthoringRole role, String reason) {
+            return new AuthoringSpec(role, ComponentAuthoringExposure.ADVANCED, null, reason);
+        }
+
+        private static AuthoringSpec generated(ComponentAuthoringRole role, String reason) {
+            return new AuthoringSpec(role, ComponentAuthoringExposure.GENERATED_INTERNAL, null, reason);
+        }
     }
 
     private static String promptExample(String sectionId, String sectionKind, String content, String field) {

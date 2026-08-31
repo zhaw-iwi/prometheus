@@ -10,9 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +27,12 @@ import ch.zhaw.prometheus.definition.compiled.CompiledCompositeState;
 import ch.zhaw.prometheus.definition.compiled.CompiledFinalState;
 import ch.zhaw.prometheus.definition.compiled.DefinitionCompiler;
 import ch.zhaw.prometheus.definition.component.BuiltInComponentCatalog;
+import ch.zhaw.prometheus.definition.component.ComponentAuthoringExposure;
+import ch.zhaw.prometheus.definition.component.ComponentKey;
 import ch.zhaw.prometheus.definition.component.builtin.TypedChoicesResourceComponent;
+import ch.zhaw.prometheus.definition.document.AtomicStateDefinition;
+import ch.zhaw.prometheus.definition.document.ComponentEnvelope;
+import ch.zhaw.prometheus.definition.document.CompositeStateDefinition;
 import ch.zhaw.prometheus.definition.runtime.AgentRuntimeContext;
 import ch.zhaw.prometheus.definition.runtime.AgentRuntimeEngine;
 import ch.zhaw.prometheus.definition.runtime.BuiltInRuntimeComponentExecutor;
@@ -81,6 +88,56 @@ class BundledDefinitionCatalogUnitTest {
                         bundled.document().key());
                 assertFalse(json.contains("ch.zhaw.prometheus"), bundled.document().key());
                 assertFalse(json.contains(".java"), bundled.document().key());
+            }
+        }
+    }
+
+    @Test
+    void everyComponentUsedByTheTwelveDefinitionsHasSafeV2AuthoringCoverage() {
+        BundledDefinitionCatalog catalog = BundledDefinitionCatalog.loadMainCatalog();
+        var registry = BuiltInComponentCatalog.createRegistry();
+        Set<ComponentKey> used = new HashSet<>();
+
+        for (BundledAgentDefinition bundled : catalog.definitions()) {
+            var document = bundled.document();
+            document.lifecycle().initializers().forEach(component -> add(used, component));
+            document.resources().forEach(resource -> used.add(new ComponentKey(resource.kind(), resource.version())));
+            document.states().forEach(state -> {
+                if (state instanceof AtomicStateDefinition atomic) {
+                    add(used, atomic.eventSelector());
+                    add(used, atomic.policy());
+                } else if (state instanceof CompositeStateDefinition composite) {
+                    add(used, composite.eventSelector());
+                    add(used, composite.policy());
+                }
+            });
+            document.transitions().forEach(transition -> {
+                transition.decisions().forEach(component -> add(used, component));
+                transition.actions().forEach(component -> add(used, component));
+            });
+        }
+
+        assertEquals(Set.of(
+                new ComponentKey("prometheus.action.extract", 1),
+                new ComponentKey("prometheus.action.prompt-behaviour", 1),
+                new ComponentKey("prometheus.action.rps-evaluate-round", 1),
+                new ComponentKey("prometheus.action.rps-select-sign", 1),
+                new ComponentKey("prometheus.decision.latest-event-type", 1),
+                new ComponentKey("prometheus.decision.prompt", 1),
+                new ComponentKey("prometheus.initializer.random-choice", 1),
+                new ComponentKey("prometheus.policy.exact-text", 1),
+                new ComponentKey("prometheus.policy.prompt", 1),
+                new ComponentKey("prometheus.policy.rps-result", 1),
+                new ComponentKey("prometheus.policy.rps-reveal", 1),
+                new ComponentKey("prometheus.resource.typed-choices", 1),
+                new ComponentKey("prometheus.selector.state-path", 1)), used);
+
+        for (ComponentKey key : used) {
+            var metadata = registry.find(key.kind(), key.version()).orElseThrow().uiMetadata();
+            if (metadata.exposure() == ComponentAuthoringExposure.GUIDED) {
+                assertFalse(metadata.capabilityGroup().isBlank(), key.toString());
+            } else {
+                assertFalse(metadata.advancedReason().isBlank(), key.toString());
             }
         }
     }
@@ -235,6 +292,12 @@ class BundledDefinitionCatalogUnitTest {
 
     private static AgentRuntimeContext context(long seed) {
         return new AgentRuntimeContext(new BuiltInRuntimeComponentExecutor(new RecordingGateway()), new Random(seed));
+    }
+
+    private static void add(Set<ComponentKey> used, ComponentEnvelope component) {
+        if (component != null) {
+            used.add(new ComponentKey(component.kind(), component.version()));
+        }
     }
 
     private static RuntimeEvent userEvent(String payload, String leaf) {

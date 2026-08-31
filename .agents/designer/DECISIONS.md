@@ -129,16 +129,20 @@ test schema/database and deterministic cleanup of their own data.
 
 Never print or commit database or provider credentials.
 
-## D10. The first designer is a guided administrative tool
+## D10. Designer V2 is one domain-expert administrative tool
 
-The designer is served at `/valerian-design/` and reuses
-`X-Prometheus-Admin-Token`. Do not introduce a second authentication or role
-system in this roadmap.
+The designer is served at `/valerian-design/`, replaces the V1 guided frontend
+directly, and reuses `X-Prometheus-Admin-Token`. There is no second route,
+feature flag, compatibility mode, or parallel V1/V2 form model.
 
-The editor is organized as Purpose, Sensing, Behaviour, Reactions, State flow,
-and Review. It starts with one implicit state and reveals graph complexity only
-when needed. `STEPPER.md` defines the stepper's interaction, visual, responsive,
-validation, and accessibility contract.
+The editor is organized as Brief, Capabilities, Interaction, Data & outcome,
+Try, and Review. It starts with one implicit Main interaction. Situations are
+introduced only for durable phase changes; capabilities do not create flow by
+themselves. One ordered rule projection covers event/entry triggers, optional
+conditions, ordered effects, and stay/move/finish. A graph is an optional
+derived Advanced view, never a required authoring step. `DESIGNER_UX.md` and
+`STEPPER.md` define the interaction, responsive, validation, and accessibility
+contracts.
 
 The frontend may use TypeScript, Vite, and an established graph-editing library.
 The build and deployment path must remain deterministic and documented.
@@ -153,6 +157,11 @@ author explicitly adopts them.
 The designer provides a read-only composed-prompt preview. The advanced JSON
 view edits the canonical specification, not an independently editable compiled
 prompt.
+
+Agent-wide and situation guidance are scopes of this same ordered concept.
+Imported unknown section IDs and kinds remain ordered and lossless as
+Additional guidance; moving guidance between scopes is an explicit semantic
+edit.
 
 ## D12. Regulation and `agents`-branch migration are out of scope
 
@@ -172,11 +181,16 @@ opt-in local MySQL smoke tests, frontend component tests, and Playwright visual
 and lifecycle tests. External OpenAI/Azure, Speech, and transcription calls are
 always replaced with deterministic fakes in automated tests.
 
+Designer V2 additionally treats all twelve bundled documents as the lossless
+projection corpus and executes Given / When / Expect scenarios only through the
+isolated production compiler/runtime boundary. Product telemetry is not a test
+substitute and is excluded.
+
 ## D14. The designer frontend is source-built and Spring-served
 
 The designer source lives under `designer/` and uses React, TypeScript, Vite,
-and the React Flow package selected for the State flow milestone. Exact versions
-are locked in `package-lock.json`. Maven owns a pinned Node/npm toolchain, runs
+and React Flow only for the optional derived flow overview. Exact versions are
+locked in `package-lock.json`. Maven owns a pinned Node/npm toolchain, runs
 the frontend verification during `generate-resources`, and places the production
 bundle under `target/generated-resources/public/valerian-design` for Spring to
 serve. Generated JavaScript and CSS are not source-controlled or edited by

@@ -61,6 +61,7 @@ const components: ComponentDefinition[] = [
   {
     kind: "prometheus.policy.prompt", version: 1, category: "POLICY", label: "Prompt policy",
     description: "Produces behaviour from typed prompt roles.",
+    authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "prompt-response", advancedReason: null,
     configSchema: { properties: { emittedModalities: { type: "array" } } },
     defaultConfig: { responsePrompt: { sections: [{ id: "response.objective", kind: "objective", content: "Example" }] } },
     examples: [{ responsePrompt: { sections: [{ id: "response.objective", kind: "objective", content: "Example" }] } }],
@@ -69,6 +70,7 @@ const components: ComponentDefinition[] = [
   {
     kind: "prometheus.policy.exact-text", version: 1, category: "POLICY", label: "Exact text",
     description: "Emits the latest payload exactly.", configSchema: {},
+    authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "exact-text-response", advancedReason: null,
     defaultConfig: { eventType: "obs.user_utterance", actor: "user", eventKind: "observation", maxTextCodePoints: 2000 },
     examples: [],
     capabilities: { consumedObservations: ["obs.user_utterance"], emittedBehaviourModalities: ["speech"], storage: [], resources: [], states: [] },

@@ -1,8 +1,8 @@
 # PROMETHEUS Designer Documentation
 
-This directory is the implementation contract for replacing Java-authored agent
-definitions with versioned JSON specifications and then building the
-`/valerian-design/` authoring experience.
+This directory is the implementation contract for the versioned JSON runtime
+and the domain-expert Designer V2 at `/valerian-design/`. Designer V2 replaces
+the completed V1 guided frontend directly; it is not a second authoring path.
 
 The target architecture has one definition language and one runtime path:
 
@@ -33,6 +33,7 @@ Before implementing a milestone, read:
 9. `STEPPER.md`
 10. `TESTING.md`
 11. `PLAN_DESIGNER.md`
+12. `PLAN_DESIGNER_V2.md`
 
 Read the historical milestones in `PROJECT.md` only through selective searches
 when an earlier decision is relevant.
@@ -45,9 +46,10 @@ When documents appear to conflict, use this order:
 2. `.agents/CODEX.md`, `.agents/CONTEXT.MD`, and the current milestone in
    `PROJECT.md`
 3. `DECISIONS.md`
-4. `ARCHITECTURE.md` and `AGENTDEFINITION_JSON.md`
-5. `AGENTMETAMODEL.md`, `DESIGNER_UX.md`, `TESTING.md`, and `STEPPER.md`
-6. `PLAN_DESIGNER.md`
+4. `PLAN_DESIGNER_V2.md` for the active frontend product contract
+5. `ARCHITECTURE.md` and `AGENTDEFINITION_JSON.md`
+6. `AGENTMETAMODEL.md`, `DESIGNER_UX.md`, `TESTING.md`, and `STEPPER.md`
+7. `PLAN_DESIGNER.md` as the declarative/V1 historical roadmap
 
 Do not silently resolve a genuine product or architecture contradiction. Record
 the evidence and ask only when the documents do not provide a safe answer.
@@ -60,14 +62,16 @@ The work has three ordered outcomes:
    architecture.
 2. Migrate all twelve definitions on `main`, then delete the complete legacy
    Java definition path and unused persistence code.
-3. Add the designer backend and the guided UI at `/valerian-design/`.
+3. Maintain the designer backend and replace the V1 guided UI with the
+   lossless V2 Brief, Capabilities, Interaction, Data & outcome, Try, and
+   Review experience at `/valerian-design/`.
 
 The `agents` branch informed the metamodel, especially its knowledge-backed,
 scene-scoped, multilingual, and deterministic patterns. Its definitions are not
 migrated in this roadmap.
 
-Regulation is excluded from schema version 1 and from the first designer. It is
-not a hidden advanced field.
+Regulation is excluded from schema version 1 and Designer V2. It is not a
+hidden Advanced field.
 
 ## Terms
 
@@ -94,7 +98,12 @@ documentation, and cleanup are finished. Passing tests do not compensate for
 dead legacy code, an undocumented public contract, unsafe database behavior, or
 an unverified UI.
 
-## Current implementation note
+## Implementation history and current V2 state
+
+The following Milestones 1-16 record the completed declarative architecture,
+runtime/database cutover, backend, and Designer V1 delivery. Their old panel
+names are historical evidence only; `PLAN_DESIGNER_V2.md`, `DESIGNER_UX.md`,
+and `STEPPER.md` define the maintained frontend.
 
 Milestones 1-16 use NetworkNT `json-schema-validator` 2.0.7, the maintained
 Jackson 2 line of the Apache-2.0-licensed validator. The executable schema,
@@ -205,6 +214,13 @@ verifies schema removal. Existing PROMETHEUS browser regressions now start on
 isolated H2 by default. Maven, a multi-stage non-root runtime image, and CI all
 build the same source-owned frontend; `.dockerignore` excludes local datasource
 properties, environment files, dumps, generated assets, and browser traces.
+
+Designer V2 Milestone V2.1 establishes the domain semantics and twelve-agent
+reference corpus. Registered component descriptors now expose stable authoring
+roles, guided/Advanced/generated exposure, optional capability grouping, and an
+explicit rationale for non-guided components. Config schemas carry safe titles,
+descriptions, defaults, and examples. The frontend shell replacement begins in
+V2.2; no alternate route or compatibility mode is permitted.
 
 ## Bundled main catalog inventory
 

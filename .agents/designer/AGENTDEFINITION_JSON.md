@@ -325,9 +325,11 @@ Final states contain no policy, selector, oblivious flag, children, or outgoing
 transition. Composite children have exactly one parent. Containment is not
 inferred from naming.
 
-The first designer creates one atomic state with ID `main` automatically. The
-state remains a normal explicit JSON record even while the UI calls it
-implicit.
+Designer V2 calls the initial active leaf the implicit Main interaction while
+retaining a normal explicit JSON state. New prompt-oriented definitions use an
+outer composite for agent-wide guidance and a `main` atomic child for situation
+guidance; exact-text or other special strategies may remain one atomic state.
+Imported documents are not restructured on open.
 
 ## Transitions
 

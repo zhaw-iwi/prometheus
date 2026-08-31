@@ -158,12 +158,33 @@ export function componentCatalog() {
 }
 
 function component(kind, category, label, defaultConfig, capabilities, examples = []) {
+  const authoring = componentAuthoring(kind, category);
   return {
     kind, version: 1, category, label,
     description: `${label} deterministic visual fixture.`,
+    ...authoring,
     configSchema: { type: "object", properties: {} },
     defaultConfig, examples, capabilities,
   };
+}
+
+function componentAuthoring(kind, category) {
+  if (kind === "prometheus.decision.latest-event-type") {
+    return {
+      authoringRole: "RULE_TRIGGER", exposure: "GENERATED_INTERNAL", capabilityGroup: null,
+      advancedReason: "Generated from the selected event trigger.",
+    };
+  }
+  if (category === "SELECTOR") {
+    return {
+      authoringRole: "TECHNICAL_SELECTOR", exposure: "ADVANCED", capabilityGroup: null,
+      advancedReason: "Derived event-history selection.",
+    };
+  }
+  const authoringRole = category === "POLICY" ? "RESPONSE_STRATEGY"
+    : category === "DECISION" ? "RULE_CONDITION"
+      : "DETERMINISTIC_OPERATION";
+  return { authoringRole, exposure: "GUIDED", capabilityGroup: "visual-fixture", advancedReason: null };
 }
 
 function revisionView(definition, revision = 1, id = 71) {

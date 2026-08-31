@@ -125,6 +125,8 @@ function component(
 ): ComponentDefinition {
   return {
     kind, version: 1, category, configSchema: {}, label: kind, description: kind, defaultConfig: {}, examples: [],
+    authoringRole: category === "DECISION" ? "RULE_CONDITION" : "DETERMINISTIC_OPERATION",
+    exposure: "GUIDED", capabilityGroup: "test-component", advancedReason: null,
     capabilities: { consumedObservations: observations, emittedBehaviourModalities: modalities, storage: [], resources: [], states: [] },
   };
 }

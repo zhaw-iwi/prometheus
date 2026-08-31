@@ -1,5 +1,11 @@
 # PROMETHEUS Designer Implementation Roadmap
 
+> Historical roadmap: the declarative runtime/database architecture and
+> Designer V1 milestones in this file are complete. The V1 frontend step
+> sequence is superseded by `PLAN_DESIGNER_V2.md`; it is not a compatibility
+> mode or alternate maintained UI. Runtime, persistence, lifecycle, security,
+> database, preview, accessibility, and testing decisions remain applicable.
+
 ## Objective
 
 Replace Java-authored whole-agent definitions with a single versioned JSON

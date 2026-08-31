@@ -1,361 +1,282 @@
-# Valerian Designer UX Specification
+# Valerian Designer V2 UX Specification
 
 ## Product intent
 
-`/valerian-design/` helps a domain expert create a sound agent without first
-learning the persistence model, Java, JSON Schema, or state-machine jargon. It
-uses progressive disclosure while preserving full access to the canonical JSON
-for expert authors.
+`/valerian-design/` helps domain experts turn an interaction scenario into a
+sound PROMETHEUS agent without first learning JSON Schema, Java, component
+envelopes, or state-machine terminology. The primary formative-testing audience
+includes healthcare-professional and Wirtschaftsinformatik students.
+
+The Designer is a lossless projection over one canonical schema-version-1 JSON
+document. Guided forms, storyboard, optional flow overview, accessible list,
+canonical JSON, prompt previews, and runtime preview are views of that same
+document. There is no persisted V2 DSL or parallel V1 editor.
 
 The central authoring sentence is:
 
 ```text
-This agent senses ... and can behave ...
-When ... happens in this situation, it decides ... then does ...
-and may move to another situation.
+In [Always | situation],
+when [the situation begins | an event happens],
+if [optional conditions],
+then [respond | perform an installed operation | update or record data],
+and [stay | move to another situation | finish].
 ```
-
-The UI is minimal, calm, and self-explaining. It does not expose database
-entities or present every possible field at once.
 
 ## Information architecture
 
-### Catalog screen
+### Catalog
 
-The entry screen provides:
+The catalog provides search and category/status filters; stable key, display
+name, language, provenance, active revision, and draft status; and lifecycle
+actions permitted for the selected revision. Active publication and editable
+draft status must never be conflated. Import creates a new draft and never
+overwrites a conflicting key/revision.
 
-- search and category/status filters;
-- definition key, display name, active revision, draft status, provenance, and
-  language;
-- create, import, clone, open, export, archive, and activate actions according
-  to lifecycle rules;
-- clear distinction between active published revision and current draft;
-- validation/publication status without implying that a draft is deployed.
+Lifecycle-changing actions require confirmation naming the exact key and
+revision. A referenced published revision may be archived when non-active but
+is not physically deleted.
 
-Destructive or lifecycle-changing actions require explicit confirmation with
-the exact key/revision. A published revision referenced by instances offers
-archive, not delete.
+### Editor
 
-### Editor screen
+The editor contains a compact identity/revision/status header, dirty indicator,
+explicit Save draft action, the six-step navigation, one active panel, and a
+keyboard-reachable validation summary. Step navigation neither saves nor
+publishes. Browser navigation with unsaved changes warns the author.
 
-The editor has:
+The exact steps are:
 
-- a compact header with definition identity, revision/status, dirty indicator,
-  Save draft, Preview, and lifecycle actions;
-- the horizontal/vertical process stepper from `STEPPER.md`;
-- one active step panel;
-- a persistent validation summary reachable by keyboard;
-- optional advanced JSON view;
-- an unsaved-change warning when navigating away.
-
-Stepper navigation changes panels but does not publish and does not silently
-save. Saving a structurally parseable draft is explicit. Publication requires
-complete validation and successful compilation.
-
-## Six-step authoring flow
-
-Keep titles short and use these captions unless user testing supports a clearer
-equivalent.
-
-| Step | Title | Caption | User outcome |
+| Step | Title | Caption | Outcome |
 | ---: | --- | --- | --- |
-| 1 | Purpose | Define its role and goal. | Identity, language, purpose, context, persona, boundaries |
-| 2 | Sensing | Choose what it perceives. | Supported observations and interpretation guidance |
-| 3 | Behaviour | Choose how it responds. | Modalities, response strategy, style, and fallback |
-| 4 | Reactions | Connect inputs to outputs. | Guided sensing-to-behaviour mappings |
-| 5 | State flow | Add conversational situations. | State graph, containment, entry, and transitions |
-| 6 | Review | Validate, test, and publish. | Summary, JSON/prompt preview, disposable runtime preview |
+| 1 | Brief | Set purpose and conduct. | Identity, audience, goals, agent-wide guidance, boundaries |
+| 2 | Capabilities | Choose what it can notice and do. | Inputs, output modalities, response strategies, installed operations |
+| 3 | Interaction | Design ordinary behavior and exceptions. | Main interaction, optional situations, scoped rules, stay/move/finish |
+| 4 | Data & outcome | Define context and results. | Starting context, working/learned data, outcome reports |
+| 5 | Try | Test concrete examples. | Given/When/Expect scenarios and safe execution explanation |
+| 6 | Review | Validate and publish. | Reverse summary, diagnostics, Advanced views, lifecycle actions |
 
-Users may navigate directly to any step. The stepper is navigation, not a
-percentage-complete meter. Follow every responsive and accessibility rule in
-`STEPPER.md`, adapting implementation code to the selected frontend framework
-without changing the interaction contract.
+The stepper is direct navigation rather than a completion meter and follows
+`STEPPER.md` for desktop chevrons, mobile stacking, focus, validation targeting,
+and ARIA semantics.
 
-## Step 1: Purpose
+## Step 1: Brief
 
-Lead with ordinary questions:
+Brief asks what the agent is called, why it exists, whom it serves, where it is
+used, how it should conduct itself, and which boundaries matter. A generated
+key suggestion requires explicit confirmation before first save; a published
+key is stable. Schema version, hashes, provenance, and repository identifiers
+belong in Technical details.
 
-- What should this agent be called?
-- What is it intended to accomplish?
-- Who or what should it represent?
-- In which language should it interact?
-- In what setting will it be used?
-- What important boundaries must it respect?
+Guidance is one ordered concept with a scope. Agent-wide guidance may cover
+identity/role, objective/outcome, audience/setting, language/style, boundaries
+and referral, uncertainty/perception limitations, multimodal coordination,
+flexible process guidance, examples/counterexamples, and completion. Situation
+guidance uses the same prompt-section shape while its situation is active.
 
-Generate a valid key suggestion from category and name, but require the author
-to confirm it before first save. Explain that a published key is stable. Keep
-schema version, revision number, hash, provenance, and repository IDs out of the
-ordinary form; show them in a compact technical-details disclosure.
+Known guidance intents receive domain labels. Imported unknown section IDs or
+kinds remain ordered, editable, and lossless as Additional guidance. Merely
+opening or viewing an example changes nothing; **Use as starting point** copies
+it into the document and marks the draft dirty. Safety/referral guidance must
+not be described as guaranteed runtime enforcement.
 
-Purpose prompt elements include persona, objective, context, roles, language,
-tone, grounding, and boundaries. They remain separate ordered sections in JSON.
+## Step 2: Capabilities
 
-## Step 2: Sensing
+Capabilities answer:
 
-Present observations as plain-language selectable cards with icon, concise
-example, and optional details. Examples:
+1. What can the agent notice?
+2. How can it express itself?
+3. Which installed deterministic operations can it perform?
 
-- **What the user says** - text or finalized speech transcription.
-- **Facial emotion** - an observed facial-expression category.
-- **Social situation** - presence, grouping, or richer social context.
-- **Hand sign** - a recognized rock, paper, or scissors sign.
-- **Weather** - current conditions or forecast.
+Observation and expression cards use plain labels, examples, uncertainty/help,
+and usage indicators. Concrete schema identifiers remain available in a
+Technical details disclosure. Selecting a capability declares availability; it
+does not create a rule, situation, transition, or modality mapping.
 
-Selecting a family reveals its concrete observation types. Do not select
-capabilities merely because they are common. Show where each selected signal is
-used by a reaction or prompt. An unused selected capability is a helpful warning
-with a link to Reactions, not an automatic deletion.
+Response strategies and deterministic operations are rendered from backend
+component authoring descriptors. Exact text is a guided response card. The RPS
+components form one guided installed-operation card with meaningful settings
+and owned working data. Raw kind/version/config values are not card titles.
+Unused capabilities produce a warning and link to the place they can be used;
+they are never silently removed.
 
-Sensing-specific prompt elements guide how observations should be interpreted,
-when the agent may react proactively, and what uncertainty means. The event
-payload itself is supplied by the runtime; prompt examples must not encourage
-invented sensor data.
+## Step 3: Interaction
 
-## Step 3: Behaviour
+Every canonical definition has an initial active leaf. V2 calls its domain
+projection **Main interaction** and normally hides the technical state ID. One
+situation shows one Main interaction card and no graph.
 
-Present modalities as a second capability palette:
+A situation has a name/purpose, ordered local guidance, an ordinary response
+strategy, optional behavior on entry, and ordered scoped rules. Effective
+agent-wide plus local guidance may be shown read-only without duplicating
+editable content.
 
-- speech;
-- gesture;
-- facial expression;
-- gaze;
-- body/nonverbal motion;
-- hand-sign motion;
-- display content.
+The default workspace is an accessible storyboard/list:
 
-For each selected modality, show only compatible strategies from the component
-catalog. A speech strategy may be prompt-generated, deterministic exact text,
-or a future knowledge-constrained component. Deterministic components expose
-typed fields, not prompt boxes.
+- **Always** holds applicable outer-scope rules.
+- Situation cards hold scoped rules.
+- Event and situation-entry triggers are available; schema version 1 has no
+  continuously evaluated `while` trigger or generic timer.
+- Semantic conditions use a plain-language criterion with optional positive
+  and negative examples.
+- Conditions remain ANDed and effects remain ordered.
+- Move-earlier/move-later controls express first-match priority; authors do not
+  type numeric order values.
+- **Stay** reuses the situation, **Continue differently** selects or creates an
+  atomic situation, and **Finish** lazily creates or reuses a final state.
 
-Prompt guidance covers response objective, tone, length, question frequency,
-coordination across modalities, suppression, and fallback. A live read-only
-summary explains what the agent is currently able to emit.
+Ordinary response policy remains distinct from exceptional transition effects.
+Global, self, cross-situation, cycle, and finish rules all edit the canonical
+transition array directly. There is no separate reactions collection or graph
+model to synchronize.
 
-## Step 4: Reactions
+An optional derived Flow overview appears only when useful. Every operation
+remains available through the keyboard/screen-reader list. Composite
+containment, stable IDs, selectors, entry/history settings, component envelopes,
+and unusual imported topology are preserved and exposed under Advanced rather
+than silently normalized.
 
-Reactions are a guided view over policies and transitions, not a second runtime
-model. Each card reads like:
+## Step 4: Data & outcome
 
-```text
-When [observation]
-in [current situation]
-if [optional conditions]
-then [respond and/or update memory]
-and [stay or move].
-```
+Definition-owned values are grouped by lifecycle role:
 
-Initially every reaction belongs to the generated `main` atomic state. The
-author can:
+| Role | Meaning |
+| --- | --- |
+| Starting context | Fixed or initialized information available when an instance begins |
+| Working data | Internal values used by installed operations |
+| Learned information | Values recorded during interaction |
+| Outcome report | Caller-visible structured results |
 
-- select only previously declared sensing inputs;
-- choose relevant event/history selection;
-- add ordered decisions;
-- add ordered storage actions;
-- select compatible behaviour strategies/modalities;
-- stay in the current state or select a target;
-- reorder reactions when first-match priority matters.
+Guided data fields cover catalog-proven primitive, enumerated, object, and list
+shapes; required/optional behavior; reset behavior; fixed starting values; and
+typed resource-choice initialization. Full schemas remain inspectable under
+Advanced. RPS owns and explains its internal round data rather than asking the
+author to wire four schemas manually.
 
-The simple card hides component envelopes and selector syntax. An Advanced
-disclosure exposes component-specific configuration with schema-derived help.
-When an author chooses an undeclared observation or modality through an
-advanced path, offer to add it to the corresponding capability step and explain
-the effect.
+The outcome builder creates a strict object schema, ordered extraction guidance,
+and finish-rule attachment. Existing extraction prompts that cannot be safely
+reverse-mapped open losslessly as a Custom outcome report. Conversion to guided
+fields is explicit, previews the canonical diff, and can be cancelled without a
+mutation. Rename/delete is blocked while policies, conditions, effects,
+initializers, or resources still reference the value.
 
-## Step 5: State flow
+## Step 5: Try
 
-Do not force graph design on a one-state agent. Start with one explicit JSON
-state that the UI describes as the default situation. The state-flow step first
-asks whether behavior differs across phases or contexts.
+Try edits `verification.scenarios` in Given / When / Expect language. A scenario
+contains a name/description, optional deterministic seed and initial storage,
+ordered input events, and schema-supported expected state/data/behavior
+properties. Event templates derive from selected observation capabilities;
+Advanced event JSON remains available.
 
-When multiple situations are needed, provide a visual graph workspace:
+Execution uses the production parser, validator, compiler, component registry,
+and runtime through the disposable preview boundary. The result explains only
+available trace facts: submitted event, considered/accepted rules, situation
+before/after, storage changes, emitted modalities, and expectation pass/fail.
+It never fabricates model reasoning.
 
-- atomic, composite, and final node types;
-- stable ID plus editable display name;
-- visible initial state and composite initial child;
-- transition edges with source priority/order;
-- self-transitions and cycles;
-- distinct visual containment for composite states;
-- an inspector for policy, selector, entry mode, oblivious behavior, decisions,
-  and actions;
-- an accessible non-canvas list/table representation for keyboard and screen
-  reader use.
-
-Moving or assigning a reaction changes its source state in the same canonical
-document. There is no duplicate reaction model to synchronize.
-
-Use plain-language labels in the primary UI:
-
-- state -> situation;
-- transition -> move/change when;
-- decision -> condition;
-- action -> memory update or operation;
-- final -> finished.
-
-Technical terms may appear in help and the advanced view.
+Scenario execution shares preview bounds, expiry, cleanup, admin-token
+protection, persistence isolation, and fakeable runtime dependencies. Automated
+tests never call real model, Speech, transcription, sensing, or knowledge
+services.
 
 ## Step 6: Review
 
-Review provides four coordinated views:
+Review coordinates:
 
-1. **Plain-language summary** of purpose, sensing, behaviour, reactions, and
-   state flow.
-2. **Validation** grouped by step, with errors before warnings and direct links
-   to fields/nodes.
-3. **Preview** for disposable event-driven execution with active state, storage,
-   events, and emitted behaviour.
-4. **Technical details** containing canonical JSON and read-only composed prompt
-   previews.
+1. A plain-language reverse explanation of Brief, capabilities, situations,
+   ordinary behavior, rules, data, outcomes, and scenarios.
+2. Authoritative diagnostics grouped by the six V2 steps, errors before
+   warnings, with direct field/card/rule targeting.
+3. Read-only backend-composed prompt previews.
+4. Advanced canonical JSON and complete derived flow graph/list.
+5. Disposable free-form preview and explicit lifecycle actions.
 
-Save draft remains available with incomplete semantic content. Publish is
-enabled only when the backend reports no errors and successful compilation.
-Activate is offered only for a published revision and explicitly states that it
-affects newly created instances, not existing ones.
+Save draft remains available for incomplete semantic content. Publish is
+enabled only after backend publication-readiness validation and successful
+compilation of the exact saved document. Activation is separate and states
+that it affects newly created instances only. Export, clone, and non-active
+archive retain the existing lifecycle confirmation semantics.
 
-## Prompt guidance
+## Reference corpus
 
-### Field pattern
+The twelve bundled production definitions are the fixtures; this table records
+their required domain projection without duplicating their JSON.
 
-Every prompt element has:
+| Definition | V2 reference design |
+| --- | --- |
+| `core.talk_to_me` | One Main interaction with Exact text; no graph or data needed |
+| `core.facial_expression_sensitivity` | Agent-wide sensing guidance, one task situation, facial stay rule, global/task finish and outcome |
+| `core.multimodal_behaviour` | One task situation with coordinated ordinary multimodal response; sensing may remain context |
+| `core.social_context_sensitivity` | One task situation with social-context and situation-change stay rules |
+| `core.role_clarification_guessing_game` | Clarification, Valerian-guesses, and User-guesses situations with semantic branches and finish/outcome |
+| `core.rock_scissor_paper` | Prepare, Reveal, and Result situations; installed choose/evaluate/reveal/result operation; cycle and finish |
+| `usecases.healthcare.guessing_game` | One flexible game situation, social-aside stay rule, semantic completion, structured outcome |
+| `usecases.healthcare.guessing_game_user_guess` | Same topology with reversed role guidance and its outcome |
+| `usecases.healthcare.healthcare_conversation` | One open conversation, optional social aside, explicit stop, topic/trust outcome |
+| `usecases.healthcare.smart_goal_coaching` | One coaching situation, semantic completion, SMART-goal outcome |
+| `usecases.healthcare.therapy_appointment_reminder` | One reminder situation, typed starting context, social aside, completion/outcome |
+| `usecases.healthcare.therapy_appointment_reminder_intro` | Introduction and Reminder situations, start branch, typed context, social aside, completion/outcome |
 
-- a question-oriented label;
-- one-sentence explanation of its runtime purpose;
-- a multiline content field;
-- one or more collapsed examples appropriate to the component and language;
-- an explicit **Use as starting point** action;
-- character/size feedback where limits apply;
-- a preview of its position in the composed prompt.
+These designs pressure-test four topology families:
 
-Do not use placeholder text as the only example: it disappears while typing and
-is frequently mistaken for saved content.
+1. **Single ordinary interaction** — exact text or one prompt response, with no
+   required graph.
+2. **One durable situation with orthogonal rules** — sensing stay rules and
+   optional structured completion/outcome.
+3. **Branching phased interaction** — role/intro branches that change how later
+   events are handled.
+4. **Deterministic operation cycle** — RPS phases, operation-owned data, cycles,
+   and a finish rule.
 
-### Example ownership
+All twelve must open, summarize, validate, compile, and round-trip with no
+semantic loss. Reproducing current behavior precedes any agent redesign.
 
-Examples come from component schema metadata and a versioned designer example
-catalog. They are not definition defaults unless explicitly identified as safe
-defaults. Clicking an example copies it into the field and marks the draft
-dirty; merely viewing it changes nothing.
+## Canonical projection and Advanced views
 
-Examples should demonstrate useful structure without prescribing factual
-claims. Domain examples must be visibly illustrative and must not imply medical
-or organizational approval.
+The frontend retains the complete source `AgentDefinitionV1` and applies
+focused immutable transformations. A no-edit open/navigation/export leaves the
+canonical document semantically identical, including unknown prompt sections,
+component envelopes, schema details, resources, initializers, transitions, and
+verification fields. IDs and rule orders generated for new content are stable
+and collision-free.
 
-### Composition
+Advanced JSON is an alternate editor for the same document. Apply parses
+locally and asks the backend for structural validation before replacing form
+state. Parse/schema failure preserves the last valid guided projection and
+reports a useful location. Repository metadata cannot be forged through JSON.
 
-The UI edits typed sections. The backend is authoritative for deterministic
-composition. Show the composed result as read-only so an expert can verify
-ordering and boundaries without creating a second editable source.
+## Validation and concurrency
 
-## Advanced JSON view
+Direct step navigation is never blocked. Local checks cover simple syntax and
+required input; backend diagnostics remain authoritative on Save, Validate,
+Try, Preview, and Publish. Diagnostics retain stable codes and JSON Pointers,
+focus the exact V2 target, and never expose stack traces.
 
-The JSON view is an alternate editor for the same in-memory document:
+Draft replacement sends the optimistic version. A conflict preserves both
+documents and offers reload plus export/copy of local JSON; there is no opaque
+automatic graph merge. Save, publish, activate, archive, and import remain
+deliberate operations.
 
-- opening it shows the current complete specification;
-- applying changes parses and structurally validates before replacing form
-  state;
-- parse errors preserve the last valid form state and identify line/column;
-- semantic diagnostics use backend JSON Pointers;
-- switching views never silently discards edits;
-- JSON examples or formatted output never contain secrets;
-- repository lifecycle metadata is shown separately and cannot be forged in
-  specification JSON.
+## Visual, responsive, and accessibility language
 
-Pretty-printing is deterministic. Import/export round trips through the same
-backend canonicalizer.
+Use calm neutral surfaces, restrained teal accent, generous whitespace, short
+labels, and one primary action per context. Cards suit capabilities, situations,
+rules, and data. Desktop, narrow desktop, tablet, and mobile must remain usable;
+the stepper stacks on mobile. Light/dark themes follow the existing Valerian
+preference where practical.
 
-## Validation behavior
+All fields have persistent labels and described help. Cards use native
+checkbox/radio semantics. Storyboard and graph operations have keyboard
+equivalents. Focus follows visible order; dialogs trap and restore focus;
+errors use text/icon/state beyond color; motion respects reduced-motion; touch
+targets and contrast meet WCAG AA expectations.
 
-Follow the stepper pattern: direct navigation is never blocked. Validation is
-progressive:
+## Frontend boundary and exclusions
 
-- lightweight local feedback for required values and syntax;
-- authoritative backend diagnostics on Save, Validate, Preview, and Publish;
-- a persistent alert summary grouped by step;
-- focus and scroll to the first selected diagnostic;
-- visible node/edge markers for graph errors;
-- warnings remain distinguishable from blocking errors;
-- stale diagnostics clear or refresh when their field changes.
+The source-owned TypeScript/Vite frontend is built deterministically and served
+by Spring at `/valerian-design/`. Generated bundles are not source-controlled.
+The Designer uses same-origin APIs and `X-Prometheus-Admin-Token` and contains no
+credential/provider configuration.
 
-Diagnostics must remain understandable without exposing exception messages or
-stack traces. Keep stable diagnostic codes available in a technical disclosure.
-
-## Draft and concurrency behavior
-
-- The editor records the draft's optimistic version.
-- Save replaces the complete draft only when that version still matches.
-- A conflict does not overwrite either version. Offer reload and export/copy of
-  local JSON; do not attempt opaque automatic graph merges.
-- Maintain a visible dirty indicator.
-- Warn before browser navigation with unsaved edits.
-- Publishing or activating requires a deliberate button and confirmation.
-
-## Preview interaction
-
-Preview offers event templates for selected sensing capabilities plus an
-advanced JSON event editor. It shows an ordered transcript/log with:
-
-- submitted event;
-- resulting active state path;
-- storage changes;
-- emitted behaviour plan;
-- transition/decision/action trace at a safe diagnostic level;
-- reset and close controls.
-
-Preview sessions are disposable and visually labeled **Preview**. They cannot
-be mistaken for access-code agents. Automated tests use deterministic runtime
-components and fake model gateways.
-
-## Visual and responsive language
-
-The designer should feel related to Valerian without copying cockpit density:
-
-- restrained neutral surfaces and the teal accent from `STEPPER.md`;
-- generous whitespace and short labels;
-- one clear primary action per context;
-- cards for capability selection and reactions;
-- the graph receives the largest available area;
-- desktop, narrow desktop, tablet, and mobile remain usable;
-- light and dark themes follow the existing Valerian theme preference when
-  practical.
-
-At mobile width the stepper stacks as specified. The state graph may use a
-focused full-screen mode, but every operation remains available in the
-accessible list representation.
-
-## Accessibility
-
-In addition to `STEPPER.md`:
-
-- all form fields have persistent labels and described help;
-- capability cards use native checkbox/radio semantics;
-- graph actions have keyboard-accessible equivalents;
-- focus order follows the visible workflow;
-- dialogs trap and restore focus correctly;
-- errors use text/icon/state in addition to color;
-- live validation does not create disruptive announcement loops;
-- motion respects reduced-motion preference;
-- touch targets and contrast meet WCAG AA expectations.
-
-## Frontend implementation boundary
-
-Use TypeScript and Vite. A maintained graph library may be selected after
-checking its current support, accessibility limitations, bundle impact, and
-license. Framework/library selection is an engineering choice within this
-contract and does not require product approval unless it changes the specified
-experience or deployment model.
-
-Keep source separate from generated Spring static resources. Provide one
-documented deterministic build command, integrate it into CI/deployment, and do
-not hand-edit generated bundles. The Spring application serves the result at
-the trailing-slash path `/valerian-design/`.
-
-## Out of scope
-
-- Regulation controls
-- Collaborative simultaneous editing
-- User/role administration beyond the existing admin token
-- Arbitrary component installation or executable scripting
-- Prompt optimization or automatic agent generation
-- Production rollout/deployment orchestration
-- Migration UI for old runtime instances
-- `agents`-branch definitions
+V2 excludes regulation, AI generation, generic scripts/tools/timers, continuous
+`while` triggers, parallel states, collaborative editing, deployment
+orchestration, product telemetry, participant-data persistence, and migration
+of the `agents` branch.
