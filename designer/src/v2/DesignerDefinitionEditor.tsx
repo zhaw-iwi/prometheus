@@ -22,6 +22,7 @@ import { BriefPanel } from "./BriefPanel";
 import { CapabilitiesPanel } from "./CapabilitiesPanel";
 import { briefIssues } from "./briefModel";
 import { InteractionPanel } from "./InteractionPanel";
+import { DataOutcomePanel } from "./DataOutcomePanel";
 import {
   createDefaultDefinition,
   projectDefinition,
@@ -242,6 +243,8 @@ export function DesignerDefinitionEditor({
       onChange={changeDefinition} onGoToInteraction={() => setActiveStep("interaction")} />,
     interaction: <InteractionPanel projection={projection} components={components} readOnly={readOnly}
       onChange={changeDefinition} onGoToCapabilities={() => setActiveStep("capabilities")} />,
+    "data-outcome": <DataOutcomePanel projection={projection} readOnly={readOnly}
+      onChange={changeDefinition} onGoToInteraction={() => setActiveStep("interaction")} />,
     review: <ReviewPanel definition={document} persisted={persisted} definitionSummary={definitionSummary}
       diagnostics={diagnostics} active={activeStep === "review"} dirty={dirty}
       validationCurrent={validatedFingerprint === serializedDefinition(document)} adminToken={adminToken}

@@ -439,7 +439,7 @@ npm run test:designer:live
 | V2.2. Lossless V2 projection and direct V1 shell removal | Complete |
 | V2.3. Brief and Capabilities | Complete |
 | V2.4. Unified Interaction workspace | Complete |
-| V2.5. Data and outcome authoring | Not started |
+| V2.5. Data and outcome authoring | Complete |
 | V2.6. Executable Try scenarios and explanations | Not started |
 | V2.7. Review, Advanced views, and lifecycle completion | Not started |
 | V2.8. Catalog parity, Playwright, student-test readiness, and final cleanup | Not started |
@@ -688,6 +688,15 @@ for ordinary behavior, scoped rules, and optional situations.
 - Commit and push before V2.5.
 
 ## Milestone V2.5 - Data and outcome authoring
+
+**Status: Complete.** Data & outcome now groups the canonical storage document
+by lifecycle purpose, supports common and strict structured schemas plus fixed
+or registered typed-choice initialization, keeps RPS internals operation-owned,
+and authors strict outcome fields attached to finish rules. Imported extraction
+contracts remain lossless Custom reports until an explicit previewed conversion
+is applied. Reference protection and exact diagnostic routing preserve bindings;
+frontend, backend, mocked-browser, and dedicated H2 gates cover the twelve-agent
+catalog and the therapy/SMART persistence paths.
 
 ### Outcome
 

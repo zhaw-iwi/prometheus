@@ -18,8 +18,15 @@ export function targetForDiagnostic(
   diagnostic: DefinitionDiagnostic,
   definition?: AgentDefinitionV1,
 ): ValidationTarget {
-  const stepId = diagnosticStep(diagnostic);
   const pointer = diagnostic.pointer;
+  const actionMatch = pointer.match(/^\/transitions\/(\d+)\/actions\/(\d+)/);
+  const action = actionMatch
+    ? definition?.transitions[Number(actionMatch[1])]?.actions[Number(actionMatch[2])]
+    : undefined;
+  if (action?.kind === "prometheus.action.extract" && typeof action.config.targetStorageKey === "string") {
+    return { stepId: "data-outcome", fieldId: `data-item-${action.config.targetStorageKey}`, message: diagnostic.message };
+  }
+  const stepId = diagnosticStep(diagnostic);
   if (stepId === "interaction") {
     const stateMatch = pointer.match(/^\/states\/(\d+)/);
     const transitionMatch = pointer.match(/^\/transitions\/(\d+)/);
@@ -38,7 +45,15 @@ export function targetForDiagnostic(
   }
   if (stepId === "data-outcome") {
     const storageMatch = pointer.match(/^\/storage\/(\d+)/);
-    const key = storageMatch ? definition?.storage[Number(storageMatch[1])]?.key : undefined;
+    const initializerMatch = pointer.match(/^\/lifecycle\/initializers\/(\d+)/);
+    const resourceMatch = pointer.match(/^\/resources\/(\d+)/);
+    const initializer = initializerMatch ? definition?.lifecycle.initializers[Number(initializerMatch[1])] : undefined;
+    const resourceId = resourceMatch ? definition?.resources[Number(resourceMatch[1])]?.id : undefined;
+    const resourceInitializer = typeof resourceId === "string" ? definition?.lifecycle.initializers.find(
+      (candidate) => candidate.config.choicesResourceId === resourceId,
+    ) : undefined;
+    const key = storageMatch ? definition?.storage[Number(storageMatch[1])]?.key
+      : initializer?.config.storageKey ?? resourceInitializer?.config.storageKey;
     return {
       stepId,
       fieldId: typeof key === "string" ? `data-item-${key}` : "designer-panel-data-outcome",

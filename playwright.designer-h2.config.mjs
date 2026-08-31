@@ -31,7 +31,7 @@ export default defineConfig({
     env: {
       ...process.env,
       SERVER_PORT: String(port),
-      SPRING_DATASOURCE_URL: "jdbc:h2:mem:prometheus_designer_v24;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+      SPRING_DATASOURCE_URL: "jdbc:h2:mem:prometheus_designer_v25;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
       SPRING_DATASOURCE_USERNAME: "sa",
       SPRING_DATASOURCE_PASSWORD: "",
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver",

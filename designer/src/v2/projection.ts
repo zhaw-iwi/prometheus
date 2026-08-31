@@ -237,9 +237,7 @@ export function projectDefinition(definition: AgentDefinitionV1): DesignerV2Proj
   });
 
   const initializerKeys = referencedStorageKeys(source.lifecycle.initializers);
-  const learnedKeys = referencedStorageKeys(source.transitions
-    .flatMap((transition) => transition.actions)
-    .filter((action) => action.kind === "prometheus.action.extract"));
+  const learnedKeys = writtenStorageKeys(source.transitions.flatMap((transition) => transition.actions));
   const items = source.storage.map((declaration, storageIndex): DataItemProjection => {
     const key = typeof declaration.key === "string" ? declaration.key : `storage-${storageIndex + 1}`;
     return {
@@ -401,6 +399,21 @@ function latestEventTypes(transition: TransitionDefinition): string[] {
 function referencedStorageKeys(envelopes: ComponentEnvelope[]): Set<string> {
   const keys = new Set<string>();
   for (const envelope of envelopes) collectStorageKeys(envelope.config, keys);
+  return keys;
+}
+
+function writtenStorageKeys(envelopes: ComponentEnvelope[]): Set<string> {
+  const keys = new Set<string>();
+  envelopes.forEach((envelope) => {
+    const target = envelope.config.targetStorageKey;
+    if (typeof target === "string") keys.add(target);
+    const bindings = envelope.config.storageBindings;
+    if (!Array.isArray(bindings)) return;
+    bindings.forEach((binding) => {
+      if (!isJsonObject(binding) || typeof binding.key !== "string") return;
+      if (binding.access === "write" || binding.access === "read-write") keys.add(binding.key);
+    });
+  });
   return keys;
 }
 

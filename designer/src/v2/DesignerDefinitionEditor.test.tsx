@@ -11,13 +11,27 @@ describe("DesignerDefinitionEditor V2 shell", () => {
   it("maps backend pointers to the six V2 steps and stable projected targets", () => {
     const definition = validDefinition("designer.targets", "Targets");
     definition.storage.push({ key: "result" });
-    definition.transitions.push({ id: "stay", sourceStateId: "main", targetStateId: "main", order: 10, decisions: [], actions: [] });
+    definition.lifecycle.initializers.push({
+      kind: "prometheus.initializer.random-choice", version: 1,
+      config: { storageKey: "result", choicesResourceId: "result-choices" },
+    });
+    definition.resources.push({ id: "result-choices", kind: "prometheus.resource.typed-choices", version: 1, config: { values: ["ok"] } });
+    definition.transitions.push({
+      id: "stay", sourceStateId: "main", targetStateId: "main", order: 10, decisions: [],
+      actions: [
+        { kind: "prometheus.action.prompt-behaviour", version: 1, config: {} },
+        { kind: "prometheus.action.extract", version: 1, config: { targetStorageKey: "result" } },
+      ],
+    });
     expect(targetForDiagnostic(diagnostic("/metadata/displayName"), definition)).toMatchObject({ stepId: "brief", fieldId: "brief-display-name" });
     expect(targetForDiagnostic(diagnostic("/interaction/supportedObservations/0"), definition)).toMatchObject({ stepId: "capabilities" });
     expect(targetForDiagnostic(diagnostic("/states/1/policy"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-situation-main" });
     expect(targetForDiagnostic(diagnostic("/transitions/0/decisions/1"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-rule-stay-condition-1" });
     expect(targetForDiagnostic(diagnostic("/transitions/0/actions/0"), definition)).toMatchObject({ stepId: "interaction", fieldId: "interaction-rule-stay-effect-0" });
     expect(targetForDiagnostic(diagnostic("/storage/0/valueSchema"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
+    expect(targetForDiagnostic(diagnostic("/lifecycle/initializers/0/config/storageKey"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
+    expect(targetForDiagnostic(diagnostic("/resources/0/config/values"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
+    expect(targetForDiagnostic(diagnostic("/transitions/0/actions/1/config/outputSchema"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
     expect(targetForDiagnostic(diagnostic("/verification/scenarios/0"), definition)).toMatchObject({ stepId: "try" });
     expect(targetForDiagnostic(diagnostic(""), definition)).toMatchObject({ stepId: "review" });
   });

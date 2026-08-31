@@ -258,6 +258,18 @@ and final topology. Mocked browser coverage and isolated H2 authoring validate
 the representative stay, branch, healthcare, and registered RPS flows without
 JSON editing, normal-database access, or provider calls.
 
+Designer V2 Milestone V2.5 replaces the Data & outcome placeholder with one
+canonical lifecycle workspace. Starting context supports fixed values and the
+registered typed-choice/resource pattern used by the therapy reminders;
+working and learned values expose common schemas while registered RPS storage
+stays grouped as one operation-owned pack. Strict guided structured fields and
+outcome fields synchronize schemas and initialization values, generated
+extraction attaches to finish rules, and imported healthcare outcomes remain
+editable Custom reports until a previewed conversion is explicitly applied.
+Rename/delete protection follows configured references, and backend pointers
+for storage, initializer/resource, and extraction problems focus the owning
+card. All twelve definitions retain no-edit canonical parity.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

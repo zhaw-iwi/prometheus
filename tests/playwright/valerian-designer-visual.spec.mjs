@@ -291,6 +291,75 @@ test("prompt, exact-text, RPS, and healthcare revisions export unchanged after o
   }
 });
 
+test("Data & outcome explains therapy choices, custom reports, and operation-owned RPS data", async ({ browser }, testInfo) => {
+  const fixtures = [
+    {
+      resource: "usecases/healthcare/therapy_appointment_reminder/revision-1.json",
+      name: "v2-data-therapy-common-light",
+      assert: async (page) => {
+        await expect(page.getByTestId("typed-choices-therapyAppointmentContext")).toContainText("3 choices");
+        await expect(page.getByTestId("custom-outcome-outcome")).toContainText("Custom outcome report");
+        await expect(page.getByRole("heading", { name: "Structured fields" })).toBeVisible();
+      },
+    },
+    {
+      resource: "usecases/healthcare/smart_goal_coaching/revision-1.json",
+      name: "v2-data-smart-custom-light",
+      assert: async (page) => {
+        const custom = page.getByTestId("custom-outcome-outcome");
+        await expect(custom).toContainText("Custom outcome report");
+        await custom.getByRole("button", { name: "Convert to guided fields…" }).click();
+        await custom.getByRole("button", { name: "Preview canonical change" }).click();
+        await expect(page.getByTestId("outcome-conversion-diff")).toBeVisible();
+      },
+    },
+    {
+      resource: "core/rock_scissor_paper/revision-1.json",
+      name: "v2-data-rps-owned-light",
+      assert: async (page) => {
+        await expect(page.getByTestId("operation-data-rock-scissor-paper")).toContainText("4 owned values");
+        await expect(page.locator("[data-testid^='data-item-card-rps_']")).toHaveCount(0);
+      },
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const definition = JSON.parse(readFileSync(resolve(CATALOG_ROOT, fixture.resource), "utf8"));
+    const context = await browser.newContext({ viewport: { width: 1180, height: 900 }, colorScheme: "light" });
+    const page = await context.newPage();
+    const errors = collectPageErrors(page);
+    await installDesignerApiMock(page, { definition });
+    await openFixture(page, definition.key);
+    await page.getByTestId("step-target-data-outcome").click();
+    await fixture.assert(page);
+    await attach(page.getByTestId("step-panel-data-outcome"), testInfo, fixture.name);
+    await assertNoOverflow(page);
+    await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+    expect(errors).toEqual([]);
+    await context.close();
+  }
+});
+
+test("custom outcome conversion preview stacks on a 390-pixel viewport", async ({ browser }, testInfo) => {
+  const definition = JSON.parse(readFileSync(resolve(
+    CATALOG_ROOT, "usecases/healthcare/smart_goal_coaching/revision-1.json",
+  ), "utf8"));
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "dark" });
+  const page = await context.newPage();
+  const errors = collectPageErrors(page);
+  await installDesignerApiMock(page, { definition });
+  await openFixture(page, definition.key);
+  await page.getByTestId("step-target-data-outcome").click();
+  const custom = page.getByTestId("custom-outcome-outcome");
+  await custom.getByRole("button", { name: "Convert to guided fields…" }).click();
+  await custom.getByRole("button", { name: "Preview canonical change" }).click();
+  await expect(page.getByTestId("outcome-conversion-diff")).toBeVisible();
+  await attach(page.getByTestId("step-panel-data-outcome"), testInfo, "v2-data-custom-conversion-dark-mobile");
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+  await context.close();
+});
+
 test("390-pixel mobile stacks the V2 stepper and keeps projected panels within the viewport", async ({ page }, testInfo) => {
   const errors = collectPageErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });

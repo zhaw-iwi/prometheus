@@ -131,6 +131,44 @@ test("clones, edits, and validates the registered RPS cycle without JSON editing
   expect(errors).toEqual([]);
 });
 
+test("edits, saves, reloads, and validates therapy typed context on isolated H2", async ({ page }) => {
+  const errors = collectErrors(page);
+  const key = `designer.h2_therapy_context_${Date.now()}`;
+  await enterCatalog(page);
+  await page.getByTestId("open-definition-usecases.healthcare.therapy_appointment_reminder").click();
+  await cloneCurrentRevision(page, key);
+  await page.getByTestId("step-target-data-outcome").click();
+  const choices = page.getByTestId("typed-choices-therapyAppointmentContext");
+  await choices.getByLabel("Safe Focus").first().fill("safe walking, balance, and mobility practice");
+  await saveAndValidate(page, key);
+  await reopen(page, key);
+  await page.getByTestId("step-target-data-outcome").click();
+  await expect(page.getByTestId("typed-choices-therapyAppointmentContext").getByLabel("Safe Focus").first())
+    .toHaveValue("safe walking, balance, and mobility practice");
+  await expect(page.getByTestId("custom-outcome-outcome")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("edits, saves, reloads, and validates custom SMART outcome rules on isolated H2", async ({ page }) => {
+  const errors = collectErrors(page);
+  const key = `designer.h2_smart_outcome_${Date.now()}`;
+  await enterCatalog(page);
+  await page.getByTestId("open-definition-usecases.healthcare.smart_goal_coaching").click();
+  await cloneCurrentRevision(page, key);
+  await page.getByTestId("step-target-data-outcome").click();
+  const custom = page.getByTestId("custom-outcome-outcome");
+  await custom.getByLabel("Instruction").first().fill(
+    "Extract the completed SMART goal interaction as valid JSON only, using conversation evidence.",
+  );
+  await saveAndValidate(page, key);
+  await reopen(page, key);
+  await page.getByTestId("step-target-data-outcome").click();
+  await expect(page.getByTestId("custom-outcome-outcome").getByLabel("Instruction").first()).toHaveValue(
+    "Extract the completed SMART goal interaction as valid JSON only, using conversation evidence.",
+  );
+  expect(errors).toEqual([]);
+});
+
 async function completeBrief(page, name, purpose, key) {
   await page.getByLabel("Agent name").fill(name);
   await page.getByLabel("Purpose, audience, and setting").fill(purpose);
@@ -169,6 +207,14 @@ async function saveAndValidate(page, key) {
   await page.getByTestId("step-target-review").click();
   await page.getByTestId("validate-review").click();
   await expect(page.getByTestId("review-validation-state")).toContainText("current for this exact document");
+}
+
+async function cloneCurrentRevision(page, key) {
+  await page.getByTestId("step-target-review").click();
+  await page.getByLabel("Clone target key").fill(key);
+  await page.getByLabel("Target revision").fill("1");
+  await page.getByTestId("clone-revision").click();
+  await expect(page).toHaveURL(new RegExp(`definitions/${key.replaceAll(".", "\\.")}/revisions/1`));
 }
 
 function collectErrors(page) {

@@ -83,9 +83,9 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestones V2.1-V2.4 establish this product contract, backend component
+V2 Milestones V2.1-V2.5 establish this product contract, backend component
 authoring descriptors, the direct source-frontend replacement, and the first
-three guided workspaces. Brief now edits identity plus scoped ordered guidance,
+four guided workspaces. Brief now edits identity plus scoped ordered guidance,
 preserves unknown imported sections as Additional guidance, requires explicit
 example adoption and stable-key confirmation, and previews backend-composed
 prompts read-only. Capabilities provides plain-language observation/expression
@@ -94,8 +94,12 @@ strategies, guided Exact text settings, and a grouped RPS operation card. Raw
 component envelopes remain under Technical details. Interaction now uses one
 storyboard for Main, durable situations, scoped guidance, and ordered
 event/condition/effect/stay-move-finish rules, with a compact read-only flow
-overview derived from the same canonical document. Data & outcome and Try
-remain explicit read-only projections until their milestones.
+overview derived from the same canonical document. Data & outcome now provides
+guided lifecycle grouping, primitive/list/structured schemas, fixed and
+registered typed-choice initialization, protected references, operation-owned
+RPS data, guided extraction reports, and explicit previewed conversion of
+imported Custom outcomes. Try remains an explicit read-only projection until
+V2.6.
 The V1 form/panels, graph implementation, tests, styles, and XYFlow dependency
 are removed rather than retained as an alternate mode.
 

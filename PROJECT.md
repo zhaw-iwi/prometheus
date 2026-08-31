@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1-V2.4 complete; V2.5 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.5 complete; V2.6 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -239,15 +239,26 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   ordered registered effects, and stay/move/finish. It creates situations
   inline, lazily creates/reuses a final state, protects referenced situations,
   exposes keyboard priority controls and exact diagnostic targets, and derives
-  a compact read-only flow without restoring the removed graph editor. The
-  focused gate now passes 49 frontend tests, type checking, production build,
-  component/prompt/API/catalog/compiler regressions, ten mocked Playwright
-  scenarios with inspected light/dark desktop/mobile Interaction captures, and
-  an explicit in-memory-H2 browser workflow that saved and compile-validated
+  a compact read-only flow without restoring the removed graph editor. V2.5
+  replaces the Data & outcome placeholder with one lossless lifecycle
+  workspace for Starting context, Working data, Learned information, and
+  Outcome reports. It edits primitive, enum, string-list, and strict structured
+  schemas; fixed and registered typed-choice initialization; operation-owned
+  RPS storage; generated strict outcome fields/extraction; and imported Custom
+  extraction guidance. Reference-protected rename/delete and explicit
+  conversion previews keep canonical bindings safe, while initializer/resource
+  and extraction diagnostics focus the owning data card. The focused gate now
+  passes 60 frontend tests, type checking, production build,
+  component/prompt/API/catalog/compiler regressions, twelve mocked Playwright
+  scenarios with inspected light/dark desktop/mobile Interaction and Data &
+  outcome captures, and an explicit in-memory-H2 browser workflow that saved
+  and compile-validated
   orthogonal stay, semantic role branch, two-situation healthcare, and cloned
-  registered RPS cycle designs without JSON editing, provider calls, or access
-  to the normal configured database. Data & outcome and Try remain visibly
-  read-only until their owning milestones.
+  registered RPS cycle designs plus edited therapy typed context and SMART
+  extraction without JSON editing, provider calls, or access to the normal
+  configured database. The V2.5 backend slice passed 100 schema, semantic,
+  component, compiler, runtime, catalog, controller, JSON, and static-resource
+  tests. Try remains visibly read-only until V2.6.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

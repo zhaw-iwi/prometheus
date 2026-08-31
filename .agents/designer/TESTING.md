@@ -323,6 +323,21 @@ orthogonal stay rules, a semantic role branch, a two-situation healthcare
 flow, and a cloned registered RPS cycle without canonical JSON editing. It does
 not read the normal datasource, call providers, or claim MySQL verification.
 
+Milestone V2.5 expands the focused frontend suite to 60 tests. Data model and
+component coverage classifies and preserves all twelve documents, edits therapy
+typed choices and synchronized strict object schemas, keeps RPS storage owned,
+generates deterministic outcome schema/extraction sections, preserves Custom
+healthcare extraction, previews explicit conversion without mutation, protects
+references, and maps related backend pointers to exact cards. Twelve mocked
+Playwright scenarios cover empty, common therapy, custom SMART, operation-owned
+RPS, light desktop, and dark 390-pixel layouts; the inspected captures have no
+horizontal overflow or browser errors. The H2 gate now uses only
+`jdbc:h2:mem:prometheus_designer_v25` and its seven scenarios additionally
+save, reload, and compile-validate therapy context and SMART outcome edits. The
+milestone backend slice passes 100 schema, semantic, component, compiler,
+runtime, catalog, JSON, controller, and static-resource tests without providers
+or the normal configured database.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original
