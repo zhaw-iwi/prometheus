@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ch.zhaw.prometheus.definition.catalog.BundledDefinitionCatalog;
@@ -130,6 +131,137 @@ class DesignerPreviewServiceUnitTest {
                 new RuntimeEvent("obs.user_utterance", "user", "observation", "x".repeat(129))));
     }
 
+    @Test
+    void exactTextStayScenarioPassesAndFailedExpectationExplainsObservedTrace() throws Exception {
+        DesignerPreviewService previews = service(new NoModelGateway(), new MutableClock(), 2, 8);
+        ObjectNode passing = scenario("Exact stay", "obs.user_utterance", "hello scenario",
+                List.of("talk"));
+        passing.withObject("expected").withArray("behaviourFragments")
+                .addObject().put("speech", "hello scenario");
+        ObjectNode failing = passing.deepCopy();
+        failing.put("name", "Wrong speech");
+        failing.withObject("expected").withArray("behaviourFragments").removeAll()
+                .addObject().put("speech", "different");
+        String definition = withScenarios(canonical("core.talk_to_me"), passing, failing);
+
+        var passed = previews.executeScenario(definition, 0);
+        var failed = previews.executeScenario(definition, 1);
+
+        assertTrue(passed.passed());
+        assertEquals(List.of("repeat"), passed.acceptedTransitionIds());
+        assertEquals(List.of("speech"), passed.emittedModalities());
+        assertTrue(passed.discarded());
+        assertFalse(failed.passed());
+        assertTrue(failed.expectations().stream().filter(expectation -> !expectation.passed())
+                .allMatch(expectation -> expectation.explanation().contains("No recorded behaviour")));
+        assertEquals(0, previews.sessionCount());
+    }
+
+    @Test
+    void seededRpsScenarioIsRepeatableAndReturnsRoundTrace() throws Exception {
+        DesignerPreviewService previews = service(new ScriptedRpsGateway(), new MutableClock(), 2, 12);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode scenario = scenario("RPS round", "obs.user_utterance", "ready",
+                List.of("context", "result"));
+        scenario.put("initializerSeed", 27);
+        ObjectNode hand = mapper.createObjectNode();
+        hand.put("type", "obs.hand.sign");
+        hand.put("actor", "sensor");
+        hand.put("kind", "observation");
+        hand.put("payload", "{\"sign\":\"scissor\"}");
+        scenario.withArray("events").add(hand);
+        String definition = withScenarios(canonical("core.rock_scissor_paper"), scenario);
+
+        var first = previews.executeScenario(definition, 0);
+        var second = previews.executeScenario(definition, 0);
+
+        assertTrue(first.passed());
+        assertEquals(first.storage(), second.storage());
+        assertEquals(List.of("start_to_reveal", "reveal_to_result"), first.acceptedTransitionIds());
+        assertTrue(first.storageChanges().stream().anyMatch(change -> "rps_rounds".equals(change.key())));
+        assertTrue(first.emittedModalities().contains("motion.handSign"));
+        assertEquals(0, previews.sessionCount());
+    }
+
+    @Test
+    void initialStorageAndFakePromptBehaviourUseProductionCompilationWithoutPersistence() throws Exception {
+        DesignerPreviewService previews = service(new NoModelGateway(), new MutableClock(), 2, 8);
+        String fixture;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/agent-definitions/valid/deterministic-components.json")) {
+            fixture = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        ObjectNode scenario = scenario("Override and increment", "obs.hand.sign", "rock", List.of("round"));
+        scenario.put("initializerSeed", 9);
+        scenario.withObject("initialStorage").put("round_count", 4);
+        scenario.withObject("expected").withObject("storage").put("round_count", 5);
+        scenario.withObject("expected").withArray("behaviourFragments")
+                .addObject().put("speech", "deterministic model response");
+
+        var result = previews.executeScenario(withScenarios(fixture, scenario), 0);
+
+        assertTrue(result.passed(), result.toString());
+        assertEquals(5, result.storage().get("round_count").asInt());
+        assertTrue(result.storageChanges().stream().anyMatch(change -> change.before().asInt() == 4
+                && change.after().asInt() == 5));
+        assertEquals(0, previews.sessionCount());
+    }
+
+    @Test
+    void branchAndFinishScenariosReportTheirAcceptedPaths() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String composite;
+        try (InputStream input = getClass().getResourceAsStream("/agent-definitions/valid/composite-flow.json")) {
+            composite = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+        DesignerPreviewService previews = service(new NoModelGateway(), new MutableClock(), 2, 8);
+        ObjectNode finish = scenario("Finish", "obs.user_utterance", "done", List.of("session", "done"));
+        var finished = previews.executeScenario(withScenarios(composite, finish), 0);
+        assertTrue(finished.passed());
+        assertEquals(List.of("finish"), finished.acceptedTransitionIds());
+
+        ObjectNode branchedDefinition = (ObjectNode) mapper.readTree(composite);
+        ObjectNode alternate = mapper.createObjectNode();
+        alternate.put("id", "alternate");
+        alternate.put("name", "Alternate");
+        alternate.put("kind", "atomic");
+        alternate.put("entryMode", "start");
+        alternate.put("oblivious", false);
+        alternate.putNull("eventSelector");
+        alternate.putNull("policy");
+        branchedDefinition.withArray("states").add(alternate);
+        ((ObjectNode) branchedDefinition.withArray("states").get(0)).withArray("childStateIds").add("alternate");
+        ArrayNode transitions = mapper.createArrayNode();
+        transitions.add(mapper.readTree("""
+                {"id":"social-branch","sourceStateId":"conversation","targetStateId":"alternate","order":10,
+                 "decisions":[{"kind":"prometheus.decision.latest-event-type","version":1,
+                 "config":{"eventType":"obs.user_utterance"}}],"actions":[]}
+                """));
+        branchedDefinition.set("transitions", transitions);
+        ObjectNode branch = scenario("Branch", "obs.user_utterance", "branch", List.of("session", "alternate"));
+        String branchJson = withScenarios(mapper.writeValueAsString(branchedDefinition), branch);
+
+        var branched = previews.executeScenario(branchJson, 0);
+        assertTrue(branched.passed(), branched.toString());
+        assertEquals(List.of("social-branch"), branched.acceptedTransitionIds());
+        assertEquals(0, previews.sessionCount());
+    }
+
+    @Test
+    void scenarioLimitsRejectOversizedScriptsAndAlwaysCleanDisposableSessions() throws Exception {
+        DesignerPreviewService previews = service(new NoModelGateway(), new MutableClock(), 2, 2);
+        ObjectNode tooMany = scenario("Too many", "obs.user_utterance", "one", List.of("talk"));
+        tooMany.withArray("events").add(tooMany.withArray("events").get(0).deepCopy());
+        assertThrows(PreviewLimitException.class,
+                () -> previews.executeScenario(withScenarios(canonical("core.talk_to_me"), tooMany), 0));
+        assertEquals(0, previews.sessionCount());
+
+        ObjectNode tooLarge = scenario("Too large", "obs.user_utterance", "x".repeat(129), List.of("talk"));
+        assertThrows(PreviewLimitException.class,
+                () -> previews.executeScenario(withScenarios(canonical("core.talk_to_me"), tooLarge), 0));
+        assertEquals(0, previews.sessionCount());
+    }
+
     private static DesignerPreviewService service(RuntimeModelGateway gateway, Clock clock, int maxSessions,
             int maxOperations) {
         AgentDefinitionJson json = new AgentDefinitionJson();
@@ -141,6 +273,26 @@ class DesignerPreviewServiceUnitTest {
     private static String canonical(String key) {
         AgentDefinitionJson json = new AgentDefinitionJson();
         return json.canonicalJson(BundledDefinitionCatalog.loadMainCatalog().require(key).document());
+    }
+
+    private static ObjectNode scenario(String name, String eventType, String payload, List<String> expectedPath) {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode scenario = mapper.createObjectNode();
+        scenario.put("name", name);
+        scenario.withArray("events").addObject().put("type", eventType).put("actor", "user")
+                .put("kind", "observation").put("payload", payload);
+        ArrayNode path = scenario.withObject("expected").withArray("activeStatePath");
+        expectedPath.forEach(path::add);
+        return scenario;
+    }
+
+    private static String withScenarios(String json, ObjectNode... scenarios) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode definition = (ObjectNode) mapper.readTree(json);
+        ArrayNode values = mapper.createArrayNode();
+        for (ObjectNode scenario : scenarios) values.add(scenario);
+        definition.withObject("verification").set("scenarios", values);
+        return mapper.writeValueAsString(definition);
     }
 
     private static RuntimeEvent userEvent(String payload) {

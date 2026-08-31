@@ -21,6 +21,7 @@ import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewSnapshot;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewSource;
+import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.ScenarioExecution;
 import ch.zhaw.prometheus.definition.repository.DefinitionLifecycleException;
 import ch.zhaw.prometheus.definition.repository.DefinitionStatus;
 import ch.zhaw.prometheus.definition.repository.StoredDefinitionRevision;
@@ -78,6 +79,19 @@ public class DesignerPreviewController {
             return unauthorized();
         }
         return ResponseEntity.ok(this.previews.inspect(previewId));
+    }
+
+    @PostMapping("/scenarios")
+    public ResponseEntity<ScenarioExecution> scenario(
+            @RequestHeader(name = ADMIN_TOKEN_HEADER, required = false) String token,
+            @RequestBody(required = false) ScenarioExecutionRequest request) {
+        if (!isAuthorized(token)) {
+            return unauthorized();
+        }
+        require(request != null && request.definition() != null && request.scenarioIndex() >= 0,
+                "An unsaved definition and scenario index are required");
+        return ResponseEntity.ok(this.previews.executeScenario(request.definition().toString(),
+                request.scenarioIndex()));
     }
 
     @PostMapping("/{previewId}/events")
@@ -142,5 +156,8 @@ public class DesignerPreviewController {
     }
 
     public record PreviewEventRequest(String type, String actor, String kind, String payload) {
+    }
+
+    public record ScenarioExecutionRequest(JsonNode definition, int scenarioIndex) {
     }
 }

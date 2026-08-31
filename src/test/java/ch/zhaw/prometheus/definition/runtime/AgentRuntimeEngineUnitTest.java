@@ -11,6 +11,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -85,6 +86,27 @@ class AgentRuntimeEngineUnitTest {
         assertTrue(creation.instance().started());
         assertEquals(0, creation.instance().storage().get("round_count").asInt());
         assertEquals("start:round", creation.startup().behaviour().speech());
+        assertEquals(1, creation.startup().appendedEvents().size());
+    }
+
+    @Test
+    void creationAppliesScenarioStorageBeforeRunningAutomaticStartupOnce() {
+        AgentDefinitionJson json = new AgentDefinitionJson();
+        CompiledAgentDefinition automatic;
+        try (InputStream input = getClass().getResourceAsStream(
+                "/agent-definitions/valid/deterministic-components.json")) {
+            automatic = new DefinitionCompiler(BuiltInComponentCatalog.createRegistry(), json).compile(json.parse(input));
+        } catch (Exception exception) {
+            throw new IllegalArgumentException(exception);
+        }
+
+        AgentRuntimeCreation creation = this.engine.create(102, automatic, this.context,
+                Map.of("round_count", JsonNodeFactory.instance.numberNode(4)));
+
+        assertTrue(creation.instance().started());
+        assertEquals(4, creation.instance().initialStorageSnapshot().get("round_count").value().asInt());
+        assertEquals(4, creation.instance().storage().get("round_count").asInt());
+        assertEquals(1, this.model.prompts.size());
         assertEquals(1, creation.startup().appendedEvents().size());
     }
 

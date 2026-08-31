@@ -169,6 +169,46 @@ test("edits, saves, reloads, and validates custom SMART outcome rules on isolate
   expect(errors).toEqual([]);
 });
 
+test("runs an unsaved exact-text scenario through the isolated H2 application without persistence leakage", async ({ page }) => {
+  const errors = collectErrors(page);
+  const key = `designer.h2_try_exact_${Date.now()}`;
+  await enterCatalog(page);
+  await page.getByTestId("open-definition-core.talk_to_me").click();
+  await cloneCurrentRevision(page, key);
+  await page.getByTestId("step-target-try").click();
+  await page.getByRole("button", { name: "Add scenario" }).click();
+  const scenario = page.getByTestId("scenario-card-0");
+  await scenario.getByLabel("Scenario 1 name").fill("Exact H2 echo");
+  await scenario.getByRole("button", { name: "What the person says" }).click();
+  await scenario.getByLabel("Event payload").fill("H2 exact hello");
+  await scenario.getByLabel("Active situation after all events (optional)").selectOption("talk");
+  await scenario.getByRole("button", { name: "Add behaviour expectation" }).click();
+  await scenario.getByLabel("Behaviour fragment 1 JSON value").fill('{"speech":"H2 exact hello"}');
+  await scenario.getByRole("button", { name: "Apply JSON value" }).click();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Unsaved changes");
+
+  const revisionUrl = `/admin/agent-definitions/${key}/revisions/1`;
+  const headers = { "X-Prometheus-Admin-Token": ADMIN_TOKEN };
+  const before = await (await page.request.get(revisionUrl, { headers })).json();
+  await scenario.getByTestId("run-scenario-0").click();
+  await expect(scenario.getByText("All expectations passed")).toBeVisible();
+  await expect(scenario.getByText(/disposable runtime session has been discarded/i)).toBeVisible();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Unsaved changes");
+  const after = await (await page.request.get(revisionUrl, { headers })).json();
+  expect(after).toEqual(before);
+
+  await page.getByTestId("save-draft").click();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+  await reopen(page, key);
+  await page.getByTestId("step-target-try").click();
+  await expect(page.getByTestId("scenario-result-0")).toHaveCount(0);
+  await page.getByTestId("run-scenario-0").click();
+  await expect(page.getByText("All expectations passed")).toBeVisible();
+  await page.getByRole("button", { name: "Clear result" }).click();
+  await expect(page.getByTestId("scenario-result-0")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
 async function completeBrief(page, name, purpose, key) {
   await page.getByLabel("Agent name").fill(name);
   await page.getByLabel("Purpose, audience, and setting").fill(purpose);

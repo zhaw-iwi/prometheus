@@ -360,6 +360,45 @@ test("custom outcome conversion preview stacks on a 390-pixel viewport", async (
   await context.close();
 });
 
+test("Try authors an executable scenario and explains passing and failing disposable runs", async ({ page }, testInfo) => {
+  const errors = collectPageErrors(page);
+  const mocked = await installDesignerApiMock(page);
+  await openFixture(page, VISUAL_KEY);
+  await page.getByTestId("step-target-try").click();
+  await page.getByRole("button", { name: "Add scenario" }).click();
+  const scenario = page.getByTestId("scenario-card-0");
+  await scenario.getByLabel("Scenario 1 name").fill("Conversation remains active");
+  await scenario.getByLabel("Initializer seed (optional)").fill("29");
+  await scenario.getByRole("button", { name: "What the person says" }).click();
+  await scenario.getByLabel("Event payload").fill("Show me one practical next step.");
+  await scenario.getByLabel("Active situation after all events (optional)").selectOption("conversation");
+  await scenario.getByRole("button", { name: "Add behaviour expectation" }).click();
+  await scenario.getByTestId("run-scenario-0").click();
+
+  await expect(scenario.getByText("All expectations passed")).toBeVisible();
+  await expect(scenario.getByText(/disposable runtime session has been discarded/i)).toBeVisible();
+  await scenario.getByText("Why did this happen?").click();
+  await expect(scenario.getByText(/active path matched/i)).toBeVisible();
+  await attach(page.getByTestId("step-panel-try"), testInfo, "v2-try-passing-light");
+
+  await scenario.getByLabel("Behaviour fragment 1 JSON value").fill('{"speech":"force-fail"}');
+  await scenario.getByRole("button", { name: "Apply JSON value" }).click();
+  await expect(scenario.getByText(/predates the latest scenario edits/i)).toBeVisible();
+  await scenario.getByTestId("run-scenario-0").click();
+  await expect(scenario.getByText("Some expectations failed")).toBeVisible();
+  const why = scenario.locator(".scenario-why");
+  if (!(await why.evaluate((details) => details.open))) await scenario.getByText("Why did this not happen?").click();
+  await expect(scenario.getByText(/No emitted behaviour contained/i)).toBeVisible();
+  await attach(page.getByTestId("step-panel-try"), testInfo, "v2-try-failing-light");
+
+  await scenario.getByRole("button", { name: "Clear result" }).click();
+  await expect(scenario.getByTestId("scenario-result-0")).toHaveCount(0);
+  expect(mocked.scenarioExecutions).toBe(2);
+  expect(mocked.openScenarioSessions).toBe(0);
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+});
+
 test("390-pixel mobile stacks the V2 stepper and keeps projected panels within the viewport", async ({ page }, testInfo) => {
   const errors = collectPageErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -389,6 +428,10 @@ test("390-pixel mobile stacks the V2 stepper and keeps projected panels within t
   await assertNoOverflow(page);
   await page.getByTestId("step-target-data-outcome").click();
   await attach(page, testInfo, "v2-data-outcome-dark-mobile");
+  await assertNoOverflow(page);
+  await page.getByTestId("step-target-try").click();
+  await page.getByRole("button", { name: "Add scenario" }).click();
+  await attach(page, testInfo, "v2-try-dark-mobile");
   await assertNoOverflow(page);
   await page.getByTestId("step-target-review").click();
   await expect(page.getByTestId("review-panel")).toBeVisible();

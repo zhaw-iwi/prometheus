@@ -27,6 +27,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+
 import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
 import ch.zhaw.prometheus.definition.compiled.DefinitionCompilationException;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService;
@@ -34,6 +36,8 @@ import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewDiagn
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewOperation;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewSnapshot;
 import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.PreviewSource;
+import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.ScenarioExecution;
+import ch.zhaw.prometheus.definition.preview.DesignerPreviewService.ScenarioExpectationResult;
 import ch.zhaw.prometheus.definition.preview.PreviewExecutionException;
 import ch.zhaw.prometheus.definition.preview.PreviewLimitException;
 import ch.zhaw.prometheus.definition.preview.PreviewNotFoundException;
@@ -83,6 +87,7 @@ class DesignerPreviewControllerWebMvcTest {
         when(this.previews.acknowledge(eq(ID), any(RuntimeEvent.class))).thenReturn(snapshot);
         when(this.previews.generate(ID)).thenReturn(snapshot);
         when(this.previews.reset(ID)).thenReturn(snapshot);
+        when(this.previews.executeScenario(anyString(), eq(0))).thenReturn(scenarioExecution());
 
         this.mockMvc.perform(post("/admin/agent-definitions/previews").header(HEADER, TOKEN)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"definition\":{\"key\":\"draft\"}}"))
@@ -107,6 +112,13 @@ class DesignerPreviewControllerWebMvcTest {
                 .header(HEADER, TOKEN)).andExpect(status().isOk());
         this.mockMvc.perform(post("/admin/agent-definitions/previews/" + ID + "/reset")
                 .header(HEADER, TOKEN)).andExpect(status().isOk());
+        this.mockMvc.perform(post("/admin/agent-definitions/previews/scenarios").header(HEADER, TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"definition\":{\"key\":\"draft\"},\"scenarioIndex\":0}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passed").value(true))
+                .andExpect(jsonPath("$.expectations[0].explanation").value("Matched from deterministic trace."))
+                .andExpect(jsonPath("$.discarded").value(true));
         this.mockMvc.perform(delete("/admin/agent-definitions/previews/" + ID).header(HEADER, TOKEN))
                 .andExpect(status().isNoContent());
         verify(this.previews).close(ID);
@@ -159,6 +171,8 @@ class DesignerPreviewControllerWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{}"),
                 post("/admin/agent-definitions/previews/" + ID + "/generate"),
                 post("/admin/agent-definitions/previews/" + ID + "/reset"),
+                post("/admin/agent-definitions/previews/scenarios")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"),
                 delete("/admin/agent-definitions/previews/" + ID));
     }
 
@@ -169,6 +183,14 @@ class DesignerPreviewControllerWebMvcTest {
         return new PreviewSnapshot(ID, PreviewSource.UNSAVED, null, "designer.test", 2, now, now,
                 now.plusSeconds(900), List.of("talk"), Map.of(), List.of(), false, true,
                 List.of(creation), List.of());
+    }
+
+    private static ScenarioExecution scenarioExecution() {
+        var expectation = new ScenarioExpectationResult("active-state-path", "Active situation path", true,
+                JsonNodeFactory.instance.arrayNode().add("talk"), JsonNodeFactory.instance.arrayNode().add("talk"),
+                "Matched from deterministic trace.");
+        return new ScenarioExecution(0, "Exact speech", true, List.of(expectation), List.of("talk"), Map.of(),
+                List.of("repeat"), List.of(), List.of("speech"), snapshot().transcript(), List.of(), true);
     }
 
     private static StoredDefinitionRevision storedRevision() {

@@ -316,6 +316,32 @@ class DefinitionSemanticValidatorUnitTest {
         assertTrue(result.isValid(), () -> result.diagnostics().toString());
     }
 
+    @Test
+    void scenarioReferencesAndValuesHaveExactDiagnostics() throws IOException {
+        ObjectNode document = tree("valid/deterministic-components.json");
+        ObjectNode scenario = (ObjectNode) document.at("/verification/scenarios/0");
+        scenario.withObject("initialStorage").put("missing", 1).put("round_count", "wrong");
+        scenario.withObject("expected").withObject("storage").put("other_missing", true)
+                .put("round_count", "wrong");
+        scenario.withObject("expected").withArray("activeStatePath").removeAll().add("missing_state");
+        ((ObjectNode) scenario.withArray("events").get(0)).put("type", "obs.undeclared");
+
+        DefinitionValidationResult result = validator().validate(parse(document));
+
+        assertDiagnostic(result, SemanticDiagnosticCode.MISSING_SCENARIO_STORAGE,
+                "/verification/scenarios/0/initialStorage/missing");
+        assertDiagnostic(result, SemanticDiagnosticCode.INVALID_SCENARIO_STORAGE_VALUE,
+                "/verification/scenarios/0/initialStorage/round_count");
+        assertDiagnostic(result, SemanticDiagnosticCode.MISSING_SCENARIO_STORAGE,
+                "/verification/scenarios/0/expected/storage/other_missing");
+        assertDiagnostic(result, SemanticDiagnosticCode.INVALID_SCENARIO_STORAGE_VALUE,
+                "/verification/scenarios/0/expected/storage/round_count");
+        assertDiagnostic(result, SemanticDiagnosticCode.MISSING_SCENARIO_STATE,
+                "/verification/scenarios/0/expected/activeStatePath/0");
+        assertDiagnostic(result, SemanticDiagnosticCode.UNDECLARED_SCENARIO_OBSERVATION,
+                "/verification/scenarios/0/events/0/type");
+    }
+
     private DefinitionSemanticValidator validator() {
         return new DefinitionSemanticValidator(this::semanticsFor);
     }

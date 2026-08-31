@@ -17,12 +17,12 @@ import { ReviewPanel, type ApplyResult } from "../review/ReviewPanel";
 import type { DesignerRoute } from "../routing/designerRoute";
 import { DesignerStepper, type DesignerStepId, type ValidationTarget } from "../stepper/DesignerStepper";
 import { targetForDiagnostic } from "./diagnostics";
-import { ProjectionOverviewPanels } from "./ProjectionOverviewPanels";
 import { BriefPanel } from "./BriefPanel";
 import { CapabilitiesPanel } from "./CapabilitiesPanel";
 import { briefIssues } from "./briefModel";
 import { InteractionPanel } from "./InteractionPanel";
 import { DataOutcomePanel } from "./DataOutcomePanel";
+import { TryPanel } from "./TryPanel";
 import {
   createDefaultDefinition,
   projectDefinition,
@@ -233,9 +233,7 @@ export function DesignerDefinitionEditor({
     }
   };
 
-  const overviewPanels = ProjectionOverviewPanels({ projection });
   const panels = {
-    ...overviewPanels,
     brief: <BriefPanel projection={projection} persisted={persisted !== null} keyConfirmed={keyConfirmed}
       readOnly={readOnly} adminToken={adminToken} request={request} onKeyConfirmedChange={setKeyConfirmed}
       onChange={changeDefinition} />,
@@ -245,6 +243,12 @@ export function DesignerDefinitionEditor({
       onChange={changeDefinition} onGoToCapabilities={() => setActiveStep("capabilities")} />,
     "data-outcome": <DataOutcomePanel projection={projection} readOnly={readOnly}
       onChange={changeDefinition} onGoToInteraction={() => setActiveStep("interaction")} />,
+    try: <TryPanel projection={projection} readOnly={readOnly} adminToken={adminToken} request={request}
+      onChange={changeDefinition} onDiagnostics={(next) => {
+        setDiagnostics(next);
+        const first = next[0];
+        if (first) setValidationTarget(targetForDiagnostic(first, document));
+      }} />,
     review: <ReviewPanel definition={document} persisted={persisted} definitionSummary={definitionSummary}
       diagnostics={diagnostics} active={activeStep === "review"} dirty={dirty}
       validationCurrent={validatedFingerprint === serializedDefinition(document)} adminToken={adminToken}

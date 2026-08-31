@@ -46,6 +46,8 @@ export async function installDesignerApiMock(page, options = {}) {
     activeRevision: null,
     readinessDiagnostics: false,
     previewSequence: 1,
+    scenarioExecutions: 0,
+    openScenarioSessions: 0,
   };
 
   await page.route("**/admin/agent-definitions**", async (route) => {
@@ -94,6 +96,13 @@ export async function installDesignerApiMock(page, options = {}) {
         label: "Response prompt",
         composed: "[context]\nOuter policy.",
       }]);
+    }
+    if (method === "POST" && path === "/admin/agent-definitions/previews/scenarios") {
+      scenario.scenarioExecutions++;
+      scenario.openScenarioSessions++;
+      const result = scenarioExecution(request.postDataJSON());
+      scenario.openScenarioSessions--;
+      return fulfillJson(route, result);
     }
     if (method === "POST" && path === "/admin/agent-definitions/previews") {
       return fulfillJson(route, previewSnapshot(scenario, "CREATE"));
@@ -284,6 +293,36 @@ function previewSnapshot(scenario, kind, input = null) {
       diagnostics: [],
     }],
     diagnostics: [],
+  };
+}
+
+function scenarioExecution(body) {
+  const authored = body.definition.verification?.scenarios?.[body.scenarioIndex];
+  const fragments = authored?.expected?.behaviourFragments ?? [];
+  const forcedFailure = JSON.stringify(fragments).includes("force-fail");
+  const expectedPath = authored?.expected?.activeStatePath ?? [];
+  const actualPath = expectedPath.length ? expectedPath : ["session", "conversation"];
+  const expectations = [];
+  if (expectedPath.length) expectations.push({
+    id: "active-state-path", label: "Active situation path", passed: true,
+    expected: expectedPath, actual: actualPath,
+    explanation: "The active path matched after the ordered events completed.",
+  });
+  fragments.forEach((fragment, index) => expectations.push({
+    id: `behaviour-fragment-${index}`, label: `Behaviour fragment ${index + 1}`, passed: !forcedFailure,
+    expected: fragment, actual: forcedFailure ? null : { speech: "Expected phrase" },
+    explanation: forcedFailure
+      ? "No emitted behaviour contained the expected fragment."
+      : "An emitted speech behaviour contained the expected fragment.",
+  }));
+  return {
+    scenarioIndex: body.scenarioIndex, name: authored?.name ?? "Scenario", passed: expectations.every((item) => item.passed),
+    expectations, activeStatePath: actualPath, storage: {}, acceptedTransitionIds: ["repeat"], storageChanges: [],
+    emittedModalities: ["speech"], transcript: [{
+      sequence: 1, kind: "EVENT", at: "2026-08-30T10:00:05Z", input: authored?.events?.[0] ?? null,
+      activeStatePath: actualPath, storageChanges: {}, acceptedTransitionIds: ["repeat"],
+      behaviour: { speech: "Expected phrase", nonVerbal: null, motion: null, display: null }, diagnostics: [],
+    }], diagnostics: [], discarded: true,
   };
 }
 

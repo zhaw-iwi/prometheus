@@ -60,9 +60,23 @@ export function targetForDiagnostic(
       message: diagnostic.message,
     };
   }
+  if (stepId === "try") {
+    const scenarioMatch = pointer.match(/^\/verification\/scenarios\/(\d+)/);
+    const eventMatch = pointer.match(/^\/verification\/scenarios\/\d+\/events\/(\d+)/);
+    const scenarioIndex = scenarioMatch?.[1];
+    return {
+      stepId,
+      fieldId: scenarioIndex === undefined ? "designer-panel-try"
+        : eventMatch ? `try-scenario-${scenarioIndex}-event-${eventMatch[1]}`
+          : pointer.includes("/initialStorage") || pointer.includes("/initializerSeed")
+            ? `try-scenario-${scenarioIndex}-given`
+            : pointer.includes("/expected") ? `try-scenario-${scenarioIndex}-expect`
+              : `try-scenario-${scenarioIndex}`,
+      message: diagnostic.message,
+    };
+  }
   const fieldId = stepId === "brief" && pointer.startsWith("/metadata/displayName") ? "brief-display-name"
     : stepId === "brief" ? "designer-panel-brief"
-      : stepId === "capabilities" ? "designer-panel-capabilities"
-        : stepId === "try" ? "designer-panel-try" : "review-validation-title";
+      : stepId === "capabilities" ? "designer-panel-capabilities" : "review-validation-title";
   return { stepId, fieldId, message: diagnostic.message };
 }

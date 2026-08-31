@@ -440,7 +440,7 @@ npm run test:designer:live
 | V2.3. Brief and Capabilities | Complete |
 | V2.4. Unified Interaction workspace | Complete |
 | V2.5. Data and outcome authoring | Complete |
-| V2.6. Executable Try scenarios and explanations | Not started |
+| V2.6. Executable Try scenarios and explanations | Complete |
 | V2.7. Review, Advanced views, and lifecycle completion | Not started |
 | V2.8. Catalog parity, Playwright, student-test readiness, and final cleanup | Not started |
 
@@ -749,6 +749,13 @@ agents while keeping operation-owned working data understandable and safe.
 - Commit and push before V2.6.
 
 ## Milestone V2.6 - Executable Try scenarios and explanations
+
+**Status: Complete.** Try now edits canonical Given / When / Expect scenarios,
+runs unsaved documents through one bounded disposable production runtime, and
+reports per-expectation evidence plus safe path, transition, data-change, and
+modality traces. Seeded initializers, initial storage, exact text, RPS, stay,
+branch, finish, failures, cleanup, token protection, and persistence isolation
+are covered without provider calls or the configured database.
 
 ### Outcome
 

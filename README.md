@@ -83,7 +83,7 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestones V2.1-V2.5 establish this product contract, backend component
+V2 Milestones V2.1-V2.6 establish this product contract, backend component
 authoring descriptors, the direct source-frontend replacement, and the first
 four guided workspaces. Brief now edits identity plus scoped ordered guidance,
 preserves unknown imported sections as Additional guidance, requires explicit
@@ -98,8 +98,12 @@ overview derived from the same canonical document. Data & outcome now provides
 guided lifecycle grouping, primitive/list/structured schemas, fixed and
 registered typed-choice initialization, protected references, operation-owned
 RPS data, guided extraction reports, and explicit previewed conversion of
-imported Custom outcomes. Try remains an explicit read-only projection until
-V2.6.
+imported Custom outcomes. Try now provides lossless scenario authoring with
+declared observation templates and Advanced event JSON, then executes the exact
+unsaved canonical document through a bounded disposable production compiler and
+runtime. Per-expectation pass/fail evidence explains active paths, accepted
+rules, data changes, and emitted modalities without exposing or inventing model
+reasoning.
 The V1 form/panels, graph implementation, tests, styles, and XYFlow dependency
 are removed rather than retained as an alternate mode.
 
@@ -942,6 +946,7 @@ Valerian Designer uses the same header for the complete definition lifecycle:
 | `POST` | `/admin/agent-definitions/{key}/revisions/{revision}/clone` | Copy a revision into a new designer draft identity/revision. |
 | `GET` | `/admin/agent-definitions/component-catalog` | List registered component schemas, capabilities, UI copy, and V2 authoring descriptors. |
 | `POST` | `/admin/agent-definitions/previews` | Compile and open an isolated preview from unsaved JSON or a saved draft. |
+| `POST` | `/admin/agent-definitions/previews/scenarios` | Execute one canonical Given/When/Expect scenario from unsaved JSON and discard its isolated runtime before returning deterministic evidence. |
 | `GET` | `/admin/agent-definitions/previews/{previewId}` | Inspect active state, storage, history, transcript, and safe diagnostics. |
 | `POST` | `/admin/agent-definitions/previews/{previewId}/events` | Submit one runtime event to the preview. |
 | `POST` | `/admin/agent-definitions/previews/{previewId}/generate` | Request behaviour generation with production runtime semantics. |

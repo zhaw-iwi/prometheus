@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1-V2.5 complete; V2.6 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.6 complete; V2.7 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -258,7 +258,20 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   extraction without JSON editing, provider calls, or access to the normal
   configured database. The V2.5 backend slice passed 100 schema, semantic,
   component, compiler, runtime, catalog, controller, JSON, and static-resource
-  tests. Try remains visibly read-only until V2.6.
+  tests. V2.6 replaces the Try placeholder with lossless Given / When / Expect
+  scenario authoring, declared-observation templates, and Advanced event JSON.
+  The token-protected scenario operation executes the exact unsaved document
+  through the production parser, semantic validator, compiler, registered
+  components, and runtime with deterministic seed/starting storage, then always
+  discards its bounded session. Results contain per-expectation pass/fail,
+  active path, accepted rule, data-change, modality, and trace-only explanation
+  evidence. Focused exact-text, RPS, stay, branch, finish, storage, failure,
+  limit, fake-prompt, controller, and H2 persistence-isolation coverage passed
+  without provider calls or the normal configured database; the dedicated
+  browser gate uses only `jdbc:h2:mem:prometheus_designer_v26` and confirms an
+  unsaved run leaves the stored revision unchanged. The completed gate passes
+  68 frontend tests with typecheck/build, 317 Java tests, 13 mocked Playwright
+  scenarios, and eight isolated-H2 browser scenarios.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

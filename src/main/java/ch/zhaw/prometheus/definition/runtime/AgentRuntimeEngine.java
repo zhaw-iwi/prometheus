@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import ch.zhaw.prometheus.definition.compiled.CompiledAgentDefinition;
 import ch.zhaw.prometheus.definition.compiled.CompiledAtomicState;
 import ch.zhaw.prometheus.definition.compiled.CompiledCompositeState;
@@ -26,7 +28,15 @@ public final class AgentRuntimeEngine {
 
     public AgentRuntimeCreation create(long definitionRevisionId, CompiledAgentDefinition definition,
             AgentRuntimeContext context) {
+        return create(definitionRevisionId, definition, context, Map.of());
+    }
+
+    public AgentRuntimeCreation create(long definitionRevisionId, CompiledAgentDefinition definition,
+            AgentRuntimeContext context, Map<String, JsonNode> initialStorageOverrides) {
         requireContext(context);
+        if (initialStorageOverrides == null) {
+            throw new IllegalArgumentException("initialStorageOverrides must not be null");
+        }
         Map<String, ImmutableJson> initialStorage = new LinkedHashMap<>();
         definition.storage().forEach(declaration -> {
             if (declaration.initialValue() != null) {
@@ -35,6 +45,14 @@ public final class AgentRuntimeEngine {
         });
         for (CompiledInitializer initializer : definition.lifecycle().initializers()) {
             initialStorage.put(initializer.targetStorageKey(), new ImmutableJson(initializer.initialize(context.random())));
+        }
+        for (var override : initialStorageOverrides.entrySet()) {
+            boolean declared = definition.storage().stream()
+                    .anyMatch(declaration -> declaration.key().equals(override.getKey()));
+            if (!declared) {
+                throw new IllegalArgumentException("Unknown initial storage key " + override.getKey());
+            }
+            initialStorage.put(override.getKey(), new ImmutableJson(override.getValue()));
         }
         String initialLeaf = resolveInitialLeaf(definition.lifecycle().initialState()).id();
         AgentRuntimeInstance instance = new AgentRuntimeInstance(definitionRevisionId, definition, initialLeaf,

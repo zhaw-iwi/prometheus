@@ -10,6 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import ch.zhaw.prometheus.definition.application.DefinitionLifecycleService;
 import ch.zhaw.prometheus.definition.instance.DeclarativeAgentRepository;
 import ch.zhaw.prometheus.definition.repository.DefinitionRepository;
@@ -61,5 +64,32 @@ class DesignerPreviewPersistenceIsolationIntegrationTest {
         verifyNoInteractions(this.languageModelGateway);
         this.previews.close(created.id());
         assertEquals(0, this.previews.sessionCount());
+    }
+
+    @Test
+    void unsavedScenarioExecutionLeavesNoSessionDefinitionAgentOrHistoryRecord() throws Exception {
+        int definitionCount = this.definitions.findDefinitions().size();
+        int revisionCount = this.definitions.findRevisions("core.talk_to_me").size();
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode definition = (ObjectNode) mapper.readTree(
+                this.lifecycle.requireRevision("core.talk_to_me", 1).canonicalJson());
+        ObjectNode scenario = mapper.createObjectNode();
+        scenario.put("name", "Exact isolated scenario");
+        scenario.withArray("events").addObject().put("type", "obs.user_utterance").put("actor", "user")
+                .put("kind", "observation").put("payload", "isolated scenario");
+        scenario.withObject("expected").withArray("activeStatePath").add("talk");
+        scenario.withObject("expected").withArray("behaviourFragments")
+                .addObject().put("speech", "isolated scenario");
+        definition.withObject("verification").withArray("scenarios").add(scenario);
+
+        var result = this.previews.executeScenario(mapper.writeValueAsString(definition), 0);
+
+        assertTrue(result.passed(), result.toString());
+        assertTrue(result.discarded());
+        assertEquals(0, this.previews.sessionCount());
+        assertEquals(definitionCount, this.definitions.findDefinitions().size());
+        assertEquals(revisionCount, this.definitions.findRevisions("core.talk_to_me").size());
+        assertTrue(this.agents.findAll().isEmpty());
+        verifyNoInteractions(this.languageModelGateway);
     }
 }

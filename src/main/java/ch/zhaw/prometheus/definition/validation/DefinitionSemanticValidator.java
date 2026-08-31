@@ -59,9 +59,61 @@ public final class DefinitionSemanticValidator {
         validateReachability(definition, states, parents, diagnostics);
         validateValueSchemas(storage, diagnostics);
         validateComponents(definition, components, states, storage, resources, diagnostics);
+        validateVerification(definition, states, storage, diagnostics);
         validatePrompts(components, diagnostics);
 
         return new DefinitionValidationResult(diagnostics);
+    }
+
+    private static void validateVerification(AgentDefinitionDocument definition, Map<String, StateRef> states,
+            Map<String, StorageRef> storage, List<ValidationDiagnostic> diagnostics) {
+        if (definition.verification() == null) {
+            return;
+        }
+        for (int scenarioIndex = 0; scenarioIndex < definition.verification().scenarios().size(); scenarioIndex++) {
+            var scenario = definition.verification().scenarios().get(scenarioIndex);
+            String pointer = "/verification/scenarios/" + scenarioIndex;
+            validateScenarioStorage(scenario.initialStorage(), pointer + "/initialStorage", storage, diagnostics);
+            if (scenario.expected() != null) {
+                validateScenarioStorage(scenario.expected().storage(), pointer + "/expected/storage", storage,
+                        diagnostics);
+                for (int stateIndex = 0; stateIndex < scenario.expected().activeStatePath().size(); stateIndex++) {
+                    String stateId = scenario.expected().activeStatePath().get(stateIndex);
+                    if (!states.containsKey(stateId)) {
+                        diagnostics.add(diagnostic(SemanticDiagnosticCode.MISSING_SCENARIO_STATE,
+                                pointer + "/expected/activeStatePath/" + stateIndex,
+                                "Scenario expects unknown state '" + stateId + "'.",
+                                "Choose a state present in this definition."));
+                    }
+                }
+            }
+            for (int eventIndex = 0; eventIndex < scenario.events().size(); eventIndex++) {
+                String type = scenario.events().get(eventIndex).type();
+                if (type.startsWith("obs.") && !definition.interaction().supportedObservations().contains(type)) {
+                    diagnostics.add(diagnostic(SemanticDiagnosticCode.UNDECLARED_SCENARIO_OBSERVATION,
+                            pointer + "/events/" + eventIndex + "/type",
+                            "Scenario uses undeclared observation '" + type + "'.",
+                            "Declare the observation capability or choose a supported event."));
+                }
+            }
+        }
+    }
+
+    private static void validateScenarioStorage(Map<String, JsonNode> values, String pointer,
+            Map<String, StorageRef> storage, List<ValidationDiagnostic> diagnostics) {
+        for (var entry : values.entrySet()) {
+            StorageRef declaration = storage.get(entry.getKey());
+            String valuePointer = pointer + "/" + escape(entry.getKey());
+            if (declaration == null) {
+                diagnostics.add(diagnostic(SemanticDiagnosticCode.MISSING_SCENARIO_STORAGE, valuePointer,
+                        "Scenario references undeclared storage key '" + entry.getKey() + "'.",
+                        "Choose a declared data key or add its declaration."));
+            } else if (!EmbeddedValueSchemas.accepts(declaration.declaration().valueSchema(), entry.getValue())) {
+                diagnostics.add(diagnostic(SemanticDiagnosticCode.INVALID_SCENARIO_STORAGE_VALUE, valuePointer,
+                        "Scenario value does not match storage schema for '" + entry.getKey() + "'.",
+                        "Use a value accepted by the declared data schema."));
+            }
+        }
     }
 
     private static Map<String, StateRef> indexStates(AgentDefinitionDocument definition,

@@ -10,6 +10,7 @@ import {
   createDefinitionDraft,
   createDefinitionPreview,
   DesignerApiError,
+  executeVerificationScenario,
   fetchDefinitionCatalog,
   fetchPromptPreviews,
   fetchDesignerWorkspace,
@@ -94,6 +95,7 @@ describe("designer API", () => {
       .mockResolvedValueOnce(response({ activeRevision: 1 }))
       .mockResolvedValueOnce(response({ status: "ARCHIVED" }))
       .mockResolvedValueOnce(response({ key: "designer.clone", revision: 2 }, 201))
+      .mockResolvedValueOnce(response({ scenarioIndex: 0, passed: true, discarded: true }))
       .mockResolvedValueOnce(response(preview, 201))
       .mockResolvedValueOnce(response(preview))
       .mockResolvedValueOnce(response(preview))
@@ -107,6 +109,7 @@ describe("designer API", () => {
     await activateDefinitionRevision(definition.key, 1, 7, "token", request);
     await archiveDefinitionRevision(definition.key, 1, 4, "token", request);
     await cloneDefinitionRevision(definition.key, 1, "designer.clone", 2, "token", request);
+    await executeVerificationScenario(definition, 0, "token", request);
     await createDefinitionPreview(definition, "token", request);
     await submitPreviewEvent("preview-1", { type: "obs.text", actor: "user", kind: "observation", payload: "hello" }, "token", request);
     await generatePreviewBehaviour("preview-1", "token", request);
@@ -121,6 +124,7 @@ describe("designer API", () => {
       ["/admin/agent-definitions/designer.review/revisions/1/activate", "POST"],
       ["/admin/agent-definitions/designer.review/revisions/1/archive", "POST"],
       ["/admin/agent-definitions/designer.review/revisions/1/clone", "POST"],
+      ["/admin/agent-definitions/previews/scenarios", "POST"],
       ["/admin/agent-definitions/previews", "POST"],
       ["/admin/agent-definitions/previews/preview-1/events", "POST"],
       ["/admin/agent-definitions/previews/preview-1/generate", "POST"],
@@ -128,6 +132,7 @@ describe("designer API", () => {
       ["/admin/agent-definitions/previews/preview-1", "DELETE"],
     ]);
     expect(JSON.parse(String(request.mock.calls[4][1]?.body))).toEqual({ optimisticVersion: 7 });
+    expect(JSON.parse(String(request.mock.calls[7][1]?.body))).toEqual({ definition, scenarioIndex: 0 });
     for (const call of request.mock.calls) {
       expect(new Headers(call[1]?.headers).get(ADMIN_TOKEN_HEADER)).toBe("token");
     }

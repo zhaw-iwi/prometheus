@@ -338,6 +338,22 @@ milestone backend slice passes 100 schema, semantic, component, compiler,
 runtime, catalog, JSON, controller, and static-resource tests without providers
 or the normal configured database.
 
+Milestone V2.6 adds scenario projection/component/API coverage for lossless
+unknown-field preservation, Given/When/Expect editing, event order and Advanced
+JSON, exact diagnostic focus, pass/fail/stale/clear result states, and admin
+token mapping. Runtime/service tests execute deterministic exact-text, RPS,
+stay, branch, finish, storage, failure, bound, and fake-prompt cases through the
+production compiler/runtime boundary. The Spring H2 isolation test asserts
+definition, revision, agent instance, and history counts remain unchanged and
+the session registry is empty after execution. Mocked Playwright covers author,
+pass, fail, trace explanation, clear, cleanup, light desktop, and dark mobile;
+the separate H2 browser gate uses only
+`jdbc:h2:mem:prometheus_designer_v26`, runs and reloads a canonical exact-text
+scenario, and compares the stored revision before and after the unsaved run.
+Neither path calls external providers or the configured datasource.
+The completed gate passes 68 frontend tests with typecheck/build, 317 Java
+tests, 13 mocked Playwright scenarios, and eight isolated-H2 browser scenarios.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original

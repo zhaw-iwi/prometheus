@@ -6,8 +6,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,11 +23,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ch.zhaw.prometheus.definition.compiled.CompiledAgentDefinition;
 import ch.zhaw.prometheus.definition.compiled.DefinitionCompiler;
 import ch.zhaw.prometheus.definition.compiled.ImmutableJson;
 import ch.zhaw.prometheus.definition.document.AgentDefinitionJson;
+import ch.zhaw.prometheus.definition.document.VerificationExpectation;
+import ch.zhaw.prometheus.definition.document.VerificationScenario;
 import ch.zhaw.prometheus.definition.runtime.AgentInstanceSnapshot;
 import ch.zhaw.prometheus.definition.runtime.AgentRuntimeContext;
 import ch.zhaw.prometheus.definition.runtime.AgentRuntimeEngine;
@@ -90,8 +98,39 @@ public class DesignerPreviewService {
     }
 
     public PreviewSnapshot create(String json, PreviewSource source, Long storedRevisionId) {
+        return create(json, source, storedRevisionId, this.randoms.get(), Map.of());
+    }
+
+    public ScenarioExecution executeScenario(String json, int scenarioIndex) {
+        var document = this.definitionJson.parse(json);
+        if (document.verification() == null || scenarioIndex < 0
+                || scenarioIndex >= document.verification().scenarios().size()) {
+            throw new IllegalArgumentException("Scenario index is outside the definition's verification document");
+        }
+        VerificationScenario scenario = document.verification().scenarios().get(scenarioIndex);
+        if (scenario.events().size() + 1 > this.maxOperations) {
+            throw new PreviewLimitException("The scenario exceeds the preview operation limit");
+        }
+        long seed = scenario.initializerSeed() == null ? 0L : scenario.initializerSeed();
+        PreviewSnapshot created = create(json, PreviewSource.UNSAVED, null, new Random(seed),
+                scenario.initialStorage());
+        try {
+            PreviewSnapshot current = created;
+            for (var event : scenario.events()) {
+                current = acknowledge(created.id(), new RuntimeEvent(event.type(), event.actor(), event.kind(),
+                        event.payload()));
+            }
+            return evaluateScenario(scenarioIndex, scenario, current);
+        } finally {
+            this.sessions.remove(created.id());
+        }
+    }
+
+    private PreviewSnapshot create(String json, PreviewSource source, Long storedRevisionId, RandomGenerator random,
+            Map<String, JsonNode> initialStorage) {
         if (source == null || source == PreviewSource.SAVED && (storedRevisionId == null || storedRevisionId < 1)
-                || source == PreviewSource.UNSAVED && storedRevisionId != null) {
+                || source == PreviewSource.UNSAVED && storedRevisionId != null || random == null
+                || initialStorage == null) {
             throw new IllegalArgumentException("Preview source does not match its stored revision identity");
         }
         cleanupExpired();
@@ -102,8 +141,8 @@ public class DesignerPreviewService {
         long runtimeRevisionId = storedRevisionId == null ? this.syntheticRevisionIds.getAndIncrement()
                 : storedRevisionId;
         AgentRuntimeContext context = new AgentRuntimeContext(new BuiltInRuntimeComponentExecutor(this.modelGateway),
-                this.randoms.get());
-        var creation = createRuntime(runtimeRevisionId, compiled, context);
+                random);
+        var creation = createRuntime(runtimeRevisionId, compiled, context, initialStorage);
         Instant now = this.clock.instant();
         UUID id = UUID.randomUUID();
         Session session = new Session(id, source, storedRevisionId, compiled, context, creation.instance(), now,
@@ -202,12 +241,135 @@ public class DesignerPreviewService {
     }
 
     private ch.zhaw.prometheus.definition.runtime.AgentRuntimeCreation createRuntime(long revisionId,
-            CompiledAgentDefinition definition, AgentRuntimeContext context) {
+            CompiledAgentDefinition definition, AgentRuntimeContext context, Map<String, JsonNode> overrides) {
         try {
-            return this.engine.create(revisionId, definition, context);
+            return this.engine.create(revisionId, definition, context, overrides);
         } catch (RuntimeException failure) {
             throw new PreviewExecutionException(failure);
         }
+    }
+
+    private static ScenarioExecution evaluateScenario(int scenarioIndex, VerificationScenario scenario,
+            PreviewSnapshot snapshot) {
+        VerificationExpectation expected = scenario.expected();
+        List<ScenarioExpectationResult> expectations = new ArrayList<>();
+        List<String> transitions = snapshot.transcript().stream()
+                .flatMap(operation -> operation.acceptedTransitionIds().stream()).toList();
+        List<ScenarioStorageChange> changes = snapshot.transcript().stream().flatMap(operation ->
+                operation.storageChanges().entrySet().stream().map(entry -> new ScenarioStorageChange(
+                        operation.sequence(), entry.getKey(), entry.getValue().before(), entry.getValue().after())))
+                .toList();
+        List<JsonNode> behaviours = snapshot.transcript().stream().map(PreviewOperation::behaviour)
+                .filter(java.util.Objects::nonNull).<JsonNode>map(DesignerPreviewService::behaviourNode).toList();
+        List<String> modalities = emittedModalities(snapshot.transcript());
+
+        if (expected != null && !expected.activeStatePath().isEmpty()) {
+            JsonNode expectedPath = stringArray(expected.activeStatePath());
+            JsonNode actualPath = stringArray(snapshot.activeStatePath());
+            boolean passed = expectedPath.equals(actualPath);
+            expectations.add(new ScenarioExpectationResult("active-state-path", "Active situation path", passed,
+                    expectedPath, actualPath, pathExplanation(passed, snapshot.activeStatePath(), transitions)));
+        }
+        if (expected != null) {
+            expected.storage().forEach((key, value) -> {
+                JsonNode actual = snapshot.storage().getOrDefault(key, JsonNodeFactory.instance.nullNode());
+                boolean passed = sameValue(value, actual);
+                boolean changed = changes.stream().anyMatch(change -> change.key().equals(key));
+                String explanation = passed
+                        ? "The final value matched after " + (changed ? "a recorded storage change." : "no recorded change.")
+                        : "The final value did not match; " + (changed ? "the trace records an update." : "the trace records no update.");
+                expectations.add(new ScenarioExpectationResult("storage-" + key, "Data: " + key, passed,
+                        value, actual, explanation));
+            });
+            for (int index = 0; index < expected.behaviourFragments().size(); index++) {
+                JsonNode fragment = expected.behaviourFragments().get(index);
+                boolean passed = behaviours.stream().anyMatch(behaviour -> containsFragment(behaviour, fragment));
+                String explanation = passed
+                        ? "A recorded behaviour contains this fragment. Emitted: " + joined(modalities) + "."
+                        : "No recorded behaviour contains this fragment. Emitted: " + joined(modalities) + ".";
+                expectations.add(new ScenarioExpectationResult("behaviour-" + index,
+                        "Behaviour fragment " + (index + 1), passed, fragment, jsonArray(behaviours), explanation));
+            }
+        }
+        boolean passed = snapshot.diagnostics().isEmpty()
+                && expectations.stream().allMatch(ScenarioExpectationResult::passed);
+        return new ScenarioExecution(scenarioIndex, scenario.name(), passed, List.copyOf(expectations),
+                snapshot.activeStatePath(), snapshot.storage(), transitions, changes, modalities,
+                snapshot.transcript(), snapshot.diagnostics(), true);
+    }
+
+    private static List<String> emittedModalities(List<PreviewOperation> operations) {
+        Set<String> result = new LinkedHashSet<>();
+        operations.stream().map(PreviewOperation::behaviour).filter(java.util.Objects::nonNull).forEach(behaviour -> {
+            if (behaviour.speech() != null && !behaviour.speech().isBlank()) result.add("speech");
+            addStructuredModalities(result, "nonVerbal", behaviour.nonVerbal());
+            addStructuredModalities(result, "motion", behaviour.motion());
+            if (behaviour.display() != null && !behaviour.display().isNull()) result.add("display");
+        });
+        return List.copyOf(result);
+    }
+
+    private static void addStructuredModalities(Set<String> target, String prefix, JsonNode value) {
+        if (value == null || value.isNull()) return;
+        if (value.isObject() && !value.isEmpty()) value.fieldNames().forEachRemaining(key -> target.add(prefix + "." + key));
+        else target.add(prefix);
+    }
+
+    private static ObjectNode behaviourNode(PreviewBehaviour behaviour) {
+        ObjectNode result = JsonNodeFactory.instance.objectNode();
+        if (behaviour.speech() != null) result.put("speech", behaviour.speech());
+        if (behaviour.nonVerbal() != null) result.set("nonVerbal", behaviour.nonVerbal());
+        if (behaviour.motion() != null) result.set("motion", behaviour.motion());
+        if (behaviour.display() != null) result.set("display", behaviour.display());
+        return result;
+    }
+
+    private static boolean containsFragment(JsonNode actual, JsonNode expected) {
+        if (expected.isObject()) {
+            if (!actual.isObject()) return false;
+            var fields = expected.fields();
+            while (fields.hasNext()) {
+                var field = fields.next();
+                if (!actual.has(field.getKey()) || !containsFragment(actual.get(field.getKey()), field.getValue())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (expected.isArray()) return expected.equals(actual);
+        if (sameValue(expected, actual)) return true;
+        if (actual.isContainerNode()) {
+            for (JsonNode child : actual) if (containsFragment(child, expected)) return true;
+        }
+        return false;
+    }
+
+    private static boolean sameValue(JsonNode expected, JsonNode actual) {
+        if (expected.isNumber() && actual.isNumber()) {
+            return expected.decimalValue().compareTo(actual.decimalValue()) == 0;
+        }
+        return expected.equals(actual);
+    }
+
+    private static ArrayNode stringArray(List<String> values) {
+        ArrayNode result = JsonNodeFactory.instance.arrayNode();
+        values.forEach(result::add);
+        return result;
+    }
+
+    private static ArrayNode jsonArray(List<JsonNode> values) {
+        ArrayNode result = JsonNodeFactory.instance.arrayNode();
+        values.forEach(result::add);
+        return result;
+    }
+
+    private static String pathExplanation(boolean passed, List<String> path, List<String> transitions) {
+        return (passed ? "The active path matched" : "The active path ended at " + joined(path))
+                + "; accepted transitions: " + joined(transitions) + ".";
+    }
+
+    private static String joined(List<String> values) {
+        return values.isEmpty() ? "none" : String.join(", ", values);
     }
 
     private Session require(UUID id) {
@@ -332,6 +494,31 @@ public class DesignerPreviewService {
     }
 
     public record PreviewBehaviour(String speech, JsonNode nonVerbal, JsonNode motion, JsonNode display) {
+    }
+
+    public record ScenarioExecution(int scenarioIndex, String name, boolean passed,
+            List<ScenarioExpectationResult> expectations, List<String> activeStatePath,
+            Map<String, JsonNode> storage, List<String> acceptedTransitionIds,
+            List<ScenarioStorageChange> storageChanges, List<String> emittedModalities,
+            List<PreviewOperation> transcript, List<PreviewDiagnostic> diagnostics,
+            boolean discarded) {
+        public ScenarioExecution {
+            expectations = List.copyOf(expectations);
+            activeStatePath = List.copyOf(activeStatePath);
+            storage = Collections.unmodifiableMap(new LinkedHashMap<>(storage));
+            acceptedTransitionIds = List.copyOf(acceptedTransitionIds);
+            storageChanges = List.copyOf(storageChanges);
+            emittedModalities = List.copyOf(emittedModalities);
+            transcript = List.copyOf(transcript);
+            diagnostics = List.copyOf(diagnostics);
+        }
+    }
+
+    public record ScenarioExpectationResult(String id, String label, boolean passed,
+            JsonNode expected, JsonNode actual, String explanation) {
+    }
+
+    public record ScenarioStorageChange(long sequence, String key, JsonNode before, JsonNode after) {
     }
 
     public record PreviewDiagnostic(String code, String message, String hint) {

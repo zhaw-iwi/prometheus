@@ -270,6 +270,18 @@ Rename/delete protection follows configured references, and backend pointers
 for storage, initializer/resource, and extraction problems focus the owning
 card. All twelve definitions retain no-edit canonical parity.
 
+Designer V2 Milestone V2.6 replaces the Try placeholder with canonical Given /
+When / Expect authoring. Declared observations supply event templates while an
+Advanced editor retains complete event JSON. One token-protected operation
+parses, semantically validates, compiles, and executes the exact unsaved
+document through the production component/runtime boundary using a deterministic
+seed and optional starting storage. It returns per-expectation pass/fail
+evidence, active paths, accepted rules, data changes, emitted modalities, and
+trace-only explanations, then always discards the bounded session. Focused H2
+and persistence-isolation tests confirm that scenario runs do not mutate saved
+revisions or create agent state/history; automated prompt behavior is faked and
+no provider or normal datasource is used.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

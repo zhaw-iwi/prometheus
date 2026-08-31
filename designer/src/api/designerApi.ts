@@ -137,6 +137,37 @@ export interface PreviewSnapshot {
   diagnostics: Array<{ code: string; message: string; hint: string | null }>;
 }
 
+export interface ScenarioExpectationResult {
+  id: string;
+  label: string;
+  passed: boolean;
+  expected: JsonValue;
+  actual: JsonValue;
+  explanation: string;
+}
+
+export interface ScenarioStorageChange {
+  sequence: number;
+  key: string;
+  before: JsonValue | null;
+  after: JsonValue | null;
+}
+
+export interface ScenarioExecutionResult {
+  scenarioIndex: number;
+  name: string;
+  passed: boolean;
+  expectations: ScenarioExpectationResult[];
+  activeStatePath: string[];
+  storage: Record<string, JsonValue>;
+  acceptedTransitionIds: string[];
+  storageChanges: ScenarioStorageChange[];
+  emittedModalities: string[];
+  transcript: PreviewOperation[];
+  diagnostics: Array<{ code: string; message: string; hint: string | null }>;
+  discarded: boolean;
+}
+
 interface ApiErrorPayload {
   code?: unknown;
   diagnostics?: unknown;
@@ -319,6 +350,18 @@ export async function createDefinitionPreview(
   return requestJson("/admin/agent-definitions/previews", token, request, {
     method: "POST",
     body: JSON.stringify({ definition }),
+  });
+}
+
+export async function executeVerificationScenario(
+  definition: AgentDefinitionV1,
+  scenarioIndex: number,
+  token: string,
+  request: RequestFunction = fetch,
+): Promise<ScenarioExecutionResult> {
+  return requestJson("/admin/agent-definitions/previews/scenarios", token, request, {
+    method: "POST",
+    body: JSON.stringify({ definition, scenarioIndex }),
   });
 }
 

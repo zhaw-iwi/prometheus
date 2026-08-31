@@ -33,6 +33,12 @@ describe("DesignerDefinitionEditor V2 shell", () => {
     expect(targetForDiagnostic(diagnostic("/resources/0/config/values"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
     expect(targetForDiagnostic(diagnostic("/transitions/0/actions/1/config/outputSchema"), definition)).toMatchObject({ stepId: "data-outcome", fieldId: "data-item-result" });
     expect(targetForDiagnostic(diagnostic("/verification/scenarios/0"), definition)).toMatchObject({ stepId: "try" });
+    expect(targetForDiagnostic(diagnostic("/verification/scenarios/2/initialStorage/result"), definition))
+      .toMatchObject({ stepId: "try", fieldId: "try-scenario-2-given" });
+    expect(targetForDiagnostic(diagnostic("/verification/scenarios/2/events/3/type"), definition))
+      .toMatchObject({ stepId: "try", fieldId: "try-scenario-2-event-3" });
+    expect(targetForDiagnostic(diagnostic("/verification/scenarios/2/expected/storage/result"), definition))
+      .toMatchObject({ stepId: "try", fieldId: "try-scenario-2-expect" });
     expect(targetForDiagnostic(diagnostic(""), definition)).toMatchObject({ stepId: "review" });
   });
 
@@ -83,6 +89,31 @@ describe("DesignerDefinitionEditor V2 shell", () => {
     expect(screen.getByTestId("dirty-state").textContent).toBe("Unsaved changes");
     await user.click(screen.getByTestId("save-draft"));
     await waitFor(() => expect(screen.getByTestId("dirty-state").textContent).toBe("Saved draft"));
+    expect(screen.getByTestId("backend-diagnostics")).not.toBeNull();
+  });
+
+  it("focuses the exact Try event when scenario compilation returns a backend diagnostic", async () => {
+    const user = userEvent.setup();
+    const source = validDefinition("designer.try_diagnostic", "Try diagnostic");
+    source.verification = { scenarios: [{
+      name: "Invalid observation",
+      events: [{ type: "obs.undeclared", actor: "sensor", kind: "observation", payload: "{}" }],
+      expected: {},
+    }] };
+    const issue = diagnostic("/verification/scenarios/0/events/0/type");
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (!init?.method) return response(revision(source, 1));
+      if (String(input).endsWith("/previews/scenarios")) {
+        return response({ code: "VALIDATION_FAILED", diagnostics: [issue] }, 422);
+      }
+      throw new Error(`Unexpected ${String(input)}`);
+    }) as RequestFunction;
+    render(<DesignerDefinitionEditor route={{ kind: "editor", key: source.key, revision: 1 }} components={[]}
+      adminToken="token" request={request} onDirtyChange={() => undefined} onSaved={() => undefined} />);
+
+    await user.click(await screen.findByTestId("step-target-try"));
+    await user.click(screen.getByTestId("run-scenario-0"));
+    await waitFor(() => expect(document.activeElement?.id).toBe("try-scenario-0-event-0"));
     expect(screen.getByTestId("backend-diagnostics")).not.toBeNull();
   });
 
