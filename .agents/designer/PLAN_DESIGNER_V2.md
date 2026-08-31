@@ -441,7 +441,7 @@ npm run test:designer:live
 | V2.4. Unified Interaction workspace | Complete |
 | V2.5. Data and outcome authoring | Complete |
 | V2.6. Executable Try scenarios and explanations | Complete |
-| V2.7. Review, Advanced views, and lifecycle completion | Not started |
+| V2.7. Review, Advanced views, and lifecycle completion | Complete |
 | V2.8. Catalog parity, Playwright, student-test readiness, and final cleanup | Not started |
 
 ## Milestone V2.1 - Normative specification, reference corpus, and component descriptors
@@ -807,6 +807,16 @@ leaving all runtime testing to Review.
 - Commit and push before V2.7.
 
 ## Milestone V2.7 - Review, Advanced views, and lifecycle completion
+
+**Status: Complete.** Review now reverse-explains the authored agent in the V2
+domains, groups authoritative diagnostics across all six steps, and keeps
+free-form preview and revision lifecycle actions alongside a collapsed,
+lossless Advanced audit. That audit derives the complete flow diagram/list,
+state containment/entry/history settings, registered envelopes and pointers,
+raw schemas/lifecycle, backend-composed prompts, and safe canonical JSON from
+the same document. Focused component, mocked-browser, and isolated-H2 coverage
+protects recovery, conflicts, authorization, preview cleanup, and the complete
+two-revision publish/activate/export/clone/archive journey.
 
 ### Outcome
 

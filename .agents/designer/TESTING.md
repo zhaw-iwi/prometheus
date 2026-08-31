@@ -354,6 +354,20 @@ Neither path calls external providers or the configured datasource.
 The completed gate passes 68 frontend tests with typecheck/build, 317 Java
 tests, 13 mocked Playwright scenarios, and eight isolated-H2 browser scenarios.
 
+Milestone V2.7 adds pure and component contracts for the four representative
+reverse explanations, all-six-step diagnostic grouping/focus, local and backend
+JSON rejection recovery, scoped prompt-pointer refresh, complete Advanced
+state/rule/component/data equivalence, free-preview cleanup, lifecycle
+confirmations, and a repository-level V1 removal guard. Mocked Playwright adds
+Advanced audit, diagnostics, free preview, export, activation, clone/archive,
+authorization, optimistic-conflict recovery, network error, light desktop, and
+dark 390-pixel coverage. The isolated-H2 gate uses only
+`jdbc:h2:mem:prometheus_designer_v27`; its unique from-scratch exact-text agent
+explicitly authors a stay rule (capabilities never create flow), executes and
+saves a scenario, runs and discards free preview, validates, exports,
+publishes/activates revisions 1 and 2, and archives inactive revision 1 without
+providers or the configured datasource.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original

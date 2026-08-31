@@ -222,6 +222,27 @@ test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gate
   scenario.readinessDiagnostics = true;
   await openFixture(page, VISUAL_KEY);
   await page.getByTestId("step-target-review").click();
+  await expect(page.getByTestId("review-narrative")).toContainText("Main starting situation");
+  await page.getByTestId("advanced-review").locator("summary").first().click();
+  await expect(page.getByTestId("advanced-flow-graph").locator("[data-state-id]"))
+    .toHaveCount(scenario.definition.states.length);
+  await expect(page.getByTestId("advanced-flow-list").locator("[data-rule-id]"))
+    .toHaveCount(scenario.definition.transitions.length);
+  await page.getByText("Registered component envelopes and pointers").click();
+  await expect(page.getByTestId("advanced-component-audit")).toContainText("/transitions/1/decisions/0");
+  await attach(page.getByTestId("advanced-review"), testInfo, "v2-review-advanced-audit-light");
+
+  await page.getByTestId("start-preview").click();
+  await page.getByLabel("Event templates").getByRole("button", { name: "What the person says" }).click();
+  await page.getByTestId("preview-event-payload").fill("Show a free-form preview.");
+  await page.getByTestId("send-preview-event").click();
+  await expect(page.getByTestId("preview-transcript")).toContainText("repeat");
+  await expect(page.getByTestId("preview-transcript")).toContainText("count");
+  await page.getByTestId("generate-preview").click();
+  await expect(page.getByTestId("preview-transcript")).toContainText("Deterministic preview response");
+  await page.getByTestId("close-preview").click();
+  await expect(page.getByTestId("preview-message")).toContainText("in-memory state was removed");
+
   await page.getByTestId("validate-review").click();
   await expect(page.getByTestId("diagnostic-group-brief")).toBeVisible();
   await expect(page.getByTestId("diagnostic-group-interaction")).toBeVisible();
@@ -231,6 +252,7 @@ test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gate
   await expect(page.getByTestId("step-panel-brief")).toBeVisible();
   await expect(page.locator("#brief-display-name")).toBeFocused();
   await page.getByTestId("step-target-review").click();
+  await page.getByTestId("advanced-review").locator("summary").first().click();
 
   const jsonEditor = page.getByTestId("canonical-json-editor");
   await jsonEditor.fill('{"broken":');
@@ -243,6 +265,10 @@ test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gate
   await expect(page.getByTestId("json-message")).toContainText("JSON applied to the V2 projection");
   await page.getByTestId("save-draft").click();
   await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+
+  const download = page.waitForEvent("download");
+  await page.getByTestId("export-revision").click();
+  expect((await download).suggestedFilename()).toBe(`${VISUAL_KEY}-revision-1.json`);
 
   scenario.readinessDiagnostics = false;
   await page.getByTestId("validate-review").click();
@@ -264,6 +290,61 @@ test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gate
   await attach(page, testInfo, "v2-review-published-light");
   await assertNoOverflow(page);
   expect(errors).toEqual([]);
+});
+
+test("Review clones and archives a published revision with explicit consequences", async ({ page }, testInfo) => {
+  const errors = collectPageErrors(page);
+  const scenario = await installDesignerApiMock(page);
+  await openFixture(page, VISUAL_KEY);
+  await page.getByTestId("step-target-review").click();
+  await page.getByLabel("Clone target key").fill("designer.visual_clone");
+  await page.getByLabel("Target revision").fill("1");
+  await page.getByTestId("clone-revision").click();
+  await expect(page).toHaveURL(/definitions\/designer\.visual_clone\/revisions\/1/);
+  await page.getByTestId("step-target-review").click();
+  await expect(page.getByTestId("review-narrative")).toBeVisible();
+  await page.getByTestId("validate-review").click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("publish-revision").click();
+  await expect(page.getByTestId("archive-revision")).toBeEnabled();
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("cannot be activated or used for new instances");
+    await dialog.accept();
+  });
+  await page.getByTestId("archive-revision").click();
+  await expect(page.getByTestId("lifecycle-message")).toContainText("archived");
+  expect(scenario.revision.status).toBe("ARCHIVED");
+  await attach(page.getByTestId("step-panel-review"), testInfo, "v2-review-cloned-archived-light");
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+});
+
+test("authorization and optimistic-conflict recovery remain actionable", async ({ browser }, testInfo) => {
+  const unauthorizedContext = await browser.newContext();
+  const unauthorized = await unauthorizedContext.newPage();
+  const unauthorizedErrors = collectPageErrors(unauthorized);
+  await installDesignerApiMock(unauthorized, { catalogMode: "unauthorized" });
+  await unauthorized.goto("http://127.0.0.1:4175/valerian-design/");
+  await enter(unauthorized);
+  await expect(unauthorized.getByTestId("catalog-error")).toContainText("admin token was not accepted");
+  await attach(unauthorized, testInfo, "v2-authorization-rejected-light");
+  expect(unauthorizedErrors.filter((message) => !message.includes("status of 401"))).toEqual([]);
+  await unauthorizedContext.close();
+
+  const conflictContext = await browser.newContext();
+  const conflictPage = await conflictContext.newPage();
+  const conflictErrors = collectPageErrors(conflictPage);
+  await installDesignerApiMock(conflictPage, { conflictOnFirstSave: true });
+  await openFixture(conflictPage, VISUAL_KEY);
+  await conflictPage.getByLabel("Agent name").fill("Locally changed agent");
+  await conflictPage.getByTestId("save-draft").click();
+  await expect(conflictPage.getByTestId("optimistic-conflict")).toContainText("newer server draft");
+  await attach(conflictPage.getByTestId("optimistic-conflict"), testInfo, "v2-optimistic-conflict-light");
+  await conflictPage.getByRole("button", { name: "Keep local changes" }).click();
+  await conflictPage.getByTestId("save-draft").click();
+  await expect(conflictPage.getByTestId("dirty-state")).toHaveText("Saved draft");
+  expect(conflictErrors.filter((message) => !message.includes("status of 409"))).toEqual([]);
+  await conflictContext.close();
 });
 
 test("prompt, exact-text, RPS, and healthcare revisions export unchanged after opening", async ({ browser }) => {
@@ -436,6 +517,10 @@ test("390-pixel mobile stacks the V2 stepper and keeps projected panels within t
   await page.getByTestId("step-target-review").click();
   await expect(page.getByTestId("review-panel")).toBeVisible();
   await attach(page, testInfo, "v2-review-dark-mobile");
+  await assertNoOverflow(page);
+  await page.getByTestId("advanced-review").locator("summary").first().click();
+  await expect(page.getByTestId("advanced-flow-graph")).toBeVisible();
+  await attach(page.getByTestId("advanced-review"), testInfo, "v2-review-advanced-dark-mobile");
   await assertNoOverflow(page);
   expect(errors).toEqual([]);
 });

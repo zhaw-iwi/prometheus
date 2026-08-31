@@ -1,7 +1,19 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { DefinitionDiagnostic } from "../api/designerApi";
+import type { AgentDefinitionV1 } from "../model/agentDefinition";
 import { createDefaultDefinition } from "../v2/projection";
-import { diagnosticStep, groupDiagnostics, parseDefinitionJson, plainSummary, prettyDefinition } from "./reviewModel";
+import {
+  advancedDefinitionAudit,
+  diagnosticStep,
+  groupDiagnostics,
+  parseDefinitionJson,
+  prettyDefinition,
+  reverseExplanation,
+} from "./reviewModel";
+
+const CATALOG_ROOT = resolve(process.cwd(), "src/main/resources/agent-definitions/catalog/main");
 
 describe("review model", () => {
   it("reports parse locations and round trips a valid canonical document", () => {
@@ -35,17 +47,60 @@ describe("review model", () => {
     expect(groupDiagnostics(diagnostics)[2].diagnostics[0].severity).toBe("ERROR");
   });
 
-  it("summarizes authored behavior without introducing runtime semantics", () => {
-    const definition = createDefaultDefinition();
-    definition.interaction.supportedObservations = ["obs.text"];
-    definition.transitions.push({ id: "stay", sourceStateId: "main", targetStateId: "main", order: 10, decisions: [], actions: [] });
-
-    expect(plainSummary(definition).map((item) => item.value)).toEqual([
-      "No purpose description yet.", "1 input · 0 outputs", "1 situation · 1 rule", "0 data items · 0 outcomes", "0 scenarios",
+  it.each([
+    {
+      key: "core.talk_to_me",
+      expected: ["exact text responses", "Main starting situation", "stays in"],
+    },
+    {
+      key: "core.role_clarification_guessing_game",
+      expected: ["3 situations", "moves from", "interaction finishes", "Outcome reports contain outcome"],
+    },
+    {
+      key: "core.rock_scissor_paper",
+      expected: ["rock, scissor, paper reveal responses", "rock, scissor, paper result responses", "4 data items"],
+    },
+    {
+      key: "usecases.healthcare.smart_goal_coaching",
+      expected: ["Main starting situation", "stays in", "Outcome reports contain outcome"],
+    },
+  ])("reverse-explains the $key topology without implementation vocabulary", ({ key, expected }) => {
+    const explanation = reverseExplanation(bundledDefinition(key));
+    expect(explanation.map((section) => section.id)).toEqual([
+      "brief", "capabilities", "interaction", "data-outcome", "try",
     ]);
+    const prose = explanation.flatMap((section) => [section.summary, ...section.statements]).join(" ");
+    expected.forEach((phrase) => expect(prose).toContain(phrase));
+    expect(prose).not.toContain("prometheus.");
+    expect(prose).not.toContain("eventSelector");
+  });
+
+  it("derives a complete Advanced audit from canonical IDs, envelopes, schemas, and lifecycle", () => {
+    const definition = bundledDefinition("core.role_clarification_guessing_game");
+    const audit = advancedDefinitionAudit(definition);
+
+    expect(audit.states.map((state) => state.id)).toEqual(definition.states.map((state) => state.id));
+    expect(audit.rules.map((rule) => rule.id)).toEqual(definition.transitions.map((rule) => rule.id));
+    expect(audit.rules.map((rule) => rule.pointer)).toEqual(definition.transitions.map((_, index) => `/transitions/${index}`));
+    expect(audit.states.find((state) => state.id === "role_clarification")).toMatchObject({
+      parentStateIds: ["context"], initialFor: ["context"], entryMode: "start", oblivious: false,
+    });
+    expect(audit.components.flatMap((component) => component.uses).map((use) => use.pointer))
+      .toContain("/states/0/eventSelector");
+    expect(audit.storage.map((item) => item.declaration)).toEqual(definition.storage);
+    expect(audit.lifecycle).toEqual(definition.lifecycle);
   });
 });
 
 function diagnostic(pointer: string, severity: "ERROR" | "WARNING"): DefinitionDiagnostic {
   return { code: `CODE_${pointer}`, severity, pointer, message: pointer || "whole definition", hint: "Fix it" };
+}
+
+function bundledDefinition(key: string): AgentDefinitionV1 {
+  const manifest = JSON.parse(readFileSync(resolve(CATALOG_ROOT, "manifest.json"), "utf8")) as {
+    entries: Array<{ key: string; resource: string }>;
+  };
+  const entry = manifest.entries.find((candidate) => candidate.key === key);
+  if (!entry) throw new Error(`Missing ${key}`);
+  return JSON.parse(readFileSync(resolve(CATALOG_ROOT, entry.resource), "utf8")) as AgentDefinitionV1;
 }

@@ -282,6 +282,18 @@ and persistence-isolation tests confirm that scenario runs do not mutate saved
 revisions or create agent state/history; automated prompt behavior is faked and
 no provider or normal datasource is used.
 
+Designer V2 Milestone V2.7 completes Review as a domain explanation and
+technical audit of the same canonical document. The primary view explains
+capabilities, agent/situation guidance, ordinary responses, situations,
+event-condition-effect rules, data roles, outcomes, and scenarios without
+implementation vocabulary. A collapsed Advanced view retains the complete
+flow diagram and accessible rule list, IDs, containment, entry/history,
+selectors, registered envelopes/pointers, schemas/resources/lifecycle,
+backend-composed prompts, and safe canonical JSON apply/recovery. Free-form
+preview remains one disposable transcript, while save/conflict, import/export,
+publish/activate-for-new-instances, clone, and non-active archive semantics are
+unchanged.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

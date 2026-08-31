@@ -20,7 +20,9 @@ describe("ReviewPanel", () => {
   it("preserves the projected document on parse failure and applies a valid JSON edit through backend validation", async () => {
     const user = userEvent.setup();
     const definition = validDefinition();
-    const apply = vi.fn().mockResolvedValue({ applied: true, message: "Applied safely." });
+    const apply = vi.fn()
+      .mockResolvedValueOnce({ applied: true, message: "Applied safely." })
+      .mockResolvedValueOnce({ applied: false, message: "Backend rejected the edit; the current document was preserved." });
     renderPanel({ definition, request: promptRequest(), onApplyDefinition: apply });
 
     fireEvent.change(screen.getByTestId("canonical-json-editor"), { target: { value: '{\n  "key":' } });
@@ -34,6 +36,14 @@ describe("ReviewPanel", () => {
     await user.click(screen.getByTestId("apply-canonical-json"));
     await waitFor(() => expect(apply).toHaveBeenCalledWith(changed));
     expect(screen.getByTestId("json-message").textContent).toContain("Applied safely");
+
+    const rejected = structuredClone(definition);
+    rejected.metadata.displayName = "Rejected name";
+    fireEvent.change(screen.getByTestId("canonical-json-editor"), { target: { value: JSON.stringify(rejected) } });
+    await user.click(screen.getByTestId("apply-canonical-json"));
+    await waitFor(() => expect(screen.getByTestId("json-message").textContent).toContain("current document was preserved"));
+    expect(screen.getByTestId("review-narrative").textContent).toContain("Exercises review and publication");
+    expect(screen.getByTestId("review-narrative").textContent).not.toContain("Rejected name");
   });
 
   it("runs a disposable preview, renders state and trace changes, resets, and cleans up on unmount", async () => {
@@ -53,7 +63,7 @@ describe("ReviewPanel", () => {
 
     await user.click(screen.getByTestId("start-preview"));
     expect((await screen.findByTestId("preview-workspace")).textContent).toContain("main");
-    await user.click(screen.getByText("obs.user_utterance"));
+    await user.click(screen.getByText("What the person says"));
     await user.type(screen.getByTestId("preview-event-payload"), "hello");
     await user.click(screen.getByTestId("send-preview-event"));
     await waitFor(() => expect(screen.getByTestId("preview-transcript").textContent).toContain("EVENT"));
@@ -111,6 +121,26 @@ describe("ReviewPanel", () => {
     await waitFor(() => expect(onWorkspaceChanged).toHaveBeenCalledWith({ key: definition.key, revision: 2 }));
     await user.click(screen.getByTestId("archive-revision"));
     await waitFor(() => expect(screen.getByTestId("lifecycle-message").textContent).toContain("archived"));
+  });
+
+  it("refreshes backend-composed prompt pointers after scoped guidance changes", async () => {
+    const definition = validDefinition();
+    const changed = structuredClone(definition);
+    const context = changed.states[0];
+    if (context.kind === "final" || !context.policy) throw new Error("Expected context policy");
+    context.policy.config.responsePrompt = {
+      sections: [{ id: "objective", kind: "objective", content: "Help with the changed goal." }],
+    };
+    const request = vi.fn()
+      .mockResolvedValueOnce(response([{ pointer: "/states/0/policy/config/responsePrompt", label: "Agent-wide response", composed: "Original" }]))
+      .mockResolvedValueOnce(response([{ pointer: "/states/0/policy/config/responsePrompt", label: "Agent-wide response", composed: "Help with the changed goal." }])) as RequestFunction;
+    const rendered = renderPanel({ definition, request });
+    await waitFor(() => expect(screen.getByText("Original")).not.toBeNull());
+
+    rendered.rerender(<ReviewPanel {...panelProps({ definition: changed, request })} />);
+    await waitFor(() => expect(screen.getByText("Help with the changed goal.")).not.toBeNull());
+    expect(screen.getByText("/states/0/policy/config/responsePrompt")).not.toBeNull();
+    expect(request).toHaveBeenCalledTimes(2);
   });
 });
 

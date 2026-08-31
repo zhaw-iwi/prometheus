@@ -209,6 +209,88 @@ test("runs an unsaved exact-text scenario through the isolated H2 application wi
   expect(errors).toEqual([]);
 });
 
+test("completes create, save, validate, Try, free preview, export, publish, activate, clone, and archive on isolated H2", async ({ page }) => {
+  const errors = collectErrors(page);
+  const key = `designer.h2_review_lifecycle_${Date.now()}`;
+  await startNewAgent(page, "H2 lifecycle repeater", "Repeats a test message through the complete review and revision lifecycle.", key);
+  await chooseCapability(page, "What the person says");
+  await chooseCapability(page, "Speak");
+  await page.getByTestId("strategy-card-exact-text-response").getByRole("button", { name: "Use for Main" }).click();
+  await page.getByTestId("step-target-interaction").click();
+  const main = page.getByTestId("situation-card-main");
+  await main.getByLabel("When").selectOption("obs.user_utterance");
+  await main.getByRole("button", { name: "Add interaction rule" }).click();
+  await expect(main.locator(".interaction-rule-card")).toHaveCount(1);
+  await page.getByTestId("save-draft").click();
+  await expect(page).toHaveURL(new RegExp(`definitions/${key.replaceAll(".", "\\.")}/revisions/1`));
+
+  await page.getByTestId("step-target-try").click();
+  await page.getByRole("button", { name: "Add scenario" }).click();
+  const authoredScenario = page.getByTestId("scenario-card-0");
+  await authoredScenario.getByLabel("Scenario 1 name").fill("Lifecycle echo");
+  await authoredScenario.getByRole("button", { name: "What the person says" }).click();
+  await authoredScenario.getByLabel("Event payload").fill("H2 lifecycle hello");
+  await authoredScenario.getByLabel("Active situation after all events (optional)").selectOption("main");
+  await authoredScenario.getByRole("button", { name: "Add behaviour expectation" }).click();
+  await authoredScenario.getByLabel("Behaviour fragment 1 JSON value").fill('{"speech":"H2 lifecycle hello"}');
+  await authoredScenario.getByRole("button", { name: "Apply JSON value" }).click();
+  await authoredScenario.getByTestId("run-scenario-0").click();
+  await expect(authoredScenario.getByText("All expectations passed")).toBeVisible();
+  await page.getByTestId("save-draft").click();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+
+  await page.getByTestId("step-target-review").click();
+  await expect(page.getByTestId("review-narrative")).toContainText("exact text responses");
+  await page.getByTestId("advanced-review").locator("summary").first().click();
+  await expect(page.getByTestId("advanced-flow-graph").locator("[data-state-id='main']")).toBeVisible();
+  await page.getByTestId("start-preview").click();
+  await page.getByLabel("Event templates").getByRole("button", { name: "What the person says" }).click();
+  await page.getByTestId("preview-event-payload").fill("H2 lifecycle free preview");
+  await page.getByTestId("send-preview-event").click();
+  await expect(page.getByTestId("preview-transcript")).toContainText("H2 lifecycle free preview");
+  await page.getByTestId("close-preview").click();
+  await expect(page.getByTestId("preview-message")).toContainText("in-memory state was removed");
+  await page.getByTestId("validate-review").click();
+  await expect(page.getByTestId("review-validation-state")).toContainText("current for this exact document");
+
+  const download = page.waitForEvent("download");
+  await page.getByTestId("export-revision").click();
+  expect((await download).suggestedFilename()).toBe(`${key}-revision-1.json`);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("publish-revision").click();
+  await expect(page.getByTestId("lifecycle-message")).toContainText("published and immutable");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("activate-revision").click();
+  await expect(page.getByTestId("lifecycle-message")).toContainText("new instances only");
+
+  await page.getByLabel("Clone target key").fill(key);
+  await page.getByLabel("Target revision").fill("2");
+  await page.getByTestId("clone-revision").click();
+  await expect(page).toHaveURL(new RegExp(`definitions/${key.replaceAll(".", "\\.")}/revisions/2`));
+  await page.getByTestId("step-target-review").click();
+  await page.getByTestId("validate-review").click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("publish-revision").click();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("activate-revision").click();
+  await expect(page.getByTestId("lifecycle-message")).toContainText("new instances only");
+
+  await page.goto(`/valerian-design/#/definitions/${key}/revisions/1`);
+  await expect(page.getByTestId("designer-editor")).toBeVisible();
+  await page.getByTestId("step-target-review").click();
+  await expect(page.getByTestId("archive-revision")).toBeEnabled();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("archive-revision").click();
+  await expect(page.getByTestId("lifecycle-message")).toContainText("archived");
+
+  const headers = { "X-Prometheus-Admin-Token": ADMIN_TOKEN };
+  const revisionOne = await (await page.request.get(`/admin/agent-definitions/${key}/revisions/1`, { headers })).json();
+  const catalog = await (await page.request.get("/admin/agent-definitions", { headers })).json();
+  expect(revisionOne.status).toBe("ARCHIVED");
+  expect(catalog.find((definition) => definition.key === key)?.activeRevision).toBe(2);
+  expect(errors).toEqual([]);
+});
+
 async function completeBrief(page, name, purpose, key) {
   await page.getByLabel("Agent name").fill(name);
   await page.getByLabel("Purpose, audience, and setting").fill(purpose);

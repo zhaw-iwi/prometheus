@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1-V2.6 complete; V2.7 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.7 complete; V2.8 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -272,6 +272,23 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   unsaved run leaves the stored revision unchanged. The completed gate passes
   68 frontend tests with typecheck/build, 317 Java tests, 13 mocked Playwright
   scenarios, and eight isolated-H2 browser scenarios.
+  V2.7 completes Review with a domain-language reverse explanation of
+  capabilities, guidance scopes, ordinary responses, situations, ordered
+  rules, data roles, outcomes, and scenarios. Its collapsed Advanced audit
+  derives the full graph/list, IDs, containment, entry/history settings,
+  selectors, registered envelopes/pointers, raw schemas/resources/lifecycle,
+  composed prompts, and recoverable canonical JSON from that same document.
+  Free-form preview retains one disposable transcript; revision publication,
+  activation for new instances, import/export, clone/archive, authorization,
+  and optimistic-conflict behavior remain unchanged. Repository guards prevent
+  the removed V1 modules/styles/dependency or exact old step sequence from
+  returning. The V2.7 gate passes 75 frontend tests with typecheck/build,
+  15 deterministic mocked Playwright scenarios, and nine isolated-H2 browser
+  scenarios. The H2 lifecycle scenario uses only
+  `jdbc:h2:mem:prometheus_designer_v27` and completes unique create/save,
+  Given/When/Expect execution, free preview/cleanup, validation, export,
+  publish/activate for two revisions, and inactive-revision archive without
+  providers or the normal configured database.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

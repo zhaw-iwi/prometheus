@@ -45,6 +45,8 @@ export async function installDesignerApiMock(page, options = {}) {
     revision: revisionView(definition),
     activeRevision: null,
     readinessDiagnostics: false,
+    conflictOnFirstSave: options.conflictOnFirstSave ?? false,
+    saveAttempts: 0,
     previewSequence: 1,
     scenarioExecutions: 0,
     openScenarioSessions: 0,
@@ -61,6 +63,9 @@ export async function installDesignerApiMock(page, options = {}) {
     }
     if (method === "GET" && path === "/admin/agent-definitions") {
       if (scenario.catalogDelay) await new Promise((resolveDelay) => setTimeout(resolveDelay, scenario.catalogDelay));
+      if (scenario.catalogMode === "unauthorized") {
+        return route.fulfill({ status: 401, contentType: "application/json", body: "{}" });
+      }
       if (scenario.catalogMode === "error") {
         return route.fulfill({ status: 503, contentType: "application/json", body: "{}" });
       }
@@ -73,6 +78,11 @@ export async function installDesignerApiMock(page, options = {}) {
       return fulfillJson(route, scenario.revision);
     }
     if (method === "PUT" && path.includes("/revisions/")) {
+      scenario.saveAttempts++;
+      if (scenario.conflictOnFirstSave && scenario.saveAttempts === 1) {
+        scenario.revision = { ...scenario.revision, optimisticVersion: scenario.revision.optimisticVersion + 1 };
+        return fulfillJson(route, { code: "OPTIMISTIC_CONFLICT", diagnostics: [] }, 409);
+      }
       const body = request.postDataJSON();
       scenario.definition = structuredClone(body.definition);
       scenario.revision = {
@@ -148,7 +158,10 @@ export async function installDesignerApiMock(page, options = {}) {
       const cloned = structuredClone(scenario.definition);
       cloned.key = body.targetKey;
       cloned.revision = body.targetRevision;
-      return fulfillJson(route, revisionView(cloned, body.targetRevision, 72), 201);
+      scenario.definition = cloned;
+      scenario.revision = revisionView(cloned, body.targetRevision, 72);
+      scenario.activeRevision = null;
+      return fulfillJson(route, scenario.revision, 201);
     }
     return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
   });

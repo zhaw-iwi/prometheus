@@ -83,7 +83,7 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestones V2.1-V2.6 establish this product contract, backend component
+V2 Milestones V2.1-V2.7 establish this product contract, backend component
 authoring descriptors, the direct source-frontend replacement, and the first
 four guided workspaces. Brief now edits identity plus scoped ordered guidance,
 preserves unknown imported sections as Additional guidance, requires explicit
@@ -104,6 +104,15 @@ unsaved canonical document through a bounded disposable production compiler and
 runtime. Per-expectation pass/fail evidence explains active paths, accepted
 rules, data changes, and emitted modalities without exposing or inventing model
 reasoning.
+Review now derives a complete plain-language account of capabilities, guidance
+scope, ordinary responses, situations, rules, data, outcomes, and scenarios.
+Its collapsed Advanced audit exposes the equivalent full flow diagram and
+accessible rule list, stable IDs, containment, entry/history settings,
+selectors, registered component envelopes and JSON pointers, raw schemas,
+lifecycle, composed prompts, and recoverable canonical JSON editing. Free-form
+preview shares the existing disposable transcript model; publication,
+activation for new instances, export, clone, archive, authorization, and
+optimistic-conflict behavior retain their established contracts.
 The V1 form/panels, graph implementation, tests, styles, and XYFlow dependency
 are removed rather than retained as an alternate mode.
 

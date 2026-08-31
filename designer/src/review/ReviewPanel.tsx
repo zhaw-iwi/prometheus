@@ -21,7 +21,9 @@ import {
   type RequestFunction,
 } from "../api/designerApi";
 import type { AgentDefinitionV1 } from "../model/agentDefinition";
-import { groupDiagnostics, parseDefinitionJson, plainSummary, prettyDefinition } from "./reviewModel";
+import { capabilityOption, OBSERVATION_CAPABILITIES } from "../v2/authoringCatalog";
+import { AdvancedDefinitionViews } from "./AdvancedDefinitionViews";
+import { groupDiagnostics, parseDefinitionJson, prettyDefinition, reverseExplanation } from "./reviewModel";
 
 interface ApplyResult {
   applied: boolean;
@@ -82,7 +84,7 @@ export function ReviewPanel({
   const nextRevision = Math.max(0, ...(definitionSummary?.revisions.map((revision) => revision.revision) ?? [definition.revision])) + 1;
   const [cloneRevision, setCloneRevision] = useState(nextRevision);
   const groups = useMemo(() => groupDiagnostics(diagnostics), [diagnostics]);
-  const summary = useMemo(() => plainSummary(definition), [definition]);
+  const narrative = useMemo(() => reverseExplanation(definition), [definition]);
 
   useEffect(() => {
     setJsonDraft(prettyDefinition(definition));
@@ -280,8 +282,13 @@ export function ReviewPanel({
   return (
     <div className="review-panel" data-testid="review-panel">
       <section className="review-section" aria-labelledby="review-summary-title">
-        <div className="section-heading"><div><span className="eyebrow">At a glance</span><h3 id="review-summary-title">Agent summary</h3></div></div>
-        <dl className="review-summary">{summary.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
+        <div className="section-heading"><div><span className="eyebrow">Reverse explanation</span><h3 id="review-summary-title">What this agent will do</h3></div></div>
+        <p>This explanation is derived from the same canonical document. It adds no hidden behavior.</p>
+        <div className="review-narrative" data-testid="review-narrative">{narrative.map((section) => <article key={section.id}
+          data-domain={section.id}>
+          <h4>{section.title}</h4><p className="narrative-summary">{section.summary}</p>
+          {section.statements.length > 0 && <ul>{section.statements.map((statement, index) => <li key={index}>{statement}</li>)}</ul>}
+        </article>)}</div>
       </section>
 
       <section className="review-section" aria-labelledby="review-validation-title">
@@ -307,7 +314,7 @@ export function ReviewPanel({
 
       <section className="review-section" aria-labelledby="preview-title">
         <div className="section-heading">
-          <div><span className="eyebrow">Disposable Preview</span><h3 id="preview-title">Try events without persisting state</h3></div>
+          <div><span className="eyebrow">Free-form preview</span><h3 id="preview-title">Explore without persisting state</h3></div>
           {!preview ? <button className="button primary" type="button" disabled={previewBusy}
             onClick={() => void startPreview()} data-testid="start-preview">Start preview</button>
             : <button className="button quiet" type="button" disabled={previewBusy}
@@ -321,7 +328,8 @@ export function ReviewPanel({
           </div>
           <div className="event-templates" aria-label="Event templates">
             {definition.interaction.supportedObservations.map((type) => <button className="choice-chip" type="button" key={type}
-              onClick={() => { const next = { ...event, type }; setEvent(next); setEventJson(JSON.stringify(next, null, 2)); }}>{type}</button>)}
+              onClick={() => { const next = { ...event, type }; setEvent(next); setEventJson(JSON.stringify(next, null, 2)); }}>
+              {capabilityOption(type, OBSERVATION_CAPABILITIES)?.label ?? "Additional imported observation"}</button>)}
           </div>
           <label className="advanced-toggle"><input type="checkbox" checked={advancedEvent}
             onChange={(change) => setAdvancedEvent(change.target.checked)} /> Advanced event JSON</label>
@@ -346,22 +354,30 @@ export function ReviewPanel({
         </div>}
       </section>
 
-      <details className="review-section technical-details" open>
-        <summary>Technical details</summary>
-        <p>Canonical JSON edits replace the same V2 projection only after local parsing and backend structural validation.</p>
-        <label className="field-stack">Canonical definition JSON<textarea className="json-editor" value={jsonDraft}
-          onChange={(change) => setJsonDraft(change.target.value)} spellCheck={false} data-testid="canonical-json-editor" /></label>
-        <div className="button-row"><button className="button secondary" type="button" disabled={jsonApplying}
-          onClick={() => void applyJson()} data-testid="apply-canonical-json">Apply JSON to V2 projection</button></div>
-        {jsonMessage && <p className="inline-message" role="status" data-testid="json-message">{jsonMessage}</p>}
-        <h4>Composed prompt previews</h4>
-        {promptState === "loading" && <p aria-busy="true">Composing prompts…</p>}
-        {promptState === "error" && <p role="alert">{promptMessage}</p>}
-        {promptState === "ready" && prompts.length === 0 && <p className="empty-copy">No typed prompts are present.</p>}
-        {prompts.map((prompt) => <article className="prompt-preview" key={prompt.pointer}>
-          <div><strong>{prompt.label}</strong><code>{prompt.pointer}</code></div>
-          <pre>{prompt.composed}</pre>
-        </article>)}
+      <details className="review-section technical-details advanced-review" data-testid="advanced-review">
+        <summary>Advanced audit views</summary>
+        <p>Inspect the full derived flow, stable IDs, registered envelopes, raw schemas, composed prompts, and canonical JSON behind the guided view.</p>
+        <AdvancedDefinitionViews definition={definition} />
+        <section className="advanced-audit-section" aria-labelledby="composed-prompts-title">
+          <h4 id="composed-prompts-title">Backend-composed prompt previews</h4>
+          <p>Each pointer identifies the exact ordered guidance scope used to compose this read-only prompt.</p>
+          {promptState === "loading" && <p aria-busy="true">Composing prompts…</p>}
+          {promptState === "error" && <p role="alert">{promptMessage}</p>}
+          {promptState === "ready" && prompts.length === 0 && <p className="empty-copy">No typed prompts are present.</p>}
+          {prompts.map((prompt) => <article className="prompt-preview" key={prompt.pointer}>
+            <div><strong>{prompt.label}</strong><code>{prompt.pointer}</code></div>
+            <pre>{prompt.composed}</pre>
+          </article>)}
+        </section>
+        <section className="advanced-audit-section" aria-labelledby="canonical-json-title">
+          <h4 id="canonical-json-title">Canonical definition JSON</h4>
+          <p>A valid edit replaces the same V2 projection only after local parsing and backend structural validation. A rejected edit leaves the current document intact.</p>
+          <label className="field-stack">Complete JSON document<textarea className="json-editor" value={jsonDraft}
+            onChange={(change) => setJsonDraft(change.target.value)} spellCheck={false} data-testid="canonical-json-editor" /></label>
+          <div className="button-row"><button className="button secondary" type="button" disabled={jsonApplying}
+            onClick={() => void applyJson()} data-testid="apply-canonical-json">Apply JSON to this definition</button></div>
+          {jsonMessage && <p className="inline-message" role="status" data-testid="json-message">{jsonMessage}</p>}
+        </section>
       </details>
 
       <section className="review-section" aria-labelledby="publication-title">

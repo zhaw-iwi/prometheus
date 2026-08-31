@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 const port = Number(process.env.PROMETHEUS_DESIGNER_H2_PORT || 18084);
 const baseURL = `http://127.0.0.1:${port}`;
 const startCommand = process.platform === "win32"
-  ? ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.useTestClasspath=true"
+  ? ".\\mvnw.cmd spring-boot:run \"-Dspring-boot.run.useTestClasspath=true\""
   : "./mvnw spring-boot:run -Dspring-boot.run.useTestClasspath=true";
 
 export default defineConfig({
@@ -31,7 +31,7 @@ export default defineConfig({
     env: {
       ...process.env,
       SERVER_PORT: String(port),
-      SPRING_DATASOURCE_URL: "jdbc:h2:mem:prometheus_designer_v26;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
+      SPRING_DATASOURCE_URL: "jdbc:h2:mem:prometheus_designer_v27;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1",
       SPRING_DATASOURCE_USERNAME: "sa",
       SPRING_DATASOURCE_PASSWORD: "",
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.h2.Driver",
