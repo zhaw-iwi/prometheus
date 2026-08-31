@@ -233,6 +233,20 @@ read-only until their milestones. All twelve production revisions pass no-edit
 round-trip coverage. The V1 authoring modules/tests/styles and React Flow
 dependency are deleted, with no wrapper, route, flag, or compatibility mode.
 
+Designer V2 Milestone V2.3 makes Brief and Capabilities the first complete
+domain workspaces. Brief edits canonical identity plus ordered prompt sections
+at agent scope, keeps situation guidance separate, presents unrecognized
+section IDs/kinds as editable Additional guidance without normalization, and
+requires explicit stable-key confirmation and example adoption. Its composed
+prompt preview remains read-only and backend-owned. Capabilities declares
+observations and output modalities without generating flow, adds uncertainty,
+usage indicators, and Interaction links, and renders response strategies and
+deterministic operation groups from backend authoring descriptors. Exact text
+has typed domain settings; the RPS pack is one operation card with its inputs,
+outputs, and owned data. Kind/version/config are disclosed only under Technical
+details. Focused H2 browser coverage creates and reloads prompt and exact-text
+drafts without touching the configured database or external providers.
+
 ## Bundled main catalog inventory
 
 The deterministic manifest at `../../src/main/resources/agent-definitions/catalog/main/manifest.json`

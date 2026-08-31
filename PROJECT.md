@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1 and V2.2 complete; V2.3 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.3 complete; V2.4 is next. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -225,10 +225,21 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   exact-text, RPS, and healthcare revisions unchanged. Inspected light desktop
   and dark 390-pixel screenshots had no overflow or browser errors. The V1
   form/panels/graph/tests/styles and React Flow dependency are deleted; there is
-  no second route, flag, or compatibility mode. The focused gate passes 32
-  frontend tests, type checking, production build, generated-resource/redirect
-  Spring contracts, and six mocked Playwright scenarios. Later guided panels
-  are visibly read-only until their owning milestones.
+  no second route, flag, or compatibility mode. V2.3 replaces the Brief and
+  Capabilities placeholders with identity/stable-key fields, ordered scoped
+  guidance, lossless Additional imported sections, explicit example adoption,
+  backend-composed prompt preview, grouped notice/expression palettes with
+  uncertainty and usage feedback, descriptor-driven response strategies,
+  guided Exact text settings, and grouped deterministic operation cards. Raw
+  component envelopes are confined to Technical details; selecting a
+  capability never creates a rule, situation, transition, or modality mapping.
+  The focused gate now passes 41 frontend tests, type checking, production
+  build, component/prompt/API and catalog regressions, eight mocked Playwright
+  scenarios with inspected light/dark desktop/mobile captures, and an isolated-
+  H2 browser workflow that created and reloaded both prompt and exact-text
+  drafts without provider calls or access to the normal configured database.
+  Interaction, Data & outcome, and Try remain visibly read-only until their
+  owning milestones.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

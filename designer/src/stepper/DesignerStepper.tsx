@@ -19,6 +19,7 @@ export interface ValidationTarget {
 
 export interface DesignerStepperProps {
   initialStepId?: DesignerStepId;
+  activeStepId?: DesignerStepId;
   validationTarget?: ValidationTarget | null;
   panels?: Partial<Record<DesignerStepId, ReactNode>>;
   onStepChange?: (stepId: DesignerStepId) => void;
@@ -35,11 +36,16 @@ function stepIndex(stepId: DesignerStepId | undefined): number {
 
 export function DesignerStepper({
   initialStepId,
+  activeStepId,
   validationTarget,
   panels = {},
   onStepChange,
 }: DesignerStepperProps) {
   const [activeIndex, setActiveIndex] = useState(() => stepIndex(initialStepId));
+
+  useEffect(() => {
+    if (activeStepId !== undefined) setActiveIndex(stepIndex(activeStepId));
+  }, [activeStepId]);
 
   const showStep = useCallback((requestedIndex: number) => {
     const nextIndex = clampStepIndex(requestedIndex);

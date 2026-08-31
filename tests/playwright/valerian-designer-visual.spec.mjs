@@ -71,6 +71,73 @@ test("the exact six-step V2 shell projects canonical JSON without becoming dirty
   expect(errors).toEqual([]);
 });
 
+test("Brief edits identity and adopts long ordered guidance only after explicit action", async ({ page }, testInfo) => {
+  const errors = collectPageErrors(page);
+  await installDesignerApiMock(page);
+  await openFixture(page, VISUAL_KEY);
+  await expect(page.getByTestId("brief-authoring")).toBeVisible();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+
+  const example = page.getByTestId("guidance-example-helpful-guide");
+  await example.locator("summary").click();
+  await expect(example.getByText("Identity and role", { exact: false })).toBeVisible();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
+  await page.getByRole("button", { name: "Refresh preview" }).click();
+  await expect(page.locator(".prompt-preview pre")).toHaveText("[context]\nOuter policy.");
+  await page.getByLabel("Agent name").fill("Reception companion");
+  await expect(page.getByText("The shown preview predates the latest edits.", { exact: false })).toBeVisible();
+  await example.getByRole("button", { name: "Use as starting point" }).click();
+  await expect(page.getByTestId("dirty-state")).toHaveText("Unsaved changes");
+  await expect(page.locator(".guidance-card")).toHaveCount(7);
+  const moveLater = page.getByRole("button", { name: "Move guidance later" }).first();
+  await moveLater.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(moveLater).toBeFocused();
+  await expectVisibleFocus(moveLater);
+  await attach(page.getByTestId("step-panel-brief"), testInfo, "v2-brief-long-guidance-light");
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+});
+
+test("Capabilities declares availability, shows usage, selects exact text, and groups RPS", async ({ page }, testInfo) => {
+  const errors = collectPageErrors(page);
+  const scenario = await installDesignerApiMock(page);
+  const originalStates = structuredClone(scenario.definition.states);
+  const originalTransitions = structuredClone(scenario.definition.transitions);
+  await openFixture(page, VISUAL_KEY);
+  await page.getByTestId("step-target-capabilities").click();
+  await expect(page.getByTestId("capabilities-authoring")).toBeVisible();
+  await expect(page.getByText("Used in 1 configured place").first()).toBeVisible();
+
+  await page.getByText("Facial emotion cues", { exact: true }).click();
+  const facialCard = page.getByText("Facial emotion cues", { exact: true }).locator("xpath=ancestor::article");
+  await expect(facialCard.getByText("Declared but not used.")).toBeVisible();
+  await expect(page.getByTestId("strategy-card-exact-text-response")).toContainText("Repeat exact text");
+  await page.getByTestId("strategy-card-exact-text-response").getByRole("button", { name: "Use for Main" }).click();
+  await expect(page.getByTestId("exact-text-settings")).toBeVisible();
+  await expect(page.getByTestId("operation-card-rock-scissor-paper")).toContainText("Four round values when installed");
+  const exactCard = page.getByTestId("strategy-card-exact-text-response");
+  await expect(exactCard.getByText("prometheus.policy.exact-text")).not.toBeVisible();
+  await page.getByTestId("strategy-card-exact-text-response").locator("summary").click();
+  await expect(exactCard.getByText("prometheus.policy.exact-text")).toBeVisible();
+
+  await page.getByTestId("step-target-review").click();
+  const represented = JSON.parse(await page.getByTestId("canonical-json-editor").inputValue());
+  expect(represented.states).toHaveLength(originalStates.length);
+  expect(represented.transitions).toEqual(originalTransitions);
+  expect(represented.interaction.supportedObservations).toContain("obs.emotion.face");
+  expect(represented.states.find((state) => state.id === "conversation").policy.kind).toBe("prometheus.policy.exact-text");
+
+  await page.getByTestId("step-target-capabilities").click();
+  await facialCard.getByRole("button", { name: "Use in Interaction" }).click();
+  await expect(page.getByTestId("step-panel-interaction")).toBeVisible();
+  await page.getByTestId("step-target-capabilities").click();
+  await attach(page.getByTestId("step-panel-capabilities"), testInfo, "v2-capabilities-exact-rps-light");
+  await assertNoOverflow(page);
+  expect(errors).toEqual([]);
+});
+
 test("Review links V2 diagnostics, synchronizes JSON, and retains lifecycle gates", async ({ page }, testInfo) => {
   const errors = collectPageErrors(page);
   const scenario = await installDesignerApiMock(page);
@@ -161,8 +228,11 @@ test("390-pixel mobile stacks the V2 stepper and keeps projected panels within t
   const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(background).toMatch(/rgb\((?:13|14), (?:23|24), (?:22|23)\)/);
 
-  await page.getByTestId("step-target-interaction").click();
-  await attach(page, testInfo, "v2-interaction-dark-mobile");
+  await page.getByTestId("step-target-brief").click();
+  await attach(page, testInfo, "v2-brief-dark-mobile");
+  await assertNoOverflow(page);
+  await page.getByTestId("step-target-capabilities").click();
+  await attach(page, testInfo, "v2-capabilities-dark-mobile");
   await assertNoOverflow(page);
   await page.getByTestId("step-target-data-outcome").click();
   await attach(page, testInfo, "v2-data-outcome-dark-mobile");

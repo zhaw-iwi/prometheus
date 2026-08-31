@@ -294,6 +294,21 @@ inspects light desktop plus dark 390-pixel layouts without provider calls.
 generated bundle; the milestone source search separately proves that V1 module
 names and step IDs no longer occur in production or current frontend tests.
 
+Milestone V2.3 expands the focused frontend suite to 41 tests. Pure contracts
+cover stable-key confirmation, metadata validity, agent-versus-situation scope,
+unknown section identity/order retention, explicit example adoption,
+capability declaration without flow mutation, configured-use detection,
+response compatibility, Exact text adoption, and RPS grouping/owned data.
+Existing editor integration retains save/reload and optimistic-conflict
+recovery. Eight mocked Playwright scenarios exercise long Brief guidance,
+example inertness/adoption, capability usage warnings and Interaction links,
+Exact text settings, grouped RPS metadata, keyboard-visible focus, light
+desktop, and dark 390-pixel mobile without provider calls. The separate
+`playwright.designer-h2.config.mjs` gate starts Spring with only an explicit
+in-memory H2 datasource and creates/reloads one prompt draft and one exact-text
+draft through the guided UI. It neither reads the normal datasource credentials
+nor calls a model, Speech, transcription, or sensing provider.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original

@@ -83,12 +83,18 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestones V2.1-V2.2 establish this product contract, backend component
-authoring descriptors, and the direct source-frontend replacement. The active
-shell projects the complete canonical document into the six V2 steps; panels
-scheduled for later milestones are explicitly read-only until their guided
-editors arrive. The V1 form/panels, graph implementation, tests, styles, and
-XYFlow dependency are removed rather than retained as an alternate mode.
+V2 Milestones V2.1-V2.3 establish this product contract, backend component
+authoring descriptors, the direct source-frontend replacement, and the first
+two guided workspaces. Brief now edits identity plus scoped ordered guidance,
+preserves unknown imported sections as Additional guidance, requires explicit
+example adoption and stable-key confirmation, and previews backend-composed
+prompts read-only. Capabilities provides plain-language observation/expression
+cards with uncertainty and usage feedback, backend-described response
+strategies, guided Exact text settings, and a grouped RPS operation card. Raw
+component envelopes remain under Technical details. Interaction, Data &
+outcome, and Try remain explicit read-only projections until their milestones.
+The V1 form/panels, graph implementation, tests, styles, and XYFlow dependency
+are removed rather than retained as an alternate mode.
 
 ### Valerian Access Management
 
@@ -382,6 +388,18 @@ lifecycle states; keyboard focus; light desktop; and dark 390-pixel mobile
 layout. Milestone gates must run and inspect the current screenshots before
 claiming visual verification. Browser evidence and traces are generated
 artifacts and must not be committed.
+
+Run the focused Designer create/reload browser gate on an isolated in-memory H2
+database:
+
+```powershell
+npm run test:designer:h2
+```
+
+This starts Spring with an explicit `jdbc:h2:mem:prometheus_designer_v23`
+override and a test admin token, then creates and reloads one guided prompt
+agent and one Exact text agent. It does not read or open the normally configured
+database and calls no model, Speech, transcription, or sensing provider.
 
 Run it only against an explicitly named dedicated local schema:
 

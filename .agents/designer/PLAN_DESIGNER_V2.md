@@ -417,6 +417,7 @@ npm run designer:test
 npm run designer:build
 npm run designer:verify
 npm run test:designer:visual
+npm run test:designer:h2
 ./mvnw.cmd test
 ```
 
@@ -436,7 +437,7 @@ npm run test:designer:live
 | --- | --- |
 | V2.1. Normative specification, reference corpus, and component descriptors | Complete |
 | V2.2. Lossless V2 projection and direct V1 shell removal | Complete |
-| V2.3. Brief and Capabilities | Not started |
+| V2.3. Brief and Capabilities | Complete |
 | V2.4. Unified Interaction workspace | Not started |
 | V2.5. Data and outcome authoring | Not started |
 | V2.6. Executable Try scenarios and explanations | Not started |
@@ -563,6 +564,16 @@ lossless, frontend-only projection over canonical JSON.
 - Commit and push before V2.3.
 
 ## Milestone V2.3 - Brief and Capabilities
+
+**Status: Complete.** Brief now edits canonical identity and agent-scoped
+ordered guidance, preserves imported Additional guidance losslessly, requires
+explicit stable-key/example adoption, and shows backend-composed prompts
+read-only. Capabilities declares notice/expression availability without
+creating flow, explains uncertainty and usage, renders backend-described
+response strategies plus deterministic operation groups, and configures Exact
+text without exposing raw envelopes. Focused mocked desktop/mobile and isolated
+H2 create/reload gates cover the milestone without provider or normal-database
+access.
 
 ### Outcome
 

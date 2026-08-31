@@ -32,7 +32,7 @@ describe("DesignerDefinitionEditor V2 shell", () => {
     render(<DesignerDefinitionEditor route={{ kind: "editor", key: source.key, revision: 1 }} components={[]}
       adminToken="token" request={request} onDirtyChange={onDirtyChange} onSaved={() => undefined} />);
 
-    await screen.findByTestId("brief-overview");
+    await screen.findByTestId("brief-authoring");
     for (const step of ["brief", "capabilities", "interaction", "data-outcome", "try", "review"]) {
       await user.click(screen.getByTestId(`step-target-${step}`));
       expect((screen.getByTestId(`step-panel-${step}`) as HTMLElement).hidden).toBe(false);

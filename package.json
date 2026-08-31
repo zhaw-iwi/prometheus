@@ -8,6 +8,7 @@
     "designer:build": "vite build --config designer/vite.config.ts",
     "designer:verify": "npm run designer:typecheck && npm run designer:test && npm run designer:build",
     "test:designer:visual": "playwright test --config=playwright.designer-visual.config.mjs",
+    "test:designer:h2": "playwright test --config=playwright.designer-h2.config.mjs",
     "test:designer:live": "playwright test --config=playwright.designer-live.config.mjs",
     "test:transcription:unit": "node --test tests/js/transcription/*.test.mjs",
     "test:speech:unit": "node --test tests/js/speech/*.test.mjs",

@@ -16,6 +16,14 @@ export async function installDesignerApiMock(page, options = {}) {
     definition.metadata.displayName = "Visual acceptance agent";
     definition.metadata.description = "Deterministic fixture for the six-step V2 release gate.";
     definition.metadata.categoryPath = "designer.visual";
+    const session = definition.states.find((state) => state.id === "session");
+    session.policy = {
+      kind: "prometheus.policy.prompt", version: 1,
+      config: {
+        responsePrompt: { sections: [{ id: "agent.objective", kind: "objective", content: "Help a visitor understand a practical next step while acknowledging uncertainty and keeping the response concise enough for a busy public setting." }] },
+        consumedObservations: [], emittedModalities: [],
+      },
+    };
     const conversation = definition.states.find((state) => state.id === "conversation");
     conversation.policy = {
       kind: "prometheus.policy.prompt", version: 1,
@@ -150,6 +158,20 @@ export function componentCatalog() {
       eventType: "obs.user_utterance", actor: "user", eventKind: "observation", maxTextCodePoints: 2000,
     }, { ...none, consumedObservations: ["obs.user_utterance"], emittedBehaviourModalities: ["speech"] }),
     component("prometheus.policy.no-op", "POLICY", "No response", {}, none),
+    component("prometheus.policy.rps-reveal", "POLICY", "RPS reveal", {
+      currentAgentSignStorageKey: "rps_current_agent_sign", currentRoundNumberStorageKey: "rps_current_round_number",
+    }, { ...none, emittedBehaviourModalities: ["speech", "motion.handSign", "display"] }),
+    component("prometheus.policy.rps-result", "POLICY", "RPS result", {
+      lastRoundStorageKey: "rps_last_round",
+    }, { ...none, emittedBehaviourModalities: ["speech", "display"] }),
+    component("prometheus.action.rps-select-sign", "ACTION", "Select RPS sign", {
+      roundsStorageKey: "rps_rounds", currentAgentSignStorageKey: "rps_current_agent_sign",
+      currentRoundNumberStorageKey: "rps_current_round_number",
+    }, none),
+    component("prometheus.action.rps-evaluate-round", "ACTION", "Evaluate RPS round", {
+      handSignEventType: "obs.hand.sign", currentAgentSignStorageKey: "rps_current_agent_sign",
+      currentRoundNumberStorageKey: "rps_current_round_number", lastRoundStorageKey: "rps_last_round", roundsStorageKey: "rps_rounds",
+    }, { ...none, consumedObservations: ["obs.hand.sign"] }),
     component("prometheus.selector.any", "SELECTOR", "Any event", {}, none),
     component("prometheus.selector.state-path", "SELECTOR", "State path", {}, none),
     component("prometheus.decision.latest-event-type", "DECISION", "Latest event type", { eventType: "obs.user_utterance" }, none),
@@ -171,6 +193,27 @@ function component(kind, category, label, defaultConfig, capabilities, examples 
 }
 
 function componentAuthoring(kind, category) {
+  if (kind === "prometheus.policy.prompt") {
+    return { authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "prompt-response", advancedReason: null };
+  }
+  if (kind === "prometheus.policy.exact-text") {
+    return { authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "exact-text-response", advancedReason: null };
+  }
+  if (kind === "prometheus.policy.no-op") {
+    return { authoringRole: "RESPONSE_STRATEGY", exposure: "ADVANCED", capabilityGroup: null, advancedReason: "Technical no-response policy." };
+  }
+  if (kind.includes(".rps-")) {
+    return { authoringRole: "DETERMINISTIC_OPERATION", exposure: "GUIDED", capabilityGroup: "rock-scissor-paper", advancedReason: null };
+  }
+  if (kind === "prometheus.action.prompt-behaviour") {
+    return { authoringRole: "RULE_RESPONSE", exposure: "GUIDED", capabilityGroup: "prompt-response", advancedReason: null };
+  }
+  if (kind === "prometheus.action.increment") {
+    return { authoringRole: "DATA_UPDATE", exposure: "GUIDED", capabilityGroup: "increment-value", advancedReason: null };
+  }
+  if (kind === "prometheus.decision.prompt") {
+    return { authoringRole: "RULE_CONDITION", exposure: "GUIDED", capabilityGroup: "semantic-condition", advancedReason: null };
+  }
   if (kind === "prometheus.decision.latest-event-type") {
     return {
       authoringRole: "RULE_TRIGGER", exposure: "GENERATED_INTERNAL", capabilityGroup: null,

@@ -18,6 +18,9 @@ import type { DesignerRoute } from "../routing/designerRoute";
 import { DesignerStepper, type DesignerStepId, type ValidationTarget } from "../stepper/DesignerStepper";
 import { targetForDiagnostic } from "./diagnostics";
 import { ProjectionOverviewPanels } from "./ProjectionOverviewPanels";
+import { BriefPanel } from "./BriefPanel";
+import { CapabilitiesPanel } from "./CapabilitiesPanel";
+import { briefIssues } from "./briefModel";
 import {
   createDefaultDefinition,
   projectDefinition,
@@ -59,6 +62,7 @@ export function DesignerDefinitionEditor({
   const [conflict, setConflict] = useState<DefinitionRevisionView | null>(null);
   const [validatedFingerprint, setValidatedFingerprint] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<DesignerStepId>("brief");
+  const [keyConfirmed, setKeyConfirmed] = useState(!isNew);
 
   useEffect(() => {
     if (route.kind !== "editor") return;
@@ -71,6 +75,7 @@ export function DesignerDefinitionEditor({
         setDocument(revision.definition);
         setBaseline(serializedDefinition(revision.definition));
         setValidatedFingerprint(null);
+        setKeyConfirmed(true);
         setLoadError("");
       })
       .catch((error) => {
@@ -106,6 +111,7 @@ export function DesignerDefinitionEditor({
   }
 
   const readOnly = persisted !== null && persisted.status !== "DRAFT";
+  const localIssues = briefIssues(projection, persisted !== null || keyConfirmed);
   const changeDefinition = (next: AgentDefinitionV1) => {
     setDocument(next);
     setDiagnostics([]);
@@ -114,6 +120,11 @@ export function DesignerDefinitionEditor({
   };
 
   const save = async () => {
+    if (Object.keys(localIssues).length > 0) {
+      setSaveMessage("Complete the highlighted Brief fields and confirm the stable key before saving.");
+      setActiveStep("brief");
+      return;
+    }
     setSaving(true);
     setSaveMessage("");
     setConflict(null);
@@ -128,6 +139,7 @@ export function DesignerDefinitionEditor({
       setDiagnostics(validation.diagnostics);
       setValidatedFingerprint(null);
       setValidationTarget(null);
+      setKeyConfirmed(true);
       setSaveMessage(validation.valid
         ? "Draft saved and backend validation passed."
         : "Draft saved. Backend validation found issues to review.");
@@ -162,6 +174,7 @@ export function DesignerDefinitionEditor({
     setValidatedFingerprint(null);
     setConflict(null);
     setSaveMessage("Loaded the newer server draft.");
+    setKeyConfirmed(true);
   };
 
   const keepLocalCopy = () => {
@@ -199,6 +212,7 @@ export function DesignerDefinitionEditor({
     try {
       const validation = await validateDefinition(next, adminToken, request);
       changeDefinition(next);
+      if (!persisted) setKeyConfirmed(false);
       setDiagnostics(validation.diagnostics);
       setValidatedFingerprint(null);
       return {
@@ -220,6 +234,11 @@ export function DesignerDefinitionEditor({
   const overviewPanels = ProjectionOverviewPanels({ projection, components });
   const panels = {
     ...overviewPanels,
+    brief: <BriefPanel projection={projection} persisted={persisted !== null} keyConfirmed={keyConfirmed}
+      readOnly={readOnly} adminToken={adminToken} request={request} onKeyConfirmedChange={setKeyConfirmed}
+      onChange={changeDefinition} />,
+    capabilities: <CapabilitiesPanel projection={projection} components={components} readOnly={readOnly}
+      onChange={changeDefinition} onGoToInteraction={() => setActiveStep("interaction")} />,
     review: <ReviewPanel definition={document} persisted={persisted} definitionSummary={definitionSummary}
       diagnostics={diagnostics} active={activeStep === "review"} dirty={dirty}
       validationCurrent={validatedFingerprint === serializedDefinition(document)} adminToken={adminToken}
@@ -239,7 +258,7 @@ export function DesignerDefinitionEditor({
         {persisted && <small>{persisted.status} · Version {persisted.optimisticVersion}</small>}
       </div>
       <button className="button primary" type="button" onClick={() => void save()}
-        disabled={saving || !dirty || readOnly} data-testid="save-draft">
+        disabled={saving || !dirty || readOnly || Object.keys(localIssues).length > 0} data-testid="save-draft">
         {saving ? "Saving…" : "Save draft"}
       </button>
     </div>
@@ -262,6 +281,7 @@ export function DesignerDefinitionEditor({
         </button>
       </li>)}</ul>
     </section>}
-    <DesignerStepper panels={panels} validationTarget={validationTarget} onStepChange={setActiveStep} />
+    <DesignerStepper panels={panels} validationTarget={validationTarget} activeStepId={activeStep}
+      onStepChange={setActiveStep} />
   </>;
 }

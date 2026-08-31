@@ -7,53 +7,14 @@ interface ProjectionOverviewPanelsProps {
 }
 
 export function ProjectionOverviewPanels({ projection, components }: ProjectionOverviewPanelsProps) {
-  const guidedKinds = new Set(components
-    .filter((component) => component.exposure === "GUIDED")
-    .map((component) => component.kind));
   return {
-    brief: <BriefOverview projection={projection} />,
-    capabilities: <CapabilitiesOverview projection={projection} guidedKinds={guidedKinds} />,
-    interaction: <InteractionOverview projection={projection} />,
+    interaction: <InteractionOverview projection={projection} components={components} />,
     "data-outcome": <DataOverview projection={projection} />,
     try: <TryOverview projection={projection} />,
   } as const;
 }
 
-function BriefOverview({ projection }: { projection: DesignerV2Projection }) {
-  const agentGuidance = projection.guidance.filter((item) => item.scope === "agent");
-  return <div className="v2-overview" data-testid="brief-overview">
-    <IncompleteNotice next="Brief editing" />
-    <section className="v2-summary-card" id="brief-display-name" tabIndex={-1}>
-      <span className="eyebrow">Current brief</span>
-      <h3>{projection.identity.metadata.displayName || "Unnamed agent"}</h3>
-      <p>{projection.identity.metadata.description || "No purpose description has been added."}</p>
-      <dl className="v2-facts">
-        <Fact label="Stable key" value={projection.identity.key || "Not assigned"} />
-        <Fact label="Language" value={projection.identity.metadata.languageCode ?? "Not specified"} />
-        <Fact label="Agent-wide guidance" value={count(agentGuidance.length, "section")} />
-      </dl>
-    </section>
-  </div>;
-}
-
-function CapabilitiesOverview({ projection, guidedKinds }: {
-  projection: DesignerV2Projection;
-  guidedKinds: Set<string>;
-}) {
-  const guided = projection.capabilities.installedComponents.filter((component) => guidedKinds.has(component.kind));
-  return <div className="v2-overview" data-testid="capabilities-overview">
-    <IncompleteNotice next="Capability card editing" />
-    <div className="v2-summary-grid">
-      <SummaryList title="Can notice" values={projection.capabilities.observations} empty="No observation capabilities declared." />
-      <SummaryList title="Can express" values={projection.capabilities.behaviourModalities} empty="No output capabilities declared." />
-      <SummaryList title="Installed strategies and operations"
-        values={projection.capabilities.installedComponents.map((component) => component.kind)}
-        empty="No registered components are used." suffix={guided.length ? `${guided.length} guided` : undefined} />
-    </div>
-  </div>;
-}
-
-function InteractionOverview({ projection }: { projection: DesignerV2Projection }) {
+function InteractionOverview({ projection, components }: { projection: DesignerV2Projection; components: ComponentDefinition[] }) {
   const globals = projection.rules.filter((rule) => rule.scope === "global");
   return <div className="v2-overview" data-testid="interaction-overview">
     <IncompleteNotice next="Interaction storyboard editing" />
@@ -70,7 +31,8 @@ function InteractionOverview({ projection }: { projection: DesignerV2Projection 
           <span className="eyebrow">{situation.main ? "Main interaction" : "Situation"}</span>
           <h3>{situation.name}</h3>
           <p>{situation.ordinaryPolicy
-            ? `Ordinary response: ${situation.ordinaryPolicy.envelope.kind}`
+            ? `Ordinary response: ${components.find((component) => component.kind === situation.ordinaryPolicy?.envelope.kind
+              && component.version === situation.ordinaryPolicy.envelope.version)?.label ?? "Registered strategy"}`
             : "No ordinary response strategy."}</p>
           <p>{count(situation.guidance.length, "guidance section")} · {count(rules.length, "rule")}</p>
           <RuleList rules={rules} />
@@ -123,31 +85,13 @@ function IncompleteNotice({ next }: { next: string }) {
   </div>;
 }
 
-function SummaryList({ title, values, empty, suffix }: {
-  title: string;
-  values: string[];
-  empty: string;
-  suffix?: string;
-}) {
-  return <section className="v2-summary-card">
-    <span className="eyebrow">{title}</span>
-    <h3>{count(values.length, "capability")}{suffix ? ` · ${suffix}` : ""}</h3>
-    {values.length === 0 ? <p>{empty}</p> : <ul className="v2-plain-list">{values.map((value, index) =>
-      <li key={`${value}:${index}`}>{value}</li>)}</ul>}
-  </section>;
-}
-
 function RuleList({ rules }: { rules: DesignerV2Projection["rules"] }) {
   if (rules.length === 0) return null;
   return <ol className="v2-rule-list">{rules.map((rule) => <li id={`interaction-rule-${rule.id}`}
     tabIndex={-1} key={rule.id}>
-    <span>{rule.eventTypes.length ? rule.eventTypes.join(", ") : "Registered conditions"}</span>
+    <span>{rule.eventTypes.length ? "When a declared event occurs" : "Registered conditions"}</span>
     <strong>{rule.continuation}</strong>
   </li>)}</ol>;
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return <div><dt>{label}</dt><dd>{value}</dd></div>;
 }
 
 function count(value: number, singular: string): string {

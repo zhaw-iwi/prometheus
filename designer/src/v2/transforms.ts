@@ -4,6 +4,7 @@ import {
   type DesignerV2Projection,
   projectDefinition,
 } from "./projection";
+import type { ComponentEnvelope } from "../model/agentDefinition";
 
 export function updateIdentity(
   projection: DesignerV2Projection,
@@ -48,5 +49,31 @@ export function replaceScopedGuidance(
   prompt.sections = cloneJson(sections);
   config[target.promptField] = prompt;
   state.policy = { ...state.policy, config };
+  return projectDefinition(definition);
+}
+
+export function replaceSituationPolicy(
+  projection: DesignerV2Projection,
+  stateId: string,
+  policy: ComponentEnvelope,
+): DesignerV2Projection {
+  const definition = cloneJson(projection.source);
+  const state = definition.states.find((candidate) => candidate.id === stateId);
+  if (!state || state.kind === "final") throw new Error(`State ${stateId} cannot have an ordinary policy.`);
+  state.policy = cloneJson(policy);
+  return projectDefinition(definition);
+}
+
+export function updateSituationPolicyConfig(
+  projection: DesignerV2Projection,
+  stateId: string,
+  patch: JsonObject,
+): DesignerV2Projection {
+  const definition = cloneJson(projection.source);
+  const state = definition.states.find((candidate) => candidate.id === stateId);
+  if (!state || state.kind === "final" || !state.policy) {
+    throw new Error(`State ${stateId} does not have an ordinary policy.`);
+  }
+  state.policy = { ...state.policy, config: { ...cloneJson(state.policy.config), ...cloneJson(patch) } };
   return projectDefinition(definition);
 }
