@@ -56,6 +56,12 @@ test("the exact six-step V2 shell projects canonical JSON without becoming dirty
   expect(represented).toEqual(scenario.definition);
   await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
 
+  const help = page.getByTestId("domain-help");
+  await help.locator("summary").click();
+  await expect(help.getByRole("heading", { name: "Situation or context?" })).toBeVisible();
+  await expect(help).toContainText("cannot guarantee safety, access control, privacy, or clinical correctness");
+  await attach(help, testInfo, "v2-domain-help-light");
+
   await page.getByTestId("step-target-brief").click();
   await page.getByTestId("step-target-brief").focus();
   await page.keyboard.press("Tab");
@@ -347,26 +353,27 @@ test("authorization and optimistic-conflict recovery remain actionable", async (
   await conflictContext.close();
 });
 
-test("prompt, exact-text, RPS, and healthcare revisions export unchanged after opening", async ({ browser }) => {
-  const resources = [
-    "core/multimodal_behaviour/revision-1.json",
-    "core/talk_to_me/revision-1.json",
-    "core/rock_scissor_paper/revision-1.json",
-    "usecases/healthcare/therapy_appointment_reminder_intro/revision-1.json",
-  ];
-  for (const resource of resources) {
-    const definition = JSON.parse(readFileSync(resolve(CATALOG_ROOT, resource), "utf8"));
+test("all twelve definitions open, summarize, and export unchanged", async ({ browser }) => {
+  const manifest = JSON.parse(readFileSync(resolve(CATALOG_ROOT, "manifest.json"), "utf8"));
+  expect(manifest.entries).toHaveLength(12);
+  for (const entry of manifest.entries) {
+    const definition = JSON.parse(readFileSync(resolve(CATALOG_ROOT, entry.resource), "utf8"));
     const context = await browser.newContext({ acceptDownloads: true });
     const page = await context.newPage();
     const errors = collectPageErrors(page);
     await installDesignerApiMock(page, { definition });
     await openFixture(page, definition.key);
     await page.getByTestId("step-target-review").click();
+    await expect(page.getByTestId("review-narrative").locator("article")).toHaveCount(5);
+    const sections = await page.getByTestId("review-narrative").locator("article").allTextContents();
+    expect(sections.every((section) => section.trim().length > 0), definition.key).toBe(true);
     expect(JSON.parse(await page.getByTestId("canonical-json-editor").inputValue())).toEqual(definition);
     await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
     const download = page.waitForEvent("download");
     await page.getByTestId("export-revision").click();
-    expect((await download).suggestedFilename()).toBe(`${definition.key}-revision-1.json`);
+    const exported = await download;
+    expect(exported.suggestedFilename()).toBe(`${definition.key}-revision-1.json`);
+    expect(JSON.parse(readFileSync(await exported.path(), "utf8"))).toEqual(definition);
     expect(errors).toEqual([]);
     await context.close();
   }
@@ -494,6 +501,11 @@ test("390-pixel mobile stacks the V2 stepper and keeps projected panels within t
   expect(second.y).toBeGreaterThanOrEqual(first.y + first.height - 1);
   const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   expect(background).toMatch(/rgb\((?:13|14), (?:23|24), (?:22|23)\)/);
+  const help = page.getByTestId("domain-help");
+  await help.locator("summary").click();
+  await expect(help.getByRole("heading", { name: "Which data role?" })).toBeVisible();
+  await attach(help, testInfo, "v2-domain-help-dark-mobile");
+  await assertNoOverflow(page);
 
   await page.getByTestId("step-target-brief").click();
   await attach(page, testInfo, "v2-brief-dark-mobile");

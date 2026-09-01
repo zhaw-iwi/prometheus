@@ -108,10 +108,10 @@ export function DesignerStepper({
                 <h2>{step.title}</h2>
                 <p>{step.caption}</p>
               </div>
-              <span className="foundation-badge">{panels[step.id] ? "Authoring" : "Foundation"}</span>
+              <span className="foundation-badge">{panels[step.id] ? "Authoring" : "Unavailable"}</span>
             </div>
             <div className={`step-placeholder${panels[step.id] ? " populated" : ""}`}>
-              {panels[step.id] ?? <p>This guided authoring panel is prepared for the next roadmap milestone.</p>}
+              {panels[step.id] ?? <p>This authoring panel is unavailable.</p>}
             </div>
             <div className="step-actions">
               <button className="button secondary" type="button" data-prev data-testid={`step-back-${step.id}`}

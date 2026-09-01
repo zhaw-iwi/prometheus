@@ -83,9 +83,9 @@ Publication is separate from save; activation affects new instances only.
 Disposable preview never publishes, activates, creates an agent, or enters
 production history, and close/expiry discards it.
 
-V2 Milestones V2.1-V2.7 establish this product contract, backend component
-authoring descriptors, the direct source-frontend replacement, and the first
-four guided workspaces. Brief now edits identity plus scoped ordered guidance,
+V2 Milestones V2.1-V2.8 establish this product contract, backend component
+authoring descriptors, the direct source-frontend replacement, and the complete
+guided experience. Brief now edits identity plus scoped ordered guidance,
 preserves unknown imported sections as Additional guidance, requires explicit
 example adoption and stable-key confirmation, and previews backend-composed
 prompts read-only. Capabilities provides plain-language observation/expression
@@ -115,6 +115,14 @@ activation for new instances, export, clone, archive, authorization, and
 optimistic-conflict behavior retain their established contracts.
 The V1 form/panels, graph implementation, tests, styles, and XYFlow dependency
 are removed rather than retained as an alternate mode.
+A collapsed concept guide explains situations versus starting context,
+ordinary responses versus rules, stay/move/finish, guidance scope, all four
+data roles, and why prompt-based safety guidance is not enforcement. The
+all-twelve evidence matrix is in
+`.agents/designer/CATALOG_PARITY.md`; the repository-owned moderated protocol
+for healthcare-professional and Wirtschaftsinformatik students is in
+`.agents/designer/USABILITY_PROTOCOL.md` and deliberately uses no product
+telemetry.
 
 ### Valerian Access Management
 
@@ -403,11 +411,11 @@ npm run test:designer:visual
 
 The V2 suite records inspectable evidence under `test-results/designer-visual`
 for catalog states; Brief, Capabilities, Interaction, Data & outcome, Try, and
-Review; no-edit prompt/exact-text/RPS/healthcare exports; linked diagnostics;
-lifecycle states; keyboard focus; light desktop; and dark 390-pixel mobile
-layout. Milestone gates must run and inspect the current screenshots before
-claiming visual verification. Browser evidence and traces are generated
-artifacts and must not be committed.
+Review; all-twelve open/summary/no-edit/export equality; concept help; linked
+diagnostics; lifecycle states; keyboard focus; light desktop; and dark
+390-pixel mobile layout. Milestone gates must run and inspect the current
+screenshots before claiming visual verification. Browser evidence and traces
+are generated artifacts and must not be committed.
 
 Run the focused Designer create/reload browser gate on an isolated in-memory H2
 database:
@@ -416,10 +424,13 @@ database:
 npm run test:designer:h2
 ```
 
-This starts Spring with an explicit `jdbc:h2:mem:prometheus_designer_v23`
-override and a test admin token, then creates and reloads one guided prompt
-agent and one Exact text agent. It does not read or open the normally configured
-database and calls no model, Speech, transcription, or sensing provider.
+This starts Spring with an explicit `jdbc:h2:mem:prometheus_designer_v28`
+override and a test admin token. It opens, summarizes, round-trips, validates,
+and publication-compiles all twelve bundled definitions; authors four
+representative agents from scratch; and exercises registered RPS/data,
+scenario-isolation, and complete revision lifecycle journeys. It does not read
+or open the normally configured database and calls no model, Speech,
+transcription, or sensing provider.
 
 Run it only against an explicitly named dedicated local schema:
 
@@ -452,6 +463,15 @@ unique deterministic exact-text definition, validates/previews/publishes/
 activates/exports it, stops the application, and verifies schema removal. It
 never modifies the twelve bundled definitions or the normal configured
 database.
+
+The completed V2.8 gate comprises 77 frontend tests plus typecheck/build, 317
+Java tests, 15 mocked Designer browser tests, 10 isolated-H2 Designer browser
+tests, 22 shared PROMETHEUS browser tests, six Participate tests, one packaged-
+JAR/MySQL lifecycle, and the separate MySQL migration/runtime restart smoke.
+All automated provider and sensor boundaries use deterministic fakes. MySQL
+9.4 emits the known Flyway support-ceiling warning. Container construction is
+also enforced by `.github/workflows/quality.yml`; a local result must be
+reported only when a Docker daemon was actually available.
 
 Run JavaScript syntax checks for the bundled clients:
 
@@ -984,6 +1004,16 @@ Prompt preview accepts the same `{"definition": ...}` envelope and returns an
 ordered array of `{pointer, label, composed}` values after structural
 validation. Composition uses the server's production newline normalization and
 section ordering; clients must treat `composed` as read-only.
+
+Scenario execution accepts
+`{"definition": <current-schema-v1-document>, "scenarioIndex": 0}`. It
+validates and compiles that exact document, runs only the selected canonical
+Given/When/Expect scenario in a disposable session, and returns expectation
+results, active path, accepted transition IDs, storage changes, emitted
+modalities, a safe operation transcript, diagnostics, and `discarded: true`.
+The response explains recorded runtime facts only; it exposes neither model
+reasoning nor provider details and persists no definition, instance, storage,
+or history.
 
 Preview creation accepts either `{"definition": <current-schema-v1-document>}`
 or `{"key": "...", "revision": 1}` for an existing draft. A valid unsaved

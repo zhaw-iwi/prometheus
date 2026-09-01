@@ -15,6 +15,11 @@ part of the definition.
 `AGENTDEFINITION_JSON.md` gives the version 1 serialized contract.
 `ARCHITECTURE.md` explains how the contract is persisted and executed.
 
+Implementation status: schema version 1 and all twelve main-catalog
+definitions implement this metamodel. Designer V2 exposes its domain concepts
+without replacing or weakening the state, transition, policy, decision, action,
+storage, and lifecycle model.
+
 ## Catalog examined
 
 The inventory considered both `main` and the `agents` branch. The latter is

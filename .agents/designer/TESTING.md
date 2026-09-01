@@ -368,6 +368,26 @@ saves a scenario, runs and discards free preview, validates, exports,
 publishes/activates revisions 1 and 2, and archives inactive revision 1 without
 providers or the configured datasource.
 
+Milestone V2.8 closes the acceptance matrix. The final gate passes 77 frontend
+tests with typecheck/build and 317 Java tests. Fifteen deterministic mocked
+Playwright tests cover catalog/error/lifecycle states, all six panels, all
+twelve open/summary/no-edit/export paths, concept help, focus, light desktop,
+dark 390-pixel mobile, and overflow. Ten isolated-H2 browser tests use only
+`jdbc:h2:mem:prometheus_designer_v28` and add all-twelve authenticated
+validation plus publication-readiness compilation to the four from-scratch
+journeys and existing guided/lifecycle coverage. The separate 22-test
+PROMETHEUS browser suite and six-test Participate suite pass.
+
+The packaged production JAR passes its deterministic Exact text lifecycle on
+the guarded `prometheus_designer_smoke_v28_live_retry` MySQL schema and the
+separate `LocalMysqlSmokeTest` passes migration, restart, pinned runtime, and
+cleanup on `prometheus_designer_smoke_v28_runtime`. Both harnesses verified
+schema removal and never opened the configured application database. No model,
+Speech, transcription, sensor, or other provider service was called. MySQL 9.4
+retains the known Flyway support-ceiling warning. The Docker client was present
+but its local daemon pipe was unavailable; container construction remains a
+checked-in CI gate and is not claimed as locally verified.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original

@@ -7,6 +7,11 @@ executable PROMETHEUS agent without retaining the current Java definition path.
 It is normative for persistence boundaries, lifecycle, compilation, caching,
 runtime execution, component extension, APIs, and migration.
 
+Implementation status: this architecture is delivered. Designer V2 is a
+frontend projection over the persisted canonical JSON; published revisions,
+compiled cached graphs, and mutable revision-pinned instances remain separate
+exactly as described below.
+
 ## Architectural boundaries
 
 ```text

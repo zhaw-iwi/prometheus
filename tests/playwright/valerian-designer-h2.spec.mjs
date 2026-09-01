@@ -1,6 +1,47 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 
 const ADMIN_TOKEN = "designer-h2-admin-token";
+const CATALOG_ROOT = resolve("src/main/resources/agent-definitions/catalog/main");
+
+test("all twelve bundled definitions open, summarize, round-trip, validate, and compile on isolated H2", async ({ page }) => {
+  const errors = collectErrors(page);
+  const entries = JSON.parse(readFileSync(resolve(CATALOG_ROOT, "manifest.json"), "utf8")).entries;
+  const headers = { "X-Prometheus-Admin-Token": ADMIN_TOKEN };
+  expect(entries).toHaveLength(12);
+  await enterCatalog(page);
+
+  for (const entry of entries) {
+    const expected = JSON.parse(readFileSync(resolve(CATALOG_ROOT, entry.resource), "utf8"));
+    const revisionResponse = await page.request.get(
+      `/admin/agent-definitions/${encodeURIComponent(entry.key)}/revisions/1`, { headers },
+    );
+    expect(revisionResponse.ok(), `${entry.key} revision`).toBe(true);
+    const revision = await revisionResponse.json();
+    expect(revision.definition).toEqual(expected);
+
+    await page.getByTestId(`open-definition-${entry.key}`).click();
+    await expect(page.getByTestId("designer-editor")).toBeVisible();
+    await page.getByTestId("step-target-review").click();
+    await expect(page.getByTestId("review-narrative").locator("article")).toHaveCount(5);
+    const sections = await page.getByTestId("review-narrative").locator("article").allTextContents();
+    expect(sections.every((section) => section.trim().length > 0), entry.key).toBe(true);
+    expect(JSON.parse(await page.getByTestId("canonical-json-editor").inputValue())).toEqual(expected);
+    await expect(page.getByTestId("dirty-state")).toHaveText("Published revision");
+
+    for (const endpoint of ["validation", "publication-readiness"]) {
+      const response = await page.request.post(`/admin/agent-definitions/${endpoint}`, {
+        headers, data: { definition: expected },
+      });
+      expect(response.ok(), `${entry.key} ${endpoint}`).toBe(true);
+      expect(await response.json(), `${entry.key} ${endpoint}`).toEqual({ valid: true, diagnostics: [] });
+    }
+    await page.getByTestId("back-to-catalog").click();
+    await expect(page.getByTestId("catalog-populated")).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+});
 
 test("creates and reloads guided prompt and exact-text agents on isolated H2", async ({ page }) => {
   const errors = [];

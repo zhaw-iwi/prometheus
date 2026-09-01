@@ -32,7 +32,7 @@ test("packaged Designer completes a deterministic lifecycle on dedicated MySQL",
   await expect(page.getByTestId("review-validation-state")).toContainText("current for this exact document");
 
   await page.getByTestId("start-preview").click();
-  await page.getByRole("button", { name: "obs.user_utterance" }).click();
+  await page.getByLabel("Event templates").getByRole("button", { name: "What the person says" }).click();
   const utterance = "Packaged deterministic preview response.";
   await page.getByTestId("preview-event-payload").fill(utterance);
   await page.getByTestId("send-preview-event").click();

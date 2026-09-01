@@ -34,6 +34,11 @@ preserve the specified DOM semantics, direct navigation, validation focus,
 responsive layout, and accessibility behavior. The former V1 panel sequence is
 historical and is not a supported alternate label set.
 
+The delivered V2 component uses exactly these six labels, native button/tab
+semantics, direct keyboard navigation, visible validation targeting, desktop
+chevrons, and a stacked 390-pixel layout. No completion-state or alternate V1
+stepper is retained.
+
 Add stable test selectors to the stepper root, each step target, and each panel
 without using visible labels as the only selector. Playwright must verify all
 six steps on desktop and the stacked presentation on mobile.

@@ -3,6 +3,11 @@
 These decisions are settled for the roadmap. An implementation agent should not
 reopen them because another approach is possible.
 
+Delivery note: the declarative runtime and domain-expert Designer V2 implement
+these decisions. Future changes must preserve the single canonical document,
+registered-component boundary, revision lifecycle, and no-regulation scope
+unless a separately approved roadmap changes them.
+
 ## D1. JSON is the only whole-agent definition language
 
 Every complete agent definition is represented by a versioned JSON document.

@@ -75,6 +75,21 @@ describe("review model", () => {
     expect(prose).not.toContain("eventSelector");
   });
 
+  it("produces a complete domain summary for every bundled definition", () => {
+    const definitions = bundledDefinitions();
+    expect(definitions).toHaveLength(12);
+
+    for (const definition of definitions) {
+      const explanation = reverseExplanation(definition);
+      expect(explanation.map((section) => section.id), definition.key).toEqual([
+        "brief", "capabilities", "interaction", "data-outcome", "try",
+      ]);
+      explanation.forEach((section) => expect(section.summary.trim().length, `${definition.key}:${section.id}`).toBeGreaterThan(0));
+      const prose = explanation.flatMap((section) => [section.title, section.summary, ...section.statements]).join(" ");
+      expect(prose, definition.key).not.toMatch(/prometheus\.|eventSelector|sourceStateId|targetStateId/);
+    }
+  });
+
   it("derives a complete Advanced audit from canonical IDs, envelopes, schemas, and lifecycle", () => {
     const definition = bundledDefinition("core.role_clarification_guessing_game");
     const audit = advancedDefinitionAudit(definition);
@@ -97,10 +112,17 @@ function diagnostic(pointer: string, severity: "ERROR" | "WARNING"): DefinitionD
 }
 
 function bundledDefinition(key: string): AgentDefinitionV1 {
+  const definitions = bundledDefinitions();
+  const definition = definitions.find((candidate) => candidate.key === key);
+  if (!definition) throw new Error(`Missing ${key}`);
+  return definition;
+}
+
+function bundledDefinitions(): AgentDefinitionV1[] {
   const manifest = JSON.parse(readFileSync(resolve(CATALOG_ROOT, "manifest.json"), "utf8")) as {
     entries: Array<{ key: string; resource: string }>;
   };
-  const entry = manifest.entries.find((candidate) => candidate.key === key);
-  if (!entry) throw new Error(`Missing ${key}`);
-  return JSON.parse(readFileSync(resolve(CATALOG_ROOT, entry.resource), "utf8")) as AgentDefinitionV1;
+  return manifest.entries.map((entry) => JSON.parse(
+    readFileSync(resolve(CATALOG_ROOT, entry.resource), "utf8"),
+  ) as AgentDefinitionV1);
 }

@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 const baseURL = process.env.PROMETHEUS_BASE_URL || "http://127.0.0.1:8080";
 const startCommand = process.platform === "win32"
-  ? ".\\mvnw.cmd spring-boot:run -Dspring-boot.run.useTestClasspath=true"
+  ? ".\\mvnw.cmd spring-boot:run \"-Dspring-boot.run.useTestClasspath=true\""
   : "./mvnw spring-boot:run -Dspring-boot.run.useTestClasspath=true";
 
 const isolatedTestEnvironment = {

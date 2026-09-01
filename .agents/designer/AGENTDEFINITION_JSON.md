@@ -3,9 +3,10 @@
 ## Status and purpose
 
 This is the normative design for schema version 1. Milestone 1 installed its
-machine-readable JSON Schema, typed mapping, and fixtures. Later milestones may
-extend component-specific validation, but a field change must update every
-document and fixture in the same commit.
+machine-readable JSON Schema, typed mapping, fixtures, semantic validation, and
+registered component validation. Designer V2 reads and writes this same
+complete document. A future field change must update every document, projection,
+and fixture in the same commit.
 
 The document is the complete static definition. Repository lifecycle metadata,
 runtime state, access codes, secrets, and client configuration remain outside

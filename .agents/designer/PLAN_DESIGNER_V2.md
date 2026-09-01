@@ -442,7 +442,7 @@ npm run test:designer:live
 | V2.5. Data and outcome authoring | Complete |
 | V2.6. Executable Try scenarios and explanations | Complete |
 | V2.7. Review, Advanced views, and lifecycle completion | Complete |
-| V2.8. Catalog parity, Playwright, student-test readiness, and final cleanup | Not started |
+| V2.8. Catalog parity, Playwright, student-test readiness, and final cleanup | Complete |
 
 ## Milestone V2.1 - Normative specification, reference corpus, and component descriptors
 
@@ -867,6 +867,17 @@ archive.
 - Commit and push before V2.8.
 
 ## Milestone V2.8 - Catalog parity, Playwright, student-test readiness, and final cleanup
+
+**Status: Complete.** All twelve production definitions now have executable
+open/summary/no-edit/export/validation/compilation evidence, and the four
+from-scratch journeys plus the guided RPS cycle cover the topology families.
+The shipped concept guide explains the remaining cross-domain distinctions;
+the repository owns a catalog matrix and moderated healthcare/Wirtschafts-
+informatik student protocol without telemetry. Frontend, Java, mocked visual,
+isolated-H2, shared PROMETHEUS, Participate, packaged-JAR/MySQL, and separate
+migration/runtime MySQL gates passed with deterministic fakes and verified
+dedicated-schema cleanup. Docker was unavailable locally and remains enforced
+by the checked-in CI build.
 
 ### Outcome
 

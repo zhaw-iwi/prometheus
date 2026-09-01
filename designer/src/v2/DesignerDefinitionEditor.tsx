@@ -22,6 +22,7 @@ import { CapabilitiesPanel } from "./CapabilitiesPanel";
 import { briefIssues } from "./briefModel";
 import { InteractionPanel } from "./InteractionPanel";
 import { DataOutcomePanel } from "./DataOutcomePanel";
+import { DomainHelp } from "./DomainHelp";
 import { TryPanel } from "./TryPanel";
 import {
   createDefaultDefinition,
@@ -291,6 +292,7 @@ export function DesignerDefinitionEditor({
         </button>
       </li>)}</ul>
     </section>}
+    <DomainHelp />
     <DesignerStepper panels={panels} validationTarget={validationTarget} activeStepId={activeStep}
       onStepChange={setActiveStep} />
   </>;

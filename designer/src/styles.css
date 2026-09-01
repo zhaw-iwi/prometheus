@@ -618,6 +618,13 @@ p { color: var(--muted); line-height: 1.62; }
 }
 .import-panel { margin-bottom: 1.25rem; box-shadow: 0 10px 26px rgba(15, 45, 48, .05); }
 .review-panel { display: grid; gap: 1rem; }
+.domain-help { margin: 1rem 0; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--surface); }
+.domain-help > summary { cursor: pointer; color: var(--ink); font-weight: 800; }
+.domain-help-intro { margin: .65rem 0; }
+.domain-help-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
+.domain-help-grid section { min-width: 0; padding: .75rem; border: 1px solid #dce6e2; border-radius: .6rem; background: #fff; }
+.domain-help-grid h3 { margin: 0; color: var(--accent-dark); font-size: .92rem; }
+.domain-help-grid p { margin: .35rem 0 0; font-size: .84rem; }
 .review-panel .button.quiet { color: var(--accent-dark); border-color: #b8d1cc; }
 .review-panel .button.quiet:hover { background: var(--accent-soft); }
 .review-narrative { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
@@ -767,7 +774,7 @@ p { color: var(--muted); line-height: 1.62; }
   .card-title-row .button, .card-footer-actions .button { width: 100%; }
   .additional-capabilities li { align-items: stretch; flex-direction: column; }
   .section-heading { flex-direction: column; }
-  .review-narrative, .preview-status, .advanced-facts { grid-template-columns: 1fr; }
+  .review-narrative, .preview-status, .advanced-facts, .domain-help-grid { grid-template-columns: 1fr; }
   .review-narrative > article[data-domain="interaction"] { grid-column: auto; }
   .advanced-flow-list { display: block; min-width: 0; }
   .advanced-flow-list caption, .advanced-flow-list tbody { display: block; }
@@ -812,7 +819,8 @@ p { color: var(--muted); line-height: 1.62; }
   .button.secondary, .button.danger, .token-row input, .review-narrative > article, .diagnostic-group,
   .preview-status span, .choice-chip, .field-stack input, .field-stack textarea, .clone-form input,
   .preview-transcript li, .prompt-preview, .guidance-card textarea, .authoring-section select,
-  .advanced-flow-node, .advanced-state-list > article, .advanced-component-list > article { color: var(--ink); background: var(--surface); }
+  .advanced-flow-node, .advanced-state-list > article, .advanced-component-list > article,
+  .domain-help-grid section { color: var(--ink); background: var(--surface); }
   .definition-card code { color: var(--muted); }
   .card-footer, .step-actions { border-color: var(--line); }
   .skeleton, .prompt-preview pre, .preview-transcript pre, .technical-details > pre,

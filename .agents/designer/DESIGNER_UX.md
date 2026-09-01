@@ -12,6 +12,11 @@ document. Guided forms, storyboard, optional flow overview, accessible list,
 canonical JSON, prompt previews, and runtime preview are views of that same
 document. There is no persisted V2 DSL or parallel V1 editor.
 
+Delivery status: the six-step V2 experience, complete Advanced audit, all-
+twelve parity contract, and concise in-product concept guide are implemented.
+`CATALOG_PARITY.md` records executable corpus coverage and
+`USABILITY_PROTOCOL.md` defines formative evaluation without telemetry.
+
 The central authoring sentence is:
 
 ```text

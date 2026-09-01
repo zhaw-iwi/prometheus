@@ -207,7 +207,7 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   daemon was available, so that build remains delegated to the checked-in CI
   gate; no provider-
   dependent behavior was claimed or run.
-- Designer V2 roadmap: V2.1-V2.7 complete; V2.8 is next. The maintained product
+- Designer V2 roadmap: V2.1-V2.8 complete. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
   definitions form four documented topology families. Component descriptors
@@ -289,6 +289,26 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   Given/When/Expect execution, free preview/cleanup, validation, export,
   publish/activate for two revisions, and inactive-revision archive without
   providers or the normal configured database.
+  V2.8 closes the roadmap with a concise, collapsed concept guide for
+  situations/context, ordinary behavior/rules, continuation, guidance scope,
+  data roles, and prompt-safety limits; an executable all-twelve catalog parity
+  matrix; and a moderated, no-telemetry protocol for healthcare-professional
+  and Wirtschaftsinformatik student testing. All twelve now open, produce the
+  five authored-domain summaries, preserve exact no-edit/export JSON, and pass
+  the real backend validation and publication-compilation boundaries. Four
+  from-scratch H2 journeys cover simple ordinary interaction, orthogonal stay
+  rules, meaning branches, and a healthcare phase change; guided RPS covers the
+  deterministic operation cycle. The final gate passes 77 frontend tests with
+  typecheck/build, 317 Java tests, 15 mocked Designer Playwright tests, 10
+  isolated-H2 Designer tests, 22 shared PROMETHEUS Playwright tests, and six
+  Participate tests. The packaged production JAR passes its deterministic
+  lifecycle on guarded MySQL schema
+  `prometheus_designer_smoke_v28_live_retry`; the separate migration/runtime
+  smoke passes on `prometheus_designer_smoke_v28_runtime`; both verify schema
+  removal and leave the configured application database untouched. Automated
+  gates use deterministic provider/sensor fakes. MySQL 9.4 retains the known
+  Flyway support-ceiling warning. The local Docker daemon is unavailable, so
+  the checked-in CI container build remains the truthful container gate.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

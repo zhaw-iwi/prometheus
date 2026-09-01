@@ -1,3 +1,7 @@
+Delivery status (2026-09-01): V2.1-V2.8 are complete on `features/designer`.
+The text below is the historical implementation brief that produced the
+delivered V2; do not rerun it as an incomplete roadmap.
+
 You are the implementation agent for PROMETHEUS Valerian Designer V2.
 
 Work in the existing PROMETHEUS repository on branch `features/designer`. Do

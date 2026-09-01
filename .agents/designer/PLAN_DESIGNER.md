@@ -6,6 +6,10 @@
 > mode or alternate maintained UI. Runtime, persistence, lifecycle, security,
 > database, preview, accessibility, and testing decisions remain applicable.
 
+> The maintained delivery and final acceptance evidence live in
+> `PLAN_DESIGNER_V2.md`, `CATALOG_PARITY.md`, and `TESTING.md`. Do not reopen
+> the historical V1 milestones as current frontend work.
+
 ## Objective
 
 Replace Java-authored whole-agent definitions with a single versioned JSON

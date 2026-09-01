@@ -34,6 +34,8 @@ Before implementing a milestone, read:
 10. `TESTING.md`
 11. `PLAN_DESIGNER.md`
 12. `PLAN_DESIGNER_V2.md`
+13. `CATALOG_PARITY.md`
+14. `USABILITY_PROTOCOL.md`
 
 Read the historical milestones in `PROJECT.md` only through selective searches
 when an earlier decision is relevant.
@@ -48,7 +50,7 @@ When documents appear to conflict, use this order:
 3. `DECISIONS.md`
 4. `PLAN_DESIGNER_V2.md` for the active frontend product contract
 5. `ARCHITECTURE.md` and `AGENTDEFINITION_JSON.md`
-6. `AGENTMETAMODEL.md`, `DESIGNER_UX.md`, `TESTING.md`, and `STEPPER.md`
+6. `AGENTMETAMODEL.md`, `DESIGNER_UX.md`, `CATALOG_PARITY.md`, `TESTING.md`, and `STEPPER.md`
 7. `PLAN_DESIGNER.md` as the declarative/V1 historical roadmap
 
 Do not silently resolve a genuine product or architecture contradiction. Record
@@ -293,6 +295,16 @@ backend-composed prompts, and safe canonical JSON apply/recovery. Free-form
 preview remains one disposable transcript, while save/conflict, import/export,
 publish/activate-for-new-instances, clone, and non-active archive semantics are
 unchanged.
+
+Designer V2 Milestone V2.8 completes the roadmap. A collapsed in-product guide
+explains situations versus starting context, ordinary responses versus rules,
+stay/move/finish, guidance scope, data roles, and the limits of prompt-based
+safety guidance. `CATALOG_PARITY.md` links every bundled definition and four
+from-scratch journeys to executable evidence, while
+`USABILITY_PROTOCOL.md` provides a safe, moderated, no-telemetry protocol for
+healthcare-professional and Wirtschaftsinformatik student testing. All current
+Designer behavior is V2; old UI names below remain historical milestone
+evidence only.
 
 ## Bundled main catalog inventory
 

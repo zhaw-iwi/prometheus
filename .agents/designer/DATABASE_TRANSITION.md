@@ -4,6 +4,11 @@ This runbook is the database safety contract for the ordered declarative-agent
 cutover. It complements `ARCHITECTURE.md`; it does not authorize running a
 clean, drop, or destructive migration against the normally configured database.
 
+Current status: the cutover is complete and the runbook remains the mandatory
+safety contract for regression verification. Designer browser and migration
+smokes may target only explicitly opted-in, verified, separately named
+`prometheus_designer_smoke_*` schemas and must confirm their removal.
+
 ## Milestone 7 additive state
 
 Flyway migration `V1__create_declarative_agent_aggregates.sql` has no destructive
