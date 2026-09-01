@@ -1107,13 +1107,14 @@ The repository contains Heroku/container-oriented resources:
 Production deployments must provide database credentials and OpenAI credentials
 through environment variables or platform config vars.
 
-The Dockerfile is a multi-stage build: Maven installs the pinned frontend
-toolchain and runs `designer:verify` while packaging, then only the executable
-JAR is copied into a non-root Java 21 runtime image. `.dockerignore` prevents
-local `application.properties`, environment files, database dumps, generated
-build output, and Playwright evidence from entering the build context. The
-`quality` workflow runs the complete Maven/frontend gate, mocked Designer
-Playwright suite, and container build before publishing is considered.
+The Dockerfile is a multi-stage build: its Alpine build stage includes Bash for
+the pinned npm launcher, then Maven installs the frontend toolchain and runs
+`designer:verify` while packaging. Only the executable JAR is copied into the
+non-root Java 21 runtime image; Bash is not present there. `.dockerignore`
+prevents local `application.properties`, environment files, database dumps,
+generated build output, and Playwright evidence from entering the build
+context. The `quality` workflow runs the complete Maven/frontend gate, mocked
+Designer Playwright suite, and container build before publishing is considered.
 
 ## Project Notes
 

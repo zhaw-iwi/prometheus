@@ -2,6 +2,8 @@ FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /workspace
 
+RUN apk add --no-cache bash
+
 COPY . .
 
 RUN sed -i 's/\r$//' mvnw

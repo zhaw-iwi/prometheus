@@ -384,9 +384,10 @@ separate `LocalMysqlSmokeTest` passes migration, restart, pinned runtime, and
 cleanup on `prometheus_designer_smoke_v28_runtime`. Both harnesses verified
 schema removal and never opened the configured application database. No model,
 Speech, transcription, sensor, or other provider service was called. MySQL 9.4
-retains the known Flyway support-ceiling warning. The Docker client was present
-but its local daemon pipe was unavailable; container construction remains a
-checked-in CI gate and is not claimed as locally verified.
+retains the known Flyway support-ceiling warning. After the Docker daemon became
+available, the multi-stage image build passed. The resulting 126 MB Java 21
+runtime image had no Bash, ran as UID 100 `prometheus`, and served the Designer
+against disposable MySQL 8.4 with verified container/network cleanup.
 
 The post-roadmap Exact text refinement keeps the component/runtime and
 `/talktome/` client contracts while changing its Designer exposure to Advanced.
@@ -520,9 +521,11 @@ including migration/runtime restart and cleanup. The 22 PROMETHEUS Playwright
 regressions passed against isolated H2, and the six Participate regressions
 passed with their separate test server/database configuration. No OpenAI,
 Azure, Speech, transcription provider, or physical sensor service was called.
-The packaged JAR served `/valerian-design/`; a local container build was
-attempted but could not start because no Docker daemon was available, while the
-checked-in CI gate performs that build.
+The packaged JAR served `/valerian-design/`. The original local container
+attempt could not start because no Docker daemon was available; the later rerun
+exposed a missing build-stage Bash prerequisite. After declaring that
+prerequisite, the checked-in CI-equivalent image build and a disposable
+container runtime smoke both passed.
 
 ## Structural legacy-removal checks
 

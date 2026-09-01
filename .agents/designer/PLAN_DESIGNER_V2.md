@@ -879,8 +879,9 @@ the repository owns a catalog matrix and moderated healthcare/Wirtschafts-
 informatik student protocol without telemetry. Frontend, Java, mocked visual,
 isolated-H2, shared PROMETHEUS, Participate, packaged-JAR/MySQL, and separate
 migration/runtime MySQL gates passed with deterministic fakes and verified
-dedicated-schema cleanup. Docker was unavailable locally and remains enforced
-by the checked-in CI build.
+dedicated-schema cleanup. The local multi-stage Docker build and non-root
+runtime smoke subsequently passed against a disposable MySQL 8.4 container;
+the checked-in CI build continues to enforce the same image gate.
 
 ### Outcome
 

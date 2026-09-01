@@ -203,10 +203,10 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   focused tests; the Java suite includes a packaging/security contract for the
   multi-stage non-root image, secret-excluding Docker context, and CI frontend/
   browser/container gates. The packaged application served
-  `/valerian-design/`. A local container build was attempted, but no Docker
-  daemon was available, so that build remains delegated to the checked-in CI
-  gate; no provider-
-  dependent behavior was claimed or run.
+  `/valerian-design/`. After Docker became available, the local image build and
+  a non-root runtime smoke against disposable MySQL 8.4 passed; the UI, both
+  built assets, authenticated twelve-definition catalog, and exact-text
+  Advanced metadata were verified without a provider call.
 - Designer V2 roadmap: V2.1-V2.8 complete. The maintained product
   contract now uses Brief, Capabilities, Interaction, Data & outcome, Try, and
   Review over the same complete canonical document. The twelve production
@@ -309,8 +309,12 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   smoke passes on `prometheus_designer_smoke_v28_runtime`; both verify schema
   removal and leave the configured application database untouched. Automated
   gates use deterministic provider/sensor fakes. MySQL 9.4 retains the known
-  Flyway support-ceiling warning. The local Docker daemon is unavailable, so
-  the checked-in CI container build remains the truthful container gate.
+  Flyway support-ceiling warning. The local multi-stage Docker build now passes
+  and the resulting Java 21 image runs as the non-root `prometheus` user. A
+  disposable container smoke applied both migrations to
+  `prometheus_designer_smoke_container`, served the Designer and both assets,
+  returned all twelve bundled definitions, and removed its app, database, and
+  network afterward.
   A post-roadmap refinement removes Exact text from the selectable Main
   response strategies without changing canonical/runtime support. Existing
   `core.talk_to_me` and imported exact-text revisions still open, round-trip,

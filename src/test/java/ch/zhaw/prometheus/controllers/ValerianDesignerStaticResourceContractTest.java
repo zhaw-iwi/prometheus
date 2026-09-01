@@ -86,6 +86,9 @@ class ValerianDesignerStaticResourceContractTest {
         String deploymentWorkflow = Files.readString(Path.of(".github/workflows/deployment.yml"));
 
         assertTrue(dockerfile.contains("AS build"));
+        assertTrue(dockerfile.contains("apk add --no-cache bash"));
+        assertTrue(dockerfile.indexOf("apk add --no-cache bash") < dockerfile.lastIndexOf("FROM "));
+        assertFalse(dockerfile.substring(dockerfile.lastIndexOf("FROM ")).contains("bash"));
         assertTrue(dockerfile.contains("clean package -DskipTests"));
         assertTrue(dockerfile.contains("FROM eclipse-temurin:21-jre-alpine"));
         assertTrue(dockerfile.contains("USER prometheus"));
