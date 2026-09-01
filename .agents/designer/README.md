@@ -243,11 +243,13 @@ requires explicit stable-key confirmation and example adoption. Its composed
 prompt preview remains read-only and backend-owned. Capabilities declares
 observations and output modalities without generating flow, adds uncertainty,
 usage indicators, and Interaction links, and renders response strategies and
-deterministic operation groups from backend authoring descriptors. Exact text
-has typed domain settings; the RPS pack is one operation card with its inputs,
-outputs, and owned data. Kind/version/config are disclosed only under Technical
-details. Focused H2 browser coverage creates and reloads prompt and exact-text
-drafts without touching the configured database or external providers.
+deterministic operation groups from backend authoring descriptors. The RPS pack
+is one operation card with its inputs, outputs, and owned data. Exact text is
+Advanced-only under D15; existing definitions remain inspectable without a
+guided card. Kind/version/config are disclosed only under Technical details.
+Focused H2 browser coverage creates and reloads a prompt draft and exercises a
+bundled exact-text definition without touching the configured database or
+external providers.
 
 Designer V2 Milestone V2.4 replaces the Interaction placeholder with one
 canonical storyboard rather than separate reaction and graph editors. Main,
@@ -305,6 +307,11 @@ from-scratch journeys to executable evidence, while
 healthcare-professional and Wirtschaftsinformatik student testing. All current
 Designer behavior is V2; old UI names below remain historical milestone
 evidence only.
+
+The post-roadmap Exact text refinement keeps direct authored-text speech in the
+dedicated `/talktome/` UI. Designer no longer offers Exact text as a Main
+response strategy; existing exact-text definitions remain lossless and visible
+through Interaction and Review Advanced.
 
 ## Bundled main catalog inventory
 

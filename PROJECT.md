@@ -230,7 +230,9 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   guidance, lossless Additional imported sections, explicit example adoption,
   backend-composed prompt preview, grouped notice/expression palettes with
   uncertainty and usage feedback, descriptor-driven response strategies,
-  guided Exact text settings, and grouped deterministic operation cards. Raw
+  and grouped deterministic operation cards. Exact text was subsequently
+  removed from guided strategy selection and is now Advanced-only in Designer;
+  direct authored-text speech remains in `/talktome/`. Raw
   component envelopes are confined to Technical details; selecting a
   capability never creates a rule, situation, transition, or modality mapping.
   V2.4 replaces the Interaction placeholder with one canonical storyboard for
@@ -309,6 +311,13 @@ and diagnostics before adding a versioned JSON contract or runtime behavior.
   gates use deterministic provider/sensor fakes. MySQL 9.4 retains the known
   Flyway support-ceiling warning. The local Docker daemon is unavailable, so
   the checked-in CI container build remains the truthful container gate.
+  A post-roadmap refinement removes Exact text from the selectable Main
+  response strategies without changing canonical/runtime support. Existing
+  `core.talk_to_me` and imported exact-text revisions still open, round-trip,
+  compile, preview, and expose their current ordinary behavior through
+  Interaction and Review Advanced. The dedicated `/talktome/` client and
+  scoped speech endpoint continue to own direct speech synthesis from authored
+  text.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.

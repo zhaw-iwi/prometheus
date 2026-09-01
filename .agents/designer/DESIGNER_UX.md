@@ -97,9 +97,12 @@ Technical details disclosure. Selecting a capability declares availability; it
 does not create a rule, situation, transition, or modality mapping.
 
 Response strategies and deterministic operations are rendered from backend
-component authoring descriptors. Exact text is a guided response card. The RPS
-components form one guided installed-operation card with meaningful settings
-and owned working data. Raw kind/version/config values are not card titles.
+component authoring descriptors. Prompt response is the guided Main strategy;
+Exact text is Advanced-only and cannot be adopted or configured as a Designer
+strategy. Existing exact-text definitions remain visible and lossless, while
+direct authored-text speech belongs to `/talktome/`. The RPS components form
+one guided installed-operation card with meaningful settings and owned working
+data. Raw kind/version/config values are not card titles.
 Unused capabilities produce a warning and link to the place they can be used;
 they are never silently removed.
 
@@ -207,7 +210,7 @@ their required domain projection without duplicating their JSON.
 
 | Definition | V2 reference design |
 | --- | --- |
-| `core.talk_to_me` | One Main interaction with Exact text; no graph or data needed |
+| `core.talk_to_me` | One Main interaction with existing Exact text visible in Interaction and Advanced; no graph or data needed |
 | `core.facial_expression_sensitivity` | Agent-wide sensing guidance, one task situation, facial stay rule, global/task finish and outcome |
 | `core.multimodal_behaviour` | One task situation with coordinated ordinary multimodal response; sensing may remain context |
 | `core.social_context_sensitivity` | One task situation with social-context and situation-change stay rules |
@@ -222,8 +225,8 @@ their required domain projection without duplicating their JSON.
 
 These designs pressure-test four topology families:
 
-1. **Single ordinary interaction** — exact text or one prompt response, with no
-   required graph.
+1. **Single ordinary interaction** — one guided prompt response or a preserved
+   existing exact-text response, with no required graph.
 2. **One durable situation with orthogonal rules** — sensing stay rules and
    optional structured completion/outcome.
 3. **Branching phased interaction** — role/intro branches that change how later

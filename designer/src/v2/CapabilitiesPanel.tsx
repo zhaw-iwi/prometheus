@@ -17,7 +17,7 @@ import {
   technicalEnvelope,
 } from "./capabilityModel";
 import type { DesignerV2Projection } from "./projection";
-import { updateCapabilities, updateSituationPolicyConfig } from "./transforms";
+import { updateCapabilities } from "./transforms";
 
 interface CapabilitiesPanelProps {
   projection: DesignerV2Projection;
@@ -66,20 +66,16 @@ export function CapabilitiesPanel({ projection, components, readOnly, onChange, 
         {strategies.map((component) => {
           const selected = currentStrategy?.envelope.kind === component.kind && currentStrategy.envelope.version === component.version;
           const compatibility = strategyCompatibility(projection, component);
-          const label = component.capabilityGroup === "exact-text-response" ? "Repeat exact text" : component.label;
           return <article className={`strategy-card${selected ? " selected" : ""}`} key={`${component.kind}@${component.version}`}
             data-testid={`strategy-card-${component.capabilityGroup ?? component.kind}`}>
             <div className="card-title-row"><div><span className="eyebrow">{selected ? "Used by Main" : "Available strategy"}</span>
-              <h4>{label}</h4><p>{component.description}</p></div>
+              <h4>{component.label}</h4><p>{component.description}</p></div>
               <button className={selected ? "button secondary" : "button primary"} type="button"
                 disabled={readOnly || selected || !compatibility.compatible}
                 onClick={() => change(selectMainStrategy(projection, component))}>{selected ? "Selected" : "Use for Main"}</button></div>
             {!compatibility.compatible && <div className="compatibility-warning" role="status">
               Select {formatRequirements(compatibility.missingObservations, compatibility.missingModalities)} before using this strategy.
             </div>}
-            {selected && component.capabilityGroup === "exact-text-response" && currentStrategy && <ExactTextSettings
-              projection={projection} stateId={projection.situations.find((situation) => situation.main)!.id}
-              config={currentStrategy.envelope.config} readOnly={readOnly} onChange={change} />}
             {selected && component.capabilityGroup === "prompt-response" && <p className="usage-note">Its ordered purpose and conduct guidance is edited in Brief; situation-specific guidance belongs in Interaction.</p>}
             <details className="technical-details"><summary>Technical details</summary>
               <pre>{technicalEnvelope(component.kind, component.version,
@@ -164,28 +160,6 @@ function UnknownCapabilities({ selected, known, projection, readOnly, onRemove, 
 
 function UnusedWarning({ onGoToInteraction }: { onGoToInteraction: () => void }) {
   return <span className="unused-warning">Declared but not used. <button type="button" onClick={onGoToInteraction}>Use in Interaction</button></span>;
-}
-
-function ExactTextSettings({ projection, stateId, config, readOnly, onChange }: {
-  projection: DesignerV2Projection;
-  stateId: string;
-  config: Record<string, unknown>;
-  readOnly: boolean;
-  onChange: (projection: DesignerV2Projection) => void;
-}) {
-  const eventType = typeof config.eventType === "string" ? config.eventType : "obs.user_utterance";
-  const maxTextCodePoints = typeof config.maxTextCodePoints === "number" ? config.maxTextCodePoints : 2000;
-  return <div className="strategy-settings" data-testid="exact-text-settings">
-    <label className="field-stack"><span>Text to repeat</span><select value={eventType} disabled={readOnly}
-      onChange={(event) => onChange(updateSituationPolicyConfig(projection, stateId, { eventType: event.target.value }))}>
-      {projection.capabilities.observations.map((id) => <option key={id} value={id}>{capabilityOption(id, OBSERVATION_CAPABILITIES)?.label ?? id}</option>)}
-    </select></label>
-    <label className="field-stack"><span>Maximum characters</span><input type="number" min={1} max={100000}
-      value={maxTextCodePoints} disabled={readOnly}
-      onChange={(event) => onChange(updateSituationPolicyConfig(projection, stateId,
-        { maxTextCodePoints: Number(event.target.value) }))} /></label>
-    <p>Only the latest matching user observation is repeated; no model generates or rewrites it.</p>
-  </div>;
 }
 
 function formatRequirements(observations: string[], modalities: string[]): string {

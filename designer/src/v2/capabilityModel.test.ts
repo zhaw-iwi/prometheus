@@ -34,22 +34,17 @@ describe("V2 Capabilities model", () => {
     expect(capabilityUses(projection, "obs.weather.current")).toEqual([]);
   });
 
-  it("derives strategy compatibility and exact-text adoption from backend descriptors", () => {
+  it("offers only guided response strategies and excludes Advanced exact text", () => {
     const prompt = component("prometheus.policy.prompt", "Prompt policy", "prompt-response", "RESPONSE_STRATEGY", {}, [], []);
     const exact = component("prometheus.policy.exact-text", "Exact text", "exact-text-response", "RESPONSE_STRATEGY",
       { eventType: "obs.user_utterance", actor: "user", eventKind: "observation", maxTextCodePoints: 2000 },
-      ["obs.user_utterance"], ["speech"]);
+      ["obs.user_utterance"], ["speech"], "ADVANCED");
     const projection = projectDefinition(createDefaultDefinition());
-    expect(responseStrategies([exact, prompt]).map((item) => item.capabilityGroup)).toEqual(["exact-text-response", "prompt-response"]);
-    expect(strategyCompatibility(projection, exact)).toEqual({
-      compatible: false, missingObservations: ["obs.user_utterance"], missingModalities: ["speech"],
-    });
-    const declared = updateCapabilities(projection, { observations: ["obs.user_utterance"], behaviourModalities: ["speech"] });
-    expect(strategyCompatibility(declared, exact).compatible).toBe(true);
-    const selected = selectMainStrategy(declared, exact);
+    expect(responseStrategies([exact, prompt]).map((item) => item.capabilityGroup)).toEqual(["prompt-response"]);
+    expect(strategyCompatibility(projection, prompt).compatible).toBe(true);
+    const selected = selectMainStrategy(projection, prompt);
     expect(selected.situations.find((situation) => situation.main)?.ordinaryPolicy?.envelope).toEqual({
-      kind: "prometheus.policy.exact-text", version: 1,
-      config: { eventType: "obs.user_utterance", actor: "user", eventKind: "observation", maxTextCodePoints: 2000 },
+      kind: "prometheus.policy.prompt", version: 1, config: {},
     });
     expect(selected.source.transitions).toEqual([]);
     expect(selected.source.states).toHaveLength(2);
@@ -82,11 +77,13 @@ function component(
   defaultConfig: Record<string, unknown>,
   consumedObservations: string[],
   emittedBehaviourModalities: string[],
+  exposure: ComponentDefinition["exposure"] = "GUIDED",
 ): ComponentDefinition {
   return {
     kind, version: 1, category: kind.includes(".action.") ? "ACTION" : "POLICY", configSchema: { type: "object" },
-    label, description: `${label} test descriptor.`, authoringRole, exposure: "GUIDED", capabilityGroup,
-    advancedReason: null, defaultConfig, examples: [defaultConfig],
+    label, description: `${label} test descriptor.`, authoringRole, exposure,
+    capabilityGroup: exposure === "GUIDED" ? capabilityGroup : null,
+    advancedReason: exposure === "GUIDED" ? null : "Dedicated client behavior.", defaultConfig, examples: [defaultConfig],
     capabilities: { consumedObservations, emittedBehaviourModalities, storage: [], resources: [], states: [] },
   };
 }

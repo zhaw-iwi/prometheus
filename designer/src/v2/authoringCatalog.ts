@@ -80,6 +80,5 @@ export function capabilityOption(id: string, options: CapabilityOption[]): Capab
 export function humanizeCapabilityGroup(group: string): string {
   if (group === "rock-scissor-paper") return "Rock, scissor, paper";
   if (group === "prompt-response") return "Guided response";
-  if (group === "exact-text-response") return "Repeat exact text";
   return group.split(/[-_.]+/).filter(Boolean).map((word) => `${word[0]?.toUpperCase() ?? ""}${word.slice(1)}`).join(" ");
 }

@@ -388,6 +388,12 @@ retains the known Flyway support-ceiling warning. The Docker client was present
 but its local daemon pipe was unavailable; container construction remains a
 checked-in CI gate and is not claimed as locally verified.
 
+The post-roadmap Exact text refinement keeps the component/runtime and
+`/talktome/` client contracts while changing its Designer exposure to Advanced.
+Frontend, descriptor/API, static-resource, all-twelve round-trip, H2 bundled
+exact-text scenario/lifecycle, and dedicated Talk to Me tests prove that Exact
+text is absent from Main strategy choices without removing existing behavior.
+
 ### Historical Designer V1 delivery evidence
 
 The Milestones 12-16 notes below record the removed/replaced frontend's original
@@ -464,7 +470,8 @@ At minimum verify:
 - catalog empty/loading/error/populated states;
 - all six V2 stepper panels and direct navigation;
 - desktop chevrons and mobile stacked stepper;
-- Brief scoped guidance and Capabilities cards, including Exact text/RPS;
+- Brief scoped guidance and Capabilities cards, including RPS and the absence
+  of an Exact text strategy while existing uses remain visible in Advanced;
 - one Main interaction, optional situations, global/scoped rules, and
   stay/move/finish without a required graph;
 - Starting context, Working data, Learned information, and Outcome report;

@@ -178,7 +178,7 @@ function SituationCard({ projection, situation, position, components, readOnly, 
         </select>
         <button className="button secondary" type="button" disabled={readOnly}
           onClick={() => onChange(addSituationGuidance(projection, situation.id, newGuidance))}>Add card</button>
-      </div> : <p className="scope-note">This registered response strategy has no prompt guidance cards. Its typed settings remain available in Capabilities.</p>}
+      </div> : <p className="scope-note">This registered response strategy has no prompt guidance cards. Inspect its canonical settings in Review under Advanced.</p>}
     </div>
 
     <div className="situation-rules">

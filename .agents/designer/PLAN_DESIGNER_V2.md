@@ -75,8 +75,9 @@ delivery work; its UI sequence is explicitly superseded by this file.
 - No Java classes, bean names, executable scripts, expression languages,
   credentials, or provider configuration enter a definition.
 - Trusted deterministic behavior remains available only through registered,
-  typed component kinds. RPS and exact-text behavior must receive guided
-  capability cards instead of raw component configuration.
+  typed component kinds. RPS receives a guided capability card instead of raw
+  component configuration. Exact text remains registered but Advanced-only in
+  Designer; direct authored-text speech belongs to `/talktome/`.
 - V2 introduces no generic timer, continuously evaluated `while` trigger,
   arbitrary tool runner, or parallel-state abstraction. Persistent context may
   be inspected as a condition when an event occurs. Add new runtime mechanisms
@@ -328,7 +329,7 @@ into a parallel test catalog.
 
 | Agent | Required V2 representation |
 | --- | --- |
-| `core.talk_to_me` | One Main interaction with registered Exact text response strategy; no graph or data required |
+| `core.talk_to_me` | One Main interaction whose registered Exact text behavior remains lossless and visible in Interaction/Advanced, but is not offered as a guided strategy; no graph or data required |
 | `core.facial_expression_sensitivity` | Agent-wide sensing conduct, one task situation, facial-expression stay rule, global/task finish and outcome |
 | `core.multimodal_behaviour` | One task situation whose ordinary strategy coordinates all selected output modalities; sensing remains context unless used by a rule |
 | `core.social_context_sensitivity` | One task situation with social-context and situation-change stay rules |
@@ -589,8 +590,8 @@ installed operations without component or state-machine jargon.
 - Combine observation and behaviour palettes into Capabilities with grouping,
   plain labels, uncertainty/help text, selected-use indicators, and warnings.
 - Render registered response strategies and deterministic operations from
-  backend authoring descriptors. Exact text must be selectable/configurable
-  without raw config.
+  backend authoring descriptors. Exact text remains Advanced-only and must not
+  be selectable/configurable as a guided strategy.
 - Hide kind/version/config behind Technical details.
 - Keep stable key confirmation, optimistic save/conflict recovery, dirty state,
   and backend diagnostics.
@@ -603,14 +604,16 @@ installed operations without component or state-machine jargon.
 - Viewing an example is inert; adopting it is explicit and marks dirty.
 - Capability selection does not create rules or situations.
 - Usage warnings and links are correct.
-- Strategy compatibility and registered exact-text/RPS card metadata.
+- Strategy compatibility, exclusion of Advanced exact text, and registered RPS
+  card metadata.
 - Save/reload and optimistic conflict integration through existing APIs.
 
 ### Verification
 
 - Run focused frontend tests, backend prompt/component/API tests, typecheck,
   build, and relevant Java regressions.
-- Use isolated H2 to create and reload a prompt agent and an exact-text agent.
+- Use isolated H2 to create/reload a prompt agent and open/run an existing
+  exact-text definition without exposing it as a strategy choice.
 - Run and inspect mocked Playwright desktop/mobile Brief and Capabilities
   states, including keyboard focus and long guidance.
 
@@ -947,8 +950,9 @@ quality, safe lifecycle behavior, and readiness for formative student testing.
 - Given / When / Expect scenarios are editable, executable, and explained.
 - All twelve bundled definitions round-trip and compile with preserved stable
   keys and observable contracts.
-- Exact text and RPS are guided registered capabilities, not scripts or raw
-  Java/runtime configuration.
+- RPS is a guided registered capability, not a script or raw Java/runtime
+  configuration. Exact text is registered but Advanced-only in Designer and
+  remains available through the dedicated Talk to Me UI.
 - The graph, component envelopes, and canonical JSON are derived Advanced
   views of the same document.
 - No V1 panel, form model, test, style, feature flag, route, or current help

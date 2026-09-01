@@ -23,6 +23,12 @@ test("all twelve bundled definitions open, summarize, round-trip, validate, and 
 
     await page.getByTestId(`open-definition-${entry.key}`).click();
     await expect(page.getByTestId("designer-editor")).toBeVisible();
+    if (entry.key === "core.talk_to_me") {
+      await page.getByTestId("step-target-capabilities").click();
+      await expect(page.getByTestId("strategy-card-exact-text-response")).toHaveCount(0);
+      await page.getByTestId("step-target-interaction").click();
+      await expect(page.getByTestId("situation-card-talk")).toContainText("Ordinary response: Exact text");
+    }
     await page.getByTestId("step-target-review").click();
     await expect(page.getByTestId("review-narrative").locator("article")).toHaveCount(5);
     const sections = await page.getByTestId("review-narrative").locator("article").allTextContents();
@@ -43,13 +49,12 @@ test("all twelve bundled definitions open, summarize, round-trip, validate, and 
   expect(errors).toEqual([]);
 });
 
-test("creates and reloads guided prompt and exact-text agents on isolated H2", async ({ page }) => {
+test("creates and reloads a guided prompt agent without offering exact text", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   const suffix = Date.now();
   const promptKey = `designer.h2_prompt_${suffix}`;
-  const exactKey = `designer.h2_exact_${suffix}`;
 
   await page.goto("/valerian-design/");
   await page.getByTestId("designer-token-input").fill(ADMIN_TOKEN);
@@ -71,23 +76,7 @@ test("creates and reloads guided prompt and exact-text agents on isolated H2", a
   await page.getByTestId("step-target-capabilities").click();
   await expect(page.getByText("What the person says", { exact: true }).locator("xpath=ancestor::article").getByRole("checkbox")).toBeChecked();
   await expect(page.getByTestId("strategy-card-prompt-response")).toContainText("Used by Main");
-
-  await page.getByTestId("back-to-catalog").click();
-  await page.getByTestId("create-definition").click();
-  await completeBrief(page, "H2 exact repeater", "Repeats a submitted utterance exactly without model generation.", exactKey);
-  await page.getByTestId("step-target-capabilities").click();
-  await chooseCapability(page, "What the person says");
-  await chooseCapability(page, "Speak");
-  await page.getByTestId("strategy-card-exact-text-response").getByRole("button", { name: "Use for Main" }).click();
-  await page.getByLabel("Maximum characters").fill("480");
-  await page.getByTestId("save-draft").click();
-  await expect(page).toHaveURL(new RegExp(`definitions/${exactKey.replaceAll(".", "\\.")}/revisions/1`));
-  await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
-  await reopen(page, exactKey);
-  await page.getByTestId("step-target-capabilities").click();
-  await expect(page.getByTestId("strategy-card-exact-text-response")).toContainText("Used by Main");
-  await expect(page.getByLabel("Maximum characters")).toHaveValue("480");
-  await expect(page.getByTestId("strategy-card-exact-text-response").getByText("prometheus.policy.exact-text")).not.toBeVisible();
+  await expect(page.getByTestId("strategy-card-exact-text-response")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -250,20 +239,15 @@ test("runs an unsaved exact-text scenario through the isolated H2 application wi
   expect(errors).toEqual([]);
 });
 
-test("completes create, save, validate, Try, free preview, export, publish, activate, clone, and archive on isolated H2", async ({ page }) => {
+test("completes clone, save, validate, Try, free preview, export, publish, activate, reclone, and archive on isolated H2", async ({ page }) => {
   const errors = collectErrors(page);
   const key = `designer.h2_review_lifecycle_${Date.now()}`;
-  await startNewAgent(page, "H2 lifecycle repeater", "Repeats a test message through the complete review and revision lifecycle.", key);
-  await chooseCapability(page, "What the person says");
-  await chooseCapability(page, "Speak");
-  await page.getByTestId("strategy-card-exact-text-response").getByRole("button", { name: "Use for Main" }).click();
-  await page.getByTestId("step-target-interaction").click();
-  const main = page.getByTestId("situation-card-main");
-  await main.getByLabel("When").selectOption("obs.user_utterance");
-  await main.getByRole("button", { name: "Add interaction rule" }).click();
-  await expect(main.locator(".interaction-rule-card")).toHaveCount(1);
-  await page.getByTestId("save-draft").click();
+  await enterCatalog(page);
+  await page.getByTestId("open-definition-core.talk_to_me").click();
+  await cloneCurrentRevision(page, key);
   await expect(page).toHaveURL(new RegExp(`definitions/${key.replaceAll(".", "\\.")}/revisions/1`));
+  await page.getByTestId("step-target-capabilities").click();
+  await expect(page.getByTestId("strategy-card-exact-text-response")).toHaveCount(0);
 
   await page.getByTestId("step-target-try").click();
   await page.getByRole("button", { name: "Add scenario" }).click();
@@ -271,7 +255,7 @@ test("completes create, save, validate, Try, free preview, export, publish, acti
   await authoredScenario.getByLabel("Scenario 1 name").fill("Lifecycle echo");
   await authoredScenario.getByRole("button", { name: "What the person says" }).click();
   await authoredScenario.getByLabel("Event payload").fill("H2 lifecycle hello");
-  await authoredScenario.getByLabel("Active situation after all events (optional)").selectOption("main");
+  await authoredScenario.getByLabel("Active situation after all events (optional)").selectOption("talk");
   await authoredScenario.getByRole("button", { name: "Add behaviour expectation" }).click();
   await authoredScenario.getByLabel("Behaviour fragment 1 JSON value").fill('{"speech":"H2 lifecycle hello"}');
   await authoredScenario.getByRole("button", { name: "Apply JSON value" }).click();
@@ -283,7 +267,7 @@ test("completes create, save, validate, Try, free preview, export, publish, acti
   await page.getByTestId("step-target-review").click();
   await expect(page.getByTestId("review-narrative")).toContainText("exact text responses");
   await page.getByTestId("advanced-review").locator("summary").first().click();
-  await expect(page.getByTestId("advanced-flow-graph").locator("[data-state-id='main']")).toBeVisible();
+  await expect(page.getByTestId("advanced-flow-graph").locator("[data-state-id='talk']")).toBeVisible();
   await page.getByTestId("start-preview").click();
   await page.getByLabel("Event templates").getByRole("button", { name: "What the person says" }).click();
   await page.getByTestId("preview-event-payload").fill("H2 lifecycle free preview");

@@ -25,7 +25,7 @@ Every row passes the same five contracts:
 | `core.rock_scissor_paper` | Deterministic operation cycle | Prepare/reveal/result situations, cycle, finish, owned working data |
 | `core.role_clarification_guessing_game` | Branching phased interaction | Clarification branch, two durable role situations, outcome |
 | `core.social_context_sensitivity` | Orthogonal rules | Social/situation observations and independent stay rules |
-| `core.talk_to_me` | Single ordinary interaction | One Main interaction and guided Exact text behavior |
+| `core.talk_to_me` | Single ordinary interaction | One Main interaction with lossless Exact text behavior visible in Interaction and Advanced; direct authoring remains in `/talktome/` |
 | `usecases.healthcare.guessing_game` | Orthogonal rules | Flexible game guidance, social aside, completion, outcome |
 | `usecases.healthcare.guessing_game_user_guess` | Orthogonal rules | Reversed game roles, social aside, completion, outcome |
 | `usecases.healthcare.healthcare_conversation` | Orthogonal rules | Open conversation, social aside, explicit stop, outcome |
@@ -39,7 +39,7 @@ The isolated-H2 Playwright suite owns four from-scratch journeys:
 
 | Journey | Evidence |
 | --- | --- |
-| Simple ordinary interaction | Creates and reloads new prompt and Exact text agents from Brief and Capabilities |
+| Simple ordinary interaction | Creates and reloads a new prompt agent from Brief and Capabilities; confirms Exact text is not offered as a strategy |
 | Orthogonal observations | Creates two independent stay rules without a situation change |
 | Meaning-based branch | Creates two destination situations and two conditioned branches |
 | Healthcare phase change | Creates preparation and hand-off situations, local guidance, a move rule, and a finish rule |

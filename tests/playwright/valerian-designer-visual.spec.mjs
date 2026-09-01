@@ -111,7 +111,7 @@ test("Brief edits identity and adopts long ordered guidance only after explicit 
   expect(errors).toEqual([]);
 });
 
-test("Capabilities declares availability, shows usage, selects exact text, and groups RPS", async ({ page }, testInfo) => {
+test("Capabilities declares availability and usage without offering exact text as a strategy", async ({ page }, testInfo) => {
   const errors = collectPageErrors(page);
   const scenario = await installDesignerApiMock(page);
   const originalStates = structuredClone(scenario.definition.states);
@@ -125,27 +125,23 @@ test("Capabilities declares availability, shows usage, selects exact text, and g
   await page.getByText("Facial emotion cues", { exact: true }).click();
   const facialCard = page.getByText("Facial emotion cues", { exact: true }).locator("xpath=ancestor::article");
   await expect(facialCard.getByText("Declared but not used.")).toBeVisible();
-  await expect(page.getByTestId("strategy-card-exact-text-response")).toContainText("Repeat exact text");
-  await page.getByTestId("strategy-card-exact-text-response").getByRole("button", { name: "Use for Main" }).click();
-  await expect(page.getByTestId("exact-text-settings")).toBeVisible();
+  await expect(page.getByTestId("strategy-card-exact-text-response")).toHaveCount(0);
+  await expect(page.getByText("Repeat exact text", { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("strategy-card-prompt-response")).toContainText("Used by Main");
   await expect(page.getByTestId("operation-card-rock-scissor-paper")).toContainText("Four round values when installed");
-  const exactCard = page.getByTestId("strategy-card-exact-text-response");
-  await expect(exactCard.getByText("prometheus.policy.exact-text")).not.toBeVisible();
-  await page.getByTestId("strategy-card-exact-text-response").locator("summary").click();
-  await expect(exactCard.getByText("prometheus.policy.exact-text")).toBeVisible();
 
   await page.getByTestId("step-target-review").click();
   const represented = JSON.parse(await page.getByTestId("canonical-json-editor").inputValue());
   expect(represented.states).toHaveLength(originalStates.length);
   expect(represented.transitions).toEqual(originalTransitions);
   expect(represented.interaction.supportedObservations).toContain("obs.emotion.face");
-  expect(represented.states.find((state) => state.id === "conversation").policy.kind).toBe("prometheus.policy.exact-text");
+  expect(represented.states.find((state) => state.id === "conversation").policy.kind).toBe("prometheus.policy.prompt");
 
   await page.getByTestId("step-target-capabilities").click();
   await facialCard.getByRole("button", { name: "Use in Interaction" }).click();
   await expect(page.getByTestId("step-panel-interaction")).toBeVisible();
   await page.getByTestId("step-target-capabilities").click();
-  await attach(page.getByTestId("step-panel-capabilities"), testInfo, "v2-capabilities-exact-rps-light");
+  await attach(page.getByTestId("step-panel-capabilities"), testInfo, "v2-capabilities-domain-strategy-rps-light");
   await assertNoOverflow(page);
   expect(errors).toEqual([]);
 });
@@ -371,6 +367,13 @@ test("all twelve definitions open, summarize, and export unchanged", async ({ br
     const errors = collectPageErrors(page);
     await installDesignerApiMock(page, { definition });
     await openFixture(page, definition.key);
+    if (definition.key === "core.talk_to_me") {
+      await page.getByTestId("step-target-capabilities").click();
+      await expect(page.getByTestId("strategy-card-exact-text-response")).toHaveCount(0);
+      await page.getByTestId("step-target-interaction").click();
+      await expect(page.getByTestId("situation-card-talk")).toContainText("Ordinary response: Exact text");
+      await expect(page.getByTestId("situation-card-talk")).toContainText("Inspect its canonical settings in Review under Advanced.");
+    }
     await page.getByTestId("step-target-review").click();
     await expect(page.getByTestId("review-narrative").locator("article")).toHaveCount(5);
     const sections = await page.getByTestId("review-narrative").locator("article").allTextContents();

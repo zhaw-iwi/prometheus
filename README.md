@@ -62,8 +62,11 @@ second stored language.
 - **Brief** captures identity, purpose, audience, conduct, and ordered
   agent-wide guidance.
 - **Capabilities** declares what the agent can notice, express, or perform.
-  Selecting a capability does not create flow. Exact text and RPS are guided
-  registered capabilities rather than scripts or raw Java configuration.
+  Selecting a capability does not create flow. RPS is a guided registered
+  operation rather than a script or raw Java configuration. Exact text is not
+  offered as a Main strategy; direct authored-text speech remains in the
+  dedicated `/talktome/` client, while imported exact-text definitions stay
+  lossless and inspectable in Advanced.
 - **Interaction** begins with one implicit Main interaction. Add another
   situation only for a durable phase change. One ordered rule model covers
   event/entry triggers, optional conditions, ordered effects, and
@@ -90,9 +93,10 @@ preserves unknown imported sections as Additional guidance, requires explicit
 example adoption and stable-key confirmation, and previews backend-composed
 prompts read-only. Capabilities provides plain-language observation/expression
 cards with uncertainty and usage feedback, backend-described response
-strategies, guided Exact text settings, and a grouped RPS operation card. Raw
-component envelopes remain under Technical details. Interaction now uses one
-storyboard for Main, durable situations, scoped guidance, and ordered
+strategies, and a grouped RPS operation card. The exact-text runtime component
+is Advanced-only in Designer and remains available to the dedicated Talk to Me
+client. Raw component envelopes remain under Technical details. Interaction
+now uses one storyboard for Main, durable situations, scoped guidance, and ordered
 event/condition/effect/stay-move-finish rules, with a compact read-only flow
 overview derived from the same canonical document. Data & outcome now provides
 guided lifecycle grouping, primitive/list/structured schemas, fixed and

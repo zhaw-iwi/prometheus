@@ -63,17 +63,3 @@ export function replaceSituationPolicy(
   state.policy = cloneJson(policy);
   return projectDefinition(definition);
 }
-
-export function updateSituationPolicyConfig(
-  projection: DesignerV2Projection,
-  stateId: string,
-  patch: JsonObject,
-): DesignerV2Projection {
-  const definition = cloneJson(projection.source);
-  const state = definition.states.find((candidate) => candidate.id === stateId);
-  if (!state || state.kind === "final" || !state.policy) {
-    throw new Error(`State ${stateId} does not have an ordinary policy.`);
-  }
-  state.policy = { ...state.policy, config: { ...cloneJson(state.policy.config), ...cloneJson(patch) } };
-  return projectDefinition(definition);
-}

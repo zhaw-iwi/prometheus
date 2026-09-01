@@ -204,3 +204,16 @@ hand.
 The application uses same-origin relative API paths and the existing
 `X-Prometheus-Admin-Token` session-storage convention. Source and bundle must
 contain no credential, provider secret, or development-only API host.
+
+## D15. Exact authored-text speech is not a Designer response strategy
+
+Domain experts cannot select the deterministic exact-text policy as Main's
+ordinary response in Designer. Its registered runtime component and canonical
+schema remain supported so `core.talk_to_me`, existing revisions, imports,
+preview, compilation, and no-edit round-trip stay lossless. Designer shows an
+existing use in Interaction and Review Advanced without a guided adoption or
+settings card.
+
+Direct speech synthesis from authored text belongs to the dedicated
+`/talktome/` client and its scoped endpoint. This separation does not remove or
+weaken that client, its exact-text runtime behavior, or its tests.

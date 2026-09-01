@@ -90,8 +90,11 @@ class ComponentRegistryUnitTest {
 
         assertAuthoring(registry, "prometheus.policy.prompt", ComponentAuthoringRole.RESPONSE_STRATEGY,
                 ComponentAuthoringExposure.GUIDED, "prompt-response");
-        assertAuthoring(registry, "prometheus.policy.exact-text", ComponentAuthoringRole.RESPONSE_STRATEGY,
-                ComponentAuthoringExposure.GUIDED, "exact-text-response");
+        ComponentUiMetadata exactText = registry.find("prometheus.policy.exact-text", 1).orElseThrow().uiMetadata();
+        assertEquals(ComponentAuthoringRole.RESPONSE_STRATEGY, exactText.authoringRole());
+        assertEquals(ComponentAuthoringExposure.ADVANCED, exactText.exposure());
+        assertNull(exactText.capabilityGroup());
+        assertTrue(exactText.advancedReason().contains("Talk to Me"));
         assertAuthoring(registry, "prometheus.decision.prompt", ComponentAuthoringRole.RULE_CONDITION,
                 ComponentAuthoringExposure.GUIDED, "semantic-condition");
         assertAuthoring(registry, "prometheus.action.extract", ComponentAuthoringRole.OUTCOME_EXTRACTION,

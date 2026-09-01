@@ -61,10 +61,11 @@ class ValerianDesignerStaticResourceContractTest {
             assertTrue(javascript.contains(title));
         }
         for (String v2AuthoringCopy : new String[] { "Agent name", "Agent-wide guidance", "Use as starting point",
-                "What can the agent notice?", "How can it express itself?", "Repeat exact text",
+                "What can the agent notice?", "How can it express itself?",
                 "Rock, scissor, paper", "Technical details" }) {
             assertTrue(javascript.contains(v2AuthoringCopy));
         }
+        assertFalse(javascript.contains("Repeat exact text"));
         assertTrue(css.contains("--step-z"));
         assertTrue(css.contains("width<=767.98px"));
 

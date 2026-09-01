@@ -301,8 +301,10 @@ public final class BuiltInComponentCatalog {
         return switch (kind) {
             case "prometheus.policy.no-op" -> AuthoringSpec.advanced(ComponentAuthoringRole.RESPONSE_STRATEGY,
                     "Used only for technical situations that intentionally have no ordinary response.");
-            case "prometheus.policy.exact-text" -> AuthoringSpec.guided(
-                    ComponentAuthoringRole.RESPONSE_STRATEGY, "exact-text-response");
+            case "prometheus.policy.exact-text" -> AuthoringSpec.advanced(
+                    ComponentAuthoringRole.RESPONSE_STRATEGY,
+                    "Exact speech from authored text belongs to the dedicated Talk to Me client; "
+                            + "existing canonical uses remain inspectable in Advanced.");
             case "prometheus.policy.prompt" -> AuthoringSpec.guided(
                     ComponentAuthoringRole.RESPONSE_STRATEGY, "prompt-response");
             case "prometheus.policy.rps-reveal", "prometheus.policy.rps-result",

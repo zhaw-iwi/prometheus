@@ -219,7 +219,10 @@ function componentAuthoring(kind, category) {
     return { authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "prompt-response", advancedReason: null };
   }
   if (kind === "prometheus.policy.exact-text") {
-    return { authoringRole: "RESPONSE_STRATEGY", exposure: "GUIDED", capabilityGroup: "exact-text-response", advancedReason: null };
+    return {
+      authoringRole: "RESPONSE_STRATEGY", exposure: "ADVANCED", capabilityGroup: null,
+      advancedReason: "Exact speech from authored text belongs to the dedicated Talk to Me client.",
+    };
   }
   if (kind === "prometheus.policy.no-op") {
     return { authoringRole: "RESPONSE_STRATEGY", exposure: "ADVANCED", capabilityGroup: null, advancedReason: "Technical no-response policy." };
