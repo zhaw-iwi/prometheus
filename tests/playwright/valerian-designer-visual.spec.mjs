@@ -90,6 +90,11 @@ test("Brief edits identity and adopts long ordered guidance only after explicit 
   await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
   await page.getByRole("button", { name: "Refresh preview" }).click();
   await expect(page.locator(".prompt-preview pre")).toHaveText("[context]\nOuter policy.");
+  await page.getByLabel("Agent name").fill("");
+  await expect(page.getByText("Give the agent a clear name.")).toBeVisible();
+  await expectSingleGridColumn(page.locator(".identity-section .authoring-fields"));
+  await expectSingleGridColumn(page.locator(".key-confirmation-row"));
+  await attach(page.getByTestId("step-panel-brief"), testInfo, "v2-brief-validation-stacked-light");
   await page.getByLabel("Agent name").fill("Reception companion");
   await expect(page.getByText("The shown preview predates the latest edits.", { exact: false })).toBeVisible();
   await example.getByRole("button", { name: "Use as starting point" }).click();
@@ -115,6 +120,7 @@ test("Capabilities declares availability, shows usage, selects exact text, and g
   await page.getByTestId("step-target-capabilities").click();
   await expect(page.getByTestId("capabilities-authoring")).toBeVisible();
   await expect(page.getByText("Used in 1 configured place").first()).toBeVisible();
+  await expectSingleGridColumn(page.locator(".capability-grid"));
 
   await page.getByText("Facial emotion cues", { exact: true }).click();
   const facialCard = page.getByText("Facial emotion cues", { exact: true }).locator("xpath=ancestor::article");
@@ -159,6 +165,8 @@ test("Interaction authors one event-condition-effect rule path, destinations, fi
   await openFixture(page, definition.key);
   await page.getByTestId("step-target-interaction").click();
   const main = page.getByTestId("situation-card-conversation");
+  await expectTopAccents(page.locator(".always-section"));
+  await expectTopAccents(main);
   await main.getByLabel("When").selectOption("obs.social.context");
   await main.getByRole("button", { name: "Add interaction rule" }).click();
   let firstRule = main.locator(".interaction-rule-card").first();
@@ -420,6 +428,7 @@ test("Data & outcome explains therapy choices, custom reports, and operation-own
     await openFixture(page, definition.key);
     await page.getByTestId("step-target-data-outcome").click();
     await fixture.assert(page);
+    await expectTopAccents(page.locator(".data-role-section, .outcome-section"));
     await attach(page.getByTestId("step-panel-data-outcome"), testInfo, fixture.name);
     await assertNoOverflow(page);
     await expect(page.getByTestId("dirty-state")).toHaveText("Saved draft");
@@ -455,6 +464,7 @@ test("Try authors an executable scenario and explains passing and failing dispos
   await page.getByTestId("step-target-try").click();
   await page.getByRole("button", { name: "Add scenario" }).click();
   const scenario = page.getByTestId("scenario-card-0");
+  await expectTopAccents(scenario.locator(".scenario-phase"));
   await scenario.getByLabel("Scenario 1 name").fill("Conversation remains active");
   await scenario.getByLabel("Initializer seed (optional)").fill("29");
   await scenario.getByRole("button", { name: "What the person says" }).click();
@@ -560,6 +570,31 @@ async function attach(target, testInfo, name) {
 
 async function assertNoOverflow(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+}
+
+async function expectSingleGridColumn(locator) {
+  const columns = await locator.evaluateAll((elements) => elements.map((element) =>
+    getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length));
+  expect(columns.length).toBeGreaterThan(0);
+  expect(columns.every((count) => count === 1)).toBe(true);
+}
+
+async function expectTopAccents(locator) {
+  const borders = await locator.evaluateAll((elements) => elements.map((element) => {
+    const style = getComputedStyle(element);
+    return {
+      topWidth: Number.parseFloat(style.borderTopWidth),
+      leftWidth: Number.parseFloat(style.borderLeftWidth),
+      topColor: style.borderTopColor,
+      leftColor: style.borderLeftColor,
+    };
+  }));
+  expect(borders.length).toBeGreaterThan(0);
+  for (const border of borders) {
+    expect(border.topWidth).toBe(4);
+    expect(border.leftWidth).toBe(1);
+    expect(border.topColor).not.toBe(border.leftColor);
+  }
 }
 
 async function expectVisibleFocus(locator) {

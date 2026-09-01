@@ -59,7 +59,7 @@ export function BriefPanel({ projection, persisted, keyConfirmed, readOnly, admi
   return <div className="v2-authoring" data-testid="brief-authoring">
     <section className="authoring-section identity-section">
       <div className="section-heading"><div><h3>Name and purpose</h3><p>Describe the agent in language its future authors and operators will understand.</p></div></div>
-      <div className="authoring-fields two-columns">
+      <div className="authoring-fields">
         <Field label="Agent name" error={issues.displayName} id="brief-display-name">
           <input id="brief-display-name" value={metadata.displayName} disabled={readOnly}
             onChange={(event) => updateMetadata({ displayName: event.target.value })} />
