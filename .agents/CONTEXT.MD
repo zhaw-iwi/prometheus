@@ -94,8 +94,9 @@ PROMETHEUS currently provides:
   validation, and ephemeral browser credentials;
 - one shared Valerian/multilateral browser transcription engine with
   cross-tab microphone ownership, explicit local/manual turn commits,
-  item-ordered final transcripts, reconnect/teardown, operator capture
-  settings, and privacy-safe preference persistence;
+  item-ordered final transcripts, bounded fresh-session reconnect after
+  transport or active-track loss, navigation-safe teardown, live device
+  refresh, operator capture settings, and privacy-safe preference persistence;
 - serialized, duplicate-safe live-transcript ingress through the ordinary
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;
@@ -206,6 +207,11 @@ and input is gated while the selected output device renders agent speech. Its
 sensing, interaction, and behaviour columns are connection-scoped: access,
 selection, creation, disconnect, and logout do not retain agent-derived UI
 state, while connection hydrates the selected agent's persisted history.
+Transcription is intentionally not diarization: sequential voices share the
+same user-input channel without speaker identity, and overlapping speech may be
+merged, split, or missed. Real-room, wireless, Bluetooth, background-throttling,
+and acoustic performance remain deployment smoke-test concerns even when the
+mocked browser resilience matrix passes.
 
 API Workbench is a developer client for the same contracts. Multilateral pages
 are separate meeting/listening displays. The `.web/` SIRA page and participation

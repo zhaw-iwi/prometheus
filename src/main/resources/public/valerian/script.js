@@ -317,6 +317,7 @@ function wireUi() {
   });
   if (navigator.mediaDevices && typeof navigator.mediaDevices.addEventListener === "function") {
     navigator.mediaDevices.addEventListener("devicechange", () => {
+      void transcription.transcriptionSettingsPanel?.refreshDevices(false);
       refreshAudioDevices({ requestPermission: false, silent: true });
       refreshCameraDevices({ requestPermission: false, silent: true });
     });
@@ -5456,7 +5457,10 @@ function cleanupAll() {
   cleanupStreams();
   stopCamera({ silent: true });
   if (state.transcriptionListening) {
-    stopTranscription();
+    state.transcriptionListening = false;
+    transcription.inputGated = true;
+    transcription.transcriptIngress?.setAccepting(false);
+    transcription.transcriptionClient?.stopForPageUnload();
   }
 }
 

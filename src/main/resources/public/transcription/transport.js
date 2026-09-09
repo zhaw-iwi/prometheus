@@ -27,6 +27,7 @@ export class TranscriptionTransport {
     this.epoch = 0;
     this.reconnectAttempts = 0;
     this.deliberateStop = false;
+    this.boundMediaTracks = new WeakSet();
   }
 
   async start(sessionInfo, { mediaPreferences = {}, turnDetectionMode = "local_vad" } = {}) {
@@ -54,6 +55,7 @@ export class TranscriptionTransport {
       const opened = this.waitForChannel(channel, epoch);
       this.media.setEnabled(this.options.turnDetectionMode !== "manual");
       this.media.addTracks(peer);
+      this.bindMediaTracks(epoch);
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
       const response = await this.fetchImpl(sessionInfo.webRtcUrl, {
@@ -115,7 +117,9 @@ export class TranscriptionTransport {
 
   async replaceMedia(mediaPreferences) {
     this.options.mediaPreferences = { ...mediaPreferences };
-    return this.media.replaceAudioTrack(this.peerConnection, mediaPreferences);
+    const applied = await this.media.replaceAudioTrack(this.peerConnection, mediaPreferences);
+    this.bindMediaTracks(this.epoch);
+    return applied;
   }
 
   async stop() {
@@ -135,6 +139,19 @@ export class TranscriptionTransport {
     peer.addEventListener?.("iceconnectionstatechange", () => {
       if (epoch === this.epoch) this.onDiagnostic({ code: "ice_state", state: peer.iceConnectionState });
     });
+  }
+
+  bindMediaTracks(epoch) {
+    for (const track of this.media.stream?.getAudioTracks?.() || []) {
+      if (this.boundMediaTracks.has(track)) continue;
+      this.boundMediaTracks.add(track);
+      track.addEventListener?.("ended", () => {
+        const activeTracks = this.media.stream?.getAudioTracks?.() || [];
+        if (epoch !== this.epoch || this.deliberateStop || this.tearingDown || !activeTracks.includes(track)) return;
+        this.onDiagnostic({ code: "microphone_track_ended" });
+        this.scheduleReconnect(epoch, "The selected microphone became unavailable.");
+      }, { once: true });
+    }
   }
 
   waitForChannel(channel, epoch) {
@@ -157,10 +174,11 @@ export class TranscriptionTransport {
     });
   }
 
-  scheduleReconnect(epoch) {
+  scheduleReconnect(epoch, lastMessage = "") {
     if (this.reconnectTimer || this.deliberateStop || epoch !== this.epoch) return;
     if (!this.sessionFactory || this.reconnectAttempts >= this.maximumReconnects) {
-      this.transition("failed", { epoch, message: "Automatic transcription reconnect exhausted." });
+      const reason = lastMessage ? ` Last error: ${lastMessage}` : "";
+      this.transition("failed", { epoch, message: `Automatic transcription reconnect exhausted.${reason}` });
       return;
     }
     const delayMs = this.reconnectBaseMs * (2 ** this.reconnectAttempts);
@@ -174,7 +192,7 @@ export class TranscriptionTransport {
         await this.connect(sessionInfo, true);
       } catch (error) {
         this.onDiagnostic({ code: "reconnect_failed", message: error.message });
-        if (!this.deliberateStop) this.scheduleReconnect(this.epoch);
+        if (!this.deliberateStop) this.scheduleReconnect(this.epoch, error.message);
       }
     }, delayMs);
   }

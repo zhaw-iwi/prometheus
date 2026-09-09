@@ -115,6 +115,12 @@ export class LiveTranscriptionClient {
     await this.transport.stop();
   }
 
+  stopForPageUnload() {
+    this.events.settleEpoch();
+    void this.localVad.stop();
+    void this.transport.stop();
+  }
+
   async replaceMedia(mediaPreferences) {
     this.mediaPreferences = { ...mediaPreferences };
     await this.localVad.stop();

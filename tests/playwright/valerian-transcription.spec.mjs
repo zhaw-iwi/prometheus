@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const ACCESS_CODE = "TRANSCRIBE";
 const AGENT_ID = "11111111-1111-4111-8111-111111111111";
+const SECOND_AGENT_ID = "22222222-2222-4222-8222-222222222222";
 const LIVE_BEHAVIOUR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const REPLAY_BEHAVIOUR_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const SECOND_BEHAVIOUR_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -18,6 +19,12 @@ const AGENT = {
     supportedBehaviourModalities: ["speech", "nonVerbal.gesture"],
     profileTags: [],
   },
+};
+const SECOND_AGENT = {
+  ...AGENT,
+  id: SECOND_AGENT_ID,
+  name: "Second Live Transcription Test Agent",
+  languageCode: "en",
 };
 
 test.beforeEach(async ({ context }) => {
@@ -177,6 +184,101 @@ test("manual turn commits, device changes persist, and transport reconnects", as
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
 });
 
+test("microphone removal reconnects while device refresh and output routing remain usable", async ({ page }) => {
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("live-transcription-settings-toggle").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+  await page.evaluate(() => {
+    window.__transcriptionMedia.devices.push(
+      { kind: "audioinput", deviceId: "backup-mic", label: "Backup microphone" },
+    );
+    navigator.mediaDevices.dispatchDeviceChange();
+  });
+  await expect(page.getByTestId("transcription-input-device").locator('option[value="backup-mic"]')).toHaveCount(1);
+  await page.getByTestId("speech-output-device").selectOption("room-speaker");
+  await expect.poll(() => page.evaluate(() => window.__audioPlayback.sinkIds.at(-1))).toBe("room-speaker");
+
+  await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).end());
+  await expect.poll(() => page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.__transcriptionPeers.length)).toBe(2);
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks[0].stopped)).toBe(true);
+});
+
+test("hidden-tab input survives while refresh releases the microphone lease", async ({ page, context }) => {
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+  const other = await context.newPage();
+  await openConnectedValerian(other);
+  await expect(other.getByTestId("toggle-transcription")).toBeDisabled();
+  await expect(other.getByTestId("transcription-transport-status")).toHaveText("Mic In Use");
+
+  await page.evaluate(() => window.__setDocumentVisibility("hidden"));
+  await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "hidden-c1", item_id: "hidden-1" });
+  await emitProviderEvent(page, {
+    type: "conversation.item.input_audio_transcription.completed", event_id: "hidden-f1", item_id: "hidden-1",
+    transcript: "Hidden tab transcript.",
+  });
+  await expect(page.getByTestId("message-list")).toContainText("Hidden tab transcript.");
+
+  await page.reload();
+  await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+  await expect(page.getByTestId("agent-connection-state")).toContainText(AGENT_ID);
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transport Idle");
+  await page.getByTestId("continuous-speech-tab").click();
+  await expect(page.getByTestId("toggle-transcription")).toBeEnabled();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  await other.close();
+});
+
+test("reset, agent switch, and delete settle live transcription ownership", async ({ page }) => {
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+  await page.evaluate(() => { window.confirm = () => true; });
+  await page.locator("#open_diagnostics").click();
+  await expect(page.getByTestId("agent-drawer-tab")).toBeVisible();
+  await page.getByTestId("reset-agent").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transport Idle");
+  await expect.poll(() => page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped)))
+    .toBe(true);
+  await expect(page.getByTestId("agent-connection-state")).toContainText(AGENT_ID);
+
+  await page.getByTestId("agent-select").selectOption(SECOND_AGENT_ID);
+  await expect(page.getByTestId("agent-connection-state")).toHaveText(`Selected ${SECOND_AGENT_ID}`);
+  await page.getByTestId("connect-agent").click();
+  await expect(page.getByTestId("agent-connection-state")).toContainText(SECOND_AGENT_ID);
+  await page.locator("#diagnostics_drawer .btn-close").click();
+  await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+  await page.locator("#open_diagnostics").click();
+  await page.getByTestId("agent-select").selectOption(AGENT_ID);
+  await page.getByTestId("connect-agent").click();
+  await expect(page.getByTestId("agent-connection-state")).toContainText(AGENT_ID);
+  await expect.poll(() => page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped)))
+    .toBe(true);
+  await page.locator("#diagnostics_drawer .btn-close").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+  await page.locator("#open_diagnostics").click();
+  await page.getByTestId("delete-agent").click();
+  await expect(page.getByTestId("agent-connection-state")).toHaveText("No agent selected");
+  await expect(page.getByTestId("toggle-transcription")).toBeDisabled();
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped))).toBe(true);
+});
+
 test("permission denial is visible and releases ownership", async ({ page }) => {
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
@@ -316,43 +418,56 @@ async function installApiMocks(context) {
   await context.route("**/demo/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    const agentMatch = path.match(/^\/demo\/agents\/([^/]+)(\/.*)?$/);
+    const scopedAgentId = agentMatch ? decodeURIComponent(agentMatch[1]) : null;
+    const scopedPath = agentMatch?.[2] || "";
+    const agent = scopedAgentId === AGENT_ID
+      ? AGENT
+      : scopedAgentId === SECOND_AGENT_ID ? SECOND_AGENT : null;
     if (request.method() === "POST" && path === "/demo/session") {
-      return route.fulfill(json({ accessCode: ACCESS_CODE, agentTypes: [], agents: [AGENT] }));
+      return route.fulfill(json({ accessCode: ACCESS_CODE, agentTypes: [], agents: [AGENT, SECOND_AGENT] }));
     }
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/info`) return route.fulfill(json(AGENT));
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/eventhistory`) return route.fulfill(json([]));
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/storage`) return route.fulfill(json([]));
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/state`) {
-      return route.fulfill(json({ name: "Listening", innerName: null, innerNames: [] }));
-    }
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/states`) return route.fulfill(json(["Listening"]));
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/behaviour/stream`) {
-      return route.fulfill({ status: 200, contentType: "text/event-stream", body: ": connected\n\n" });
-    }
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/monitor/stream`) {
-      return route.fulfill({ status: 200, contentType: "text/event-stream", body: ": connected\n\n" });
-    }
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/transcription/capabilities`) {
-      return route.fulfill(json(capabilities()));
-    }
-    if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/transcription/session`) {
-      return route.fulfill(json({ clientSecret: "ephemeral-test", sessionType: "transcription",
-        model: "gpt-live-transcribe", settingsSchemaVersion: 1,
-        webRtcUrl: "https://api.openai.test/v1/realtime/calls", effectiveSettings: {} }));
-    }
-    if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/behaviours/latest/speech`) {
-      return route.fulfill({ status: 204, body: "" });
-    }
-    if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/acknowledge`) {
-      return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
-    }
-    if (request.method() === "POST" && path.endsWith("/speech")) {
-      const eventId = path.split("/").at(-2);
+    if (request.method() === "POST" && scopedPath.endsWith("/speech")) {
+      const eventId = scopedPath.split("/").at(-2);
       if (eventId === ERROR_BEHAVIOUR_ID) return route.fulfill({ status: 502, body: "" });
       if (eventId === SLOW_BEHAVIOUR_ID) await new Promise((resolve) => setTimeout(resolve, 500));
       return route.fulfill({ status: 200, contentType: "audio/mpeg", body: "mock-mp3-audio" });
     }
-    if (request.method() === "POST" && path === `/demo/agents/${AGENT_ID}/behaviour/generate`) {
+    if (!agent) return route.fulfill({ status: 404, body: "" });
+    if (request.method() === "GET" && scopedPath === "/info") return route.fulfill(json(agent));
+    if (request.method() === "GET" && scopedPath === "/eventhistory") return route.fulfill(json([]));
+    if (request.method() === "GET" && scopedPath === "/storage") return route.fulfill(json([]));
+    if (request.method() === "GET" && scopedPath === "/state") {
+      return route.fulfill(json({ name: "Listening", innerName: null, innerNames: [] }));
+    }
+    if (request.method() === "GET" && scopedPath === "/states") return route.fulfill(json(["Listening"]));
+    if (request.method() === "GET" && scopedPath === "/behaviour/stream") {
+      return route.fulfill({ status: 200, contentType: "text/event-stream", body: ": connected\n\n" });
+    }
+    if (request.method() === "GET" && scopedPath === "/monitor/stream") {
+      return route.fulfill({ status: 200, contentType: "text/event-stream", body: ": connected\n\n" });
+    }
+    if (request.method() === "GET" && scopedPath === "/transcription/capabilities") {
+      return route.fulfill(json(capabilities()));
+    }
+    if (request.method() === "POST" && scopedPath === "/transcription/session") {
+      return route.fulfill(json({ clientSecret: "ephemeral-test", sessionType: "transcription",
+        model: "gpt-live-transcribe", settingsSchemaVersion: 1,
+        webRtcUrl: "https://api.openai.test/v1/realtime/calls", effectiveSettings: {} }));
+    }
+    if (request.method() === "GET" && scopedPath === "/behaviours/latest/speech") {
+      return route.fulfill({ status: 204, body: "" });
+    }
+    if (request.method() === "POST" && scopedPath === "/acknowledge") {
+      return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
+    }
+    if (request.method() === "DELETE" && scopedPath === "/reset") {
+      return route.fulfill(json({ active: true, responseEvent: null }));
+    }
+    if (request.method() === "DELETE" && scopedPath === "") {
+      return route.fulfill({ status: 204, body: "" });
+    }
+    if (request.method() === "POST" && scopedPath === "/behaviour/generate") {
       return route.fulfill({ status: 200, body: "" });
     }
     return route.fulfill({ status: 404, body: "" });
@@ -389,6 +504,15 @@ async function installBrowserMediaMocks(context) {
     };
     window.__finishSpeechPlayback = () => document.getElementById("assistant_audio")
       .dispatchEvent(new Event("ended"));
+    let documentVisibility = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => documentVisibility,
+    });
+    window.__setDocumentVisibility = (value) => {
+      documentVisibility = value;
+      document.dispatchEvent(new Event("visibilitychange"));
+    };
     class FakeEventSource extends EventTarget {
       static CONNECTING = 0; static OPEN = 1; static CLOSED = 2;
       constructor(url) {
@@ -409,28 +533,48 @@ async function installBrowserMediaMocks(context) {
       close() { this.readyState = FakeEventSource.CLOSED; }
     }
     window.EventSource = FakeEventSource;
-    class FakeTrack {
-      constructor() { this.kind = "audio"; this.enabled = true; this.stopped = false; }
+    class FakeTrack extends EventTarget {
+      constructor(deviceId) {
+        super();
+        this.kind = "audio";
+        this.deviceId = deviceId;
+        this.enabled = true;
+        this.stopped = false;
+      }
       stop() { this.stopped = true; }
-      getSettings() { return { echoCancellation: true, noiseSuppression: true, autoGainControl: true, voiceIsolation: false }; }
+      end() { this.dispatchEvent(new Event("ended")); }
+      getSettings() {
+        return { deviceId: this.deviceId, echoCancellation: true, noiseSuppression: true,
+          autoGainControl: true, voiceIsolation: false };
+      }
     }
-    window.__transcriptionMedia = { requests: [], tracks: [], deny: false };
+    window.__transcriptionMedia = {
+      requests: [],
+      tracks: [],
+      deny: false,
+      devices: [
+        { kind: "audioinput", deviceId: "default", label: "System default" },
+        { kind: "audioinput", deviceId: "room-mic", label: "Room microphone" },
+        { kind: "audiooutput", deviceId: "room-speaker", label: "Room speaker" },
+      ],
+    };
+    const mediaDeviceEvents = new EventTarget();
     const mediaDevices = {
       async getUserMedia(constraints) {
         window.__transcriptionMedia.requests.push(structuredClone(constraints));
         if (window.__transcriptionMedia.deny) throw new Error("permission denied by test");
-        const track = new FakeTrack();
+        const deviceId = constraints.audio?.deviceId?.exact || "default";
+        const track = new FakeTrack(deviceId);
         window.__transcriptionMedia.tracks.push(track);
         return { getTracks: () => [track], getAudioTracks: () => [track] };
       },
       async enumerateDevices() {
-        return [
-          { kind: "audioinput", deviceId: "default", label: "System default" },
-          { kind: "audioinput", deviceId: "room-mic", label: "Room microphone" },
-        ];
+        return structuredClone(window.__transcriptionMedia.devices);
       },
       getSupportedConstraints() { return { echoCancellation: true, noiseSuppression: true, autoGainControl: true }; },
-      addEventListener() {}, removeEventListener() {},
+      addEventListener(...args) { mediaDeviceEvents.addEventListener(...args); },
+      removeEventListener(...args) { mediaDeviceEvents.removeEventListener(...args); },
+      dispatchDeviceChange() { mediaDeviceEvents.dispatchEvent(new Event("devicechange")); },
     };
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: mediaDevices });
 
