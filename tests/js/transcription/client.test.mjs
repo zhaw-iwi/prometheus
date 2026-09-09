@@ -27,3 +27,18 @@ test("playback gating clears and settles input before starting a fresh transcrip
     "events:begin:7", "transport:true", "vad-sync",
   ]);
 });
+
+test("page unload starts event, VAD, and transport teardown synchronously", () => {
+  const calls = [];
+  const client = new LiveTranscriptionClient({
+    agentId: AGENT_ID,
+    media: { setEnabled: () => {} },
+    localVadFactory: () => ({ start: async () => {}, stop: async () => { calls.push("vad-stop"); } }),
+  });
+  client.events.settleEpoch = () => calls.push("events:settle");
+  client.transport.stop = async () => { calls.push("transport-stop"); };
+
+  client.stopForPageUnload();
+
+  assert.deepEqual(calls, ["events:settle", "vad-stop", "transport-stop"]);
+});

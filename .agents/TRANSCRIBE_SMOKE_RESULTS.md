@@ -111,21 +111,25 @@ final-transcript arrival respectively.
 
 | Check | Baseline | Transcription-first | Evidence/notes |
 | --- | --- | --- | --- |
-| Session expiry and reissue | NOT RUN | NOT RUN | |
-| Transient network loss | NOT RUN | NOT RUN | |
-| Microphone unplug/replug | NOT RUN | NOT RUN | |
-| Output-device change | NOT RUN | NOT RUN | |
-| Page refresh during listening | NOT RUN | NOT RUN | |
-| Agent switch, reset, and delete | NOT RUN | NOT RUN | |
-| Hidden tab | NOT RUN | NOT RUN | |
-| Second-tab microphone conflict | NOT RUN | NOT RUN | |
-| Second-tab playback conflict | Not applicable to combined baseline | NOT RUN | |
-| Stop during synthesis/playback | NOT RUN | NOT RUN | |
+| Session expiry and reissue | NOT RUN | PASS | Mocked transport coverage proves that reconnect requests a fresh scoped session. Live provider credential expiry is `NOT RUN`. |
+| Transient network loss | NOT RUN | PASS | Mocked unit and browser peer-failure checks cover bounded retry, a transient session-issuance failure, recovery, and an actionable terminal error. |
+| Microphone unplug/replug | NOT RUN | PASS | Mocked active-track loss stops the old track, reacquires media, issues a fresh session, and returns to Connected. Physical unplug/replug is `NOT RUN`. |
+| Output-device change | NOT RUN | PASS | Mocked `devicechange` refreshes choices and routes `room-speaker` through `setSinkId`. Physical Bluetooth routing is `NOT RUN`. |
+| Page refresh during listening | NOT RUN | PASS | Mocked page reload proves unload starts track/lease teardown synchronously and the restored page can reacquire the microphone. |
+| Agent switch, reset, and delete | NOT RUN | PASS | Mocked browser coverage proves reset leaves transcription idle, active agent switch releases its track, and delete releases the replacement session. |
+| Hidden tab | NOT RUN | PASS | A mocked hidden document accepts one finalized provider turn. Deployment browser/OS throttling is `NOT RUN`. |
+| Second-tab microphone conflict | NOT RUN | PASS | A mocked second Valerian page reports `Mic In Use`; ownership is reusable after the owner reloads. |
+| Second-tab playback conflict | Not applicable to combined baseline | PASS | Mocked delivery makes one Speech request and reports `Output In Other Window` in the competing tab. |
+| Stop during synthesis/playback | NOT RUN | PASS | Mocked Stop and synthesis failure both reopen transcription input. |
 
 ## Result summary
 
 - Combined Realtime baseline: `NOT RUN` in the coding environment because real
   acoustic hardware input is unavailable.
-- Transcription-first implementation: automated contracts pass; physical
-  English, German, and Arabic acoustic acceptance remains `NOT RUN`.
+- Transcription-first deterministic resilience: `PASS` for 24 shared Node unit
+  tests, 12 mocked transcription/playback browser scenarios, and the focused
+  Valerian lifecycle scenario. These checks do not establish live-provider,
+  microphone, speaker, latency, or real-room performance.
+- Transcription-first physical English, German, and Arabic acoustic acceptance
+  remains `NOT RUN`.
 - Accepted deviations: none.

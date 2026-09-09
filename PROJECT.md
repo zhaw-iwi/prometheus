@@ -42,7 +42,8 @@ code.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   typed live transcription, and output-only Speech synthesis.
-- Access-code-scoped live-transcription sessions and serialized finalized-turn
+- Access-code-scoped live-transcription sessions, bounded fresh-session/media
+  recovery after transport or active-track loss, and serialized finalized-turn
   ingress through the ordinary full-plan acknowledgement pipeline.
 - Streamed output-only Speech synthesis that resolves canonical speech from a
   persisted, scoped behaviour-event ID and shares provider mechanics with Talk
@@ -74,8 +75,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 160, latest-assistant playback when
-  Valerian transcription starts.
+- Last completed milestone: Milestone 161, live-transcription device and
+  lifecycle resilience.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
@@ -269,6 +270,7 @@ and regulation diagnostics remain future work.
 - [x] Milestone 158: Deduplicate Valerian history hydration and SSE replay
 - [x] Milestone 159: Enforce the Valerian cockpit lifecycle and replay correlation
 - [x] Milestone 160: Restore latest-assistant playback when transcription starts
+- [x] Milestone 161: Live-transcription device and lifecycle resilience
 
 ## Milestone 1
 ### Date
@@ -8423,3 +8425,81 @@ assistant utterance, speak that persisted utterance before opening live input.
    greeting is spoken before live Arabic transcription opens.
 2. Resume the complete workbook-backed Aisha catalog when a compliant
    spreadsheet runtime or explicitly authorized fallback is available.
+
+## Milestone 161
+### Date
+2026-09-09
+
+### Goal
+Recover the still-useful live-transcription resilience work from the abandoned
+feature branch onto current main without restoring its obsolete reset behavior
+or weakening the Milestone 159/160 cockpit and starter-speech lifecycles.
+
+### What changed
+- Made loss of the active microphone track enter the existing bounded reconnect
+  path, reacquire the selected input, and request a fresh scoped ephemeral
+  session. Replaced/stale tracks cannot reconnect the current epoch.
+- Preserved the two-attempt exponential-backoff policy and exposed the last
+  session/media failure when automatic recovery is exhausted.
+- Refreshed the live-transcription input list alongside Valerian's existing
+  audio-output and camera refresh when browser devices change.
+- Added a page-unload stop path whose event, local-VAD, WebRTC, media-track, and
+  cross-tab lease teardown starts synchronously. Ordinary explicit stops remain
+  awaitable.
+- Kept current-main reset semantics: reset stops transcription and leaves it
+  idle. No abandoned keep-listening-through-reset behavior was ported.
+- Added focused unit and mocked-browser coverage for active input replacement,
+  ended-track recovery, transient and exhausted reconnects, device refresh and
+  output routing, hidden-tab input, reload cleanup, second-tab exclusion, and
+  reset/switch/delete ownership settlement.
+- Documented bounded recovery, lifecycle behavior, non-diarization limits, and
+  the boundary between deterministic browser checks and physical acoustic
+  acceptance.
+
+### How to test
+- `npm.cmd run test:transcription:unit`
+- `npm.cmd run test:speech:unit`
+- `npm.cmd run test:valerian:lifecycle`
+- `npm.cmd run test:valerian:transcription`
+- `npm.cmd run test:valerian:visual`
+- `.\mvnw.cmd -q "-Dtest=SpeechArchitectureBrowserClientContractTest,ValerianClientStaticResourceContractTest" test`
+- `.\mvnw.cmd -q test`
+- `node --check src/main/resources/public/transcription/client.js`
+- `node --check src/main/resources/public/transcription/transport.js`
+- `node --check src/main/resources/public/valerian/script.js`
+- `node --check tests/playwright/valerian-transcription.spec.mjs`
+- `git diff --check`
+
+### Verification
+- All 24 shared transcription and 5 Speech JavaScript unit tests passed.
+- All 12 Valerian transcription/playback browser scenarios passed, including
+  the new microphone-loss, hidden/reload, device-routing, and active-agent
+  lifecycle regressions.
+- The focused Valerian lifecycle scenario and all 5 broader Valerian visual,
+  detached-window ownership, and sensing scenarios passed.
+- The two focused browser/static Java contract suites passed 19 tests. The full
+  Java suite passed 240 tests across 68 suites with zero failures, errors, or
+  skips; Surefire emitted its existing forced-fork-shutdown warning after the
+  successful reports were written.
+- After merging into `agents`, the focused shared-browser and Aisha matrix
+  passed 29 tests, and that branch's full Java suite passed 355 tests across 85
+  suites with zero failures, errors, or skips. The branch also repeated all 24
+  transcription and 5 Speech unit tests, 12 transcription/playback scenarios,
+  the focused lifecycle scenario, and all 5 broader Valerian scenarios.
+- JavaScript syntax and `git diff --check` passed; Git reported only the
+  repository's existing LF-to-CRLF working-copy notices.
+
+### Known issues and decisions
+- The browser tests simulate microphones, devices, visibility, WebRTC, SDP, and
+  provider events. Live credential expiry, physical unplug/replug, Bluetooth
+  routing, browser/OS background throttling, latency, and room acoustics remain
+  `NOT RUN`.
+- `gpt-live-transcribe` remains transcription-only in this architecture. The
+  shared user-input channel does not assign speaker identity, and overlapping
+  speech is not a diarization guarantee.
+- Exhausted automatic recovery intentionally becomes a visible terminal error;
+  an operator can stop/start after correcting the device or network problem.
+
+### Next steps
+1. Execute `.agents/TRANSCRIBE_SMOKE_RESULTS.md` on the target Valerian hardware
+   and record the physical English, German, and Arabic acoustic results.

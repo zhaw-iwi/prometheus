@@ -673,18 +673,47 @@ echo/noise/gain processing enabled, and voice isolation disabled. Requested and
 browser-applied capture values are displayed separately. Context and keywords
 are intentionally not stored in local storage.
 
+### Operational resilience and acoustic limits
+
+The shared transport reacquires the selected microphone and requests a fresh
+scoped ephemeral session after connection/data-channel failure or when the
+active microphone track ends. It makes at most two automatic reconnect
+attempts with exponential backoff; if they are exhausted, the operator sees
+the last actionable failure instead of an indefinite reconnect state. Browser
+`devicechange` events refresh the microphone and speaker choices.
+
+Explicit Stop, page navigation, agent switch/delete, reset, and failed startup
+release microphone tracks and the cross-tab lease. Reset follows the cockpit
+lifecycle by stopping transcription and leaving it idle; the operator starts a
+new session when ready. One browser tab owns microphone capture at a time, and
+one Valerian tab owns audible output for each agent. A tab that retains the
+microphone lease may keep accepting finalized provider events while hidden,
+but browser background throttling, wireless-device behavior, network recovery,
+and acoustic quality must still be checked on the target deployment hardware.
+
+`gpt-live-transcribe` supplies transcript text, not speaker identity, in this
+contract. PROMETHEUS can accept sequential turns from several people, but it
+does not diarize them. Simultaneous or overlapping speech may be merged, split,
+or partly missed and must not be treated as reliably attributed input. Manual
+turn commit remains available when an operator needs an explicit boundary in a
+difficult room.
+
 Run its deterministic browser gates with:
 
 ```powershell
 npm.cmd run test:transcription:unit
 npm.cmd run test:speech:unit
+npm.cmd run test:valerian:lifecycle
 npm.cmd run test:valerian:transcription
 npm.cmd run test:valerian:visual
 ```
 
 These suites mock microphone, WebRTC, SDP exchange, and provider events. They
 do not replace the real acoustic matrix in
-`.agents/TRANSCRIBE_SMOKE_RESULTS.md`.
+`.agents/TRANSCRIBE_SMOKE_RESULTS.md`. Before release on a target installation,
+record its actual microphone and speaker models and execute that matrix in
+near-field, far-field, noisy/outdoor, wireless/Bluetooth, and multiple-speaker
+conditions. Keep every unperformed row marked `NOT RUN`.
 
 Final provider transcripts enter PROMETHEUS through the same scoped event
 boundary as typed input:

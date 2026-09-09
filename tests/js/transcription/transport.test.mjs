@@ -56,6 +56,132 @@ test("manual mode clears, enables, commits, and disables the microphone", async 
   await transport.stop();
 });
 
+test("ended microphone track reissues the session and reacquires input", async () => {
+  const peers = [];
+  const diagnostics = [];
+  let sessions = 0;
+  const media = fakeMedia();
+  const transport = new TranscriptionTransport({
+    fetchImpl: async () => ({ ok: true, text: async () => "answer" }),
+    peerConnectionFactory: () => {
+      const peer = new FakePeer();
+      peers.push(peer);
+      return peer;
+    },
+    media,
+    sessionFactory: async () => { sessions += 1; return session(); },
+    reconnectBaseMs: 1,
+    maximumReconnects: 2,
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  });
+
+  await transport.start(session());
+  media.tracks[0].end();
+  await waitFor(() => peers.length === 2 && transport.state === "connected");
+
+  assert.equal(sessions, 1);
+  assert.equal(media.acquires, 2);
+  assert.equal(media.tracks[0].stopped, true);
+  assert.ok(diagnostics.some(({ code }) => code === "microphone_track_ended"));
+  await transport.stop();
+});
+
+test("only the active replacement track can trigger reconnect", async () => {
+  const peers = [];
+  let sessions = 0;
+  const media = fakeMedia();
+  const transport = new TranscriptionTransport({
+    fetchImpl: async () => ({ ok: true, text: async () => "answer" }),
+    peerConnectionFactory: () => {
+      const peer = new FakePeer();
+      peers.push(peer);
+      return peer;
+    },
+    media,
+    sessionFactory: async () => { sessions += 1; return session(); },
+    reconnectBaseMs: 1,
+    maximumReconnects: 1,
+  });
+
+  await transport.start(session());
+  const oldTrack = media.tracks[0];
+  await transport.replaceMedia({ inputDeviceId: "room-mic" });
+  const replacementTrack = media.tracks[1];
+  oldTrack.end();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(peers.length, 1);
+  assert.equal(sessions, 0);
+
+  replacementTrack.end();
+  await waitFor(() => peers.length === 2 && transport.state === "connected");
+  assert.equal(sessions, 1);
+  await transport.stop();
+});
+
+test("reconnect retries transient session issuance failure with its actionable reason", async () => {
+  const peers = [];
+  const states = [];
+  const diagnostics = [];
+  let sessions = 0;
+  const transport = new TranscriptionTransport({
+    fetchImpl: async () => ({ ok: true, text: async () => "answer" }),
+    peerConnectionFactory: () => {
+      const peer = new FakePeer();
+      peers.push(peer);
+      return peer;
+    },
+    media: fakeMedia(),
+    sessionFactory: async () => {
+      sessions += 1;
+      if (sessions === 1) throw new Error("temporary session service outage");
+      return session();
+    },
+    reconnectBaseMs: 1,
+    maximumReconnects: 2,
+    onState: (state) => states.push(state),
+    onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+  });
+
+  await transport.start(session());
+  peers[0].connectionState = "disconnected";
+  peers[0].dispatch("connectionstatechange");
+  await waitFor(() => sessions === 2 && transport.state === "connected");
+
+  assert.equal(peers.length, 2);
+  assert.deepEqual(states.filter(({ attempt }) => attempt).map(({ attempt }) => attempt), [1, 2]);
+  assert.ok(diagnostics.some(({ code, message }) => code === "reconnect_failed"
+    && message === "temporary session service outage"));
+  await transport.stop();
+});
+
+test("exhausted reconnect exposes the last actionable failure", async () => {
+  const peers = [];
+  const states = [];
+  const transport = new TranscriptionTransport({
+    fetchImpl: async () => ({ ok: true, text: async () => "answer" }),
+    peerConnectionFactory: () => {
+      const peer = new FakePeer();
+      peers.push(peer);
+      return peer;
+    },
+    media: fakeMedia(),
+    sessionFactory: async () => { throw new Error("requested microphone not found"); },
+    reconnectBaseMs: 1,
+    maximumReconnects: 1,
+    onState: (state) => states.push(state),
+  });
+
+  await transport.start(session());
+  peers[0].connectionState = "failed";
+  peers[0].dispatch("connectionstatechange");
+  await waitFor(() => transport.state === "failed"
+    && states.at(-1)?.message?.includes("requested microphone not found"));
+
+  assert.match(states.at(-1).message, /Automatic transcription reconnect exhausted/);
+  assert.match(states.at(-1).message, /requested microphone not found/);
+  await transport.stop();
+});
+
 class FakePeer {
   constructor() {
     this.listeners = new Map();
@@ -85,13 +211,44 @@ class FakeChannel {
 
 function fakeMedia() {
   const media = {
-    acquires: 0, releases: 0, enabled: [], stream: { getAudioTracks: () => [{}] },
-    async acquire() { this.acquires += 1; },
-    release() { this.releases += 1; },
-    setEnabled(value) { this.enabled.push(value); },
-    addTracks(peer) { peer.addTrack(); },
+    acquires: 0, releases: 0, enabled: [], tracks: [], stream: null,
+    async acquire() {
+      this.acquires += 1;
+      const track = new FakeTrack();
+      this.tracks.push(track);
+      this.stream = { getTracks: () => [track], getAudioTracks: () => [track] };
+    },
+    release() {
+      this.releases += 1;
+      this.stream?.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    },
+    setEnabled(value) {
+      this.enabled.push(value);
+      this.stream?.getAudioTracks().forEach((track) => { track.enabled = value; });
+    },
+    addTracks(peer) { peer.addTrack(this.stream.getAudioTracks()[0]); },
+    async replaceAudioTrack() {
+      const oldStream = this.stream;
+      const track = new FakeTrack();
+      this.tracks.push(track);
+      this.stream = { getTracks: () => [track], getAudioTracks: () => [track] };
+      oldStream?.getTracks().forEach((oldTrack) => oldTrack.stop());
+      return {};
+    },
   };
   return media;
+}
+
+class FakeTrack extends EventTarget {
+  constructor() {
+    super();
+    this.kind = "audio";
+    this.enabled = true;
+    this.stopped = false;
+  }
+  stop() { this.stopped = true; }
+  end() { this.dispatchEvent(new Event("ended")); }
 }
 
 function session() {
