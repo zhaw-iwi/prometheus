@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 165 (NFS-04), compatible pure guard batching with ordered Java
-  priority, verified after reload in an isolated local database.
+- Last completed milestone: Milestone 166 (NFS-05), progressive canonical Speech
+  playback, verified with real decoding and withheld provider/servlet tails.
   Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
   `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
   live latency and candidate-model quality.
@@ -82,6 +82,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 166: Progressive canonical Speech playback
 
 - [x] Milestone 165: Compatible pure guard batching
 
@@ -7852,3 +7854,24 @@ priority and action ownership.
   route/count/character limits, real role selection, persisted extraction/reset.
 - Live candidate-model guard corpus, quality, tokens/cost and latency NOT RUN;
   structural correctness does not establish identical model judgments.
+
+## Milestone 166: Progressive canonical Speech playback (NFS-05)
+
+- Added bounded MediaSource MP3 consumption at the shared speech boundary and
+  integrated it into Valerian's existing scoped canonical-event playback queue.
+  Unsupported capability/setup falls back with the same body; midstream failure
+  fails once. Stop/disconnect release readers, source buffers and object URLs.
+  Servlet output now flushes provider chunks before EOF.
+- Passed 11 Node speech tests, 5 SpeechAudio/OpenAISpeechSynthesisGateway tests,
+  and SpeechProgressiveHttpIntegrationTest (real loopback provider through Tomcat,
+  no database). Passed 23 neighboring speech service/controller/browser-contract
+  tests, including Talk to Me. Passed 3 real-decoder browser tests and 14 Valerian
+  lifecycle/visual cases, plus a visual artifact rerun. No live API calls.
+- Native playback time advances before the test server releases the MP3 tail;
+  unsupported-MSE decoding consumes one request, and native Stop closes the held
+  stream. Unit checks cover malformed/empty/oversized streams, decoding errors,
+  inactivity timeout and resource cleanup. Existing browser checks retain output
+  device selection, two-tab ownership, replay/reset/reconnect and input gating.
+- Inspected desktop and 390px mobile loading/speaking/stopped/error controls.
+  Browser media events are a proxy for audible sound. Live provider latency,
+  deployed proxy behavior, speakers/Bluetooth and non-Chromium devices NOT RUN.

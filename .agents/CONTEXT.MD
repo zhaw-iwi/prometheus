@@ -271,3 +271,12 @@ tests for the actual task rather than relying only on this list.
 - Build a second social motivation or regulation abstraction beside the current
   one.
 - Use the complete milestone history as the current specification.
+
+### Need for Speed speech delivery
+
+Valerian's canonical event-ID Speech playback now uses bounded progressive MP3
+MediaSource delivery when supported, with a same-response buffered fallback.
+The shared queue still owns ordering, leases and input gating. The server flushes
+stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
+Live performance and device/proxy evidence are tracked separately in
+.agents/NEEDFORSPEED_RESULTS.md.

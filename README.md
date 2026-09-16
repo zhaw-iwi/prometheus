@@ -969,3 +969,22 @@ OpenAI Batch API. Custom gateways remain ordered unless they opt in through
 `guardInferenceOptions()`. Use `openai.guard-strategy=ordered` for comparison or a
 deployment without strict structured outputs. Combining prompts can change model
 judgments; live corpus quality remains a separate release check.
+
+### Progressive canonical Speech playback
+
+Valerian streams the existing scoped event-ID Speech POST into an MP3
+`MediaSource` when supported. Playback can start before download completion;
+voice/speed, selected output device, queue ordering, cross-tab output ownership,
+replay suppression and half-duplex input gating retain their existing owners.
+Unsupported browsers and failures during media-source setup use the same fetched
+body as a buffered Blob. Decoding failures after setup fail the item; they never
+request synthesis again or replay a spoken prefix. Stop aborts the reader and
+cleans up media resources. Both paths cap compressed audio at 16 MiB and stream
+reads/media preparation have a 30-second inactivity limit. The backend flushes
+each provider chunk and closes its upstream stream on downstream write failure.
+
+Local Chromium playback and the provider-to-Tomcat path are tested with withheld
+response tails. A deployed reverse proxy can still buffer responses; verify it
+and real output devices separately. See the [MSE specification](https://www.w3.org/TR/media-source-2/)
+for the browser mechanism. The latency endpoint remains meaningful audio playback,
+not arrival of the first HTTP byte.

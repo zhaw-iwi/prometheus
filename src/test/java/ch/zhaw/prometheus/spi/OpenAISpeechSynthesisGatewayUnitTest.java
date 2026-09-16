@@ -19,6 +19,41 @@ import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 
 class OpenAISpeechSynthesisGatewayUnitTest {
+    @Test
+    void deliversAndFlushesFirstProviderChunkWhileTailIsWithheld() throws Exception {
+        var releaseTail = new java.util.concurrent.CountDownLatch(1);
+        var flushed = new java.util.concurrent.CountDownLatch(1);
+        server.createContext("/progressive", exchange -> {
+            exchange.getRequestBody().readAllBytes();
+            exchange.getResponseHeaders().set("Content-Type", "audio/mpeg");
+            exchange.sendResponseHeaders(200, 0);
+            try (var out = exchange.getResponseBody()) {
+                out.write(7); out.flush();
+                try { releaseTail.await(5, java.util.concurrent.TimeUnit.SECONDS); }
+                catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+                out.write(new byte[] {8, 9});
+            }
+        });
+        var properties = new OpenAIProperties();
+        properties.setOpenaivsazureopenai("openai"); properties.setKey("test");
+        var speech = new SpeechSynthesisProperties();
+        speech.setUrl("http://localhost:" + server.getAddress().getPort() + "/progressive");
+        var sink = new java.io.ByteArrayOutputStream() {
+            @Override public void flush() { flushed.countDown(); }
+        };
+        try (var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+             var audio = new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1)) {
+            var writing = executor.submit(() -> { audio.writeTo(sink); return true; });
+            try {
+                org.junit.jupiter.api.Assertions.assertTrue(flushed.await(5, java.util.concurrent.TimeUnit.SECONDS));
+                org.junit.jupiter.api.Assertions.assertFalse(writing.isDone());
+                assertArrayEquals(new byte[] {7}, sink.toByteArray());
+            } finally { releaseTail.countDown(); }
+            writing.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            assertArrayEquals(new byte[] {7, 8, 9}, sink.toByteArray());
+        } finally { releaseTail.countDown(); }
+    }
+
     private final AtomicReference<String> requestBody = new AtomicReference<>();
     private final AtomicReference<String> authorization = new AtomicReference<>();
     private final AtomicInteger responseStatus = new AtomicInteger(200);

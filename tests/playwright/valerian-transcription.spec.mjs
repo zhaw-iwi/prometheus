@@ -393,6 +393,35 @@ test("transcription settings states produce deterministic desktop and narrow vis
   await attach(page, testInfo, "speech-error-narrow", page.locator("[data-column-panel=interaction]"));
 });
 
+for (const width of [1440, 390]) {
+  test(`speech controls remain usable through loading, speaking, Stop and failure at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    let release;
+    const ready = new Promise(resolve => { release = resolve; });
+    await page.route(`**/behaviours/${SLOW_BEHAVIOUR_ID}/speech*`, async route => {
+      await ready;
+      await route.fulfill({ status: 200, contentType: "audio/mpeg", body: Buffer.from([1, 2, 3]) });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));
+    const status = page.getByTestId("speech-playback-status"), stop = page.getByTestId("stop-speech-playback");
+    const row = status.locator("..");
+    try {
+      await expect(status).toHaveText("Speech Loading"); await expect(stop).toBeEnabled();
+      await attach(page, testInfo, `speech-loading-${width}`, row);
+    } finally { release(); }
+    await expect(status).toHaveText("Speaking");
+    await attach(page, testInfo, `speech-speaking-${width}`, row);
+    await stop.click(); await expect(status).toHaveText("Playback Stopped"); await expect(stop).toBeDisabled();
+    await attach(page, testInfo, `speech-stopped-${width}`, row);
+    await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Visual provider failure."));
+    await expect(status).toHaveText("Synthesis Error");
+    await attach(page, testInfo, `speech-failed-${width}`, row);
+  });
+}
+
 async function openConnectedValerian(page) {
   await page.goto(`/valerian/?agentId=${AGENT_ID}`);
   await page.getByTestId("access-code-input").fill(ACCESS_CODE);
@@ -418,8 +447,10 @@ async function emitBehaviourSse(page, eventName, eventId, event) {
 
 async function attach(page, testInfo, name, locator) {
   await locator.scrollIntoViewIfNeeded();
+  const path = testInfo.outputPath(`${name}.png`);
+  await locator.screenshot({ path, animations: "disabled" });
   await testInfo.attach(name, {
-    body: await locator.screenshot({ animations: "disabled" }),
+    path,
     contentType: "image/png",
   });
 }
@@ -490,6 +521,8 @@ async function installApiMocks(context) {
 
 async function installBrowserMediaMocks(context) {
   await context.addInitScript(() => {
+    // This suite mocks decoding; native MSE is covered by progressive-speech.spec.mjs.
+    window.MediaSource = undefined;
     window.__transcriptionSessionRequests = 0;
     window.__transcriptionChannels = [];
     window.__transcriptionPeers = [];

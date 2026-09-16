@@ -141,3 +141,21 @@ fixture missed the second outer predicate; corrected to all five catalog checks.
 No production schema or local model configuration changed. DB suites completed
 assertions but emitted a Surefire process-shutdown timeout. Live guard corpus,
 response review, latency, provider cost, and model access remain NOT RUN.
+
+## NFS-05 / Milestone 166
+
+Real Chromium MP3 playback advances past 0.2 seconds before the local HTTP server
+releases its final bytes. Browser download completion is still absent at that
+point. Native cancellation closes the held response; unsupported MSE buffers one
+response and plays it. A separate real Tomcat + loopback-provider check confirms
+backend first-byte delivery while provider EOF is blocked by a latch.
+
+Passed 11 Node tests, 29 Java cases (streaming + speech contracts), 17 browser
+cases, and one visual rerun. Desktop/mobile playback status controls inspected.
+The 73,351-byte MP3 fixture is two repetitions of the frozen pause-short.wav,
+encoded locally with lameenc 1.8.4/LAME at mono 64 kbps. It is synthetic fixture
+speech, not a live-provider result. MP3 SHA-256:
+3c16bf65f43ce6444d1f2f157e2e88ed8a60b3e1f18f96f0374873f076828459.
+
+No production-provider p50/p95, physical audio, reverse-proxy or non-Chromium
+results were collected. The two-second end-to-end target remains unverified.

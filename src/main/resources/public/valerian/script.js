@@ -2087,15 +2087,12 @@ async function synthesizeBehaviourSpeech(item, signal) {
     signal,
   });
   if (!response.ok) throw new Error(`Speech synthesis failed (${response.status}).`);
-  const blob = await globalThis.PrometheusTimedAudioBlob(response,
-    (stage) => globalThis.PrometheusTimings?.event(agentId, item.eventId, stage));
-  if (!blob.size || !String(blob.type || "audio/mpeg").toLowerCase().startsWith("audio/")) {
-    throw new Error("Speech synthesis returned invalid audio.");
-  }
-  return { url: URL.createObjectURL(blob), contentType: blob.type || "audio/mpeg" };
+  return globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, {
+    signal, onStage: (stage) => globalThis.PrometheusTimings?.event(agentId, item.eventId, stage),
+  });
 }
 
-function playBehaviourSpeech(resource, item, signal) {
+function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
   const agentId = state.agentId;
   const audio = activeAssistantAudioElement();
   return new Promise((resolve, reject) => {
@@ -2112,7 +2109,10 @@ function playBehaviourSpeech(resource, item, signal) {
       cleanup();
       action();
     };
-    const playing = () => globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_playing");
+    const playing = () => {
+      onPlaying();
+      globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_playing");
+    };
     const ended = () => finish(resolve);
     const failed = () => finish(() => reject(new Error(`Speech playback failed: ${assistantAudioErrorMessage()}.`)));
     const stopped = () => {
@@ -2131,10 +2131,10 @@ function playBehaviourSpeech(resource, item, signal) {
     }
     audio.pause();
     audio.srcObject = null;
-    audio.src = resource.url;
-    audio.load();
+    resource.done.catch((error) => finish(() => reject(error)));
     Promise.resolve(applySelectedSpeechOutputDevice())
-      .then(() => audio.play())
+      .then(() => resource.attach(audio))
+      .then(() => { if (!settled && !signal.aborted) return audio.play(); })
       .catch((error) => finish(() => reject(error)));
   });
 }
@@ -2147,7 +2147,7 @@ function releaseSpeechAudioResource(resource) {
     audio.removeAttribute("src");
     audio.load();
   }
-  URL.revokeObjectURL(resource.url);
+  resource.dispose();
 }
 
 function setSpeechPlaybackInputEnabled(enabled) {

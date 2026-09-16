@@ -49,7 +49,12 @@ public class SpeechAudio implements AutoCloseable {
             throw new IllegalArgumentException("speech audio output must not be null");
         }
         try (InputStream stream = this.openStream()) {
-            stream.transferTo(output);
+            byte[] chunk = new byte[8192];
+            for (int count; (count = stream.read(chunk)) != -1;) {
+                if (count == 0) continue;
+                output.write(chunk, 0, count);
+                output.flush(); // Expose provider chunks before EOF, including through servlet buffers.
+            }
         }
     }
 
