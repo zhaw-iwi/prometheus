@@ -343,7 +343,10 @@ test("Stop and synthesis failure both reopen live transcription input", async ({
 test("multilateral listener uses the same shared transcription engine", async ({ page }) => {
   await page.goto(`/multilateral/listen/?agentId=${AGENT_ID}&accessCode=${ACCESS_CODE}`);
   await expect(page.getByTestId("listen-transcription-settings")).toContainText("Provider transcription");
+  await page.getByTestId("transcription-turn-preset").selectOption("responsive");
+  const session = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/transcription/session"));
   await page.locator("#toggle_listen").click();
+  expect((await session).postDataJSON().transcriptionDelay).toBe("low");
   await expect(page.locator("#listen_status")).toHaveText("Listening");
   await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "multi-c1", item_id: "multi-1" });
   await emitProviderEvent(page, {
@@ -358,6 +361,40 @@ test("multilateral listener uses the same shared transcription engine", async ({
   await expect(page.locator("#transcript_log")).toContainText("Meeting transcript.");
   await page.locator("#toggle_listen").click();
   await expect(page.locator("#listen_status")).toHaveText("Idle");
+});
+
+test("conversation pace supports keyboard choice, retained reconnect settings and manual mode", async ({ page }, testInfo) => {
+  const sessions = [];
+  page.on("request", request => { if (request.method() === "POST" && request.url().endsWith("/transcription/session")) sessions.push(request.postDataJSON()); });
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("live-transcription-settings-toggle").click();
+  const preset = page.getByTestId("transcription-turn-preset");
+  await expect(preset).toHaveValue("pause_tolerant");
+  await preset.focus(); await preset.press("Home"); await preset.press("Enter");
+  await expect(preset).toHaveValue("responsive");
+  await expect(page.getByTestId("transcription-turnDetection-silenceDurationSeconds")).toHaveValue("0.8");
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("low");
+  await page.getByTestId("transcription-languages").selectOption(["de", "en"]);
+  await page.getByTestId("transcription-noiseReduction").selectOption("near_field");
+  await attach(page, testInfo, "conversation-pace-desktop", preset.locator(".."));
+  await page.setViewportSize({ width: 390, height: 900 });
+  await attach(page, testInfo, "conversation-pace-mobile", preset.locator(".."));
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  await expect(preset).toBeDisabled();
+  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.8 }, transcriptionDelay: "low", languages: ["de", "en"], noiseReduction: "near_field" });
+  await page.evaluate(() => {
+    const peer = window.__transcriptionPeers.at(-1);
+    peer.connectionState = "failed"; peer.dispatchEvent(new Event("connectionstatechange"));
+  });
+  await expect.poll(() => sessions.length).toBe(2);
+  expect(sessions[1]).toEqual(sessions[0]);
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  await page.getByTestId("toggle-transcription").click();
+  await page.getByTestId("transcription-turnDetection-type").selectOption("manual");
+  await expect(preset).not.toBeVisible();
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("low");
 });
 
 test("transcription settings states produce deterministic desktop and narrow visual artifacts", async ({ page }, testInfo) => {

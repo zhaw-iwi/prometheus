@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 166 (NFS-05), progressive canonical Speech
-  playback, verified with real decoding and withheld provider/servlet tails.
+- Last completed milestone: Milestone 167 (NFS-06), explicit conversation-pace
+  choices with saved preferences intact; pause replay keeps the conservative default.
   Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
   `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
   live latency and candidate-model quality.
@@ -82,6 +82,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 167: Explicit responsive turn-completion settings
 
 - [x] Milestone 166: Progressive canonical Speech playback
 
@@ -7875,3 +7877,22 @@ priority and action ownership.
 - Inspected desktop and 390px mobile loading/speaking/stopped/error controls.
   Browser media events are a proxy for audible sound. Live provider latency,
   deployed proxy behavior, speakers/Bluetooth and non-Chromium devices NOT RUN.
+
+## Milestone 167: Explicit responsive turn-completion settings (NFS-06)
+
+- Added Responsive (0.8s/low) and Pause tolerant (1.5s/medium) choices to the
+  shared typed transcription preferences/panel. Descriptor normalization remains
+  authoritative; unrelated preferences, custom thresholds, manual turns and
+  session locking remain intact. No transport or server-default change.
+- Passed 28 shared-engine Node tests, 13 Java normalization/payload/controller
+  tests and 15 Valerian/multilateral browser cases. Keyboard selection, exact
+  low-delay payload, retained reconnect values and manual mode verified; inspected
+  desktop/mobile pace controls. Partial/stale/duplicate/gated finals stay outside
+  ordinary acknowledgement through existing ingress tests.
+- Added reproducible offline WAV/RMS replay without changing the frozen corpus.
+  At 0.8s both natural sentences split prematurely; 1.5s keeps the shorter pause
+  intact but splits the longer hesitation. Derived low-noise/sequential-utterance
+  checks show the same boundary. Full counts are in NEEDFORSPEED_RESULTS.md. No ASR, real room or multiple-speaker validation.
+- Therefore delivered the explicit responsive option and retained the existing
+  conservative default, as allowed by the roadmap. No claim of passing the
+  healthcare acoustic envelope or achieving the two-second target.

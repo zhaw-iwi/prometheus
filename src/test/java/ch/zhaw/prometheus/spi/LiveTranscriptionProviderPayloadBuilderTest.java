@@ -22,6 +22,19 @@ class LiveTranscriptionProviderPayloadBuilderTest {
 
     private final LiveTranscriptionProviderPayloadBuilder builder = new LiveTranscriptionProviderPayloadBuilder();
 
+    @Test void responsiveChoiceKeepsVadLocalAndSendsOnlyLowProviderDelay() {
+        var request = new ch.zhaw.prometheus.controllers.dto.LiveTranscriptionSettingsRequest(
+                new ch.zhaw.prometheus.controllers.dto.LiveTranscriptionSettingsRequest.TurnDetectionRequest(TurnMode.LOCAL_VAD, 0.8),
+                NoiseReduction.NEAR_FIELD, "", List.of(), List.of(InputLanguage.DE), TranscriptionDelay.LOW);
+        var settings = new ch.zhaw.prometheus.application.LiveTranscriptionSettingsNormalizer().normalize(request, "en");
+        assertEquals(0.8, settings.turnDetection().silenceDurationSeconds());
+        assertEquals(JsonParser.parseString("""
+                {"expires_after":{"anchor":"created_at","seconds":60},"session":{"type":"transcription",
+                "audio":{"input":{"transcription":{"model":"gpt-live-transcribe","languages":["de"],"delay":"low"},
+                "noise_reduction":{"type":"near_field"},"turn_detection":null}}}}
+                """), builder.buildClientSecretEnvelope(settings, 60));
+    }
+
     @Test
     void customizedEnvelopeMatchesTranscriptionOnlyProviderShape() {
         LiveTranscriptionSettings settings = new LiveTranscriptionSettings(

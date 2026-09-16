@@ -159,3 +159,29 @@ speech, not a live-provider result. MP3 SHA-256:
 
 No production-provider p50/p95, physical audio, reverse-proxy or non-Chromium
 results were collected. The two-second end-to-end target remains unverified.
+
+## NFS-06 / Milestone 167
+
+| Input | Labelled turns | 0.8s commits | 1.5s commits |
+| --- | --- | --- | --- |
+| Frozen short pause | 1 | 2 | 1 |
+| Frozen long hesitation | 1 | 2 | 2 |
+| Short pause + deterministic low noise | 1 | 2 | 1 |
+| Two short-pause utterances, 2.5s gap | 2 | 4 | 2 |
+
+Each commit waited exactly the configured 800/1500ms from the last voiced
+sample. No missing segments; extra segments are premature splits, not duplicate
+provider events. These fixtures include synthesizer phrase-end silence in
+addition to the labelled inserted pause. Sampling uses 1024 PCM samples every
+50ms at the WAV's rate; it is an offline VAD approximation, not browser acoustic
+or ASR evidence. The added noise is deterministic and quiet; sequential utterances
+use the same synthetic voice and do not establish multiple-speaker behavior.
+
+Responsive fails this natural-pause corpus. It remains an explicit option for
+steadier speech; the default stays 1.5s/medium. Longer custom timing/manual turns
+remain available. ASR errors, real healthcare/far-field speech, provider low-delay
+quality/latency and acoustic end-to-end latency: NOT RUN.
+
+Verified 28 Node, 13 Java and 15 browser cases, including keyboard/mobile settings,
+reconnect retention and the shared multilateral path. Reproduce the replay with
+node tests/needforspeed/replay-vad.mjs target/nfs06-vad.json.

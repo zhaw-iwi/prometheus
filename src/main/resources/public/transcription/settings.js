@@ -1,5 +1,9 @@
 export const TRANSCRIPTION_MODEL = "gpt-live-transcribe";
 export const TRANSCRIPTION_SESSION_TYPE = "transcription";
+export const TURN_PRESETS = Object.freeze({
+  responsive: Object.freeze({ silenceDurationSeconds: 0.8, transcriptionDelay: "low" }),
+  pause_tolerant: Object.freeze({ silenceDurationSeconds: 1.5, transcriptionDelay: "medium" }),
+});
 export const DEFAULT_MEDIA_PREFERENCES = Object.freeze({
   inputDeviceId: "",
   echoCancellation: true,
@@ -42,6 +46,26 @@ export class TranscriptionPreferences {
     this.media = sanitizeMediaPreferences({ ...this.media, ...values });
     this.persist();
     return this.mediaValues();
+  }
+
+  turnPreset() {
+    if (this.api.turnDetection?.type !== "local_vad") return "custom";
+    return Object.entries(TURN_PRESETS).find(([, value]) =>
+      value.silenceDurationSeconds === this.api.turnDetection.silenceDurationSeconds
+      && value.transcriptionDelay === this.api.transcriptionDelay)?.[0] || "custom";
+  }
+
+  applyTurnPreset(name) {
+    const preset = TURN_PRESETS[name];
+    if (!preset || this.api.turnDetection?.type !== "local_vad") throw new Error("Choose a preset with automatic turn detection.");
+    const next = structuredClone(this.api);
+    for (const [key, raw] of [["turnDetection.silenceDurationSeconds", preset.silenceDurationSeconds],
+      ["transcriptionDelay", preset.transcriptionDelay]]) {
+      setPath(next, key, normalizeSetting(settingByKey(this.descriptor, key), raw));
+    }
+    this.api = next;
+    this.persist();
+    return this.apiValues();
   }
 
   validate() {

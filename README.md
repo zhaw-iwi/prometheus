@@ -87,6 +87,20 @@ input without changing the persisted plan. A per-agent browser lease selects
 one audible Valerian window, and playback uses the speaker, voice, and speed
 selected in the speech settings.
 
+**Conversation pace** in Live Transcription Settings offers Responsive (0.8-second
+silence, low provider delay) and Pause tolerant (1.5 seconds, medium delay).
+Pause tolerant remains the default. Presets change only these two values; saved
+language, noise and device choices remain intact. Manual turn completion and
+custom silence/delay values remain available. The shared multilateral listener
+offers the same choices. Settings are locked during an active session.
+
+Responsive reduces the local silence wait by 700 ms, but the frozen synthetic
+pause replay produced extra segments at that threshold. Even 1.5 seconds split
+the longer hesitation. Neither setting is certified for hesitant healthcare or
+far-field speech; use longer custom timing or manual turns where needed. Run
+`node tests/needforspeed/replay-vad.mjs` for the offline segmentation comparison.
+It does not measure ASR accuracy or provider latency.
+
 #### Cockpit lifecycle contract
 
 The sensing, interaction, and behaviour columns represent the currently
