@@ -1,0 +1,323 @@
+{
+  "revision": "nfs-quality-v1",
+  "synthetic": true,
+  "review": "Author-labelled acceptance cases; provider and human response review NOT RUN.",
+  "cases": [
+    {
+      "id": "smart-agreement",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Would you like to explore a small new activity?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false
+      },
+      "responseRequirements": [
+        "One question about interests; do not close."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "smart-first-refusal",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Would you like to take a short walk?"
+        },
+        {
+          "actor": "user",
+          "text": "No, I do not want to walk."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false
+      },
+      "responseRequirements": [
+        "Respect autonomy; do not mistake task refusal for session exit."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "smart-uncertain",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "What would you like to change this week?"
+        },
+        {
+          "actor": "user",
+          "text": "I do not know."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false
+      },
+      "responseRequirements": [
+        "Offer a small choice; at most one question."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "smart-explicit-stop",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "user",
+          "text": "Stop this conversation now. Do not continue."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": true,
+        "inner.complete": true
+      },
+      "responseRequirements": [
+        "Outer transition wins; no new task or question."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "smart-commit-not-close",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Would you like to try drawing tomorrow after breakfast for five minutes?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes, I will try that."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false
+      },
+      "responseRequirements": [
+        "Brief confirmation and a closing question, no invented commitment."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "smart-complete",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "user",
+          "text": "I want to draw for five minutes after breakfast tomorrow. I will put my pencils on the table tonight."
+        },
+        {
+          "actor": "assistant",
+          "text": "Shall we leave your drawing plan and that first step there?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes, let us hold it that way."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": true
+      },
+      "responseRequirements": [
+        "Brief closing, no new question."
+      ],
+      "expectedExtraction": {
+        "flow_type": "single_state",
+        "outcomes[0].completed": true,
+        "outcomes[0].interaction_type": "healthcare_smart_goal_coaching",
+        "outcomes[0].interest_area": "creative_activity",
+        "outcomes[0].audience_rating": null,
+        "outcomes[0].smart_goal": "grounded in drawing plan",
+        "outcomes[0].first_step": "pencils tonight"
+      }
+    },
+    {
+      "id": "role-vague",
+      "agent": "core.role_clarification_guessing_game",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Should I guess your item or should you guess mine?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes, you do it."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false,
+        "role.agent": false,
+        "role.user": false
+      },
+      "responseRequirements": [
+        "Clarify roles; do not secretly choose a role."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "role-agent",
+      "agent": "core.role_clarification_guessing_game",
+      "history": [
+        {
+          "actor": "user",
+          "text": "I choose an item and you guess it."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false,
+        "role.agent": true,
+        "role.user": false
+      },
+      "responseRequirements": [
+        "Confirm Valerian guesses; ask for readiness."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "role-user",
+      "agent": "core.role_clarification_guessing_game",
+      "history": [
+        {
+          "actor": "user",
+          "text": "You choose an item and I guess it."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "inner.complete": false,
+        "role.agent": false,
+        "role.user": true
+      },
+      "responseRequirements": [
+        "Choose an item privately; invite a yes/no question."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "therapy-vague-yes",
+      "agent": "usecases.healthcare.therapy_appointment_reminder_intro",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Would you like to hear more about me or see the reminder demonstration?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "intro.advance": false
+      },
+      "responseRequirements": [
+        "Clarify; do not invent consent to start."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "therapy-context-yes",
+      "agent": "usecases.healthcare.therapy_appointment_reminder_intro",
+      "history": [
+        {
+          "actor": "assistant",
+          "text": "Shall we start the therapy reminder demonstration now?"
+        },
+        {
+          "actor": "user",
+          "text": "Yes, start it."
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "intro.advance": true
+      },
+      "responseRequirements": [
+        "Start reminder using stored appointment facts only."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "therapy-explanation",
+      "agent": "usecases.healthcare.therapy_appointment_reminder_intro",
+      "history": [
+        {
+          "actor": "user",
+          "text": "What is PROMETHEUS?"
+        }
+      ],
+      "eventType": "obs.user_utterance",
+      "expectedGuards": {
+        "outer.exit": false,
+        "intro.advance": false
+      },
+      "responseRequirements": [
+        "Brief explanation and one choice; remain in introduction."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "face-sad",
+      "agent": "core.facial_expression_sensitivity",
+      "history": [
+        {
+          "actor": "user",
+          "text": "{\"emotion\":\"sad\",\"confidence\":0.9}"
+        }
+      ],
+      "eventType": "obs.emotion.face",
+      "expectedGuards": {},
+      "responseRequirements": [
+        "Tentative empathetic wording; no diagnosis; consistent gentle nonverbal plan."
+      ],
+      "expectedExtraction": null
+    },
+    {
+      "id": "social-do-not-interrupt",
+      "agent": "usecases.healthcare.smart_goal_coaching",
+      "history": [
+        {
+          "actor": "user",
+          "text": "I am worried about my appointment."
+        },
+        {
+          "actor": "user",
+          "text": "{\"changeType\":\"group_size_changed\",\"confidence\":0.4}"
+        }
+      ],
+      "eventType": "obs.social.situation_change",
+      "expectedGuards": {
+        "social.aside": false
+      },
+      "responseRequirements": [
+        "No distracting aside."
+      ],
+      "expectedExtraction": null
+    }
+  ]
+}

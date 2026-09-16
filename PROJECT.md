@@ -72,13 +72,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 161, live-transcription device and
-  lifecycle resilience.
+- Last completed milestone: Milestone 162 (NFS-01), correlated latency diagnostics
+  and frozen offline baselines. Implementation continues on `features/needforspeed`;
+  see `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
+  Live latency and model-quality targets remain unverified.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 162: Correlated latency diagnostics and frozen offline baselines
 
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
@@ -7711,3 +7715,38 @@ or weakening the Milestone 159/160 cockpit and starter-speech lifecycles.
 ### Next steps
 1. Execute `.agents/TRANSCRIBE_SMOKE_RESULTS.md` on the target Valerian hardware
    and record the physical English, German, and Arabic acoustic results.
+
+
+## Milestone 162: Correlated latency diagnostics and frozen offline baselines
+
+### What changed
+- Added request-local monotonic spans and opaque correlation headers. Canonical
+  persisted behaviour IDs join HTTP and SSE without changing event payloads.
+- Instrumented inference/token usage, application, persistence/publication and
+  Speech response headers; removed successful provider prompt/result logging.
+- Added bounded in-memory timing through local VAD, ordered finals, ingress,
+  typed input, SSE, rendering, first audio byte and media playing. Both Valerian
+  and multilateral preserve final-transcript timing metadata.
+- Added all-catalog call-count assertions, fourteen synthetic labelled quality
+  cases, two locally synthesized pause fixtures, and a results ledger.
+
+### Verification
+- Focused Java run: 17 tests passed across LatencyTraceUnitTest,
+  CatalogInferenceCountUnitTest, PrometheusCorsConfigurationWebMvcTest,
+  PromptPolicyGestureUnitTest, OpenAILanguageModelGatewayMessageMappingUnitTest,
+  OpenAILanguageModelGatewayHttpUnitTest and OpenAISpeechSynthesisGatewayUnitTest.
+- SpeechArchitectureBrowserClientContractTest and
+  ValerianClientStaticResourceContractTest passed all 19 tests; the gateway HTTP
+  test passed again after the final logging adjustment.
+- `node --test tests/js/performance/*.test.mjs tests/js/transcription/*.test.mjs
+  tests/js/speech/*.test.mjs`: all 33 passed.
+- Playwright `valerian-transcription.spec.mjs --grep 'mocked WebRTC emits'`:
+  one complete mocked browser journey passed with timing-chain assertions.
+- Valerian/multilateral syntax checks and `git diff --check` passed.
+
+### Limits and next step
+- No database, live provider or physical hardware was exercised. Media playing
+  was mocked in this instrumentation check. Live p50/p95, costs, quality, real
+  audio and deployment buffering remain NOT RUN in the results ledger.
+- Continue with NFS-02 model-purpose routing. The user explicitly authorized
+  committing/pushing each milestone and continuing without a review pause.

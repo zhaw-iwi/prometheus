@@ -130,6 +130,16 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   expect(await page.evaluate(() => window.__transcriptionChannels.at(-1).sent
     .map((value) => JSON.parse(value).type))).toContain("input_audio_buffer.clear");
 
+  const timings = await page.evaluate(agentId => window.PrometheusTimings.snapshot(agentId), AGENT_ID);
+  expect(timings).toHaveLength(1);
+  expect(timings[0].id).toBe(acknowledgeRequests[0].headers()["x-prometheus-trace-id"]);
+  expect(timings[0].eventId).toBe(LIVE_BEHAVIOUR_ID);
+  for (const stage of ["final_transcript", "submitted", "acknowledging", "sse_received", "rendered",
+    "audio_request", "audio_first_byte", "audio_downloaded", "audio_playing"]) {
+    expect(timings[0].stages[stage], stage).toEqual(expect.any(Number));
+  }
+  expect(JSON.stringify(timings)).not.toContain("Guten Morgen");
+
   await page.evaluate(() => window.__finishSpeechPlayback());
   await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
@@ -459,7 +469,8 @@ async function installApiMocks(context) {
       return route.fulfill({ status: 204, body: "" });
     }
     if (request.method() === "POST" && scopedPath === "/acknowledge") {
-      return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
+      return route.fulfill({ ...json({ active: true, responseEvent: behaviourEvent() }),
+        headers: { "X-Prometheus-Behaviour-Id": LIVE_BEHAVIOUR_ID } });
     }
     if (request.method() === "DELETE" && scopedPath === "/reset") {
       return route.fulfill(json({ active: true, responseEvent: null }));

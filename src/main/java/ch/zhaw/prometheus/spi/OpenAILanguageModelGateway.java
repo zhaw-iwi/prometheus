@@ -5,7 +5,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -23,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 
 @Component
 @ConditionalOnProperty(name = "prometheus.gateway.mode", havingValue = "openai", matchIfMissing = true)
@@ -51,35 +51,30 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
 
     @Override
     public String complete(List<PromptMessage> messages) {
-        LOGGER.info("OpenAILanguageModelGateway.complete() with {}", messages);
-        return openai(messages, 1.0f, 1.0f);
+        return openai("behaviour", messages, 1.0f, 1.0f);
     }
 
     @Override
     public boolean decide(List<PromptMessage> messages) {
-        LOGGER.info("OpenAILanguageModelGateway.decide() with {}", messages);
-        String response = openai(messages, 0.0f, 0.0f);
+        String response = openai("decision", messages, 0.0f, 0.0f);
         return Boolean.parseBoolean(response);
     }
 
     @Override
     public JsonElement extract(List<PromptMessage> messages) {
-        LOGGER.info("OpenAILanguageModelGateway.extract() with {}", messages);
-        String response = openai(messages, 0.0f, 0.0f);
+        String response = openai("extraction", messages, 0.0f, 0.0f);
         return GSON.fromJson(response, JsonElement.class);
     }
 
     @Override
     public JsonElement summarise(List<PromptMessage> messages) {
-        LOGGER.info("OpenAILanguageModelGateway.summarise() with {}", messages);
-        String response = openai(messages, 0.0f, 0.0f);
+        String response = openai("summary", messages, 0.0f, 0.0f);
         return GSON.fromJson(response, JsonElement.class);
     }
 
     @Override
     public String summariseOffline(List<PromptMessage> messages) {
-        LOGGER.info("OpenAILanguageModelGateway.summariseOffline() with {}", messages);
-        return openai(messages, 0.0f, 0.0f);
+        return openai("summary", messages, 0.0f, 0.0f);
     }
 
     JsonArray toOpenAIMessages(List<PromptMessage> prompts) {
@@ -96,10 +91,11 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         return messages;
     }
 
-    private String openai(List<PromptMessage> prompts, float temperature, float topP) {
+    private String openai(String purpose, List<PromptMessage> prompts, float temperature, float topP) {
+        long start = LatencyTrace.now();
+        boolean success = false;
+        int requests = 0;
         try {
-            Instant start = Instant.now();
-
             JsonObject payload = this.properties.payload();
             payload.addProperty("temperature", temperature);
             if (topP > 0) {
@@ -113,11 +109,8 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(payload)))
                     .build();
+            requests++;
             HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-
-            Instant end = Instant.now();
-            LOGGER.info("OpenAILanguageModelGateway.openai() http request took {} milliseconds",
-                    Duration.between(start, end).toMillis());
 
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
                 throw new RuntimeException(
@@ -128,11 +121,24 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
 
             JsonObject jsonResponse = GSON.fromJson(response.body(), JsonObject.class);
             String result = testAndObtainContent(jsonResponse);
-            LOGGER.info("OpenAILanguageModelGateway.openai() returns {}", result);
+            success = true;
+            JsonObject usage = jsonResponse.has("usage") && jsonResponse.get("usage").isJsonObject()
+                    ? jsonResponse.getAsJsonObject("usage") : new JsonObject();
+            LOGGER.info("latency trace={} stage=inference_usage purpose={} model={} effort=default promptTokens={} completionTokens={}",
+                    LatencyTrace.currentId(), purpose, properties.getModel(),
+                    tokenCount(usage, "prompt_tokens"), tokenCount(usage, "completion_tokens"));
             return result;
         } catch (Exception e) {
             throw new RuntimeException("unable to request openai :-(", e);
+        } finally {
+            LOGGER.info("latency trace={} stage=inference purpose={} status={} durationMs={} requests={}",
+                    LatencyTrace.currentId(), purpose, success ? "ok" : "error", LatencyTrace.elapsedMs(start), requests);
         }
+    }
+
+    private static Integer tokenCount(JsonObject usage, String key) {
+        try { return usage.has(key) ? usage.get(key).getAsInt() : null; }
+        catch (RuntimeException invalid) { return null; }
     }
 
     private static String testAndObtainContent(JsonObject jsonResponse) {

@@ -1863,17 +1863,18 @@ async function sendUserUtterance(text, options = {}) {
   if (options.renderUser) {
     appendMessage("user", text);
   }
+  const traceId = globalThis.PrometheusTimings?.begin(state.agentId);
   const data = await acknowledgeEvent({
     type: "obs.user_utterance",
     actor: "user",
     kind: "observation",
     payload: text,
-  }, { renderResponse: true });
+  }, { renderResponse: true, traceId });
   if (!data) {
     return false;
   }
   if (!data.responseEvent) {
-    await generateBehaviour("full_plan");
+    await generateBehaviour("full_plan", traceId);
   }
   await loadStorage();
   await loadAgentState();
@@ -1887,7 +1888,7 @@ async function acknowledgeEvent(request, options = {}) {
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
   try {
-    const response = await scopedFetch(demoAgentPath(`/acknowledge${profile}`), {
+    const response = await timedScopedFetch(options.traceId, demoAgentPath(`/acknowledge${profile}`), {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(request),
@@ -1912,9 +1913,9 @@ async function acknowledgeEvent(request, options = {}) {
   }
 }
 
-async function generateBehaviour(outputProfile) {
+async function generateBehaviour(outputProfile, traceId) {
   try {
-    const response = await scopedFetch(demoAgentPath("/behaviour/generate"), {
+    const response = await timedScopedFetch(traceId, demoAgentPath("/behaviour/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ outputProfile }),
@@ -1953,6 +1954,7 @@ function handleBehaviourEnvelope(event, options = {}) {
     appendLog("behaviour", "payload is not valid json.");
     return;
   }
+  if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
   queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))
@@ -1966,6 +1968,7 @@ function handleBehaviourEnvelope(event, options = {}) {
     rememberRecentBehaviourPayload(event.payload);
   }
   renderBehaviourPlan(plan);
+  globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
     appendMessage("assistant", plan.speech.trim());
@@ -1973,6 +1976,7 @@ function handleBehaviourEnvelope(event, options = {}) {
 }
 
 function resetBehaviourDeduplication() {
+  globalThis.PrometheusTimings?.clear(state.agentId);
   state.seenBehaviourKeys.clear();
   state.recentBehaviourPayloads.clear();
 }
@@ -2068,30 +2072,36 @@ function waitForSpeechPlaybackApi(timeoutMs = 5000) {
 }
 
 async function synthesizeBehaviourSpeech(item, signal) {
+  const agentId = state.agentId;
+  const traceId = globalThis.PrometheusTimings?.traceFor(agentId, item.eventId);
+  globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_request");
   const params = new URLSearchParams();
   const voice = document.getElementById("speechVoiceInput")?.value?.trim() || "";
   const speed = document.getElementById("speechOutputSpeedInput")?.value?.trim() || "";
   if (voice) params.set("voice", voice);
   if (speed) params.set("speed", speed);
   const suffix = params.size ? `?${params.toString()}` : "";
-  const response = await scopedFetch(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
+  const response = await timedScopedFetch(traceId, demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
     method: "POST",
     headers: { Accept: "audio/*" },
     signal,
   });
   if (!response.ok) throw new Error(`Speech synthesis failed (${response.status}).`);
-  const blob = await response.blob();
+  const blob = await globalThis.PrometheusTimedAudioBlob(response,
+    (stage) => globalThis.PrometheusTimings?.event(agentId, item.eventId, stage));
   if (!blob.size || !String(blob.type || "audio/mpeg").toLowerCase().startsWith("audio/")) {
     throw new Error("Speech synthesis returned invalid audio.");
   }
   return { url: URL.createObjectURL(blob), contentType: blob.type || "audio/mpeg" };
 }
 
-function playBehaviourSpeech(resource, _item, signal) {
+function playBehaviourSpeech(resource, item, signal) {
+  const agentId = state.agentId;
   const audio = activeAssistantAudioElement();
   return new Promise((resolve, reject) => {
     let settled = false;
     const cleanup = () => {
+      audio.removeEventListener("playing", playing);
       audio.removeEventListener("ended", ended);
       audio.removeEventListener("error", failed);
       signal.removeEventListener("abort", stopped);
@@ -2102,6 +2112,7 @@ function playBehaviourSpeech(resource, _item, signal) {
       cleanup();
       action();
     };
+    const playing = () => globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_playing");
     const ended = () => finish(resolve);
     const failed = () => finish(() => reject(new Error(`Speech playback failed: ${assistantAudioErrorMessage()}.`)));
     const stopped = () => {
@@ -2110,6 +2121,7 @@ function playBehaviourSpeech(resource, _item, signal) {
       audio.load();
       finish(() => reject(new DOMException("Speech playback was stopped.", "AbortError")));
     };
+    audio.addEventListener("playing", playing, { once: true });
     audio.addEventListener("ended", ended, { once: true });
     audio.addEventListener("error", failed, { once: true });
     signal.addEventListener("abort", stopped, { once: true });
@@ -2159,6 +2171,8 @@ function setSpeechPlaybackInputEnabled(enabled) {
 }
 
 function handleSpeechPlaybackStatus(status) {
+  const stage = { loading: "audio_queued", completed: "audio_completed", failed: "audio_failed", stopped: "audio_stopped" }[status.state];
+  if (stage) globalThis.PrometheusTimings?.event(state.agentId, status.eventId, stage);
   const mapping = {
     loading: ["Speech Loading", "idle", true],
     speaking: ["Speaking", "live", true],
@@ -2517,13 +2531,13 @@ function waitForTranscriptionApi(timeoutMs = 5000) {
   });
 }
 
-function handleLiveTranscriptionFinal({ epoch, itemId, text }) {
+function handleLiveTranscriptionFinal({ epoch, itemId, text, timings }) {
   const transcript = String(text || "").trim();
   if (!transcript || isLikelyAsrHallucination(transcript)) {
     appendLog("transcription", `ignored empty or noisy final transcript for ${itemId}.`);
     return;
   }
-  return transcription.transcriptIngress?.submit({ epoch, itemId, text: transcript }) || false;
+  return transcription.transcriptIngress?.submit({ epoch, itemId, text: transcript, timings }) || false;
 }
 
 function renderQueuedLiveTranscript({ itemId, text }) {
@@ -5507,6 +5521,11 @@ function clearAgentIdFromLocation() {
     url.searchParams.delete("agent");
   }
   window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function timedScopedFetch(traceId, url, options) {
+  return globalThis.PrometheusTimings
+    ? globalThis.PrometheusTimings.fetch(traceId, scopedFetch, url, options) : scopedFetch(url, options);
 }
 
 function scopedFetch(url, options = {}) {

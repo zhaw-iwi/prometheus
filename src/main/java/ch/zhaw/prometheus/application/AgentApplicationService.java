@@ -23,6 +23,7 @@ import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Agent;
@@ -158,7 +159,7 @@ public class AgentApplicationService {
         }
         Agent agent = agentMaybe.get();
         OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event response = agent.generate(this.runtime(resolvedProfile));
+        Event response = LatencyTrace.measure("generate", () -> agent.generate(this.runtime(resolvedProfile)));
         if (response == null) {
             return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
         }
@@ -181,7 +182,7 @@ public class AgentApplicationService {
         OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
         PolicyRuntime runtime = this.runtime(resolvedProfile);
-        Event response = agent.acknowledge(event, runtime);
+        Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, runtime));
         Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
         Event responseToReturn = computedResponse == null ? response : computedResponse;
         Agent saved = this.persistAndPublishMonitor(agent);
@@ -259,8 +260,8 @@ public class AgentApplicationService {
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
         agent.setLanguageCode(valueOrDefault(data.getLanguageCode(), AgentDefinition.LANGUAGE_ENGLISH));
         Event starter = agent.start(this.runtime());
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
                 saved.getInteractionProfile(), saved.getLanguageCode()));
@@ -281,8 +282,8 @@ public class AgentApplicationService {
     }
 
     private Agent persistAndPublishMonitor(Agent agent) {
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         return saved;
     }
 
@@ -303,7 +304,9 @@ public class AgentApplicationService {
             eventToPublish = candidate;
             break;
         }
-        safePublishBehaviour(agent.getId(), eventToPublish);
+        LatencyTrace.behaviour(eventToPublish.getId());
+        Event published = eventToPublish;
+        LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; });
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {

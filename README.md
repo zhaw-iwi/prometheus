@@ -324,6 +324,31 @@ speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
 
+### Response latency diagnostics
+
+POST requests accept an optional UUID `X-Prometheus-Trace-Id` and return a validated
+trace ID. A request that publishes behaviour also returns
+`X-Prometheus-Behaviour-Id`, identifying the persisted event delivered on SSE.
+These headers do not grant access or change event payloads. Configured CORS
+origins can send/read them.
+
+Server `latency` log entries record inference purpose, model, default effort,
+token counts when supplied, application/persistence/publication durations and
+Speech response-header time. Durations are monotonic. Successful provider prompt
+and response bodies are no longer logged by the text gateway.
+Valerian retains at most 128 content-free turn and event timing records in memory:
+`PrometheusTimings.snapshot(agentId)`. Transcript ingress, canonical SSE receipt,
+rendering, first audio byte and media `playing` are joined even when SSE beats
+the HTTP response. Shared transcription records local last-voice/commit and final
+transcript times; manual or unmatched commits have no invented voice timestamp.
+No timing telemetry is uploaded or persisted. Server and browser clocks are
+separate; correlate IDs, then compare local durations.
+
+Run `node --test tests/js/performance/*.test.mjs` and
+`CatalogInferenceCountUnitTest` for offline diagnostics checks. The roadmap and
+measured/unverified results are maintained in `.agents/PLAN_NEEDFORSPEED.md` and
+`.agents/NEEDFORSPEED_RESULTS.md`.
+
 ## Connecting External Clients
 
 External clients usually use the scoped demo API. It keeps agent instances
