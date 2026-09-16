@@ -104,3 +104,26 @@ than assuming the new fallback configuration is byte-identical to that baseline.
 
 Commands: `.\mvnw.cmd -q "-Dtest=InferenceRoutingUnitTest,OpenAILanguageModelGatewayHttpUnitTest,OpenAILanguageModelGatewayMessageMappingUnitTest,PromptPolicyGestureUnitTest,CatalogInferenceCountUnitTest,StateTransitionUnitTest,StateTransitionSnapshotUnitTest,AgentOuterStateRoutingUnitTest,AgentNestedOuterStateRoutingUnitTest" test`
 and the focused rerun with `-Dtest=InferenceRoutingUnitTest,OpenAILanguageModelGatewayHttpUnitTest`.
+
+
+## NFS-03 / Milestone 164
+
+| Workload | Baseline calls | Combined generation calls |
+| --- | --- | --- |
+| Ordinary healthcare/core conversation | 4 | 3 |
+| Role clarification continuation | 6 | 5 |
+| RPS readiness conversation | 5 | 4 |
+| Prompt greeting / direct sensory reaction | 2 | 1 |
+| SMART outer / inner close | 3 / 4 | 3 / 4 |
+| Malformed nonverbal result | Up to 3 generation calls | One request, explicit failure |
+| Talk to Me | 0 | 0 |
+
+11 policy/catalog tests, 10 scoped database integration cases and 31 neighboring
+contract tests passed. Database target was the newly created local disposable
+schema prometheus_nfs_f71ad024 with a restricted account, never the developer
+schema. All providers were mocked. Stored custom task/nonverbal instructions
+survived flush/clear/reload; one combined request published the same event ID
+used by exact-speech synthesis. No persisted schema change or agent recreation.
+Live latency, tokens/cost, model response quality and acoustic evidence: NOT RUN.
+
+Exact suites and outcomes are recorded under Milestone 164 in PROJECT.md.

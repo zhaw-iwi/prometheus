@@ -324,6 +324,26 @@ speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
 
+### Combined behaviour generation
+
+A `PromptPolicy` with a nonverbal plan or gesture prompt now requests one JSON
+behaviour plan containing speech and nonverbal output. Java composes the existing
+outer, task, starter and nonverbal instructions; custom persisted prompts remain
+in place and gain this behaviour after reload. Structured nonverbal instructions
+apply inside `nonVerbal`, and gesture-only instructions apply to its `gesture`
+field. Optional motion/display objects retain the existing contract.
+
+Speech-only prompt policies (including final states), deterministic RPS output
+and Talk to Me keep their existing paths. Invalid combined output fails without
+retrying or publishing partial speech. Unknown gesture labels become `NONE`;
+unsupported nonverbal move/turn fields are removed as before. The obsolete second
+nonverbal request and third gesture-repair request have been removed.
+
+Ordinary coaching now uses three text requests: two decisions and one combined
+behaviour request. Startup and direct facial/social reactions use one generation
+request. These are offline call-count results; measured provider latency and
+response quality are tracked separately in the results ledger.
+
 ### Task-specific text inference
 
 The text SPI accepts typed `InferenceRequest` snapshots with purpose, messages,

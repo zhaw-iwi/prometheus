@@ -93,12 +93,20 @@ class ScopedDemoControllerIntegrationTest {
     @MockitoBean
     private SpeechSynthesisGateway speechSynthesisGateway;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    private ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster behaviourBroadcaster;
+
     @BeforeEach
     void setUp() {
         this.accessCodeAgents.deleteAll();
         this.allowedAgentTypes.deleteAll();
         this.accessCodes.deleteAll();
         when(this.languageModelGateway.complete(any())).thenReturn("Scoped response.");
+        when(this.languageModelGateway.infer(any())).thenReturn(
+                "{\"speech\":\"Scoped response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}");
     }
 
     @Test
@@ -375,6 +383,51 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(status().isNotFound());
         this.mockMvc.perform(post("/realtime/transcription/session"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void reloadedCustomPolicyGeneratesOneCanonicalCombinedPlanAndExactSpeech() throws Exception {
+        String code = "NFS03";
+        String type = ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching.KEY;
+        allowType(code, type);
+        UUID agentId = createAgent(code, type);
+        Agent stored = agents.findById(agentId).orElseThrow();
+        var policy = new ch.zhaw.prometheus.model.policy.PromptPolicy("Persisted custom coaching task", null, "summary");
+        policy.setNonVerbalPlanPrompt("Persisted custom nonverbal instruction: use ACKNOWLEDGE and gentle gaze.");
+        ((ch.zhaw.prometheus.model.OuterState) stored.getCurrentState()).getInnerCurrent().setPolicy(policy);
+        agents.saveAndFlush(stored);
+        entityManager.clear();
+        org.mockito.Mockito.clearInvocations(languageModelGateway, behaviourBroadcaster);
+        when(languageModelGateway.infer(any())).thenReturn(
+                "{\"speech\":\"Stored policy reply.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}");
+        mockMvc.perform(post("/demo/agents/" + agentId + "/acknowledge")
+                .header(HEADER, code).queryParam("profile", "full_plan").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"type\":\"obs.user_utterance\",\"actor\":\"user\",\"kind\":\"observation\",\"payload\":\"I would like to draw.\"}"))
+                .andExpect(status().isOk());
+        entityManager.flush(); entityManager.clear();
+        MvcResult generated = mockMvc.perform(post("/demo/agents/" + agentId + "/behaviour/generate")
+                .header(HEADER, code).contentType(MediaType.APPLICATION_JSON).content("{\"outputProfile\":\"full_plan\"}"))
+                .andExpect(status().isOk()).andReturn();
+        var captured = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(languageModelGateway).infer(captured.capture());
+        verify(languageModelGateway, org.mockito.Mockito.never()).complete(any());
+        assertTrue(captured.getValue().messages().stream().anyMatch(message -> message.getContent().contains("Persisted custom nonverbal instruction")));
+        assertTrue(captured.getValue().messages().stream().anyMatch(message -> message.getContent().contains("Persisted custom coaching task")));
+        String eventId = generated.getResponse().getHeader(ch.zhaw.prometheus.logging.LatencyTrace.BEHAVIOUR_HEADER);
+        assertNotNull(eventId);
+        entityManager.flush(); entityManager.clear();
+        var saved = agents.findById(agentId).orElseThrow().getEventHistory().toList().stream()
+                .filter(event -> eventId.equals(event.getId().toString())).findFirst().orElseThrow();
+        assertEquals("Stored policy reply.", BehaviourPlan.fromJson(saved.getPayload()).getSpeech());
+        verify(behaviourBroadcaster).publish(org.mockito.ArgumentMatchers.eq(agentId),
+                org.mockito.ArgumentMatchers.argThat(event -> eventId.equals(event.getId().toString())));
+        byte[] audio = { 3, 2, 1 };
+        when(speechSynthesisGateway.synthesize("Stored policy reply.", "alloy", 1.0)).thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+        MvcResult speech = mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/" + eventId + "/speech")
+                .header(HEADER, code).queryParam("voice", "alloy").queryParam("speed", "1.0"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(speech)).andExpect(status().isOk()).andExpect(content().bytes(audio));
+        verify(speechSynthesisGateway).synthesize("Stored policy reply.", "alloy", 1.0);
     }
 
     private AccessCodeView allowType(String code, String typeKey) {

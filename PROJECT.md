@@ -72,16 +72,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 163 (NFS-02), typed inference requests,
-  task-specific model/effort routing and strict provider result validation.
-  Need-for-speed implementation continues on `features/needforspeed`; see
-  `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
-  Live latency and candidate model quality remain unverified.
+- Last completed milestone: Milestone 164 (NFS-03), one-request speech/nonverbal
+  generation, verified with stored custom policies in an isolated local database.
+  Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
+  `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
+  live latency and candidate-model quality.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 164: Combined speech and nonverbal generation
 
 - [x] Milestone 163: Typed inference requests and model/effort routing
 
@@ -7791,3 +7793,38 @@ or weakening the Milestone 159/160 cockpit and starter-speech lifecycles.
 ### Next step
 Continue with NFS-03 combined speech/nonverbal generation and persisted-policy
 smoke verification in a disposable local database.
+
+
+## Milestone 164: Combined speech and nonverbal generation (NFS-03)
+
+### What changed
+- PromptPolicy deterministically composes one JSON behaviour request when a
+  nonverbal prompt is configured, preserving outer/task/starter instructions
+  and custom stored nonverbal prompts. Removed sequential nonverbal generation
+  and gesture-repair calls.
+- Validates speech, nonverbal and optional motion/display channels before
+  emitting the existing BehaviourPlan. Invalid combined results fail after one
+  request; no partial plan is recorded. Gesture normalization and unsupported
+  nonverbal locomotion stripping remain.
+- Speech-only and deterministic paths are unchanged. Ordinary coaching/core
+  conversation drops from four text calls to three; role clarification from six
+  to five; prompt startup and sensory generation from two to one.
+
+### Verification
+- 11 tests passed: PromptPolicyUnitTest, PromptPolicyGestureUnitTest,
+  CatalogInferenceCountUnitTest and MultimodalBehaviourPlanEmissionUnitTest.
+- All 10 ScopedDemoControllerIntegrationTest cases passed using disposable local
+  MySQL schema prometheus_nfs_f71ad024 and its test-scoped account. No developer
+  schema was reset. Providers were mocked. New smoke coverage saves and reloads
+  a custom policy, acknowledges, generates in one call, reloads the exact plan,
+  verifies publication/header identity and synthesizes exact persisted speech.
+- 31 neighboring tests passed in AgentApplicationServicePromptUnitTest,
+  AgentApplicationServiceGenerateOptionsUnitTest, ScopedBehaviourSpeechServiceUnitTest,
+  BehaviourSpeechControllerWebMvcTest, HealthcareUseCasePromptContractTest,
+  ValerianCorePromptContractTest and TalkToMePolicyUnitTest.
+- `git diff --check` passed. No browser code changed in this milestone.
+
+### Limits and next step
+Live combined-response quality and elapsed-time gains remain NOT RUN. Continue
+with deterministic batching of compatible guards, retaining Java transition
+priority and action ownership.
