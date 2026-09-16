@@ -1,6 +1,5 @@
-import { turnTimings, timedAudioBlob } from "../performance/timings.js";
+import { turnTimings } from "../performance/timings.js";
 globalThis.PrometheusTimings = turnTimings;
-globalThis.PrometheusTimedAudioBlob = timedAudioBlob;
 import { BehaviourSpeechPlaybackQueue, OutputLease } from "./playback.js";
 import { createSpeechAudio } from "./progressive.js";
 

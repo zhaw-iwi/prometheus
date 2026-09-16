@@ -3,7 +3,8 @@
 - Branch: `features/needforspeed`
 - Baseline: `main` at `177ee34`, after Milestone 161
 - Created: 2026-09-16
-- Status: implementation in progress; see milestone table and results record.
+- Status: all implementation and offline acceptance milestones delivered; live
+  quality/performance and deployment/device gates remain open in the results record.
 
 This roadmap covers the five approaches selected by the user: combining
 compatible model requests, task-specific models and reasoning effort,
@@ -168,7 +169,7 @@ consumption of that global sequence.
 | NFS-05 | Progressive canonical Speech playback | NFS-01 | Complete (Milestone 166); device/proxy checks pending |
 | NFS-06 | Responsive turn-completion settings with pause protection | NFS-01 | Implemented (Milestone 167); conservative default retained |
 | NFS-07 | Bounded parallel evaluation of eligible inference groups | NFS-02, NFS-04 | Implemented (Milestone 168); live comparison pending |
-| NFS-08 | Integrated database/browser/quality/latency acceptance | NFS-01 through NFS-07 | Not started |
+| NFS-08 | Integrated database/browser/quality/latency acceptance | NFS-01 through NFS-07 | Offline acceptance complete (Milestone 169); live/human/acoustic gates NOT RUN |
 
 Use the listed sequence for reviewable changes; dependency independence does
 not authorize parallel agent work. Keep each milestone focused and commit/push at its handoff before continuing.

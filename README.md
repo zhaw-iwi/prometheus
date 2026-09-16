@@ -294,6 +294,13 @@ Open the main surfaces:
 
 ## Testing
 
+Use a disposable local MySQL schema and a restricted test account, supplied through
+`SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and
+`SPRING_DATASOURCE_PASSWORD`. Several integration fixtures delete stored agents;
+some classes named `*UnitTest` also start a database-backed Spring context. Keep
+the developer database out of these runs. Disable scheduled ticks with
+`PROMETHEUS_RUNTIME_TICK_ENABLED=false` for deterministic fixtures.
+
 Run the Java regression suite:
 
 ```powershell
@@ -353,10 +360,12 @@ retrying or publishing partial speech. Unknown gesture labels become `NONE`;
 unsupported nonverbal move/turn fields are removed as before. The obsolete second
 nonverbal request and third gesture-repair request have been removed.
 
-Ordinary coaching now uses three text requests: two decisions and one combined
-behaviour request. Startup and direct facial/social reactions use one generation
-request. These are offline call-count results; measured provider latency and
-response quality are tracked separately in the results ledger.
+With ordered guards, ordinary coaching uses three text requests: two decisions
+and one combined behaviour request. With the default combined guard strategy it
+uses two: one guard group and one behaviour request, down from four at baseline.
+Startup and direct facial/social reactions use one generation request. These are
+offline call-count results; measured provider latency and response quality are
+tracked separately in the results ledger.
 
 ### Task-specific text inference
 
@@ -416,6 +425,35 @@ Run `node --test tests/js/performance/*.test.mjs` and
 `CatalogInferenceCountUnitTest` for offline diagnostics checks. The roadmap and
 measured/unverified results are maintained in `.agents/PLAN_NEEDFORSPEED.md` and
 `.agents/NEEDFORSPEED_RESULTS.md`.
+
+Save an export as JSON with `metadata` and `turns` fields. Set metadata `source`
+to `fixture` or `live`, `configuration` to a description of the actual settings,
+and `workload` to e.g. `warm ordinary SMART`. Include browser/device/network,
+corpus revision, model/effort/guard strategy and speech/transcription settings in
+metadata. Set `turns` to `PrometheusTimings.snapshot(agentId)`; export before the
+128-record limit evicts samples or reset clears them. Then run:
+
+```powershell
+node tests/needforspeed/summarize.mjs target/turn-export.json target/server.log
+```
+
+The offline reporter calculates browser-stage p50/p95, counts missing/invalid
+stages and errors, and joins text-request/usage logs by opaque trace ID. Missing
+usage stays unknown; the report does not estimate cost from incomplete logs.
+It flags samples below 50 and never mixes browser and server clocks. A fixture
+report cannot establish live latency, model quality or physical audibility.
+
+For reproducible database/browser checks, `node tests/needforspeed/provider-stub.mjs`
+starts a synthetic provider on loopback port 8091. Point a separate test app's
+`OPENAI_URL` at `http://127.0.0.1:8091/v1/chat/completions` and
+`PROMETHEUS_SPEECH_URL` at `http://127.0.0.1:8091/v1/audio/speech`; use a dummy
+`OPENAI_KEY`, `OPENAI_OPENAIVSAZUREOPENAI=openai`, and the isolated datasource.
+Set `OPENAI_LIVETRANSCRIPTIONCLIENTSECRETURL=http://127.0.0.1:9/session` to keep
+unmocked transcription requests local, and remove any purpose-route URL overrides
+for that test process. The stub always rejects guards and serves fixed fixture
+speech; it is not a quality evaluator. Start the app on a dedicated port and set
+`PROMETHEUS_BASE_URL`, `PROMETHEUS_SKIP_WEBSERVER=true` and the test admin token
+for Playwright. The exact integrated test commands are in the results record.
 
 ## Connecting External Clients
 
@@ -951,6 +989,21 @@ The repository contains Heroku/container-oriented resources:
 
 Production deployments must provide database credentials and OpenAI credentials
 through environment variables or platform config vars.
+
+Need for Speed adds nullable internal `event.history_position` to preserve new
+events' append order when database timestamps tie. With the configured Hibernate
+`ddl-auto=update`, startup adds this column. For externally managed MySQL schemas,
+apply the following before starting the upgraded writer:
+
+```sql
+ALTER TABLE `event` ADD COLUMN `history_position` BIGINT NULL;
+```
+
+Existing event IDs, payloads and timestamps remain intact;
+legacy null-position rows retain their timestamp order and precede new rows.
+Historical timestamp ties cannot be reconstructed. Upgrade writers together:
+older writers do not assign positions. No database reset or event backfill is
+required. This was verified only on a disposable local schema.
 
 ## Project Notes
 

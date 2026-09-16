@@ -36,6 +36,7 @@ public final class GuardEvaluation {
     private final List<List<Candidate>> orderedGroups = new ArrayList<>();
 
     public static GuardEvaluation prepare(State root, PolicyRuntime runtime) {
+        if (!hasModelChecks(root)) return null;
         var options = runtime.languageModelGateway().guardInferenceOptions();
         if (options == null || options.strategy() == GuardInferenceOptions.Strategy.ORDERED
                 || runtime.promptMessageAssembler().getClass() != PromptMessageAssembler.class) return null;
@@ -46,6 +47,15 @@ public final class GuardEvaluation {
         evaluation.collect(root, runtime);
         evaluation.group(runtime, options);
         return evaluation;
+    }
+
+    private static boolean hasModelChecks(State state) {
+        if (state == null || (state.getClass() != State.class && state.getClass() != OuterState.class)) return false;
+        for (Transition transition : state.getTransitions()) {
+            if (transition.getDecisions().stream().anyMatch(decision -> decision.getClass() == StaticDecision.class
+                    && decision.getPolicy().getClass() == PromptPolicy.class)) return true;
+        }
+        return state instanceof OuterState outer && hasModelChecks(outer.getInnerCurrent());
     }
 
     private void collect(State state, PolicyRuntime runtime) {

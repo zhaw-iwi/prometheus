@@ -1,5 +1,106 @@
 # Need for speed: evidence record
 
+## Integrated result (NFS-08 / Milestone 169, 2026-09-16)
+
+All five approaches are implemented on `features/needforspeed`. Deterministic
+acceptance passed; live quality and the two-second voice target are **unverified**.
+This branch has not been deployed or merged. The rollout choices are:
+
+| Approach | Implemented comparison | Evidence and current choice |
+| --- | --- | --- |
+| Combine generation | Separate speech/nonverbal -> one structured plan | One generation request; malformed plans fail once without partial publication |
+| Combine compatible guards | Ordered checks -> one validated boolean group | Default on this branch; Java preserves priority/actions; live contextual accuracy NOT RUN |
+| Purpose/model/effort routes | Global GPT-5.2 fallback -> opt-in Sol/Luna at none | HTTP/configuration tests pass; existing local model settings unchanged; live candidate access/quality NOT RUN |
+| Progressive audio | Wait for complete Blob -> MP3 MediaSource | Real Chromium playback advances before withheld response EOF; same-response fallback and Stop pass |
+| Turn completion | 1500ms/medium -> optional 800ms/low | Offline commit delay falls 700ms, but natural-pause integrity fails; 1500ms/medium remains default |
+| Parallel eligible guards | Ordered/combined -> parallel/combined_parallel | Bounded workers and ordered application pass; extra speculative requests measured; parallel remains opt-in |
+
+The one-change-at-a-time request counts are preserved in NFS-03/04/07 below.
+The complete combined path gives these counts, excluding transcription and Speech:
+
+| Workload | Baseline main 177ee34 | Integrated combined path |
+| --- | --- | --- |
+| Ordinary healthcare/core conversation | 4 | 2 |
+| Role clarification continuation | 6 | 2 |
+| RPS readiness conversation | 5 | 2 |
+| Prompt startup / direct facial-social reaction | 2 | 1 |
+| SMART outer / inner close, including extraction | 3 / 4 | 3 / 3 |
+| Deterministic RPS result / Talk to Me | 0 | 0 |
+| Live voice-response p50/p95 and per-stage breakdown | NOT RUN | NOT RUN |
+| Live text/transcription/Speech usage, cost and error rate | NOT RUN | NOT RUN |
+| Frozen labelled guard/extraction accuracy and human response review | NOT RUN | NOT RUN |
+
+Zero live samples were collected. No finite live-run budget or physical acoustic
+fixture was established, so the roadmap's offline-only acceptance path was used.
+The frozen quality cases are labels for future provider/human evaluation, not
+evidence that a model passed them. Deterministic guard tests prove selection,
+history, priority, failure and action contracts using controlled answers.
+No p50/p95 from mocks is presented as a provider speedup. Pricing and currency
+are consequently not applicable to this run. Multiple speakers, real room noise,
+Bluetooth/selected physical outputs, Azure, other browser engines and deployment
+proxy buffering remain NOT RUN. The longer synthetic hesitation also fails the
+conservative VAD setting; use longer custom timing/manual turns when needed.
+
+### Final verification and corrections
+
+- Full Java suite: **281 tests, 79 classes, zero failures/errors/skips**.
+  Final run exited successfully without the earlier Surefire shutdown timeout.
+- Shared performance/speech/transcription JavaScript suites: **45 passed**.
+- Integrated Playwright matrix: **31 passed**, including real native MP3 media
+  progression/cancellation, scoped Talk to Me DB persistence, Valerian lifecycle,
+  replay/ownership/reconnect, settings, columns and API Workbench. Most Valerian
+  API/WebRTC/media fixtures are mocked; only the native progressive tests exercise
+  actual decoding, and the Java/ Talk to Me cases establish database contracts.
+- Inspected desktop/mobile playback and pace-control artifacts. Corpus hashes
+  below remain unchanged; Git attributes now preserve fixture JSON LF and binary
+  audio on Windows checkouts.
+- Integrated tests caught a deterministic Talk to Me gateway-options interaction;
+  guard preparation now bypasses the gateway when there are no eligible checks.
+- Reload tests exposed ambiguous timestamp ordering. New events get an internal
+  append position; an isolated MySQL test forces identical timestamps and verifies
+  order after reload/removal, plus unchanged legacy IDs/dates and public JSON.
+  Nullable `event.history_position` is an additive schema change. No backfill or
+  developer-database change was performed; README documents writer upgrades.
+- The SSE replay test now uses immediate test-server shutdown, avoiding a graceful
+  drain of long-lived fixture subscriptions. Production shutdown is unchanged.
+- Removed the superseded unbounded audio-Blob timing helper. Added an offline
+  report utility that separates missing/invalid timing and unknown provider usage,
+  and a reusable loopback provider for database/browser smoke tests.
+
+Environment: Windows; Java 24.0.2 targeting Java 21; Node 24.13.1; Playwright 1.61.1;
+Chromium 149.0.7827.55; local MySQL 9.4, disposable schema
+`prometheus_nfs_f71ad024` and restricted account. Browser test app bound to
+127.0.0.1:8087 with synthetic provider on 8091, dummy credentials, scheduler off,
+global GPT-5.2 label and combined guards. Provider name in a stub request does
+not establish execution of that model. No user content or paid provider traffic.
+Test output and screenshots are local ignored artifacts under `target/` and
+`test-results/`; the durable evidence is this record and the regression tests.
+After verification, the temporary servers were stopped and the disposable schema,
+restricted account and temporary credential file were removed.
+
+Commands actually run after verifying the isolated datasource and overriding
+provider URLs with loopback fixtures/fail-closed port 9 (secrets omitted):
+
+```powershell
+.\mvnw.cmd -q test
+node --test tests/js/performance/*.test.mjs tests/js/speech/*.test.mjs tests/js/transcription/*.test.mjs
+# Separate processes: provider stub and Spring test app with isolated env settings.
+node tests/needforspeed/provider-stub.mjs
+.\mvnw.cmd -q spring-boot:run
+$env:PROMETHEUS_BASE_URL='http://127.0.0.1:8087'
+$env:PROMETHEUS_SKIP_WEBSERVER='true'
+# PROMETHEUS_ADMIN_TOKEN matches the synthetic app's token.
+npx.cmd playwright test --config=playwright.config.mjs tests/playwright/progressive-speech.spec.mjs tests/playwright/valerian-transcription.spec.mjs tests/playwright/valerian-lifecycle.spec.mjs tests/playwright/valerian-column-expansion.spec.mjs tests/playwright/talktome.spec.mjs tests/playwright/apiworkbench.spec.mjs
+```
+
+Future live acceptance must use a bounded synthetic run (including speculative
+requests/cancelled usage), fixed workload/configuration and at least 50 warm
+reference turns per configuration, with cold/closing/reconnect turns separate.
+Export timings as described in README and run `tests/needforspeed/summarize.mjs`.
+Record individual critical-case disagreements and human response review before
+promoting model/guard changes. A provider benchmark and acoustic check must
+establish the actual median/p95; the request-count reduction alone cannot.
+
 ## Baseline (NFS-01 / Milestone 162, 2026-09-16)
 
 Baseline source: main `177ee34`. Text endpoint: Chat Completions; configured

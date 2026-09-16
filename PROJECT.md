@@ -72,16 +72,19 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 168 (NFS-07), bounded parallel pure guard
-  evaluation and in-process serialization of each agent's runtime mutations.
-  Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
-  `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
-  live latency and candidate-model quality.
+- Last completed implementation milestone: Milestone 169 (NFS-08), integrated
+  offline acceptance of Need for Speed on `features/needforspeed`.
+  All eight roadmap milestones have implementation/evidence records. Live model
+  quality, human response review, provider cost/latency and physical-device gates
+  remain open; the two-second target is unverified. See
+  `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 169: Integrated Need for Speed offline acceptance
 
 - [x] Milestone 168: Bounded parallel guard evaluation
 
@@ -7926,3 +7929,36 @@ priority and action ownership.
   5/2/6; RPS readiness: 4/2/5. Parallel pays for speculative checks that ordered
   short circuiting can skip. Combined remains default. Live p50/p95, quality and
   tokens/cost comparison NOT RUN; no production speedup claimed for parallel mode.
+
+
+## Milestone 169: Integrated Need for Speed offline acceptance (NFS-08)
+
+- Finished the integrated offline acceptance and evidence record for all five
+  approaches. The roadmap marks functional delivery separately from open live
+  quality, human review, provider latency/cost and physical-device gates. The
+  two-second target remains unverified; no production deployment or merge.
+- Full Java suite passed 281 tests across 79 classes, with zero failures, errors
+  or skips. Shared performance/speech/transcription Node suites passed 45 tests.
+  The combined Playwright matrix passed 31 cases: progressive native audio,
+  Valerian transcription/lifecycle/columns, scoped Talk to Me and API Workbench.
+  Exact commands, environment and fixture boundaries are in the results record.
+- Fixed deterministic Talk to Me consulting gateway guard options, and persisted
+  append ordering for tied timestamps. Nullable internal event.history_position
+  preserves new-event order; legacy IDs/payloads/dates remain unchanged without
+  backfill. Two new isolated MySQL tests cover ties/removal and legacy null rows.
+  The developer schema was untouched. README documents the additive column and
+  coordinated writer upgrade.
+- Made the replay integration server stop immediately at test teardown so its
+  long-lived SSE fixtures no longer cause Surefire's process-exit timeout. The
+  final full-suite run exited cleanly; production shutdown is unchanged.
+- Added a reusable loopback synthetic provider and offline timing/usage summary
+  with missing-stage, unknown-usage and small-sample reporting. Removed obsolete
+  unbounded audio timing code; preserved corpus hashes with Git attributes.
+- Combined ordinary healthcare/core paths use two text requests versus four at
+  baseline; role/RPS continuation use two versus six/five. Real Chromium starts
+  MP3 playback before EOF. Faster model routes and parallel evaluation remain
+  opt-in. Responsive pause timing failed the frozen natural-pause envelope, so
+  the conservative default remains. No mock timing is claimed as a live gain.
+- All test database/browser processes used isolated synthetic fixtures. No live
+  provider, human response assessment, physical-device or reverse-proxy run was
+  performed. Those empirical acceptance gates remain explicitly open.

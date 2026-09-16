@@ -290,3 +290,8 @@ state machine still consumes results in priority order and owns all actions.
 Workers never receive entities or persistence contexts. The application serializes
 runtime mutations per agent inside one process; scheduled ticks and scoped
 deletion use that same boundary. See README for limits and multi-instance scope.
+
+New persisted events carry a nullable internal history position so reloading
+timestamp ties preserves append order. Legacy rows retain their timestamp order
+without backfill; public IDs/payloads/timestamps are unchanged. The additive
+MySQL column and coordinated writer upgrade are documented in README.

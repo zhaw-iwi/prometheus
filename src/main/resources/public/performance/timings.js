@@ -83,20 +83,3 @@ export class TurnTimings {
 }
 
 export const turnTimings = new TurnTimings();
-
-export async function timedAudioBlob(response, onStage = () => {}) {
-  if (!response.body?.getReader) return response.blob();
-  const reader = response.body.getReader();
-  const chunks = [];
-  try {
-    let first = true;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (first && value.length) { onStage("audio_first_byte"); first = false; }
-      chunks.push(value);
-    }
-    onStage("audio_downloaded");
-    return new Blob(chunks, { type: response.headers.get("Content-Type") || "audio/mpeg" });
-  } finally { reader.releaseLock(); }
-}

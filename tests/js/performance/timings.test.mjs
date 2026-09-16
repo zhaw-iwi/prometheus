@@ -1,6 +1,7 @@
+import { createSpeechAudio } from "../../../src/main/resources/public/speech/progressive.js";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { TurnTimings, timedAudioBlob, turnTimings } from "../../../src/main/resources/public/performance/timings.js";
+import { TurnTimings, turnTimings } from "../../../src/main/resources/public/performance/timings.js";
 import { ScopedTranscriptIngress } from "../../../src/main/resources/public/transcription/ingress.js";
 import { TranscriptionEventRuntime } from "../../../src/main/resources/public/transcription/events.js";
 
@@ -72,10 +73,17 @@ test("first-byte marker precedes held audio tail, preserving byte order", async 
   } }), { headers: { "Content-Type": "audio/mpeg" } });
   let first;
   const initial = new Promise(resolve => { first = resolve; });
-  const blobPromise = timedAudioBlob(response, stage => { stages.push(stage); if (stage === "audio_first_byte") first(); });
+  let blob;
+  const resourcePromise = createSpeechAudio(response, {
+    MediaSourceClass: null,
+    urlApi: { createObjectURL: value => { blob = value; return "blob:fixture"; }, revokeObjectURL: () => {} },
+    onStage: stage => { stages.push(stage); if (stage === "audio_first_byte") first(); },
+  });
   await initial;
   assert.deepEqual(stages, ["audio_first_byte"]);
   release();
-  assert.deepEqual([...new Uint8Array(await (await blobPromise).arrayBuffer())], [1, 2, 3]);
+  const resource = await resourcePromise;
+  assert.deepEqual([...new Uint8Array(await blob.arrayBuffer())], [1, 2, 3]);
+  resource.dispose();
   assert.deepEqual(stages, ["audio_first_byte", "audio_downloaded"]);
 });
