@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 public interface LanguageModelGateway {
     default GuardInferenceOptions guardInferenceOptions() { return GuardInferenceOptions.ORDERED; }
+    default GuardInferenceExecutor guardExecutor() { return null; }
     default Object guardCompatibilityKey(InferenceRequest request) { return request.purpose(); }
     /** Typed extension point, with the existing semantic methods available to custom gateways. */
     default String infer(InferenceRequest request) {

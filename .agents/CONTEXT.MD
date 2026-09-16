@@ -280,3 +280,13 @@ The shared queue still owns ordering, leases and input gating. The server flushe
 stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
 Live performance and device/proxy evidence are tracked separately in
 .agents/NEEDFORSPEED_RESULTS.md.
+
+### Need for Speed inference execution
+
+Typed inference purpose and route configuration live at the policy/SPI boundary.
+Speech and nonverbal prompt output can share one request; eligible pure guard
+requests can be combined or evaluated through an opt-in bounded executor. The
+state machine still consumes results in priority order and owns all actions.
+Workers never receive entities or persistence contexts. The application serializes
+runtime mutations per agent inside one process; scheduled ticks and scoped
+deletion use that same boundary. See README for limits and multi-instance scope.

@@ -43,10 +43,19 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
     }).create();
 
     private final OpenAIProperties properties;
+    private final GuardInferenceExecutor guardExecutor;
 
     public OpenAILanguageModelGateway(OpenAIProperties properties) {
-        this.properties = properties;
+        this(properties, null);
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public OpenAILanguageModelGateway(OpenAIProperties properties, GuardInferenceExecutor guardExecutor) {
+        this.properties = properties;
+        this.guardExecutor = guardExecutor;
+    }
+
+    @Override public GuardInferenceExecutor guardExecutor() { return guardExecutor; }
 
     @Override public GuardInferenceOptions guardInferenceOptions() {
         return new GuardInferenceOptions(GuardInferenceOptions.Strategy.valueOf(properties.getGuardStrategy().toUpperCase(java.util.Locale.ROOT)),

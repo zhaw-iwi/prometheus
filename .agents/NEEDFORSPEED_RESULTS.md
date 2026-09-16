@@ -185,3 +185,27 @@ quality/latency and acoustic end-to-end latency: NOT RUN.
 Verified 28 Node, 13 Java and 15 browser cases, including keyboard/mobile settings,
 reconnect retention and the shared multilateral path. Reproduce the replay with
 node tests/needforspeed/replay-vad.mjs target/nfs06-vad.json.
+
+## NFS-07 / Milestone 168
+
+| Ordinary continuation | Current ordered | Combined | Parallel |
+| --- | --- | --- | --- |
+| SMART coaching | 3 | 2 | 3 |
+| Role clarification | 5 | 2 | 6 |
+| RPS readiness | 4 | 2 | 5 |
+
+Counts include combined behaviour generation; the baseline revision had separate
+speech/nonverbal requests. Parallel tests use a barrier to ensure all eligible
+speculative checks actually dispatch, including normally short-circuited guards.
+Combined groups and independent calls are never dispatched redundantly.
+
+32 focused unit cases, 12 local DB cases and 3 domain tick cases passed. The
+concurrent DB test retained both same-agent inputs, allowed another agent to
+proceed while inference was blocked, extracted closing storage once and reset
+correctly after reload. Database target remained prometheus_nfs_f71ad024.
+
+No live model-quality, provider p50/p95 or token/cost comparison. Parallel mode
+remains opt-in; combined is the default. Cancellation can stop the local wait
+without eliminating already billed provider work. Missing cancelled-request
+usage must be counted as unknown, never zero. Runtime mutation serialization is
+in-process; multiple backend instances need an additional coordination design.

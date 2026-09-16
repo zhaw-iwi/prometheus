@@ -984,6 +984,31 @@ OpenAI Batch API. Custom gateways remain ordered unless they opt in through
 deployment without strict structured outputs. Combining prompts can change model
 judgments; live corpus quality remains a separate release check.
 
+For explicit experiments, `openai.guard-strategy=parallel` evaluates separate
+pure checks concurrently, and `combined_parallel` evaluates separate compatible
+groups concurrently. Neither speculates on behaviour generation or actions.
+Default limits are 4 global requests, 3 per turn, 16 waiting tasks, 5000 ms for
+admission/queue waiting and 30000 ms per guard-evaluation session. Configure these
+with `openai.guard-parallelism`, `guard-per-turn-parallelism`,
+`guard-queue-capacity`, `guard-queue-wait-ms`, and `guard-turn-timeout-ms`.
+All names use the `openai.` prefix. At most 64 candidates are prepared; subsequent
+checks stay ordered. Admission reserves the entire group set within bounded
+capacity; overload fails explicitly without redispatching the same work.
+
+Results are consumed in logical priority order. A required failure/deadline
+aborts evaluation; unneeded requests are cancelled on transition or turn end.
+Already dispatched work may still be billed after cancellation. Provider timing
+logs include request IDs and queue waits, but absent usage on cancellation is
+unknown usage, not zero cost. Custom gateways need an explicitly supplied guard
+executor and must be thread-safe to opt into parallel modes.
+
+The application serializes each agent's start/acknowledge/generate/reset/tick
+and scoped deletion operations, loading its aggregate after acquiring the lock.
+Workers receive only immutable inference requests. Enclosing local transactions
+retain the lock until commit/rollback. This is in-process serialization, not a
+distributed lock across application instances. Scheduled ticks use the same
+application boundary. Independent agents can proceed concurrently.
+
 ### Progressive canonical Speech playback
 
 Valerian streams the existing scoped event-ID Speech POST into an MP3

@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 167 (NFS-06), explicit conversation-pace
-  choices with saved preferences intact; pause replay keeps the conservative default.
+- Last completed milestone: Milestone 168 (NFS-07), bounded parallel pure guard
+  evaluation and in-process serialization of each agent's runtime mutations.
   Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
   `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
   live latency and candidate-model quality.
@@ -82,6 +82,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 168: Bounded parallel guard evaluation
 
 - [x] Milestone 167: Explicit responsive turn-completion settings
 
@@ -7896,3 +7898,31 @@ priority and action ownership.
 - Therefore delivered the explicit responsive option and retained the existing
   conservative default, as allowed by the roadmap. No claim of passing the
   healthcare acoustic envelope or achieving the two-second target.
+
+## Milestone 168: Bounded parallel guard evaluation (NFS-07)
+
+- Added opt-in parallel and combined_parallel guard strategies over immutable
+  requests. Global/per-turn permits, admission capacity, queue/turn deadlines,
+  cancellation and shutdown bound speculative work. Logical result consumption
+  retains outer/transition priority; state/actions/persistence remain on caller.
+- Added reference-counted per-agent application serialization, retaining locks
+  through enclosing transaction completion. Scheduled ticks now fetch IDs and
+  enter that boundary, reloading the aggregate inside the lock. Scoped deletion
+  joins the same boundary. This protects one application process, not clusters.
+- Passed 32 focused current unit cases across GuardInferenceExecutorUnitTest,
+  ParallelGuardEvaluationUnitTest, GuardEvaluationUnitTest,
+  AgentTurnSerialiserUnitTest, ContinuousEvaluationSchedulerUnitTest,
+  CatalogInferenceCountUnitTest, InferenceRoutingUnitTest and
+  OpenAILanguageModelGatewayHttpUnitTest. Passed 12 isolated DB cases across
+  ParallelAgentTurnsIntegrationTest/ScopedDemoControllerIntegrationTest and
+  3 AgentContinuousEvaluationUnitTest cases. The final catalog comparison was
+  added after the main unit run and its six-case class passed independently.
+- Latches prove concurrent starts, reversed priority completion, worker isolation,
+  same-agent input order and independent-agent progress. A controllable monotonic
+  clock proves expiry; cancellation, admission exhaustion, required failure,
+  custom barriers, changed snapshots, transactional lock cleanup, extraction and
+  reset are covered. No sleeps used as evidence of concurrency.
+- Ordinary SMART ordered/combined/parallel text calls: 3/2/3; role clarification:
+  5/2/6; RPS readiness: 4/2/5. Parallel pays for speculative checks that ordered
+  short circuiting can skip. Combined remains default. Live p50/p95, quality and
+  tokens/cost comparison NOT RUN; no production speedup claimed for parallel mode.

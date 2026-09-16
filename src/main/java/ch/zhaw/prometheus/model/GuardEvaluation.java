@@ -18,6 +18,8 @@ import ch.zhaw.prometheus.spi.GuardInferenceOptions;
 import ch.zhaw.prometheus.spi.GuardRequests;
 import ch.zhaw.prometheus.spi.InferencePurpose;
 import ch.zhaw.prometheus.spi.InferenceRequest;
+import ch.zhaw.prometheus.spi.InferenceResult;
+import ch.zhaw.prometheus.spi.GuardInferenceExecutor;
 
 /** Per-acknowledgement optimization. Results are consumed by the original ordered transition machinery. */
 public final class GuardEvaluation {
@@ -29,12 +31,18 @@ public final class GuardEvaluation {
     private final Map<Key, List<Candidate>> groups = new HashMap<>();
     private final Map<Key, Boolean> results = new HashMap<>();
     private boolean valid = true;
+    private boolean parallel;
+    private GuardInferenceExecutor.Session execution;
+    private final List<List<Candidate>> orderedGroups = new ArrayList<>();
 
     public static GuardEvaluation prepare(State root, PolicyRuntime runtime) {
         var options = runtime.languageModelGateway().guardInferenceOptions();
         if (options == null || options.strategy() == GuardInferenceOptions.Strategy.ORDERED
                 || runtime.promptMessageAssembler().getClass() != PromptMessageAssembler.class) return null;
         GuardEvaluation evaluation = new GuardEvaluation();
+        evaluation.parallel = options.strategy() == GuardInferenceOptions.Strategy.PARALLEL
+                || options.strategy() == GuardInferenceOptions.Strategy.COMBINED_PARALLEL;
+        if (evaluation.parallel && runtime.languageModelGateway().guardExecutor() == null) return null;
         evaluation.collect(root, runtime);
         evaluation.group(runtime, options);
         return evaluation;
@@ -73,7 +81,9 @@ public final class GuardEvaluation {
                 // A later guard may have invalid inputs but never be reached. Let ordered execution decide.
                 return;
             }
+            if (candidates.size() + pending.size() > 64) return;
             for (Candidate candidate : pending) candidates.put(candidate.key(), candidate);
+            if (candidates.size() >= 64) return; // Bound speculative work; later guards stay ordered.
         }
         if (state instanceof OuterState outer) collect(outer.getInnerCurrent(), runtime);
     }
@@ -92,6 +102,9 @@ public final class GuardEvaluation {
         List<Candidate> group = new ArrayList<>();
         Object compatibility = null;
         for (Candidate candidate : candidates.values()) {
+            if (options.strategy() == GuardInferenceOptions.Strategy.PARALLEL) {
+                register(List.of(candidate)); continue;
+            }
             Object next = runtime.languageModelGateway().guardCompatibilityKey(candidate.request());
             List<Candidate> proposed = new ArrayList<>(group); proposed.add(candidate);
             if (!group.isEmpty() && (!java.util.Objects.equals(compatibility, next)
@@ -107,7 +120,9 @@ public final class GuardEvaluation {
         return GuardRequests.combine(requests(candidates)).messages().stream().mapToInt(message -> message.getContent().length()).sum();
     }
     private void register(List<Candidate> group) {
+        if (group.isEmpty()) return;
         List<Candidate> snapshot = List.copyOf(group);
+        orderedGroups.add(snapshot);
         for (Candidate candidate : group) groups.put(candidate.key(), snapshot);
     }
     private static Map<String, InferenceRequest> requests(List<Candidate> group) {
@@ -130,11 +145,18 @@ public final class GuardEvaluation {
             invalidate(); throw new IllegalStateException("Guard snapshot changed before evaluation");
         }
         List<Candidate> group = groups.get(key);
-        if (group.size() < 2) return null; // Ordinary semantic call retains short-circuit behavior.
+        if (group.size() < 2 && !parallel) return null; // Ordinary semantic call retains short-circuit behavior.
         if (!results.containsKey(key)) {
             Map<String, InferenceRequest> tasks = requests(group);
-            String raw = runtime.languageModelGateway().infer(GuardRequests.combine(tasks));
-            Map<String, Boolean> checked = GuardRequests.validate(raw, tasks.keySet());
+            String raw;
+            if (parallel) {
+                if (execution == null) execution = runtime.languageModelGateway().guardExecutor().start(
+                        orderedGroups.stream().map(members -> members.size() == 1 ? members.getFirst().request()
+                                : GuardRequests.combine(requests(members))).toList(), runtime.languageModelGateway()::infer);
+                raw = execution.await(orderedGroups.indexOf(group));
+            } else raw = runtime.languageModelGateway().infer(GuardRequests.combine(tasks));
+            Map<String, Boolean> checked = group.size() == 1
+                    ? Map.of(candidate.id(), InferenceResult.bool(raw)) : GuardRequests.validate(raw, tasks.keySet());
             var fresh = ((PromptPolicy) decision.getPolicy()).decisionMessages(selected(state, decision), runtime.promptMessageAssembler());
             if (!sameMessages(candidate.request().messages(), fresh)) {
                 invalidate(); throw new IllegalStateException("Guard snapshot changed during inference; results discarded");
@@ -153,5 +175,8 @@ public final class GuardEvaluation {
         return true;
     }
 
-    public void invalidate() { valid = false; results.clear(); }
+    public void invalidate() {
+        valid = false; results.clear();
+        if (execution != null) execution.close();
+    }
 }

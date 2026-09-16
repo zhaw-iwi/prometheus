@@ -45,3 +45,11 @@ openai.request-timeout-ms = 30000
 openai.guard-strategy = combined
 openai.guard-batch-size = 16
 openai.guard-max-characters = 65536
+
+# Optional comparison modes: parallel (separate pure checks) or combined_parallel
+# (concurrent compatible groups). Combined remains the default.
+openai.guard-parallelism = 4
+openai.guard-per-turn-parallelism = 3
+openai.guard-queue-capacity = 16
+openai.guard-queue-wait-ms = 5000
+openai.guard-turn-timeout-ms = 30000

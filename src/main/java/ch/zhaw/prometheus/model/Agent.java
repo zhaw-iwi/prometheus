@@ -197,11 +197,13 @@ public class Agent {
     }
 
     private Event acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
+        GuardEvaluation evaluation = null;
         try {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            PolicyRuntime turnRuntime = runtime.withGuardEvaluation(GuardEvaluation.prepare(this.currentState, runtime));
+            evaluation = GuardEvaluation.prepare(this.currentState, runtime);
+            PolicyRuntime turnRuntime = runtime.withGuardEvaluation(evaluation);
             Event response = this.currentState.acknowledge(event, turnRuntime);
             return this.recordEvent(response);
         } catch (TransitionException e) {
@@ -212,6 +214,8 @@ public class Agent {
             }
             this.currentState.enter();
             return this.acknowledgeWithoutRegulation(event, false, runtime);
+        } finally {
+            if (evaluation != null) evaluation.invalidate();
         }
     }
 

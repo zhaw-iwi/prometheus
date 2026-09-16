@@ -167,7 +167,7 @@ consumption of that global sequence.
 | NFS-04 | Deterministic batching of compatible transition checks | NFS-02, NFS-03 | Implemented (Milestone 165); live quality pending |
 | NFS-05 | Progressive canonical Speech playback | NFS-01 | Complete (Milestone 166); device/proxy checks pending |
 | NFS-06 | Responsive turn-completion settings with pause protection | NFS-01 | Implemented (Milestone 167); conservative default retained |
-| NFS-07 | Bounded parallel evaluation of eligible inference groups | NFS-02, NFS-04 | Not started |
+| NFS-07 | Bounded parallel evaluation of eligible inference groups | NFS-02, NFS-04 | Implemented (Milestone 168); live comparison pending |
 | NFS-08 | Integrated database/browser/quality/latency acceptance | NFS-01 through NFS-07 | Not started |
 
 Use the listed sequence for reviewable changes; dependency independence does

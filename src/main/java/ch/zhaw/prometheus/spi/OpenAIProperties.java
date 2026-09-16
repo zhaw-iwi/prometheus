@@ -30,6 +30,21 @@ public class OpenAIProperties {
     private String guardStrategy = "combined";
     private int guardBatchSize = 16;
     private int guardMaxCharacters = 65536;
+    private int guardParallelism = 4;
+    private int guardPerTurnParallelism = 3;
+    private int guardQueueCapacity = 16;
+    private int guardQueueWaitMs = 5000;
+    private int guardTurnTimeoutMs = 30000;
+    public int getGuardParallelism() { return guardParallelism; }
+    public void setGuardParallelism(int value) { guardParallelism = value; }
+    public int getGuardPerTurnParallelism() { return guardPerTurnParallelism; }
+    public void setGuardPerTurnParallelism(int value) { guardPerTurnParallelism = value; }
+    public int getGuardQueueCapacity() { return guardQueueCapacity; }
+    public void setGuardQueueCapacity(int value) { guardQueueCapacity = value; }
+    public int getGuardQueueWaitMs() { return guardQueueWaitMs; }
+    public void setGuardQueueWaitMs(int value) { guardQueueWaitMs = value; }
+    public int getGuardTurnTimeoutMs() { return guardTurnTimeoutMs; }
+    public void setGuardTurnTimeoutMs(int value) { guardTurnTimeoutMs = value; }
     public String getGuardStrategy() { return guardStrategy; }
     public void setGuardStrategy(String value) { guardStrategy = value; }
     public int getGuardBatchSize() { return guardBatchSize; }
