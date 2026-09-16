@@ -27,6 +27,10 @@ public class ScriptedLanguageModelGateway implements LanguageModelGateway {
         this.cursor = new AtomicInteger(0);
     }
 
+    @Override public String infer(InferenceRequest request) {
+        return LanguageModelGateway.super.infer(request);
+    }
+
     @Override
     public String complete(List<PromptMessage> messages) {
         return requireStringValue(nextCall("complete"));
@@ -35,7 +39,7 @@ public class ScriptedLanguageModelGateway implements LanguageModelGateway {
     @Override
     public boolean decide(List<PromptMessage> messages) {
         JsonElement value = requireValue(nextCall("decide"));
-        if (!value.isJsonPrimitive()) {
+        if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()) {
             throw new IllegalStateException("scripted decide response must be a JSON primitive boolean");
         }
         return value.getAsBoolean();

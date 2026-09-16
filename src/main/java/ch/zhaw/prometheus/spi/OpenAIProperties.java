@@ -26,6 +26,40 @@ public class OpenAIProperties {
     private String liveTranscriptionWebRtcUrl;
     private String liveTranscriptionSafetyIdentifier;
 
+    private String reasoningEffort;
+    private int requestTimeoutMs = 30000;
+    private Integer maxCompletionTokens;
+    private java.util.Map<InferencePurpose, InferenceRoute> routes = new java.util.EnumMap<>(InferencePurpose.class);
+
+    public String getReasoningEffort() { return reasoningEffort; }
+    public void setReasoningEffort(String value) { reasoningEffort = value; }
+    public int getRequestTimeoutMs() { return requestTimeoutMs; }
+    public void setRequestTimeoutMs(int value) { requestTimeoutMs = value; }
+    public Integer getMaxCompletionTokens() { return maxCompletionTokens; }
+    public void setMaxCompletionTokens(Integer value) { maxCompletionTokens = value; }
+    public java.util.Map<InferencePurpose, InferenceRoute> getRoutes() { return routes; }
+    public void setRoutes(java.util.Map<InferencePurpose, InferenceRoute> value) {
+        routes = value == null ? new java.util.EnumMap<>(InferencePurpose.class) : value;
+    }
+
+    public static class InferenceRoute {
+        private String model;
+        private String reasoningEffort;
+        private String url;
+        private Integer timeoutMs;
+        private Integer maxCompletionTokens;
+        public String getModel() { return model; }
+        public void setModel(String value) { model = value; }
+        public String getReasoningEffort() { return reasoningEffort; }
+        public void setReasoningEffort(String value) { reasoningEffort = value; }
+        public String getUrl() { return url; }
+        public void setUrl(String value) { url = value; }
+        public Integer getTimeoutMs() { return timeoutMs; }
+        public void setTimeoutMs(Integer value) { timeoutMs = value; }
+        public Integer getMaxCompletionTokens() { return maxCompletionTokens; }
+        public void setMaxCompletionTokens(Integer value) { maxCompletionTokens = value; }
+    }
+
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
     }

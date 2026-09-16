@@ -7,6 +7,20 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 public interface LanguageModelGateway {
+    /** Typed extension point, with the existing semantic methods available to custom gateways. */
+    default String infer(InferenceRequest request) {
+        String raw = switch (request.output()) {
+            case BOOLEAN -> Boolean.toString(decide(request.messages()));
+            case TEXT -> request.purpose() == InferencePurpose.SUMMARY
+                    ? summariseOffline(request.messages()) : complete(request.messages());
+            case JSON, JSON_OBJECT -> switch (request.purpose()) {
+                case EXTRACTION -> String.valueOf(extract(request.messages()));
+                case SUMMARY -> String.valueOf(summarise(request.messages()));
+                default -> complete(request.messages());
+            };
+        };
+        return InferenceResult.validate(raw, request.output());
+    }
     String REMINDER_DECISION = "Remember to reply with either true or false only so that it can be parsed with the Java programming language. Your answer needs to work with Boolean.parseBoolean() method, which only accepts English true or false.";
     String REMINDER_EXTRACTION = """
             Return valid JSON data that can be parsed with the GSON library for Java.

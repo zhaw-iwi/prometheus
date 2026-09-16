@@ -72,15 +72,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 162 (NFS-01), correlated latency diagnostics
-  and frozen offline baselines. Implementation continues on `features/needforspeed`;
-  see `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
-  Live latency and model-quality targets remain unverified.
+- Last completed milestone: Milestone 163 (NFS-02), typed inference requests,
+  task-specific model/effort routing and strict provider result validation.
+  Need-for-speed implementation continues on `features/needforspeed`; see
+  `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
+  Live latency and candidate model quality remain unverified.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 163: Typed inference requests and model/effort routing
 
 - [x] Milestone 162: Correlated latency diagnostics and frozen offline baselines
 
@@ -7750,3 +7753,41 @@ or weakening the Milestone 159/160 cockpit and starter-speech lifecycles.
   audio and deployment buffering remain NOT RUN in the results ledger.
 - Continue with NFS-02 model-purpose routing. The user explicitly authorized
   committing/pushing each milestone and continuing without a review pause.
+
+
+## Milestone 163: Typed inference requests and model/effort routing (NFS-02)
+
+### What changed
+- Added immutable inference snapshots with purpose, expected output shape,
+  optional structured schema and request/trace IDs. Existing custom gateway
+  semantic methods remain supported through the typed SPI extension point.
+- Added global fallback and per-purpose model, effort, endpoint, timeout and
+  output-token settings. The template includes opt-in Sol/Luna routes; no local
+  credentials or deployment model settings were changed.
+- Added finite HTTP deadlines, interruption handling, strict boolean/JSON and
+  response-envelope validation, and content-free provider failure messages.
+  Refused, filtered and truncated output cannot be accepted as a decision.
+- Kept Azure deployment URLs authoritative. Routing requires a corresponding
+  endpoint when a model is overridden, and does not send public model IDs in
+  Azure request bodies. Omitted legacy Azure model metadata remains supported.
+- Omitted optional sampling parameters on reasoning families; recorded this
+  payload difference for subsequent quality comparisons.
+
+### Verification
+- 22 Java tests passed in InferenceRoutingUnitTest,
+  OpenAILanguageModelGatewayHttpUnitTest,
+  OpenAILanguageModelGatewayMessageMappingUnitTest, PromptPolicyGestureUnitTest,
+  CatalogInferenceCountUnitTest, StateTransitionUnitTest,
+  StateTransitionSnapshotUnitTest, AgentOuterStateRoutingUnitTest and
+  AgentNestedOuterStateRoutingUnitTest.
+- The 7 routing/loopback HTTP tests passed again after the final Azure fallback
+  and request-shape validation changes. They cover exact fields, Spring binding,
+  missing usage, strict parsing, refusal/truncation, provider error and timeout
+  without retries. Catalog call counts and branch semantics are unchanged.
+- `git diff --check` passed. No database, live-provider or browser run was needed
+  for these configuration/SPI changes. Live Sol/Luna/OpenAI/Azure checks remain
+  NOT RUN. Official Sol/Luna model pages were fetched on 2026-09-16.
+
+### Next step
+Continue with NFS-03 combined speech/nonverbal generation and persisted-policy
+smoke verification in a disposable local database.

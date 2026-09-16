@@ -22,13 +22,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.policy.PromptMessage;
-import ch.zhaw.prometheus.logging.LatencyTrace;
 
 @Component
 @ConditionalOnProperty(name = "prometheus.gateway.mode", havingValue = "openai", matchIfMissing = true)
 public class OpenAILanguageModelGateway implements LanguageModelGateway {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenAILanguageModelGateway.class);
-    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(10)).build();
     private static final Gson GSON = new GsonBuilder().addSerializationExclusionStrategy(new ExclusionStrategy() {
 
         @Override
@@ -49,32 +48,20 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         this.properties = properties;
     }
 
-    @Override
-    public String complete(List<PromptMessage> messages) {
-        return openai("behaviour", messages, 1.0f, 1.0f);
+    @Override public String complete(List<PromptMessage> messages) {
+        return infer(new InferenceRequest(InferencePurpose.BEHAVIOUR, messages, InferenceRequest.Output.TEXT));
     }
-
-    @Override
-    public boolean decide(List<PromptMessage> messages) {
-        String response = openai("decision", messages, 0.0f, 0.0f);
-        return Boolean.parseBoolean(response);
+    @Override public boolean decide(List<PromptMessage> messages) {
+        return InferenceResult.bool(infer(new InferenceRequest(InferencePurpose.DECISION, messages, InferenceRequest.Output.BOOLEAN)));
     }
-
-    @Override
-    public JsonElement extract(List<PromptMessage> messages) {
-        String response = openai("extraction", messages, 0.0f, 0.0f);
-        return GSON.fromJson(response, JsonElement.class);
+    @Override public JsonElement extract(List<PromptMessage> messages) {
+        return InferenceResult.json(infer(new InferenceRequest(InferencePurpose.EXTRACTION, messages, InferenceRequest.Output.JSON)));
     }
-
-    @Override
-    public JsonElement summarise(List<PromptMessage> messages) {
-        String response = openai("summary", messages, 0.0f, 0.0f);
-        return GSON.fromJson(response, JsonElement.class);
+    @Override public JsonElement summarise(List<PromptMessage> messages) {
+        return InferenceResult.json(infer(new InferenceRequest(InferencePurpose.SUMMARY, messages, InferenceRequest.Output.JSON)));
     }
-
-    @Override
-    public String summariseOffline(List<PromptMessage> messages) {
-        return openai("summary", messages, 0.0f, 0.0f);
+    @Override public String summariseOffline(List<PromptMessage> messages) {
+        return infer(new InferenceRequest(InferencePurpose.SUMMARY, messages, InferenceRequest.Output.TEXT));
     }
 
     JsonArray toOpenAIMessages(List<PromptMessage> prompts) {
@@ -91,49 +78,76 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         return messages;
     }
 
-    private String openai(String purpose, List<PromptMessage> prompts, float temperature, float topP) {
-        long start = LatencyTrace.now();
+    @Override public String infer(InferenceRequest inference) {
+        InferenceRouting.Route route = InferenceRouting.resolve(properties, inference.purpose());
+        long start = System.nanoTime();
         boolean success = false;
         int requests = 0;
         try {
-            JsonObject payload = this.properties.payload();
-            payload.addProperty("temperature", temperature);
-            if (topP > 0) {
-                payload.addProperty("top_p", topP);
-            }
-            payload.add("messages", this.toOpenAIMessages(prompts));
-
+            JsonObject payload = payload(inference, route);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(new URI(this.properties.getUrl()))
-                    .header(this.properties.headerKeyNameForAPIKey(), this.properties.getKey())
+                    .uri(URI.create(route.url()))
+                    .timeout(java.time.Duration.ofMillis(route.timeoutMs()))
+                    .header(properties.headerKeyNameForAPIKey(), properties.getKey())
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(payload)))
                     .build();
             requests++;
             HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-
             if (response.statusCode() != HttpURLConnection.HTTP_OK) {
-                throw new RuntimeException(
-                        "unable to use openai api - http request returned status code: " + response.statusCode()
-                                + " (\n\t"
-                                + response.body() + "\n\t" + response + "\n)");
+                throw new IllegalStateException("Inference provider returned HTTP " + response.statusCode()
+                        + "; check account access, configured route and provider limits");
             }
-
-            JsonObject jsonResponse = GSON.fromJson(response.body(), JsonObject.class);
-            String result = testAndObtainContent(jsonResponse);
+            JsonElement parsed = InferenceResult.json(response.body());
+            if (!parsed.isJsonObject()) throw new IllegalStateException("Invalid inference response envelope");
+            JsonObject envelope = parsed.getAsJsonObject();
+            JsonObject usage = envelope.has("usage") && envelope.get("usage").isJsonObject()
+                    ? envelope.getAsJsonObject("usage") : new JsonObject();
+            LOGGER.info("latency trace={} request={} stage=inference_usage purpose={} model={} effort={} promptTokens={} completionTokens={}",
+                    inference.traceId(), inference.requestId(), inference.purpose(), route.model(),
+                    route.effort() == null ? "default" : route.effort(), tokenCount(usage, "prompt_tokens"), tokenCount(usage, "completion_tokens"));
+            String result = InferenceResult.validate(testAndObtainContent(envelope), inference.output());
             success = true;
-            JsonObject usage = jsonResponse.has("usage") && jsonResponse.get("usage").isJsonObject()
-                    ? jsonResponse.getAsJsonObject("usage") : new JsonObject();
-            LOGGER.info("latency trace={} stage=inference_usage purpose={} model={} effort=default promptTokens={} completionTokens={}",
-                    LatencyTrace.currentId(), purpose, properties.getModel(),
-                    tokenCount(usage, "prompt_tokens"), tokenCount(usage, "completion_tokens"));
             return result;
-        } catch (Exception e) {
-            throw new RuntimeException("unable to request openai :-(", e);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Inference request interrupted");
+        } catch (java.net.http.HttpTimeoutException timeout) {
+            throw new IllegalStateException("Inference request exceeded configured deadline");
+        } catch (java.io.IOException transport) {
+            throw new IllegalStateException("Inference provider transport failed");
         } finally {
-            LOGGER.info("latency trace={} stage=inference purpose={} status={} durationMs={} requests={}",
-                    LatencyTrace.currentId(), purpose, success ? "ok" : "error", LatencyTrace.elapsedMs(start), requests);
+            LOGGER.info("latency trace={} request={} stage=inference purpose={} model={} effort={} status={} durationMs={} requests={}",
+                    inference.traceId(), inference.requestId(), inference.purpose(), route.model(),
+                    route.effort() == null ? "default" : route.effort(), success ? "ok" : "error",
+                    (System.nanoTime() - start) / 1_000_000.0, requests);
         }
+    }
+
+    JsonObject payload(InferenceRequest inference, InferenceRouting.Route route) {
+        JsonObject payload = new JsonObject();
+        if ("openai".equals(properties.getOpenaivsazureopenai())) payload.addProperty("model", route.model());
+        if (route.effort() != null) payload.addProperty("reasoning_effort", route.effort());
+        if (route.maxCompletionTokens() != null) payload.addProperty("max_completion_tokens", route.maxCompletionTokens());
+        if (route.samplingParameters()) payload.addProperty("temperature",
+                inference.purpose() == InferencePurpose.BEHAVIOUR || inference.purpose() == InferencePurpose.NONVERBAL ? 1.0 : 0.0);
+        payload.add("messages", toOpenAIMessages(inference.messages()));
+        JsonObject schema = inference.schema();
+        if (schema != null) {
+            JsonObject format = new JsonObject();
+            format.addProperty("type", "json_schema");
+            JsonObject definition = new JsonObject();
+            definition.addProperty("name", "prometheus_result");
+            definition.addProperty("strict", true);
+            definition.add("schema", schema);
+            format.add("json_schema", definition);
+            payload.add("response_format", format);
+        } else if (inference.output() == InferenceRequest.Output.JSON_OBJECT) {
+            JsonObject format = new JsonObject();
+            format.addProperty("type", "json_object");
+            payload.add("response_format", format);
+        }
+        return payload;
     }
 
     private static Integer tokenCount(JsonObject usage, String key) {
@@ -141,38 +155,23 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         catch (RuntimeException invalid) { return null; }
     }
 
-    private static String testAndObtainContent(JsonObject jsonResponse) {
-        if (!jsonResponse.has("choices")) {
-            throw new RuntimeException(
-                    "unable to use openai api - json response has no choices: " + jsonResponse);
+    private static String testAndObtainContent(JsonObject envelope) {
+        try {
+            JsonArray choices = envelope.getAsJsonArray("choices");
+            if (choices == null || choices.size() != 1) throw new IllegalStateException();
+            JsonObject choice = choices.get(0).getAsJsonObject();
+            if (!"stop".equals(choice.get("finish_reason").getAsString())) {
+                throw new IllegalStateException();
+            }
+            JsonObject message = choice.getAsJsonObject("message");
+            if (message.has("refusal") && !message.get("refusal").isJsonNull()) throw new IllegalStateException();
+            JsonElement content = message.get("content");
+            if (content == null || !content.isJsonPrimitive() || !content.getAsJsonPrimitive().isString()) {
+                throw new IllegalStateException();
+            }
+            return content.getAsString();
+        } catch (RuntimeException invalid) {
+            throw new IllegalStateException("Inference response was missing, refused, filtered or truncated");
         }
-
-        JsonArray jsonChoices = jsonResponse.getAsJsonArray("choices");
-
-        if (jsonChoices.size() == 0) {
-            throw new RuntimeException(
-                    "unable to use openai api - json choices is empty: " + jsonResponse);
-        }
-
-        JsonObject jsonChoice = jsonChoices.get(0).getAsJsonObject();
-
-        if (jsonChoice.has("finish_reason") && "content_filter".equals(jsonChoice.get("finish_reason").getAsString())) {
-            throw new ContenFilterException(
-                    "unable to use openai api - content of message was filtered: " + jsonResponse);
-        }
-
-        if (!jsonChoice.has("message")) {
-            throw new RuntimeException(
-                    "unable to use openai api - json choices is empty: " + jsonResponse);
-        }
-
-        JsonObject jsonMessage = jsonChoice.get("message").getAsJsonObject();
-
-        if (!jsonMessage.has("content")) {
-            throw new RuntimeException(
-                    "unable to use openai api - json message has no content: " + jsonResponse);
-        }
-
-        return jsonMessage.get("content").getAsString();
     }
 }

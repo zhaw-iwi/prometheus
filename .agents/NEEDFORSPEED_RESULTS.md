@@ -87,3 +87,20 @@ counts, pricing date and currency if costs are calculated, browser/device/networ
 and corpus hashes. Run at least 50 reference turns per live configuration if
 credentials and a finite run-local request/token cap are available. Retain NOT RUN
 for missing live or hardware evidence. The two-second target has not been tested.
+
+
+## NFS-02 / Milestone 163
+
+22 focused Java tests passed, followed by 7 routing/HTTP tests after final
+validation changes. No inference call-count reduction yet. Per-purpose routes
+and explicit effort are opt-in; local OpenAI credentials/configuration unchanged.
+Sol/Luna Chat Completions and none effort verified from official model docs;
+actual account/model access, quality, tokens/cost and latency: NOT RUN.
+
+Payload comparison caveat: reasoning-family requests now omit optional sampling
+parameters. The original GPT-5.2 decision payload supplied temperature zero.
+Use the baseline revision for a faithful original-payload live comparison rather
+than assuming the new fallback configuration is byte-identical to that baseline.
+
+Commands: `.\mvnw.cmd -q "-Dtest=InferenceRoutingUnitTest,OpenAILanguageModelGatewayHttpUnitTest,OpenAILanguageModelGatewayMessageMappingUnitTest,PromptPolicyGestureUnitTest,CatalogInferenceCountUnitTest,StateTransitionUnitTest,StateTransitionSnapshotUnitTest,AgentOuterStateRoutingUnitTest,AgentNestedOuterStateRoutingUnitTest" test`
+and the focused rerun with `-Dtest=InferenceRoutingUnitTest,OpenAILanguageModelGatewayHttpUnitTest`.

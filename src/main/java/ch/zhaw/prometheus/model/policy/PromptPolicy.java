@@ -15,6 +15,8 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.InferencePurpose;
+import ch.zhaw.prometheus.spi.InferenceRequest;
 import ch.zhaw.prometheus.logging.LatencyTrace;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
 import jakarta.persistence.CascadeType;
@@ -332,7 +334,8 @@ public class PromptPolicy extends Policy {
         List<PromptMessage> messages = List.of(
                 PromptMessage.system(this.nonVerbalPlanPrompt),
                 PromptMessage.user("Assistant speech: " + speech));
-        String raw = LatencyTrace.measure("nonverbal", () -> languageModelGateway.complete(messages));
+        String raw = LatencyTrace.measure("nonverbal", () -> languageModelGateway.infer(
+                new InferenceRequest(InferencePurpose.NONVERBAL, messages, InferenceRequest.Output.TEXT)));
         if (raw == null || raw.isBlank()) {
             return null;
         }
@@ -372,7 +375,8 @@ public class PromptPolicy extends Policy {
         List<PromptMessage> messages = List.of(
                 PromptMessage.system(this.nonVerbalGesturePrompt),
                 PromptMessage.user("Assistant speech: " + speech));
-        String raw = LatencyTrace.measure("nonverbal", () -> languageModelGateway.complete(messages));
+        String raw = LatencyTrace.measure("nonverbal", () -> languageModelGateway.infer(
+                new InferenceRequest(InferencePurpose.NONVERBAL, messages, InferenceRequest.Output.TEXT)));
         String gesture = normalizeGestureLabel(raw);
         if (gesture == null) {
             gesture = "NONE";

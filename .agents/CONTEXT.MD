@@ -83,6 +83,9 @@ PROMETHEUS currently provides:
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
+- typed inference requests with configurable task-purpose model/effort routes,
+  finite provider deadlines, strict structured-result validation and content-free
+  correlated latency diagnostics (configuration and evidence in README/results);
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;

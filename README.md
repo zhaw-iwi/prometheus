@@ -324,6 +324,40 @@ speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
 
+### Task-specific text inference
+
+The text SPI accepts typed `InferenceRequest` snapshots with purpose, messages,
+output shape, optional JSON schema, request ID and correlation ID. Existing
+semantic gateway methods remain available for custom/test gateways. Purposes
+are `behaviour`, `nonverbal`, `decision`, `extraction`, and `summary`; they are
+explicit in code rather than guessed from prompt wording.
+
+`openai.model` remains the fallback. Configure `openai.reasoning-effort` and
+`openai.routes.<purpose>.model`, `.reasoning-effort`, `.max-completion-tokens`,
+`.timeout-ms` or `.url` to override a purpose. Blank effort uses the provider
+default. The template contains an opt-in Sol/Luna configuration with `none`
+effort; no existing installation switches models automatically. The output cap
+includes reasoning tokens. Text HTTP requests have a 30-second default deadline
+and a 10-second connection deadline; failures do not retry or escalate models.
+
+For Azure, the URL identifies the deployment. A model override must include its
+matching deployment URL; `model` identifies the underlying model for capability
+validation and is not sent in Azure payloads. These routes have only been tested
+against loopback HTTP providers, not live OpenAI or Azure accounts.
+
+Optional sampling parameters are omitted on reasoning model families to avoid
+model/effort incompatibilities. This changes the former temperature-zero decision
+payload on GPT-5.2; compare decision quality before promoting candidate routes.
+Non-reasoning models retain temperature 1 for behaviour and 0 for structured
+work. Invalid booleans/JSON, missing content, refusal, filtering and truncated
+completions fail explicitly. Provider error bodies are not included in errors.
+
+Provider references: [GPT-5.6 Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol),
+[GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna) and
+[GPT-5.2](https://developers.openai.com/api/docs/models/gpt-5.2). Sol/Luna support
+Chat Completions and `none` effort; account access and task quality remain to be
+established for each deployment.
+
 ### Response latency diagnostics
 
 POST requests accept an optional UUID `X-Prometheus-Trace-Id` and return a validated
@@ -332,7 +366,7 @@ trace ID. A request that publishes behaviour also returns
 These headers do not grant access or change event payloads. Configured CORS
 origins can send/read them.
 
-Server `latency` log entries record inference purpose, model, default effort,
+Server `latency` log entries record inference purpose, model, effective configured effort (or provider default),
 token counts when supplied, application/persistence/publication durations and
 Speech response-header time. Durations are monotonic. Successful provider prompt
 and response bodies are no longer logged by the text gateway.
