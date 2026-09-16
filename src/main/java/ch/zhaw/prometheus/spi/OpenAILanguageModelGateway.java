@@ -48,6 +48,15 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         this.properties = properties;
     }
 
+    @Override public GuardInferenceOptions guardInferenceOptions() {
+        return new GuardInferenceOptions(GuardInferenceOptions.Strategy.valueOf(properties.getGuardStrategy().toUpperCase(java.util.Locale.ROOT)),
+                properties.getGuardBatchSize(), properties.getGuardMaxCharacters());
+    }
+
+    @Override public Object guardCompatibilityKey(InferenceRequest request) {
+        return InferenceRouting.resolve(properties, request.purpose());
+    }
+
     @Override public String complete(List<PromptMessage> messages) {
         return infer(new InferenceRequest(InferencePurpose.BEHAVIOUR, messages, InferenceRequest.Output.TEXT));
     }

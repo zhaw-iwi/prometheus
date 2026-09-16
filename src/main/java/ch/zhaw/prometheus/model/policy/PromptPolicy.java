@@ -202,9 +202,12 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return false;
         }
-        List<PromptMessage> messages = assembler.composeCondensed(events, prompt,
-                LanguageModelGateway.REMINDER_DECISION);
+        List<PromptMessage> messages = decisionMessages(events, assembler);
         return languageModelGateway.decide(messages);
+    }
+
+    public List<PromptMessage> decisionMessages(EventHistory events, PromptMessageAssembler assembler) {
+        return assembler.composeCondensed(events, resolvePrompt(), LanguageModelGateway.REMINDER_DECISION);
     }
 
     @Override

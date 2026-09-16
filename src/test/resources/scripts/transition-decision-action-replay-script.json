@@ -96,11 +96,7 @@
   "gatewayCalls": [
     {
       "method": "complete",
-      "value": "Hi, what is one thing you want support with today?"
-    },
-    {
-      "method": "complete",
-      "value": "OPEN_QUESTION"
+      "value": "{\"speech\":\"Hi, what is one thing you want support with today?\",\"nonVerbal\":{\"gesture\":\"OPEN_QUESTION\"}}"
     },
     {
       "method": "decide",
@@ -108,11 +104,7 @@
     },
     {
       "method": "complete",
-      "value": "Good to hear from you. If you want, tell me one concrete challenge for today."
-    },
-    {
-      "method": "complete",
-      "value": "ACKNOWLEDGE"
+      "value": "{\"speech\":\"Good to hear from you. If you want, tell me one concrete challenge for today.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}"
     },
     {
       "method": "decide",
@@ -128,11 +120,7 @@
     },
     {
       "method": "complete",
-      "value": "Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately."
-    },
-    {
-      "method": "complete",
-      "value": "EXPLAIN"
+      "value": "{\"speech\":\"Great, let us make a short plan: pick the earlier deadline, define the first 15-minute task, then start immediately.\",\"nonVerbal\":{\"gesture\":\"EXPLAIN\"}}"
     },
     {
       "method": "decide",
@@ -140,11 +128,7 @@
     },
     {
       "method": "complete",
-      "value": "Excellent work today. Run your first 15-minute task now, and we can review progress in the next session."
-    },
-    {
-      "method": "complete",
-      "value": "POLITE"
+      "value": "{\"speech\":\"Excellent work today. Run your first 15-minute task now, and we can review progress in the next session.\",\"nonVerbal\":{\"gesture\":\"POLITE\"}}"
     }
   ]
 }

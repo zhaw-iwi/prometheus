@@ -430,6 +430,51 @@ class ScopedDemoControllerIntegrationTest {
         verify(speechSynthesisGateway).synthesize("Stored policy reply.", "alloy", 1.0);
     }
 
+    @Test
+    void batchedGuardsAfterReloadPreserveExtractionEventOrderAndReset() throws Exception {
+        String code = "NFS04";
+        String type = ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching.KEY;
+        allowType(code, type); UUID id = createAgent(code, type);
+        entityManager.flush(); entityManager.clear();
+        when(languageModelGateway.guardInferenceOptions()).thenReturn(new ch.zhaw.prometheus.spi.GuardInferenceOptions(
+                ch.zhaw.prometheus.spi.GuardInferenceOptions.Strategy.COMBINED, 16, 65536));
+        var closing = new java.util.concurrent.atomic.AtomicBoolean();
+        var batches = new java.util.concurrent.atomic.AtomicInteger();
+        when(languageModelGateway.infer(any())).thenAnswer(invocation -> {
+            ch.zhaw.prometheus.spi.InferenceRequest inference = invocation.getArgument(0);
+            if (inference.purpose() == ch.zhaw.prometheus.spi.InferencePurpose.DECISION) {
+                batches.incrementAndGet();
+                assertEquals(java.util.Set.of("g0", "g1"), inference.schema().getAsJsonObject("properties").keySet());
+                return "{\"g0\":false,\"g1\":" + closing.get() + "}";
+            }
+            return "{\"speech\":\"Synthetic response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
+        });
+        when(languageModelGateway.extract(any())).thenReturn(com.google.gson.JsonParser.parseString("{\"completed\":true}"));
+        for (String text : List.of("I would like to draw.", "Yes, let us hold it that way.")) {
+            mockMvc.perform(post("/demo/agents/" + id + "/acknowledge").header(HEADER, code)
+                    .queryParam("profile", "full_plan").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(java.util.Map.of("type", Event.TYPE_USER_UTTERANCE,
+                            "actor", "user", "kind", "observation", "payload", text))))
+                    .andExpect(status().isOk());
+            entityManager.flush(); entityManager.clear();
+            closing.set(true);
+        }
+        Agent closed = agents.findById(id).orElseThrow();
+        assertFalse(closed.isActive());
+        assertTrue(closed.getStorage().get("outcome").getAsJsonObject().get("completed").getAsBoolean());
+        assertEquals(2, batches.get());
+        verify(languageModelGateway).extract(any());
+        verify(languageModelGateway, org.mockito.Mockito.never()).decide(any());
+        var history = closed.getEventHistory().toList();
+        assertEquals(2, history.stream().filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).count());
+        assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, history.get(history.size()-1).getType());
+        mockMvc.perform(delete("/demo/agents/" + id + "/reset").header(HEADER, code)).andExpect(status().isOk());
+        entityManager.flush(); entityManager.clear();
+        Agent reset = agents.findById(id).orElseThrow();
+        assertTrue(reset.isActive());
+        assertEquals(1, reset.getEventHistory().toList().size());
+    }
+
     private AccessCodeView allowType(String code, String typeKey) {
         AccessCodeView created = this.adminService.createAccessCode(code, true);
         return this.adminService.replaceAllowedAgentTypes(created.getId(), List.of(typeKey)).orElseThrow();

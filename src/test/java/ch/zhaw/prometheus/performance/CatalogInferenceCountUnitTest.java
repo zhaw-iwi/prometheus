@@ -16,9 +16,15 @@ class CatalogInferenceCountUnitTest {
     List<String> calls = new ArrayList<>();
     Deque<Boolean> decisions = new ArrayDeque<>();
     boolean invalidNonverbal;
+    public GuardInferenceOptions guardInferenceOptions() { return new GuardInferenceOptions(GuardInferenceOptions.Strategy.COMBINED, 16, 65536); }
     public String complete(List<PromptMessage> m) { calls.add("S"); return "A short example response."; }
     public String infer(InferenceRequest request) {
       if (request.output() != InferenceRequest.Output.JSON_OBJECT) return LanguageModelGateway.super.infer(request);
+      if (request.purpose() == InferencePurpose.DECISION) {
+        calls.add("G"); JsonObject result = new JsonObject();
+        for (String id : request.schema().getAsJsonObject("properties").keySet()) result.addProperty(id, !decisions.isEmpty() && decisions.removeFirst());
+        return result.toString();
+      }
       calls.add("B");
       return invalidNonverbal ? "invalid" : "{\"speech\":\"A short example response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
     }
@@ -37,13 +43,13 @@ class CatalogInferenceCountUnitTest {
       assertEquals(def instanceof TalkToMe ? 0 : 1, g.calls.size(), def.key() + " startup");
       g.reset(); Event event = a.acknowledge(input(Event.TYPE_USER_UTTERANCE), rt);
       if (event == null) a.generate(rt);
-      int expected = def instanceof TalkToMe ? 0 : def instanceof RockScissorPaper ? 4 : def instanceof RoleClarificationGuessingGame ? 5 : 3;
+      int expected = def instanceof TalkToMe ? 0 : 2;
       assertEquals(expected, g.calls.size(), def.key());
     }
   }
   @Test void closingSensoryFallbackAndDeterministicPaths() {
-    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "DXS", true);
-    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "DDXS", false, true);
+    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXS", true);
+    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXS", false, true);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "DB", true);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "D", false);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_WEATHER_CURRENT, false, "");
@@ -54,7 +60,7 @@ class CatalogInferenceCountUnitTest {
     Agent a = new SingleStateSmartGoalCoaching().createAgent(); a.start(rt); g.reset(); g.invalidNonverbal = true;
     a.acknowledge(input(Event.TYPE_USER_UTTERANCE), rt);
     assertThrows(IllegalStateException.class, () -> a.generate(rt));
-    assertEquals("DDB", String.join("", g.calls));
+    assertEquals("GB", String.join("", g.calls));
   }
   static void check(AgentDefinition def, String type, boolean fallback, String expected, Boolean... decisions) {
     Gateway g = new Gateway(); PolicyRuntime rt = new PolicyRuntime(new PromptMessageAssembler(), g);

@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 164 (NFS-03), one-request speech/nonverbal
-  generation, verified with stored custom policies in an isolated local database.
+- Last completed milestone: Milestone 165 (NFS-04), compatible pure guard batching with ordered Java
+  priority, verified after reload in an isolated local database.
   Continue `.agents/PLAN_NEEDFORSPEED.md` on `features/needforspeed`.
   `.agents/NEEDFORSPEED_RESULTS.md` separates offline results from unverified
   live latency and candidate-model quality.
@@ -82,6 +82,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 165: Compatible pure guard batching
 
 - [x] Milestone 164: Combined speech and nonverbal generation
 
@@ -7828,3 +7830,25 @@ smoke verification in a disposable local database.
 Live combined-response quality and elapsed-time gains remain NOT RUN. Continue
 with deterministic batching of compatible guards, retaining Java transition
 priority and action ownership.
+
+## Milestone 165: Compatible pure guard batching (NFS-04)
+
+- Added per-acknowledgement immutable guard requests, local event filtering,
+  route/size grouping, strict boolean maps, and ordered result consumption.
+  Unknown custom work remains a barrier; actions invalidate unused results.
+- Ordinary catalog exchanges now use two text requests: guard group + behaviour.
+  Role clarification groups five eligible predicates (including a predicate that
+  ordered short-circuit evaluation may skip), retaining role/outer priority.
+- Verified 18 focused tests in GuardEvaluationUnitTest, CatalogInferenceCountUnitTest,
+  StateTransitionUnitTest, StateTransitionSnapshotUnitTest,
+  AgentOuterStateRoutingUnitTest and AgentNestedOuterStateRoutingUnitTest.
+  Verified 11 ScopedDemoControllerIntegrationTest cases plus
+  TransitionDecisionActionReplayIntegrationTest on disposable local schema
+  prometheus_nfs_f71ad024 with mocked providers. The replay fixture now represents
+  the NFS-03 combined speech/nonverbal request. The DB process reported a Surefire
+  shutdown timeout after completed tests; test assertions all passed.
+- Covers conflicting priorities, nested/explicit history selectors, changed
+  snapshot rejection, action-dependent storage prompts, malformed maps, barriers,
+  route/count/character limits, real role selection, persisted extraction/reset.
+- Live candidate-model guard corpus, quality, tokens/cost and latency NOT RUN;
+  structural correctness does not establish identical model judgments.

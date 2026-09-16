@@ -27,6 +27,15 @@ public class OpenAIProperties {
     private String liveTranscriptionSafetyIdentifier;
 
     private String reasoningEffort;
+    private String guardStrategy = "combined";
+    private int guardBatchSize = 16;
+    private int guardMaxCharacters = 65536;
+    public String getGuardStrategy() { return guardStrategy; }
+    public void setGuardStrategy(String value) { guardStrategy = value; }
+    public int getGuardBatchSize() { return guardBatchSize; }
+    public void setGuardBatchSize(int value) { guardBatchSize = value; }
+    public int getGuardMaxCharacters() { return guardMaxCharacters; }
+    public void setGuardMaxCharacters(int value) { guardMaxCharacters = value; }
     private int requestTimeoutMs = 30000;
     private Integer maxCompletionTokens;
     private java.util.Map<InferencePurpose, InferenceRoute> routes = new java.util.EnumMap<>(InferencePurpose.class);

@@ -201,7 +201,8 @@ public class Agent {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            Event response = this.currentState.acknowledge(event, runtime);
+            PolicyRuntime turnRuntime = runtime.withGuardEvaluation(GuardEvaluation.prepare(this.currentState, runtime));
+            Event response = this.currentState.acknowledge(event, turnRuntime);
             return this.recordEvent(response);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();

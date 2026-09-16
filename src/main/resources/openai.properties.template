@@ -40,3 +40,8 @@ openai.request-timeout-ms = 30000
 # openai.routes.summary.reasoning-effort = none
 # Each route can also set timeout-ms and url. Azure model overrides must include
 # the matching deployment URL. Azure availability must be checked separately.
+
+# Pure guard evaluation: combined (default) or ordered (provider compatibility / comparison).
+openai.guard-strategy = combined
+openai.guard-batch-size = 16
+openai.guard-max-characters = 65536

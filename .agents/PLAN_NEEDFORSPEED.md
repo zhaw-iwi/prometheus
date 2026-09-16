@@ -164,7 +164,7 @@ consumption of that global sequence.
 | NFS-01 | Correlated timings, reproducible baseline, quality corpus | None | Complete (Milestone 162) |
 | NFS-02 | Typed inference purposes and configurable model/effort routing | NFS-01 | Complete (Milestone 163) |
 | NFS-03 | One-request speech and nonverbal generation | NFS-02 | Complete (Milestone 164) |
-| NFS-04 | Deterministic batching of compatible transition checks | NFS-02, NFS-03 | Not started |
+| NFS-04 | Deterministic batching of compatible transition checks | NFS-02, NFS-03 | Implemented (Milestone 165); live quality pending |
 | NFS-05 | Progressive canonical Speech playback | NFS-01 | Not started |
 | NFS-06 | Responsive turn-completion settings with pause protection | NFS-01 | Not started |
 | NFS-07 | Bounded parallel evaluation of eligible inference groups | NFS-02, NFS-04 | Not started |

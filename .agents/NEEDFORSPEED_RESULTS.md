@@ -127,3 +127,17 @@ used by exact-speech synthesis. No persisted schema change or agent recreation.
 Live latency, tokens/cost, model response quality and acoustic evidence: NOT RUN.
 
 Exact suites and outcomes are recorded under Milestone 164 in PROJECT.md.
+
+## NFS-04 / Milestone 165
+
+Ordinary catalog conversation: 2 text calls (one guard group, one behaviour),
+versus baseline 4 for healthcare, 6 for role clarification and 5 for RPS readiness.
+SMART outer/inner close: 3/3 including required extraction and final speech.
+Talk to Me remains 0. Guard groups may evaluate lower-priority checks that ordered
+short circuiting would skip; compare tokens as well as requests in live runs.
+
+18 focused Java cases and 12 isolated-database cases passed. The initial role
+fixture missed the second outer predicate; corrected to all five catalog checks.
+No production schema or local model configuration changed. DB suites completed
+assertions but emitted a Surefire process-shutdown timeout. Live guard corpus,
+response review, latency, provider cost, and model access remain NOT RUN.

@@ -949,3 +949,23 @@ through environment variables or platform config vars.
 - The top of `PROJECT.md` is the current engineering snapshot. The remaining
   milestone records are a historical audit to search selectively, not required
   startup reading.
+
+### Compatible transition checks
+
+`openai.guard-strategy=combined` groups known pure `StaticDecision`/`PromptPolicy`
+checks from the active state path into one structured boolean request. Each check
+retains its own selected history and resolved prompt. Java still applies outer,
+transition-list and decision-list priority and executes selected actions once.
+Local event-type filters can reject pure conjunctions before model inference.
+Unknown state/decision subclasses, unconditional transitions and actions are
+barriers; action execution invalidates all unused results. No cross-turn cache.
+
+Groups require the same effective provider route and are bounded by
+`openai.guard-batch-size` (16) and `openai.guard-max-characters` (65536 serialized
+prompt characters); oversized/single checks use ordinary ordered calls. Provider
+output-token limits still apply. Missing/extra IDs or non-boolean values fail the
+whole group before actions. This is synchronous request composition, not the
+OpenAI Batch API. Custom gateways remain ordered unless they opt in through
+`guardInferenceOptions()`. Use `openai.guard-strategy=ordered` for comparison or a
+deployment without strict structured outputs. Combining prompts can change model
+judgments; live corpus quality remains a separate release check.
