@@ -1,5 +1,75 @@
 # Need for speed: evidence record
 
+## Luna behaviour trial and output-size investigation (Milestone 174, 2026-09-17)
+
+The requested Heroku test configuration now routes behaviour and nonverbal to
+gpt-5.6-luna at none, joining decision/extraction/summary. Separate purpose routes,
+global GPT-5.2 fallback and the opt-in Sol/Luna template are retained. The mixed
+model routing test still checks Sol behaviour alongside Luna decisions. This
+change does not shorten speech, alter authored prompts or change model output
+parsing, persisted plans, client contracts or speech synthesis settings.
+
+The two user-provided 2026-09-17 timing exports contain 15 ordinary turns and two
+closing turns. For ordinary turns, Luna decisions average 1,358 input / 19 output
+tokens and 0.908 seconds; Sol behaviour averages 3,223 input / 82.6 output tokens
+and 2.617 seconds. Luna's two closing extractions produce 120/139 output tokens
+and take 1.753/2.671 seconds. These compare different workloads; they do not
+isolate model speed. Exports contain usage metadata, not the response text, so
+the actual speech-versus-JSON token split cannot be recovered from them.
+
+Output investigation:
+
+- PromptPolicy resolves nested outer/task instructions; PromptMessageAssembler
+  supplies selected events as role-labelled messages plus context augmenters.
+  BehaviourPlanInference adds authored nonverbal instructions and one JSON
+  envelope requirement. Policies with no nonverbal prompt use plain speech.
+- Combined output contains speech/nonVerbal, with motion/display only where
+  explicitly required. Healthcare NONVERBAL_PLAN asks for gesture, face type
+  and intensity, gaze direction and focus, and stillness/energy. It already
+  omits top-level motion for ordinary coaching and forbids display. There is no
+  universal requirement to emit every possible modality on every request.
+- A compact provider-only encoding could shorten field names and encode fixed
+  pairs as arrays, followed by deterministic expansion before current plan
+  validation/publication. Synthetic example (not a recorded user utterance):
+
+  Canonical (232 characters, already minified):
+  `{"speech":"What small step feels manageable?","nonVerbal":{"gesture":"NONE","facialExpression":{"type":"gentleSmile","intensity":0.3},"gaze":{"direction":"toward_user","focus":"older_adult"},"motion":{"stillness":0.9,"energy":0.1}}}`
+
+  Candidate (136 characters):
+  `{"speech":"What small step feels manageable?","nv":{"g":"NONE","f":["gentleSmile",0.3],"z":["toward_user","older_adult"],"m":[0.9,0.1]}}`
+
+  This preserves all values in the example and reduces characters by 41%, not
+  a measured token or latency reduction. Tokenization, model adherence, extra
+  mapping instructions and custom modality shapes need evaluation. A generic
+  adapter must preserve authored capabilities, optional/partial modalities,
+  posture/prosody/proxemics, top-level hand signs and display. It belongs at the
+  policy inference boundary; no shorthand should reach storage or clients.
+- Replacing full modality values with named expression presets could reduce
+  output further, but constrains independent expression and requires per-agent
+  authored presets. Omitting neutral/unchanged fields requires explicit reset
+  semantics; it must not silently retain a previous gesture or facial state.
+- Minified model output and omission of unnecessary null fields are smaller
+  candidates. Server-side minification after receipt cannot reduce generation
+  latency. A lower output-token cap risks truncating JSON and is not a substitute
+  for a smaller representation. Existing healthcare speech is already brief.
+
+Next evidence: repeat the same Heroku agent/preset with Luna and the unchanged
+output format, comparing actual output tokens, latency and conversation quality.
+Assess a compact codec separately with round-trip preservation and malformed
+output tests alongside PromptPolicyGestureUnitTest, then provider measurements;
+no compact codec is enabled by this milestone. Provider latency guidance:
+https://developers.openai.com/api/docs/guides/latency-optimization
+
+Verification: all nine cases in InferenceRoutingUnitTest (4) and
+OpenAILanguageModelGatewayHttpUnitTest (5) passed with no failures or skips:
+`.\mvnw.cmd -q "-Dtest=InferenceRoutingUnitTest,OpenAILanguageModelGatewayHttpUnitTest" test`.
+The production-profile test loads the checked-in routes; the existing mixed
+Sol/Luna test proves independent purpose overrides and global fallback remain.
+HTTP tests use loopback fixtures, with no database or live model requests.
+Log: ignored `target/luna-behaviour-routing-tests.log`. No UI or persistence
+changes require browser/database tests. Live Luna behaviour quality, token
+savings and latency improvement have not been measured.
+
 ## Interaction timing follow-up (Milestone 173, 2026-09-17)
 
 The right-hand Agent & Diagnostics drawer now has an Interaction Timing tab.

@@ -72,9 +72,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 173, added the Interaction Timing drawer
-  tab, content-free JSON/CSV exports and correlated browser/server measurements.
-  Real Heroku recordings are still needed to locate the reported six-second delay.
+- Last completed follow-up: Milestone 174, switches Heroku behaviour/nonverbal routes
+  to Luna at none while preserving independent purpose routes. The first Heroku
+  recordings show ordinary Sol behaviour calls average 2.62 seconds versus
+  0.91 seconds for shorter Luna decisions. Luna behaviour quality/latency and
+  compact output encoding remain unverified; see the results ledger.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -86,6 +88,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 174: Luna behaviour routes and output-size investigation
 
 - [x] Milestone 173: Interaction timing drawer and shareable evidence
 
@@ -8060,3 +8064,20 @@ priority and action ownership.
   inspected 1440/390-pixel drawer screenshots. Controlled providers and browser
   media were used; no database, live Heroku or physical acoustic measurement.
   Detailed evidence and limitations are in .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 174: Luna behaviour routes and output-size investigation
+
+- Changed the Heroku behaviour/nonverbal purpose routes from Sol to Luna at
+  none. Retained independent purpose configuration, the global GPT-5.2 fallback
+  and the opt-in mixed-model template. No authored prompt, output representation,
+  state-machine, persistence, client or synthesis change.
+- Passed nine existing configuration and loopback-provider tests with zero
+  failures/skips. The production-profile expectation reflects all five Luna
+  routes; the separate Sol-behaviour/Luna-decision test still passes unchanged.
+- Assessed compact provider output with deterministic canonical expansion and
+  documented a synthetic 232-to-136-character example in the results ledger.
+  This is an investigation, not an enabled codec or measured token saving.
+  Preset-based expression and omitted-default semantics need separate design.
+- The user's first Heroku recordings compare different model workloads. Repeat
+  with Luna and the unchanged output format before attributing latency/quality
+  changes to representation. No live Luna behaviour evaluation was run here.

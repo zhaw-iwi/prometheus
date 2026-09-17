@@ -19,8 +19,7 @@ class InferenceRoutingUnitTest {
                     assertEquals("gpt-5.2", properties.getModel());
                     for (InferencePurpose purpose : InferencePurpose.values()) {
                         var route = InferenceRouting.resolve(properties, purpose);
-                        assertEquals(purpose == InferencePurpose.BEHAVIOUR || purpose == InferencePurpose.NONVERBAL
-                                ? "gpt-5.6-sol" : "gpt-5.6-luna", route.model(), purpose.name());
+                        assertEquals("gpt-5.6-luna", route.model(), purpose.name());
                         assertEquals("none", route.effort(), purpose.name());
                         // Environment endpoint overrides remain authoritative for isolated test runs.
                         assertEquals(properties.getUrl(), route.url());
