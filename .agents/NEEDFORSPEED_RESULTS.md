@@ -1,5 +1,38 @@
 # Need for speed: evidence record
 
+## Transcription resume follow-up (Milestone 171, 2026-09-17)
+
+Heroku testing exposed an existing resume lookup bug: the current-state policy
+view copies events without IDs, so the latest-assistant endpoint discarded the
+eligible result and returned 204. The endpoint now uses the scoped canonical
+history also used by chat and synthesis. This preserves persisted IDs and
+includes earlier-state speech. It returns no speech for empty history or a
+latest user utterance; non-speech events do not count as utterances.
+
+Two new persisted-agent/HTTP regression tests failed with 204 before the fix and
+passed afterwards. Coverage includes a newly created SMART greeting, exact
+canonical Speech synthesis, repeated lookup, access scoping, a resumed reply
+outside the current-state selector, a non-speech tail, and silence after a user
+utterance or empty history. Providers are mocked and the local MySQL schema is
+disposable; the developer database is untouched.
+
+Verification on features/needforspeed:
+
+- 27 Java cases: ScopedBehaviourSpeechServiceUnitTest,
+  ScopedDemoControllerIntegrationTest, BehaviourSpeechControllerWebMvcTest,
+  SpeechProgressiveHttpIntegrationTest and EventHistoryOrderPersistenceTest.
+- 11 Node cases: `node --test tests/js/speech/*.test.mjs`.
+- 18 Playwright cases: valerian-transcription.spec.mjs and
+  progressive-speech.spec.mjs against static local assets. The extended resume
+  case confirms repeated Start Transcription replays before opening input.
+  Cockpit API/WebRTC/media are mocked; the three native MP3 cases exercise real
+  Chromium playback with a withheld HTTP tail, Stop and buffered fallback.
+
+All passed, with zero failures/skips. Logs are in ignored target/resume-*.log.
+No live provider latency, physical acoustic output or Heroku proxy streaming
+measurement was performed. README records which improvements are automatic,
+which cockpit settings apply, and why parallel guards remain an opt-in trial.
+
 ## Heroku testing follow-up (Milestone 170, 2026-09-17)
 
 The user explicitly designated Heroku as the test environment and requested

@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 170, Heroku Sol/Luna test routes at none
-  and combined-generation compatibility for agents-branch hand signs.
+- Last completed follow-up: Milestone 171, restored Start Transcription replay
+  from canonical chat history and documented speed-improvement activation.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -85,6 +85,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 171: Canonical latest-assistant transcription resume
 
 - [x] Milestone 170: Heroku test routes and hand-sign compatibility
 
@@ -7985,3 +7987,24 @@ priority and action ownership.
   while transcription is stopped; provider delay remains an independent setting.
 - Next integration is features/needforspeed into agents, with application-specific
   fixtures and merge validation there before the authorized deployment push.
+
+## Milestone 171: Canonical latest-assistant transcription resume
+
+- Fixed the resume endpoint reading a selected state-policy history whose event
+  copies have no persisted IDs. It now reads scoped canonical history, matching
+  the chat and the exact-event Speech endpoint. Fresh greetings and previous
+  assistant utterances are eligible; empty history and a latest user utterance
+  remain silent. Later non-speech events do not replace the latest utterance.
+- Added two database/HTTP regression cases using real persisted/reloaded agents,
+  including an assistant reply outside the current state's selector, exact
+  synthesis, repeated lookup and access scoping. Both reproduced the old HTTP
+  204 failure before the fix. Extended the browser resume test to stop and start
+  again, with input held until the same assistant event finishes each time.
+- Passed 27 focused Java cases on an isolated local MySQL schema with mocked
+  providers, 11 Node speech tests and 18 Playwright transcription/progressive
+  audio cases. Native Chromium verifies streaming; cockpit WebRTC/media are
+  mocked. No live provider, acoustic device or deployed latency measurement.
+- README now distinguishes automatic combining, production Sol/Luna routes and
+  browser streaming from cockpit turn timing and optional parallel guard modes.
+  Lower silence duration affects only that waiting window; the live two-second
+  target remains unverified.

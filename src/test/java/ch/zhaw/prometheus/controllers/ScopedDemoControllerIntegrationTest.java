@@ -368,6 +368,89 @@ class ScopedDemoControllerIntegrationTest {
     }
 
     @Test
+    void latestSpeechResolvesReloadedStartupToItsCanonicalSpeechEndpoint() throws Exception {
+        String code = "NS171";
+        String type = ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching.KEY;
+        this.allowType(code, type);
+        UUID agentId = this.createAgent(code, type);
+        this.entityManager.flush();
+        this.entityManager.clear();
+
+        MvcResult chat = this.mockMvc.perform(get("/demo/agents/" + agentId + "/eventhistory")
+                .header(HEADER, code)).andExpect(status().isOk()).andReturn();
+        JsonNode events = this.objectMapper.readTree(chat.getResponse().getContentAsString());
+        JsonNode greeting = events.get(events.size() - 1);
+        assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, greeting.path("type").asText());
+        String speech = BehaviourPlan.fromJson(greeting.path("payload").asText()).getSpeech();
+        assertFalse(speech.isBlank());
+        Event persisted = this.agents.findById(agentId).orElseThrow().getEventHistory().toList().getLast();
+        assertEquals(greeting.path("payload").asText(), persisted.getPayload());
+        String eventId = persisted.getId().toString();
+
+        // Explicit starts may resume the same event more than once.
+        for (int attempt = 0; attempt < 2; attempt++) {
+            this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
+                    .header(HEADER, code)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.eventId").value(eventId));
+        }
+        org.mockito.Mockito.verifyNoInteractions(this.speechSynthesisGateway);
+        byte[] audio = new byte[] { 1, 7, 1 };
+        when(this.speechSynthesisGateway.synthesize(speech, "alloy", 1.0))
+                .thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+        MvcResult spoken = this.mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/"
+                + eventId + "/speech").header(HEADER, code))
+                .andExpect(request().asyncStarted()).andReturn();
+        this.mockMvc.perform(asyncDispatch(spoken)).andExpect(status().isOk())
+                .andExpect(content().bytes(audio));
+        verify(this.speechSynthesisGateway).synthesize(speech, "alloy", 1.0);
+
+        this.allowType("NSOTH", type);
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
+                .header(HEADER, "NSOTH")).andExpect(status().isNoContent());
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void latestSpeechFollowsChatTailAcrossStateBoundariesAndStaysSilentAfterUser() throws Exception {
+        String code = "NS172";
+        this.allowType(code, TYPE_KEY);
+        UUID agentId = this.createAgent(code, TYPE_KEY);
+        Agent agent = this.agents.findById(agentId).orElseThrow();
+        var history = agent.getEventHistory();
+        history.reset();
+        this.entityManager.flush();
+        this.entityManager.clear();
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
+                .header(HEADER, code)).andExpect(status().isNoContent());
+
+        agent = this.agents.findById(agentId).orElseThrow();
+        history = agent.getEventHistory();
+        history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Hello"));
+        Event reply = history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
+                Event.ACTOR_ASSISTANT, "{\"speech\":\"Welcome back.\"}"));
+        reply.setStatePath(List.of("earlier conversation state"));
+        history.appendEvent(Event.systemTick());
+        history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
+                Event.ACTOR_ASSISTANT, "{\"nonVerbal\":{\"gesture\":\"NONE\"}}"));
+        this.entityManager.flush();
+        UUID replyId = reply.getId();
+        this.entityManager.clear();
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
+                .header(HEADER, code)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventId").value(replyId.toString()));
+
+        agent = this.agents.findById(agentId).orElseThrow();
+        agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE,
+                Event.ACTOR_USER, "Another question"));
+        this.entityManager.flush();
+        this.entityManager.clear();
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
+                .header(HEADER, code)).andExpect(status().isNoContent());
+        org.mockito.Mockito.verifyNoInteractions(this.speechSynthesisGateway);
+    }
+
+    @Test
     void removedCombinedRealtimeRoutesAreNotMapped() throws Exception {
         UUID agentId = UUID.randomUUID();
 
