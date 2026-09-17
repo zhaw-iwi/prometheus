@@ -73,6 +73,17 @@ test("starting transcription speaks the latest persisted assistant utterance bef
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
+
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  expect(speechRequests).toHaveLength(2);
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
+  expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
+  await page.evaluate(() => window.__finishSpeechPlayback());
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
 });
 
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {

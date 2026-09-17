@@ -56,11 +56,11 @@ class ScopedBehaviourSpeechServiceUnitTest {
     }
 
     @Test
-    void selectsLatestAssistantSpeechEventOnlyWhenItIsTheLatestUtteranceInTheCurrentState() {
+    void selectsLatestAssistantSpeechEventOnlyWhenItIsTheLatestUtteranceInCanonicalHistory() {
         Event assistant = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
                 "{\"speech\":\"Welcome back.\"}");
         Event user = event(UUID.randomUUID(), Event.TYPE_USER_UTTERANCE, "One more question");
-        when(this.demoService.getAgentCurrentStateEventHistory("abc12", AGENT_ID))
+        when(this.demoService.getAgentEventHistory("abc12", AGENT_ID))
                 .thenReturn(Optional.of(List.of(assistant)))
                 .thenReturn(Optional.of(List.of(assistant, user)))
                 .thenReturn(Optional.empty());

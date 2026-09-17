@@ -78,8 +78,8 @@ and regulation diagnostics remain future work.
 - Agents integration (2026-09-17): merged Need for Speed and its Heroku Sol/Luna
   configuration for the authorized testing deployment. Passed 398 Java and 45
   Node tests on isolated fixtures; live model quality/latency remain unverified.
-- Last completed follow-up: Milestone 170, Heroku Sol/Luna test routes at none
-  and combined-generation compatibility for agents-branch hand signs.
+- Last completed follow-up: Milestone 171, restored Start Transcription replay
+  from canonical chat history and documented speed-improvement activation.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -91,6 +91,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 171: Canonical latest-assistant transcription resume
 
 - [x] Milestone 170: Heroku test routes and hand-sign compatibility
 
@@ -8799,3 +8801,27 @@ priority and action ownership.
   The committed production profile selects Sol behaviour/nonverbal and Luna
   decisions/extraction/summary at none. Effective environment overrides and live
   response quality/performance remain deployment/trial observations.
+
+## Milestone 171: Canonical latest-assistant transcription resume
+
+- Fixed the resume endpoint reading a selected state-policy history whose event
+  copies have no persisted IDs. It now reads scoped canonical history, matching
+  the chat and the exact-event Speech endpoint. Fresh greetings and previous
+  assistant utterances are eligible; empty history and a latest user utterance
+  remain silent. Later non-speech events do not replace the latest utterance.
+- Added two database/HTTP regression cases using real persisted/reloaded agents,
+  including an assistant reply outside the current state's selector, exact
+  synthesis, repeated lookup and access scoping. Both reproduced the old HTTP
+  204 failure before the fix. Extended the browser resume test to stop and start
+  again, with input held until the same assistant event finishes each time.
+- Passed 27 focused Java cases on an isolated local MySQL schema with mocked
+  providers, 11 Node speech tests and 18 Playwright transcription/progressive
+  audio cases. Native Chromium verifies streaming; cockpit WebRTC/media are
+  mocked. No live provider, acoustic device or deployed latency measurement.
+- README now distinguishes automatic combining, production Sol/Luna routes and
+  browser streaming from cockpit turn timing and optional parallel guard modes.
+  Lower silence duration affects only that waiting window; the live two-second
+  target remains unverified.
+- Integrated feature commit 889f170 into agents for the authorized Heroku test
+  deployment. The same 27 focused Java cases passed on the merged branch; only
+  documentation needed merge-conflict resolution.

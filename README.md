@@ -880,8 +880,11 @@ Valerian's output queue accepts `behaviour-live` events with non-empty speech
 and a persisted SSE event ID. It processes those IDs in order and keeps
 completed, failed, and deliberately skipped IDs distinct, so duplicate live
 delivery and ordinary history/reconnect replay cannot speak twice. An explicit
-transcription start may enqueue the current state's latest eligible assistant
-event again; this intentional resume delivery is repeatable on later starts and
+transcription start may enqueue the latest assistant utterance from canonical
+chat history again, including a fresh agent's starting message. If the latest
+utterance is from the user, or no assistant speech exists, nothing is spoken.
+State-history selectors do not restrict this lookup. This intentional resume
+delivery is repeatable on later starts and
 still synthesizes only the persisted plan. Synthesis begins through the
 canonical event-scoped endpoint below, and playback is routed to the selected
 output device. The microphone remains gated across a queued burst and opens
@@ -1057,6 +1060,23 @@ required. This was verified only on a disposable local schema.
   startup reading.
 
 ### Compatible transition checks
+
+For the Heroku testing deployment, the speed improvements have these activation
+rules (environment overrides take precedence over property files):
+
+| Improvement | Activation |
+| --- | --- |
+| Combined speech/nonverbal generation | Automatic for compatible prompt policies requesting both channels. |
+| Combined transition decisions | Default `openai.guard-strategy=combined`; only eligible pure checks can share a request. |
+| Purpose/model/effort routing | `openai-prod.properties` selects Sol for behaviour/nonverbal, Luna for decision/extraction/summary, all at `none`; GPT-5.2 remains the fallback. |
+| Progressive synthesized audio | Automatic when the browser supports MP3 MediaSource; otherwise buffered playback. No cockpit switch. |
+| Shorter turn completion | Select local silence duration and provider transcription delay in the cockpit while stopped. Defaults remain 1.5 seconds and medium; saved choices apply on the next start. |
+| Parallel guard evaluation | Server-side opt-in with `parallel` or `combined_parallel`; leave `combined` for the initial comparison, since speculative requests can increase work. |
+
+Changing local silence from 1.0 to 0.5 seconds removes 500 ms of that waiting
+window. It does not shorten provider transcription, model processing or synthesis,
+and may split an utterance at a natural pause. The two-second end-to-end target
+still needs live measurement; see the correlated timing instructions above.
 
 `openai.guard-strategy=combined` groups known pure `StaticDecision`/`PromptPolicy`
 checks from the active state path into one structured boolean request. Each check
