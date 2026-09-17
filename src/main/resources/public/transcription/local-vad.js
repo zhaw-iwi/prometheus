@@ -50,9 +50,10 @@ export class LocalVadSegmenter {
   }
 
   finish(reason, observedAtMs) {
+    const lastVoiceAtMs = this.lastVoiceAt;
     this.reset();
-    this.onSpeechStop({ reason, observedAtMs });
-    this.onCommit({ reason, observedAtMs });
+    this.onSpeechStop({ reason, observedAtMs, lastVoiceAtMs });
+    this.onCommit({ reason, observedAtMs, lastVoiceAtMs });
   }
 
   reset() {

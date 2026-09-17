@@ -357,6 +357,7 @@ class TdsrLabPromptContractTest {
             if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
                 return """
                         {
+                          "speech": "Hello, I am GIGI. The lab game is ready.",
                           "nonVerbal": {
                             "gesture": "NONE",
                             "facialExpression": {"type": "warmNeutral", "intensity": 0.2},

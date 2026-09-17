@@ -26,6 +26,26 @@ export class TranscriptionSettingsPanel {
   render() {
     this.root.replaceChildren();
     const provider = section("Provider transcription");
+    this.presetWrapper = document.createElement("div");
+    this.presetWrapper.className = "col-12";
+    const presetLabel = document.createElement("label");
+    presetLabel.className = "form-label metric-label";
+    presetLabel.htmlFor = "transcription_turn_preset";
+    presetLabel.textContent = "Conversation pace";
+    this.presetControl = document.createElement("select");
+    this.presetControl.id = "transcription_turn_preset";
+    this.presetControl.dataset.testid = "transcription-turn-preset";
+    this.presetControl.className = "form-select form-select-sm";
+    this.presetControl.add(new Option("Responsive (0.8 s pause, low delay)", "responsive"));
+    this.presetControl.add(new Option("Pause tolerant (1.5 s pause, medium delay)", "pause_tolerant"));
+    const custom = new Option("Custom", "custom"); custom.disabled = true;
+    this.presetControl.add(custom);
+    const explanation = document.createElement("div");
+    explanation.className = "small text-muted mt-1";
+    explanation.textContent = "Use Responsive for steady speech. Choose Pause tolerant or manual turns when you need longer pauses.";
+    this.presetControl.addEventListener("change", () => this.applyTurnPreset());
+    this.presetWrapper.append(presetLabel, this.presetControl, explanation);
+    provider.body.append(this.presetWrapper);
     for (const setting of this.preferences.descriptor.settings) {
       const wrapper = document.createElement("div");
       wrapper.className = "col-12 col-md-6 transcription-setting";
@@ -182,12 +202,30 @@ export class TranscriptionSettingsPanel {
 
   refreshVisibility() {
     const values = this.preferences.apiValues();
+    this.presetControl.value = this.preferences.turnPreset();
+    this.presetWrapper.hidden = values.turnDetection?.type !== "local_vad";
     for (const { setting, wrapper } of this.controls.values()) {
       if (!setting.visibleWhen) wrapper.hidden = false;
       else {
         const [key, expected] = setting.visibleWhen.split("=");
         wrapper.hidden = String(getPath(values, key)) !== expected;
       }
+    }
+  }
+
+  applyTurnPreset() {
+    try {
+      const values = this.preferences.applyTurnPreset(this.presetControl.value);
+      for (const key of ["turnDetection.silenceDurationSeconds", "transcriptionDelay"]) {
+        const { control, feedback } = this.controls.get(key);
+        control.value = getPath(values, key);
+        control.classList.remove("is-invalid"); feedback.textContent = "";
+      }
+      this.refreshVisibility(); this.updateSummary();
+      this.onValidation({ valid: true, key: "turnPreset" });
+    } catch (error) {
+      this.feedback.textContent = error.message;
+      this.onValidation({ valid: false, key: "turnPreset", message: error.message });
     }
   }
 

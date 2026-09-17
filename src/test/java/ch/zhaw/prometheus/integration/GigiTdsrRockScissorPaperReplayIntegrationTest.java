@@ -40,6 +40,7 @@ import ch.zhaw.prometheus.spi.script.InteractionScriptLoader;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "prometheus.gateway.mode=scripted",
+        "server.shutdown=immediate",
         "prometheus.gateway.script=classpath:scripts/gigi-tdsr-rock-scissor-paper-replay-script.json"
 })
 class GigiTdsrRockScissorPaperReplayIntegrationTest {

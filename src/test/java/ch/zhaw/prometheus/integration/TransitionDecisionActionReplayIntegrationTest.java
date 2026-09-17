@@ -42,7 +42,9 @@ import ch.zhaw.prometheus.spi.script.InteractionScriptLoader;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "prometheus.gateway.mode=scripted",
-        "prometheus.gateway.script=classpath:scripts/transition-decision-action-replay-script.json"
+        "prometheus.gateway.script=classpath:scripts/transition-decision-action-replay-script.json",
+        // SSE subscriptions outlive these assertions; do not drain them during test-context teardown.
+        "server.shutdown=immediate"
 })
 class TransitionDecisionActionReplayIntegrationTest {
     private static final Gson GSON = new Gson();

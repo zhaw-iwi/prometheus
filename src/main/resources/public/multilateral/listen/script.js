@@ -134,13 +134,13 @@ function handleTransportState({ state, message = "", attempt = 0 }) {
   updateManualControl();
 }
 
-async function handleFinalTranscript({ epoch, itemId, text }) {
+async function handleFinalTranscript({ epoch, itemId, text, timings }) {
   const transcript = String(text || "").trim();
   if (!transcript || isLikelyAsrHallucination(transcript)) {
     appendLog("transcription", `Ignored noisy transcript ${itemId}.`);
     return;
   }
-  await session.ingress.submit({ epoch, itemId, text: transcript });
+  await session.ingress.submit({ epoch, itemId, text: transcript, timings });
 }
 
 function handleAcceptedTranscript({ itemId, text }) {

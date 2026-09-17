@@ -397,7 +397,7 @@ class TdsrMigrosPromptContractTest {
         public String complete(List<PromptMessage> messages) {
             String prompt = join(messages);
             if (prompt.contains("Select one nonverbal gesture label")) {
-                return "NONE";
+                return "{\"speech\":\"Das passt zur Szene.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
             }
             return "Das passt zur Szene.";
         }

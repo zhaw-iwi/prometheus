@@ -26,6 +26,64 @@ public class OpenAIProperties {
     private String liveTranscriptionWebRtcUrl;
     private String liveTranscriptionSafetyIdentifier;
 
+    private String reasoningEffort;
+    private String guardStrategy = "combined";
+    private int guardBatchSize = 16;
+    private int guardMaxCharacters = 65536;
+    private int guardParallelism = 4;
+    private int guardPerTurnParallelism = 3;
+    private int guardQueueCapacity = 16;
+    private int guardQueueWaitMs = 5000;
+    private int guardTurnTimeoutMs = 30000;
+    public int getGuardParallelism() { return guardParallelism; }
+    public void setGuardParallelism(int value) { guardParallelism = value; }
+    public int getGuardPerTurnParallelism() { return guardPerTurnParallelism; }
+    public void setGuardPerTurnParallelism(int value) { guardPerTurnParallelism = value; }
+    public int getGuardQueueCapacity() { return guardQueueCapacity; }
+    public void setGuardQueueCapacity(int value) { guardQueueCapacity = value; }
+    public int getGuardQueueWaitMs() { return guardQueueWaitMs; }
+    public void setGuardQueueWaitMs(int value) { guardQueueWaitMs = value; }
+    public int getGuardTurnTimeoutMs() { return guardTurnTimeoutMs; }
+    public void setGuardTurnTimeoutMs(int value) { guardTurnTimeoutMs = value; }
+    public String getGuardStrategy() { return guardStrategy; }
+    public void setGuardStrategy(String value) { guardStrategy = value; }
+    public int getGuardBatchSize() { return guardBatchSize; }
+    public void setGuardBatchSize(int value) { guardBatchSize = value; }
+    public int getGuardMaxCharacters() { return guardMaxCharacters; }
+    public void setGuardMaxCharacters(int value) { guardMaxCharacters = value; }
+    private int requestTimeoutMs = 30000;
+    private Integer maxCompletionTokens;
+    private java.util.Map<InferencePurpose, InferenceRoute> routes = new java.util.EnumMap<>(InferencePurpose.class);
+
+    public String getReasoningEffort() { return reasoningEffort; }
+    public void setReasoningEffort(String value) { reasoningEffort = value; }
+    public int getRequestTimeoutMs() { return requestTimeoutMs; }
+    public void setRequestTimeoutMs(int value) { requestTimeoutMs = value; }
+    public Integer getMaxCompletionTokens() { return maxCompletionTokens; }
+    public void setMaxCompletionTokens(Integer value) { maxCompletionTokens = value; }
+    public java.util.Map<InferencePurpose, InferenceRoute> getRoutes() { return routes; }
+    public void setRoutes(java.util.Map<InferencePurpose, InferenceRoute> value) {
+        routes = value == null ? new java.util.EnumMap<>(InferencePurpose.class) : value;
+    }
+
+    public static class InferenceRoute {
+        private String model;
+        private String reasoningEffort;
+        private String url;
+        private Integer timeoutMs;
+        private Integer maxCompletionTokens;
+        public String getModel() { return model; }
+        public void setModel(String value) { model = value; }
+        public String getReasoningEffort() { return reasoningEffort; }
+        public void setReasoningEffort(String value) { reasoningEffort = value; }
+        public String getUrl() { return url; }
+        public void setUrl(String value) { url = value; }
+        public Integer getTimeoutMs() { return timeoutMs; }
+        public void setTimeoutMs(Integer value) { timeoutMs = value; }
+        public Integer getMaxCompletionTokens() { return maxCompletionTokens; }
+        public void setMaxCompletionTokens(Integer value) { maxCompletionTokens = value; }
+    }
+
     public String getOpenaivsazureopenai() {
         return this.openaivsazureopenai;
     }

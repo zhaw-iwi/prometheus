@@ -88,6 +88,31 @@ function setting(key, control, defaultValue, overrides = {}) {
     visibleWhen: null, sensitive: false, ...overrides };
 }
 
+test("pace presets preserve explicit unrelated preferences, custom values, and manual mode", () => {
+  const storage = memoryStorage();
+  const preferences = new TranscriptionPreferences(descriptor, { storage });
+  assert.equal(preferences.turnPreset(), "pause_tolerant");
+  preferences.updateApi("languages", ["de", "en"]);
+  preferences.updateApi("noiseReduction", "near_field");
+  preferences.updateApi("transcriptionPrompt", "Private context");
+  preferences.applyTurnPreset("responsive");
+  assert.deepEqual(preferences.apiValues().turnDetection, { type: "local_vad", silenceDurationSeconds: 0.8 });
+  assert.equal(preferences.apiValues().transcriptionDelay, "low");
+  assert.equal(preferences.apiValues().transcriptionPrompt, "Private context");
+  const saved = new TranscriptionPreferences(descriptor, { storage });
+  assert.equal(saved.turnPreset(), "responsive");
+  assert.deepEqual(saved.apiValues().languages, ["de", "en"]);
+  assert.equal(saved.apiValues().noiseReduction, "near_field");
+  saved.updateApi("turnDetection.silenceDurationSeconds", 2.2);
+  assert.equal(new TranscriptionPreferences(descriptor, { storage }).turnPreset(), "custom");
+  saved.applyTurnPreset("pause_tolerant");
+  assert.equal(saved.apiValues().transcriptionDelay, "medium");
+  saved.updateApi("turnDetection.type", "manual");
+  assert.throws(() => saved.applyTurnPreset("responsive"), /automatic/);
+  assert.deepEqual(saved.validate().turnDetection, { type: "manual" });
+  assert.throws(() => preferences.applyTurnPreset("invalid"), /preset/);
+});
+
 function memoryStorage() {
   const values = new Map();
   return {

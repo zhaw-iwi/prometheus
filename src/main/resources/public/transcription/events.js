@@ -95,7 +95,11 @@ export class TranscriptionEventRuntime {
     onFinal = async () => {},
     onInputState = () => {},
     onDiagnostic = () => {},
+    now = null,
   } = {}) {
+    this.now = now;
+    this.pendingCommits = [];
+    this.itemTimings = new Map();
     this.onPartial = onPartial;
     this.onFinal = onFinal;
     this.onInputState = onInputState;
@@ -106,8 +110,15 @@ export class TranscriptionEventRuntime {
   }
 
   beginEpoch(epoch) {
+    this.pendingCommits = [];
+    this.itemTimings.clear();
     this.assembler.beginEpoch(epoch);
     this.accepting = true;
+  }
+
+  noteCommit({ lastVoiceAtMs, observedAtMs }) {
+    this.pendingCommits.push({ last_voice: lastVoiceAtMs, committed: observedAtMs });
+    if (this.pendingCommits.length > 128) this.pendingCommits.shift();
   }
 
   handle(rawEvent) {
@@ -116,9 +127,20 @@ export class TranscriptionEventRuntime {
       this.onDiagnostic({ code: "invalid_provider_event" });
       return;
     }
+    if (this.now && event.item_id) {
+      if (event.type === COMMITTED && !this.itemTimings.has(event.item_id)) {
+        this.itemTimings.set(event.item_id, this.pendingCommits.shift() || {});
+        while (this.itemTimings.size > 128) this.itemTimings.delete(this.itemTimings.keys().next().value);
+      }
+      if (event.type === COMPLETED) {
+        const timing = this.itemTimings.get(event.item_id);
+        if (timing) timing.final_transcript ??= this.now();
+      }
+    }
     const result = this.assembler.accept(event);
     result.partials.forEach((partial) => this.onPartial(partial));
-    this.enqueue(result.finals);
+    this.enqueue(result.finals.map((turn) => this.now
+      ? { ...turn, timings: { ...this.itemTimings.get(turn.itemId) } } : turn));
     if (["input_audio_buffer.speech_started", "input_audio_buffer.speech_stopped", COMMITTED,
       "input_audio_buffer.cleared"].includes(event.type)) {
       this.onInputState({ type: event.type, itemId: event.item_id || null });
@@ -139,6 +161,8 @@ export class TranscriptionEventRuntime {
   settleEpoch() {
     this.accepting = false;
     this.assembler.settle();
+    this.pendingCommits = [];
+    this.itemTimings.clear();
   }
 
   whenIdle() {

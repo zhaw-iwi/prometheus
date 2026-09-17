@@ -25,7 +25,7 @@ public class EventHistory {
     }
 
     @OneToMany(mappedBy = "eventHistory", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
-    @OrderBy("createdDate ASC")
+    @OrderBy("historyPosition ASC, createdDate ASC")
     private List<Event> eventList;
 
     public EventHistory() {
@@ -47,6 +47,9 @@ public class EventHistory {
 
     public Event appendEvent(Event event) {
         Event copy = new Event(event.getType(), event.getActor(), event.getKind(), event.getPayload());
+        long previous = this.eventList.stream().map(Event::historyPosition).filter(java.util.Objects::nonNull)
+                .mapToLong(Long::longValue).max().orElse(-1L);
+        copy.historyPosition(Math.addExact(previous, 1L));
         copy.setStatePath(event.getStatePath());
         copy.setEventHistory(this);
         this.eventList.add(copy);

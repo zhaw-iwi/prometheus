@@ -23,6 +23,7 @@ import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Agent;
@@ -53,6 +54,20 @@ public class AgentApplicationService {
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
     private final SocialSituationChangeDetector socialSituationChangeDetector;
+    private final AgentTurnSerialiser turns = new AgentTurnSerialiser();
+
+    <T> T serialized(UUID agentId, java.util.function.Supplier<T> work) { return turns.call(agentId, work); }
+
+    public boolean tick(UUID agentId) {
+        return serialized(agentId, () -> {
+            Agent agent = findAgent(agentId).orElse(null);
+            if (agent == null || !agent.isActive()) return false;
+            Event response = agent.tick(runtime());
+            Agent saved = persistAndPublishMonitor(agent);
+            publishBehaviour(saved, response);
+            return true;
+        });
+    }
 
     public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
             AgentBehaviourBroadcaster behaviourBroadcaster,
@@ -136,15 +151,17 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> start(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        Event starter = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, starter);
-        return Optional.of(new ResponseView(starter, agent.isActive()));
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            Event starter = agent.start(this.runtime());
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, starter);
+            return Optional.of(new ResponseView(starter, agent.isActive()));
+        });
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities) {
@@ -152,20 +169,22 @@ public class AgentApplicationService {
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
-        }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event response = agent.generate(this.runtime(resolvedProfile));
-        if (response == null) {
-            return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
-        }
-        this.applyOmittedModalities(response, omitModalities);
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return BehaviourGenerationOutcome.GENERATED;
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
+            }
+            Agent agent = agentMaybe.get();
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Event response = LatencyTrace.measure("generate", () -> agent.generate(this.runtime(resolvedProfile)));
+            if (response == null) {
+                return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
+            }
+            this.applyOmittedModalities(response, omitModalities);
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, response);
+            return BehaviourGenerationOutcome.GENERATED;
+        });
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
@@ -173,33 +192,37 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        PolicyRuntime runtime = this.runtime(resolvedProfile);
-        Event response = agent.acknowledge(event, runtime);
-        Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
-        Event responseToReturn = computedResponse == null ? response : computedResponse;
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, responseToReturn);
-        return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            PolicyRuntime runtime = this.runtime(resolvedProfile);
+            Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, runtime));
+            Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
+            Event responseToReturn = computedResponse == null ? response : computedResponse;
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, responseToReturn);
+            return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+        });
     }
 
     public Optional<ResponseView> reset(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        agent.reset();
-        Event response = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return Optional.of(new ResponseView(response, agent.isActive()));
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            agent.reset();
+            Event response = agent.start(this.runtime());
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, response);
+            return Optional.of(new ResponseView(response, agent.isActive()));
+        });
     }
 
     public Optional<PolicyResponseView> prompt(UUID agentID) {
@@ -259,8 +282,8 @@ public class AgentApplicationService {
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
         agent.setLanguageCode(valueOrDefault(data.getLanguageCode(), AgentDefinition.LANGUAGE_ENGLISH));
         Event starter = agent.start(this.runtime());
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
                 saved.getInteractionProfile(), saved.getLanguageCode()));
@@ -281,8 +304,8 @@ public class AgentApplicationService {
     }
 
     private Agent persistAndPublishMonitor(Agent agent) {
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         return saved;
     }
 
@@ -303,7 +326,9 @@ public class AgentApplicationService {
             eventToPublish = candidate;
             break;
         }
-        safePublishBehaviour(agent.getId(), eventToPublish);
+        LatencyTrace.behaviour(eventToPublish.getId());
+        Event published = eventToPublish;
+        LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; });
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {

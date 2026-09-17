@@ -83,6 +83,9 @@ PROMETHEUS currently provides:
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
+- typed inference requests with configurable task-purpose model/effort routes,
+  finite provider deadlines, strict structured-result validation and content-free
+  correlated latency diagnostics (configuration and evidence in README/results);
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;
@@ -277,3 +280,27 @@ tests for the actual task rather than relying only on this list.
 - Build a second social motivation or regulation abstraction beside the current
   one.
 - Use the complete milestone history as the current specification.
+
+### Need for Speed speech delivery
+
+Valerian's canonical event-ID Speech playback now uses bounded progressive MP3
+MediaSource delivery when supported, with a same-response buffered fallback.
+The shared queue still owns ordering, leases and input gating. The server flushes
+stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
+Live performance and device/proxy evidence are tracked separately in
+.agents/NEEDFORSPEED_RESULTS.md.
+
+### Need for Speed inference execution
+
+Typed inference purpose and route configuration live at the policy/SPI boundary.
+Speech and nonverbal prompt output can share one request; eligible pure guard
+requests can be combined or evaluated through an opt-in bounded executor. The
+state machine still consumes results in priority order and owns all actions.
+Workers never receive entities or persistence contexts. The application serializes
+runtime mutations per agent inside one process; scheduled ticks and scoped
+deletion use that same boundary. See README for limits and multi-instance scope.
+
+New persisted events carry a nullable internal history position so reloading
+timestamp ties preserves append order. Legacy rows retain their timestamp order
+without backfill; public IDs/payloads/timestamps are unchanged. The additive
+MySQL column and coordinated writer upgrade are documented in README.

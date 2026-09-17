@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.spi;
 
 import java.io.InputStream;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -28,6 +29,8 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
 
     @Override
     public SpeechAudio synthesize(String text, String voice, double speed) {
+        long start = LatencyTrace.now();
+        boolean success = false;
         try {
             JsonObject payload = new JsonObject();
             if ("openai".equals(this.openAIProperties.getOpenaivsazureopenai())) {
@@ -52,11 +55,16 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
             }
             String contentType = response.headers().firstValue("Content-Type").orElse("audio/mpeg");
             long contentLength = response.headers().firstValueAsLong("Content-Length").orElse(-1L);
+            success = true;
             return SpeechAudio.streaming(response.body(), contentType, contentLength);
         } catch (SpeechSynthesisException failure) {
             throw failure;
         } catch (Exception failure) {
             throw new SpeechSynthesisException("unable to request OpenAI Speech synthesis", failure);
+        } finally {
+            org.slf4j.LoggerFactory.getLogger(getClass()).info(
+                    "latency trace={} stage=speech_headers model={} status={} durationMs={}",
+                    LatencyTrace.currentId(), speechProperties.getModel(), success ? "ok" : "error", LatencyTrace.elapsedMs(start));
         }
     }
 }

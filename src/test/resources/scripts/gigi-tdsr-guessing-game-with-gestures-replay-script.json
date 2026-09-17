@@ -8,11 +8,28 @@
         "speech": "Hallo, ich bin GIGI. Denk an etwas Vertrautes, und sag Bereit, sobald ich losfragen darf.",
         "nonVerbal": {
           "gesture": "POLITE",
-          "facialExpression": {"type": "welcoming", "intensity": 0.7},
-          "gaze": {"direction": "forward", "focus": "user"},
-          "posture": {"type": "open", "lean": "neutral", "openness": 0.8},
-          "prosody": {"rate": "medium-slow", "pitch": "warm", "volume": "soft"},
-          "motion": {"stillness": 0.2, "energy": 0.3}
+          "facialExpression": {
+            "type": "welcoming",
+            "intensity": 0.7
+          },
+          "gaze": {
+            "direction": "forward",
+            "focus": "user"
+          },
+          "posture": {
+            "type": "open",
+            "lean": "neutral",
+            "openness": 0.8
+          },
+          "prosody": {
+            "rate": "medium-slow",
+            "pitch": "warm",
+            "volume": "soft"
+          },
+          "motion": {
+            "stillness": 0.2,
+            "energy": 0.3
+          }
         }
       }
     },
@@ -43,11 +60,28 @@
         "speech": "Gut, dann frage ich vorsichtig: Ist es etwas, das man drinnen benutzt?",
         "nonVerbal": {
           "gesture": "OPEN_QUESTION",
-          "facialExpression": {"type": "curious", "intensity": 0.6},
-          "gaze": {"direction": "forward", "focus": "user"},
-          "posture": {"type": "attentive", "lean": "slight_forward", "openness": 0.7},
-          "prosody": {"rate": "medium", "pitch": "light", "volume": "normal"},
-          "motion": {"stillness": 0.3, "energy": 0.4}
+          "facialExpression": {
+            "type": "curious",
+            "intensity": 0.6
+          },
+          "gaze": {
+            "direction": "forward",
+            "focus": "user"
+          },
+          "posture": {
+            "type": "attentive",
+            "lean": "slight_forward",
+            "openness": 0.7
+          },
+          "prosody": {
+            "rate": "medium",
+            "pitch": "light",
+            "volume": "normal"
+          },
+          "motion": {
+            "stillness": 0.3,
+            "energy": 0.4
+          }
         }
       }
     },
@@ -68,11 +102,28 @@
         "speech": "Dann tippe ich auf etwas draussen. Ist es vielleicht ein Baum?",
         "nonVerbal": {
           "gesture": "EXPLAIN",
-          "facialExpression": {"type": "focused", "intensity": 0.65},
-          "gaze": {"direction": "forward", "focus": "user"},
-          "posture": {"type": "presenting", "lean": "neutral", "openness": 0.75},
-          "prosody": {"rate": "medium", "pitch": "confident", "volume": "normal"},
-          "motion": {"stillness": 0.25, "energy": 0.45}
+          "facialExpression": {
+            "type": "focused",
+            "intensity": 0.65
+          },
+          "gaze": {
+            "direction": "forward",
+            "focus": "user"
+          },
+          "posture": {
+            "type": "presenting",
+            "lean": "neutral",
+            "openness": 0.75
+          },
+          "prosody": {
+            "rate": "medium",
+            "pitch": "confident",
+            "volume": "normal"
+          },
+          "motion": {
+            "stillness": 0.25,
+            "energy": 0.45
+          }
         }
       }
     },
@@ -98,11 +149,28 @@
         "speech": "Das freut mich. Moechtest du noch eine Runde spielen oder soll ich aufhoeren?",
         "nonVerbal": {
           "gesture": "ACKNOWLEDGE",
-          "facialExpression": {"type": "pleased", "intensity": 0.7},
-          "gaze": {"direction": "forward", "focus": "user"},
-          "posture": {"type": "relaxed_open", "lean": "neutral", "openness": 0.8},
-          "prosody": {"rate": "medium-slow", "pitch": "warm", "volume": "normal"},
-          "motion": {"stillness": 0.35, "energy": 0.35}
+          "facialExpression": {
+            "type": "pleased",
+            "intensity": 0.7
+          },
+          "gaze": {
+            "direction": "forward",
+            "focus": "user"
+          },
+          "posture": {
+            "type": "relaxed_open",
+            "lean": "neutral",
+            "openness": 0.8
+          },
+          "prosody": {
+            "rate": "medium-slow",
+            "pitch": "warm",
+            "volume": "normal"
+          },
+          "motion": {
+            "stillness": 0.35,
+            "energy": 0.35
+          }
         }
       }
     },
@@ -146,11 +214,7 @@
   "gatewayCalls": [
     {
       "method": "complete",
-      "value": "Hallo, ich bin GIGI. Denk an etwas Vertrautes, und sag Bereit, sobald ich losfragen darf."
-    },
-    {
-      "method": "complete",
-      "value": "{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"open\",\"lean\":\"neutral\",\"openness\":0.8},\"prosody\":{\"rate\":\"medium-slow\",\"pitch\":\"warm\",\"volume\":\"soft\"},\"motion\":{\"stillness\":0.2,\"energy\":0.3}}"
+      "value": "{\"speech\":\"Hallo, ich bin GIGI. Denk an etwas Vertrautes, und sag Bereit, sobald ich losfragen darf.\",\"nonVerbal\":{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"open\",\"lean\":\"neutral\",\"openness\":0.8},\"prosody\":{\"rate\":\"medium-slow\",\"pitch\":\"warm\",\"volume\":\"soft\"},\"motion\":{\"stillness\":0.2,\"energy\":0.3}}}"
     },
     {
       "method": "decide",
@@ -158,11 +222,7 @@
     },
     {
       "method": "complete",
-      "value": "Gut, dann frage ich vorsichtig: Ist es etwas, das man drinnen benutzt?"
-    },
-    {
-      "method": "complete",
-      "value": "{\"gesture\":\"OPEN_QUESTION\",\"facialExpression\":{\"type\":\"curious\",\"intensity\":0.6},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"attentive\",\"lean\":\"slight_forward\",\"openness\":0.7},\"prosody\":{\"rate\":\"medium\",\"pitch\":\"light\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.3,\"energy\":0.4}}"
+      "value": "{\"speech\":\"Gut, dann frage ich vorsichtig: Ist es etwas, das man drinnen benutzt?\",\"nonVerbal\":{\"gesture\":\"OPEN_QUESTION\",\"facialExpression\":{\"type\":\"curious\",\"intensity\":0.6},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"attentive\",\"lean\":\"slight_forward\",\"openness\":0.7},\"prosody\":{\"rate\":\"medium\",\"pitch\":\"light\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.3,\"energy\":0.4}}}"
     },
     {
       "method": "decide",
@@ -170,11 +230,7 @@
     },
     {
       "method": "complete",
-      "value": "Dann tippe ich auf etwas draussen. Ist es vielleicht ein Baum?"
-    },
-    {
-      "method": "complete",
-      "value": "{\"gesture\":\"EXPLAIN\",\"facialExpression\":{\"type\":\"focused\",\"intensity\":0.65},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"presenting\",\"lean\":\"neutral\",\"openness\":0.75},\"prosody\":{\"rate\":\"medium\",\"pitch\":\"confident\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.25,\"energy\":0.45}}"
+      "value": "{\"speech\":\"Dann tippe ich auf etwas draussen. Ist es vielleicht ein Baum?\",\"nonVerbal\":{\"gesture\":\"EXPLAIN\",\"facialExpression\":{\"type\":\"focused\",\"intensity\":0.65},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"presenting\",\"lean\":\"neutral\",\"openness\":0.75},\"prosody\":{\"rate\":\"medium\",\"pitch\":\"confident\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.25,\"energy\":0.45}}}"
     },
     {
       "method": "decide",
@@ -182,11 +238,7 @@
     },
     {
       "method": "complete",
-      "value": "Das freut mich. Moechtest du noch eine Runde spielen oder soll ich aufhoeren?"
-    },
-    {
-      "method": "complete",
-      "value": "{\"gesture\":\"ACKNOWLEDGE\",\"facialExpression\":{\"type\":\"pleased\",\"intensity\":0.7},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"relaxed_open\",\"lean\":\"neutral\",\"openness\":0.8},\"prosody\":{\"rate\":\"medium-slow\",\"pitch\":\"warm\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.35,\"energy\":0.35}}"
+      "value": "{\"speech\":\"Das freut mich. Moechtest du noch eine Runde spielen oder soll ich aufhoeren?\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\",\"facialExpression\":{\"type\":\"pleased\",\"intensity\":0.7},\"gaze\":{\"direction\":\"forward\",\"focus\":\"user\"},\"posture\":{\"type\":\"relaxed_open\",\"lean\":\"neutral\",\"openness\":0.8},\"prosody\":{\"rate\":\"medium-slow\",\"pitch\":\"warm\",\"volume\":\"normal\"},\"motion\":{\"stillness\":0.35,\"energy\":0.35}}}"
     },
     {
       "method": "decide",

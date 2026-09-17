@@ -1,0 +1,4 @@
+# Preserve frozen corpus hashes across Windows and Unix checkouts.
+tests/fixtures/needforspeed/*.json text eol=lf
+tests/fixtures/needforspeed/*.wav binary
+tests/fixtures/needforspeed/*.mp3 binary

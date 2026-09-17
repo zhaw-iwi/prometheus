@@ -88,6 +88,7 @@ public class Transition {
     }
 
     public boolean decide(State state, PolicyRuntime runtime) {
+        if (runtime.guardEvaluation() != null && runtime.guardEvaluation().rejects(state, this)) return false;
         Transition.LOGGER.info("Checking decisions if transition to " + this.subsequentState.getName());
         if (this.decisions.isEmpty()) {
             Transition.LOGGER.info("No decisions present");
@@ -99,7 +100,9 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            boolean currentDecision = current.decide(selected, snapshot, runtime);
+            Boolean prepared = runtime.guardEvaluation() == null ? null
+                    : runtime.guardEvaluation().result(state, current, selected, runtime);
+            boolean currentDecision = prepared == null ? current.decide(selected, snapshot, runtime) : prepared;
             if (!currentDecision) {
                 return false;
             }
@@ -108,6 +111,7 @@ public class Transition {
     }
 
     public void action(State state, PolicyRuntime runtime) {
+        if (runtime.guardEvaluation() != null) runtime.guardEvaluation().invalidate();
         Transition.LOGGER.info("Executing actions while transitioning to " + this.subsequentState.getName());
         if (this.actions.isEmpty()) {
             Transition.LOGGER.info("No actions present");

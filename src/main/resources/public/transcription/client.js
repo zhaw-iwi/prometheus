@@ -33,12 +33,13 @@ export class LiveTranscriptionClient {
     this.onState = onState;
     this.onInputState = onInputState;
     this.onDiagnostic = onDiagnostic;
-    this.events = new TranscriptionEventRuntime({ onPartial, onFinal, onInputState, onDiagnostic });
+    this.events = new TranscriptionEventRuntime({ onPartial, onFinal, onInputState, onDiagnostic, now: () => performance.now() });
     this.localVad = localVadFactory({
       onSpeechStart: () => onInputState({ type: "local_vad.speech_started" }),
       onSpeechStop: (event) => onInputState({ type: "local_vad.speech_stopped", ...event }),
-      onCommit: ({ reason }) => {
-        if (!this.transport.commitLocalVadTurn()) onDiagnostic({ code: "local_vad_commit_skipped", reason });
+      onCommit: (event) => {
+        if (this.transport.commitLocalVadTurn()) this.events.noteCommit(event);
+        else onDiagnostic({ code: "local_vad_commit_skipped", reason: event.reason });
       },
     });
     this.transport = new TranscriptionTransport({

@@ -453,9 +453,15 @@ class DavosCarePromptContractTest {
         @Override
         public String complete(List<PromptMessage> messages) {
             String prompt = join(messages);
+            boolean therapy = prompt.contains("Task: Gently persuade");
+            if (therapy) this.therapyStartPrompt = prompt;
+            String speech = therapy
+                    ? "Hello, I am GIGI. I wanted to gently remind you about your upcoming appointment. How does that feel right now?"
+                    : "Hello, I am GIGI. I am not here to replace care; I am here to make your next step feel a little less lonely.";
             if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
                 return """
                         {
+                          "speech": "%s",
                           "nonVerbal": {
                             "gesture": "NONE",
                             "facialExpression": {"type": "warmNeutral", "intensity": 0.1},
@@ -464,13 +470,9 @@ class DavosCarePromptContractTest {
                           },
                           "motion": null
                         }
-                        """;
+                        """.formatted(speech);
             }
-            if (prompt.contains("Task: Gently persuade")) {
-                this.therapyStartPrompt = prompt;
-                return "Hello, I am GIGI. I wanted to gently remind you about your upcoming appointment. How does that feel right now?";
-            }
-            return "Hello, I am GIGI. I am not here to replace care; I am here to make your next step feel a little less lonely.";
+            return speech;
         }
 
         @Override

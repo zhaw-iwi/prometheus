@@ -437,8 +437,7 @@ class GigiTdsrPromptContractTest {
     void configuredPolicyEmitsStructuredNonverbalPlanOnStart() {
         Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures().createAgent();
         EventSequencedGateway gateway = new EventSequencedGateway(List.of(
-                "Hallo, ich bin GIGI. Denk an etwas Vertrautes.",
-                "{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7}}"));
+                "{\"speech\":\"Hallo, ich bin GIGI. Denk an etwas Vertrautes.\",\"nonVerbal\":{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7}}}"));
 
         ch.zhaw.prometheus.model.event.Event event = agent.start(
                 new PolicyRuntime(new PromptMessageAssembler(), gateway));
@@ -453,17 +452,20 @@ class GigiTdsrPromptContractTest {
         assertKnownGestureOnly(plan);
         assertNoUnsupportedLocomotion(plan);
         assertTrue(plan.getMotion() == null);
+        assertEquals(1, gateway.completionIndex);
     }
 
     @Test
     void configuredPolicyNormalizesUnsupportedRobotGestureIdsAndStripsLocomotion() {
         Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.TourConversation().createAgent();
         EventSequencedGateway gateway = new EventSequencedGateway(List.of(
-                "Ich erklaere das kurz.",
                 """
                         {
+                          "speech":"Ich erklaere das kurz.",
+                          "nonVerbal": {
                           "gesture":"open_question_gesture",
                           "motion":{"move":"forward","turn":"left","energy":0.4}
+                          }
                         }
                         """));
 
