@@ -86,6 +86,122 @@ test("starting transcription speaks the latest persisted assistant utterance bef
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
 });
 
+for (const delivery of ["before", "after"]) {
+  test(`reset starter stays silent with SSE ${delivery} the reset response until transcription starts`, async ({ page }) => {
+    const starter = behaviourEvent("A fresh reset greeting.");
+    const speechRequests = [];
+    let latestId = REPLAY_BEHAVIOUR_ID;
+    await page.addInitScript(() => {
+      localStorage.setItem("prometheus.valerian.speechVoice", "cedar");
+      localStorage.setItem("prometheus.valerian.speechOutputSpeed", "1.25");
+      localStorage.setItem("prometheus.valerian.speechOutputDevice", "room-speaker");
+    });
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) {
+        speechRequests.push(request);
+      }
+    });
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+      route.fulfill(json({ eventId: latestId })));
+    await page.route(`**/demo/agents/${AGENT_ID}/reset`, async route => {
+      if (delivery === "before") await emitBehaviourSse(page, "behaviour-live", REPLAY_BEHAVIOUR_ID, starter);
+      await route.fulfill(json({ active: true, responseEvent: starter }));
+    });
+    await openConnectedValerian(page);
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("reset-agent").click();
+    await expect(page.getByTestId("message-list")).toContainText("A fresh reset greeting.");
+    if (delivery === "after") await emitBehaviourSse(page, "behaviour-live", REPLAY_BEHAVIOUR_ID, starter);
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(0);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(0);
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(1);
+    expect(new URL(speechRequests[0].url()).pathname).toContain(REPLAY_BEHAVIOUR_ID);
+    expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(0);
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("An active speech reply."));
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(2);
+    for (const request of speechRequests) {
+      expect(new URL(request.url()).searchParams.get("voice")).toBe("cedar");
+      expect(new URL(request.url()).searchParams.get("speed")).toBe("1.25");
+    }
+    expect(await page.evaluate(() => window.__audioPlayback.sinkIds.filter(Boolean)))
+      .toEqual(["room-speaker", "room-speaker"]);
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("A late reply after Stop."));
+    await expect(page.getByTestId("message-list")).toContainText("A late reply after Stop.");
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(2);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(2);
+
+    latestId = SECOND_BEHAVIOUR_ID;
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(3);
+    expect(new URL(speechRequests[2].url()).pathname).toContain(SECOND_BEHAVIOUR_ID);
+  });
+}
+
+for (const restart of [false, true]) {
+  test(`stopped resume lookup cannot speak or reopen input${restart ? " after a new start" : ""}`, async ({ page }) => {
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    let lookups = 0;
+    const speechRequests = [];
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) speechRequests.push(request);
+    });
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, async route => {
+      if (++lookups === 1) {
+        await held;
+        await route.fulfill(json({ eventId: REPLAY_BEHAVIOUR_ID }));
+      } else await route.fulfill({ status: 204, body: "" });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    const lookup = page.waitForRequest(`**/behaviours/latest/speech`);
+    await page.getByTestId("toggle-transcription").click();
+    await lookup;
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    if (restart) {
+      await page.getByTestId("toggle-transcription").click();
+      await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    }
+    const oldResponse = page.waitForResponse(`**/behaviours/latest/speech`);
+    release();
+    await oldResponse;
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(0);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(0);
+    expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(restart ? 1 : 0);
+    await expect(page.getByTestId("transcription-transport-status"))
+      .toHaveText(restart ? "Transcription Connected" : "Transcription Idle");
+  });
+}
+
+test("Stop Speech during the starter still opens transcription input", async ({ page }) => {
+  await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+    route.fulfill(json({ eventId: REPLAY_BEHAVIOUR_ID })));
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await page.getByTestId("stop-speech-playback").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
+});
+
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
   const acknowledgeRequests = [];
   const speechRequests = [];
@@ -310,7 +426,7 @@ test("permission denial is visible and releases ownership", async ({ page }) => 
   await expect(page.getByTestId("toggle-transcription")).toBeEnabled();
 });
 
-test("two Valerian pages elect one output owner for the same live behaviour", async ({ page, context }) => {
+test("only the Valerian page with started transcription speaks a shared live behaviour", async ({ page, context }) => {
   const other = await context.newPage();
   const requests = [];
   page.on("request", (request) => {
@@ -321,11 +437,16 @@ test("two Valerian pages elect one output owner for the same live behaviour", as
   });
   await openConnectedValerian(page);
   await openConnectedValerian(other);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
   await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
   await emitBehaviourSse(other, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
-  await expect(other.getByTestId("speech-playback-status")).toHaveText("Output In Other Window");
+  await expect(other.getByTestId("message-list")).toContainText("One owner.");
+  await expect(other.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  expect(await other.evaluate(() => window.__audioPlayback.plays)).toBe(0);
   expect(requests).toHaveLength(1);
 
   await page.evaluate(() => window.__finishSpeechPlayback());

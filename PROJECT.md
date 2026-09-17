@@ -72,8 +72,8 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 171, restored Start Transcription replay
-  from canonical chat history and documented speed-improvement activation.
+- Last completed follow-up: Milestone 172, restricted Valerian audible output
+  to started transcription sessions, including reset and delayed-resume handling.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -85,6 +85,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 172: Transcription-controlled Valerian speech activation
 
 - [x] Milestone 171: Canonical latest-assistant transcription resume
 
@@ -8008,3 +8010,25 @@ priority and action ownership.
   browser streaming from cockpit turn timing and optional parallel guard modes.
   Lower silence duration affects only that waiting window; the live two-second
   target remains unverified.
+
+## Milestone 172: Transcription-controlled Valerian speech activation
+
+- Live behaviour SSE previously queued speech even while transcription was off,
+  so resetting an agent could speak the starter immediately. Valerian now admits
+  speech only during a session explicitly enabled by Start Transcription.
+  Rendering chat/behaviour remains independent of audible output.
+- Session identity checks reject delayed live queue work and startup lookups
+  after Stop Transcription, reset, disconnect or another start. Reset/disconnect
+  disable transcription before awaiting audio teardown. Stop Speech still stops
+  output without disabling the transcription session or its input startup.
+- Confirmed one shared saved voice/speed/speaker selection for canonical resume
+  and live replies. No reset-specific speech configuration or alternate browser
+  synthesis path was found. Server defaults remain alloy and 1.0.
+- Four browser regression cases reproduced unwanted synthesis before the fix:
+  reset SSE before/after the HTTP response, and delayed resume after Stop with
+  and without a subsequent start. Added Stop Speech during startup coverage and
+  adjusted the multi-window case so only the started cockpit can speak.
+- Passed 24 Playwright transcription/lifecycle/progressive-audio cases, 11 Node
+  speech cases and 19 Java client-resource contracts. Browser APIs/WebRTC/media
+  are mocked except the three native MP3 streaming cases. No database, live
+  provider or physical acoustic measurement was needed for this client fix.

@@ -30,6 +30,7 @@ const state = {
 };
 
 const transcription = {
+  sessionGeneration: 0,
   transcriptionClient: null,
   transcriptionSettingsPanel: null,
   transcriptionAgentId: null,
@@ -1083,10 +1084,10 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
-  await stopSpeechPlayback("agent_disconnect", { reset: true, silent: true });
   if (state.transcriptionListening) {
     await stopTranscription();
   }
+  await stopSpeechPlayback("agent_disconnect", { reset: true, silent: true });
   if (state.cameraRunning) {
     stopCamera({ silent: true });
   }
@@ -1811,10 +1812,10 @@ async function resetAgent() {
     return;
   }
   try {
-    await stopSpeechPlayback("agent_reset", { reset: true, silent: true });
     if (state.transcriptionListening) {
       await stopTranscription();
     }
+    await stopSpeechPlayback("agent_reset", { reset: true, silent: true });
     if (state.cameraRunning) {
       stopCamera({ silent: true });
     }
@@ -2015,17 +2016,19 @@ function pruneRecentBehaviourPayloads() {
 function queueBehaviourSpeech(plan, options = {}) {
   const eventId = typeof options.eventId === "string" ? options.eventId.trim() : "";
   const speech = typeof plan?.speech === "string" ? plan.speech : "";
-  if (!eventId || !speech.trim()) {
+  const agentId = state.agentId;
+  const sessionGeneration = transcription.sessionGeneration;
+  if (!eventId || !speech.trim() || !isCurrentTranscriptionSession(agentId, sessionGeneration)) {
     return;
   }
   const generation = speechPlayback.generation;
-  const agentId = state.agentId;
   speechPlayback.enqueueChain = speechPlayback.enqueueChain.then(async () => {
-    if (generation !== speechPlayback.generation || !agentId || state.agentId !== agentId) return;
+    if (generation !== speechPlayback.generation || !isCurrentTranscriptionSession(agentId, sessionGeneration)) return;
     const coordinator = await ensureSpeechPlaybackCoordinator();
-    if (generation !== speechPlayback.generation || state.agentId !== agentId) return;
+    if (generation !== speechPlayback.generation || !isCurrentTranscriptionSession(agentId, sessionGeneration)) return;
     coordinator.enqueue({ eventId, speech, delivery: options.delivery || "visual" });
   }).catch((error) => {
+    if (generation !== speechPlayback.generation || !isCurrentTranscriptionSession(agentId, sessionGeneration)) return;
     appendLog("speech-playback", `queue failed: ${error.message}`);
     handleSpeechPlaybackStatus({ state: "failed", eventId, message: error.message });
   });
@@ -2403,22 +2406,26 @@ async function startTranscription() {
     return;
   }
   setTranscriptionState(true);
+  const sessionGeneration = transcription.sessionGeneration;
   appendLog("transcription", "starting gpt-live-transcribe session.");
   setTranscriptionTransportStatus("Transcription Starting", "idle", "");
   try {
     await replayLatestAssistantSpeech();
-    if (!state.transcriptionListening || state.agentId !== startingAgentId) {
+    if (!isCurrentTranscriptionSession(startingAgentId, sessionGeneration)) {
       return;
     }
     await ensureLiveTranscriptionUi();
+    if (!isCurrentTranscriptionSession(startingAgentId, sessionGeneration)) return;
     const settings = transcription.transcriptionSettingsPanel.apiValues();
     const mediaPreferences = transcription.transcriptionSettingsPanel.mediaValues();
     transcription.transcriptionSettingsPanel.setLifecycle("CONNECTING");
     const started = await transcription.transcriptionClient.start({ settings, mediaPreferences });
+    if (!isCurrentTranscriptionSession(startingAgentId, sessionGeneration)) return;
     transcription.transcriptionSettingsPanel.setAppliedCapture(started.appliedCapture);
     transcription.transcriptionSettingsPanel.setLifecycle("CONNECTED");
     updateTranscriptionManualControl();
   } catch (error) {
+    if (!isCurrentTranscriptionSession(startingAgentId, sessionGeneration)) return;
     appendLog("transcription", "start failed: " + error.message);
     await stopTranscription();
     setTranscriptionTransportStatus("Transcription Failed", "error", `Transcription start failed: ${error.message}`);
@@ -2426,8 +2433,15 @@ async function startTranscription() {
 }
 
 async function replayLatestAssistantSpeech() {
+  const agentId = state.agentId;
+  const sessionGeneration = transcription.sessionGeneration;
+  const playbackGeneration = speechPlayback.generation;
+  const isCurrent = () => isCurrentTranscriptionSession(agentId, sessionGeneration)
+    && playbackGeneration === speechPlayback.generation;
+  if (!isCurrent()) return false;
   try {
     const response = await scopedFetch(demoAgentPath("/behaviours/latest/speech"));
+    if (!isCurrent()) return false;
     if (response.status === 204 || response.status === 404) {
       appendLog("speech-playback", "no latest assistant utterance is eligible for restart playback.");
       return false;
@@ -2441,12 +2455,14 @@ async function replayLatestAssistantSpeech() {
       throw new Error("Latest assistant speech lookup returned no event identity.");
     }
     const coordinator = await ensureSpeechPlaybackCoordinator();
+    if (!isCurrent()) return false;
     if (!coordinator.enqueue({ eventId, delivery: "resume" })) {
       return false;
     }
     await coordinator.whenIdle();
     return true;
   } catch (error) {
+    if (!isCurrent()) return false;
     appendLog("speech-playback", `latest assistant replay failed: ${error.message}`);
     handleSpeechPlaybackStatus({ state: "failed", eventId: null, message: error.message });
     return false;
@@ -5400,7 +5416,13 @@ function setBehaviourStatus(text, mode) {
   el.className = `status-pill is-${mode || "idle"}`;
 }
 
+function isCurrentTranscriptionSession(agentId, generation) {
+  return state.transcriptionListening && !state.isPageUnloading && !!agentId
+    && state.agentId === agentId && transcription.sessionGeneration === generation;
+}
+
 function setTranscriptionState(isListening) {
+  if (state.transcriptionListening !== isListening) transcription.sessionGeneration += 1;
   state.transcriptionListening = isListening;
   const transcriptionButton = document.getElementById("toggle_transcription");
   const listenStatus = document.getElementById("listen_status");
