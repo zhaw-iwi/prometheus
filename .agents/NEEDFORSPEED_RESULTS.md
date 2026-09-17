@@ -1,5 +1,52 @@
 # Need for speed: evidence record
 
+## Compact behaviour output (Milestone 175, 2026-09-17)
+
+Implemented the format investigated in Milestone 174. Combined PromptPolicy
+requests now ask for minified provider-only `speech`/`nv` JSON. Inside `nv`, `g`
+is the gesture; `f`, `z` and `m` are exact face, gaze and motion pairs. Java
+expands them before current canonical validation and publication. The `x` object
+preserves full-name custom, partial, extended or null nonverbal values, including
+posture/prosody/proxemics. Aliases and x may not define the same canonical field.
+Top-level motion/display keep their full shape; nv.m remains distinct from
+top-level motion. Existing gesture/hand-sign normalization and move/turn removal
+continue after expansion. Speech whitespace, punctuation and multilingual text
+are preserved. No speech shortening, expression presets or inferred defaults
+were added.
+
+This applies automatically to existing combined-generation policies on their
+next turn, including their persisted custom prompts. The final encoding rule
+changes representation only; authored task/nonverbal instructions remain in the
+request. Speech-only and deterministic policies keep their paths. Canonical
+provider output is still accepted to support authored prompts/custom gateways;
+there is no repair request or second generation. Persisted/event/API/client
+BehaviourPlan fields remain canonical.
+
+The existing timing header/export now includes a content-free decode stage:
+`behaviour_decode_compact` or `behaviour_decode_canonical`, with success/error.
+These are nested inside behaviour generation and must not be added to its total.
+Use these stages to check format adoption, and the inference span's actual
+completion tokens/model/effort for the next Heroku comparison. Trace bounds and
+missing/truncated evidence rules still apply.
+
+Offline evidence: the same synthetic example from Milestone 174 has 232 minified
+canonical characters versus 136 compact characters (41% fewer); the test compares
+the entire expanded JSON tree, not only speech. Character savings are not token
+or latency savings. Extra encoding instructions increase input size, and model
+adherence/output length/quality and net latency require live measurement.
+
+Passed 93 Java cases with no failures/errors/skips:
+`.\mvnw.cmd -q "-Dtest=CompactBehaviourPlanUnitTest,PromptPolicy*UnitTest,PromptMessageAssemblerUnitTest,PromptEventContentAdapterUnitTest,OutputProfileUnitTest,CatalogInferenceCountUnitTest,MultimodalBehaviourPlanEmissionUnitTest,BehaviourPlanUnitTest,ValerianCorePromptContractTest,HealthcareUseCasePromptContractTest,InferenceRoutingUnitTest,OpenAILanguageModelGateway*UnitTest,LatencyTraceUnitTest" test`.
+
+Coverage includes 37 compact-codec/policy cases, all twelve baseline catalog
+definitions using compact responses, canonical compatibility, exact speech and
+custom values, event/history serialization, strict failure without publication,
+normalization, route preservation and real loopback HTTP from prompt to canonical
+event plus privacy-safe timing export. Log: ignored
+`target/compact-behaviour-regression.log`. No database, browser or real provider
+was used; persistence/client schemas and assets were unchanged. Heroku model
+adherence, output-token savings and acoustic/end-to-end latency remain unverified.
+
 ## Luna behaviour trial and output-size investigation (Milestone 174, 2026-09-17)
 
 The requested Heroku test configuration now routes behaviour and nonverbal to

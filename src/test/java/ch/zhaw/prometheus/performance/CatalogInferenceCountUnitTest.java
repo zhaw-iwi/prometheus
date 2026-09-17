@@ -26,7 +26,7 @@ class CatalogInferenceCountUnitTest {
         return result.toString();
       }
       calls.add("B");
-      return invalidNonverbal ? "invalid" : "{\"speech\":\"A short example response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
+      return invalidNonverbal ? "invalid" : "{\"speech\":\"A short example response.\",\"nv\":{\"g\":\"NONE\"}}";
     }
     public boolean decide(List<PromptMessage> m) { calls.add("D"); return !decisions.isEmpty() && decisions.removeFirst(); }
     public JsonElement extract(List<PromptMessage> m) { calls.add("X"); return new JsonObject(); }
