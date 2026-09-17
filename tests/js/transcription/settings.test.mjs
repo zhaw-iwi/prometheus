@@ -103,6 +103,13 @@ test("pace presets preserve explicit unrelated preferences, custom values, and m
   assert.equal(saved.turnPreset(), "responsive");
   assert.deepEqual(saved.apiValues().languages, ["de", "en"]);
   assert.equal(saved.apiValues().noiseReduction, "near_field");
+  saved.applyTurnPreset("ultra_responsive");
+  const ultra = new TranscriptionPreferences(descriptor, { storage });
+  assert.equal(ultra.turnPreset(), "ultra_responsive");
+  assert.deepEqual(ultra.apiValues().turnDetection, { type: "local_vad", silenceDurationSeconds: 0.5 });
+  assert.equal(ultra.apiValues().transcriptionDelay, "low");
+  assert.deepEqual(ultra.apiValues().languages, ["de", "en"]);
+  assert.equal(ultra.apiValues().noiseReduction, "near_field");
   saved.updateApi("turnDetection.silenceDurationSeconds", 2.2);
   assert.equal(new TranscriptionPreferences(descriptor, { storage }).turnPreset(), "custom");
   saved.applyTurnPreset("pause_tolerant");

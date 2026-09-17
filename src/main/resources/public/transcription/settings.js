@@ -1,6 +1,7 @@
 export const TRANSCRIPTION_MODEL = "gpt-live-transcribe";
 export const TRANSCRIPTION_SESSION_TYPE = "transcription";
 export const TURN_PRESETS = Object.freeze({
+  ultra_responsive: Object.freeze({ silenceDurationSeconds: 0.5, transcriptionDelay: "low" }),
   responsive: Object.freeze({ silenceDurationSeconds: 0.8, transcriptionDelay: "low" }),
   pause_tolerant: Object.freeze({ silenceDurationSeconds: 1.5, transcriptionDelay: "medium" }),
 });

@@ -608,8 +608,9 @@ test("conversation pace supports keyboard choice, retained reconnect settings an
   const preset = page.getByTestId("transcription-turn-preset");
   await expect(preset).toHaveValue("pause_tolerant");
   await preset.focus(); await preset.press("Home"); await preset.press("Enter");
-  await expect(preset).toHaveValue("responsive");
-  await expect(page.getByTestId("transcription-turnDetection-silenceDurationSeconds")).toHaveValue("0.8");
+  await expect(preset).toHaveValue("ultra_responsive");
+  await expect(preset.locator("option:checked")).toHaveText("Ultra Responsive (0.5 s pause, low delay)");
+  await expect(page.getByTestId("transcription-turnDetection-silenceDurationSeconds")).toHaveValue("0.5");
   await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("low");
   await page.getByTestId("transcription-languages").selectOption(["de", "en"]);
   await page.getByTestId("transcription-noiseReduction").selectOption("near_field");
@@ -619,7 +620,7 @@ test("conversation pace supports keyboard choice, retained reconnect settings an
   await page.getByTestId("toggle-transcription").click();
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   await expect(preset).toBeDisabled();
-  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.8 }, transcriptionDelay: "low", languages: ["de", "en"], noiseReduction: "near_field" });
+  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.5 }, transcriptionDelay: "low", languages: ["de", "en"], noiseReduction: "near_field" });
   await page.evaluate(() => {
     const peer = window.__transcriptionPeers.at(-1);
     peer.connectionState = "failed"; peer.dispatchEvent(new Event("connectionstatechange"));
