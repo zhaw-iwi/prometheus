@@ -417,15 +417,18 @@ includes reasoning tokens. Text HTTP requests have a 30-second default deadline
 and a 10-second connection deadline; failures do not retry or escalate models.
 
 The checked-in `openai-prod.properties` enables the requested Heroku testing
-configuration: Sol for behaviour/nonverbal, Luna for decisions/extraction/summary,
-all with explicit `none` reasoning effort. GPT-5.2 remains the global fallback.
+configuration: Luna for behaviour, nonverbal, decision, extraction and summary,
+all with explicit `none` reasoning effort. Each purpose retains its independent
+route, so behaviour and decisions can still use different models. GPT-5.2 remains
+the global fallback.
 The ordinary local template stays opt-in. Heroku environment variables can
 override file values; effective model/effort appear in the inference timing logs.
 
 For Azure, the URL identifies the deployment. A model override must include its
 matching deployment URL; `model` identifies the underlying model for capability
-validation and is not sent in Azure payloads. These routes have only been tested
-against loopback HTTP providers, not live OpenAI or Azure accounts.
+validation and is not sent in Azure payloads. Offline routing tests use loopback
+HTTP providers. Heroku recordings cover Sol behaviour and Luna decisions;
+Luna behaviour quality/latency and Azure deployment access remain unverified.
 
 Optional sampling parameters are omitted on reasoning model families to avoid
 model/effort incompatibilities. This changes the former temperature-zero decision
@@ -1119,7 +1122,7 @@ rules (environment overrides take precedence over property files):
 | --- | --- |
 | Combined speech/nonverbal generation | Automatic for compatible prompt policies requesting both channels. |
 | Combined transition decisions | Default `openai.guard-strategy=combined`; only eligible pure checks can share a request. |
-| Purpose/model/effort routing | `openai-prod.properties` selects Sol for behaviour/nonverbal, Luna for decision/extraction/summary, all at `none`; GPT-5.2 remains the fallback. |
+| Purpose/model/effort routing | `openai-prod.properties` selects Luna for all five purposes at `none`; each purpose remains independently configurable and GPT-5.2 remains the fallback. |
 | Progressive synthesized audio | Automatic when the browser supports MP3 MediaSource; otherwise buffered playback. No cockpit switch. |
 | Shorter turn completion | Select local silence duration and provider transcription delay in the cockpit while stopped. Defaults remain 1.5 seconds and medium; saved choices apply on the next start. |
 | Parallel guard evaluation | Server-side opt-in with `parallel` or `combined_parallel`; leave `combined` for the initial comparison, since speculative requests can increase work. |
