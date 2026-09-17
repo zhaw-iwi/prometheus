@@ -351,8 +351,9 @@ admin-token environment override.
 
 ### Combined behaviour generation
 
-A `PromptPolicy` with a nonverbal plan or gesture prompt requests one compact JSON
-response that Java expands into the existing speech/nonverbal behaviour plan. Java composes the existing
+Every `PromptPolicy` generation requests one JSON behaviour plan, including
+final states. Speech-only policies request the minimal `{"speech":"..."}` object;
+policies with nonverbal instructions use the compact encoding below. Java composes the existing
 outer, task, starter and nonverbal instructions; custom persisted prompts remain
 in place and gain this behaviour after reload. Structured nonverbal instructions
 apply inside `nonVerbal`, and gesture-only instructions apply to its `gesture`
@@ -384,8 +385,12 @@ a repair request or partial speech. Compare actual completion tokens and latency
 in the Interaction Timing export; a shorter JSON representation alone does not
 establish a deployment speedup.
 
-Speech-only prompt policies (including final states), deterministic RPS output
-and Talk to Me keep their existing paths. Invalid combined output fails without
+Deterministic RPS output and Talk to Me still construct plans without model calls.
+Speech-only policies use the same typed `BEHAVIOUR` / `JSON_OBJECT` inference path
+and validation/publication boundary as combined policies; the raw-text generation
+branch has been removed. No nonverbal defaults are added to speech-only replies.
+Existing final states gain this behavior after reload without prompt migration.
+Invalid structured output fails without
 retrying or publishing partial speech. Unknown gesture labels become `NONE`;
 unsupported nonverbal move/turn fields are removed as before. The obsolete second
 nonverbal request and third gesture-repair request have been removed.
@@ -396,6 +401,10 @@ uses two: one guard group and one behaviour request, down from four at baseline.
 Startup and direct facial/social reactions use one generation request. These are
 offline call-count results; measured provider latency and response quality are
 tracked separately in the results ledger.
+
+The roadmap for non-blocking transition actions and speculative behaviour is in
+`.agents/PLAN_TRANSITION_EXECUTION.md`. Those execution changes are not enabled
+by the unified output format; actions still finish before state entry.
 
 ### Task-specific text inference
 

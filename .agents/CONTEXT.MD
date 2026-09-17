@@ -286,6 +286,9 @@ Live performance and device/proxy evidence are tracked separately in
 ### Need for Speed inference execution
 
 Typed inference purpose and route configuration live at the policy/SPI boundary.
+All PromptPolicy generation, including final-state speech-only output, requests
+a JSON BehaviourPlan. Speech-only output needs only the speech field; deterministic
+policies continue constructing canonical plans without inference.
 Speech and nonverbal prompt output can share one request using compact provider
 JSON that is expanded into the canonical BehaviourPlan before publication.
 Custom/partial nonverbal objects retain their fields; no compact keys enter the

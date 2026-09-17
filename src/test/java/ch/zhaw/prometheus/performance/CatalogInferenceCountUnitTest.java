@@ -48,8 +48,8 @@ class CatalogInferenceCountUnitTest {
     }
   }
   @Test void closingSensoryFallbackAndDeterministicPaths() {
-    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXS", true);
-    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXS", false, true);
+    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXB", true);
+    check(new SingleStateSmartGoalCoaching(), Event.TYPE_USER_UTTERANCE, true, "GXB", false, true);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "DB", true);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "D", false);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_WEATHER_CURRENT, false, "");
