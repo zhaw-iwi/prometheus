@@ -72,7 +72,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed implementation milestone: Milestone 169 (NFS-08), integrated
+- Last completed follow-up: Milestone 170, Heroku Sol/Luna test routes at none
+  and combined-generation compatibility for agents-branch hand signs.
+- Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
   quality, human response review, provider cost/latency and physical-device gates
@@ -83,6 +85,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 170: Heroku test routes and hand-sign compatibility
 
 - [x] Milestone 169: Integrated Need for Speed offline acceptance
 
@@ -7962,3 +7966,22 @@ priority and action ownership.
 - All test database/browser processes used isolated synthetic fixtures. No live
   provider, human response assessment, physical-device or reverse-proxy run was
   performed. Those empirical acceptance gates remain explicitly open.
+
+
+## Milestone 170: Heroku test routes and hand-sign compatibility
+
+- The user authorized deployment to the Heroku testing environment. Configured
+  explicit production-profile Sol behaviour/nonverbal and Luna decision,
+  extraction and summary routes, all at none effort. Kept global GPT-5.2 fallback
+  and the local opt-in template. No credentials were added or modified.
+- Ported the agents-branch top-level hand-sign regression to combined generation
+  on the feature branch, so the reusable fix can later reach main. Wrapped
+  nonverbal instructions retain motion at the correct level; scissors normalizes
+  to scissor and unsupported locomotion is removed without dropping other channels.
+- Passed 23 focused Java tests across routing, actual production-profile binding,
+  loopback HTTP payloads, prompt-policy multimodality, catalog counts and
+  transcription normalization. No live provider or database used in this step.
+- Documented custom cockpit local-VAD timing: 1.0 seconds is 1,000 ms, editable
+  while transcription is stopped; provider delay remains an independent setting.
+- Next integration is features/needforspeed into agents, with application-specific
+  fixtures and merge validation there before the authorized deployment push.

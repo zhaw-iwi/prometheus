@@ -25,8 +25,11 @@ final class BehaviourPlanInference {
                 Put the exact user-facing spoken response in the string field "speech".
                 Generate coordinated nonverbal behaviour in the object field "nonVerbal".
                 Use that same speech string wherever the nonverbal instructions refer to assistant speech.
-                Within nonVerbal, apply the following authored instructions. Their references to
-                top-level fields or returning only a label apply inside nonVerbal, not to this envelope:
+                Apply the following authored nonverbal instructions. If they describe a nonverbal
+                object or a single gesture label, put that result inside nonVerbal.
+                If they describe an envelope with nonVerbal and motion/display, put those channels
+                at the matching top level of this behaviour plan; do not nest a second envelope.
+                In either case, preserve the speech field governed by the conversation instructions:
                 <nonverbal-instructions>
                 """ + nonverbalPrompt + "\n</nonverbal-instructions>\n"
                 + (gestureOnly ? "Put the selected label in nonVerbal.gesture.\n" : "")
@@ -56,7 +59,23 @@ final class BehaviourPlanInference {
             normalized.getAsJsonObject("motion").remove("move");
             normalized.getAsJsonObject("motion").remove("turn");
         }
-        return new BehaviourPlan(speech.getAsString(), normalized, channel(object, "motion"), channel(object, "display"));
+        return new BehaviourPlan(speech.getAsString(), normalized, motionChannel(object), channel(object, "display"));
+    }
+
+    private static JsonElement motionChannel(JsonObject object) {
+        JsonElement value = channel(object, "motion");
+        if (value == null) return null;
+        JsonObject motion = value.getAsJsonObject();
+        motion.remove("move");
+        motion.remove("turn");
+        JsonElement sign = motion.remove("handSign");
+        if (sign != null && !sign.isJsonNull()) {
+            if (!sign.isJsonPrimitive() || !sign.getAsJsonPrimitive().isString()) throw invalid();
+            String normalized = sign.getAsString().trim().replace("\"", "").replace("'", "").toLowerCase(Locale.ROOT);
+            if (normalized.equals("scissors")) normalized = "scissor";
+            if (Set.of("rock", "paper", "scissor").contains(normalized)) motion.addProperty("handSign", normalized);
+        }
+        return motion.isEmpty() ? null : motion;
     }
 
     private static JsonElement channel(JsonObject object, String name) {

@@ -94,6 +94,10 @@ language, noise and device choices remain intact. Manual turn completion and
 custom silence/delay values remain available. The shared multilateral listener
 offers the same choices. Settings are locked during an active session.
 
+To try a 1,000 ms pause, stop transcription, select local VAD and set
+**Silence duration (seconds)** to **1.0**, then restart transcription. The pace
+selector shows Custom; provider delay can be selected separately.
+
 Responsive reduces the local silence wait by 700 ms, but the frozen synthetic
 pause replay produced extra segments at that threshold. Even 1.5 seconds split
 the longer hesitation. Neither setting is certified for hesitant healthcare or
@@ -382,6 +386,12 @@ default. The template contains an opt-in Sol/Luna configuration with `none`
 effort; no existing installation switches models automatically. The output cap
 includes reasoning tokens. Text HTTP requests have a 30-second default deadline
 and a 10-second connection deadline; failures do not retry or escalate models.
+
+The checked-in `openai-prod.properties` enables the requested Heroku testing
+configuration: Sol for behaviour/nonverbal, Luna for decisions/extraction/summary,
+all with explicit `none` reasoning effort. GPT-5.2 remains the global fallback.
+The ordinary local template stays opt-in. Heroku environment variables can
+override file values; effective model/effort appear in the inference timing logs.
 
 For Azure, the URL identifies the deployment. A model override must include its
 matching deployment URL; `model` identifies the underlying model for capability

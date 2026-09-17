@@ -1,5 +1,31 @@
 # Need for speed: evidence record
 
+## Heroku testing follow-up (Milestone 170, 2026-09-17)
+
+The user explicitly designated Heroku as the test environment and requested
+deployment with Sol/Luna at none. The feature branch now sets all five purpose
+routes in openai-prod.properties: behaviour/nonverbal use gpt-5.6-sol;
+decision/extraction/summary use gpt-5.6-luna. Global GPT-5.2 remains the fallback.
+This supersedes the earlier opt-in-only deployment decision, not its historical
+measurement results. Official model pages reconfirm both models support Chat
+Completions, structured outputs and none effort; account-specific access and
+response quality still require the Heroku trial.
+
+Prepared the reusable hand-sign compatibility fix on the feature branch before
+integrating into agents. Combined generation recognizes authored nonverbal
+envelopes, preserves top-level motion, normalizes scissors to scissor, and strips
+unsupported move/turn fields. The agents branch's existing hand-sign regression
+case is ported to the one-request contract; optional other channels stay intact.
+
+Passed 23 focused Java cases with InferenceRoutingUnitTest,
+OpenAILanguageModelGatewayHttpUnitTest, PromptPolicyGestureUnitTest,
+CatalogInferenceCountUnitTest and LiveTranscriptionSettingsNormalizerTest.
+The production-profile context test loads the actual property file without a
+database/provider and resolves all five routes; provider payload checks use
+loopback HTTP. This is configuration verification, not live quality evidence.
+Cockpit local VAD accepts 1.0 seconds as a custom setting while stopped; changing
+it does not change the separate provider-delay setting.
+
 ## Integrated result (NFS-08 / Milestone 169, 2026-09-16)
 
 All five approaches are implemented on `features/needforspeed`. Deterministic

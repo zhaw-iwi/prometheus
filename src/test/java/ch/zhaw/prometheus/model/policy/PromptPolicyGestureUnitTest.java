@@ -10,6 +10,37 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.*;
 
 class PromptPolicyGestureUnitTest {
+    @Test void onRespondKeepsTopLevelHandSignFromStructuredComplement() {
+        var policy = policy();
+        policy.setNonVerbalPlanPrompt("Return {\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"},\"motion\":{\"handSign\":\"scissors\"}}.");
+        var gateway = new Gateway("""
+                {"speech":"I choose scissors, very dramatically.",
+                 "nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"playful","intensity":0.5},
+                   "gaze":{"direction":"forward","focus":"user"},"motion":{"energy":0.2,"move":"forward","turn":"left"}},
+                 "motion":{"handSign":"scissors","move":"forward","turn":"left"}}
+                """);
+        var plan = respond(policy, gateway);
+        assertEquals("I choose scissors, very dramatically.", plan.getSpeech());
+        var nonverbal = plan.getNonVerbal().getAsJsonObject();
+        assertEquals("ACKNOWLEDGE", nonverbal.get("gesture").getAsString());
+        assertEquals("playful", nonverbal.getAsJsonObject("facialExpression").get("type").getAsString());
+        assertEquals("forward", nonverbal.getAsJsonObject("gaze").get("direction").getAsString());
+        assertFalse(nonverbal.getAsJsonObject("motion").has("move"));
+        assertFalse(nonverbal.getAsJsonObject("motion").has("turn"));
+        assertEquals("{\"handSign\":\"scissor\"}", plan.getMotion().toString());
+        assertEquals(1, gateway.calls);
+        assertTrue(gateway.request.messages().getLast().getContent().contains("do not nest a second envelope"));
+    }
+
+    @Test void motionNormalizationPreservesOtherChannelsAndRemovesUnknownHandSigns() {
+        var plan = BehaviourPlanInference.parse("""
+                {"speech":"Hello.","nonVerbal":{},"motion":{"handSign":"invented","energy":0.2},"display":{"mode":"banner"}}
+                """);
+        assertEquals("{\"energy\":0.2}", plan.getMotion().toString());
+        assertEquals("banner", plan.getDisplay().getAsJsonObject().get("mode").getAsString());
+        assertNull(BehaviourPlanInference.parse("{\"speech\":\"Hi.\",\"nonVerbal\":{},\"motion\":{\"handSign\":\"invented\"}}").getMotion());
+    }
+
     @Test void oneCombinedRequestPreservesSpeechAndNormalizesNonverbal() {
         PromptPolicy policy = policy();
         var gateway = new Gateway("{\"speech\":\"Here is an explanation.\",\"nonVerbal\":{\"gesture\":\"open question\",\"gaze\":{\"direction\":\"forward\"},\"motion\":{\"move\":1,\"turn\":2,\"energy\":0.2}}}");

@@ -7,6 +7,26 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 
 class InferenceRoutingUnitTest {
+    @Test void productionProfileLoadsHerokuPurposeRoutesWithoutStartingDatabaseOrProvider() {
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration.class))
+                .withUserConfiguration(OpenAIProperties.class)
+                .withPropertyValues("spring.profiles.active=prod", "openai.key=offline-test")
+                .run(context -> {
+                    assertNull(context.getStartupFailure());
+                    var properties = context.getBean(OpenAIProperties.class);
+                    assertEquals("gpt-5.2", properties.getModel());
+                    for (InferencePurpose purpose : InferencePurpose.values()) {
+                        var route = InferenceRouting.resolve(properties, purpose);
+                        assertEquals(purpose == InferencePurpose.BEHAVIOUR || purpose == InferencePurpose.NONVERBAL
+                                ? "gpt-5.6-sol" : "gpt-5.6-luna", route.model(), purpose.name());
+                        assertEquals("none", route.effort(), purpose.name());
+                        assertEquals("https://api.openai.com/v1/chat/completions", route.url());
+                    }
+                });
+    }
+
     @Test void springConfigurationBindsPurposeOverridesAndPreservesGlobalFallback() {
         var source = new MapConfigurationPropertySource(Map.of(
                 "openai.openaivsazureopenai", "openai", "openai.model", "gpt-5.2",
