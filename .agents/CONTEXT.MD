@@ -105,7 +105,8 @@ PROMETHEUS currently provides:
   canonical behaviour rendering left to the existing SSE stream;
 - ordered Valerian Speech synthesis and selected-device playback driven by
   persisted behaviour IDs, with live-delivery deduplication, ordinary replay
-  suppression, explicit latest-assistant playback when transcription starts,
+  suppression, output enabled only by Start Transcription, explicit latest-assistant
+  playback on that start, and pending output invalidated when the session stops,
   ID/envelope replay correlation, per-agent cross-tab output ownership,
   explicit Stop, and microphone gating across output;
 - an explicit Valerian cockpit lifecycle in which operational columns stay

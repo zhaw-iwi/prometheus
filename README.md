@@ -876,7 +876,14 @@ stream so the same plan cannot appear twice. If acknowledgement legitimately
 returns no response event, the client preserves typed-input semantics by
 requesting one normal `full_plan` generation.
 
-Valerian's output queue accepts `behaviour-live` events with non-empty speech
+Valerian enables audible agent output only after **Start Transcription**.
+While transcription is stopped, connecting, resetting, and receiving new
+behaviours update the chat and behaviour display without synthesizing or playing
+audio. **Stop Transcription**, reset, disconnect and agent changes disable
+output and discard pending playback, including delayed startup lookups.
+**Stop Speech** cancels the current output while keeping transcription enabled.
+
+While enabled, Valerian's output queue accepts `behaviour-live` events with non-empty speech
 and a persisted SSE event ID. It processes those IDs in order and keeps
 completed, failed, and deliberately skipped IDs distinct, so duplicate live
 delivery and ordinary history/reconnect replay cannot speak twice. An explicit
@@ -884,8 +891,10 @@ transcription start may enqueue the latest assistant utterance from canonical
 chat history again, including a fresh agent's starting message. If the latest
 utterance is from the user, or no assistant speech exists, nothing is spoken.
 State-history selectors do not restrict this lookup. This intentional resume
-delivery is repeatable on later starts and
-still synthesizes only the persisted plan. Synthesis begins through the
+delivery is repeatable on later starts and still synthesizes only the persisted
+plan. Startup replay and subsequent live replies use the same saved Speech
+voice, speed and selected output device; there is no separate reset voice or
+speed configuration. Synthesis begins through the
 canonical event-scoped endpoint below, and playback is routed to the selected
 output device. The microphone remains gated across a queued burst and opens
 only after resume playback has been attempted; it reopens after completion,

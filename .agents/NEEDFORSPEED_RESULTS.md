@@ -21,6 +21,44 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Speech activation follow-up (Milestone 172, 2026-09-17)
+
+Reset publishes a live starter behaviour. The cockpit previously sent every
+live speech event to its output queue regardless of whether the operator had
+started transcription. It now gates audible output on the active transcription
+session while continuing to display all eligible chat/behaviour events.
+
+Session generation checks also prevent delayed startup lookups or queue work
+from speaking after Stop Transcription/reset/disconnect or interfering with a
+subsequent start. Stop Speech remains an output cancellation within the active
+session, including during initial assistant replay.
+
+Four new browser cases failed before the fix with an unwanted Speech POST:
+reset SSE arriving before/after the HTTP response, and a delayed resume lookup
+returning after Stop with/without a new start. These now pass. Saved cedar voice,
+1.25 speed and room-speaker output are checked on both startup replay and live
+replies. Both paths use the existing shared controls; no duplicate reset-only
+configuration or browser text-to-speech path was found.
+
+Verification on features/needforspeed:
+
+- 24 Playwright cases: valerian-transcription.spec.mjs (20),
+  valerian-lifecycle.spec.mjs (1), progressive-speech.spec.mjs (3).
+- 11 Node cases: `node --test tests/js/speech/*.test.mjs`.
+- 19 Java cases: SpeechArchitectureBrowserClientContractTest (5) and
+  ValerianClientStaticResourceContractTest (14).
+
+All passed with zero failures/skips. Exact logs are in ignored
+target/speech-activation-*.log. Static local assets and controlled API/WebRTC/media
+fixtures cover the cockpit; native Chromium covers MP3 playback before EOF,
+Stop and buffered fallback. No database or live provider was used. Actual
+Heroku acoustic behavior and response latency still require the user's trial.
+
+Integrated feature commit 39c5b70 into agents for the authorized Heroku test
+deployment. Only documentation conflicted. The merged Valerian script, markup,
+speech/transcription modules and regression spec exactly match the tested
+feature-branch versions; no test rerun was needed for the documentation merge.
+
 ## Transcription resume follow-up (Milestone 171, 2026-09-17)
 
 Heroku testing exposed an existing resume lookup bug: the current-state policy
