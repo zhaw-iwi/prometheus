@@ -29,6 +29,9 @@ export const SERVER_LABELS = {
   persist: "Persist agent", monitor_publish: "Publish monitor", behaviour_publish: "Publish behaviour",
   behaviour_plan: "Behaviour plan", speech_text: "Speech text", inference: "Model request",
   inference_queue: "Model queue", speech_headers: "Speech provider headers",
+  action_queued: "Background action queued", speculation_started: "Speculative request started",
+  speculation_reused: "Speculative response reused", speculation_discarded: "Speculative response discarded",
+  speculation_skipped: "Speculation skipped", speculation_wait: "Wait for speculative response",
 };
 
 export function difference(from, to) {
@@ -53,7 +56,7 @@ export function timingExport(turns, browser = {}) {
   return { schemaVersion: 1, metadata: { source: "browser", exportedAt: new Date().toISOString(),
     browser: { userAgent: browser.userAgent, timeOrigin: browser.timeOrigin },
     clock: "Browser stages and HTTP boundaries are performance.now() milliseconds. Server spans use a separate request-relative clock.",
-    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. Nested/parallel durations must not be added. Missing measurements are unknown.",
+    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
   }, turns: turns.map(turn => ({ ...structuredClone(turn), outcome: outcome(turn), durationsMs: measurements(turn) })) };
 }
 
@@ -66,7 +69,7 @@ export function timingCsv(turns) {
     return [turn.id, turn.agentId, turn.startedAt, outcome(turn), speech.playbackMode,
       speech.voice ?? config.voice, speech.speed ?? config.speed, config.turnDetection, config.silenceDurationSeconds,
       config.transcriptionDelay, ...METRICS.map(([key]) => metrics[key]),
-      servers.length ? servers.flatMap(server => server.spans).filter(span => span.stage === "inference").length : null,
+      servers.length ? observedInferences(servers).length : null,
       [...new Set(servers.flatMap(server => server.spans).filter(span => span.stage === "inference")
         .map(span => [span.purpose, span.model, span.effort].filter(Boolean).join("/")))].join("; "),
       (turn.requests || []).filter(request => !request.server).length,
@@ -78,4 +81,15 @@ export function timingCsv(turns) {
     return `"${(/^[=+\-@\t\r]/.test(text) ? "'" : "") + text.replaceAll('"', '""')}"`;
   };
   return [fields, ...rows].map(row => row.map(cell).join(",")).join("\r\n") + "\r\n";
+}
+
+// Started work and its eventual completion may appear in different HTTP responses.
+export function observedInferences(servers) {
+  const observed = new Map();
+  servers.forEach((server, serverIndex) => server.spans.forEach((span, spanIndex) => {
+    if (!["inference", "speculation_started"].includes(span.stage)) return;
+    const key = span.request || `${serverIndex}:${spanIndex}`;
+    if (!observed.has(key) || span.stage === "inference") observed.set(key, span);
+  }));
+  return [...observed.values()];
 }

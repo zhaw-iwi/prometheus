@@ -42,10 +42,13 @@ function details(turn) {
     if (request.server) {
       const rows = request.server.spans.map(span => [
         [SERVER_LABELS[span.stage] || span.stage, span.purpose, span.model,
+          span.scope === "speculative" && "speculative work",
           span.effort && `effort ${span.effort}`, span.status === "error" && "failed"].filter(Boolean).join(" · "),
         ms(span.durationMs),
       ]);
       section.append(table(rows, "Server spans (may overlap)"));
+      if (request.server.spans.some(span => span.scope === "speculative")) section.append(element("p",
+        "Speculative work may span multiple HTTP requests. Its duration is not additional turn latency.", "small text-body-secondary"));
       if (request.server.truncated) section.append(element("p", "Server detail was truncated; totals are incomplete.", "small"));
     } else section.append(element("p", "Server detail unavailable.", "small text-body-secondary"));
     body.append(section);

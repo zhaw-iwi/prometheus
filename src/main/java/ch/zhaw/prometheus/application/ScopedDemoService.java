@@ -104,6 +104,7 @@ public class ScopedDemoService {
             this.accessCodeAgents.delete(link.get());
             this.accessCodeAgents.flush();
             if (this.accessCodeAgents.countByAgent_Id(agentId) == 0) {
+                this.agentService.discardSpeculation(agentId, "delete");
                 this.agents.deleteById(agentId);
             }
             return true;

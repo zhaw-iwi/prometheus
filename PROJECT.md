@@ -72,11 +72,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 177, bounded in-memory background transition
-  actions with explicit blocking dependencies, frozen inputs, commit handoff and
-  guarded result application. Passed 344 full Java cases on an isolated database
-  and 25 focused cases after the final queue-deadline check. Unfinished jobs may
-  be lost on restart, as requested. Speculative generation is the next milestone.
+- Last completed follow-up: Milestone 178, bounded speculative behaviour alongside
+  transition decisions, with reuse across persisted acknowledge/generate reloads
+  and immediate invalidation on every transition. Passed 359 full Java cases on
+  an isolated database, 50 client cases and two timing-panel browser cases.
+  Milestone 177 background actions remain in memory as requested. Both optimizations
+  preserve explicit blocking dependencies and ordinary validated publication.
+  Live latency gains, discarded provider cost and response quality need retesting.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -88,6 +90,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 178: Speculative conversational behaviour with guarded reuse
 
 - [x] Milestone 177: In-memory background transition actions
 
@@ -8138,3 +8142,26 @@ priority and action ownership.
   FIFO/other-agent progress, failure, overload, rollback, legacy reload and shutdown
   coverage. No UI changes or live provider/acoustic measurements. Details and
   configuration are in README and .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 178: Speculative conversational behaviour with guarded reuse
+
+- Eligible user-utterance behaviour starts beside pure transition decisions.
+  A bounded application cache spans acknowledge/generate HTTP calls and entity
+  reloads. Only committed, matching event/epoch/prompt/route inputs allow reuse.
+- Every outer/inner/self transition invalidates immediately. Required actions
+  retain order and new-state generation never waits for obsolete inference.
+  Reset, deletion, new input, rollback and expiry discard candidates. Custom,
+  sensory, deterministic and regulation paths preserve existing semantics.
+- Default OpenAI support is enabled with two workers, 64 retained candidates and
+  30-second expiry. Saturation skips speculation; cancellation is best effort.
+  No entities reach workers, hidden retries, duplicate publication or durable jobs.
+- Timing exports identify speculative work and its originating trace, avoiding
+  additive latency interpretation and duplicate CSV counts. Late discarded usage
+  remains server-log evidence, not complete browser cost accounting.
+- Passed 359 Java tests across 86 classes using disposable local MySQL schema
+  prometheus_async_ff4e24ffe4 and controlled providers; schema/account removed.
+  Also passed 50 client tests and two Playwright timing-panel tests at 1440/390px;
+  screenshots inspected. Playwright artifacts now use target/playwright-results
+  so user timing exports in test-results are preserved.
+- No live provider or acoustic latency/quality claim. Implementation, limits,
+  comparison switch and detailed evidence are in README and the results ledger.

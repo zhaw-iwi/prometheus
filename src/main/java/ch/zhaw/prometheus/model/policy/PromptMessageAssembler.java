@@ -12,6 +12,7 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 public class PromptMessageAssembler {
     private final List<PromptEventContentAdapter> eventContentAdapters;
     private final List<PromptContextAugmenter> contextAugmenters;
+    private final boolean speculativeComposition;
 
     public PromptMessageAssembler() {
         this(List.of(
@@ -21,14 +22,22 @@ public class PromptMessageAssembler {
                 new SocialContextPromptEventContentAdapter(),
                 new WeatherPromptEventContentAdapter(),
                 new DefaultPayloadPromptEventContentAdapter()),
-                List.of(new NonverbalSummaryPromptContextAugmenter()));
+                List.of(new NonverbalSummaryPromptContextAugmenter()), true);
     }
 
     public PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
             List<PromptContextAugmenter> contextAugmenters) {
+        this(eventContentAdapters, contextAugmenters, false);
+    }
+
+    private PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
+            List<PromptContextAugmenter> contextAugmenters, boolean speculativeComposition) {
         this.eventContentAdapters = eventContentAdapters == null ? List.of() : List.copyOf(eventContentAdapters);
         this.contextAugmenters = contextAugmenters == null ? List.of() : List.copyOf(contextAugmenters);
+        this.speculativeComposition = speculativeComposition;
     }
+
+    public boolean supportsSpeculativeComposition() { return getClass() == PromptMessageAssembler.class && speculativeComposition; }
 
     public List<PromptMessage> compose(EventHistory eventHistory, String systemPrepend) {
         List<PromptMessage> messages = new ArrayList<>();

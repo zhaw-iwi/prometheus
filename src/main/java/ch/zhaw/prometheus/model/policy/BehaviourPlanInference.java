@@ -19,6 +19,11 @@ final class BehaviourPlanInference {
 
     static BehaviourPlan generate(List<PromptMessage> speechMessages, String nonverbalPrompt,
             boolean gestureOnly, LanguageModelGateway gateway) {
+        String raw = gateway.infer(request(speechMessages, nonverbalPrompt, gestureOnly));
+        return parse(raw, nonverbalPrompt != null && !nonverbalPrompt.isBlank());
+    }
+
+    static InferenceRequest request(List<PromptMessage> speechMessages, String nonverbalPrompt, boolean gestureOnly) {
         var messages = new ArrayList<>(speechMessages);
         boolean nonverbalRequired = nonverbalPrompt != null && !nonverbalPrompt.isBlank();
         if (nonverbalRequired) messages.add(PromptMessage.system("""
@@ -47,9 +52,7 @@ final class BehaviourPlanInference {
                 inside the spoken text. No other behaviour modalities are configured for this policy;
                 omit nv, nonVerbal, motion and display. No Markdown, explanations or raw text outside JSON.
                 """));
-        String raw = gateway.infer(new InferenceRequest(InferencePurpose.BEHAVIOUR, messages,
-                InferenceRequest.Output.JSON_OBJECT));
-        return parse(raw, nonverbalRequired);
+        return new InferenceRequest(InferencePurpose.BEHAVIOUR, messages, InferenceRequest.Output.JSON_OBJECT);
     }
 
     static BehaviourPlan parse(String raw) {

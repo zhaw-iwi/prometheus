@@ -208,6 +208,7 @@ public class Agent {
             if (recordInput) {
                 this.recordEvent(event);
             }
+            if (runtime.behaviourSpeculation() != null) runtime.behaviourSpeculation().prepare(this.currentState, event, runtime);
             evaluation = GuardEvaluation.prepare(this.currentState, runtime);
             PolicyRuntime turnRuntime = runtime.withGuardEvaluation(evaluation);
             Event response = this.currentState.acknowledge(event, turnRuntime);

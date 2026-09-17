@@ -193,6 +193,15 @@ public class PromptPolicy extends Policy {
                 messages, instructions, !planConfigured && gestureConfigured, gateway));
     }
 
+    public ch.zhaw.prometheus.spi.InferenceRequest responseRequest(EventHistory events, PromptMessageAssembler assembler) {
+        String prompt = resolvePrompt();
+        if (prompt.isEmpty()) return null;
+        boolean plan = nonVerbalPlanPrompt != null && !nonVerbalPlanPrompt.isBlank();
+        boolean gesture = nonVerbalGesturePrompt != null && !nonVerbalGesturePrompt.isBlank();
+        return BehaviourPlanInference.request(assembler.compose(events, prompt),
+                plan ? nonVerbalPlanPrompt : gesture ? nonVerbalGesturePrompt : null, !plan && gesture);
+    }
+
     @Override
     public boolean decide(EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();

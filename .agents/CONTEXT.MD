@@ -307,6 +307,17 @@ do not survive restart; completion/failure is correlated in server logs. Legacy
 summary/outcome actions migrate on reload; other unconfigured legacy actions keep
 their ordering. Embedded runtimes without an execution host remain synchronous.
 
+Eligible user-utterance behaviour can overlap transition decisions by default.
+An application-owned bounded, expiring cache bridges acknowledge/generate reloads;
+workers only receive immutable inference requests. No transition and matching
+committed input, epoch, effective prompt and route are required for reuse. All
+transitions invalidate, including self-loops; fresh generation never waits for
+discarded work. No-op regulation and known pure state/policy/assembler/guard paths
+are required; custom and sensory paths remain sequential. Cancellation can leave
+billed work running. Timing exports mark cross-request speculative evidence;
+completed late/discarded work may only be visible in server logs. README documents
+limits and the configuration switch for sequential comparisons.
+
 New persisted events carry a nullable internal history position so reloading
 timestamp ties preserves append order. Legacy rows retain their timestamp order
 without backfill; public IDs/payloads/timestamps are unchanged. The additive

@@ -73,7 +73,7 @@ public final class LatencyTrace implements AutoCloseable {
         trace.measurements.add(new Span(identifier(stage),
                 Math.max(0, elapsedMs(trace.measurements.start) - durationMs), durationMs,
                 success ? "ok" : "error", identifier(request), identifier(purpose), identifier(model),
-                identifier(effort), promptTokens, completionTokens, providerRequests));
+                identifier(effort), promptTokens, completionTokens, providerRequests, null, null));
     }
 
     /** A bounded, content-free snapshot taken before response headers are committed. */
@@ -87,7 +87,31 @@ public final class LatencyTrace implements AutoCloseable {
     }
 
     private record Span(String stage, double offsetMs, double durationMs, String status, String request,
-            String purpose, String model, String effort, Integer promptTokens, Integer completionTokens, Integer providerRequests) {}
+            String purpose, String model, String effort, Integer promptTokens, Integer completionTokens, Integer providerRequests,
+            String scope, String originTrace) {}
+
+    /** Content-free completed inference evidence, possibly carried across acknowledge/generate requests. */
+    public static final class CapturedInference {
+        private final String origin;
+        private final java.util.List<Span> spans;
+        private CapturedInference(String origin, java.util.List<Span> spans) { this.origin = origin; this.spans = spans; }
+        public void attach() {
+            LatencyTrace trace = CURRENT.get();
+            if (trace == null) return;
+            for (Span span : spans) trace.measurements.add(new Span(span.stage, 0, span.durationMs, span.status,
+                    span.request, span.purpose, span.model, span.effort, span.promptTokens, span.completionTokens,
+                    span.providerRequests, "speculative", origin));
+        }
+    }
+
+    public static CapturedInference captureInference() {
+        LatencyTrace trace = CURRENT.get();
+        if (trace == null) return new CapturedInference(null, java.util.List.of());
+        synchronized (trace.measurements) {
+            return new CapturedInference(trace.id, trace.measurements.spans.stream()
+                    .filter(span -> "inference".equals(span.stage)).toList());
+        }
+    }
 
     private static final class Measurements {
         private final long start;
