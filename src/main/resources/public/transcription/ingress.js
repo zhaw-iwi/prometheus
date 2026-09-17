@@ -87,8 +87,12 @@ export class ScopedTranscriptIngress {
       this.reject(turn, "acknowledge_invalid_response", error);
       return false;
     }
+    turnTimings.mark(turn.traceId, "acknowledged");
     if (!acknowledgement?.responseEvent) await this.requestFallbackBehaviour(turn);
-    await this.onAccepted({ ...turn, acknowledgement });
+    turnTimings.mark(turn.traceId, "processing_complete");
+    turnTimings.mark(turn.traceId, "ui_refresh_start");
+    try { await this.onAccepted({ ...turn, acknowledgement }); }
+    finally { turnTimings.mark(turn.traceId, "ui_refresh_end"); }
     this.status("accepted", turn, { active: acknowledgement?.active });
     return true;
   }

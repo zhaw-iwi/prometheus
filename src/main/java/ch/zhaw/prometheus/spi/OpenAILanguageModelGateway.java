@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 
 @Component
 @ConditionalOnProperty(name = "prometheus.gateway.mode", havingValue = "openai", matchIfMissing = true)
@@ -101,6 +102,7 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         long start = System.nanoTime();
         boolean success = false;
         int requests = 0;
+        Integer promptTokens = null, completionTokens = null;
         try {
             JsonObject payload = payload(inference, route);
             HttpRequest request = HttpRequest.newBuilder()
@@ -121,6 +123,8 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
             JsonObject envelope = parsed.getAsJsonObject();
             JsonObject usage = envelope.has("usage") && envelope.get("usage").isJsonObject()
                     ? envelope.getAsJsonObject("usage") : new JsonObject();
+            promptTokens = tokenCount(usage, "prompt_tokens");
+            completionTokens = tokenCount(usage, "completion_tokens");
             LOGGER.info("latency trace={} request={} stage=inference_usage purpose={} model={} effort={} promptTokens={} completionTokens={}",
                     inference.traceId(), inference.requestId(), inference.purpose(), route.model(),
                     route.effort() == null ? "default" : route.effort(), tokenCount(usage, "prompt_tokens"), tokenCount(usage, "completion_tokens"));
@@ -135,6 +139,9 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         } catch (java.io.IOException transport) {
             throw new IllegalStateException("Inference provider transport failed");
         } finally {
+            LatencyTrace.record("inference", (System.nanoTime() - start) / 1_000_000.0, success,
+                    inference.requestId(), inference.purpose().name(), route.model(),
+                    route.effort() == null ? "default" : route.effort(), promptTokens, completionTokens, requests);
             LOGGER.info("latency trace={} request={} stage=inference purpose={} model={} effort={} status={} durationMs={} requests={}",
                     inference.traceId(), inference.requestId(), inference.purpose(), route.model(),
                     route.effort() == null ? "default" : route.effort(), success ? "ok" : "error",

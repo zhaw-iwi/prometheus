@@ -135,7 +135,7 @@ export class BehaviourSpeechPlaybackQueue {
   }
 
   status(state, item, details = {}) {
-    this.onStatus({ state, eventId: item?.eventId || null, ...details });
+    this.onStatus({ state, eventId: item?.eventId || null, delivery: item?.delivery || null, ...details });
   }
 }
 

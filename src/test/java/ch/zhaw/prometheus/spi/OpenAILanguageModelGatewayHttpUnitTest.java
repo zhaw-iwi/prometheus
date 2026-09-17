@@ -53,6 +53,31 @@ class OpenAILanguageModelGatewayHttpUnitTest {
     private OpenAILanguageModelGateway gateway() { return new OpenAILanguageModelGateway(properties); }
     private List<PromptMessage> messages() { return List.of(PromptMessage.system("Synthetic JSON task")); }
 
+    @Test void exportCapturesActualRoutesUsageAndFailedRequestsWithoutProviderContent() {
+        var route = new OpenAIProperties.InferenceRoute();
+        route.setModel("gpt-5.6-luna"); route.setReasoningEffort("none");
+        properties.getRoutes().put(InferencePurpose.DECISION, route);
+        JsonObject withUsage = JsonParser.parseString(envelope("true")).getAsJsonObject();
+        withUsage.add("usage", JsonParser.parseString("{\"prompt_tokens\":12,\"completion_tokens\":2}"));
+        response.set(withUsage.toString());
+        try (var trace = new ch.zhaw.prometheus.logging.LatencyTrace(null, ignored -> {})) {
+            assertTrue(gateway().decide(messages()));
+            status.set(429); response.set("private provider content");
+            assertThrows(IllegalStateException.class, () -> gateway().decide(messages()));
+            String exported = new String(java.util.Base64.getDecoder().decode(
+                    ch.zhaw.prometheus.logging.LatencyTrace.responseHeader()), StandardCharsets.UTF_8);
+            var spans = JsonParser.parseString(exported).getAsJsonObject().getAsJsonArray("spans");
+            assertEquals(2, spans.size());
+            assertEquals("gpt-5.6-luna", spans.get(0).getAsJsonObject().get("model").getAsString());
+            assertEquals("none", spans.get(0).getAsJsonObject().get("effort").getAsString());
+            assertEquals(12, spans.get(0).getAsJsonObject().get("promptTokens").getAsInt());
+            assertEquals("error", spans.get(1).getAsJsonObject().get("status").getAsString());
+            assertFalse(spans.get(1).getAsJsonObject().has("promptTokens"));
+            assertFalse(exported.contains("private")); assertFalse(exported.contains("Synthetic"));
+            assertFalse(exported.contains("test-key"));
+        }
+    }
+
     @Test void sendsPurposeRouteEffortOutputLimitAndNoIncompatibleSampling() {
         var route = new OpenAIProperties.InferenceRoute();
         route.setModel("gpt-5.6-luna"); route.setReasoningEffort("none"); route.setMaxCompletionTokens(256);

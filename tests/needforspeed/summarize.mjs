@@ -13,8 +13,9 @@ const stages = {
 };
 
 export function summarize({ metadata, turns }, serverLog = "") {
-  if (!["fixture", "live"].includes(metadata?.source) || !metadata?.configuration || !metadata?.workload || !Array.isArray(turns)) {
-    throw new Error("Supply metadata source (fixture/live), configuration, workload and exported turns.");
+  const browserExport = metadata?.source === "browser" && metadata?.clock;
+  if ((!browserExport && (!["fixture", "live"].includes(metadata?.source) || !metadata?.configuration || !metadata?.workload)) || !Array.isArray(turns)) {
+    throw new Error("Supply a cockpit export or metadata source (fixture/live), configuration, workload and exported turns.");
   }
   const ids = new Set(turns.map(turn => turn.id));
   const measurements = Object.fromEntries(Object.entries(stages).map(([name, [start, end]]) => {
@@ -30,6 +31,19 @@ export function summarize({ metadata, turns }, serverLog = "") {
       fewerThan50Samples: values.length < 50 }];
   }));
   const requests = new Map();
+  const coverage = { httpRequests: 0, missingServerTiming: 0, truncatedServerTiming: 0 };
+  for (const turn of turns) {
+    for (const http of turn.requests || []) {
+      coverage.httpRequests++;
+      if (!http.server) { coverage.missingServerTiming++; continue; }
+      if (http.server.truncated) coverage.truncatedServerTiming++;
+      for (const span of http.server.spans || []) {
+        if (span.stage === "inference" && span.request) requests.set(span.request, {
+          ...span, dispatched: span.providerRequests === 1,
+        });
+      }
+    }
+  }
   for (const line of serverLog.split(/\r?\n/)) {
     const fields = Object.fromEntries([...line.matchAll(/\b(\w+)=([^\s]+)/g)].map(match => [match[1], match[2]]));
     if (!ids.has(fields.trace) || !fields.request || !["inference", "inference_usage"].includes(fields.stage)) continue;
@@ -46,19 +60,20 @@ export function summarize({ metadata, turns }, serverLog = "") {
       requests: 0, errors: 0, knownPromptTokens: 0, knownCompletionTokens: 0, missingUsage: 0 };
     group.requests++;
     if (request.status !== "ok") group.errors++;
-    if (/^\d+$/.test(request.promptTokens || "") && /^\d+$/.test(request.completionTokens || "")) {
+    if (/^\d+$/.test(request.promptTokens ?? "") && /^\d+$/.test(request.completionTokens ?? "")) {
       group.knownPromptTokens += Number(request.promptTokens); group.knownCompletionTokens += Number(request.completionTokens);
     } else group.missingUsage++;
     groups.set(key, group);
   }
   return {
-    metadata, turns: turns.length, measurements,
+    metadata, turns: turns.length, measurements, coverage,
     statuses: Object.fromEntries(["rejected", "cancelled", "audio_failed", "audio_stopped"].map(stage =>
       [stage, turns.filter(turn => Number.isFinite(turn.stages?.[stage])).length])),
     textInference: groups.size ? [...groups.values()] : null,
     cost: "NOT MEASURED: absent usage/cancelled work and Speech/transcription billing require provider evidence",
     notes: ["Browser clocks only; do not subtract server timestamps. Quantiles use linear interpolation.",
-      "Only correlated exported text-request logs are counted; missing log coverage is unknown.",
+      "Only observed dispatched model requests in timing headers/logs are counted; missing, truncated or still-running work is unknown.",
+      "Cockpit exports may mix settings/workloads. Filter turns before comparing configuration-specific quantiles.",
       "Fixture timing is not production latency. Separate cold/warm and ordinary/closing workloads.",
       "These statistics do not certify response quality, physical audibility or the two-second target."],
   };

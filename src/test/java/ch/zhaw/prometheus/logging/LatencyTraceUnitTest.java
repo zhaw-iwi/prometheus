@@ -9,6 +9,43 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 class LatencyTraceUnitTest {
+    @Test void exportsBoundedFailureSpansAndExplicitWorkerTimingsWithoutCrossRequestLeakage() throws Exception {
+        AtomicLong clock = new AtomicLong(1_000_000);
+        try (var trace = new LatencyTrace(null, ignored -> {}, clock::get);
+                var executor = Executors.newSingleThreadExecutor()) {
+            assertThrows(IllegalStateException.class, () -> LatencyTrace.measure("persist", () -> {
+                clock.addAndGet(2_500_000);
+                throw new IllegalStateException("private conversation");
+            }));
+            var workerScope = LatencyTrace.continuation(trace.id());
+            executor.submit(() -> {
+                try (var worker = workerScope.get()) {
+                    LatencyTrace.record("inference", 1.5, true, UUID.randomUUID().toString(),
+                            "DECISION", "fixture-model", "none", 10, 1);
+                }
+            }).get();
+            var data = decode(LatencyTrace.responseHeader());
+            assertEquals(2.5, data.get("durationMs").getAsDouble());
+            var spans = data.getAsJsonArray("spans");
+            assertEquals(2, spans.size());
+            assertEquals("error", spans.get(0).getAsJsonObject().get("status").getAsString());
+            assertEquals("fixture-model", spans.get(1).getAsJsonObject().get("model").getAsString());
+            assertFalse(data.toString().contains("private"));
+            for (int i = 0; i < 100; i++) LatencyTrace.record("generate", 1, true);
+            assertTrue(LatencyTrace.responseHeader().length() <= 6000);
+            assertTrue(decode(LatencyTrace.responseHeader()).get("truncated").getAsBoolean());
+        }
+        assertNull(LatencyTrace.responseHeader());
+        try (var other = new LatencyTrace(null, ignored -> {})) {
+            assertEquals(0, decode(LatencyTrace.responseHeader()).getAsJsonArray("spans").size());
+        }
+    }
+
+    private static com.google.gson.JsonObject decode(String value) {
+        return com.google.gson.JsonParser.parseString(new String(java.util.Base64.getDecoder().decode(value),
+                java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+    }
+
     @Test void monotonicScopesAreIsolatedAndRestoreAfterFailure() throws Exception {
         AtomicLong clock = new AtomicLong(1_000_000);
         String id = UUID.randomUUID().toString();

@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { summarize } from "../../needforspeed/summarize.mjs";
+import { timingExport } from "../../../src/main/resources/public/performance/report.js";
+
+test("cockpit JSON is sufficient for the reporter and marks incomplete server coverage", () => {
+  const exported = timingExport([{ id: "turn", stages: { last_voice: 0, audio_playing: 6000 }, requests: [
+    { kind: "acknowledge", server: { truncated: true, spans: [
+      { stage: "inference", request: "r1", providerRequests: 1, purpose: "DECISION", model: "fixture", effort: "none",
+        status: "ok", promptTokens: 0, completionTokens: 2 },
+      { stage: "inference", request: "r2", providerRequests: 0, status: "error" },
+    ] } }, { kind: "speech", server: null },
+  ] }]);
+  const report = summarize(exported);
+  assert.equal(report.measurements.voiceResponse.p50Ms, 6000);
+  assert.equal(report.textInference.length, 1);
+  assert.equal(report.textInference[0].requests, 1);
+  assert.equal(report.textInference[0].missingUsage, 0);
+  assert.deepEqual(report.coverage, { httpRequests: 2, missingServerTiming: 1, truncatedServerTiming: 1 });
+});
 
 test("latency report separates missing/invalid clocks, failures, and unknown usage", () => {
   const report = summarize({ metadata: { source: "fixture", configuration: "synthetic", workload: "warm ordinary" }, turns: [

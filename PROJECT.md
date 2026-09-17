@@ -72,8 +72,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 172, restricted Valerian audible output
-  to started transcription sessions, including reset and delayed-resume handling.
+- Last completed follow-up: Milestone 173, added the Interaction Timing drawer
+  tab, content-free JSON/CSV exports and correlated browser/server measurements.
+  Real Heroku recordings are still needed to locate the reported six-second delay.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -85,6 +86,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 173: Interaction timing drawer and shareable evidence
 
 - [x] Milestone 172: Transcription-controlled Valerian speech activation
 
@@ -8032,3 +8035,28 @@ priority and action ownership.
   speech cases and 19 Java client-resource contracts. Browser APIs/WebRTC/media
   are mocked except the three native MP3 streaming cases. No database, live
   provider or physical acoustic measurement was needed for this client fix.
+
+## Milestone 173: Interaction timing drawer and shareable evidence
+
+- Added the third Interaction Timing tab to Agent & Diagnostics, with expandable
+  turn durations/timelines, individual HTTP/server spans, settings and playback
+  mode, plus JSON/CSV export and Clear. The bounded in-memory recording survives
+  reset/disconnect; assistant restart replay does not change past turn evidence.
+- Renamed Transcript Sending to Processing turn, reflecting that acknowledgement
+  can include model inference, generation and persistence. Timings distinguish
+  acknowledgement, fallback generation and cockpit refresh; speech requests
+  arriving before acknowledgement correlation remain attached to the right turn.
+- Added bounded, content-free response timing headers without changing bodies
+  or buffering audio. Text-model routes/effort, reported usage, queue/application
+  spans and Speech provider-header time can now be shared in one browser export.
+  Pure guard workers share an explicit request-local collector; no trace cache
+  or additional endpoint/provider request was introduced.
+- The offline reporter consumes exported server spans and identifies absent or
+  truncated coverage. Browser/server clocks stay separate and nested/parallel
+  durations are not additive. Missing stages remain unknown. Failed ASR before
+  ingress and startup playback do not create submitted-turn records.
+- Passed 37 Java, 49 Node and 26 Playwright cases, including real HTTP streaming,
+  early-SSE correlation, failure/privacy/clock checks, JSON/CSV downloads and
+  inspected 1440/390-pixel drawer screenshots. Controlled providers and browser
+  media were used; no database, live Heroku or physical acoustic measurement.
+  Detailed evidence and limitations are in .agents/NEEDFORSPEED_RESULTS.md.

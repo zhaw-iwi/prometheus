@@ -85,7 +85,8 @@ PROMETHEUS currently provides:
 - multimodal behaviour generation and behaviour persistence;
 - typed inference requests with configurable task-purpose model/effort routes,
   finite provider deadlines, strict structured-result validation and content-free
-  correlated latency diagnostics (configuration and evidence in README/results);
+  correlated latency diagnostics, including a Valerian Interaction Timing drawer
+  with browser/server JSON and comparison CSV exports (details in README/results);
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;

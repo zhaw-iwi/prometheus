@@ -62,6 +62,8 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
         } catch (Exception failure) {
             throw new SpeechSynthesisException("unable to request OpenAI Speech synthesis", failure);
         } finally {
+            LatencyTrace.record("speech_headers", LatencyTrace.elapsedMs(start), success,
+                    null, null, speechProperties.getModel(), null, null, null);
             org.slf4j.LoggerFactory.getLogger(getClass()).info(
                     "latency trace={} stage=speech_headers model={} status={} durationMs={}",
                     LatencyTrace.currentId(), speechProperties.getModel(), success ? "ok" : "error", LatencyTrace.elapsedMs(start));

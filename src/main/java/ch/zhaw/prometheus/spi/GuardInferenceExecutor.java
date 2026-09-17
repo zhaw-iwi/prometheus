@@ -56,6 +56,7 @@ public final class GuardInferenceExecutor implements AutoCloseable {
         var turn = new Semaphore(perTurn, true);
         Session session = new Session(now + turnTimeoutNanos);
         for (InferenceRequest request : frozen) {
+            var continuation = LatencyTrace.continuation(request.traceId());
             session.tasks.add(new Task(() -> {
                 boolean ownTurn = false, ownGlobal = false;
                 try {
@@ -64,7 +65,9 @@ public final class GuardInferenceExecutor implements AutoCloseable {
                     org.slf4j.LoggerFactory.getLogger(GuardInferenceExecutor.class).info(
                             "latency trace={} request={} stage=inference_queue durationMs={}", request.traceId(), request.requestId(),
                             Math.max(0, clock.getAsLong() - now) / 1_000_000.0);
-                    try (var trace = new LatencyTrace(request.traceId(), ignored -> {})) {
+                    try (var trace = continuation.get()) {
+                        LatencyTrace.record("inference_queue", Math.max(0, clock.getAsLong() - now) / 1_000_000.0,
+                                true, request.requestId(), null, null, null, null, null);
                         return inference.apply(request);
                     }
                 } finally {
