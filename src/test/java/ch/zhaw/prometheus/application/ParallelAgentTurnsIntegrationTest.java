@@ -35,6 +35,7 @@ class ParallelAgentTurnsIntegrationTest {
         when(gateway.guardExecutor()).thenReturn(executor);
         when(gateway.infer(any())).thenAnswer(invocation -> {
             InferenceRequest request = invocation.getArgument(0);
+            if (request.purpose() == InferencePurpose.EXTRACTION) return "{\"completed\":true}";
             if (request.purpose() != InferencePurpose.DECISION) return "{\"speech\":\"Ready.\",\"nonVerbal\":{}}";
             assertTrue(Thread.currentThread().isVirtual());
             if (request.messages().stream().anyMatch(message -> message.getContent().contains("first-turn"))) {
@@ -61,9 +62,11 @@ class ParallelAgentTurnsIntegrationTest {
         assertEquals(List.of("other-agent"), userInputs(other));
         closing.set(true);
         assertTrue(service.acknowledge(first, input("close-turn")).isPresent());
+        org.awaitility.Awaitility.await().untilAsserted(() ->
+                assertTrue(repository.findById(first).orElseThrow().getStorage().containsKey("outcome")));
         Agent reloaded = repository.findById(first).orElseThrow();
         assertFalse(reloaded.isActive()); assertTrue(reloaded.getStorage().get("outcome").getAsJsonObject().get("completed").getAsBoolean());
-        verify(gateway, times(1)).extract(any());
+        verify(gateway, times(1)).infer(argThat(request -> request.purpose() == InferencePurpose.EXTRACTION));
         service.reset(first);
         reloaded = repository.findById(first).orElseThrow();
         assertTrue(reloaded.isActive()); assertEquals(1, reloaded.getEventHistory().toList().size());

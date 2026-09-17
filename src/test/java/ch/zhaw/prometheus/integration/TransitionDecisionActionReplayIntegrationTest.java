@@ -116,7 +116,7 @@ class TransitionDecisionActionReplayIntegrationTest {
                 java.util.List.of(new StaticExtractionAction(
                         "Extract the user goal and urgency as JSON with keys goal, urgency, next_step.",
                         storage,
-                        "GoalDetected")),
+                        "GoalDetected").blocking()),
                 planning);
         State rapport = new State("Rapport", rapportPolicy, java.util.List.of(rapportToPlanning), true, false);
 

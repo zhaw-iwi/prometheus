@@ -49,6 +49,7 @@ public class DynamicSingleChoiceState extends State {
                 Action action = new DynamicExtractionAction(
                                 DynamicSingleChoiceState.SINGLECHOICE_ACTION + "${" + storageKeyFrom + "}", storage,
                                 storageKeyFrom, storageKeyTo);
+                action.blocking();
                 Transition transition = new Transition(List.of(trigger), List.of(action), subsequentState);
                 this.addTransition(transition);
         }

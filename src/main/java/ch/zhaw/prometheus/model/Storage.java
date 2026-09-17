@@ -55,6 +55,11 @@ public class Storage {
         return false;
     }
 
+    public String writeVersion(String key) {
+        return entries.stream().filter(entry -> entry.getKey().equals(key))
+                .findFirst().map(StorageEntry::writeVersion).orElse("missing");
+    }
+
     public JsonElement get(String key) {
         for (StorageEntry candiate : this.entries) {
             if (candiate.getKey().equals(key)) {

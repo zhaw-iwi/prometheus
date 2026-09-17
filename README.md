@@ -402,9 +402,46 @@ Startup and direct facial/social reactions use one generation request. These are
 offline call-count results; measured provider latency and response quality are
 tracked separately in the results ledger.
 
-The roadmap for non-blocking transition actions and speculative behaviour is in
-`.agents/PLAN_TRANSITION_EXECUTION.md`. Those execution changes are not enabled
-by the unified output format; actions still finish before state entry.
+The execution roadmap is in `.agents/PLAN_TRANSITION_EXECUTION.md`.
+
+### Background transition actions
+
+New transition actions default to background execution in the Spring application
+runtime. Use `action.blocking()` when later actions, guards or state-entry prompts
+need its result. Gather/choice dependencies and RPS updates explicitly block;
+summary/outcome recording runs in the background on any transition. There is no
+cockpit switch. Embedded `PolicyRuntime` instances without an `ActionExecution`
+host still execute on the caller thread.
+
+An action's `prepare` method freezes selected events, resolved prompts and values
+on the agent thread and returns `PreparedAction` work that captures no entities.
+The worker computes JSON storage writes; only the application applies them under
+the existing agent lock in a fresh transaction. Custom background actions must
+implement this contract; custom blocking actions retain `execute`.
+
+Work starts after successful turn commit and runs FIFO per agent. Different
+agents can progress concurrently. Reset/delete invalidates obsolete results;
+write tokens prevent overwriting a newer foreground value. Accepted earlier
+background writes are accounted for so queued writes preserve their order.
+Failures never remove an already-published farewell or trigger a model retry.
+
+This queue is intentionally **in memory**: queued/running work may be lost on a
+Heroku restart. Configure `prometheus.actions.parallelism` (4), `.capacity` (64,
+running plus reserved/queued jobs), and `.queue-timeout-ms` (30000). Admission
+does not wait or silently fall back to blocking: exhaustion fails the turn before
+persistence. Queue expiry and worker failures are explicit logged failures.
+`background_action` logs correlate job/agent/action/turn IDs and completion,
+failure, conflict or shutdown status. The HTTP timing export records
+`action_queued`; completion after the HTTP response is only in server logs.
+
+Schema update adds nullable `action.execution_mode`, `agent.execution_epoch`, and
+`storage_entry.write_token` columns through the existing Hibernate update setup.
+Existing stored summary/outcome extraction actions and summarisation actions gain
+background execution on reload. Known SmallTalk/coaching summary states also
+migrate their legacy action modes. Other legacy actions keep blocking semantics;
+newly authored actions default to background. Deploy coordinated writers: these
+in-process ordering guarantees do not support multiple independent agent writers.
+Completed storage remains durable; no job records or restart recovery are added.
 
 ### Task-specific text inference
 

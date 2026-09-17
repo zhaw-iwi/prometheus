@@ -299,6 +299,14 @@ Workers never receive entities or persistence contexts. The application serializ
 runtime mutations per agent inside one process; scheduled ticks and scoped
 deletion use that same boundary. See README for limits and multi-instance scope.
 
+Transition actions default to bounded in-memory background execution in the
+application host, with explicit blocking dependencies. Workers consume immutable
+prepared work; completion updates fresh storage under the agent lock after commit.
+Reset epochs and storage write tokens reject obsolete/conflicting results. Jobs
+do not survive restart; completion/failure is correlated in server logs. Legacy
+summary/outcome actions migrate on reload; other unconfigured legacy actions keep
+their ordering. Embedded runtimes without an execution host remain synchronous.
+
 New persisted events carry a nullable internal history position so reloading
 timestamp ties preserves append order. Legacy rows retain their timestamp order
 without backfill; public IDs/payloads/timestamps are unchanged. The additive

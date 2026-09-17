@@ -72,11 +72,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 176, unified structured behaviour generation
-  for every PromptPolicy, including speech-only final states. Passed 95 focused
-  Java and 14 isolated-database/HTTP cases. Background transition actions and
-  speculative generation are scoped in .agents/PLAN_TRANSITION_EXECUTION.md;
-  action durability remains a user decision and execution is still synchronous.
+- Last completed follow-up: Milestone 177, bounded in-memory background transition
+  actions with explicit blocking dependencies, frozen inputs, commit handoff and
+  guarded result application. Passed 344 full Java cases on an isolated database
+  and 25 focused cases after the final queue-deadline check. Unfinished jobs may
+  be lost on restart, as requested. Speculative generation is the next milestone.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -88,6 +88,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 177: In-memory background transition actions
 
 - [x] Milestone 176: Unified JSON behaviour generation including final states
 
@@ -8119,3 +8121,20 @@ priority and action ownership.
 - Scoped non-blocking transition actions and speculative generation in
   .agents/PLAN_TRANSITION_EXECUTION.md. The restart durability choice remains
   pending; existing transition actions and behaviour generation remain ordered.
+
+## Milestone 177: In-memory background transition actions
+
+- Added background-by-default authoring with explicit blocking dependencies,
+  immutable prepared work and bounded per-agent FIFO execution after commit.
+  Summaries/outcomes leave the response path; RPS and gather/choice ordering stays
+  explicit. Legacy summary modes migrate on reload; other legacy modes stay safe.
+- Fresh transactional storage patches share the existing agent serialization.
+  Reset epochs and write tokens reject stale results without replacing newer
+  storage; queued background writes preserve order. No durable jobs or retries.
+- Passed the full feature Java suite: 344 cases, no failures/errors/skips, using
+  disposable MySQL schema prometheus_async_a570e7ed1c and controlled providers.
+  Schema/account removed. Final queue-clock refinement passed 25 focused cases.
+- Added latch-controlled background/farewell, reset/delete, write conflict,
+  FIFO/other-agent progress, failure, overload, rollback, legacy reload and shutdown
+  coverage. No UI changes or live provider/acoustic measurements. Details and
+  configuration are in README and .agents/NEEDFORSPEED_RESULTS.md.

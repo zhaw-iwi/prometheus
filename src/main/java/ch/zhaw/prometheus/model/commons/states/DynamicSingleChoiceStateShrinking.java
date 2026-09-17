@@ -58,6 +58,8 @@ public class DynamicSingleChoiceStateShrinking extends State {
                                 "",
                                 storage,
                                 storageKeyFrom, storageKeyTo);
+                action.blocking();
+                removeAction.blocking();
                 Transition transition = new Transition(List.of(trigger), List.of(action, removeAction),
                                 subsequentState);
                 this.addTransition(transition);

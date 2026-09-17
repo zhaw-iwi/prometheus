@@ -50,6 +50,7 @@ public class GatherState extends State {
                                                 .toString(),
                                 storage,
                                 storageKeyTo);
+                action.blocking();
                 Transition transition = new Transition(List.of(trigger), List.of(action), subsequentState);
                 this.addTransition(transition);
         }

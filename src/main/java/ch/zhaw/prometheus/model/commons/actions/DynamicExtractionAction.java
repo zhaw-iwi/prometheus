@@ -24,6 +24,12 @@ public class DynamicExtractionAction extends Action {
     }
 
     @Override
+    public ch.zhaw.prometheus.model.PreparedAction prepare(EventHistory events,
+            ch.zhaw.prometheus.model.snapshot.ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        return preparePromptAction(events, runtime, false);
+    }
+
+    @Override
     public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
         JsonElement result = this.getPolicy().extract(eventHistory, runtime.promptMessageAssembler(),
                 runtime.languageModelGateway());

@@ -14,21 +14,23 @@ storage, state, SSE or speech side effects before the state machine accepts it.
 
 Use one action contract with an explicit execution mode: non-blocking by default,
 blocking when an agent author declares that following work requires its result.
-A proposed fluent `action.blocking()` configuration avoids duplicating every
+A fluent `action.blocking()` configuration avoids duplicating every
 action class into synchronous/asynchronous variants. Concrete actions still
 define their own preparation, computation and result application.
 
-## Pending durability decision
+## Durability decision (2026-09-17)
 
-The user has been asked whether unfinished actions should survive a Heroku
-restart. Recommended: durable jobs committed with the transition, resumed after
-restart, with bounded workers and idempotent result application. Alternative:
-bounded in-memory work with explicitly acknowledged loss on restart.
+The user selected bounded in-memory execution. Unfinished actions may be lost
+on Heroku restart. No durable job table, recovery or automatic replay is added.
+Completed results still use ordinary persisted storage. Execution-mode, agent
+reset-epoch and storage write-token columns protect configuration and late writes;
+these fields do not persist queued work.
 
-This changes the persistence/failure contract, so action execution defaults are
-not changed before that answer. Background delivery is not fire-and-forget:
-success/failure/cancellation must be visible. Retrying arbitrary external side
-effects requires explicit idempotency; do not claim exactly-once external work.
+Admission is bounded and non-waiting; saturation fails the originating turn
+explicitly before persistence. Work starts after successful turn commit. Queued
+work expires after a finite queue deadline; failures, expiry, shutdown and stale
+results are logged with identifiers, without conversation data. There are no
+automatic retries of external side effects.
 
 ## Milestone 176 - One structured generation path
 
@@ -69,8 +71,8 @@ effects requires explicit idempotency; do not claim exactly-once external work.
   a tested migration/default strategy; do not silently require agent recreation.
 - Verify asynchronous farewell can start before outcome completion, blocking
   dependencies, action ordering, error handling, reset/delete, stale results and
-  transaction rollback. Use latches and isolated-database tests. If durable,
-  also verify restart/reclaim and duplicate completion handling.
+  transaction rollback. Use latches and isolated-database tests. Verify shutdown
+  discards unfinished work without replay and releases bounded resources.
 
 ## Milestone 178 - Speculative behaviour during transition evaluation
 

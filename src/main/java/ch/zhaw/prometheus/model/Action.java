@@ -26,6 +26,38 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public abstract class Action extends PersistedNode {
+    public enum ExecutionMode { BACKGROUND, BLOCKING }
+    @Enumerated(EnumType.STRING)
+    private ExecutionMode executionMode;
+
+    public Action blocking() { this.executionMode = ExecutionMode.BLOCKING; return this; }
+    public Action nonBlocking() { this.executionMode = ExecutionMode.BACKGROUND; return this; }
+    public boolean hasExplicitExecutionMode() { return executionMode != null; }
+    public ExecutionMode getExecutionMode() {
+        return executionMode == null ? legacyExecutionMode() : executionMode;
+    }
+    /** Unconfigured persisted extension actions retain their ordering until explicitly migrated. */
+    protected ExecutionMode legacyExecutionMode() { return ExecutionMode.BLOCKING; }
+
+    public PreparedAction prepare(EventHistory events, ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        throw new IllegalStateException("Background action must implement immutable prepare(): " + getClass().getName());
+    }
+
+    protected final PreparedAction prepared(java.util.Set<String> keys, PreparedAction.Work work) {
+        Map<String, String> versions = new HashMap<>();
+        for (String key : keys) versions.put(key, getStorage().writeVersion(key));
+        return new PreparedAction(getId(), getStorage().getID(), versions, work);
+    }
+
+    protected final PreparedAction preparePromptAction(EventHistory events, PolicyRuntime runtime, boolean summary) {
+        if (getPolicy().getClass() != ch.zhaw.prometheus.model.policy.PromptPolicy.class)
+            throw new IllegalStateException("Custom action policies must prepare their own immutable work");
+        var request = ((ch.zhaw.prometheus.model.policy.PromptPolicy) getPolicy())
+                .actionRequest(events, runtime.promptMessageAssembler(), summary);
+        String key = getStorageKeyTo();
+        return prepared(java.util.Set.of(key), gateway -> Map.of(key, request == null ? "null"
+                : ch.zhaw.prometheus.spi.InferenceResult.json(gateway.infer(request)).toString()));
+    }
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Policy policy;
@@ -48,6 +80,7 @@ public abstract class Action extends PersistedNode {
     }
 
     public Action(Policy policy) {
+        this.executionMode = ExecutionMode.BACKGROUND;
         this.policy = policy;
         this.storage = null;
         this.storageKeysFrom = List.of();

@@ -45,6 +45,12 @@ import jakarta.persistence.Transient;
 
 @Entity
 public class Agent {
+    private UUID executionEpoch;
+
+    public UUID executionEpoch() {
+        if (executionEpoch == null) executionEpoch = UUID.randomUUID();
+        return executionEpoch;
+    }
 
     @Id
     @GeneratedValue
@@ -283,6 +289,7 @@ public class Agent {
     }
 
     public void reset() {
+        this.executionEpoch = UUID.randomUUID();
         this.currentState = this.initialState;
         this.currentState.reset();
         if (this.eventHistory != null) {
@@ -342,6 +349,13 @@ public class Agent {
         this.initialState.collectStates(visited, states);
         for (State state : states) {
             state.setEventHistory(this.eventHistory);
+            if (state instanceof ch.zhaw.prometheus.model.commons.states.SmallTalkState
+                    || state instanceof ch.zhaw.prometheus.model.commons.states.DynamicActionableCoachingState) {
+                for (Transition transition : state.getTransitions()) for (Action action : transition.getActions())
+                    if (!action.hasExplicitExecutionMode()
+                            && action instanceof ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction)
+                        action.nonBlocking();
+            }
         }
     }
 

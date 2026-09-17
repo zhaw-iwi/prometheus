@@ -7,14 +7,22 @@ public record PolicyRuntime(
         PromptMessageAssembler promptMessageAssembler,
         LanguageModelGateway languageModelGateway,
         OutputProfile outputProfile,
-        GuardEvaluation guardEvaluation) {
+        GuardEvaluation guardEvaluation,
+        ch.zhaw.prometheus.model.ActionExecution actionExecution) {
+
+    public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
+            GuardEvaluation evaluation) { this(assembler, gateway, profile, evaluation, null); }
+
+    public PolicyRuntime withActionExecution(ch.zhaw.prometheus.model.ActionExecution execution) {
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, execution);
+    }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile) {
         this(assembler, gateway, profile, null);
     }
 
     public PolicyRuntime withGuardEvaluation(GuardEvaluation evaluation) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation, actionExecution);
     }
 
     public PolicyRuntime(PromptMessageAssembler promptMessageAssembler,
