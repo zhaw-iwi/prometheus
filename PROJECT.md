@@ -79,11 +79,12 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 174, switches Heroku behaviour/nonverbal routes
-  to Luna at none while preserving independent purpose routes. The first Heroku
-  recordings show ordinary Sol behaviour calls average 2.62 seconds versus
-  0.91 seconds for shorter Luna decisions. Luna behaviour quality/latency and
-  compact output encoding remain unverified; see the results ledger.
+- Last completed follow-up: Milestone 175, compact provider JSON for combined
+  behaviour generation, expanded to canonical plans before publication. Passed
+  93 focused Java cases; a representative 232-character response becomes 136
+  characters without losing values. Live token/latency savings and Luna behaviour
+  quality remain unverified. Separate purpose routes remain configured at Luna
+  with none effort for Heroku; see the results ledger.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -95,6 +96,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 175: Compact provider behaviour JSON with canonical publication
 
 - [x] Milestone 174: Luna behaviour routes and output-size investigation
 
@@ -8909,3 +8912,28 @@ priority and action ownership.
 - Integrated feature commit 29444f1 into agents for the authorized Heroku test
   deployment. Only documentation conflicted; production configuration and the
   updated route test exactly match the tested feature commit. Main is unchanged.
+
+## Milestone 175: Compact provider behaviour JSON with canonical publication
+
+- Added a provider-only compact encoding at BehaviourPlanInference, using short
+  nonverbal keys and typed two-value tuples. Canonical speech, motion/display,
+  authored modality choices and values remain unchanged. Other, partial, null
+  and extended nonverbal objects pass through an explicit full-name escape field.
+- Decode before existing validation/publication. Unknown compact keys, malformed
+  tuples, invalid numeric values, ambiguous envelopes and duplicate alias/escape
+  definitions fail once without publication or repair requests. Canonical provider
+  responses remain valid for authored prompts and custom gateways.
+- Added content-free compact/canonical decode stages to the existing timing
+  exports. Existing agents use the new request instructions on their next turn;
+  no schema change, reset, recreation, UI setting or additional model call.
+- Passed 93 Java cases across codec/policy, all twelve baseline catalog paths,
+  core/healthcare prompt contracts, routing, real loopback HTTP, timing and event
+  serialization. A representative fixture shrinks from 232 to 136 characters
+  with identical canonical output. No token or live latency reduction is claimed.
+- No database or client code changed; database/browser/provider quality tests
+  were not run. Actual Luna adherence, output tokens and end-to-end latency need
+  the next Heroku interaction export. Details: .agents/NEEDFORSPEED_RESULTS.md.
+- Integrated feature commit 1ee4f0f into agents, resolving documentation only;
+  changed source/tests match the verified feature commit. All 94 merged-branch
+  prompt-contract cases passed, including application-specific agents. Main is
+  unchanged; the agents push deploys the authorized Heroku testing environment.

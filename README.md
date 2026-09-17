@@ -380,12 +380,38 @@ admin-token environment override.
 
 ### Combined behaviour generation
 
-A `PromptPolicy` with a nonverbal plan or gesture prompt now requests one JSON
-behaviour plan containing speech and nonverbal output. Java composes the existing
+A `PromptPolicy` with a nonverbal plan or gesture prompt requests one compact JSON
+response that Java expands into the existing speech/nonverbal behaviour plan. Java composes the existing
 outer, task, starter and nonverbal instructions; custom persisted prompts remain
 in place and gain this behaviour after reload. Structured nonverbal instructions
 apply inside `nonVerbal`, and gesture-only instructions apply to its `gesture`
 field. Optional motion/display objects retain the existing contract.
+
+The provider response uses `speech` and `nv`, with these fields inside `nv`:
+
+| Compact field | Canonical nonverbal field |
+| --- | --- |
+| `g` | `gesture` (same semantic label) |
+| `f: [type, intensity]` | `facialExpression: {type, intensity}` |
+| `z: [direction, focus]` | `gaze: {direction, focus}` |
+| `m: [stillness, energy]` | `motion: {stillness, energy}` inside `nonVerbal` |
+| `x: {...}` | Other nonverbal fields under their full names, including custom, partial, null or extended objects |
+
+Only exact field pairs use tuples; `x` preserves other shapes without inventing
+missing values or losing extensions. Top-level `motion` (including hand signs)
+and `display` remain ordinary full-name objects. Speech and all string contents
+remain unchanged; only JSON formatting whitespace is omitted. Expansion precedes
+existing validation and event publication, so stored plans, history, HTTP/SSE and
+clients always use the canonical field names. Existing agents gain compact
+instructions on their next generation; no recreation or cockpit setting is needed.
+
+Canonical provider responses remain accepted for authored prompts/custom gateways.
+Timing exports distinguish `behaviour_decode_compact` from
+`behaviour_decode_canonical`; neither includes response content. Malformed compact
+tuples, unknown short keys and overlapping short-key/`x` definitions fail without
+a repair request or partial speech. Compare actual completion tokens and latency
+in the Interaction Timing export; a shorter JSON representation alone does not
+establish a deployment speedup.
 
 Speech-only prompt policies (including final states), deterministic RPS output
 and Talk to Me keep their existing paths. Invalid combined output fails without
@@ -1121,6 +1147,7 @@ rules (environment overrides take precedence over property files):
 | Improvement | Activation |
 | --- | --- |
 | Combined speech/nonverbal generation | Automatic for compatible prompt policies requesting both channels. |
+| Compact model response | Automatic for combined generation; expanded to canonical plans before publication. Timing exports identify compact versus canonical responses. |
 | Combined transition decisions | Default `openai.guard-strategy=combined`; only eligible pure checks can share a request. |
 | Purpose/model/effort routing | `openai-prod.properties` selects Luna for all five purposes at `none`; each purpose remains independently configurable and GPT-5.2 remains the fallback. |
 | Progressive synthesized audio | Automatic when the browser supports MP3 MediaSource; otherwise buffered playback. No cockpit switch. |

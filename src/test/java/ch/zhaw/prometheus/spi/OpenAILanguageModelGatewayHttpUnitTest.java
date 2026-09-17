@@ -15,6 +15,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
+import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.policy.PolicyRuntime;
+import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
+import ch.zhaw.prometheus.model.policy.PromptPolicy;
 
 class OpenAILanguageModelGatewayHttpUnitTest {
     private HttpServer server;
@@ -52,6 +57,43 @@ class OpenAILanguageModelGatewayHttpUnitTest {
     @AfterEach void stop() { release.countDown(); server.stop(0); }
     private OpenAILanguageModelGateway gateway() { return new OpenAILanguageModelGateway(properties); }
     private List<PromptMessage> messages() { return List.of(PromptMessage.system("Synthetic JSON task")); }
+
+    @Test void compactProviderResponsePublishesCanonicalBehaviourAndReportsEncoding() {
+        var route = new OpenAIProperties.InferenceRoute();
+        route.setModel("gpt-5.6-luna"); route.setReasoningEffort("none");
+        properties.getRoutes().put(InferencePurpose.BEHAVIOUR, route);
+        response.set(envelope("""
+                {"speech":"A private synthetic reply.","nv":{"g":"POLITE","f":["gentleSmile",0.3],
+                 "z":["toward_user","person"],"m":[0.9,0.1]},"motion":{"handSign":"paper"}}
+                """));
+        var policy = new PromptPolicy("task instructions", "starter instructions", "summary");
+        policy.setNonVerbalPlanPrompt("authored nonverbal instructions");
+        var agent = new Agent("synthetic", "compact HTTP fixture", new State("s", policy, List.of()));
+        try (var trace = new ch.zhaw.prometheus.logging.LatencyTrace(null, ignored -> {})) {
+            var event = agent.start(new PolicyRuntime(new PromptMessageAssembler(), gateway()));
+            assertEquals(1, calls.get());
+            JsonObject payload = request.get();
+            assertEquals("gpt-5.6-luna", payload.get("model").getAsString());
+            assertEquals("none", payload.get("reasoning_effort").getAsString());
+            assertEquals("json_object", payload.getAsJsonObject("response_format").get("type").getAsString());
+            var messages = payload.getAsJsonArray("messages");
+            String instructions = messages.get(messages.size() - 1).getAsJsonObject().get("content").getAsString();
+            assertTrue(instructions.contains("authored nonverbal instructions"));
+            assertTrue(instructions.contains("f: [type,intensity]"));
+            var behaviour = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+            assertFalse(behaviour.has("nv"));
+            assertEquals("A private synthetic reply.", behaviour.get("speech").getAsString());
+            assertEquals("gentleSmile", behaviour.getAsJsonObject("nonVerbal")
+                    .getAsJsonObject("facialExpression").get("type").getAsString());
+            assertEquals("paper", behaviour.getAsJsonObject("motion").get("handSign").getAsString());
+            String exported = new String(java.util.Base64.getDecoder().decode(
+                    ch.zhaw.prometheus.logging.LatencyTrace.responseHeader()), StandardCharsets.UTF_8);
+            assertTrue(exported.contains("behaviour_decode_compact"));
+            assertFalse(exported.contains("behaviour_decode_canonical"));
+            assertFalse(exported.contains("private synthetic"));
+            assertFalse(exported.contains("gentleSmile"));
+        }
+    }
 
     @Test void exportCapturesActualRoutesUsageAndFailedRequestsWithoutProviderContent() {
         var route = new OpenAIProperties.InferenceRoute();
