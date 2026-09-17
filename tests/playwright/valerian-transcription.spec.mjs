@@ -324,10 +324,19 @@ for (const width of [1440, 390]) {
     await page.getByTestId("toggle-transcription").click();
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
     // Feed the same local-VAD commit boundary used by the microphone; no real acoustic claim.
-    await page.evaluate(() => transcription.transcriptionClient.events.noteCommit({
-      lastVoiceAtMs: performance.now() - 500, observedAtMs: performance.now(),
-    }));
+    await page.evaluate(() => {
+      const runtime = transcription.transcriptionClient.events;
+      const now = performance.now();
+      // A partial can arrive while the person is still speaking.
+      runtime.now = () => now - 800;
+      runtime.handle({ type: "conversation.item.input_audio_transcription.delta",
+        event_id: "timing-d1", item_id: "timing", delta: "Private partial" });
+      runtime.now = () => performance.now();
+      runtime.noteCommit({ lastVoiceAtMs: now - 500, observedAtMs: now, sentAtMs: now });
+    });
     await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "timing-c", item_id: "timing" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.delta",
+      event_id: "timing-d2", item_id: "timing", delta: " final words" });
     await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed",
       event_id: "timing-f", item_id: "timing", transcript: "Private spoken words for export exclusion." });
     await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Processing turn");
@@ -349,6 +358,10 @@ for (const width of [1440, 390]) {
     await expect(turns).toContainText("Its duration is not additional turn latency.");
     await expect(turns).toContainText("buffered");
     await expect(turns).toContainText("Silence detection");
+    await expect(turns).toContainText("Commit sent → acknowledgement");
+    await expect(turns).toContainText("Provider commit acknowledgement received");
+    await expect(turns).toContainText("Last transcript delta → final transcript");
+    await expect(turns.getByRole("row", { name: "First transcript delta received -300.0 ms", exact: true })).toBeAttached();
     await expect(page.getByTestId("interaction-timing-panel")).toHaveCSS("opacity", "1");
     expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath("interaction-timing-" + width + ".png") });
@@ -363,11 +376,17 @@ for (const width of [1440, 390]) {
     expect(exported.turns[0].requests.map(request => request.kind).sort()).toEqual(["acknowledge", "speech"]);
     expect(exported.turns[0].speech.playbackMode).toBe("buffered");
     expect(exported.turns[0].durationsMs.voiceResponse).toBeGreaterThanOrEqual(500);
+    for (const metric of ["commitAcknowledgement", "acknowledgedFinal", "transcriptDeltas", "transcriptDeltaTail"]) {
+      expect(exported.turns[0].durationsMs[metric]).toBeGreaterThanOrEqual(0);
+    }
+    for (const stage of ["commit_sent", "commit_acknowledged", "transcript_first_delta", "transcript_last_delta"]) {
+      expect(Number.isFinite(exported.turns[0].stages[stage])).toBe(true);
+    }
     expect(exported.turns[0].configuration.silenceDurationSeconds).toBe(1.5);
     expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].effort).toBe("none");
     expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].scope).toBe("speculative");
     expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].originTrace).toBe("fixture-origin");
-    for (const excluded of ["Private spoken", "Private assistant", ACCESS_CODE, "ephemeral-test", "room-mic"]) {
+    for (const excluded of ["Private spoken", "Private partial", "Private assistant", ACCESS_CODE, "ephemeral-test", "room-mic"]) {
       expect(text).not.toContain(excluded);
     }
     const csvDownload = page.waitForEvent("download");
@@ -609,9 +628,9 @@ test("conversation pace supports keyboard choice, retained reconnect settings an
   await expect(preset).toHaveValue("pause_tolerant");
   await preset.focus(); await preset.press("Home"); await preset.press("Enter");
   await expect(preset).toHaveValue("ultra_responsive");
-  await expect(preset.locator("option:checked")).toHaveText("Ultra Responsive (0.5 s pause, low delay)");
+  await expect(preset.locator("option:checked")).toHaveText("Ultra Responsive (0.5 s pause, minimal delay)");
   await expect(page.getByTestId("transcription-turnDetection-silenceDurationSeconds")).toHaveValue("0.5");
-  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("low");
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("minimal");
   await page.getByTestId("transcription-languages").selectOption(["de", "en"]);
   await page.getByTestId("transcription-noiseReduction").selectOption("near_field");
   await attach(page, testInfo, "conversation-pace-desktop", preset.locator(".."));
@@ -620,7 +639,7 @@ test("conversation pace supports keyboard choice, retained reconnect settings an
   await page.getByTestId("toggle-transcription").click();
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   await expect(preset).toBeDisabled();
-  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.5 }, transcriptionDelay: "low", languages: ["de", "en"], noiseReduction: "near_field" });
+  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.5 }, transcriptionDelay: "minimal", languages: ["de", "en"], noiseReduction: "near_field" });
   await page.evaluate(() => {
     const peer = window.__transcriptionPeers.at(-1);
     peer.connectionState = "failed"; peer.dispatchEvent(new Event("connectionstatechange"));
@@ -631,7 +650,7 @@ test("conversation pace supports keyboard choice, retained reconnect settings an
   await page.getByTestId("toggle-transcription").click();
   await page.getByTestId("transcription-turnDetection-type").selectOption("manual");
   await expect(preset).not.toBeVisible();
-  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("low");
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("minimal");
 });
 
 test("transcription settings states produce deterministic desktop and narrow visual artifacts", async ({ page }, testInfo) => {

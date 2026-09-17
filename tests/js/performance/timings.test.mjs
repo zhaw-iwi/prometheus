@@ -47,18 +47,71 @@ test("duplicate transcript creates one trace and fallback retains it", async () 
 
 test("commit timings follow provider order through out-of-order finals and reset", async () => {
   const turns = [];
-  let now = 100;
-  const runtime = new TranscriptionEventRuntime({ now: () => now++, onFinal: turn => turns.push(turn) });
+  let now = 0;
+  const runtime = new TranscriptionEventRuntime({ now: () => now, onFinal: turn => turns.push(turn) });
+  const receive = (at, type, item_id, extra = {}) => {
+    now = at;
+    runtime.handle({ type, item_id, ...extra });
+  };
+  const delta = "conversation.item.input_audio_transcription.delta";
+  const completed = "conversation.item.input_audio_transcription.completed";
   runtime.beginEpoch(1);
-  runtime.noteCommit({ lastVoiceAtMs: 10, observedAtMs: 20 });
-  runtime.noteCommit({ lastVoiceAtMs: 30, observedAtMs: 40 });
-  for (const item_id of ["a", "b"]) runtime.handle({ type: "input_audio_buffer.committed", item_id });
-  for (const item_id of ["b", "a"]) runtime.handle({ type: "conversation.item.input_audio_transcription.completed", item_id, transcript: "synthetic" });
+  receive(5, delta, "a", { event_id: "a-d1", delta: "private partial" });
+  runtime.noteCommit({ lastVoiceAtMs: 10, observedAtMs: 20, sentAtMs: 21 });
+  runtime.noteCommit({ lastVoiceAtMs: 30, observedAtMs: 40, sentAtMs: 41 });
+  receive(50, "input_audio_buffer.committed", "a", { event_id: "a-c" });
+  receive(51, "input_audio_buffer.committed", "a", { event_id: "a-c" });
+  receive(52, "input_audio_buffer.committed", "a", { event_id: "a-c-duplicate" });
+  receive(55, "input_audio_buffer.committed", "b");
+  receive(60, delta, "a", { event_id: "a-d2", delta: " more" });
+  receive(61, delta, "a", { event_id: "a-d2", delta: " more" });
+  receive(62, delta, "a", { delta: "" });
+  receive(70, completed, "b", { transcript: "second" });
+  receive(71, completed, "b", { transcript: "duplicate" });
+  receive(72, delta, "b", { delta: "late" });
+  receive(80, completed, "a", { transcript: "first" });
+  receive(81, delta, "a", { delta: "late" });
   await runtime.whenIdle();
-  assert.deepEqual(turns.map(turn => turn.timings.last_voice), [10, 30]);
-  assert.deepEqual(turns.map(turn => turn.timings.final_transcript), [101, 100]);
+  assert.deepEqual(turns.map(turn => turn.text), ["first", "second"]);
+  assert.deepEqual(turns.map(turn => turn.timings), [
+    { last_voice: 10, committed: 20, commit_sent: 21, commit_acknowledged: 50,
+      transcript_first_delta: 5, transcript_last_delta: 60, final_transcript: 80 },
+    { last_voice: 30, committed: 40, commit_sent: 41, commit_acknowledged: 55, final_transcript: 70 },
+  ]);
+  assert.equal(runtime.pendingCommits.length, 0);
+  assert.ok(!JSON.stringify(turns.map(turn => turn.timings)).includes("private"));
   runtime.beginEpoch(2);
   assert.equal(runtime.itemTimings.size, 0);
+  receive(90, "input_audio_buffer.committed", "a");
+  receive(100, completed, "a", { transcript: "new epoch" });
+  await runtime.whenIdle();
+  assert.deepEqual(turns.at(-1).timings, { commit_acknowledged: 90, final_transcript: 100 });
+  runtime.settleEpoch();
+  assert.equal(runtime.itemTimings.size, 0);
+});
+
+test("completion receipt precedes ordered release and missing acknowledgement stays unknown", async () => {
+  const turns = [];
+  let now = 10;
+  const runtime = new TranscriptionEventRuntime({ now: () => now, onFinal: turn => turns.push(turn) });
+  runtime.beginEpoch(1);
+  runtime.handle({ type: "conversation.item.input_audio_transcription.completed", item_id: "a", transcript: "first" });
+  now = 20;
+  runtime.handle({ type: "input_audio_buffer.committed", item_id: "a" });
+  now = 30;
+  runtime.handle({ type: "conversation.item.created", item: { id: "b", role: "user" } });
+  now = 40;
+  runtime.handle({ type: "conversation.item.input_audio_transcription.completed", item_id: "b", transcript: "second" });
+  await runtime.whenIdle();
+  assert.deepEqual(turns.map(turn => turn.timings), [
+    { final_transcript: 10, commit_acknowledged: 20 }, { final_transcript: 40 },
+  ]);
+  for (let index = 0; index < 150; index++) {
+    runtime.noteCommit({ sentAtMs: now });
+    runtime.handle({ type: "conversation.item.input_audio_transcription.delta", item_id: `bounded-${index}`, delta: "x" });
+  }
+  assert.equal(runtime.itemTimings.size, 128);
+  assert.equal(runtime.pendingCommits.length, 128);
 });
 
 test("first-byte marker precedes held audio tail, preserving byte order", async () => {

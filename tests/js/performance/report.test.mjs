@@ -2,10 +2,31 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { TurnTimings, decodeServerTiming } from "../../../src/main/resources/public/performance/timings.js";
 import { measurements, timingExport, timingCsv, outcome, observedInferences } from "../../../src/main/resources/public/performance/report.js";
+import { summarize } from "../../needforspeed/summarize.mjs";
 
 const serverHeader = btoa(JSON.stringify({ version: 1, durationMs: 4200.5, truncated: false,
   spans: [{ stage: "inference", durationMs: 4000, offsetMs: 10, status: "ok", model: "fixture-model", purpose: "DECISION", effort: "none" }],
   text: "private-provider-payload" }));
+
+test("transcription stages survive capture and exports with missing receipts left unknown", () => {
+  const timings = new TurnTimings({ now: () => 1000, uuid: () => "trace" });
+  const stages = { last_voice: 100, committed: 600, commit_sent: 601, commit_acknowledged: 650,
+    transcript_first_delta: 50, transcript_last_delta: 800, final_transcript: 900 };
+  timings.begin("agent", { ...stages, transcript: "private-transcript", providerTimestamp: 123 });
+  const exported = timingExport(timings.snapshot());
+  assert.deepEqual(exported.turns[0].stages, { ...stages, submitted: 1000 });
+  const expected = { commitAcknowledgement: 49, acknowledgedFinal: 250, transcriptDeltas: 750, transcriptDeltaTail: 100 };
+  const csv = timingCsv(timings.snapshot()).split("\r\n").map(row => row.split(","));
+  const summary = summarize(exported);
+  for (const [key, value] of Object.entries(expected)) {
+    assert.equal(exported.turns[0].durationsMs[key], value);
+    assert.equal(csv[1][csv[0].indexOf(`"${key}Ms"`)], `"${value}"`);
+    assert.equal(summary.measurements[key].p50Ms, value);
+    assert.equal(measurements({ stages: { committed: 10, final_transcript: 20 } })[key], null);
+  }
+  assert.match(exported.metadata.interpretation, /browser receipt times/);
+  assert.ok(!JSON.stringify(exported).includes("private"));
+});
 
 test("all supported transcription delays survive timing capture and JSON/CSV export", () => {
   for (const delay of ["minimal", "low", "medium", "high", "xhigh", "private-unsupported"]) {

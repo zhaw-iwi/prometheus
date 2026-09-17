@@ -28,9 +28,10 @@ function details(turn) {
   const body = element("div", undefined, "mt-2");
   const metrics = measurements(turn);
   body.append(table(METRICS.map(([key, label]) => [label, ms(metrics[key])]), "Browser durations"));
+  body.append(element("p", "Transcription times are observed in this browser and include network delay. Deltas may arrive before speech end; timeline offsets can be negative. Overlapping durations must not be added.", "small text-body-secondary"));
   const base = turn.stages.last_voice ?? turn.stages.submitted;
   body.append(table(Object.entries(turn.stages).sort((a, b) => a[1] - b[1])
-    .map(([stage, at]) => [STAGE_LABELS[stage] || stage, ms(difference(base, at))]),
+    .map(([stage, at]) => [STAGE_LABELS[stage] || stage, ms(Number.isFinite(base) ? at - base : null)]),
   `Timeline from ${Number.isFinite(turn.stages.last_voice) ? "last detected voice" : "submission"}`));
   for (const request of turn.requests || []) {
     const section = element("div", undefined, "timing-request mb-3");

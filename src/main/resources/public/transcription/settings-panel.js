@@ -36,7 +36,7 @@ export class TranscriptionSettingsPanel {
     this.presetControl.id = "transcription_turn_preset";
     this.presetControl.dataset.testid = "transcription-turn-preset";
     this.presetControl.className = "form-select form-select-sm";
-    this.presetControl.add(new Option("Ultra Responsive (0.5 s pause, low delay)", "ultra_responsive"));
+    this.presetControl.add(new Option("Ultra Responsive (0.5 s pause, minimal delay)", "ultra_responsive"));
     this.presetControl.add(new Option("Responsive (0.8 s pause, low delay)", "responsive"));
     this.presetControl.add(new Option("Pause tolerant (1.5 s pause, medium delay)", "pause_tolerant"));
     const custom = new Option("Custom", "custom"); custom.disabled = true;

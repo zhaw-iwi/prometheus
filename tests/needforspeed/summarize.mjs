@@ -8,6 +8,10 @@ const stages = {
   turnCompletion: ["last_voice", "final_transcript"],
   localSilence: ["last_voice", "committed"],
   transcriptionFinal: ["committed", "final_transcript"],
+  commitAcknowledgement: ["commit_sent", "commit_acknowledged"],
+  acknowledgedFinal: ["commit_acknowledged", "final_transcript"],
+  transcriptDeltas: ["transcript_first_delta", "transcript_last_delta"],
+  transcriptDeltaTail: ["transcript_last_delta", "final_transcript"],
   speechFirstByte: ["audio_request", "audio_first_byte"],
   speechDownload: ["audio_request", "audio_downloaded"],
 };

@@ -4,6 +4,30 @@ import { LiveTranscriptionClient } from "../../../src/main/resources/public/tran
 
 const AGENT_ID = "11111111-1111-4111-8111-111111111111";
 
+test("only successful local and manual commits record send time without invented voice boundaries", () => {
+  let commitVad;
+  let now = 21;
+  const client = new LiveTranscriptionClient({
+    agentId: AGENT_ID, now: () => now,
+    media: { setEnabled: () => {} },
+    localVadFactory: ({ onCommit }) => { commitVad = onCommit; return {}; },
+  });
+  client.events.beginEpoch(1);
+  client.transport.commitLocalVadTurn = () => true;
+  commitVad({ lastVoiceAtMs: 10, observedAtMs: 20 });
+  client.transport.commitLocalVadTurn = () => false;
+  commitVad({ lastVoiceAtMs: 12, observedAtMs: 22 });
+  now = 30;
+  client.transport.commitManualTurn = () => true;
+  assert.equal(client.commitManualTurn(), true);
+  client.transport.commitManualTurn = () => false;
+  assert.equal(client.commitManualTurn(), false);
+  assert.deepEqual(client.events.pendingCommits, [
+    { last_voice: 10, committed: 20, commit_sent: 21 },
+    { last_voice: undefined, committed: undefined, commit_sent: 30 },
+  ]);
+});
+
 test("playback gating clears and settles input before starting a fresh transcription buffer", async () => {
   const calls = [];
   const client = new LiveTranscriptionClient({

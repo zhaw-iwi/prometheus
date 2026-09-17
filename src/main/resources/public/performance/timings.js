@@ -1,10 +1,12 @@
 const TRACE_HEADER = "X-Prometheus-Trace-Id";
 const BEHAVIOUR_HEADER = "X-Prometheus-Behaviour-Id";
 const TIMING_HEADER = "X-Prometheus-Timing";
+const TRANSCRIPTION_STAGES = ["last_voice", "committed", "commit_sent", "commit_acknowledged",
+  "transcript_first_delta", "transcript_last_delta", "final_transcript"];
 const STAGES = new Set(["submitted", "queued", "acknowledging", "accepted", "rejected", "cancelled",
   "http_start", "http_end", "sse_received", "rendered", "audio_queued", "audio_request",
   "audio_first_byte", "audio_downloaded", "audio_playing", "audio_completed", "audio_failed", "audio_stopped",
-  "last_voice", "committed", "final_transcript", "acknowledged", "processing_complete",
+  ...TRANSCRIPTION_STAGES, "acknowledged", "processing_complete",
   "ui_refresh_start", "ui_refresh_end"]);
 
 /** Bounded, in-memory metadata only. All times are from the browser's monotonic clock. */
@@ -21,7 +23,7 @@ export class TurnTimings {
     const id = this.uuid();
     this.turns.set(id, { id, agentId, startedAt: new Date().toISOString(), stages: {}, requests: [],
       configuration: safeConfiguration(this.configuration()) });
-    for (const stage of ["last_voice", "committed", "final_transcript"]) {
+    for (const stage of TRANSCRIPTION_STAGES) {
       if (Number.isFinite(times[stage])) this.mark(id, stage, times[stage]);
     }
     this.mark(id, "submitted");

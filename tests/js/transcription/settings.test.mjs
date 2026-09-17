@@ -107,7 +107,13 @@ test("pace presets preserve explicit unrelated preferences, custom values, and m
   const ultra = new TranscriptionPreferences(descriptor, { storage });
   assert.equal(ultra.turnPreset(), "ultra_responsive");
   assert.deepEqual(ultra.apiValues().turnDetection, { type: "local_vad", silenceDurationSeconds: 0.5 });
-  assert.equal(ultra.apiValues().transcriptionDelay, "low");
+  assert.equal(ultra.apiValues().transcriptionDelay, "minimal");
+  // Previously saved Ultra values stay intact, but no longer match the preset.
+  ultra.updateApi("transcriptionDelay", "low");
+  const previous = new TranscriptionPreferences(descriptor, { storage });
+  assert.equal(previous.turnPreset(), "custom");
+  assert.equal(previous.apiValues().transcriptionDelay, "low");
+  assert.equal(previous.apiValues().turnDetection.silenceDurationSeconds, 0.5);
   assert.deepEqual(ultra.apiValues().languages, ["de", "en"]);
   assert.equal(ultra.apiValues().noiseReduction, "near_field");
   saved.updateApi("turnDetection.silenceDurationSeconds", 2.2);

@@ -22,6 +22,7 @@ export class LiveTranscriptionClient {
     onInputState = () => {},
     onDiagnostic = () => {},
     transportOptions = {},
+    now = () => performance.now(),
   } = {}) {
     if (!isUuid(agentId)) throw new Error("A valid agent id is required for live transcription.");
     this.agentId = agentId;
@@ -33,12 +34,13 @@ export class LiveTranscriptionClient {
     this.onState = onState;
     this.onInputState = onInputState;
     this.onDiagnostic = onDiagnostic;
-    this.events = new TranscriptionEventRuntime({ onPartial, onFinal, onInputState, onDiagnostic, now: () => performance.now() });
+    this.now = now;
+    this.events = new TranscriptionEventRuntime({ onPartial, onFinal, onInputState, onDiagnostic, now });
     this.localVad = localVadFactory({
       onSpeechStart: () => onInputState({ type: "local_vad.speech_started" }),
       onSpeechStop: (event) => onInputState({ type: "local_vad.speech_stopped", ...event }),
       onCommit: (event) => {
-        if (this.transport.commitLocalVadTurn()) this.events.noteCommit(event);
+        if (this.transport.commitLocalVadTurn()) this.events.noteCommit({ ...event, sentAtMs: this.now() });
         else onDiagnostic({ code: "local_vad_commit_skipped", reason: event.reason });
       },
     });
@@ -135,7 +137,9 @@ export class LiveTranscriptionClient {
   }
 
   commitManualTurn() {
-    return this.transport.commitManualTurn();
+    const committed = this.transport.commitManualTurn();
+    if (committed) this.events.noteCommit({ sentAtMs: this.now() });
+    return committed;
   }
 
   setInputEnabled(enabled) {

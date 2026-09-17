@@ -88,7 +88,7 @@ one audible Valerian window, and playback uses the speaker, voice, and speed
 selected in the speech settings.
 
 **Conversation pace** in Live Transcription Settings offers Ultra Responsive
-(0.5-second silence, low provider delay), Responsive (0.8 seconds, low delay),
+(0.5-second silence, minimal provider delay), Responsive (0.8 seconds, low delay),
 and Pause tolerant (1.5 seconds, medium delay).
 Pause tolerant remains the default. Presets change only these two values; saved
 language, noise and device choices remain intact. Manual turn completion and
@@ -98,8 +98,10 @@ offers the same choices. Settings are locked during an active session.
 Ultra Responsive shortens the configured silence interval by another 300 ms
 relative to Responsive; actual speech-end-to-playback improvement depends on
 turn segmentation and downstream timings. Longer within-sentence pauses may
-split a turn. The Transcription delay dropdown also offers Minimal separately;
-selecting it makes the pace Custom and does not change the silence duration.
+split a turn. The Transcription delay dropdown remains independently adjustable.
+Previously saved 0.5-second/low settings remain intact and now show Custom. After
+updating, reload the cockpit and select Ultra Responsive while stopped to apply
+0.5-second/minimal settings before starting transcription.
 
 To try a 1,000 ms pause, stop transcription, select local VAD and set
 **Silence duration (seconds)** to **1.0**, then restart transcription. The pace
@@ -572,8 +574,20 @@ and response bodies are no longer logged by the text gateway.
 Valerian retains at most 128 content-free turn and event timing records in memory:
 `PrometheusTimings.snapshot(agentId)`. Transcript ingress, canonical SSE receipt,
 rendering, first audio byte and media `playing` are joined even when SSE beats
-the HTTP response. Shared transcription records local last-voice/commit and final
-transcript times; manual or unmatched commits have no invented voice timestamp.
+the HTTP response. Shared transcription records the last detected voice, local
+VAD turn boundary, successful local commit send, provider commit acknowledgement
+receipt, first/last non-empty transcript delta receipt, and final transcript receipt.
+Final receipt is recorded before waiting for earlier items to finish, preserving
+the distinction between transcription finalisation and ordered submission.
+Manual turns record commit send/receipt without an invented speech-end timestamp.
+The panel, CSV and offline reporter include commit-send-to-acknowledgement,
+acknowledgement-to-final, first-to-last-delta and last-delta-to-final intervals.
+Acknowledgements and transcripts use browser receipt times, not provider clocks;
+these intervals include network delay. Deltas can arrive before speech ends or a
+commit is sent, so the timeline supports negative offsets relative to speech end.
+Missing acknowledgements/deltas and older exports leave those measurements unknown.
+The existing committed stage remains the local VAD boundary for comparison with
+older recordings; commit_sent records the separate successful send boundary.
 No timing telemetry is uploaded or persisted. Server and browser clocks are
 separate; correlate IDs, then compare local durations.
 Speech end is the local VAD estimate and playback is the browser's `playing`
