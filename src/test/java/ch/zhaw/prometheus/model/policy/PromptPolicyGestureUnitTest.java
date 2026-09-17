@@ -5,6 +5,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.State;
+import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.*;
@@ -56,11 +57,44 @@ class PromptPolicyGestureUnitTest {
         assertEquals(InferenceRequest.Output.JSON_OBJECT, gateway.request.output());
     }
 
-    @Test void speechOnlyPolicyStillUsesOnePlainTextRequest() {
-        var gateway = new Gateway("Thanks for sharing.");
+    @Test void speechOnlyPolicyUsesOneMinimalJsonBehaviourRequest() {
+        var gateway = new Gateway("{\"speech\":\"Thanks for sharing.\"}");
         BehaviourPlan plan = respond(new PromptPolicy("base", null, "summary"), gateway);
         assertEquals("Thanks for sharing.", plan.getSpeech()); assertNull(plan.getNonVerbal());
-        assertNull(gateway.request); assertEquals(1, gateway.calls);
+        assertEquals(InferencePurpose.BEHAVIOUR, gateway.request.purpose());
+        assertEquals(InferenceRequest.Output.JSON_OBJECT, gateway.request.output());
+        assertEquals(1, gateway.calls);
+        assertTrue(gateway.request.messages().getLast().getContent().contains("only the string field \"speech\""));
+    }
+
+    @Test void everyFinalConstructorUsesTheSameStructuredBehaviourPath() {
+        for (Final finalState : List.of(new Final("f"), new Final("f", true, "summary"),
+                new Final("f", "task"), new Final("f", "task", true, "summary"),
+                new Final("f", "task", "starter"), new Final("f", "task", "starter", true, "summary"))) {
+            var gateway = new Gateway("{\"speech\":\"Goodbye.\"}");
+            var agent = new Agent("synthetic", "final fixture", finalState);
+            var runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
+            var starter = agent.start(runtime);
+            assertFalse(agent.isActive());
+            assertEquals("{\"speech\":\"Goodbye.\"}", starter.getPayload());
+            assertEquals(InferencePurpose.BEHAVIOUR, gateway.request.purpose());
+            assertEquals(InferenceRequest.Output.JSON_OBJECT, gateway.request.output());
+            assertEquals(1, gateway.calls);
+            var response = agent.generate(runtime);
+            assertEquals(starter.getPayload(), response.getPayload());
+            assertEquals(2, gateway.calls);
+        }
+    }
+
+    @Test void malformedSpeechOnlyResultFailsWithoutPublishingOrRetrying() {
+        for (String raw : List.of("Goodbye.", "{}", "{\"speech\":7}", "{\"speech\":\" \"}")) {
+            var gateway = new Gateway(raw);
+            var agent = new Agent("synthetic", "final fixture", new Final("f"));
+            assertThrows(IllegalStateException.class,
+                    () -> agent.start(new PolicyRuntime(new PromptMessageAssembler(), gateway)));
+            assertEquals(1, gateway.calls);
+            assertTrue(agent.getEventHistory().isEmpty());
+        }
     }
 
     @Test void starterAndOuterInstructionsComposeWithStoredCustomGesturePrompt() {

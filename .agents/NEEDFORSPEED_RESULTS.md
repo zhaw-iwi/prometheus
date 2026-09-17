@@ -21,6 +21,44 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Unified behaviour generation (Milestone 176, 2026-09-17)
+
+Removed the raw speech branch from PromptPolicy. Every prompt-driven generation
+now uses typed BEHAVIOUR / JSON_OBJECT inference and BehaviourPlanInference.
+Speech-only policies request only `{"speech":"..."}`; configured nonverbal
+policies retain the compact encoding and required-nonverbal validation. All six
+Final constructors inherit the shared path without changing stored instructions
+or inventing nonverbal defaults. Deterministic policies still use zero model
+calls. Decisions/extraction/summarisation retain separate purposes.
+
+Passed 95 focused Java cases covering policy/codec/application behavior, all
+baseline catalog paths, final constructors, nested transitions, guard handling,
+typed provider HTTP and malformed output with no partial publication:
+`.\mvnw.cmd -q "-Dtest=PromptPolicy*UnitTest,CompactBehaviourPlanUnitTest,CatalogInferenceCountUnitTest,AgentApplicationServicePromptUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,*PromptContractTest,StateTransitionUnitTest,AgentOuterStateRoutingUnitTest,AgentNestedOuterStateRoutingUnitTest,GuardEvaluationUnitTest,ParallelGuardEvaluationUnitTest,OpenAILanguageModelGateway*UnitTest" test`.
+Log: ignored `target/unified-behaviour-regression.log`.
+
+Passed 14 additional cases in ScopedDemoControllerIntegrationTest (13) and
+TransitionDecisionActionReplayIntegrationTest (1), using the disposable local
+MySQL schema prometheus_unified_639c9f4fa0 and a restricted account. Both were
+removed afterwards; developer data was untouched. The extended closing/reset
+case reloads persisted agents, requires JSON farewell inference, checks canonical
+speech-only history and verifies no raw completion call. The replay exercises
+real HTTP/SSE and storage transitions. All providers are fixtures, no live model
+or browser/acoustic measurement. Log: `target/unified-behaviour-database.log`.
+
+This is contract harmonization, not a claimed speedup: JSON adds a small envelope
+to speech-only replies. No background action or speculative generation is enabled
+yet. Their dependency audit and proposed acceptance milestones are recorded in
+`.agents/PLAN_TRANSITION_EXECUTION.md`; action restart durability awaits the user.
+
+Integrated feature commit faa790c into agents, resolving documentation only.
+Changed shared implementation/tests match the verified feature commit. All 94
+cases across the eleven merged-branch `*PromptContractTest` classes passed,
+including the application-specific catalog, with no failures/errors/skips:
+`.\mvnw.cmd -q "-Dtest=*PromptContractTest" test`.
+Log: ignored `target/unified-behaviour-agents-contracts.log`. Main remains
+unchanged; pushing agents triggers the authorized Heroku testing deployment.
+
 ## Compact behaviour output (Milestone 175, 2026-09-17)
 
 Implemented the format investigated in Milestone 174. Combined PromptPolicy

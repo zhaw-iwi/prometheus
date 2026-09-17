@@ -113,7 +113,7 @@ class AgentApplicationServicePromptUnitTest {
         LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
         PromptMessageAssembler assembler = new PromptMessageAssembler();
 
-        when(languageModelGateway.complete(any())).thenReturn("Hello, I am ready.");
+        when(languageModelGateway.infer(any())).thenReturn("{\"speech\":\"Hello, I am ready.\"}");
         when(repository.save(any(Agent.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,
@@ -132,7 +132,7 @@ class AgentApplicationServicePromptUnitTest {
         LanguageModelGateway languageModelGateway = mock(LanguageModelGateway.class);
         PromptMessageAssembler assembler = new PromptMessageAssembler();
 
-        when(languageModelGateway.complete(any())).thenReturn("Hallo, ich bin bereit.");
+        when(languageModelGateway.infer(any())).thenReturn("{\"speech\":\"Hallo, ich bin bereit.\"}");
         when(repository.save(any(Agent.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster,

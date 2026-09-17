@@ -85,7 +85,7 @@ class AgentApplicationServiceGenerateOptionsUnitTest {
 
         when(repository.findById(agentId)).thenReturn(Optional.of(agent));
         when(repository.save(agent)).thenReturn(agent);
-        when(languageModelGateway.complete(any())).thenReturn("hello");
+        when(languageModelGateway.infer(any())).thenReturn("{\"speech\":\"hello\"}");
 
         AgentApplicationService service = new AgentApplicationService(repository, monitorBroadcaster, behaviourBroadcaster,
                 assembler, languageModelGateway);

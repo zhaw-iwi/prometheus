@@ -187,13 +187,10 @@ public class PromptPolicy extends Policy {
     private BehaviourPlan producePlan(List<PromptMessage> messages, LanguageModelGateway gateway) {
         boolean planConfigured = this.nonVerbalPlanPrompt != null && !this.nonVerbalPlanPrompt.isBlank();
         boolean gestureConfigured = this.nonVerbalGesturePrompt != null && !this.nonVerbalGesturePrompt.isBlank();
-        if (planConfigured || gestureConfigured) {
-            String instructions = planConfigured ? this.nonVerbalPlanPrompt : this.nonVerbalGesturePrompt;
-            return LatencyTrace.measure("behaviour_plan", () -> BehaviourPlanInference.generate(
-                    messages, instructions, !planConfigured, gateway));
-        }
-        String speech = LatencyTrace.measure("speech_text", () -> gateway.complete(messages));
-        return speech == null || speech.isBlank() ? null : BehaviourPlan.speechOnly(speech);
+        String instructions = planConfigured ? this.nonVerbalPlanPrompt
+                : gestureConfigured ? this.nonVerbalGesturePrompt : null;
+        return LatencyTrace.measure("behaviour_plan", () -> BehaviourPlanInference.generate(
+                messages, instructions, !planConfigured && gestureConfigured, gateway));
     }
 
     @Override

@@ -530,7 +530,9 @@ class ScopedDemoControllerIntegrationTest {
                 assertEquals(java.util.Set.of("g0", "g1"), inference.schema().getAsJsonObject("properties").keySet());
                 return "{\"g0\":false,\"g1\":" + closing.get() + "}";
             }
-            return "{\"speech\":\"Synthetic response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
+            assertEquals(ch.zhaw.prometheus.spi.InferenceRequest.Output.JSON_OBJECT, inference.output());
+            return closing.get() ? "{\"speech\":\"Synthetic farewell.\"}"
+                    : "{\"speech\":\"Synthetic response.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
         });
         when(languageModelGateway.extract(any())).thenReturn(com.google.gson.JsonParser.parseString("{\"completed\":true}"));
         for (String text : List.of("I would like to draw.", "Yes, let us hold it that way.")) {
@@ -551,6 +553,9 @@ class ScopedDemoControllerIntegrationTest {
         var history = closed.getEventHistory().toList();
         assertEquals(2, history.stream().filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).count());
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, history.get(history.size()-1).getType());
+        assertEquals("{\"speech\":\"Synthetic farewell.\"}", history.get(history.size()-1).getPayload());
+        verify(languageModelGateway, org.mockito.Mockito.never()).complete(any());
+        closing.set(false);
         mockMvc.perform(delete("/demo/agents/" + id + "/reset").header(HEADER, code)).andExpect(status().isOk());
         entityManager.flush(); entityManager.clear();
         Agent reset = agents.findById(id).orElseThrow();

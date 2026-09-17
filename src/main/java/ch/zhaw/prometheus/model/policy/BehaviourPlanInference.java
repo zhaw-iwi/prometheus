@@ -20,7 +20,8 @@ final class BehaviourPlanInference {
     static BehaviourPlan generate(List<PromptMessage> speechMessages, String nonverbalPrompt,
             boolean gestureOnly, LanguageModelGateway gateway) {
         var messages = new ArrayList<>(speechMessages);
-        messages.add(PromptMessage.system("""
+        boolean nonverbalRequired = nonverbalPrompt != null && !nonverbalPrompt.isBlank();
+        if (nonverbalRequired) messages.add(PromptMessage.system("""
                 Output one JSON behaviour plan, not raw speech. No Markdown or explanations.
                 The following instructions describe canonical fields; the final encoding rule
                 changes their JSON representation only.
@@ -39,26 +40,41 @@ final class BehaviourPlanInference {
                 + "The plan contains speech and nonverbal behaviour. Only include optional motion/display objects when the task explicitly requires them."
                 + " Do not invent new capabilities. Return one complete valid JSON object."
                 + CompactBehaviourPlan.INSTRUCTIONS));
+        else messages.add(PromptMessage.system("""
+                Return one minified JSON behaviour plan with only the string field "speech".
+                Put the exact user-facing spoken response, governed by the previous conversation,
+                task and starter instructions, inside speech. Preserve punctuation and whitespace
+                inside the spoken text. No other behaviour modalities are configured for this policy;
+                omit nv, nonVerbal, motion and display. No Markdown, explanations or raw text outside JSON.
+                """));
         String raw = gateway.infer(new InferenceRequest(InferencePurpose.BEHAVIOUR, messages,
                 InferenceRequest.Output.JSON_OBJECT));
-        return parse(raw);
+        return parse(raw, nonverbalRequired);
     }
 
     static BehaviourPlan parse(String raw) {
+        return parse(raw, true);
+    }
+
+    private static BehaviourPlan parse(String raw, boolean nonverbalRequired) {
         JsonElement parsed = InferenceResult.json(raw);
         if (!parsed.isJsonObject()) throw invalid();
         JsonObject object = parsed.getAsJsonObject();
         String stage = object.has("nv") ? "behaviour_decode_compact" : "behaviour_decode_canonical";
-        return LatencyTrace.measure(stage, () -> parseCanonical(CompactBehaviourPlan.expand(object)));
+        return LatencyTrace.measure(stage, () -> parseCanonical(CompactBehaviourPlan.expand(object), nonverbalRequired));
     }
 
-    private static BehaviourPlan parseCanonical(JsonObject object) {
+    private static BehaviourPlan parseCanonical(JsonObject object, boolean nonverbalRequired) {
         if (!Set.of("speech", "nonVerbal", "motion", "display").containsAll(object.keySet())) throw invalid();
         JsonElement speech = object.get("speech");
         if (speech == null || !speech.isJsonPrimitive() || !speech.getAsJsonPrimitive().isString()
                 || speech.getAsString().isBlank()) throw invalid();
         JsonElement nonverbal = object.get("nonVerbal");
-        if (nonverbal == null || !nonverbal.isJsonObject()) throw invalid();
+        if (nonverbal == null) {
+            if (nonverbalRequired) throw invalid();
+            return new BehaviourPlan(speech.getAsString(), null, motionChannel(object), channel(object, "display"));
+        }
+        if (!nonverbal.isJsonObject()) throw invalid();
         JsonObject normalized = nonverbal.getAsJsonObject().deepCopy();
         JsonElement gesture = normalized.get("gesture");
         if (gesture != null && !gesture.isJsonNull()

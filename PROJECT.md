@@ -79,12 +79,11 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 175, compact provider JSON for combined
-  behaviour generation, expanded to canonical plans before publication. Passed
-  93 focused Java cases; a representative 232-character response becomes 136
-  characters without losing values. Live token/latency savings and Luna behaviour
-  quality remain unverified. Separate purpose routes remain configured at Luna
-  with none effort for Heroku; see the results ledger.
+- Last completed follow-up: Milestone 176, unified structured behaviour generation
+  for every PromptPolicy, including speech-only final states. Passed 95 focused
+  Java and 14 isolated-database/HTTP cases. Background transition actions and
+  speculative generation are scoped in .agents/PLAN_TRANSITION_EXECUTION.md;
+  action durability remains a user decision and execution is still synchronous.
 - Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
   offline acceptance of Need for Speed on `features/needforspeed`.
   All eight roadmap milestones have implementation/evidence records. Live model
@@ -96,6 +95,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 176: Unified JSON behaviour generation including final states
 
 - [x] Milestone 175: Compact provider behaviour JSON with canonical publication
 
@@ -8937,3 +8938,20 @@ priority and action ownership.
   changed source/tests match the verified feature commit. All 94 merged-branch
   prompt-contract cases passed, including application-specific agents. Main is
   unchanged; the agents push deploys the authorized Heroku testing environment.
+
+## Milestone 176: Unified JSON behaviour generation including final states
+
+- Every PromptPolicy now uses the same typed behaviour JSON request and plan
+  publication path. Speech-only policies request only speech; nonverbal policies
+  keep compact output and validation. All Final constructors inherit the change
+  without modifying stored task prompts or adding unrequested modalities.
+- Passed 95 focused Java and 14 isolated local MySQL/HTTP/SSE cases, covering
+  final-state constructors, persisted closing/reset and canonical history.
+  Providers were mocked/scripted. Disposable schema/account were removed.
+- Scoped non-blocking transition actions and speculative generation in
+  .agents/PLAN_TRANSITION_EXECUTION.md. The restart durability choice remains
+  pending; existing transition actions and behaviour generation remain ordered.
+- Integrated feature commit faa790c into agents, resolving documentation only;
+  shared implementation/tests match the verified feature commit. All 94 merged
+  prompt-contract cases passed, including application-specific definitions.
+  Main remains unchanged; the agents push deploys the Heroku testing environment.
