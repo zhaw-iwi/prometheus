@@ -87,12 +87,19 @@ input without changing the persisted plan. A per-agent browser lease selects
 one audible Valerian window, and playback uses the speaker, voice, and speed
 selected in the speech settings.
 
-**Conversation pace** in Live Transcription Settings offers Responsive (0.8-second
-silence, low provider delay) and Pause tolerant (1.5 seconds, medium delay).
+**Conversation pace** in Live Transcription Settings offers Ultra Responsive
+(0.5-second silence, low provider delay), Responsive (0.8 seconds, low delay),
+and Pause tolerant (1.5 seconds, medium delay).
 Pause tolerant remains the default. Presets change only these two values; saved
 language, noise and device choices remain intact. Manual turn completion and
 custom silence/delay values remain available. The shared multilateral listener
 offers the same choices. Settings are locked during an active session.
+
+Ultra Responsive shortens the configured silence interval by another 300 ms
+relative to Responsive; actual speech-end-to-playback improvement depends on
+turn segmentation and downstream timings. Longer within-sentence pauses may
+split a turn. The Transcription delay dropdown also offers Minimal separately;
+selecting it makes the pace Custom and does not change the silence duration.
 
 To try a 1,000 ms pause, stop transcription, select local VAD and set
 **Silence duration (seconds)** to **1.0**, then restart transcription. The pace

@@ -21,6 +21,48 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Ultra Responsive preset and next experiments (Milestone 179, 2026-09-17)
+
+Added Ultra Responsive (0.5-second local silence, low transcription delay) to the
+shared Valerian/multilateral settings panel. Presets still change only silence
+and delay, retain unrelated preferences and reconnect settings, and are hidden
+for manual turns. Pause tolerant remains the default. Relative to Responsive,
+the configured silence interval is 300 ms shorter; live benefit and segmentation
+quality remain to be measured. Closing-decision execution was left unchanged.
+
+Passed ten focused Node settings/local-VAD cases and the existing Playwright
+conversation-pace case (keyboard choice, effective session payload, reconnect,
+manual mode), with desktop and 390px screenshots inspected. Browser testing used
+loopback static assets and routed provider fixtures. Logs: ignored
+target/ultra-responsive-unit.log and target/ultra-responsive-browser.log. No Java
+or provider changes; no live audio/API benchmark was run.
+
+The user's two new exports contain 13 unique turns (the six pause-tolerant turns
+are repeated in the later export). All eleven ordinary turns reused speculative
+behaviour. Ordinary speech-end-to-playback means: pause tolerant 5.08 s (five
+turns), responsive 4.18 s (six), versus 5.63 s in the earlier Luna/compact responsive
+trial. These are separate small conversations, not a controlled A/B comparison.
+The two closing turns queued background actions with no blocking extraction in
+their response spans. Eventual action completion is not established by the export.
+
+Follow-up ideas only, not implemented here:
+
+- Compare MP3 with true streamed PCM/WAV playback. The current gateway fixes MP3
+  and the browser buffers other formats, so changing only response_format would
+  remove progressive playback. Preserve selected output devices, cancellation,
+  input gating and authoritative persisted speech. OpenAI recommends WAV/PCM for
+  fastest response times, but the improvement in this browser/Heroku path needs
+  measurement: https://developers.openai.com/api/docs/guides/text-to-speech.
+- Compare existing transcription delay minimal versus low with the same silence
+  interval and representative speech. All five delay levels are already exposed
+  by the backend descriptor and passed to the provider. The documentation describes
+  earlier partial text and an accuracy tradeoff, not guaranteed finalisation timing:
+  https://developers.openai.com/api/docs/guides/realtime-transcription.
+- Add commit-acknowledgement and first/last-delta timestamps to separate transport,
+  partial availability and finalisation. Consider bounded read-only previews from
+  partial text only if measurements show enough stable text arrives early; final
+  transcripts must still control persistence, transitions and publication.
+
 ## Speculative conversational behaviour (Milestone 178, 2026-09-17)
 
 Agents integration: merged feature commit 61dac83. The complete merged Java suite

@@ -79,7 +79,12 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 178, bounded speculative behaviour alongside
+- Last completed follow-up: Milestone 179, Ultra Responsive conversation pace
+  (0.5-second silence, low transcription delay) in the shared settings panel.
+  Ten focused client tests and the keyboard/reconnect/manual-mode browser case
+  passed; desktop/mobile screenshots inspected. Pause tolerant remains the default.
+  Speech-startup and transcription-finalisation ideas remain proposed experiments.
+- Previous runtime follow-up: Milestone 178, bounded speculative behaviour alongside
   transition decisions, with reuse across persisted acknowledge/generate reloads
   and immediate invalidation on every transition. Passed 359 full Java cases on
   an isolated database, 50 client cases and two timing-panel browser cases.
@@ -97,6 +102,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 179: Ultra Responsive conversation pace
 
 - [x] Milestone 178: Speculative conversational behaviour with guarded reuse
 
@@ -9011,3 +9018,16 @@ priority and action ownership.
   classes passed against an isolated local database with controlled providers;
   schema/account removed. Main remains unchanged. The agents push deploys the
   authorized Heroku testing environment.
+
+
+## Milestone 179: Ultra Responsive conversation pace
+
+- Added a shared 0.5-second silence / low transcription delay preset, retaining
+  the Pause tolerant default, existing saved preferences, manual turns and
+  reconnect behavior. Valerian and the multilateral listener share the control.
+- Passed ten focused settings/local-VAD Node cases and one Playwright case covering
+  keyboard selection, session payload, reconnect and manual mode. Desktop and
+  390px screenshots inspected. No backend or provider calls changed.
+- Recorded the latest live timing comparison and proposed speech/transcription
+  experiments in .agents/NEEDFORSPEED_RESULTS.md. No new live latency claim or
+  closing-decision change; the next trial should evaluate turn segmentation too.
