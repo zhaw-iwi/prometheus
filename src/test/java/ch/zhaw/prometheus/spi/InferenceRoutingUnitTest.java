@@ -22,7 +22,8 @@ class InferenceRoutingUnitTest {
                         assertEquals(purpose == InferencePurpose.BEHAVIOUR || purpose == InferencePurpose.NONVERBAL
                                 ? "gpt-5.6-sol" : "gpt-5.6-luna", route.model(), purpose.name());
                         assertEquals("none", route.effort(), purpose.name());
-                        assertEquals("https://api.openai.com/v1/chat/completions", route.url());
+                        // Environment endpoint overrides remain authoritative for isolated test runs.
+                        assertEquals(properties.getUrl(), route.url());
                     }
                 });
     }
