@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import ch.zhaw.prometheus.spi.*;
+import ch.zhaw.prometheus.logging.*;
 import com.sun.net.httpserver.HttpServer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -27,17 +28,36 @@ class SpeechProgressiveHttpIntegrationTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
-    @Import(Controller.class)
+    @Import({Controller.class, LatencyTraceFilter.class, LatencyResponseAdvice.class})
     static class Fixture {}
 
     @RestController
     static class Controller {
+        @PostMapping("/fixture-turn")
+        java.util.Map<String, Boolean> turn() {
+            return LatencyTrace.measure("acknowledge", () -> {
+                LatencyTrace.record("inference", 12, true, "fixture-request", "DECISION", "fixture-model", "none", 20, 2);
+                return java.util.Map.of("active", true);
+            });
+        }
         @PostMapping("/fixture-speech")
         ResponseEntity<StreamingResponseBody> speech() {
             var properties = new OpenAIProperties(); properties.setKey("fixture"); properties.setOpenaivsazureopenai("openai");
             var speech = new SpeechSynthesisProperties(); speech.setUrl(providerUrl);
             return SpeechAudioHttpResponse.stream(new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1));
         }
+    }
+
+    @Test void jsonTimingHeadersArePresentOnTheWireWithoutChangingTheBody() throws Exception {
+        var response = HttpClient.newHttpClient().send(HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/fixture-turn"))
+                .POST(HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        assertEquals("{\"active\":true}", response.body());
+        String timing = new String(java.util.Base64.getDecoder().decode(
+                response.headers().firstValue(LatencyTrace.TIMING_HEADER).orElseThrow()), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(timing.contains("fixture-model"));
+        assertTrue(timing.contains("acknowledge"));
     }
 
     @Test void tomcatDeliversFirstByteBeforeProviderEof() throws Exception {
@@ -62,6 +82,9 @@ class SpeechProgressiveHttpIntegrationTest {
             var response = client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(5, TimeUnit.SECONDS);
             assertEquals(200, response.statusCode());
             assertEquals("no-store", response.headers().firstValue("Cache-Control").orElseThrow());
+            String timing = new String(java.util.Base64.getDecoder().decode(
+                    response.headers().firstValue(LatencyTrace.TIMING_HEADER).orElseThrow()), java.nio.charset.StandardCharsets.UTF_8);
+            assertTrue(timing.contains("speech_headers"));
             try (var stream = response.body()) {
                 assertEquals(7, executor.submit(() -> { return stream.read(); }).get(5, TimeUnit.SECONDS));
                 assertEquals(1, tail.getCount());

@@ -1349,6 +1349,12 @@
       background-color: rgba(226, 232, 240, 0.14) !important;
       color: var(--ink) !important;
     }
+    .timing-table { table-layout: fixed; font-size: .8rem; --bs-table-bg: transparent; --bs-table-color: inherit; }
+    .timing-table th { width: 66%; font-weight: 400; overflow-wrap: anywhere; }
+    .timing-table td { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .timing-turn { padding: .75rem; }
+    .timing-turn summary { font-size: .85rem; cursor: pointer; }
+    #drawer_tabs .nav-link { padding: .5rem .65rem; font-size: .85rem; }
   </style>
 </head>
 
@@ -2433,6 +2439,11 @@
             <i class="bi bi-activity me-2"></i>Diagnostics
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button id="interaction_timing_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
+            data-bs-target="#interaction_timing_panel" aria-controls="interaction_timing_panel"
+            aria-selected="false" data-testid="interaction-timing-tab">Interaction Timing</button>
+        </li>
       </ul>
       <div class="tab-content">
         <div id="agent_drawer_panel" class="tab-pane fade show active" role="tabpanel"
@@ -2499,6 +2510,24 @@
             </div>
           </div>
         </div>
+        <div id="interaction_timing_panel" class="tab-pane fade" role="tabpanel"
+          aria-labelledby="interaction_timing_tab" tabindex="0" data-testid="interaction-timing-panel">
+          <p class="small">Timings are recorded automatically for submitted turns. The latest 128 stay in this page,
+            including across agent resets. Clear or reload to start a new recording.</p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button id="timing_export_json" class="btn btn-outline-ink btn-sm" type="button" data-timing-export="json"
+              data-testid="timing-export-json" disabled>Export JSON</button>
+            <button id="timing_export_csv" class="btn btn-outline-ink btn-sm" type="button" data-timing-export="csv"
+              data-testid="timing-export-csv" disabled>Export CSV</button>
+            <button id="timing_clear" class="btn btn-outline-ink btn-sm" type="button" data-timing-clear
+              data-testid="timing-clear">Clear</button>
+          </div>
+          <p class="small text-body-secondary">JSON includes browser stages, settings and available server timings.
+            Exports exclude conversation text and credentials. Speech end is estimated; playback means the browser
+            started playing. Missing stages show Unknown. Overlapping durations must not be added.</p>
+          <p class="small" data-timing-count role="status" data-testid="timing-count"></p>
+          <div data-timing-turns data-testid="timing-turns"></div>
+        </div>
         <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
           aria-labelledby="diagnostics_drawer_tab" tabindex="0">
           <div class="mb-3">
@@ -2551,6 +2580,7 @@
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script type="module" src="/transcription/browser-global.js"></script>
   <script type="module" src="/speech/browser-global.js"></script>
+  <script type="module" src="/performance/panel.js"></script>
   <script src="script.js"></script>
 </body>
 

@@ -222,6 +222,7 @@ async function init() {
   configureValerianView();
   initControlOwnership();
   wireUi();
+  if (globalThis.PrometheusTimings) globalThis.PrometheusTimings.configuration = interactionTimingConfiguration;
   loadStoredSpeechDeviceSelection();
   loadStoredSpeechSettings();
   loadStoredCameraDeviceSelection();
@@ -1865,6 +1866,7 @@ async function sendUserUtterance(text, options = {}) {
     appendMessage("user", text);
   }
   const traceId = globalThis.PrometheusTimings?.begin(state.agentId);
+  globalThis.PrometheusTimings?.mark(traceId, "acknowledging");
   const data = await acknowledgeEvent({
     type: "obs.user_utterance",
     actor: "user",
@@ -1872,13 +1874,20 @@ async function sendUserUtterance(text, options = {}) {
     payload: text,
   }, { renderResponse: true, traceId });
   if (!data) {
+    globalThis.PrometheusTimings?.mark(traceId, "rejected");
     return false;
   }
+  globalThis.PrometheusTimings?.mark(traceId, "acknowledged");
   if (!data.responseEvent) {
     await generateBehaviour("full_plan", traceId);
   }
-  await loadStorage();
-  await loadAgentState();
+  globalThis.PrometheusTimings?.mark(traceId, "processing_complete");
+  globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_start");
+  try {
+    await loadStorage();
+    await loadAgentState();
+  } finally { globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_end"); }
+  globalThis.PrometheusTimings?.mark(traceId, "accepted");
   return true;
 }
 
@@ -1969,15 +1978,28 @@ function handleBehaviourEnvelope(event, options = {}) {
     rememberRecentBehaviourPayload(event.payload);
   }
   renderBehaviourPlan(plan);
-  globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
+  if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
     appendMessage("assistant", plan.speech.trim());
   }
 }
 
+function interactionTimingConfiguration() {
+  const settings = transcription.transcriptionClient?.settings || {};
+  return {
+    turnDetection: settings.turnDetection?.type,
+    silenceDurationSeconds: settings.turnDetection?.silenceDurationSeconds,
+    transcriptionDelay: settings.transcriptionDelay,
+    transcriptionModel: "gpt-live-transcribe",
+    voice: document.getElementById("speechVoiceInput")?.value,
+    speed: Number(document.getElementById("speechOutputSpeedInput")?.value) || undefined,
+    outputDevice: speechDevices.outputDeviceId ? "selected" : "default",
+    capture: transcription.transcriptionClient?.media?.appliedAudioSettings() || {},
+  };
+}
+
 function resetBehaviourDeduplication() {
-  globalThis.PrometheusTimings?.clear(state.agentId);
   state.seenBehaviourKeys.clear();
   state.recentBehaviourPayloads.clear();
 }
@@ -2076,27 +2098,34 @@ function waitForSpeechPlaybackApi(timeoutMs = 5000) {
 
 async function synthesizeBehaviourSpeech(item, signal) {
   const agentId = state.agentId;
-  const traceId = globalThis.PrometheusTimings?.traceFor(agentId, item.eventId);
-  globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_request");
+  const timingEventId = item.delivery === "live" ? item.eventId : null;
+  globalThis.PrometheusTimings?.event(agentId, timingEventId, "audio_request");
   const params = new URLSearchParams();
   const voice = document.getElementById("speechVoiceInput")?.value?.trim() || "";
   const speed = document.getElementById("speechOutputSpeedInput")?.value?.trim() || "";
+  globalThis.PrometheusTimings?.speech(agentId, timingEventId, {
+    voice, speed: speed ? Number(speed) : undefined,
+    outputDevice: speechDevices.outputDeviceId ? "selected" : "default",
+  });
   if (voice) params.set("voice", voice);
   if (speed) params.set("speed", speed);
   const suffix = params.size ? `?${params.toString()}` : "";
-  const response = await timedScopedFetch(traceId, demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
+  const fetchSpeech = timingEventId
+    ? (...args) => globalThis.PrometheusTimings.fetchEvent(agentId, timingEventId, scopedFetch, ...args) : scopedFetch;
+  const response = await fetchSpeech(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
     method: "POST",
     headers: { Accept: "audio/*" },
     signal,
   });
   if (!response.ok) throw new Error(`Speech synthesis failed (${response.status}).`);
   return globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, {
-    signal, onStage: (stage) => globalThis.PrometheusTimings?.event(agentId, item.eventId, stage),
+    signal, onStage: (stage) => globalThis.PrometheusTimings?.event(agentId, timingEventId, stage),
   });
 }
 
 function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
   const agentId = state.agentId;
+  const timingEventId = item.delivery === "live" ? item.eventId : null;
   const audio = activeAssistantAudioElement();
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -2114,7 +2143,10 @@ function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
     };
     const playing = () => {
       onPlaying();
-      globalThis.PrometheusTimings?.event(agentId, item.eventId, "audio_playing");
+      globalThis.PrometheusTimings?.speech(agentId, timingEventId, {
+        playbackMode: resource.progressive ? "progressive" : "buffered",
+      });
+      globalThis.PrometheusTimings?.event(agentId, timingEventId, "audio_playing");
     };
     const ended = () => finish(resolve);
     const failed = () => finish(() => reject(new Error(`Speech playback failed: ${assistantAudioErrorMessage()}.`)));
@@ -2175,7 +2207,7 @@ function setSpeechPlaybackInputEnabled(enabled) {
 
 function handleSpeechPlaybackStatus(status) {
   const stage = { loading: "audio_queued", completed: "audio_completed", failed: "audio_failed", stopped: "audio_stopped" }[status.state];
-  if (stage) globalThis.PrometheusTimings?.event(state.agentId, status.eventId, stage);
+  if (stage && status.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, status.eventId, stage);
   const mapping = {
     loading: ["Speech Loading", "idle", true],
     speaking: ["Speaking", "live", true],
@@ -2574,7 +2606,7 @@ async function handleAcceptedLiveTranscript({ itemId, text, acknowledgement }) {
 function handleTranscriptIngressStatus(status) {
   const mapping = {
     queued: ["Transcript Queued", "idle"],
-    acknowledging: ["Transcript Sending", "idle"],
+    acknowledging: ["Processing turn", "idle"],
     accepted: ["Transcript Accepted", "live"],
     rejected: ["Transcript Rejected", "error"],
     "provider-error": ["Provider Error", "error"],
@@ -5373,6 +5405,10 @@ function setControlsEnabled(enabled) {
     "open_diagnostics",
     "agent_drawer_tab",
     "diagnostics_drawer_tab",
+    "interaction_timing_tab",
+    "timing_export_json",
+    "timing_export_csv",
+    "timing_clear",
     "clear_activity_log",
     "activity_log_wrap",
     "activity_log_timestamps",

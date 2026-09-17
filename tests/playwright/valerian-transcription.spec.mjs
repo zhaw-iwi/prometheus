@@ -294,6 +294,103 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped))).toBe(true);
 });
 
+for (const width of [1440, 390]) {
+  test("interaction timing drawer exports correlated turns at " + width + "px", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    let release;
+    const hold = new Promise(resolve => { release = resolve; });
+    const server = Buffer.from(JSON.stringify({ version: 1, durationMs: 4000, truncated: false, spans: [
+      { stage: "inference", durationMs: 3500, offsetMs: 100, status: "ok", request: "fixture-inference",
+        purpose: "BEHAVIOUR", model: "fixture-model", effort: "none", promptTokens: 10, completionTokens: 2 },
+    ] })).toString("base64");
+    await page.route("**/acknowledge?profile=full_plan", async route => {
+      await hold;
+      await route.fulfill({ ...json({ active: true, responseEvent: behaviourEvent() }), headers: {
+        "X-Prometheus-Behaviour-Id": LIVE_BEHAVIOUR_ID,
+        "X-Prometheus-Timing": server,
+        "X-Prometheus-Trace-Id": route.request().headers()["x-prometheus-trace-id"],
+      } });
+    });
+    await openConnectedValerian(page);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    await expect(page.getByTestId("timing-count")).toContainText("No turns recorded");
+    await expect(page.getByTestId("timing-export-json")).toBeDisabled();
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    // Feed the same local-VAD commit boundary used by the microphone; no real acoustic claim.
+    await page.evaluate(() => transcription.transcriptionClient.events.noteCommit({
+      lastVoiceAtMs: performance.now() - 500, observedAtMs: performance.now(),
+    }));
+    await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "timing-c", item_id: "timing" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed",
+      event_id: "timing-f", item_id: "timing", transcript: "Private spoken words for export exclusion." });
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Processing turn");
+    // Exercise audio delivery before acknowledgement correlates the event.
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("Private assistant reply."));
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    release();
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    const turns = page.getByTestId("timing-turns");
+    await expect(turns.locator("details")).toHaveCount(1);
+    await turns.locator("summary").click();
+    await expect(turns).toContainText("fixture-model");
+    await expect(turns).toContainText("3500.0 ms");
+    await expect(turns).toContainText("buffered");
+    await expect(turns).toContainText("Silence detection");
+    await expect(page.getByTestId("interaction-timing-panel")).toHaveCSS("opacity", "1");
+    expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("interaction-timing-" + width + ".png") });
+    const jsonDownload = page.waitForEvent("download");
+    await page.getByTestId("timing-export-json").click();
+    const downloadedJson = await jsonDownload;
+    const stream = await downloadedJson.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const text = Buffer.concat(chunks).toString("utf8"), exported = JSON.parse(text);
+    expect(exported.turns).toHaveLength(1);
+    expect(exported.turns[0].requests.map(request => request.kind).sort()).toEqual(["acknowledge", "speech"]);
+    expect(exported.turns[0].speech.playbackMode).toBe("buffered");
+    expect(exported.turns[0].durationsMs.voiceResponse).toBeGreaterThanOrEqual(500);
+    expect(exported.turns[0].configuration.silenceDurationSeconds).toBe(1.5);
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].effort).toBe("none");
+    for (const excluded of ["Private spoken", "Private assistant", ACCESS_CODE, "ephemeral-test", "room-mic"]) {
+      expect(text).not.toContain(excluded);
+    }
+    const csvDownload = page.waitForEvent("download");
+    await page.getByTestId("timing-export-csv").click();
+    expect((await csvDownload).suggestedFilename()).toMatch(/\.csv$/);
+    const originalTiming = await page.evaluate(() => window.PrometheusTimings.snapshot());
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+      route.fulfill(json({ eventId: LIVE_BEHAVIOUR_ID })));
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    expect(await page.evaluate(() => window.PrometheusTimings.snapshot())).toEqual(originalTiming);
+    // A reset retains collected evidence. The explicit Clear action starts a fresh recording.
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("agent-drawer-tab").click();
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.getByTestId("reset-agent").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText(/^(Transcription|Transport) Idle$/);
+    await page.getByTestId("interaction-timing-tab").click();
+    await expect(turns.locator("details")).toHaveCount(1);
+    await page.getByTestId("timing-clear").click();
+    await expect(turns.locator("details")).toHaveCount(0);
+    await expect(page.getByTestId("timing-export-json")).toBeDisabled();
+  });
+}
+
 test("manual turn commits, device changes persist, and transport reconnects", async ({ page }) => {
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
@@ -698,8 +795,10 @@ async function installBrowserMediaMocks(context) {
     window.__eventSources = [];
     window.__audioPlayback = { plays: 0, pauses: 0, sinkIds: [], revoked: [] };
     let objectUrlSequence = 0;
-    URL.createObjectURL = () => `blob:mock-speech-${++objectUrlSequence}`;
-    URL.revokeObjectURL = (url) => window.__audioPlayback.revoked.push(url);
+    const createObjectURL = URL.createObjectURL.bind(URL), revokeObjectURL = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => blob.type === "application/json" || blob.type?.startsWith("text/csv")
+      ? createObjectURL(blob) : `blob:mock-speech-${++objectUrlSequence}`;
+    URL.revokeObjectURL = (url) => { window.__audioPlayback.revoked.push(url); revokeObjectURL(url); };
     Object.defineProperty(HTMLMediaElement.prototype, "src", {
       configurable: true,
       get() { return this.__mockSpeechSrc || ""; },

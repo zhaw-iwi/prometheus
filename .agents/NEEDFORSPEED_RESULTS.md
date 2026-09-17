@@ -21,6 +21,64 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Interaction timing follow-up (Milestone 173, 2026-09-17)
+
+The right-hand Agent & Diagnostics drawer now has an Interaction Timing tab.
+It shows per-turn browser durations and a millisecond timeline, separate HTTP
+requests and server spans, settings and actual playback mode. JSON exports
+contain the detailed evidence; CSV provides comparison rows. Both exclude
+conversation text, prompts, credentials, audio and device identifiers. Recording
+is bounded to 128 turns in memory; the latest 20 are displayed. Reset/disconnect
+retain recordings, explicit Clear/reload removes them, and startup/restart
+assistant replay cannot alter a previous turn. Hidden panels do not rerender.
+
+The old Transcript Sending badge covered acknowledgement/model/generation work
+and cockpit refresh. It now says Processing turn. Acknowledgement, optional
+fallback generation and refresh have separate boundaries. Speech HTTP requests
+are correlated by event identity even when SSE starts playback before the
+acknowledgement response binds the event to its turn.
+
+Server spans now accompany JSON and streamed Speech responses in the bounded
+X-Prometheus-Timing header (base64 JSON, version 1, maximum 6,000 characters and
+64 spans, explicit truncation). The header includes request-relative durations,
+model purpose/route/effort, provider dispatch counts and reported token usage.
+Pure guard workers explicitly share only the parent measurement collector.
+There is no global trace cache, extra endpoint, provider call or audio buffering.
+The existing offline reporter accepts the drawer export without a server log
+and reports missing/truncated header coverage; cost remains unmeasured.
+
+Verification on features/needforspeed:
+
+- 37 Java cases: LatencyTraceUnitTest (3), provider HTTP routing/timing (5),
+  GuardInferenceExecutorUnitTest (4), real HTTP JSON/streaming boundaries (2),
+  CORS (4), and the existing Valerian/Speech static resource contracts (19).
+- 49 Node cases across performance, transcription and speech. New checks cover
+  early-SSE audio correlation, missing/invalid clocks, content exclusion,
+  cancellation, bounded parsing and reporting directly from a cockpit export.
+- 26 Playwright cases: transcription/cockpit (22), lifecycle (1) and native
+  progressive MP3 playback (3). The two new drawer cases at 1440/390 pixels
+  download JSON/CSV, inspect routes and settings, check export privacy, preserve
+  evidence through restart replay/reset and clear it explicitly. Desktop and
+  narrow screenshots were inspected; no drawer horizontal overflow.
+
+All passed without failures or skips. Logs are in ignored
+target/interaction-timing-{java,node,browser}.log; screenshots are under
+test-results/valerian-transcription-int-*/interaction-timing-*.png.
+Providers/WebRTC/cockpit audio are controlled fixtures; the streaming tests use
+real HTTP and native Chromium MP3 decoding. No database changes/tests were
+needed. No real Heroku turn, ASR quality or physical-device latency was measured.
+
+Interpretation: last_voice estimates speech end; audio_playing is a browser
+event. Browser and server clocks remain separate. Server spans may overlap or
+nest, and missing/truncated/in-flight measurements are unknown. Failed ASR items
+that never reach transcript ingress do not create records. These diagnostics
+enable investigation of the reported six seconds; they do not establish its
+cause or certify the two-second target.
+
+Integrated feature commit a7e3a89 into agents for the authorized Heroku testing
+deployment. Only documentation conflicted. All changed source/test files match
+the tested feature commit exactly; main is unchanged.
+
 ## Speech activation follow-up (Milestone 172, 2026-09-17)
 
 Reset publishes a live starter behaviour. The cockpit previously sent every

@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 
 final class SpeechAudioHttpResponse {
     private SpeechAudioHttpResponse() {
@@ -18,6 +19,8 @@ final class SpeechAudioHttpResponse {
         if (audio.getContentLength() >= 0) {
             response.contentLength(audio.getContentLength());
         }
+        String timing = LatencyTrace.responseHeader();
+        if (timing != null) response.header(LatencyTrace.TIMING_HEADER, timing);
         return response.body(audio::writeTo);
     }
 }

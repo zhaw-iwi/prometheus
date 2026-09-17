@@ -448,6 +448,32 @@ trace ID. A request that publishes behaviour also returns
 These headers do not grant access or change event payloads. Configured CORS
 origins can send/read them.
 
+In Valerian, open **Agent & Diagnostics → Interaction Timing**. Recording is
+automatic for submitted speech/text turns; expand a turn to inspect milliseconds
+from estimated speech end through commit, final transcription, backend processing,
+cockpit refresh and playback. **Processing turn** replaces the misleading
+**Transcript Sending** badge: acknowledgement can include model work, behaviour
+generation and persistence, followed by cockpit refresh before acceptance.
+
+**Export JSON** includes detailed browser stages, each acknowledgement/fallback/
+Speech HTTP request, available server spans, actual text-model routes/effort and
+reported token usage, applied capture flags, turn settings, and playback mode.
+**Export CSV** provides one comparison row per turn. No transcript, assistant
+text, prompts, access codes, provider credentials, device IDs or audio is included.
+Export before reloading or clearing; reset/disconnect preserve the recording.
+The drawer shows the latest 20 turns and exports all retained turns (up to 128).
+Startup/restart assistant replay does not alter a previously recorded turn.
+
+`X-Prometheus-Timing` carries a base64-encoded version-1 JSON snapshot with
+request-relative server duration and spans. It is capped at 6,000 characters/
+64 spans and marks truncation explicitly. JSON responses attach it before body
+serialization; streaming Speech attaches it before streaming begins, without
+buffering the audio. Pure guard workers share only bounded request-local
+measurements. There is no trace lookup endpoint or cross-request server cache.
+Headers omitted by a proxy, work still running at the snapshot, and truncated
+detail are incomplete evidence. Server spans can overlap or contain one another;
+do not add them or subtract their timestamps from browser timestamps.
+
 Server `latency` log entries record inference purpose, model, effective configured effort (or provider default),
 token counts when supplied, application/persistence/publication durations and
 Speech response-header time. Durations are monotonic. Successful provider prompt
@@ -459,25 +485,41 @@ the HTTP response. Shared transcription records local last-voice/commit and fina
 transcript times; manual or unmatched commits have no invented voice timestamp.
 No timing telemetry is uploaded or persisted. Server and browser clocks are
 separate; correlate IDs, then compare local durations.
+Speech end is the local VAD estimate and playback is the browser's `playing`
+event, not a measurement at the physical speaker. Unsubmitted/failed ASR items
+and startup replay do not create turn records; missing stages remain unknown.
 
 Run `node --test tests/js/performance/*.test.mjs` and
 `CatalogInferenceCountUnitTest` for offline diagnostics checks. The roadmap and
 measured/unverified results are maintained in `.agents/PLAN_NEEDFORSPEED.md` and
 `.agents/NEEDFORSPEED_RESULTS.md`.
 
-Save an export as JSON with `metadata` and `turns` fields. Set metadata `source`
+The drawer's JSON export can be shared directly or summarized without Heroku logs:
+
+~~~powershell
+node tests/needforspeed/summarize.mjs target/interaction-timing.json
+~~~
+
+Browser exports label their source as `browser`; they do not certify that the
+provider or media was unmocked. Filter turns by settings and annotate warm/cold,
+ordinary/closing workload and physical device/network conditions before comparing
+latency distributions.
+
+For separately collected fixtures or live experiments, save JSON with `metadata`
+and `turns` fields. Set metadata `source`
 to `fixture` or `live`, `configuration` to a description of the actual settings,
 and `workload` to e.g. `warm ordinary SMART`. Include browser/device/network,
 corpus revision, model/effort/guard strategy and speech/transcription settings in
 metadata. Set `turns` to `PrometheusTimings.snapshot(agentId)`; export before the
-128-record limit evicts samples or reset clears them. Then run:
+128-record limit evicts samples or the recording is cleared. Then run:
 
 ```powershell
 node tests/needforspeed/summarize.mjs target/turn-export.json target/server.log
 ```
 
 The offline reporter calculates browser-stage p50/p95, counts missing/invalid
-stages and errors, and joins text-request/usage logs by opaque trace ID. Missing
+stages and errors, consumes embedded server timings and optionally joins
+text-request/usage logs by opaque trace ID. Missing
 usage stays unknown; the report does not estimate cost from incomplete logs.
 It flags samples below 50 and never mixes browser and server clocks. A fixture
 report cannot establish live latency, model quality or physical audibility.
