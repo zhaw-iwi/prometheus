@@ -21,6 +21,14 @@ public class StaticSummarisationAction extends Action {
     }
 
     @Override
+    public ch.zhaw.prometheus.model.PreparedAction prepare(EventHistory events,
+            ch.zhaw.prometheus.model.snapshot.ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        return preparePromptAction(events, runtime, true);
+    }
+
+    @Override protected ExecutionMode legacyExecutionMode() { return ExecutionMode.BACKGROUND; }
+
+    @Override
     public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
         JsonElement result = this.getPolicy().summarise(eventHistory, runtime.promptMessageAssembler(),
                 runtime.languageModelGateway());

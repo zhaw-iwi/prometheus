@@ -18,14 +18,25 @@ public class RpsSelectAgentSignAction extends Action {
 
     public RpsSelectAgentSignAction(Storage storage) {
         super(new NoOpPolicy(), storage, RpsStorageKeys.CURRENT_AGENT_SIGN);
+        blocking();
     }
 
     @Override
     public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
-        int completedRoundCount = RpsStorageSupport.completedRoundCount(this.getStorage());
-        RpsSign sign = SELECTOR.selectForNextRound(completedRoundCount);
-        this.getStorage().put(RpsStorageKeys.CURRENT_AGENT_SIGN, new JsonPrimitive(sign.canonical()));
-        this.getStorage().put(RpsStorageKeys.CURRENT_ROUND_NUMBER, new JsonPrimitive(completedRoundCount + 1));
+        compute(RpsStorageSupport.completedRoundCount(getStorage())).forEach(
+                (key, value) -> getStorage().put(key, com.google.gson.JsonParser.parseString(value)));
+    }
+
+    @Override public ch.zhaw.prometheus.model.PreparedAction prepare(EventHistory events,
+            ch.zhaw.prometheus.model.snapshot.ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        int count = RpsStorageSupport.completedRoundCount(getStorage());
+        return prepared(java.util.Set.of(RpsStorageKeys.CURRENT_AGENT_SIGN, RpsStorageKeys.CURRENT_ROUND_NUMBER),
+                gateway -> compute(count));
+    }
+
+    private static java.util.Map<String, String> compute(int count) {
+        return java.util.Map.of(RpsStorageKeys.CURRENT_AGENT_SIGN, new JsonPrimitive(SELECTOR.selectForNextRound(count).canonical()).toString(),
+                RpsStorageKeys.CURRENT_ROUND_NUMBER, Integer.toString(count + 1));
     }
 
     @Override

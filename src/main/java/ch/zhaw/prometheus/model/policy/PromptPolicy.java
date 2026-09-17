@@ -207,6 +207,16 @@ public class PromptPolicy extends Policy {
         return assembler.composeCondensed(events, resolvePrompt(), LanguageModelGateway.REMINDER_DECISION);
     }
 
+    public ch.zhaw.prometheus.spi.InferenceRequest actionRequest(EventHistory events,
+            PromptMessageAssembler assembler, boolean summary) {
+        String prompt = resolvePrompt();
+        if (prompt.isEmpty()) return null;
+        return new ch.zhaw.prometheus.spi.InferenceRequest(summary
+                ? ch.zhaw.prometheus.spi.InferencePurpose.SUMMARY : ch.zhaw.prometheus.spi.InferencePurpose.EXTRACTION,
+                assembler.composeCondensed(events, prompt, summary ? LanguageModelGateway.REMINDER_SUMMARISATION
+                        : LanguageModelGateway.REMINDER_EXTRACTION), ch.zhaw.prometheus.spi.InferenceRequest.Output.JSON);
+    }
+
     @Override
     public JsonElement extract(EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {

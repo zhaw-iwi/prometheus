@@ -123,7 +123,9 @@ public class Transition {
             EventSelector selector = current.getEventSelector() == null ? defaultSelector : current.getEventSelector();
             EventHistory selected = sharedEvents.select(selector);
             ObservationSnapshot snapshot = current.getSnapshotAggregator().aggregate(selected);
-            current.execute(selected, snapshot, runtime);
+            if (runtime.actionExecution() != null && current.getExecutionMode() == Action.ExecutionMode.BACKGROUND)
+                runtime.actionExecution().submit(current, selected, snapshot, runtime);
+            else current.execute(selected, snapshot, runtime);
         }
     }
 

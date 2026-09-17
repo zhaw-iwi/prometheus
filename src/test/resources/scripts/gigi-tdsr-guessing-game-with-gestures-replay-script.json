@@ -245,6 +245,10 @@
       "value": true
     },
     {
+      "method": "complete",
+      "value": "{\"speech\":\"Danke fuer das Ratespiel. Ich hoere jetzt auf und verabschiede mich freundlich.\"}"
+    },
+    {
       "method": "extract",
       "value": {
         "flow_type": "single_state",
@@ -263,11 +267,7 @@
     },
     {
       "method": "complete",
-      "value": "Danke fuer das Ratespiel. Ich hoere jetzt auf und verabschiede mich freundlich."
-    },
-    {
-      "method": "complete",
-      "value": "Die Interaktion ist beendet. Fuer eine neue Runde starte bitte neu."
+      "value": "{\"speech\":\"Die Interaktion ist beendet. Fuer eine neue Runde starte bitte neu.\"}"
     }
   ]
 }

@@ -21,6 +21,53 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Background transition actions (Milestone 177, 2026-09-17)
+
+Implemented the user's in-memory durability choice: no job table, restart replay
+or automatic retries. New actions default to background execution; `.blocking()`
+preserves required dependencies. All built-in action types can prepare immutable
+work. RPS/gather/choice definitions explicitly block; summary/outcome actions run
+in the background. Legacy persisted summary/outcome and summary-state actions
+migrate on reload, while other unconfigured legacy actions keep prior ordering.
+
+Turn-local admission reserves bounded capacity before persistence. Work starts
+only after successful commit, FIFO per agent, with parallel progress for other
+agents. Fresh transactional patches use the existing agent lock; reset epochs,
+missing-agent checks and storage write tokens reject obsolete/conflicting output.
+Accepted background writes rebase later queued writes without accepting newer
+foreground changes. No worker receives an entity or persistence context.
+
+Full feature Java suite passed 344 tests across 83 classes with zero failures,
+errors or skips: `.\mvnw.cmd -q test`. Providers were mocked/loopback, and MySQL
+used only disposable schema prometheus_async_a570e7ed1c plus a restricted account;
+both were removed. Log: ignored `target/background-actions-full.log`.
+After refining the queue deadline to begin at commit and adding a deterministic
+clock test, 25 focused cases passed:
+`.\mvnw.cmd -q "-Dtest=BackgroundAction*UnitTest,StateTransition*UnitTest,AgentTurnSerialiserUnitTest,*Rps*Test,CatalogInferenceCountUnitTest" test`.
+Log: ignored `target/background-actions-unit-final.log`.
+
+New tests prove farewell publication while extraction is unfinished, eventual
+persisted result, explicit blocking, FIFO writes, other-agent progress, rollback,
+reset/delete rejection, foreground conflict rejection, bounded admission, failure,
+queue expiry and shutdown even when a worker ignores interruption. Existing
+HTTP/SSE replay now explicitly declares its extracted-goal dependency blocking.
+
+No client code changed, so no browser test was needed. Live provider latency and
+quality remain unmeasured. Background completion after HTTP headers is recorded
+in correlated server logs, not retroactively added to the browser timing export.
+Limits, additive nullable columns and single-process writer scope are in README.
+Speculative behaviour generation is not enabled by this milestone.
+
+Merged feature commits f8d9c1b and 13ba6ed into agents. The complete merged Java
+suite passed 459 cases across 100 classes, with zero failures/errors/skips, on
+disposable schema prometheus_async_5f32ae018b (removed with its restricted account).
+Log: ignored `target/background-actions-agents-full.log`. The first merged run
+exposed three old replay fixtures: raw speech output and extraction preceding
+farewell. Their data was updated on the feature branch and merged; application
+definitions/workflows remain on agents. Source matches the verified feature
+branch. Main remains unchanged; the agents push deploys Heroku for testing.
+
+
 ## Unified behaviour generation (Milestone 176, 2026-09-17)
 
 Removed the raw speech branch from PromptPolicy. Every prompt-driven generation

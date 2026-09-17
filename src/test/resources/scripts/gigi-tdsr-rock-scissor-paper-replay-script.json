@@ -183,7 +183,7 @@
   "gatewayCalls": [
     {
       "method": "complete",
-      "value": "Hallo, ich bin GIGI. Lass uns Schere, Stein, Papier spielen. Sag Bereit, wenn du deine Hand vorbereitet hast."
+      "value": "{\"speech\":\"Hallo, ich bin GIGI. Lass uns Schere, Stein, Papier spielen. Sag Bereit, wenn du deine Hand vorbereitet hast.\"}"
     },
     {
       "method": "decide",
@@ -207,11 +207,11 @@
     },
     {
       "method": "complete",
-      "value": "Alles klar. Ich beende Schere, Stein, Papier. Danke fuers Mitspielen."
+      "value": "{\"speech\":\"Alles klar. Ich beende Schere, Stein, Papier. Danke fuers Mitspielen.\"}"
     },
     {
       "method": "complete",
-      "value": "Das Spiel ist beendet. Auf Wiedersehen."
+      "value": "{\"speech\":\"Das Spiel ist beendet. Auf Wiedersehen.\"}"
     }
   ]
 }

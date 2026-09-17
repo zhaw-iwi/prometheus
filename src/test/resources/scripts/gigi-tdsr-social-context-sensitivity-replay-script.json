@@ -122,19 +122,19 @@
   "gatewayCalls": [
     {
       "method": "complete",
-      "value": "Hallo, ich bin GIGI. Ich kann mit dir sprechen und auf soziale Veraenderungen in meiner Naehe reagieren."
+      "value": "{\"speech\":\"Hallo, ich bin GIGI. Ich kann mit dir sprechen und auf soziale Veraenderungen in meiner Naehe reagieren.\"}"
     },
     {
       "method": "complete",
-      "value": "Gerade scheint niemand in meiner Naehe zu sein. Da wird es fuer einen sozialen Roboter fast ein bisschen still."
+      "value": "{\"speech\":\"Gerade scheint niemand in meiner Naehe zu sein. Da wird es fuer einen sozialen Roboter fast ein bisschen still.\"}"
     },
     {
       "method": "complete",
-      "value": "Hallo, ich habe bemerkt, dass jemand dazugekommen ist. Schoen, dass du da bist."
+      "value": "{\"speech\":\"Hallo, ich habe bemerkt, dass jemand dazugekommen ist. Schoen, dass du da bist.\"}"
     },
     {
       "method": "complete",
-      "value": "Hallo zusammen. Mit so vielen Menschen hier habe ich gerade nicht gerechnet."
+      "value": "{\"speech\":\"Hallo zusammen. Mit so vielen Menschen hier habe ich gerade nicht gerechnet.\"}"
     },
     {
       "method": "decide",
@@ -142,15 +142,19 @@
     },
     {
       "method": "complete",
-      "value": "Ich kann mit dir sprechen und zugleich auf soziale Veraenderungen reagieren, zum Beispiel wenn jemand kommt oder geht."
+      "value": "{\"speech\":\"Ich kann mit dir sprechen und zugleich auf soziale Veraenderungen reagieren, zum Beispiel wenn jemand kommt oder geht.\"}"
     },
     {
       "method": "complete",
-      "value": "Tschuess, ich habe bemerkt, dass die Runde wieder gegangen ist. Ich bleibe ruhig hier."
+      "value": "{\"speech\":\"Tschuess, ich habe bemerkt, dass die Runde wieder gegangen ist. Ich bleibe ruhig hier.\"}"
     },
     {
       "method": "decide",
       "value": true
+    },
+    {
+      "method": "complete",
+      "value": "{\"speech\":\"Alles klar. Ich beende die Social-Context-Demo und verabschiede mich freundlich.\"}"
     },
     {
       "method": "extract",
@@ -161,7 +165,12 @@
             "interaction_type": "social_context_sensitivity",
             "completed": true,
             "reacted_to_social_events": true,
-            "observed_change_types": ["now_alone", "arrival", "crowd_detected", "departure"],
+            "observed_change_types": [
+              "now_alone",
+              "arrival",
+              "crowd_detected",
+              "departure"
+            ],
             "conversation_summary": "The user asked what GIGI can do.",
             "result_summary": "GIGI reacted to social context changes and the user ended the demo."
           }
@@ -171,11 +180,7 @@
     },
     {
       "method": "complete",
-      "value": "Alles klar. Ich beende die Social-Context-Demo und verabschiede mich freundlich."
-    },
-    {
-      "method": "complete",
-      "value": "Die Social-Context-Demo ist beendet. Auf Wiedersehen."
+      "value": "{\"speech\":\"Die Social-Context-Demo ist beendet. Auf Wiedersehen.\"}"
     }
   ]
 }

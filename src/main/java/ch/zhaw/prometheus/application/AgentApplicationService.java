@@ -55,6 +55,62 @@ public class AgentApplicationService {
     private final LanguageModelGateway languageModelGateway;
     private final SocialSituationChangeDetector socialSituationChangeDetector;
     private final AgentTurnSerialiser turns = new AgentTurnSerialiser();
+    private BackgroundActionExecutor backgroundActions;
+    private ch.zhaw.prometheus.repositories.StorageRepository storageRepository;
+    private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureBackgroundActions(BackgroundActionExecutor executor,
+            ch.zhaw.prometheus.repositories.StorageRepository storage,
+            org.springframework.transaction.PlatformTransactionManager transactionManager) {
+        this.backgroundActions = executor;
+        this.storageRepository = storage;
+        this.backgroundTransaction = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        this.backgroundTransaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    private <T> T actionTurn(Agent agent, OutputProfile profile, java.util.function.Function<PolicyRuntime, T> work) {
+        if (backgroundActions == null) return work.apply(runtime(profile));
+        UUID id = agent.getId(), epoch = agent.executionEpoch();
+        try (var turn = new BackgroundActionTurn(id, backgroundActions,
+                (action, values, versions) -> applyBackgroundAction(id, epoch, action, values, versions))) {
+            T result = work.apply(runtime(profile).withActionExecution(turn));
+            turn.commit();
+            return result;
+        }
+    }
+
+    private String applyBackgroundAction(UUID id, UUID epoch, ch.zhaw.prometheus.model.PreparedAction action,
+            java.util.Map<String, String> values, BackgroundActionExecutor.Versions versions) {
+        var parsed = new java.util.HashMap<String, com.google.gson.JsonElement>();
+        values.forEach((key, value) -> parsed.put(key, ch.zhaw.prometheus.spi.InferenceResult.json(value)));
+        return serialized(id, () -> {
+            var before = new java.util.HashMap<String, String>();
+            var after = new java.util.HashMap<String, String>();
+            String status = backgroundTransaction.execute(transaction -> {
+                Agent current = repository.findById(id).orElse(null);
+                if (current == null || !epoch.equals(current.executionEpoch())) return "discarded_obsolete_agent";
+                if (values.isEmpty()) return "completed";
+                Storage storage = storageRepository.findById(action.storageId()).orElse(null);
+                if (storage == null) return "discarded_missing_storage";
+                for (var entry : action.expectedVersions().entrySet()) {
+                    String actual = storage.writeVersion(entry.getKey());
+                    if (!actual.equals(versions.expected(action.storageId(), entry.getKey(), entry.getValue())))
+                        return "discarded_storage_conflict";
+                    before.put(entry.getKey(), actual);
+                }
+                parsed.forEach(storage::put);
+                parsed.keySet().forEach(key -> after.put(key, storage.writeVersion(key)));
+                storageRepository.saveAndFlush(storage);
+                return "completed";
+            });
+            if ("completed".equals(status)) {
+                after.forEach((key, value) -> versions.applied(action.storageId(), key, before.get(key), value));
+                repository.findById(id).ifPresent(this::safePublishMonitor);
+            }
+            return status;
+        });
+    }
 
     <T> T serialized(UUID agentId, java.util.function.Supplier<T> work) { return turns.call(agentId, work); }
 
@@ -62,10 +118,12 @@ public class AgentApplicationService {
         return serialized(agentId, () -> {
             Agent agent = findAgent(agentId).orElse(null);
             if (agent == null || !agent.isActive()) return false;
-            Event response = agent.tick(runtime());
-            Agent saved = persistAndPublishMonitor(agent);
-            publishBehaviour(saved, response);
-            return true;
+            return actionTurn(agent, OutputProfile.FULL_PLAN, runtime -> {
+                Event response = agent.tick(runtime);
+                Agent saved = persistAndPublishMonitor(agent);
+                publishBehaviour(saved, response);
+                return true;
+            });
         });
     }
 
@@ -200,13 +258,14 @@ public class AgentApplicationService {
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-            PolicyRuntime runtime = this.runtime(resolvedProfile);
-            Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, runtime));
-            Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
-            Event responseToReturn = computedResponse == null ? response : computedResponse;
-            Agent saved = this.persistAndPublishMonitor(agent);
-            this.publishBehaviour(saved, responseToReturn);
-            return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+            return actionTurn(agent, resolvedProfile, runtime -> {
+                Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, runtime));
+                Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
+                Event responseToReturn = computedResponse == null ? response : computedResponse;
+                Agent saved = this.persistAndPublishMonitor(agent);
+                this.publishBehaviour(saved, responseToReturn);
+                return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+            });
         });
     }
 

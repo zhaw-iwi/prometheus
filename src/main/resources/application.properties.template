@@ -19,6 +19,11 @@ server.port = 8080
 prometheus.runtime.tick.enabled=false
 prometheus.runtime.tick.delay-ms=1000
 
+# Volatile background transition actions. Unfinished work is lost on restart.
+prometheus.actions.parallelism=4
+prometheus.actions.capacity=64
+prometheus.actions.queue-timeout-ms=30000
+
 # admin access-code management
 prometheus.admin.token=
 

@@ -514,7 +514,7 @@ class ScopedDemoControllerIntegrationTest {
     }
 
     @Test
-    void batchedGuardsAfterReloadPreserveExtractionEventOrderAndReset() throws Exception {
+    void batchedGuardsAfterReloadQueueSummaryUntilCommitAndPreserveEventOrderAndReset() throws Exception {
         String code = "NFS04";
         String type = ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching.KEY;
         allowType(code, type); UUID id = createAgent(code, type);
@@ -546,9 +546,10 @@ class ScopedDemoControllerIntegrationTest {
         }
         Agent closed = agents.findById(id).orElseThrow();
         assertFalse(closed.isActive());
-        assertTrue(closed.getStorage().get("outcome").getAsJsonObject().get("completed").getAsBoolean());
+        // This test's enclosing transaction is rolled back; background work must never escape it.
+        assertFalse(closed.getStorage().containsKey("outcome"));
         assertEquals(2, batches.get());
-        verify(languageModelGateway).extract(any());
+        verify(languageModelGateway, org.mockito.Mockito.never()).extract(any());
         verify(languageModelGateway, org.mockito.Mockito.never()).decide(any());
         var history = closed.getEventHistory().toList();
         assertEquals(2, history.stream().filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).count());
