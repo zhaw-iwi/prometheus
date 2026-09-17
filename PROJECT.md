@@ -79,13 +79,13 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 179, Ultra Responsive conversation pace
-  (0.5-second silence, low transcription delay) in the shared settings panel.
-  Ten focused client tests and the keyboard/reconnect/manual-mode browser case
-  passed; desktop/mobile screenshots inspected. Pause tolerant remains the default.
-  Speech-startup and transcription-finalisation ideas remain proposed experiments.
-  Follow-up: timing exports now retain minimal/xhigh delay selections; 12 focused
-  performance tests passed. The latest Ultra trial is recorded in the results ledger.
+- Last completed follow-up: Milestone 180, Ultra Responsive now selects 0.5-second
+  silence and minimal transcription delay. Existing saved choices remain intact.
+  Timing capture/panel/exports distinguish local commit send, provider commit
+  acknowledgement, first/last transcript deltas and final transcript receipt.
+  Passed 54 client tests and three focused browser cases, with desktop/mobile
+  screenshots inspected. Pause tolerant remains the default. Live provider and
+  acoustic measurements remain the next testing step; no latency gain is claimed.
 - Previous runtime follow-up: Milestone 178, bounded speculative behaviour alongside
   transition decisions, with reuse across persisted acknowledge/generate reloads
   and immediate invalidation on every transition. Passed 359 full Java cases on
@@ -104,6 +104,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 180: Minimal Ultra Responsive and precise transcription timing
 
 - [x] Milestone 179: Ultra Responsive conversation pace
 
@@ -9037,3 +9039,22 @@ priority and action ownership.
   Fixed only the export filter; provider settings already support both values.
   The regression reproduced the omission and all 12 performance Node tests passed.
   Original user exports remain unchanged; the latest trial analysis is in the ledger.
+
+## Milestone 180: Minimal Ultra Responsive and precise transcription timing
+
+- Ultra Responsive selects 0.5-second silence / minimal delay in the shared
+  settings panel. Previously saved 0.5/low remains Custom until explicitly changed;
+  Pause tolerant remains the default and reconnect retains the selected settings.
+- Timing records preserve local commit send, provider commit acknowledgement,
+  first/last non-empty transcript delta receipt and final receipt on the browser
+  monotonic clock. Manual commits have no fabricated voice boundary. Duplicate and
+  late events do not shift times or consume another turn's pending commit.
+- Ordered final release preserves original receive times. Panel timelines allow
+  partials before speech end; JSON, CSV and the offline reporter expose new stages
+  and intervals, leaving missing data unknown without retaining transcript text.
+- Passed 54 performance/transcription/speech Node tests and three mocked Playwright
+  cases covering export privacy, 1440/390px timing views, keyboard preset choice,
+  session payload, reconnect and manual mode. Screenshots inspected. No Java/DB
+  changes or live provider/acoustic tests; original user timing files preserved.
+- See README for refresh/reselection instructions and the results ledger for
+  test commands and interpretation limits. No speech synthesis or decision change.

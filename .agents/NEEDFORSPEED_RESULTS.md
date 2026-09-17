@@ -21,6 +21,49 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Minimal Ultra Responsive and transcription timing (Milestone 180, 2026-09-17)
+
+Ultra Responsive now selects 0.5-second local silence and minimal provider delay.
+Saved values are preserved: an older 0.5/low selection becomes Custom; reselect
+Ultra Responsive while stopped after refreshing the cockpit to use 0.5/minimal.
+The default remains Pause tolerant. Session start and reconnect send the chosen
+settings unchanged; the shared multilateral control uses the same preset.
+
+The existing committed stage remains the local VAD boundary. New commit_sent
+records successful local send (also for manual turns); commit_acknowledged is
+the browser receipt of input_audio_buffer.committed. transcript_first_delta and
+transcript_last_delta record accepted non-empty deltas, including those received
+before the acknowledgement. final_transcript records actual completion receipt,
+before ordered release/ingress waiting. All times use the browser monotonic clock.
+Duplicate acknowledgements cannot consume the following pending commit; duplicate
+or late deltas/finals cannot move earlier timestamps. Timing maps remain bounded
+and clear at epoch changes. No transcript content enters timing records.
+
+The panel, CSV and offline summarizer add send-to-acknowledgement,
+acknowledgement-to-final, first-to-last-delta and last-delta-to-final intervals;
+JSON includes the raw stages. Timeline offsets can be negative for pre-speech-end
+deltas. Missing stages in old recordings or provider event sequences stay unknown.
+These are browser-observed intervals including network/provider effects, not a
+measurement of isolated provider processing. Overlapping intervals are not additive.
+
+Verification passed:
+
+- node --test tests/js/performance/*.test.mjs tests/js/transcription/*.test.mjs
+  tests/js/speech/*.test.mjs: 54 cases, zero failures/skips. Controlled clocks cover
+  pre-commit deltas, duplicate commits, out-of-order finals, missing receipts,
+  epoch reset, manual commits, bounds, JSON/CSV/offline metrics and content exclusion.
+- Three Playwright cases selected by conversation pace|interaction timing drawer
+  in valerian-transcription.spec.mjs: desktop/mobile exports and keyboard preset
+  selection, effective session payload, reconnect and manual mode. Static loopback
+  assets with routed provider fixtures; 1440/390px screenshots inspected.
+- Logs: target/transcription-precision-unit.log and
+  target/transcription-precision-browser.log. Visual artifacts are under
+  target/playwright-results; user timing exports in test-results are untouched.
+
+No Java/database changes or live provider/acoustic tests. Tomorrow's export should
+establish whether final receipt lags substantially behind the last partial and how
+much time elapses before commit acknowledgement. No new latency gain is claimed.
+
 ## Ultra Responsive preset and next experiments (Milestone 179, 2026-09-17)
 
 Follow-up trial (16:28 export): agent 7b57e224-3a60-4e9f-bef5-cb69313daf4b

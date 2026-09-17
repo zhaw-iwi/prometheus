@@ -101,6 +101,9 @@ PROMETHEUS currently provides:
   item-ordered final transcripts, bounded fresh-session reconnect after
   transport or active-track loss, navigation-safe teardown, live device
   refresh, operator capture settings, and privacy-safe preference persistence;
+- content-free browser timing for commit send/acknowledgement, first/last
+  transcript delta and final receipt, preserving arrival times across ordered
+  final release; these are browser observations, not provider-side clocks;
 - serialized, duplicate-safe live-transcript ingress through the ordinary
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;

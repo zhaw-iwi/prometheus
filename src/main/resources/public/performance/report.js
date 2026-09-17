@@ -2,6 +2,10 @@ export const METRICS = [
   ["voiceResponse", "Speech end → playback", "last_voice", "audio_playing"],
   ["localSilence", "Silence detection", "last_voice", "committed"],
   ["transcriptionFinal", "Commit → final transcript", "committed", "final_transcript"],
+  ["commitAcknowledgement", "Commit sent → acknowledgement", "commit_sent", "commit_acknowledged"],
+  ["acknowledgedFinal", "Commit acknowledgement → final transcript", "commit_acknowledged", "final_transcript"],
+  ["transcriptDeltas", "First → last transcript delta", "transcript_first_delta", "transcript_last_delta"],
+  ["transcriptDeltaTail", "Last transcript delta → final transcript", "transcript_last_delta", "final_transcript"],
   ["transcriptDispatch", "Final transcript → submission", "final_transcript", "submitted"],
   ["clientQueue", "Browser turn queue", "submitted", "acknowledging"],
   ["processing", "Process turn (including fallback)", "acknowledging", "processing_complete"],
@@ -13,7 +17,10 @@ export const METRICS = [
 ];
 
 export const STAGE_LABELS = {
-  last_voice: "Last detected voice", committed: "Audio committed", final_transcript: "Final transcript",
+  last_voice: "Last detected voice", committed: "Local VAD turn boundary",
+  commit_sent: "Local commit sent", commit_acknowledged: "Provider commit acknowledgement received",
+  transcript_first_delta: "First transcript delta received", transcript_last_delta: "Last transcript delta received",
+  final_transcript: "Final transcript received",
   submitted: "Transcript submitted", queued: "Turn queued", acknowledging: "Processing turn",
   http_start: "First HTTP request", http_end: "First HTTP response headers",
   acknowledged: "Acknowledgement read", processing_complete: "Turn processing complete",
@@ -56,7 +63,7 @@ export function timingExport(turns, browser = {}) {
   return { schemaVersion: 1, metadata: { source: "browser", exportedAt: new Date().toISOString(),
     browser: { userAgent: browser.userAgent, timeOrigin: browser.timeOrigin },
     clock: "Browser stages and HTTP boundaries are performance.now() milliseconds. Server spans use a separate request-relative clock.",
-    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
+    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. Transcription acknowledgements, deltas and finals are browser receipt times, not provider timestamps; intervals include network delay. Deltas can arrive before speech end or commit. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
   }, turns: turns.map(turn => ({ ...structuredClone(turn), outcome: outcome(turn), durationsMs: measurements(turn) })) };
 }
 
