@@ -77,6 +77,8 @@ and regulation diagnostics remain future work.
   Ten focused client tests and the keyboard/reconnect/manual-mode browser case
   passed; desktop/mobile screenshots inspected. Pause tolerant remains the default.
   Speech-startup and transcription-finalisation ideas remain proposed experiments.
+  Follow-up: timing exports now retain minimal/xhigh delay selections; 12 focused
+  performance tests passed. The latest Ultra trial is recorded in the results ledger.
 - Previous runtime follow-up: Milestone 178, bounded speculative behaviour alongside
   transition decisions, with reuse across persisted acknowledge/generate reloads
   and immediate invalidation on every transition. Passed 359 full Java cases on
@@ -8184,3 +8186,7 @@ priority and action ownership.
 - Recorded the latest live timing comparison and proposed speech/transcription
   experiments in .agents/NEEDFORSPEED_RESULTS.md. No new live latency claim or
   closing-decision change; the next trial should evaluate turn segmentation too.
+- The user's Ultra/minimal export exposed omitted minimal/xhigh timing metadata.
+  Fixed only the export filter; provider settings already support both values.
+  The regression reproduced the omission and all 12 performance Node tests passed.
+  Original user exports remain unchanged; the latest trial analysis is in the ledger.

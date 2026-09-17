@@ -174,7 +174,7 @@ export function safeConfiguration(value = {}) {
   return {
     turnDetection: ["local_vad", "manual"].includes(value.turnDetection) ? value.turnDetection : undefined,
     silenceDurationSeconds: duration(value.silenceDurationSeconds),
-    transcriptionDelay: ["low", "medium", "high"].includes(value.transcriptionDelay) ? value.transcriptionDelay : undefined,
+    transcriptionDelay: ["minimal", "low", "medium", "high", "xhigh"].includes(value.transcriptionDelay) ? value.transcriptionDelay : undefined,
     transcriptionModel: identifier(value.transcriptionModel),
     ...safeSpeech(value),
     capture: Object.fromEntries(["echoCancellation", "noiseSuppression", "autoGainControl", "voiceIsolation"]

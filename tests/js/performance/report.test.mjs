@@ -7,6 +7,24 @@ const serverHeader = btoa(JSON.stringify({ version: 1, durationMs: 4200.5, trunc
   spans: [{ stage: "inference", durationMs: 4000, offsetMs: 10, status: "ok", model: "fixture-model", purpose: "DECISION", effort: "none" }],
   text: "private-provider-payload" }));
 
+test("all supported transcription delays survive timing capture and JSON/CSV export", () => {
+  for (const delay of ["minimal", "low", "medium", "high", "xhigh", "private-unsupported"]) {
+    const timings = new TurnTimings({ now: () => 1, uuid: () => "trace" });
+    timings.configuration = () => ({ transcriptionDelay: delay, transcriptionPrompt: "private-prompt" });
+    timings.begin("agent");
+    const turns = timings.snapshot();
+    const json = JSON.stringify(timingExport(turns)), csv = timingCsv(turns);
+    if (delay === "private-unsupported") {
+      assert.equal(JSON.parse(json).turns[0].configuration.transcriptionDelay, undefined);
+    } else {
+      assert.equal(JSON.parse(json).turns[0].configuration.transcriptionDelay, delay);
+      assert.ok(csv.includes(`"${delay}"`));
+    }
+    assert.ok(!json.includes("private"));
+    assert.ok(!csv.includes("private"));
+  }
+});
+
 test("SSE speech before acknowledgement keeps independent HTTP and server timings on the same turn", async () => {
   let time = 10;
   const timings = new TurnTimings({ now: () => time, uuid: () => "trace" });

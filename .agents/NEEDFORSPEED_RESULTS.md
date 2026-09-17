@@ -2,6 +2,36 @@
 
 ## Ultra Responsive preset and next experiments (Milestone 179, 2026-09-17)
 
+Follow-up trial (16:28 export): agent 7b57e224-3a60-4e9f-bef5-cb69313daf4b
+completed six ordinary turns and one closing turn. All ordinary candidates were
+reused and all playback was progressive, with no recorded errors or truncated
+server timings. Ordinary averages compared with the preceding responsive/low run:
+
+| Consecutive browser interval | Responsive / low | Ultra / user-reported minimal |
+| --- | ---: | ---: |
+| Silence detection | 0.825 s | 0.519 s |
+| Commit to final transcript | 0.698 s | 0.698 s |
+| Transcript submission to speech request | 1.537 s | 1.868 s |
+| Speech request to first bytes | 0.950 s | 1.116 s |
+| First bytes to playback | 0.173 s | 0.104 s |
+| Total speech end to playback | 4.183 s | 4.305 s |
+
+The shorter silence wait saved 306 ms, offset by slower model/speech requests in
+this session. Closing took 5.934 s, with a 1.553 s decision and 1.822 s final reply;
+the earlier 3.923 s closing-decision outlier did not recur. These small separate
+conversations cannot establish a causal effect of minimal or transcript accuracy.
+
+The export exposed a diagnostics bug: safeConfiguration accepted only low/medium/
+high and silently omitted minimal/xhigh. The actual settings descriptor, session
+payload and backend already support all five levels. Fixed the export filter
+without changing provider settings or execution. The historical export cannot
+independently confirm minimal; retain the user's reported selection and leave the
+original file untouched. A capture-to-JSON/CSV regression reproduced the omission,
+then all 12 performance Node tests passed after the fix, including privacy checks.
+Logs: target/transcription-delay-export-before.log and
+target/transcription-delay-export-after.log (ignored). No Java, browser rendering,
+live API or acoustic test was needed for this metadata-only correction.
+
 Added Ultra Responsive (0.5-second local silence, low transcription delay) to the
 shared Valerian/multilateral settings panel. Presets still change only silence
 and delay, retain unrelated preferences and reconnect settings, and are hidden
