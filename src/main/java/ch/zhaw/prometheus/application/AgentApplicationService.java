@@ -58,6 +58,17 @@ public class AgentApplicationService {
     private BackgroundActionExecutor backgroundActions;
     private ch.zhaw.prometheus.repositories.StorageRepository storageRepository;
     private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
+    private BehaviourSpeculationService speculation;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureSpeculation(BehaviourSpeculationService service) { this.speculation = service; }
+
+    void discardSpeculation(UUID id, String reason) { if (speculation != null) speculation.discard(id, reason); }
+
+    private static UUID lastEventId(Agent agent) {
+        var events = agent.getEventHistory().toList();
+        return events.isEmpty() ? null : events.getLast().getId();
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void configureBackgroundActions(BackgroundActionExecutor executor,
@@ -116,6 +127,7 @@ public class AgentApplicationService {
 
     public boolean tick(UUID agentId) {
         return serialized(agentId, () -> {
+            discardSpeculation(agentId, "tick");
             Agent agent = findAgent(agentId).orElse(null);
             if (agent == null || !agent.isActive()) return false;
             return actionTurn(agent, OutputProfile.FULL_PLAN, runtime -> {
@@ -210,6 +222,7 @@ public class AgentApplicationService {
 
     public Optional<ResponseView> start(UUID agentID) {
         return serialized(agentID, () -> {
+            discardSpeculation(agentID, "start");
             Optional<Agent> agentMaybe = this.findAgent(agentID);
             if (agentMaybe.isEmpty()) {
                 return Optional.empty();
@@ -234,7 +247,13 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-            Event response = LatencyTrace.measure("generate", () -> agent.generate(this.runtime(resolvedProfile)));
+            PolicyRuntime generationRuntime = this.runtime(resolvedProfile);
+            if (speculation != null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
+                    agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
+            PolicyRuntime preparedRuntime = generationRuntime;
+            Event response;
+            try { response = LatencyTrace.measure("generate", () -> agent.generate(preparedRuntime)); }
+            finally { discardSpeculation(agentID, "unused_generation"); }
             if (response == null) {
                 return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
             }
@@ -258,19 +277,27 @@ public class AgentApplicationService {
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-            return actionTurn(agent, resolvedProfile, runtime -> {
-                Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, runtime));
-                Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
-                Event responseToReturn = computedResponse == null ? response : computedResponse;
-                Agent saved = this.persistAndPublishMonitor(agent);
-                this.publishBehaviour(saved, responseToReturn);
-                return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
-            });
+            try (var preview = speculation == null ? null : speculation.open(agentID, agent.executionEpoch(),
+                    agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {
+                Optional<ResponseView> result = actionTurn(agent, resolvedProfile, runtime -> {
+                    PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
+                    Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
+                    Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
+                    Event responseToReturn = computedResponse == null ? response : computedResponse;
+                    Agent saved = this.persistAndPublishMonitor(agent);
+                    this.publishBehaviour(saved, responseToReturn);
+                    if (preview != null) preview.result(lastEventId(saved), responseToReturn != null);
+                    return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+                });
+                if (preview != null) preview.commit();
+                return result;
+            }
         });
     }
 
     public Optional<ResponseView> reset(UUID agentID) {
         return serialized(agentID, () -> {
+            discardSpeculation(agentID, "reset");
             Optional<Agent> agentMaybe = this.findAgent(agentID);
             if (agentMaybe.isEmpty()) {
                 return Optional.empty();

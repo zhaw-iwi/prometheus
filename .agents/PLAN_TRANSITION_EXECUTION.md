@@ -47,6 +47,10 @@ automatic retries of external side effects.
 
 ## Milestone 177 - Non-blocking transition actions
 
+Implemented and merged into agents; the authorized Heroku deployment succeeded.
+Full feature and merged application suites passed (344 and 459 cases respectively;
+25 focused cases covered the final queue-clock refinement). See the evidence ledger.
+
 - Separate preparation, slow computation and validated result application.
   Freeze selected pre-transition events and resolved storage-dependent prompts.
 - Make non-blocking execution the authoring default for any transition, with an
@@ -75,6 +79,14 @@ automatic retries of external side effects.
   discards unfinished work without replay and releases bounded resources.
 
 ## Milestone 178 - Speculative behaviour during transition evaluation
+
+Implemented with default-enabled OpenAI support and conservative pure-path
+eligibility. The application retains at most 64 candidates with a 30-second TTL;
+only two speculative requests can run, with no worker queue. Required work uses
+neither these permits nor the candidate cache. Matching committed event identity,
+reset epoch, model route and request contents controls reuse after entity reload.
+No-op regulation is required; custom extension paths remain sequential.
+Validation and deployment evidence are recorded in NEEDFORSPEED_RESULTS.md.
 
 - Start at most one eligible current-state behaviour inference after recording
   the new input and before awaiting transition decisions, using an immutable

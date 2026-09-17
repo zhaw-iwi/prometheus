@@ -301,7 +301,10 @@ for (const width of [1440, 390]) {
     const hold = new Promise(resolve => { release = resolve; });
     const server = Buffer.from(JSON.stringify({ version: 1, durationMs: 4000, truncated: false, spans: [
       { stage: "inference", durationMs: 3500, offsetMs: 100, status: "ok", request: "fixture-inference",
+        scope: "speculative", originTrace: "fixture-origin",
         purpose: "BEHAVIOUR", model: "fixture-model", effort: "none", promptTokens: 10, completionTokens: 2 },
+      { stage: "speculation_started", durationMs: 0, status: "ok", request: "fixture-inference", purpose: "BEHAVIOUR" },
+      { stage: "speculation_reused", durationMs: 0, status: "ok", request: "fixture-inference", purpose: "BEHAVIOUR" },
     ] })).toString("base64");
     await page.route("**/acknowledge?profile=full_plan", async route => {
       await hold;
@@ -342,6 +345,8 @@ for (const width of [1440, 390]) {
     await turns.locator("summary").click();
     await expect(turns).toContainText("fixture-model");
     await expect(turns).toContainText("3500.0 ms");
+    await expect(turns).toContainText("Speculative response reused");
+    await expect(turns).toContainText("Its duration is not additional turn latency.");
     await expect(turns).toContainText("buffered");
     await expect(turns).toContainText("Silence detection");
     await expect(page.getByTestId("interaction-timing-panel")).toHaveCSS("opacity", "1");
@@ -360,6 +365,8 @@ for (const width of [1440, 390]) {
     expect(exported.turns[0].durationsMs.voiceResponse).toBeGreaterThanOrEqual(500);
     expect(exported.turns[0].configuration.silenceDurationSeconds).toBe(1.5);
     expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].effort).toBe("none");
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].scope).toBe("speculative");
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].originTrace).toBe("fixture-origin");
     for (const excluded of ["Private spoken", "Private assistant", ACCESS_CODE, "ephemeral-test", "room-mic"]) {
       expect(text).not.toContain(excluded);
     }

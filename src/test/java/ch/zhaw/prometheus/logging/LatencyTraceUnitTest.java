@@ -9,6 +9,22 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 class LatencyTraceUnitTest {
+    @Test void carriedInferenceEvidenceIsMarkedAsWorkFromAnotherRequest() {
+        String origin = UUID.randomUUID().toString();
+        LatencyTrace.CapturedInference evidence;
+        try (var worker = new LatencyTrace(origin, ignored -> {})) {
+            LatencyTrace.record("inference", 1500, true, UUID.randomUUID().toString(), "BEHAVIOUR", "fixture", "none", 100, 20, 1);
+            evidence = LatencyTrace.captureInference();
+        }
+        try (var nextRequest = new LatencyTrace(null, ignored -> {})) {
+            evidence.attach();
+            var span = decode(LatencyTrace.responseHeader()).getAsJsonArray("spans").get(0).getAsJsonObject();
+            assertEquals("speculative", span.get("scope").getAsString());
+            assertEquals(origin, span.get("originTrace").getAsString());
+            assertEquals(1500, span.get("durationMs").getAsDouble());
+            assertEquals(20, span.get("completionTokens").getAsInt());
+        }
+    }
     @Test void exportsBoundedFailureSpansAndExplicitWorkerTimingsWithoutCrossRequestLeakage() throws Exception {
         AtomicLong clock = new AtomicLong(1_000_000);
         try (var trace = new LatencyTrace(null, ignored -> {}, clock::get);

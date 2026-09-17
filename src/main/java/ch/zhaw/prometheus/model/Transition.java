@@ -111,6 +111,7 @@ public class Transition {
     }
 
     public void action(State state, PolicyRuntime runtime) {
+        if (runtime.behaviourSpeculation() != null) runtime.behaviourSpeculation().invalidate();
         if (runtime.guardEvaluation() != null) runtime.guardEvaluation().invalidate();
         Transition.LOGGER.info("Executing actions while transitioning to " + this.subsequentState.getName());
         if (this.actions.isEmpty()) {

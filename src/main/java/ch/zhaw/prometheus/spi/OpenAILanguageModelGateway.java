@@ -57,6 +57,7 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
     }
 
     @Override public GuardInferenceExecutor guardExecutor() { return guardExecutor; }
+    @Override public boolean supportsBehaviourSpeculation() { return true; }
 
     @Override public GuardInferenceOptions guardInferenceOptions() {
         return new GuardInferenceOptions(GuardInferenceOptions.Strategy.valueOf(properties.getGuardStrategy().toUpperCase(java.util.Locale.ROOT)),

@@ -8,13 +8,27 @@ public record PolicyRuntime(
         LanguageModelGateway languageModelGateway,
         OutputProfile outputProfile,
         GuardEvaluation guardEvaluation,
-        ch.zhaw.prometheus.model.ActionExecution actionExecution) {
+        ch.zhaw.prometheus.model.ActionExecution actionExecution,
+        ch.zhaw.prometheus.model.BehaviourSpeculation behaviourSpeculation) {
+
+    public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
+            GuardEvaluation evaluation, ch.zhaw.prometheus.model.ActionExecution actions) {
+        this(assembler, gateway, profile, evaluation, actions, null);
+    }
+
+    public PolicyRuntime withBehaviourSpeculation(ch.zhaw.prometheus.model.BehaviourSpeculation speculation) {
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, actionExecution, speculation);
+    }
+
+    public PolicyRuntime withGateway(LanguageModelGateway gateway) {
+        return new PolicyRuntime(promptMessageAssembler, gateway, outputProfile, guardEvaluation, actionExecution, behaviourSpeculation);
+    }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
             GuardEvaluation evaluation) { this(assembler, gateway, profile, evaluation, null); }
 
     public PolicyRuntime withActionExecution(ch.zhaw.prometheus.model.ActionExecution execution) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, execution);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, execution, behaviourSpeculation);
     }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile) {
@@ -22,7 +36,7 @@ public record PolicyRuntime(
     }
 
     public PolicyRuntime withGuardEvaluation(GuardEvaluation evaluation) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation, actionExecution);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation, actionExecution, behaviourSpeculation);
     }
 
     public PolicyRuntime(PromptMessageAssembler promptMessageAssembler,

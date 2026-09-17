@@ -7,6 +7,8 @@ import com.google.gson.JsonElement;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 public interface LanguageModelGateway {
+    /** Explicit opt-in for pure, thread-safe speculative behaviour inference. */
+    default boolean supportsBehaviourSpeculation() { return false; }
     default GuardInferenceOptions guardInferenceOptions() { return GuardInferenceOptions.ORDERED; }
     default GuardInferenceExecutor guardExecutor() { return null; }
     default Object guardCompatibilityKey(InferenceRequest request) { return request.purpose(); }

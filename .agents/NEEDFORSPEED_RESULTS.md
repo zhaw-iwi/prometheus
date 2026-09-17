@@ -21,6 +21,76 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Speculative conversational behaviour (Milestone 178, 2026-09-17)
+
+Agents integration: merged feature commit 61dac83. The complete merged Java suite
+passed **473 tests across 103 classes**, zero failures/errors/skips, with disposable
+local MySQL schema prometheus_async_59cc207162 and controlled providers. The schema
+and restricted account were removed; log: target/behaviour-speculation-agents.log.
+Only documentation needed merge conflict resolution. Application definitions and
+deployment workflow remain on agents; main is unchanged. Push to agents triggers
+the authorized Heroku testing deployment.
+
+Default-enabled OpenAI speculation overlaps eligible current-state behaviour with
+transition decisions. An application-owned cache survives the separate HTTP
+acknowledge/generate boundary and entity reload; workers receive only immutable
+requests. Reuse requires committed input identity, reset epoch, effective prompt,
+output contract and model route to match. All transitions (outer, inner, self and
+final) invalidate immediately, and fresh generation never waits for stale work.
+Required blocking actions still complete before new-state prompt composition.
+
+Eligibility is conservative: user utterance, no-op regulation, ordinary
+State/OuterState, PromptPolicy, the default assembler and known pure guards with
+a model decision. Custom extension paths and sensory/deterministic paths remain
+unchanged. Deterministic Talk to Me does not even consult gateway capabilities.
+Defaults: two concurrent speculative requests, 64 cached candidates, 30-second TTL,
+no worker queue. Saturation skips speculation without blocking required work.
+Set PROMETHEUS_BEHAVIOUR_SPECULATION_ENABLED=false for a sequential comparison.
+
+Candidate output uses the ordinary decoder and publication boundary only when
+selected. A required failed/malformed candidate fails without retry or publication.
+Obsolete candidates never publish, including when cancellation is ignored. Reset,
+deletion, newer input, rollback and expiry discard cached work. No persisted future
+or durable job is introduced; Heroku restart drops unfinished work as requested.
+
+Full feature suite: **359 Java tests / 86 classes, zero failures/errors/skips**,
+`.\mvnw.cmd -q test`, disposable localhost MySQL schema
+prometheus_async_ff4e24ffe4 with a restricted account, mocked/loopback providers and
+fail-closed external URLs. Schema/account removed. Log:
+`target/behaviour-speculation-full.log` (ignored). The first full run exposed two
+Talk to Me zero-gateway assertions; moving capability lookup after policy
+eligibility fixed them, and the complete suite then passed.
+
+Focused database coverage additionally passed 27 cases. New latch tests establish
+actual decision/behaviour overlap, reuse after persistence reload, outer/inner/self
+and final transition discard without waiting, required-action prompt dependencies,
+reset, new input, rollback, regulation/sensory silence and malformed output without
+publication. Unit tests cover worker saturation with foreground/other-agent
+progress, ignored cancellation, expiry, nested policy composition, custom extension
+barriers and required versus discarded failures. Existing scoped deletion, ingress,
+replay, deterministic and action suites passed in the full run.
+
+Client verification: **50 tests passed** with
+`node --test tests/js/performance/*.test.mjs tests/js/transcription/*.test.mjs tests/js/speech/*.test.mjs`.
+**Two Playwright cases passed** with the `interaction timing drawer` filter in
+`tests/playwright/valerian-transcription.spec.mjs`, against a loopback static server
+and routed fixtures at 1440px and 390px. JSON export scope/origin, explanatory text,
+privacy and existing panel behavior passed; screenshots inspected. Logs:
+`target/behaviour-speculation-client.log` and `target/behaviour-speculation-browser.log`.
+
+Playwright now writes to target/playwright-results, keeping generated artifacts
+separate from user timing exports. Its first run cleared the old default output
+directory; all three user exports were restored from Downloads and their SHA
+hashes verified. They remained intact after the rerun using the new output path.
+
+Timing headers/export preserve completed speculative inference evidence with
+scope=speculative and originTrace. Work may begin in an earlier request, so its
+duration is not additive to HTTP latency; started/completed markers share a
+request ID for CSV deduplication. Still-running discarded requests can complete
+after response headers and require correlated server logs for usage. Cancellation
+does not guarantee avoided provider computation or billing. No live latency,
+response-quality or cost improvement is claimed by these offline tests.
+
 ## Background transition actions (Milestone 177, 2026-09-17)
 
 Implemented the user's in-memory durability choice: no job table, restart replay

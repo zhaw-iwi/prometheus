@@ -160,6 +160,8 @@ export function decodeServerTiming(value) {
     return { version: 1, durationMs: duration(data.durationMs), truncated: data.truncated === true,
       spans: data.spans.filter(span => span && identifier(span.stage) && duration(span.durationMs) !== undefined).map(span => ({
         stage: span.stage, durationMs: span.durationMs, offsetMs: duration(span.offsetMs),
+        scope: span.scope === "speculative" ? "speculative" : undefined,
+        originTrace: identifier(span.originTrace),
         status: ["ok", "error"].includes(span.status) ? span.status : "unknown",
         ...Object.fromEntries(["request", "purpose", "model", "effort"].map(key => [key, identifier(span[key])])),
         ...Object.fromEntries(["promptTokens", "completionTokens", "providerRequests"].map(key =>

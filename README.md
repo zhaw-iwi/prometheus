@@ -472,6 +472,44 @@ newly authored actions default to background. Deploy coordinated writers: these
 in-process ordering guarantees do not support multiple independent agent writers.
 Completed storage remains durable; no job records or restart recovery are added.
 
+### Speculative conversational behaviour
+
+The Spring runtime starts one eligible current-state behaviour request alongside
+transition evaluation. If no transition occurs, the next explicit generation can
+reuse it, including across separate acknowledge/generate HTTP requests and entity
+reloads. Publication still follows the ordinary validated BehaviourPlan path.
+Any transition (including an inner transition or self-loop) discards the candidate
+immediately; new-state generation proceeds after required blocking actions without
+waiting for the old request. Reset, deletion, newer input, rollback, expiry and
+changed effective prompts/model routes also prevent reuse.
+
+This is enabled by default with the OpenAI gateway, including Heroku; no cockpit
+switch or agent recreation is needed. Eligibility requires a user utterance,
+no-op regulation, ordinary State/OuterState and PromptPolicy composition, the
+default prompt assembler, and known pure guards including a model decision.
+Custom states/policies/guards/assemblers, deterministic policies, unconditional
+transitions and sensory observations retain their existing path. Custom gateways
+must explicitly support speculative inference and concurrent requests.
+
+Configure `prometheus.behaviour.speculation.enabled` (true), `.parallelism` (2
+active speculative requests), `.capacity` (64 retained candidates), and `.ttl-ms`
+(30000 from preparation). There is no waiting worker queue: saturation skips
+speculation. Required decisions and fresh behaviour do not use these permits.
+The cache is in memory and local to one process; use a single agent writer.
+Set `PROMETHEUS_BEHAVIOUR_SPECULATION_ENABLED=false` for a sequential comparison.
+
+Transitions can cost an extra model request. Cancellation is best effort and may
+not stop provider billing or computation; provider contention can reduce the
+latency benefit. A reused failed/invalid candidate fails normal generation without
+a hidden retry; failures of discarded candidates cannot publish a response.
+
+The interaction timing panel/export includes started, reused, discarded and wait
+markers. Completed speculative inference evidence is marked `scope=speculative`
+with its original trace; that duration can overlap an earlier HTTP request and
+must not be added to request latency. Request IDs prevent double counting in CSV.
+Still-running discarded work can finish after response headers, so its usage may
+only appear in correlated server logs. Missing usage remains unknown.
+
 ### Task-specific text inference
 
 The text SPI accepts typed `InferenceRequest` snapshots with purpose, messages,

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { TurnTimings, decodeServerTiming } from "../../../src/main/resources/public/performance/timings.js";
-import { measurements, timingExport, timingCsv, outcome } from "../../../src/main/resources/public/performance/report.js";
+import { measurements, timingExport, timingCsv, outcome, observedInferences } from "../../../src/main/resources/public/performance/report.js";
 
 const serverHeader = btoa(JSON.stringify({ version: 1, durationMs: 4200.5, truncated: false,
   spans: [{ stage: "inference", durationMs: 4000, offsetMs: 10, status: "ok", model: "fixture-model", purpose: "DECISION", effort: "none" }],
@@ -69,4 +69,21 @@ test("server timing is bounded and rejects invalid payloads without breaking int
   assert.equal(data.truncated, true);
   assert.equal(data.spans.length, 1);
   assert.ok(!JSON.stringify(data).includes("private"));
+});
+
+test("speculative work survives export with its origin and is counted once across requests", () => {
+  const started = { spans: [{ stage: "speculation_started", request: "candidate", durationMs: 0, status: "ok" }] };
+  const finished = decodeServerTiming(btoa(JSON.stringify({ version: 1, spans: [
+    { stage: "inference", request: "candidate", scope: "speculative", originTrace: "origin-trace", durationMs: 1600,
+      status: "ok", purpose: "BEHAVIOUR", model: "fixture", promptTokens: 100, completionTokens: 20, providerRequests: 1 },
+    { stage: "speculation_reused", request: "candidate", durationMs: 0, status: "ok" },
+    { stage: "inference", request: "decision", durationMs: 1000, status: "ok", purpose: "DECISION" },
+  ] })));
+  assert.equal(finished.spans[0].scope, "speculative");
+  assert.equal(finished.spans[0].originTrace, "origin-trace");
+  const requests = observedInferences([started, finished]);
+  assert.equal(requests.length, 2);
+  assert.equal(requests.find(request => request.request === "candidate").completionTokens, 20);
+  assert.equal(observedInferences([started]).length, 1); // A discarded/incomplete request still represents work.
+  assert.match(timingExport([]).metadata.interpretation, /earlier HTTP request/);
 });
