@@ -46,6 +46,24 @@ test("all supported transcription delays survive timing capture and JSON/CSV exp
   }
 });
 
+test("PCM delivery settings, interruptions and renderer timing survive private-content filtering", () => {
+  const timings = new TurnTimings({ now: () => 100, uuid: () => "trace" });
+  timings.configuration = () => ({ formatPreference: "auto" });
+  const id = timings.begin("agent"); timings.bind(id, "event");
+  timings.mark(id, "audio_prepare_start", 90); timings.mark(id, "audio_prepare_end", 95);
+  timings.speech("agent", "event", { formatPreference: "auto", format: "pcm", playbackMode: "pcm", playbackStartSource: "pcm_renderer",
+    pcmPrefillMs: 60, pcmInitialBufferedMs: 100, pcmUnderruns: 2, pcmGapMs: 150, deviceId: "private-device", samples: ["private-audio"] });
+  const exported = timingExport(timings.snapshot()), csv = timingCsv(timings.snapshot());
+  assert.equal(exported.turns[0].durationsMs.speechPreparation, 5);
+  assert.equal(exported.turns[0].speech.format, "pcm");
+  assert.equal(exported.turns[0].speech.pcmUnderruns, 2);
+  assert.equal(exported.turns[0].speech.playbackStartSource, "pcm_renderer");
+  assert.match(csv, /pcmInitialBufferedMs/); assert.match(csv, /"pcm_renderer"/);
+  assert.ok(!JSON.stringify(exported).includes("private")); assert.ok(!csv.includes("private"));
+  timings.speech("agent", "event", { fallbackReason: "private-error", format: "private-format" });
+  assert.ok(!JSON.stringify(timings.snapshot()).includes("private"));
+});
+
 test("SSE speech before acknowledgement keeps independent HTTP and server timings on the same turn", async () => {
   let time = 10;
   const timings = new TurnTimings({ now: () => time, uuid: () => "trace" });

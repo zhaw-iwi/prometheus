@@ -34,7 +34,7 @@ public class ScopedBehaviourSpeechService {
             return Optional.empty();
         }
         String speech = canonicalSpeech(event.get());
-        return Optional.of(this.speechGateway.synthesize(speech, settings.getVoice(), settings.getSpeed()));
+        return Optional.of(this.speechGateway.synthesize(speech, settings.getVoice(), settings.getSpeed(), settings.getFormat()));
     }
 
     public Optional<UUID> latestAssistantSpeechEventId(String accessCode, UUID agentId) {

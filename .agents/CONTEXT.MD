@@ -279,10 +279,14 @@ tests for the actual task rather than relying only on this list.
 
 ### Need for Speed speech delivery
 
-Valerian's canonical event-ID Speech playback now uses bounded progressive MP3
-MediaSource delivery when supported, with a same-response buffered fallback.
+Valerian's canonical event-ID Speech playback selects bounded PCM AudioWorklet
+delivery after browser/device preparation, or progressive MP3 MediaSource delivery
+with a same-response buffered fallback. The Continuous output settings expose
+Automatic/MP3 for comparison; existing clients default to MP3 unless they request PCM.
 The shared queue still owns ordering, leases and input gating. The server flushes
 stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
+Timing exports label the format, preparation, buffer interruptions and distinct
+PCM-renderer versus media-element playback markers; neither is physical audibility.
 Live performance and device/proxy evidence are tracked separately in
 .agents/NEEDFORSPEED_RESULTS.md.
 

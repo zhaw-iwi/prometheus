@@ -32,6 +32,89 @@ test.beforeEach(async ({ context }) => {
   await installBrowserMediaMocks(context);
 });
 
+for (const width of [1440, 390]) {
+  test(`PCM format choice preserves speaker, lifecycle, timings and saved MP3 comparison at ${width}px`, async ({ page }, testInfo) => {
+    const requests = [];
+    await page.setViewportSize({ width, height: 1000 });
+    await page.route(`**/behaviours/${LIVE_BEHAVIOUR_ID}/speech*`, route => {
+      requests.push(new URL(route.request().url()));
+      const pcm = new URL(route.request().url()).searchParams.get("format") === "pcm";
+      return route.fulfill({ status: 200, contentType: pcm ? "audio/pcm;rate=24000;channels=1;encoding=s16le" : "audio/mpeg",
+        body: Buffer.from([0, 1]) });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.locator('[data-bs-target="#speech_output_settings"]').click();
+    const format = page.getByTestId("speech-format");
+    await expect(format).toHaveValue("auto");
+    await page.getByTestId("speech-voice").selectOption("cedar");
+    await page.getByTestId("speech-output-speed").fill("1.25");
+    await page.getByTestId("speech-output-speed").dispatchEvent("change");
+    await attach(page, testInfo, `speech-format-${width}`, page.getByTestId("speech-output-settings"));
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("speech-output-device").selectOption("room-speaker");
+    // Native PCM decoding is covered separately; this fixture isolates cockpit ownership.
+    await page.evaluate(() => {
+      window.__pcmOptions = [];
+      window.PrometheusSpeechPlayback = Object.freeze({ ...window.PrometheusSpeechPlayback,
+        preparePcmSpeech: async ({ signal, deviceId, onStage, onMetrics }) => {
+          window.__pcmOptions.push({ deviceId });
+          let response, rejectPlay;
+          return { resource: { format: "pcm", progressive: true,
+            setResponse(value) { response = value; },
+            play(onPlaying) {
+              onMetrics({ playbackStartSource: "pcm_renderer", pcmPrefillMs: 60, pcmInitialBufferedMs: 80, pcmUnderruns: 0, pcmGapMs: 0 });
+              onStage("audio_first_byte"); onPlaying();
+              return new Promise((resolve, reject) => {
+                rejectPlay = reject;
+                window.__finishPcm = () => { onStage("audio_downloaded"); resolve(); };
+                signal.addEventListener("abort", () => reject(new DOMException("stopped", "AbortError")), { once: true });
+              });
+            },
+            async dispose() { rejectPlay?.(new DOMException("stopped", "AbortError")); await response?.body?.cancel(); },
+          } };
+        },
+      });
+    });
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    await emitProviderEvent(page, { type: "input_audio_buffer.committed", item_id: "pcm-turn" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed", item_id: "pcm-turn", transcript: "Fixture turn" });
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.locator("#assistant_audio")).toBeHidden();
+    await expect(page.locator("#listen_status")).toHaveText("Input Paused");
+    await expect(format).toBeDisabled();
+    expect(requests).toHaveLength(1);
+    expect(Object.fromEntries(requests[0].searchParams)).toEqual({ voice: "cedar", speed: "1.25", format: "pcm" });
+    expect(await page.evaluate(() => window.__pcmOptions)).toEqual([{ deviceId: "room-speaker" }]);
+    expect(await page.evaluate(() => window.PrometheusTimings.snapshot()[0].speech)).toMatchObject({
+      format: "pcm", formatPreference: "auto", playbackMode: "pcm", playbackStartSource: "pcm_renderer", pcmPrefillMs: 60,
+    });
+    await page.evaluate(() => window.__finishPcm());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await expect(page.locator("#listen_status")).toHaveText("Listening");
+    await expect(format).toBeEnabled();
+    await format.selectOption("mp3");
+    await page.getByTestId("toggle-transcription").click();
+    await page.reload();
+    await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+    await expect(format).toHaveValue("mp3");
+    await expect(page.getByTestId("speech-voice")).toHaveValue("cedar");
+    await expect(page.getByTestId("speech-output-speed")).toHaveValue("1.25");
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(requests).toHaveLength(2);
+    expect(requests[1].searchParams.get("format")).toBe("mp3");
+    await page.getByTestId("stop-speech-playback").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  });
+}
+
 test("history hydration and initial SSE replay render one assistant message", async ({ page }) => {
   const greeting = behaviourEvent("Welcome from persisted history.");
   await page.route(`**/demo/agents/${AGENT_ID}/eventhistory`, (route) => route.fulfill(json([greeting])));

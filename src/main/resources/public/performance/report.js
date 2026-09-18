@@ -12,6 +12,7 @@ export const METRICS = [
   ["uiRefresh", "Refresh cockpit", "ui_refresh_start", "ui_refresh_end"],
   ["presentation", "Submission → rendered response", "submitted", "rendered"],
   ["speechFirstByte", "Speech request → first audio byte", "audio_request", "audio_first_byte"],
+  ["speechPreparation", "Prepare audio output", "audio_prepare_start", "audio_prepare_end"],
   ["speechPlayback", "First audio byte → playback", "audio_first_byte", "audio_playing"],
   ["speechDownload", "Speech request → download complete", "audio_request", "audio_downloaded"],
 ];
@@ -27,6 +28,7 @@ export const STAGE_LABELS = {
   ui_refresh_start: "Cockpit refresh started", ui_refresh_end: "Cockpit refresh finished", accepted: "Transcript accepted",
   sse_received: "Behaviour received (SSE)", rendered: "Response rendered", audio_queued: "Audio queued",
   audio_request: "Speech requested", audio_first_byte: "First audio byte", audio_downloaded: "Audio download complete",
+  audio_prepare_start: "Audio output preparation started", audio_prepare_end: "Audio output prepared",
   audio_playing: "Audio playing", audio_completed: "Audio completed", audio_failed: "Audio failed",
   audio_stopped: "Audio stopped", rejected: "Request rejected", cancelled: "Request cancelled",
 };
@@ -63,19 +65,23 @@ export function timingExport(turns, browser = {}) {
   return { schemaVersion: 1, metadata: { source: "browser", exportedAt: new Date().toISOString(),
     browser: { userAgent: browser.userAgent, timeOrigin: browser.timeOrigin },
     clock: "Browser stages and HTTP boundaries are performance.now() milliseconds. Server spans use a separate request-relative clock.",
-    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. Transcription acknowledgements, deltas and finals are browser receipt times, not provider timestamps; intervals include network delay. Deltas can arrive before speech end or commit. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
+    interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. PCM marks first samples consumed by the audio renderer; MP3 uses the media element playing event. Transcription acknowledgements, deltas and finals are browser receipt times, not provider timestamps; intervals include network delay. Deltas can arrive before speech end or commit. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
   }, turns: turns.map(turn => ({ ...structuredClone(turn), outcome: outcome(turn), durationsMs: measurements(turn) })) };
 }
 
 export function timingCsv(turns) {
   const fields = ["traceId", "agentId", "startedAt", "outcome", "playbackMode", "voice", "speed", "turnDetection",
-    "silenceDurationSeconds", "transcriptionDelay", ...METRICS.map(([key]) => `${key}Ms`), "observedModelRequests", "modelRoutes", "missingServerRequests", "serverTimingTruncated"];
+    "silenceDurationSeconds", "transcriptionDelay", "formatPreference", "audioFormat", "audioFallbackReason", "playbackStartSource",
+    "pcmPrefillMs", "pcmInitialBufferedMs", "pcmUnderruns", "pcmGapMs",
+    ...METRICS.map(([key]) => `${key}Ms`), "observedModelRequests", "modelRoutes", "missingServerRequests", "serverTimingTruncated"];
   const rows = turns.map(turn => {
     const metrics = measurements(turn), config = turn.configuration || {}, speech = turn.speech || {};
     const servers = (turn.requests || []).map(request => request.server).filter(Boolean);
     return [turn.id, turn.agentId, turn.startedAt, outcome(turn), speech.playbackMode,
       speech.voice ?? config.voice, speech.speed ?? config.speed, config.turnDetection, config.silenceDurationSeconds,
-      config.transcriptionDelay, ...METRICS.map(([key]) => metrics[key]),
+      config.transcriptionDelay, speech.formatPreference ?? config.formatPreference, speech.format, speech.fallbackReason, speech.playbackStartSource,
+      speech.pcmPrefillMs, speech.pcmInitialBufferedMs, speech.pcmUnderruns, speech.pcmGapMs,
+      ...METRICS.map(([key]) => metrics[key]),
       servers.length ? observedInferences(servers).length : null,
       [...new Set(servers.flatMap(server => server.spans).filter(span => span.stage === "inference")
         .map(span => [span.purpose, span.model, span.effort].filter(Boolean).join("/")))].join("; "),

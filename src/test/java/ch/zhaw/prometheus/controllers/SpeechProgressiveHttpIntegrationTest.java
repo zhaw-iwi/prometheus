@@ -41,10 +41,10 @@ class SpeechProgressiveHttpIntegrationTest {
             });
         }
         @PostMapping("/fixture-speech")
-        ResponseEntity<StreamingResponseBody> speech() {
+        ResponseEntity<StreamingResponseBody> speech(@RequestParam(defaultValue = "mp3") String format) {
             var properties = new OpenAIProperties(); properties.setKey("fixture"); properties.setOpenaivsazureopenai("openai");
             var speech = new SpeechSynthesisProperties(); speech.setUrl(providerUrl);
-            return SpeechAudioHttpResponse.stream(new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1));
+            return SpeechAudioHttpResponse.stream(new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1, SpeechAudioFormat.parse(format)));
         }
     }
 
@@ -60,12 +60,14 @@ class SpeechProgressiveHttpIntegrationTest {
         assertTrue(timing.contains("acknowledge"));
     }
 
-    @Test void tomcatDeliversFirstByteBeforeProviderEof() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(SpeechAudioFormat.class)
+    void tomcatDeliversFirstByteBeforeProviderEof(SpeechAudioFormat format) throws Exception {
         var tail = new CountDownLatch(1);
         var provider = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         provider.createContext("/speech", exchange -> {
             exchange.getRequestBody().readAllBytes();
-            exchange.getResponseHeaders().set("Content-Type", "audio/mpeg");
+            exchange.getResponseHeaders().set("Content-Type", format.contentType());
             exchange.sendResponseHeaders(200, 0);
             try (var out = exchange.getResponseBody()) {
                 out.write(7); out.flush();
@@ -77,10 +79,11 @@ class SpeechProgressiveHttpIntegrationTest {
         provider.start();
         providerUrl = "http://127.0.0.1:" + provider.getAddress().getPort() + "/speech";
         try (var client = HttpClient.newHttpClient(); var executor = Executors.newSingleThreadExecutor()) {
-            var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/fixture-speech"))
+            var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/fixture-speech?format=" + format.wireValue()))
                     .POST(HttpRequest.BodyPublishers.noBody()).build();
             var response = client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream()).get(5, TimeUnit.SECONDS);
             assertEquals(200, response.statusCode());
+            assertEquals(format.contentType(), response.headers().firstValue("Content-Type").orElseThrow());
             assertEquals("no-store", response.headers().firstValue("Cache-Control").orElseThrow());
             String timing = new String(java.util.Base64.getDecoder().decode(
                     response.headers().firstValue(LatencyTrace.TIMING_HEADER).orElseThrow()), java.nio.charset.StandardCharsets.UTF_8);

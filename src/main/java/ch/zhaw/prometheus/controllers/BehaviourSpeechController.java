@@ -36,8 +36,9 @@ public class BehaviourSpeechController {
             @PathVariable @NonNull UUID agentId,
             @PathVariable @NonNull UUID eventId,
             @RequestParam(required = false) String voice,
-            @RequestParam(required = false) String speed) {
-        SpeechSynthesisSettings settings = new SpeechSynthesisSettings(voice, speed);
+            @RequestParam(required = false) String speed,
+            @RequestParam(required = false) String format) {
+        SpeechSynthesisSettings settings = new SpeechSynthesisSettings(voice, speed, format);
         return this.speechService.synthesize(accessCode(headerAccessCode, queryAccessCode), agentId, eventId, settings)
                 .map(SpeechAudioHttpResponse::stream)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));

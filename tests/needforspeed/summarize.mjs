@@ -13,6 +13,7 @@ const stages = {
   transcriptDeltas: ["transcript_first_delta", "transcript_last_delta"],
   transcriptDeltaTail: ["transcript_last_delta", "final_transcript"],
   speechFirstByte: ["audio_request", "audio_first_byte"],
+  speechPreparation: ["audio_prepare_start", "audio_prepare_end"],
   speechDownload: ["audio_request", "audio_downloaded"],
 };
 

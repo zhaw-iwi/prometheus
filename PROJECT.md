@@ -72,13 +72,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed follow-up: Milestone 180, Ultra Responsive now selects 0.5-second
-  silence and minimal transcription delay. Existing saved choices remain intact.
-  Timing capture/panel/exports distinguish local commit send, provider commit
-  acknowledgement, first/last transcript deltas and final transcript receipt.
-  Passed 54 client tests and three focused browser cases, with desktop/mobile
-  screenshots inspected. Pause tolerant remains the default. Live provider and
-  acoustic measurements remain the next testing step; no latency gain is claimed.
+- Last completed follow-up: Milestone 181, streamed PCM speech with bounded
+  AudioWorklet playback, browser/speaker preparation before synthesis, and MP3
+  comparison/fallback. Continuous now exposes the existing output settings with
+  Automatic/MP3 selection. Timing exports identify format, preparation, buffering
+  and interruptions. Passed 53 Java cases (16 on a disposable MySQL database),
+  63 client tests and 16 browser cases; desktop/mobile screenshots inspected.
+  Live provider, physical-device latency and speech quality remain trial gates.
+- Milestone 180 transcription timing and Ultra Responsive (0.5-second silence /
+  minimal delay) remain available for those trials. No production latency gain
+  is claimed for PCM; browser playback markers differ between PCM and MP3.
 - Previous runtime follow-up: Milestone 178, bounded speculative behaviour alongside
   transition decisions, with reuse across persisted acknowledge/generate reloads
   and immediate invalidation on every transition. Passed 359 full Java cases on
@@ -97,6 +100,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 181: Progressive PCM speech and format comparison
 
 - [x] Milestone 180: Minimal Ultra Responsive and precise transcription timing
 
@@ -8211,3 +8216,28 @@ priority and action ownership.
   changes or live provider/acoustic tests; original user timing files preserved.
 - See README for refresh/reselection instructions and the results ledger for
   test commands and interpretation limits. No speech synthesis or decision change.
+
+## Milestone 181: Progressive PCM speech and format comparison
+
+- Added explicit MP3/PCM speech format validation at the existing canonical
+  event-ID endpoint and provider gateway. Default/legacy clients and Talk to Me
+  use MP3; PCM carries explicit 24 kHz mono signed 16-bit little-endian metadata.
+- Automatic playback prepares the AudioWorklet and selected speaker before
+  requesting PCM; capability/setup failure chooses MP3 before synthesis. PCM
+  consumes a bounded two-second queue with a 60 ms prefill and backpressure.
+  Chunk boundaries, underruns, EOF drain, cancellation and failures are explicit.
+- Existing output ownership, persisted speech identity, replay suppression,
+  Start Transcription activation and input gating remain authoritative. Output
+  settings moved from the hidden sensing block into Continuous without duplicate
+  controls; voice/speed preferences persist alongside Automatic/MP3 selection.
+- Timing exports include format, fallback, preparation and PCM buffering/gaps.
+  PCM renderer and MP3 media-element playback markers are explicitly distinguished;
+  neither certifies physical audibility or a live latency improvement.
+- Passed 37 focused Java cases plus 16 scoped integration cases using disposable
+  MySQL schema prometheus_pcm_4ddd0755a2 and restricted account, both removed.
+  Passed 63 Node cases and 16 Playwright cases (six native PCM/MP3 streaming and
+  ten cockpit lifecycle/export/routing cases). Screenshots at 1440/390px inspected.
+  Final drain/visual refinements passed eight PCM Node cases and five browser cases.
+- Providers were mocked/loopback. Live Heroku/provider speed, physical speakers,
+  Bluetooth and other browsers require testing. Details and comparison instructions
+  are in README and .agents/NEEDFORSPEED_RESULTS.md.

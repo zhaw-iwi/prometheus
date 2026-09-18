@@ -1547,53 +1547,6 @@
                     </div>
                   </div>
                 </div>
-                <div class="accordion-item d-none" data-profile-observations="obs.user_utterance"
-                  data-testid="speech-output-settings">
-                  <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                      data-bs-target="#speech_output_settings" aria-expanded="false">
-                      Speech Output Settings
-                      <span class="setting-default ms-2">voice and speed</span>
-                    </button>
-                  </h2>
-                  <div id="speech_output_settings" class="accordion-collapse collapse"
-                    data-bs-parent="#sensing_accordion">
-                    <div class="accordion-body">
-                      <div class="row g-2">
-                        <div class="col-12">
-                          <label class="form-label metric-label" for="speechVoiceInput">
-                            Voice <span class="setting-default">default alloy</span>
-                          </label>
-                          <select id="speechVoiceInput" class="form-select form-select-sm"
-                            data-storage-key="speechVoice" data-testid="speech-voice">
-                            <option value="">default</option>
-                            <option value="alloy" selected>alloy</option>
-                            <option value="ash">ash</option>
-                            <option value="ballad">ballad</option>
-                            <option value="cedar">cedar</option>
-                            <option value="coral">coral</option>
-                            <option value="echo">echo</option>
-                            <option value="fable">fable</option>
-                            <option value="marin">marin</option>
-                            <option value="nova">nova</option>
-                            <option value="onyx">onyx</option>
-                            <option value="sage">sage</option>
-                            <option value="shimmer">shimmer</option>
-                            <option value="verse">verse</option>
-                          </select>
-                        </div>
-                        <div class="col-6">
-                          <label class="form-label metric-label" for="speechOutputSpeedInput">
-                            Speed <span class="setting-default">default 1.0</span>
-                          </label>
-                          <input id="speechOutputSpeedInput" class="form-control form-control-sm" type="number"
-                            min="0.25" max="4" step="0.05" inputmode="decimal" placeholder="1.0"
-                            data-storage-key="speechOutputSpeed" data-testid="speech-output-speed">
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 <div class="accordion-item" data-profile-observations="obs.emotion.face">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -2165,6 +2118,62 @@
                   </div>
                   <div id="transcription_transport_detail" class="text-muted small mt-1"
                     data-testid="transcription-transport-detail"></div>
+                  <div class="accordion mt-3">
+                    <div class="accordion-item" data-profile-observations="obs.user_utterance"
+                      data-testid="speech-output-settings">
+                      <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                          data-bs-target="#speech_output_settings" aria-expanded="false">
+                          Speech Output Settings
+                        </button>
+                      </h2>
+                      <div id="speech_output_settings" class="accordion-collapse collapse">
+                        <div class="accordion-body">
+                          <div class="row g-2">
+                            <div class="col-12">
+                              <label class="form-label metric-label" for="speechVoiceInput">
+                                Voice <span class="setting-default">default alloy</span>
+                              </label>
+                              <select id="speechVoiceInput" class="form-select form-select-sm"
+                                data-storage-key="speechVoice" data-testid="speech-voice">
+                                <option value="">default</option>
+                                <option value="alloy" selected>alloy</option>
+                                <option value="ash">ash</option>
+                                <option value="ballad">ballad</option>
+                                <option value="cedar">cedar</option>
+                                <option value="coral">coral</option>
+                                <option value="echo">echo</option>
+                                <option value="fable">fable</option>
+                                <option value="marin">marin</option>
+                                <option value="nova">nova</option>
+                                <option value="onyx">onyx</option>
+                                <option value="sage">sage</option>
+                                <option value="shimmer">shimmer</option>
+                                <option value="verse">verse</option>
+                              </select>
+                            </div>
+                            <div class="col-6">
+                              <label class="form-label metric-label" for="speechOutputSpeedInput">
+                                Speed <span class="setting-default">default 1.0</span>
+                              </label>
+                              <input id="speechOutputSpeedInput" class="form-control form-control-sm" type="number"
+                                min="0.25" max="4" step="0.05" inputmode="decimal" placeholder="1.0"
+                                data-storage-key="speechOutputSpeed" data-testid="speech-output-speed">
+                            </div>
+                            <div class="col-12">
+                              <label class="form-label metric-label" for="speechFormatInput">Audio format</label>
+                              <select id="speechFormatInput" class="form-select form-select-sm"
+                                data-storage-key="speechFormat" data-testid="speech-format">
+                                <option value="auto" selected>Automatic (PCM when supported)</option>
+                                <option value="mp3">MP3</option>
+                              </select>
+                              <div class="small text-muted mt-1">Automatic tries streamed PCM with your selected speaker. Choose MP3 to compare response times. Applies to the next reply.</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div class="accordion mt-3" data-testid="live-transcription-settings">
                     <div class="accordion-item">
                       <h2 class="accordion-header">
