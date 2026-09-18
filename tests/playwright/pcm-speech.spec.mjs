@@ -23,7 +23,8 @@ test.beforeEach(async () => {
     } else if (path === "/broken-tail") {
       for (const pending of held) pending.end(Buffer.from([1]));
       response.end("ok");
-    } else if (["pcm.js", "pcm-worklet.js", "pcm-buffer.js", "playback.js"].some(file => path === `/speech/${file}`)) {
+    } else if (["pcm.js", "pcm-worklet.js", "pcm-buffer.js", "playback.js"].some(file => path === `/speech/${file}`)
+      || ["/performance/timings.js", "/performance/report.js"].includes(path)) {
       response.writeHead(200, { "Content-Type": "text/javascript" });
       response.end(await readFile(new URL(`../../src/main/resources/public${path}`, import.meta.url)));
     } else {
@@ -32,10 +33,16 @@ test.beforeEach(async () => {
       <script type="module">
       import {preparePcmSpeech} from '/speech/pcm.js';
       import {BehaviourSpeechPlaybackQueue} from '/speech/playback.js';
+      import {TurnTimings} from '/performance/timings.js';
+      import {timingExport} from '/performance/report.js';
+      const timings=new TurnTimings();
+      const trace=timings.begin('agent');timings.bind(trace,'fixture');
+      window.timingExport=()=>timingExport(timings.snapshot());
       window.stages=[];window.metrics=[];window.gates=[];
       window.queue=new BehaviourSpeechPlaybackQueue({
         synthesize:async(item,signal)=>{
-          const prepared=await preparePcmSpeech({signal,onStage:s=>stages.push(s),onMetrics:m=>metrics.push(m)});
+          const prepared=await preparePcmSpeech({signal,onStage:s=>stages.push(s),onMetrics:m=>metrics.push(m),
+            onDiagnostic:d=>timings.pcm('agent','fixture',d)});
           if(!prepared.resource) throw new Error('Native PCM unavailable: '+prepared.fallbackReason);
           window.resource=prepared.resource;
           resource.setResponse(await fetch('/audio',{method:'POST',signal}));
@@ -84,6 +91,7 @@ test("native PCM Stop cancels the held response and never plays a queued reply",
   expect(requests).toBe(1);
   expect(await page.evaluate(() => gates)).toEqual([false, true]);
   expect(await page.evaluate(() => queue.snapshot().completed)).toEqual([]);
+  expect(await page.evaluate(() => timingExport().turns[0].pcm.renderer.at(-1).type)).toBe("stopped");
 });
 
 test("native PCM rejects a truncated sample after playback without resynthesis or replay", async ({ page }) => {
@@ -94,4 +102,33 @@ test("native PCM rejects a truncated sample after playback without resynthesis o
   expect(requests).toBe(1);
   expect(await page.evaluate(() => stages.filter(stage => stage === "playing").length)).toBe(1);
   expect(await page.evaluate(() => gates)).toEqual([false, true]);
+  expect(await page.evaluate(() => timingExport().turns[0].pcm.renderer.at(-1).type)).toBe("failed");
+});
+
+test("native PCM export correlates a held delivery gap with exact starvation and resume positions", async ({ page }) => {
+  await page.goto(origin); await page.locator("#start").click();
+  await expect.poll(() => page.evaluate(() => timingExport().turns[0].pcm?.renderer.some(event => event.type === "buffer_empty"))).toBe(true);
+  const before = await page.evaluate(() => timingExport().turns[0].pcm);
+  expect(before.renderer.find(event => event.type === "buffer_empty").playedFrames).toBe(12000);
+  expect(before.renderer.some(event => event.type === "render_resume")).toBe(false);
+  expect(before.renderer.some(event => event.type === "eof")).toBe(false);
+  await page.request.get(`${origin}/release`);
+  await expect(page.locator("output")).toHaveText("completed");
+  const exported = await page.evaluate(() => timingExport()), pcm = exported.turns[0].pcm;
+  const empty = pcm.renderer.find(event => event.type === "buffer_empty");
+  const resume = pcm.renderer.find(event => event.type === "render_resume");
+  expect(resume.playedFrames).toBe(12000); expect(resume.gapFrames).toBeGreaterThan(0);
+  expect(resume.renderFrame - empty.renderFrame).toBe(resume.gapFrames);
+  expect(resume.at).toBeGreaterThanOrEqual(empty.at);
+  expect(pcm.renderer.find(event => event.type === "render_end").playedFrames).toBe(24000);
+  expect(pcm.renderer.find(event => event.type === "eof").totalBytes).toBe(tone.length * 2);
+  const reads = pcm.delivery.filter(event => event.type === "read");
+  expect(reads.reduce((sum, event) => sum + event.bytes, 0)).toBe(tone.length * 2);
+  expect(reads.some(event => event.readWaitMs > 100)).toBe(true);
+  const posted = pcm.delivery.filter(event => event.type === "posted");
+  const received = pcm.delivery.filter(event => event.type === "render_receive");
+  expect(received.map(event => event.block)).toEqual(posted.map(event => event.block));
+  expect(pcm.deliveryDropped).toBe(0); expect(pcm.rendererDropped).toBe(0);
+  expect(JSON.stringify(exported)).not.toContain('"samples"');
+  expect(requests).toBe(1);
 });

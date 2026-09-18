@@ -5,7 +5,8 @@ const stopped = () => new DOMException("Speech playback was stopped.", "AbortErr
 
 /** Prepare the actual renderer/device before choosing a provider format. */
 export async function preparePcmSpeech({
-  signal, deviceId = "", volume = 1, onStage = () => {}, onMetrics = () => {},
+  signal, deviceId = "", volume = 1, onStage = () => {}, onMetrics = () => {}, onDiagnostic = () => {},
+  now = () => performance.now(),
   AudioContextClass = globalThis.AudioContext, AudioWorkletNodeClass = globalThis.AudioWorkletNode,
   setupTimeoutMs = 2000, timeoutMs = 30000, maxBytes = 16 * 1024 * 1024,
 } = {}) {
@@ -13,12 +14,15 @@ export async function preparePcmSpeech({
   if (!AudioContextClass || !AudioWorkletNodeClass) return { resource: null, fallbackReason: "pcm_unsupported" };
   let context, node, reader, response, wake, resolvePlay, rejectPlay, timer;
   let disposed = false, started = false, total = 0, queued = 0, settled = false;
+  let chunkIndex = 0, blockIndex = 0, previousRead;
+  const diagnostic = (type, details = {}) => onDiagnostic({ ...details, type, at: now(), contextTimeMs: context?.currentTime * 1000 });
   const controller = new AbortController();
   const playDone = new Promise((resolve, reject) => { resolvePlay = resolve; rejectPlay = reject; });
   playDone.catch(() => {});
   const check = () => { if (disposed || controller.signal.aborted) throw controller.signal.reason || stopped(); };
   const fail = (error) => {
     if (settled) return;
+    if (started) diagnostic(error?.name === "AbortError" ? "stopped" : "failed");
     settled = true; clearTimeout(timer);
     controller.abort(error); node?.disconnect(); wake?.(); rejectPlay(error);
     void reader?.cancel().catch(() => {});
@@ -64,7 +68,10 @@ export async function preparePcmSpeech({
         playbackStartSource: "pcm_renderer" });
       node.port.onmessage = ({ data }) => {
         if (settled || disposed) return;
-        if (data.type === "playing") {
+        if (data.type === "diagnostic") {
+          const { type, event, ...details } = data;
+          diagnostic(event, details);
+        } else if (data.type === "playing") {
           onMetrics({ pcmInitialBufferedMs: data.bufferedMs });
           onPlaying(); refreshDeadline();
         } else if (data.type === "underrun") {
@@ -101,29 +108,42 @@ export async function preparePcmSpeech({
     const decoder = new Pcm16Decoder();
     try {
       for (;;) {
+        const readStarted = now();
         const chunk = await bounded(reader.read(), timeoutMs, "PCM stream timed out.");
         check();
+        const received = now();
         if (chunk.done) {
           decoder.finish();
           if (!total) throw new Error("Speech synthesis returned empty audio.");
+          diagnostic("eof", { totalBytes: total, readWaitMs: received - readStarted, outstandingFrames: queued });
           onStage("audio_downloaded");
           node.port.postMessage({ type: "end" });
           return;
         }
         if (!total && chunk.value.byteLength) onStage("audio_first_byte");
         total += chunk.value.byteLength;
+        chunkIndex++;
+        diagnostic("read", { chunk: chunkIndex, bytes: chunk.value.byteLength, totalBytes: total,
+          readWaitMs: received - readStarted, previousReadGapMs: previousRead === undefined ? undefined : received - previousRead,
+          outstandingFrames: queued });
+        previousRead = received;
         if (total > maxBytes) throw new Error("Speech audio exceeds the playback size limit.");
         const samples = decoder.decode(chunk.value);
         for (let offset = 0; offset < samples.length;) {
           const length = Math.min(2400, samples.length - offset);
+          const waitStarted = queued + length > PCM_CAPACITY ? now() : null;
+          if (waitStarted !== null) diagnostic("backpressure_start", { chunk: chunkIndex, outstandingFrames: queued });
           while (queued + length > PCM_CAPACITY) {
             await bounded(new Promise(resolve => { wake = resolve; }), timeoutMs, "PCM playback buffer stalled.");
             wake = null; check();
           }
+          if (waitStarted !== null) diagnostic("backpressure_end", { chunk: chunkIndex, outstandingFrames: queued, waitMs: now() - waitStarted });
           check();
           const block = samples.slice(offset, offset + length);
           queued += length;
-          node.port.postMessage({ type: "samples", samples: block }, [block.buffer]);
+          blockIndex++;
+          diagnostic("posted", { chunk: chunkIndex, block: blockIndex, frames: length, outstandingFrames: queued });
+          node.port.postMessage({ type: "samples", samples: block, chunk: chunkIndex, block: blockIndex }, [block.buffer]);
           offset += length;
         }
       }
@@ -146,6 +166,8 @@ export async function preparePcmSpeech({
     node = new AudioWorkletNodeClass(context, "prometheus-pcm-speech", { numberOfInputs: 0, numberOfOutputs: 1,
       outputChannelCount: [1], parameterData: { gain: Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 1 } });
     node.connect(context.destination);
+    diagnostic("prepared", { sampleRate: context.sampleRate, baseLatencyMs: context.baseLatency * 1000,
+      outputLatencyMs: context.outputLatency * 1000 });
     return { resource, fallbackReason: null };
   } catch (error) {
     await resource.dispose();

@@ -1,5 +1,56 @@
 # Need for speed: evidence record
 
+## PCM interruption diagnostics (Milestone 182, 2026-09-18)
+
+The user's 13:08 trial for fc140c0e-eda6-43f2-b420-b1f0d3bce211 contains eight
+ordinary turns and one closing turn, all Ultra Responsive/minimal and PCM. Ordinary
+speech-end-to-renderer-start averaged 4.028 s; first-byte latency averaged 0.672 s.
+Every reply recorded one interruption (88-269 ms). The previous Ultra/MP3 trial
+averaged 4.305 s overall and 1.116 s to first bytes, but different workloads and
+playback markers prevent a controlled causal comparison. Original logs untouched.
+
+Added automatic PCM detail to the existing content-free turn collector/export.
+Body-read byte counts, read waits, inter-read gaps, outstanding producer frames,
+numbered sample-block posting/receipt and backpressure waits reveal delivery order.
+Renderer observations include precise audio frames, consumed source positions,
+occupancy, provisional starvation, confirmed resume/gap, and final drain. EOF,
+stop/failure and browser-reported preparation latency remain distinguishable.
+Browser receipt times and AudioContext clocks are documented separately; readings
+cannot isolate provider compute from transport or certify physical audibility.
+
+Delivery and renderer lists retain 256/64 entries respectively, preserving startup
+and the latest half with explicit dropped counts. Only whitelisted numeric fields
+and fixed event types survive collection; no audio, transcript, credentials, URL,
+device ID or free-form error is retained. Joining before/after acknowledgement
+uses the existing agent/event identity. Delivery capture does not rerender the UI
+per chunk. The drawer displays interruption positions; CSV records coverage counts,
+and JSON carries the full retained trace and its interpretation. Playback policy,
+models and transcription settings are unchanged.
+
+Verification: 66 Node tests passed across performance, speech and transcription.
+Six Playwright cases passed: four native PCM cases (including held-response gap,
+exact starvation/resume positions, completion, Stop and malformed tail), and two
+desktop/mobile cockpit cases with PCM capture, JSON download and MP3 comparison.
+Passed 22 Java static/browser architecture contract cases. Sources/providers were
+local synthetic fixtures; no live inference or database access was needed. The
+desktop/mobile detail screenshots were inspected, with two cockpit cases rerun
+after the panel grouping refinement. Logs/screenshots: target/pcm-diagnostics-*.
+
+Commands: node --test tests/js/performance/*.test.mjs tests/js/speech/*.test.mjs
+tests/js/transcription/*.test.mjs; mvnw.cmd -q
+"-Dtest=ValerianClientStaticResourceContractTest,SpeechArchitectureBrowserClientContractTest,SpeechArchitectureSourceContractTest" test;
+npx playwright test tests/playwright/pcm-speech.spec.mjs
+tests/playwright/valerian-transcription.spec.mjs --grep "native PCM|PCM format choice".
+Playwright used the local static server and PROMETHEUS_SKIP_WEBSERVER=true, with
+output directed into target/pcm-diagnostics-browser-results.
+
+Next trial: refresh Heroku, select Ultra Responsive and Automatic, clear the timing
+log, speak normally, wait for the last reply to finish, then export JSON. Detail is
+automatic. Mark any audible gaps in the feedback; the browser trace alone does not
+establish what reached the listener. The interruption cause and any future buffer
+adjustment remain unverified; this milestone deliberately preserves the 60 ms
+prefill/refill so the next trial measures the same playback policy.
+
 ## Progressive PCM speech and format comparison (Milestone 181, 2026-09-18)
 
 Implemented PCM alongside the existing MP3 path. The canonical behaviour-speech

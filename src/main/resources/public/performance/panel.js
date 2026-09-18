@@ -68,6 +68,20 @@ function details(turn) {
     ["Silence duration", Number.isFinite(config.silenceDurationSeconds) ? `${config.silenceDurationSeconds} s` : "Unknown"],
     ["Transcription delay", config.transcriptionDelay || "Unknown"],
   ], "Settings for this turn"));
+  if (turn.pcm) {
+    const pcm = turn.pcm, rate = pcm.renderer.find(event => event.type === "prepared")?.sampleRate;
+    const audioMs = frames => Number.isFinite(rate) && rate > 0 && Number.isFinite(frames) ? frames / rate * 1000 : null;
+    const section = element("div");
+    section.dataset.pcmDetail = "";
+    section.append(element("p", `PCM detail: ${pcm.delivery.length} delivery and ${pcm.renderer.length} renderer records. ` +
+      `${pcm.deliveryDropped + pcm.rendererDropped} records omitted by retention limits. Full detail is included in JSON export.`, "small"));
+    const labels = { render_start: "Playback started", buffer_empty: "Buffer empty (provisional)", render_resume: "Playback resumed", render_end: "Renderer finished" };
+    section.append(table(pcm.renderer.filter(event => labels[event.type]).map(event => [labels[event.type],
+      `Audio position ${ms(audioMs(event.playedFrames))}` +
+      (event.type === "render_resume" ? `; inserted silence ${ms(audioMs(event.gapFrames))}` : "")]), "PCM interruptions"));
+    section.append(element("p", "An empty buffer is an interruption only if more audio resumes. Positions count audio samples, not browser time or physical audibility.", "small text-body-secondary"));
+    body.append(section);
+  }
   body.append(element("div", `Agent ${turn.agentId}\nTrace ${turn.id}`, "small font-monospace text-break"));
   return body;
 }
