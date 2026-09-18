@@ -296,6 +296,10 @@ The shared queue still owns ordering, leases and input gating. The server flushe
 stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
 Timing exports label the format, preparation, buffer interruptions and distinct
 PCM-renderer versus media-element playback markers; neither is physical audibility.
+PCM JSON detail also records bounded, content-free body reads, backpressure,
+numbered block delivery and renderer starvation/resume positions, with separate
+browser/audio clocks and explicit truncation. The existing timing export captures
+it automatically; buffer policy is unchanged. README documents interpretation.
 Live performance and device/proxy evidence are tracked separately in
 .agents/NEEDFORSPEED_RESULTS.md.
 

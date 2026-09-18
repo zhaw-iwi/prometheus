@@ -1355,6 +1355,35 @@ Neither measures physical audibility, and the two marker mechanisms can differ.
 Compare end-to-end timing as well as preparation, first-byte and playback stages,
 and listen for missing or clipped speech. Test startup separately from later turns.
 
+PCM interruption detail is collected automatically in the same Interaction Timing
+JSON export (`turn.pcm`, detail version 1). It records response-body read sizes and
+waits, numbered blocks posted to/received by the renderer, producer backpressure,
+and renderer start, buffer-empty, resume and finish positions. Preparation includes
+sample rate and available browser-reported output latency. Stop/failure and EOF are
+explicit. The timing drawer shows interruption positions; CSV includes retained and
+dropped record counts, while JSON contains the full retained trace. Refresh the
+cockpit after deployment, keep Ultra Responsive / Automatic selected, clear the old
+timing log, and export JSON after the final reply has finished. No new switch is needed.
+
+`at` uses browser `performance.now()`; worklet events are timestamped on receipt.
+`contextTimeMs` samples the audio clock at that observation; `renderFrame` is the
+actual AudioContext frame, and `playedFrames` counts source samples consumed,
+excluding inserted silence. Divide frames by the recorded sample rate to obtain
+seconds; do not subtract audio-clock values from browser timestamps. Matching
+`block`/`chunk` IDs link posting and renderer receipt; that observation interval
+includes both message directions. `bufferedFrames` is renderer occupancy, whereas
+`outstandingFrames` also includes consumption not yet credited to the producer.
+`readWaitMs` measures an awaited browser body read; gaps between reads also include
+consumer backpressure, logged separately. These are not provider/network packet
+timestamps. A `buffer_empty` event is provisional until `render_resume` confirms
+`gapFrames`; waiting for EOF after the last sample is not a confirmed interruption.
+
+Detail is content-free and bounded to 256 delivery and 64 renderer records per
+retained turn, keeping the first half and latest half when full. Separate dropped
+counts explicitly flag incomplete traces, so long replies cannot grow memory
+without limit. Per-block delivery does not trigger panel rerenders. This adds
+measurement only: the 60 ms prefill/refill and two-second queue remain unchanged.
+
 Native Chromium PCM/MP3 and provider-to-Tomcat streaming are tested with withheld
 tails. Physical devices, Bluetooth, other browsers and Heroku/provider latency
 remain deployment trial gates. OpenAI recommends WAV/PCM for fastest response

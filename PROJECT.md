@@ -79,7 +79,13 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 181, streamed PCM speech with bounded
+- Last completed follow-up: Milestone 182, automatic PCM interruption detail in
+  the existing timing JSON export. Bounded content-free body-read/block-delivery,
+  backpressure and renderer starvation/resume traces separate browser receipt
+  clocks from audio positions. The drawer shows interruption positions and export
+  coverage. Passed 66 Node, 22 Java contract and six native/cockpit Playwright cases. Buffer policy
+  is unchanged; the next Heroku trial must establish the interruption cause.
+- Milestone 181 introduced streamed PCM speech with bounded
   AudioWorklet playback, browser/speaker preparation before synthesis, and MP3
   comparison/fallback. Continuous now exposes the existing output settings with
   Automatic/MP3 selection. Timing exports identify format, preparation, buffering
@@ -107,6 +113,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 182: PCM interruption diagnostics
 
 - [x] Milestone 181: Progressive PCM speech and format comparison
 
@@ -9088,3 +9096,20 @@ priority and action ownership.
 - Providers were mocked/loopback. Live Heroku/provider speed, physical speakers,
   Bluetooth and other browsers require testing. Details and comparison instructions
   are in README and .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 182: PCM interruption diagnostics
+
+- Extended the existing in-memory timing collector with automatically captured,
+  content-free PCM body reads, posted/received block correlation, backpressure
+  waits, and renderer starvation/resume/finish positions. EOF and stop/failure
+  are explicit; no samples or free-form payloads enter the export.
+- JSON retains independent bounded delivery (256) and renderer (64) lists with
+  first/latest retention and explicit dropped counts. The drawer shows positions
+  within source audio; CSV adds coverage counts. Browser receipt, audio clocks,
+  producer outstanding frames and actual renderer occupancy are documented.
+- Preserved playback's 60 ms prefill/refill and two-second queue. Diagnostics do
+  not rerender the panel per sample block or change inference/transcription.
+- Passed 66 Node cases, 22 Java contract and six Playwright native/cockpit cases. Tests cover exact
+  gap positions, provisional tail starvation, read waiting versus backpressure,
+  cancellation/failure, event correlation, privacy, retention and JSON download.
+  Live interruption cause and physical-device quality require the next Heroku trial.

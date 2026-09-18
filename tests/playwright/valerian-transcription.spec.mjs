@@ -57,14 +57,18 @@ for (const width of [1440, 390]) {
     await page.evaluate(() => {
       window.__pcmOptions = [];
       window.PrometheusSpeechPlayback = Object.freeze({ ...window.PrometheusSpeechPlayback,
-        preparePcmSpeech: async ({ signal, deviceId, onStage, onMetrics }) => {
+        preparePcmSpeech: async ({ signal, deviceId, onStage, onMetrics, onDiagnostic }) => {
           window.__pcmOptions.push({ deviceId });
+          onDiagnostic({ type: "prepared", at: performance.now(), sampleRate: 24000 });
           let response, rejectPlay;
           return { resource: { format: "pcm", progressive: true,
             setResponse(value) { response = value; },
             play(onPlaying) {
               onMetrics({ playbackStartSource: "pcm_renderer", pcmPrefillMs: 60, pcmInitialBufferedMs: 80, pcmUnderruns: 0, pcmGapMs: 0 });
               onStage("audio_first_byte"); onPlaying();
+              onDiagnostic({ type: "read", at: performance.now(), chunk: 1, bytes: 4800 });
+              onDiagnostic({ type: "buffer_empty", at: performance.now(), playedFrames: 2400, renderFrame: 4800 });
+              onDiagnostic({ type: "render_resume", at: performance.now(), playedFrames: 2400, renderFrame: 7200, gapFrames: 2400 });
               return new Promise((resolve, reject) => {
                 rejectPlay = reject;
                 window.__finishPcm = () => { onStage("audio_downloaded"); resolve(); };
@@ -96,6 +100,23 @@ for (const width of [1440, 390]) {
     await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
     await expect(page.locator("#listen_status")).toHaveText("Listening");
     await expect(format).toBeEnabled();
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    const turns = page.getByTestId("timing-turns");
+    await turns.locator("summary").click();
+    await expect(turns).toContainText("PCM detail: 1 delivery and 3 renderer records");
+    await expect(turns).toContainText("inserted silence 100.0 ms");
+    expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await attach(page, testInfo, `pcm-interruption-detail-${width}`, turns.locator("[data-pcm-detail]"));
+    const download = page.waitForEvent("download");
+    await page.getByTestId("timing-export-json").click();
+    const stream = await (await download).createReadStream(), chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    expect(exported.turns[0].pcm.renderer.at(-1)).toMatchObject({ type: "render_resume", gapFrames: 2400 });
+    expect(exported.turns[0].pcm.delivery[0].bytes).toBe(4800);
+    await page.locator('#diagnostics_drawer [data-bs-dismiss="offcanvas"]').click();
+    await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
     await format.selectOption("mp3");
     await page.getByTestId("toggle-transcription").click();
     await page.reload();

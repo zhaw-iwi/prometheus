@@ -2103,11 +2103,12 @@ async function synthesizeBehaviourSpeech(item, signal) {
   const timingEventId = item.delivery === "live" ? item.eventId : null;
   const onStage = (stage) => globalThis.PrometheusTimings?.event(agentId, timingEventId, stage);
   const onMetrics = (values) => globalThis.PrometheusTimings?.speech(agentId, timingEventId, values);
+  const onDiagnostic = (value) => globalThis.PrometheusTimings?.pcm(agentId, timingEventId, value);
   const preference = selectedSpeechFormat();
   const audio = activeAssistantAudioElement();
   onStage("audio_prepare_start");
   const prepared = preference === "mp3" ? { resource: null } : await globalThis.PrometheusSpeechPlayback.preparePcmSpeech({
-    signal, deviceId: selectedSpeechOutputDeviceId(), volume: audio.muted ? 0 : audio.volume, onStage, onMetrics,
+    signal, deviceId: selectedSpeechOutputDeviceId(), volume: audio.muted ? 0 : audio.volume, onStage, onMetrics, onDiagnostic,
   });
   onStage("audio_prepare_end");
   const format = prepared.resource ? "pcm" : "mp3";

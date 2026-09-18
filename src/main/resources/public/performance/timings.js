@@ -64,6 +64,27 @@ export class TurnTimings {
     this.changed();
   }
 
+  // Delivery can be frequent. Store it without refreshing the panel per chunk;
+  // ordinary stage/renderer notifications refresh it, and export reads live data.
+  pcm(agentId, eventId, value) {
+    if (!agentId || !eventId) return;
+    const entry = safePcmEvent(value);
+    if (!entry) return;
+    const record = this.eventRecord(agentId, eventId);
+    const pcm = record.pcm ??= { version: 1, delivery: [], renderer: [], deliveryDropped: 0, rendererDropped: 0 };
+    const delivery = ["read", "posted", "render_receive", "backpressure_start", "backpressure_end"].includes(entry.type);
+    const key = delivery ? "delivery" : "renderer", limit = delivery ? 256 : 64;
+    pcm[key].push(entry);
+    if (pcm[key].length > limit) {
+      // Preserve startup and the most recent evidence, with explicit loss counts.
+      pcm[key].splice(limit / 2, 1);
+      pcm[`${key}Dropped`]++;
+    }
+    const turn = this.turns.get(record.traceId);
+    if (turn) turn.pcm = pcm;
+    if (!delivery) this.changed();
+  }
+
   bind(id, eventId) {
     const turn = this.turns.get(id);
     if (!turn || !eventId) return;
@@ -73,6 +94,7 @@ export class TurnTimings {
     turn.eventId = eventId;
     for (const request of record.requests) if (!turn.requests.includes(request) && turn.requests.length < 16) turn.requests.push(request);
     turn.speech = { ...record.speech };
+    if (record.pcm) turn.pcm = record.pcm;
     Object.entries(record.stages).forEach(([stage, at]) => this.mark(id, stage, at));
     this.events.set(key, record);
     this.trim(this.events);
@@ -154,6 +176,27 @@ function requestKind(url) {
 
 const identifier = value => typeof value === "string" && /^[A-Za-z0-9_.:/-]{1,96}$/.test(value) ? value : undefined;
 const duration = value => Number.isFinite(value) && value >= 0 ? value : undefined;
+
+const PCM_FIELDS = {
+  prepared: ["sampleRate", "baseLatencyMs", "outputLatencyMs"],
+  read: ["chunk", "bytes", "totalBytes", "readWaitMs", "previousReadGapMs", "outstandingFrames"],
+  posted: ["chunk", "block", "frames", "outstandingFrames"],
+  render_receive: ["chunk", "block", "frames", "renderFrame", "playedFrames", "bufferedFrames"],
+  backpressure_start: ["chunk", "outstandingFrames"],
+  backpressure_end: ["chunk", "outstandingFrames", "waitMs"],
+  render_start: ["renderFrame", "playedFrames", "bufferedFrames"],
+  buffer_empty: ["renderFrame", "playedFrames", "bufferedFrames"],
+  render_resume: ["renderFrame", "playedFrames", "bufferedFrames", "gapFrames"],
+  render_end: ["renderFrame", "playedFrames", "bufferedFrames", "pendingGapFrames"],
+  eof: ["totalBytes", "readWaitMs", "outstandingFrames"],
+  failed: [], stopped: [],
+};
+
+function safePcmEvent(value) {
+  if (!value || !Object.hasOwn(PCM_FIELDS, value.type) || duration(value.at) === undefined) return null;
+  return { type: value.type, ...Object.fromEntries(["at", "contextTimeMs", ...PCM_FIELDS[value.type]]
+    .filter(key => duration(value[key]) !== undefined).map(key => [key, value[key]])) };
+}
 
 export function decodeServerTiming(value) {
   if (!value || value.length > 6000) return null;

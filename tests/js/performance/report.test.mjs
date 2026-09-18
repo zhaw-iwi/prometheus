@@ -8,6 +8,33 @@ const serverHeader = btoa(JSON.stringify({ version: 1, durationMs: 4200.5, trunc
   spans: [{ stage: "inference", durationMs: 4000, offsetMs: 10, status: "ok", model: "fixture-model", purpose: "DECISION", effort: "none" }],
   text: "private-provider-payload" }));
 
+test("PCM detail joins early SSE to the correct agent, bounds independent streams and exports only numeric metadata", () => {
+  const timings = new TurnTimings({ now: () => 100, uuid: () => "trace" });
+  timings.begin("agent");
+  timings.pcm("agent", "event", { type: "prepared", at: 10, sampleRate: 24000, deviceId: "private-device" });
+  timings.pcm("other", "event", { type: "failed", at: 1 });
+  for (let index = 0; index < 300; index++) timings.pcm("agent", "event", { type: "read", at: index,
+    chunk: index, bytes: 4800, samples: ["private-audio"], text: "private-text", url: "private-url" });
+  timings.bind("trace", "event");
+  for (let index = 0; index < 80; index++) timings.pcm("agent", "event", { type: "render_resume", at: 400 + index,
+    renderFrame: index * 24000, playedFrames: 24000, gapFrames: 2400, contextTimeMs: 1000, error: "private-error" });
+  for (const entry of [{ type: "private-event", at: 1 }, { type: "read", at: NaN }, { type: "toString", at: 1 }]) timings.pcm("agent", "event", entry);
+  timings.pcm("agent", "event", { type: "posted", at: 900, frames: -1, outstandingFrames: Infinity });
+  const exported = timingExport(timings.snapshot()), pcm = exported.turns[0].pcm;
+  assert.equal(pcm.delivery.length, 256); assert.equal(pcm.deliveryDropped, 45);
+  assert.equal(pcm.renderer.length, 64); assert.equal(pcm.rendererDropped, 17);
+  assert.equal(pcm.delivery[0].chunk, 0); assert.equal(pcm.delivery[127].chunk, 127);
+  assert.equal(pcm.delivery.at(-2).chunk, 299); assert.deepEqual(pcm.delivery.at(-1), { type: "posted", at: 900 });
+  assert.equal(pcm.renderer[0].type, "prepared"); assert.equal(pcm.renderer.at(-1).gapFrames, 2400);
+  assert.ok(!JSON.stringify(exported).includes("private"));
+  assert.ok(!pcm.renderer.some(event => event.type === "failed"));
+  assert.match(exported.metadata.pcmTiming, /provisional/);
+  const csv = timingCsv(timings.snapshot()).split("\r\n").map(row => row.split(","));
+  assert.equal(csv[1][csv[0].indexOf('"pcmDeliveryDropped"')], '"45"');
+  pcm.delivery.length = 0; assert.equal(timings.snapshot()[0].pcm.delivery.length, 256);
+  timings.clear(); assert.deepEqual(timings.snapshot(), []); assert.equal(timings.events.size, 0);
+});
+
 test("transcription stages survive capture and exports with missing receipts left unknown", () => {
   const timings = new TurnTimings({ now: () => 1000, uuid: () => "trace" });
   const stages = { last_voice: 100, committed: 600, commit_sent: 601, commit_acknowledged: 650,
