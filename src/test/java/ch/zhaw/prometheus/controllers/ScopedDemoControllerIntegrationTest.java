@@ -53,6 +53,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient;
 import ch.zhaw.prometheus.spi.LiveTranscriptionSessionInfo;
 import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.spi.SpeechAudioFormat;
 import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 @SpringBootTest
@@ -347,7 +348,7 @@ class ScopedDemoControllerIntegrationTest {
 
         Event persistedEvent = generatedPlans.get(0);
         byte[] audio = new byte[] { 4, 9, 3 };
-        when(this.speechSynthesisGateway.synthesize(persistedPlan.getSpeech(), "cedar", 1.25))
+        when(this.speechSynthesisGateway.synthesize(persistedPlan.getSpeech(), "cedar", 1.25, SpeechAudioFormat.MP3))
                 .thenReturn(new SpeechAudio(audio, "audio/mpeg"));
 
         MvcResult speechResult = this.mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/"
@@ -364,7 +365,7 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().contentType("audio/mpeg"))
                 .andExpect(content().bytes(audio));
-        verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25);
+        verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25, SpeechAudioFormat.MP3);
     }
 
     @Test
@@ -394,15 +395,16 @@ class ScopedDemoControllerIntegrationTest {
                     .andExpect(jsonPath("$.eventId").value(eventId));
         }
         org.mockito.Mockito.verifyNoInteractions(this.speechSynthesisGateway);
-        byte[] audio = new byte[] { 1, 7, 1 };
-        when(this.speechSynthesisGateway.synthesize(speech, "alloy", 1.0))
-                .thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+        byte[] audio = new byte[] { 1, 7, 1, 0 };
+        when(this.speechSynthesisGateway.synthesize(speech, "alloy", 1.0, SpeechAudioFormat.PCM))
+                .thenReturn(new SpeechAudio(audio, SpeechAudioFormat.PCM.contentType()));
         MvcResult spoken = this.mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/"
-                + eventId + "/speech").header(HEADER, code))
+                + eventId + "/speech").header(HEADER, code).queryParam("format", "pcm"))
                 .andExpect(request().asyncStarted()).andReturn();
         this.mockMvc.perform(asyncDispatch(spoken)).andExpect(status().isOk())
+                .andExpect(content().contentType(SpeechAudioFormat.PCM.contentType()))
                 .andExpect(content().bytes(audio));
-        verify(this.speechSynthesisGateway).synthesize(speech, "alloy", 1.0);
+        verify(this.speechSynthesisGateway).synthesize(speech, "alloy", 1.0, SpeechAudioFormat.PCM);
 
         this.allowType("NSOTH", type);
         this.mockMvc.perform(get("/demo/agents/" + agentId + "/behaviours/latest/speech")
@@ -505,12 +507,12 @@ class ScopedDemoControllerIntegrationTest {
         verify(behaviourBroadcaster).publish(org.mockito.ArgumentMatchers.eq(agentId),
                 org.mockito.ArgumentMatchers.argThat(event -> eventId.equals(event.getId().toString())));
         byte[] audio = { 3, 2, 1 };
-        when(speechSynthesisGateway.synthesize("Stored policy reply.", "alloy", 1.0)).thenReturn(new SpeechAudio(audio, "audio/mpeg"));
+        when(speechSynthesisGateway.synthesize("Stored policy reply.", "alloy", 1.0, SpeechAudioFormat.MP3)).thenReturn(new SpeechAudio(audio, "audio/mpeg"));
         MvcResult speech = mockMvc.perform(post("/demo/agents/" + agentId + "/behaviours/" + eventId + "/speech")
                 .header(HEADER, code).queryParam("voice", "alloy").queryParam("speed", "1.0"))
                 .andExpect(request().asyncStarted()).andReturn();
         mockMvc.perform(asyncDispatch(speech)).andExpect(status().isOk()).andExpect(content().bytes(audio));
-        verify(speechSynthesisGateway).synthesize("Stored policy reply.", "alloy", 1.0);
+        verify(speechSynthesisGateway).synthesize("Stored policy reply.", "alloy", 1.0, SpeechAudioFormat.MP3);
     }
 
     @Test

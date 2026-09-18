@@ -57,6 +57,7 @@ class OpenAISpeechSynthesisGatewayUnitTest {
     private final AtomicReference<String> requestBody = new AtomicReference<>();
     private final AtomicReference<String> authorization = new AtomicReference<>();
     private final AtomicInteger responseStatus = new AtomicInteger(200);
+    private final AtomicReference<String> responseType = new AtomicReference<>("audio/mpeg");
     private HttpServer server;
 
     @BeforeEach
@@ -73,7 +74,7 @@ class OpenAISpeechSynthesisGatewayUnitTest {
                 return;
             }
             byte[] response = new byte[] { 7, 8, 9 };
-            exchange.getResponseHeaders().set("Content-Type", "audio/mpeg");
+            exchange.getResponseHeaders().set("Content-Type", responseType.get());
             exchange.sendResponseHeaders(200, 0);
             exchange.getResponseBody().write(response);
             exchange.close();
@@ -109,6 +110,28 @@ class OpenAISpeechSynthesisGatewayUnitTest {
         assertEquals("marin", payload.get("voice").getAsString());
         assertEquals("mp3", payload.get("response_format").getAsString());
         assertEquals(1.25, payload.get("speed").getAsDouble(), 0.0001);
+    }
+
+    @Test
+    void requestsPcmAndLabelsRawSamplesWithoutBufferingOrAcceptingAnotherCodec() throws IOException {
+        OpenAIProperties properties = new OpenAIProperties();
+        properties.setOpenaivsazureopenai("openai"); properties.setKey("test-key");
+        SpeechSynthesisProperties speech = new SpeechSynthesisProperties();
+        speech.setUrl("http://localhost:" + this.server.getAddress().getPort() + "/v1/audio/speech");
+        OpenAISpeechSynthesisGateway gateway = new OpenAISpeechSynthesisGateway(properties, speech);
+        this.responseType.set("application/octet-stream");
+        try (SpeechAudio audio = gateway.synthesize("Canonical", "cedar", 1.25, SpeechAudioFormat.PCM)) {
+            assertEquals(SpeechAudioFormat.PCM.contentType(), audio.getContentType());
+            assertArrayEquals(new byte[] { 7, 8, 9 }, audio.getContent());
+            JsonObject payload = JsonParser.parseString(requestBody.get()).getAsJsonObject();
+            assertEquals("pcm", payload.get("response_format").getAsString());
+            assertEquals("Canonical", payload.get("input").getAsString());
+            assertEquals("cedar", payload.get("voice").getAsString());
+            assertEquals(1.25, payload.get("speed").getAsDouble());
+        }
+        this.responseType.set("audio/mpeg");
+        assertThrows(SpeechSynthesisException.class,
+                () -> gateway.synthesize("Canonical", "cedar", 1, SpeechAudioFormat.PCM));
     }
 
     @Test

@@ -69,6 +69,22 @@ class BehaviourSpeechControllerWebMvcTest {
         verify(this.speechService).synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), settings.capture());
         assertEquals("cedar", settings.getValue().getVoice());
         assertEquals(1.25, settings.getValue().getSpeed(), 0.0001);
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.MP3, settings.getValue().getFormat());
+    }
+
+    @Test
+    void streamsExplicitPcmWithItsSampleMetadata() throws Exception {
+        String type = ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM.contentType();
+        when(this.speechService.synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), any()))
+                .thenReturn(Optional.of(new SpeechAudio(new byte[] { 0, 1 }, type)));
+        MvcResult result = this.mockMvc.perform(post(path())
+                .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12").queryParam("format", "pcm"))
+                .andExpect(request().asyncStarted()).andReturn();
+        this.mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk())
+                .andExpect(content().contentType(type)).andExpect(content().bytes(new byte[] { 0, 1 }));
+        ArgumentCaptor<SpeechSynthesisSettings> settings = ArgumentCaptor.forClass(SpeechSynthesisSettings.class);
+        verify(this.speechService).synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), settings.capture());
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM, settings.getValue().getFormat());
     }
 
     @Test
@@ -111,6 +127,8 @@ class BehaviourSpeechControllerWebMvcTest {
 
     @Test
     void rejectsInvalidVoiceOrSpeedBeforeServiceCall() throws Exception {
+        this.mockMvc.perform(post(path()).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
+                .queryParam("format", "wav")).andExpect(status().isBadRequest());
         this.mockMvc.perform(post(path())
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
                 .queryParam("voice", "not-a-voice"))

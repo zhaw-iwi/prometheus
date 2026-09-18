@@ -6,6 +6,7 @@ const TRANSCRIPTION_STAGES = ["last_voice", "committed", "commit_sent", "commit_
 const STAGES = new Set(["submitted", "queued", "acknowledging", "accepted", "rejected", "cancelled",
   "http_start", "http_end", "sse_received", "rendered", "audio_queued", "audio_request",
   "audio_first_byte", "audio_downloaded", "audio_playing", "audio_completed", "audio_failed", "audio_stopped",
+  "audio_prepare_start", "audio_prepare_end",
   ...TRANSCRIPTION_STAGES, "acknowledged", "processing_complete",
   "ui_refresh_start", "ui_refresh_end"]);
 
@@ -186,7 +187,12 @@ export function safeConfiguration(value = {}) {
 
 function safeSpeech(value = {}) {
   return Object.fromEntries(Object.entries({ voice: identifier(value.voice), speed: duration(value.speed),
-    playbackMode: ["progressive", "buffered"].includes(value.playbackMode) ? value.playbackMode : undefined,
+    playbackMode: ["progressive", "buffered", "pcm"].includes(value.playbackMode) ? value.playbackMode : undefined,
+    formatPreference: ["auto", "mp3"].includes(value.formatPreference) ? value.formatPreference : undefined,
+    format: ["pcm", "mp3"].includes(value.format) ? value.format : undefined,
+    fallbackReason: ["pcm_unsupported", "pcm_setup_failed"].includes(value.fallbackReason) ? value.fallbackReason : undefined,
+    playbackStartSource: ["pcm_renderer", "media_element"].includes(value.playbackStartSource) ? value.playbackStartSource : undefined,
+    ...Object.fromEntries(["pcmPrefillMs", "pcmInitialBufferedMs", "pcmUnderruns", "pcmGapMs"].map(key => [key, duration(value[key])])),
     outputDevice: ["default", "selected"].includes(value.outputDevice) ? value.outputDevice : undefined,
   }).filter(([, entry]) => entry !== undefined));
 }

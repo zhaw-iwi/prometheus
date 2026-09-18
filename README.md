@@ -87,6 +87,14 @@ input without changing the persisted plan. A per-agent browser lease selects
 one audible Valerian window, and playback uses the speaker, voice, and speed
 selected in the speech settings.
 
+In **Continuous → Speech Output Settings**, Audio format defaults to
+**Automatic (PCM when supported)**. The cockpit prepares a PCM renderer and the
+selected speaker before requesting audio; unsupported or failed preparation uses
+MP3. Select **MP3** for a comparison using the same voice, speed and transcription
+preset. The existing voice/speed controls now live in this visible output panel;
+saved settings are retained. Format changes apply to the next reply and controls
+are locked during output. Refresh after deployment to load the new player.
+
 **Conversation pace** in Live Transcription Settings offers Ultra Responsive
 (0.5-second silence, minimal provider delay), Responsive (0.8 seconds, low delay),
 and Pause tolerant (1.5 seconds, medium delay).
@@ -619,7 +627,7 @@ The existing committed stage remains the local VAD boundary for comparison with
 older recordings; commit_sent records the separate successful send boundary.
 No timing telemetry is uploaded or persisted. Server and browser clocks are
 separate; correlate IDs, then compare local durations.
-Speech end is the local VAD estimate and playback is the browser's `playing`
+Speech end is the local VAD estimate and playback is a browser renderer/media
 event, not a measurement at the physical speaker. Unsubmitted/failed ASR items
 and startup replay do not create turn records; missing stages remain unknown.
 
@@ -1108,8 +1116,12 @@ speech to the provider. This endpoint has no request body and therefore cannot
 synthesize browser-authored or foreign-agent text. It returns uncached,
 streamed provider audio with an explicit `audio/*` content type. Unknown agents
 or events return `404`; events that are not usable speech behaviours return
-`409`; unsupported voices or speeds outside `0.25` through `4.0` return `400`.
-The defaults are `alloy` and `1.0`.
+`409`; unsupported voices, formats, or speeds outside `0.25` through `4.0` return
+`400`. The defaults are `alloy`, `1.0` and `mp3`. The optional `format=pcm` requests
+24 kHz mono signed 16-bit little-endian samples, returned as
+`audio/pcm;rate=24000;channels=1;encoding=s16le`. Clients must explicitly support
+that format. Other format values (including WAV) are not part of this endpoint's
+contract. Talk to Me and requests omitting format continue using MP3.
 
 Talk to Me sends the observation and speech options to a scoped backend
 endpoint:
@@ -1309,19 +1321,42 @@ application boundary. Independent agents can proceed concurrently.
 
 ### Progressive canonical Speech playback
 
-Valerian streams the existing scoped event-ID Speech POST into an MP3
-`MediaSource` when supported. Playback can start before download completion;
-voice/speed, selected output device, queue ordering, cross-tab output ownership,
-replay suppression and half-duplex input gating retain their existing owners.
-Unsupported browsers and failures during media-source setup use the same fetched
-body as a buffered Blob. Decoding failures after setup fail the item; they never
-request synthesis again or replay a spoken prefix. Stop aborts the reader and
-cleans up media resources. Both paths cap compressed audio at 16 MiB and stream
-reads/media preparation have a 30-second inactivity limit. The backend flushes
-each provider chunk and closes its upstream stream on downstream write failure.
+Valerian's Automatic format uses an AudioWorklet PCM renderer when a 24 kHz
+AudioContext and the selected output device can be prepared. Preparation has a
+two-second deadline and occurs before the provider request. Capability or setup
+failure chooses MP3; no second synthesis request is used as a recovery mechanism.
+PCM retains exact persisted speech, configured voice/speed and the media control's
+volume/mute setting. The native file seek control is hidden during PCM output;
+**Stop Playback** remains available.
 
-Local Chromium playback and the provider-to-Tomcat path are tested with withheld
-response tails. A deployed reverse proxy can still buffer responses; verify it
-and real output devices separately. See the [MSE specification](https://www.w3.org/TR/media-source-2/)
-for the browser mechanism. The latency endpoint remains meaningful audio playback,
-not arrival of the first HTTP byte.
+PCM playback waits for 60 ms of audio samples (or a shorter complete response),
+then consumes them as they arrive. The renderer holds at most two seconds of
+audio, applies backpressure and preserves samples split across network chunks.
+An underrun inserts silence and refills before continuing; confirmed interruptions
+and inserted silence are reported. Final output drains using reported device
+latency, with a 100 ms fallback when output latency is unavailable, before closing
+the context and reopening input. Stream reads and stalled playback have a
+30-second deadline, and each utterance is capped at 16 MiB. PCM uses more bandwidth
+than MP3. See the [Web Audio specification](https://www.w3.org/TR/webaudio-1.1/).
+
+MP3 uses the existing MediaSource path, with a same-response buffered fallback
+if unsupported or setup fails. Stop aborts audio reading and renderer resources.
+Failures after playback starts fail the item without resynthesis or prefix replay.
+The shared queue owns ordering, cross-tab output ownership, replay suppression and
+input gating for both paths. The backend flushes each provider chunk and closes
+its upstream stream on downstream write failure.
+
+Timing JSON/CSV records requested/effective format, fallback reason, audio
+preparation duration, PCM prefill/initial buffer size, interruption count and
+inserted silence. Buffer sizes are milliseconds of audio, not elapsed waiting
+time. PCM audio_playing records the browser receiving notification of the first
+samples consumed by the renderer; MP3 uses the media element playing event.
+Neither measures physical audibility, and the two marker mechanisms can differ.
+Compare end-to-end timing as well as preparation, first-byte and playback stages,
+and listen for missing or clipped speech. Test startup separately from later turns.
+
+Native Chromium PCM/MP3 and provider-to-Tomcat streaming are tested with withheld
+tails. Physical devices, Bluetooth, other browsers and Heroku/provider latency
+remain deployment trial gates. OpenAI recommends WAV/PCM for fastest response
+times, but this implementation does not establish a production latency gain:
+[OpenAI Speech guidance](https://developers.openai.com/api/docs/guides/text-to-speech#streaming-realtime-audio).

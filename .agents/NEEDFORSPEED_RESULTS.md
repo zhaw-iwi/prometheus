@@ -21,6 +21,74 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Progressive PCM speech and format comparison (Milestone 181, 2026-09-18)
+
+Implemented PCM alongside the existing MP3 path. The canonical behaviour-speech
+endpoint accepts format=mp3|pcm, defaults to MP3, and preserves exact persisted
+speech and scoped event identity. PCM responses declare 24 kHz mono signed 16-bit
+little-endian samples. Unknown formats fail before provider access; Talk to Me
+retains MP3. Existing gateway implementations can retain their MP3-only SPI method.
+
+Continuous now exposes the existing Speech Output Settings (previously hidden in
+Sensing), with persisted Automatic/MP3 selection. Automatic prepares a 24 kHz
+AudioContext, selected speaker and AudioWorklet before choosing the provider format.
+Unsupported capability or failed preparation selects MP3 before synthesis; there
+is no second request or spoken-prefix replay after streaming starts. A selected
+speaker that cannot be applied is never silently replaced during playback.
+
+PCM uses a two-second bounded renderer queue, 60 ms initial/refill target, and
+producer backpressure. The decoder handles split 16-bit samples and rejects a
+truncated final sample. Buffer starvation followed by further speech counts as an
+interruption; initial waiting and silence after the final audio do not. Stop closes
+the stream and renderer. EOF drains reported output latency (100 ms fallback when
+unavailable) before teardown/input reopening. Setup deadline is two seconds;
+network/playback stalls are bounded at 30 seconds; utterances are capped at 16 MiB.
+The pre-existing queue owns gating, output leases and live/startup delivery rules.
+PCM honors the media control's stored volume/mute and uses Stop Playback rather
+than a native file seek control while active.
+
+JSON/CSV include effective/requested format, fallback reason, preparation duration,
+buffer target/initial audio amount, interruption count and inserted silence. PCM
+playback marks receipt of the renderer's first-consumed-samples notification;
+MP3 uses HTMLMediaElement playing. Neither measures physical audibility. Compare
+format-specific markers with preparation and end-to-end timings, and listen for
+gaps/clipping. PCM transfers more data; no provider or production speedup is claimed.
+
+Verification:
+
+- 37 Java cases: mvnw.cmd -q "-Dtest=*Speech*UnitTest,*Speech*WebMvcTest,SpeechProgressiveHttpIntegrationTest,SpeechArchitecture*ContractTest" test.
+  Controlled providers cover format/default validation, canonical text, MIME
+  metadata, failed access and early-byte delivery through Tomcat before EOF.
+- 16 database cases: ScopedDemoControllerIntegrationTest and TalkToMeScopedIntegrationTest,
+  run with disposable local MySQL schema prometheus_pcm_4ddd0755a2 and a restricted
+  account. Both removed on completion. Inference/speech mocked, fallback URLs on
+  loopback and dummy provider credentials. MP3 and reloaded-startup PCM routes pass.
+- 63 Node cases: node --test tests/js/performance/*.test.mjs tests/js/transcription/*.test.mjs tests/js/speech/*.test.mjs.
+  Includes controlled PCM decoding, ring wrap, prefill, bounded backpressure,
+  interruption counting, cancellation, setup/device failure, truncation, oversize,
+  stream timeout, output interruption and content-free timing export.
+- 16 Playwright cases: three native PCM and three native MP3 tests with withheld
+  HTTP tails, plus ten cockpit tests covering selected speaker/voice/speed/format,
+  persisted MP3 comparison, input gating, reset/startup, output controls, reconnect
+  and timing exports. Native worklet tests consume real synthetic tone samples;
+  cockpit tests mock media/provider boundaries. Desktop/mobile screenshots inspected.
+- Final output-drain and compact-header refinements: eight PCM Node and five PCM
+  browser cases passed. No live provider, physical speaker or Bluetooth test.
+
+Ignored evidence: target/pcm-java.log, target/pcm-database.log,
+target/pcm-client.log, target/pcm-native-browser.log, target/pcm-native-final.log,
+target/pcm-cockpit-browser.log, target/pcm-unit-final.log, target/pcm-final-browser.log.
+Screenshots: target/playwright-results and target/pcm-final-browser-results.
+The original user timing exports in test-results are preserved.
+
+Trial: refresh Heroku, choose Ultra Responsive and keep speech voice/speed fixed.
+Under Continuous → Speech Output Settings, compare Automatic with MP3 using similar
+utterances; export each session and confirm its effective format. Separate startup
+from ordinary/closing turns. Automatic may legitimately report MP3 on unsupported
+browsers or speaker configurations. Official rationale and browser mechanics:
+https://developers.openai.com/api/docs/guides/text-to-speech#streaming-realtime-audio
+and https://www.w3.org/TR/webaudio-1.1/.
+
 ## Minimal Ultra Responsive and transcription timing (Milestone 180, 2026-09-17)
 
 Ultra Responsive now selects 0.5-second local silence and minimal provider delay.

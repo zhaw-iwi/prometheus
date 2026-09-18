@@ -125,6 +125,7 @@ const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 const SPEECH_OUTPUT_DEVICE_STORAGE_KEY = "prometheus.valerian.speechOutputDevice";
 const SPEECH_VOICE_STORAGE_KEY = "prometheus.valerian.speechVoice";
 const SPEECH_OUTPUT_SPEED_STORAGE_KEY = "prometheus.valerian.speechOutputSpeed";
+const SPEECH_FORMAT_STORAGE_KEY = "prometheus.valerian.speechFormat";
 const CAMERA_DEVICE_STORAGE_KEY = "prometheus.valerian.cameraDevice";
 const THEME_STORAGE_KEY = "prometheus.valerian.theme";
 const CAMERA_PERIOD_MS = 350;
@@ -1994,6 +1995,7 @@ function interactionTimingConfiguration() {
     transcriptionModel: "gpt-live-transcribe",
     voice: document.getElementById("speechVoiceInput")?.value,
     speed: Number(document.getElementById("speechOutputSpeedInput")?.value) || undefined,
+    formatPreference: selectedSpeechFormat(),
     outputDevice: speechDevices.outputDeviceId ? "selected" : "default",
     capture: transcription.transcriptionClient?.media?.appliedAudioSettings() || {},
   };
@@ -2099,7 +2101,17 @@ function waitForSpeechPlaybackApi(timeoutMs = 5000) {
 async function synthesizeBehaviourSpeech(item, signal) {
   const agentId = state.agentId;
   const timingEventId = item.delivery === "live" ? item.eventId : null;
-  globalThis.PrometheusTimings?.event(agentId, timingEventId, "audio_request");
+  const onStage = (stage) => globalThis.PrometheusTimings?.event(agentId, timingEventId, stage);
+  const onMetrics = (values) => globalThis.PrometheusTimings?.speech(agentId, timingEventId, values);
+  const preference = selectedSpeechFormat();
+  const audio = activeAssistantAudioElement();
+  onStage("audio_prepare_start");
+  const prepared = preference === "mp3" ? { resource: null } : await globalThis.PrometheusSpeechPlayback.preparePcmSpeech({
+    signal, deviceId: selectedSpeechOutputDeviceId(), volume: audio.muted ? 0 : audio.volume, onStage, onMetrics,
+  });
+  onStage("audio_prepare_end");
+  const format = prepared.resource ? "pcm" : "mp3";
+  onMetrics({ formatPreference: preference, format, fallbackReason: prepared.fallbackReason });
   const params = new URLSearchParams();
   const voice = document.getElementById("speechVoiceInput")?.value?.trim() || "";
   const speed = document.getElementById("speechOutputSpeedInput")?.value?.trim() || "";
@@ -2109,24 +2121,44 @@ async function synthesizeBehaviourSpeech(item, signal) {
   });
   if (voice) params.set("voice", voice);
   if (speed) params.set("speed", speed);
+  params.set("format", format);
   const suffix = params.size ? `?${params.toString()}` : "";
   const fetchSpeech = timingEventId
     ? (...args) => globalThis.PrometheusTimings.fetchEvent(agentId, timingEventId, scopedFetch, ...args) : scopedFetch;
-  const response = await fetchSpeech(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
-    method: "POST",
-    headers: { Accept: "audio/*" },
-    signal,
-  });
-  if (!response.ok) throw new Error(`Speech synthesis failed (${response.status}).`);
-  return globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, {
-    signal, onStage: (stage) => globalThis.PrometheusTimings?.event(agentId, timingEventId, stage),
-  });
+  try {
+    onStage("audio_request");
+    const response = await fetchSpeech(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
+      method: "POST", headers: { Accept: "audio/*" }, signal,
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`Speech synthesis failed (${response.status}).`);
+    }
+    if (prepared.resource) {
+      prepared.resource.setResponse(response);
+      return prepared.resource;
+    }
+    return await globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, { signal, onStage });
+  } catch (error) {
+    await prepared.resource?.dispose();
+    throw error;
+  }
 }
 
 function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
   const agentId = state.agentId;
   const timingEventId = item.delivery === "live" ? item.eventId : null;
   const audio = activeAssistantAudioElement();
+  if (resource.format === "pcm") {
+    audio.pause(); audio.removeAttribute("src"); audio.srcObject = null; audio.load();
+    audio.hidden = true;
+    return resource.play(() => {
+      onPlaying();
+      globalThis.PrometheusTimings?.speech(agentId, timingEventId, { playbackMode: "pcm" });
+      globalThis.PrometheusTimings?.event(agentId, timingEventId, "audio_playing");
+    });
+  }
+  audio.hidden = false;
   return new Promise((resolve, reject) => {
     let settled = false;
     const cleanup = () => {
@@ -2145,6 +2177,7 @@ function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
       onPlaying();
       globalThis.PrometheusTimings?.speech(agentId, timingEventId, {
         playbackMode: resource.progressive ? "progressive" : "buffered",
+        playbackStartSource: "media_element",
       });
       globalThis.PrometheusTimings?.event(agentId, timingEventId, "audio_playing");
     };
@@ -2168,21 +2201,25 @@ function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
     audio.srcObject = null;
     resource.done.catch((error) => finish(() => reject(error)));
     Promise.resolve(applySelectedSpeechOutputDevice())
-      .then(() => resource.attach(audio))
+      .then((applied) => {
+        if (selectedSpeechOutputDeviceId() && !applied) throw new Error("Selected speech output device is unavailable.");
+        return resource.attach(audio);
+      })
       .then(() => { if (!settled && !signal.aborted) return audio.play(); })
       .catch((error) => finish(() => reject(error)));
   });
 }
 
 function releaseSpeechAudioResource(resource) {
-  if (!resource?.url) return;
+  if (!resource) return;
   const audio = activeAssistantAudioElement();
+  audio.hidden = false;
   if (audio.getAttribute("src") === resource.url || audio.src === resource.url) {
     audio.pause();
     audio.removeAttribute("src");
     audio.load();
   }
-  resource.dispose();
+  return resource.dispose();
 }
 
 function setSpeechPlaybackInputEnabled(enabled) {
@@ -2705,6 +2742,7 @@ function speechOutputSettingControls() {
   return [
     "speechVoiceInput",
     "speechOutputSpeedInput",
+    "speechFormatInput",
   ].map((id) => document.getElementById(id)).filter(Boolean);
 }
 
@@ -2712,6 +2750,7 @@ function speechSettingStorageKey(storageName) {
   return {
     speechVoice: SPEECH_VOICE_STORAGE_KEY,
     speechOutputSpeed: SPEECH_OUTPUT_SPEED_STORAGE_KEY,
+    speechFormat: SPEECH_FORMAT_STORAGE_KEY,
   }[storageName] || "";
 }
 
@@ -2741,6 +2780,10 @@ function saveSpeechOutputSettingSelection(event) {
   } else {
     localStorage.removeItem(storageKey);
   }
+}
+
+function selectedSpeechFormat() {
+  return document.getElementById("speechFormatInput")?.value === "mp3" ? "mp3" : "auto";
 }
 
 function loadStoredSpeechDeviceSelection() {

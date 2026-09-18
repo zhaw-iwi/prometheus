@@ -58,6 +58,12 @@ function details(turn) {
   body.append(table([
     ["Recorded at", turn.startedAt],
     ["Playback", speech.playbackMode || "Unknown"], ["Voice / speed", `${speech.voice ?? config.voice ?? "Default"} / ${speech.speed ?? config.speed ?? "Default"}`],
+    ["Audio format", speech.format || "Unknown"],
+    ["Format preference", speech.formatPreference ?? config.formatPreference ?? "Unknown"],
+    ["PCM fallback", { pcm_unsupported: "Browser or speaker unsupported", pcm_setup_failed: "Audio preparation failed" }[speech.fallbackReason] || "None recorded"],
+    ["Playback start observed by", { pcm_renderer: "PCM audio renderer", media_element: "Media element" }[speech.playbackStartSource] || "Unknown"],
+    ["PCM buffer target / initial", `${ms(speech.pcmPrefillMs)} / ${ms(speech.pcmInitialBufferedMs)}`],
+    ["PCM interruptions / silence inserted", `${speech.pcmUnderruns ?? "Unknown"} / ${ms(speech.pcmGapMs)}`],
     ["Turn detection", config.turnDetection || "Unknown"],
     ["Silence duration", Number.isFinite(config.silenceDurationSeconds) ? `${config.silenceDurationSeconds} s` : "Unknown"],
     ["Transcription delay", config.transcriptionDelay || "Unknown"],
