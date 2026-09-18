@@ -596,8 +596,10 @@ commit is sent, so the timeline supports negative offsets relative to speech end
 Missing acknowledgements/deltas and older exports leave those measurements unknown.
 The existing committed stage remains the local VAD boundary for comparison with
 older recordings; commit_sent records the separate successful send boundary.
-No timing telemetry is uploaded or persisted. Server and browser clocks are
-separate; correlate IDs, then compare local durations.
+Browser timing telemetry is not uploaded, and timing data is not durably persisted.
+Speech delivery diagnostics are retained temporarily in bounded server memory and
+fetched into the same export. Server and browser clocks are separate; correlate
+IDs, then compare local durations.
 Speech end is the local VAD estimate and playback is a browser renderer/media
 event, not a measurement at the physical speaker. Unsubmitted/failed ASR items
 and startup replay do not create turn records; missing stages remain unknown.
@@ -1354,6 +1356,38 @@ retained turn, keeping the first half and latest half when full. Separate droppe
 counts explicitly flag incomplete traces, so long replies cannot grow memory
 without limit. Per-block delivery does not trigger panel rerenders. This adds
 measurement only: the 60 ms prefill/refill and two-second queue remain unchanged.
+
+Server audio delivery detail is also automatic for tracked live speech, including
+MP3. Valerian requests `deliveryTiming=true` on the canonical speech POST; the
+response returns `X-Prometheus-Speech-Delivery-Id`. After download or teardown, a
+single background GET to
+`/demo/agents/{agentId}/behaviours/{eventId}/speech/timing/{requestId}` retrieves
+the matching trace using the existing access-code scope. This does not delay
+playback or reopening the microphone. Other clients need not request diagnostics.
+The endpoint returns 401 for invalid access, 404 for invisible/mismatched/missing
+traces, and a no-store snapshot for an authorized match.
+
+The existing JSON export includes `turn.speechDelivery`: retrieval status and the
+server trace's pending/streaming/complete/error status, timed read/write/flush/close
+operations, cumulative byte positions, final totals and any unfinished phase.
+The drawer shows retrieval status and the longest recorded read/write/flush; CSV
+adds diagnostic coverage fields. Wait for the final reply and confirm diagnostic
+retrieval is **received** before exporting JSON. Failures, early teardown, expiry,
+eviction or another server instance leave missing/incomplete evidence explicit.
+Only fixed labels, IDs, counts and times are retained, never speech or audio.
+Server storage holds at most 128 traces; entries expire after ten minutes and are
+pruned on lookup/insertion. Each trace keeps 256 operations, preserving its first
+and latest halves with a dropped count. Restart discards this diagnostic state.
+
+Server times use a separate monotonic clock starting after provider headers, when
+the trace is created. A long **read** locates waiting at the application's read of
+the provider response; it cannot distinguish OpenAI generation from upstream
+transport or HTTP-client buffering. Long **write/flush** operations expose waiting
+while handing audio to the HTTP output. Prompt server writes followed by delayed
+browser reads point toward downstream delivery or browser consumption. Match
+`totalBytes` against browser PCM read positions even when chunk boundaries differ,
+then compare intervals within each clock. Never subtract browser and server times;
+flush completion alone does not establish browser receipt or physical audibility.
 
 Native Chromium PCM/MP3 and provider-to-Tomcat streaming are tested with withheld
 tails. Physical devices, Bluetooth, other browsers and Heroku/provider latency

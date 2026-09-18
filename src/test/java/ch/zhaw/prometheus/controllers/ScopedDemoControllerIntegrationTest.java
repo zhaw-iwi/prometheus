@@ -355,6 +355,7 @@ class ScopedDemoControllerIntegrationTest {
                 + persistedEvent.getId() + "/speech")
                 .header(HEADER, accessCode)
                 .queryParam("voice", "cedar")
+                .queryParam("deliveryTiming", "true")
                 .queryParam("speed", "1.25"))
                 .andExpect(status().isOk())
                 .andExpect(request().asyncStarted())
@@ -366,6 +367,19 @@ class ScopedDemoControllerIntegrationTest {
                 .andExpect(content().contentType("audio/mpeg"))
                 .andExpect(content().bytes(audio));
         verify(this.speechSynthesisGateway).synthesize(persistedPlan.getSpeech(), "cedar", 1.25, SpeechAudioFormat.MP3);
+        String deliveryId = speechResult.getResponse().getHeader(ch.zhaw.prometheus.logging.SpeechDeliveryTrace.HEADER);
+        assertNotNull(deliveryId);
+        String timingPath = "/demo/agents/" + agentId + "/behaviours/" + persistedEvent.getId() + "/speech/timing/" + deliveryId;
+        this.mockMvc.perform(get(timingPath).header(HEADER, accessCode))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.status").value("complete"))
+                .andExpect(jsonPath("$.bytesRead").value(audio.length))
+                .andExpect(jsonPath("$.bytesFlushed").value(audio.length));
+        this.allowType("DLV01", RockScissorPaper.KEY);
+        this.mockMvc.perform(get(timingPath).header(HEADER, "DLV01")).andExpect(status().isNotFound());
+        this.mockMvc.perform(get(timingPath)).andExpect(status().isUnauthorized());
+        this.mockMvc.perform(get(timingPath.replace(persistedEvent.getId().toString(), UUID.randomUUID().toString()))
+                .header(HEADER, accessCode)).andExpect(status().isNotFound());
     }
 
     @Test

@@ -25,6 +25,7 @@ import com.sun.net.httpserver.HttpServer;
 class SpeechProgressiveHttpIntegrationTest {
     @LocalServerPort int port;
     static volatile String providerUrl;
+    static volatile SpeechDeliveryTrace deliveryTrace;
 
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
@@ -44,8 +45,12 @@ class SpeechProgressiveHttpIntegrationTest {
         ResponseEntity<StreamingResponseBody> speech(@RequestParam(defaultValue = "mp3") String format) {
             var properties = new OpenAIProperties(); properties.setKey("fixture"); properties.setOpenaivsazureopenai("openai");
             var speech = new SpeechSynthesisProperties(); speech.setUrl(providerUrl);
-            return SpeechAudioHttpResponse.stream(new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1, SpeechAudioFormat.parse(format)));
+            var audio = new OpenAISpeechSynthesisGateway(properties, speech).synthesize("Canonical", "marin", 1, SpeechAudioFormat.parse(format));
+            deliveryTrace = new SpeechDeliveryTrace();
+            return SpeechAudioHttpResponse.stream(audio, deliveryTrace);
         }
+        @GetMapping("/fixture-speech-timing")
+        SpeechDeliveryTrace.Snapshot timing() { return deliveryTrace.snapshot(); }
     }
 
     @Test void jsonTimingHeadersArePresentOnTheWireWithoutChangingTheBody() throws Exception {
@@ -85,15 +90,25 @@ class SpeechProgressiveHttpIntegrationTest {
             assertEquals(200, response.statusCode());
             assertEquals(format.contentType(), response.headers().firstValue("Content-Type").orElseThrow());
             assertEquals("no-store", response.headers().firstValue("Cache-Control").orElseThrow());
+            assertEquals(deliveryTrace.id().toString(), response.headers().firstValue(SpeechDeliveryTrace.HEADER).orElseThrow());
             String timing = new String(java.util.Base64.getDecoder().decode(
                     response.headers().firstValue(LatencyTrace.TIMING_HEADER).orElseThrow()), java.nio.charset.StandardCharsets.UTF_8);
             assertTrue(timing.contains("speech_headers"));
             try (var stream = response.body()) {
                 assertEquals(7, executor.submit(() -> { return stream.read(); }).get(5, TimeUnit.SECONDS));
                 assertEquals(1, tail.getCount());
+                org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(2))
+                        .untilAsserted(() -> assertEquals(1, deliveryTrace.snapshot().bytesFlushed()));
+                assertEquals("streaming", deliveryTrace.snapshot().status());
+                assertNull(deliveryTrace.snapshot().finishedMs());
                 tail.countDown();
                 assertArrayEquals(new byte[] {9}, stream.readAllBytes());
             }
+            var detail = client.send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/fixture-speech-timing"))
+                    .GET().build(), HttpResponse.BodyHandlers.ofString());
+            var json = com.google.gson.JsonParser.parseString(detail.body()).getAsJsonObject();
+            assertEquals("complete", json.get("status").getAsString());
+            assertEquals(2, json.get("bytesRead").getAsLong()); assertEquals(2, json.get("bytesFlushed").getAsLong());
         } finally { tail.countDown(); provider.stop(0); }
     }
 }

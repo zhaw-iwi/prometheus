@@ -85,6 +85,40 @@ export class TurnTimings {
     if (!delivery) this.changed();
   }
 
+  // Fetch once after audio completion/teardown, without delaying playback or input.
+  captureSpeechDelivery(agentId, eventId, response, fetchSnapshot, timeoutMs = 5000) {
+    const id = response.headers.get("X-Prometheus-Speech-Delivery-Id");
+    if (!agentId || !eventId || !uuidPattern.test(id || "")) return () => {};
+    const record = this.eventRecord(agentId, eventId);
+    const delivery = record.speechDelivery = { id, retrieval: "waiting" };
+    const current = () => this.events.get(`${agentId}:${eventId}`) === record && record.speechDelivery === delivery;
+    const publish = () => {
+      if (!current()) return;
+      const turn = this.turns.get(record.traceId);
+      if (turn) turn.speechDelivery = delivery;
+      this.changed();
+    };
+    publish();
+    let started = false;
+    return () => {
+      if (started || !current()) return;
+      started = true; delivery.retrieval = "fetching"; publish();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      void (async () => {
+        try {
+          const result = await fetchSnapshot(id, controller.signal);
+          if (!result.ok) { delivery.retrieval = result.status === 404 ? "unavailable" : "error"; return; }
+          const snapshot = safeSpeechDelivery(await result.json(), id);
+          if (!snapshot) { delivery.retrieval = "invalid"; return; }
+          delivery.server = snapshot;
+          delivery.retrieval = "received";
+        } catch (_) { delivery.retrieval = "error"; }
+        finally { clearTimeout(timer); publish(); }
+      })();
+    };
+  }
+
   bind(id, eventId) {
     const turn = this.turns.get(id);
     if (!turn || !eventId) return;
@@ -95,6 +129,7 @@ export class TurnTimings {
     for (const request of record.requests) if (!turn.requests.includes(request) && turn.requests.length < 16) turn.requests.push(request);
     turn.speech = { ...record.speech };
     if (record.pcm) turn.pcm = record.pcm;
+    if (record.speechDelivery) turn.speechDelivery = record.speechDelivery;
     Object.entries(record.stages).forEach(([stage, at]) => this.mark(id, stage, at));
     this.events.set(key, record);
     this.trim(this.events);
@@ -176,6 +211,23 @@ function requestKind(url) {
 
 const identifier = value => typeof value === "string" && /^[A-Za-z0-9_.:/-]{1,96}$/.test(value) ? value : undefined;
 const duration = value => Number.isFinite(value) && value >= 0 ? value : undefined;
+const uuidPattern = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const deliveryPhases = ["read", "write", "flush", "close"];
+
+function safeSpeechDelivery(value, id) {
+  if (value?.version !== 1 || value.id !== id || !["pending", "streaming", "complete", "error"].includes(value.status)
+      || !Array.isArray(value.steps) || value.steps.length > 256) return null;
+  const fields = (source, keys) => Object.fromEntries(keys.filter(key => duration(source[key]) !== undefined).map(key => [key, source[key]]));
+  const validStep = step => step && deliveryPhases.includes(step.phase)
+    && ["sequence", "startedMs", "completedMs", "bytes", "totalBytes"].every(key => duration(step[key]) !== undefined)
+    && step.completedMs >= step.startedMs;
+  if (!value.steps.every(validStep)) return null;
+  return { version: 1, id, status: value.status,
+    ...(deliveryPhases.includes(value.phase) ? { phase: value.phase } : {}),
+    ...fields(value, ["phaseStartedMs", "finishedMs", "bytesRead", "bytesFlushed", "dropped"]),
+    steps: value.steps.map(step => ({ phase: step.phase, ...fields(step, ["sequence", "startedMs", "completedMs", "bytes", "totalBytes"]) })),
+  };
+}
 
 const PCM_FIELDS = {
   prepared: ["sampleRate", "baseLatencyMs", "outputLatencyMs"],

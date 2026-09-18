@@ -2101,7 +2101,11 @@ function waitForSpeechPlaybackApi(timeoutMs = 5000) {
 async function synthesizeBehaviourSpeech(item, signal) {
   const agentId = state.agentId;
   const timingEventId = item.delivery === "live" ? item.eventId : null;
-  const onStage = (stage) => globalThis.PrometheusTimings?.event(agentId, timingEventId, stage);
+  let collectDelivery = () => {};
+  const onStage = (stage) => {
+    globalThis.PrometheusTimings?.event(agentId, timingEventId, stage);
+    if (stage === "audio_downloaded") collectDelivery();
+  };
   const onMetrics = (values) => globalThis.PrometheusTimings?.speech(agentId, timingEventId, values);
   const onDiagnostic = (value) => globalThis.PrometheusTimings?.pcm(agentId, timingEventId, value);
   const preference = selectedSpeechFormat();
@@ -2123,25 +2127,37 @@ async function synthesizeBehaviourSpeech(item, signal) {
   if (voice) params.set("voice", voice);
   if (speed) params.set("speed", speed);
   params.set("format", format);
+  if (timingEventId) params.set("deliveryTiming", "true");
   const suffix = params.size ? `?${params.toString()}` : "";
   const fetchSpeech = timingEventId
     ? (...args) => globalThis.PrometheusTimings.fetchEvent(agentId, timingEventId, scopedFetch, ...args) : scopedFetch;
+  const speechPath = `/demo/agents/${encodeURIComponent(agentId)}/behaviours/${encodeURIComponent(item.eventId)}/speech`;
+  const accessCode = state.accessCode;
   try {
     onStage("audio_request");
-    const response = await fetchSpeech(demoAgentPath(`/behaviours/${encodeURIComponent(item.eventId)}/speech${suffix}`), {
+    const response = await fetchSpeech(`${speechPath}${suffix}`, {
       method: "POST", headers: { Accept: "audio/*" }, signal,
     });
     if (!response.ok) {
       await response.body?.cancel();
       throw new Error(`Speech synthesis failed (${response.status}).`);
     }
+    collectDelivery = globalThis.PrometheusTimings?.captureSpeechDelivery(agentId, timingEventId, response,
+      (id, diagnosticSignal) => {
+        if (state.accessCode !== accessCode) return Promise.reject(new Error("Session changed."));
+        return scopedFetch(`${speechPath}/timing/${id}`, { signal: diagnosticSignal });
+      }) || (() => {});
     if (prepared.resource) {
       prepared.resource.setResponse(response);
+      prepared.resource.collectDelivery = collectDelivery;
       return prepared.resource;
     }
-    return await globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, { signal, onStage });
+    const resource = await globalThis.PrometheusSpeechPlayback.createSpeechAudio(response, { signal, onStage });
+    resource.collectDelivery = collectDelivery;
+    return resource;
   } catch (error) {
     await prepared.resource?.dispose();
+    collectDelivery();
     throw error;
   }
 }
@@ -2213,6 +2229,7 @@ function playBehaviourSpeech(resource, item, signal, onPlaying = () => {}) {
 
 function releaseSpeechAudioResource(resource) {
   if (!resource) return;
+  resource.collectDelivery?.();
   const audio = activeAssistantAudioElement();
   audio.hidden = false;
   if (audio.getAttribute("src") === resource.url || audio.src === resource.url) {
