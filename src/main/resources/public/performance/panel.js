@@ -55,6 +55,20 @@ function details(turn) {
     body.append(section);
   }
   const config = turn.configuration || {}, speech = turn.speech || {};
+  if (turn.speechDelivery) {
+    const delivery = turn.speechDelivery, server = delivery.server;
+    const maximum = phase => {
+      const values = server?.steps.filter(step => step.phase === phase).map(step => step.completedMs - step.startedMs) || [];
+      return values.length ? Math.max(...values) : null;
+    };
+    body.append(table([
+      ["Diagnostic retrieval", delivery.retrieval], ["Stream status", server?.status || "Unknown"],
+      ["Longest recorded provider read", ms(maximum("read"))],
+      ["Longest recorded output write", ms(maximum("write"))], ["Longest recorded output flush", ms(maximum("flush"))],
+      ["Records omitted", server?.dropped ?? "Unknown"],
+    ], "Server audio delivery"));
+    body.append(element("p", "Server reads and writes use a separate clock. JSON contains cumulative byte positions for comparison with browser reads; flush completion does not prove browser receipt.", "small text-body-secondary"));
+  }
   body.append(table([
     ["Recorded at", turn.startedAt],
     ["Playback", speech.playbackMode || "Unknown"], ["Voice / speed", `${speech.voice ?? config.voice ?? "Default"} / ${speech.speed ?? config.speed ?? "Default"}`],

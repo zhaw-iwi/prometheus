@@ -35,12 +35,23 @@ test.beforeEach(async ({ context }) => {
 for (const width of [1440, 390]) {
   test(`PCM format choice preserves speaker, lifecycle, timings and saved MP3 comparison at ${width}px`, async ({ page }, testInfo) => {
     const requests = [];
+    const deliveryId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    let timingRequests = 0;
+    await page.route(`**/behaviours/${LIVE_BEHAVIOUR_ID}/speech/timing/${deliveryId}`, route => {
+      timingRequests++;
+      return route.fulfill(json({ version: 1, id: deliveryId, status: "complete", bytesRead: 19200,
+        bytesFlushed: 19200, dropped: 0, finishedMs: 415, steps: [
+          { sequence: 1, phase: "read", startedMs: 10, completedMs: 410, bytes: 9600, totalBytes: 19200 },
+          { sequence: 2, phase: "flush", startedMs: 410, completedMs: 411, bytes: 9600, totalBytes: 19200 },
+        ] }));
+    });
     await page.setViewportSize({ width, height: 1000 });
     await page.route(`**/behaviours/${LIVE_BEHAVIOUR_ID}/speech*`, route => {
+      if (route.request().url().includes("/timing/")) return route.fallback();
       requests.push(new URL(route.request().url()));
       const pcm = new URL(route.request().url()).searchParams.get("format") === "pcm";
       return route.fulfill({ status: 200, contentType: pcm ? "audio/pcm;rate=24000;channels=1;encoding=s16le" : "audio/mpeg",
-        body: Buffer.from([0, 1]) });
+        headers: { "X-Prometheus-Speech-Delivery-Id": deliveryId }, body: Buffer.from([0, 1]) });
     });
     await openConnectedValerian(page);
     await page.getByTestId("continuous-speech-tab").click();
@@ -91,21 +102,26 @@ for (const width of [1440, 390]) {
     await expect(page.locator("#listen_status")).toHaveText("Input Paused");
     await expect(format).toBeDisabled();
     expect(requests).toHaveLength(1);
-    expect(Object.fromEntries(requests[0].searchParams)).toEqual({ voice: "cedar", speed: "1.25", format: "pcm" });
+    expect(Object.fromEntries(requests[0].searchParams)).toEqual({ voice: "cedar", speed: "1.25", format: "pcm", deliveryTiming: "true" });
     expect(await page.evaluate(() => window.__pcmOptions)).toEqual([{ deviceId: "room-speaker" }]);
     expect(await page.evaluate(() => window.PrometheusTimings.snapshot()[0].speech)).toMatchObject({
       format: "pcm", formatPreference: "auto", playbackMode: "pcm", playbackStartSource: "pcm_renderer", pcmPrefillMs: 60,
     });
+    expect(timingRequests).toBe(0);
     await page.evaluate(() => window.__finishPcm());
     await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
     await expect(page.locator("#listen_status")).toHaveText("Listening");
     await expect(format).toBeEnabled();
+    await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot()[0].speechDelivery.retrieval)).toBe("received");
+    expect(timingRequests).toBe(1);
     await page.locator("#open_diagnostics").click();
     await page.getByTestId("interaction-timing-tab").click();
     const turns = page.getByTestId("timing-turns");
     await turns.locator("summary").click();
     await expect(turns).toContainText("PCM detail: 1 delivery and 3 renderer records");
     await expect(turns).toContainText("inserted silence 100.0 ms");
+    await expect(turns).toContainText("Server audio delivery");
+    await expect(turns).toContainText("400.0 ms");
     expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
     await attach(page, testInfo, `pcm-interruption-detail-${width}`, turns.locator("[data-pcm-detail]"));
     const download = page.waitForEvent("download");
@@ -115,6 +131,9 @@ for (const width of [1440, 390]) {
     const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     expect(exported.turns[0].pcm.renderer.at(-1)).toMatchObject({ type: "render_resume", gapFrames: 2400 });
     expect(exported.turns[0].pcm.delivery[0].bytes).toBe(4800);
+    expect(exported.turns[0].speechDelivery.server.bytesFlushed).toBe(19200);
+    expect(exported.turns[0].speechDelivery.server.steps[0].completedMs).toBe(410);
+    await attach(page, testInfo, `server-delivery-detail-${width}`, turns.getByRole("table", { name: "Server audio delivery", exact: true }));
     await page.locator('#diagnostics_drawer [data-bs-dismiss="offcanvas"]').click();
     await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
     await format.selectOption("mp3");

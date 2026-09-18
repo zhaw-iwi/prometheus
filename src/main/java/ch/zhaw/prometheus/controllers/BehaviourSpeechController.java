@@ -18,15 +18,20 @@ import ch.zhaw.prometheus.application.BehaviourSpeechUnavailableException;
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.ScopedBehaviourSpeechService;
 import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
+import ch.zhaw.prometheus.application.SpeechDeliveryTimingService;
+import ch.zhaw.prometheus.logging.SpeechDeliveryTrace;
+import org.springframework.http.CacheControl;
 import ch.zhaw.prometheus.controllers.views.BehaviourSpeechReferenceView;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 
 @RestController
 public class BehaviourSpeechController {
     private final ScopedBehaviourSpeechService speechService;
+    private final SpeechDeliveryTimingService deliveryTimings;
 
-    public BehaviourSpeechController(ScopedBehaviourSpeechService speechService) {
+    public BehaviourSpeechController(ScopedBehaviourSpeechService speechService, SpeechDeliveryTimingService deliveryTimings) {
         this.speechService = speechService;
+        this.deliveryTimings = deliveryTimings;
     }
 
     @PostMapping("/demo/agents/{agentId}/behaviours/{eventId}/speech")
@@ -37,11 +42,23 @@ public class BehaviourSpeechController {
             @PathVariable @NonNull UUID eventId,
             @RequestParam(required = false) String voice,
             @RequestParam(required = false) String speed,
-            @RequestParam(required = false) String format) {
+            @RequestParam(required = false) String format,
+            @RequestParam(defaultValue = "false") boolean deliveryTiming) {
         SpeechSynthesisSettings settings = new SpeechSynthesisSettings(voice, speed, format);
         return this.speechService.synthesize(accessCode(headerAccessCode, queryAccessCode), agentId, eventId, settings)
-                .map(SpeechAudioHttpResponse::stream)
+                .map(audio -> SpeechAudioHttpResponse.stream(audio,
+                        deliveryTiming ? deliveryTimings.start(agentId, eventId) : null))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/demo/agents/{agentId}/behaviours/{eventId}/speech/timing/{requestId}")
+    public ResponseEntity<SpeechDeliveryTrace.Snapshot> speechTiming(
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable UUID agentId, @PathVariable UUID eventId, @PathVariable UUID requestId) {
+        return deliveryTimings.find(accessCode(headerAccessCode, queryAccessCode), agentId, eventId, requestId)
+                .map(snapshot -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(snapshot))
+                .orElseGet(() -> ResponseEntity.notFound().cacheControl(CacheControl.noStore()).build());
     }
 
     @GetMapping("/demo/agents/{agentId}/behaviours/latest/speech")

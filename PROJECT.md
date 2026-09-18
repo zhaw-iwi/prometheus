@@ -79,12 +79,20 @@ and regulation diagnostics remain future work.
   Heroku testing deployment. The initial integration passed 398 Java and 45
   Node tests on isolated fixtures; later follow-ups have focused checks below.
 
-- Last completed follow-up: Milestone 182, automatic PCM interruption detail in
+- Last completed follow-up: Milestone 183, automatic server speech delivery timing
+  joined into the existing browser JSON export. Timed provider-response reads and
+  output writes/flushes use synthesis IDs and cumulative byte counts to narrow down
+  delivery pauses. Retrieval is asynchronous, access scoped, bounded and temporary;
+  playback's 60 ms buffer is unchanged. Passed 73 Java cases (13 on a disposable
+  local database), 69 Node cases and four desktop/mobile Playwright cases. Live
+  provider/Heroku pause location still requires the next trial.
+- Milestone 182 added automatic PCM interruption detail in
   the existing timing JSON export. Bounded content-free body-read/block-delivery,
   backpressure and renderer starvation/resume traces separate browser receipt
   clocks from audio positions. The drawer shows interruption positions and export
   coverage. Passed 66 Node, 22 Java contract and six native/cockpit Playwright cases. Buffer policy
-  is unchanged; the next Heroku trial must establish the interruption cause.
+  is unchanged. A subsequent live trial placed all 14 gaps after 200 ms of source
+  audio; the server detail now enables investigation beyond browser observations.
 - Milestone 181 introduced streamed PCM speech with bounded
   AudioWorklet playback, browser/speaker preparation before synthesis, and MP3
   comparison/fallback. Continuous now exposes the existing output settings with
@@ -113,6 +121,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 183: Server speech delivery timing
 
 - [x] Milestone 182: PCM interruption diagnostics
 
@@ -9113,3 +9123,23 @@ priority and action ownership.
   gap positions, provisional tail starvation, read waiting versus backpressure,
   cancellation/failure, event correlation, privacy, retention and JSON download.
   Live interruption cause and physical-device quality require the next Heroku trial.
+
+
+## Milestone 183: Server speech delivery timing
+
+- Added content-free provider-body read and HTTP output write/flush/close timings
+  at the existing streaming boundary, with synthesis ID, cumulative byte counts,
+  pending/error phase and bounded first/latest retention. Ordinary streaming and
+  the 60 ms PCM prefill/refill remain unchanged.
+- Valerian automatically requests diagnostics for tracked live PCM/MP3 speech and
+  retrieves them asynchronously into the same timing JSON after download/teardown.
+  The drawer exposes retrieval/stream status and recorded waits; CSV adds coverage.
+  Retrieval failures do not delay playback or become speech failures.
+- The endpoint rechecks access-code/agent visibility and event/synthesis identity.
+  Storage is limited to 128 in-memory traces with ten-minute expiry, each capped
+  at 256 operations. Missing/expired/other-instance traces stay explicit. Browser
+  and server clocks remain separate; flush does not prove browser receipt.
+- Passed 60 focused Java cases and 13 scoped integration cases on an isolated
+  local MySQL schema/account (both removed), 69 Node cases and four desktop/mobile
+  Playwright cases. Delivery-detail screenshots inspected. Providers were mocked
+  or loopback; live Heroku/provider pause location awaits the next exported trial.

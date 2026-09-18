@@ -65,6 +65,7 @@ export function timingExport(turns, browser = {}) {
   return { schemaVersion: 1, metadata: { source: "browser", exportedAt: new Date().toISOString(),
     browser: { userAgent: browser.userAgent, timeOrigin: browser.timeOrigin },
     clock: "Browser stages and HTTP boundaries are performance.now() milliseconds. Server spans use a separate request-relative clock.",
+    speechDeliveryTiming: "speechDelivery.server uses a separate server monotonic clock starting when the delivery trace is created, after provider headers. Read durations measure application reads of the provider response, not OpenAI internal generation or wire packet arrival. Write/flush completion means the application handed bytes to its HTTP output, not browser receipt. Match cumulative totalBytes with PCM delivery read.totalBytes; read/chunk boundaries can differ. Compare intervals within each clock, never subtract server timestamps from browser timestamps. Server traces retain 256 steps (first/latest halves) with dropped counts, for up to 10 minutes in one process. Retrieval is asynchronous after download/teardown; pending, failed, expired, evicted or another-instance traces remain explicitly incomplete/unavailable.",
     pcmTiming: "PCM detail version 1: at is browser observation/receipt time (performance.now); contextTimeMs samples AudioContext.currentTime there. renderFrame is the renderer's AudioContext frame, divided by prepared.sampleRate for seconds; playedFrames is consumed source audio, excluding inserted silence. Do not subtract audio-clock times from browser times. posted/render_receive share block and chunk IDs; their receipt interval includes both message directions. outstandingFrames includes frames not yet credited by the renderer, not exact occupancy; bufferedFrames is actual renderer occupancy. readWaitMs measures an awaited response-body read; previousReadGapMs also includes consumer backpressure, with separate wait events. Browser reads are not provider/network packets. buffer_empty is provisional until render_resume confirms gapFrames; pendingGapFrames at render_end can be tail waiting, not an interruption. Delivery (256) and renderer (64) lists retain their first half and latest half; dropped counts signal incomplete evidence. No audio samples or text are recorded.",
     interpretation: "Speech end is estimated by local VAD; audio_playing is a browser event, not physical audibility. PCM marks first samples consumed by the audio renderer; MP3 uses the media element playing event. Transcription acknowledgements, deltas and finals are browser receipt times, not provider timestamps; intervals include network delay. Deltas can arrive before speech end or commit. Nested/parallel durations must not be added. Spans with scope=speculative describe work that may start in an earlier HTTP request; their offsets are not relative to the enclosing request. Missing measurements are unknown.",
   }, turns: turns.map(turn => ({ ...structuredClone(turn), outcome: outcome(turn), durationsMs: measurements(turn) })) };
@@ -75,6 +76,7 @@ export function timingCsv(turns) {
     "silenceDurationSeconds", "transcriptionDelay", "formatPreference", "audioFormat", "audioFallbackReason", "playbackStartSource",
     "pcmPrefillMs", "pcmInitialBufferedMs", "pcmUnderruns", "pcmGapMs",
     "pcmDeliveryRecords", "pcmDeliveryDropped", "pcmRendererRecords", "pcmRendererDropped",
+    "speechDeliveryRetrieval", "speechDeliveryStatus", "speechDeliveryDropped",
     ...METRICS.map(([key]) => `${key}Ms`), "observedModelRequests", "modelRoutes", "missingServerRequests", "serverTimingTruncated"];
   const rows = turns.map(turn => {
     const metrics = measurements(turn), config = turn.configuration || {}, speech = turn.speech || {};
@@ -84,6 +86,7 @@ export function timingCsv(turns) {
       config.transcriptionDelay, speech.formatPreference ?? config.formatPreference, speech.format, speech.fallbackReason, speech.playbackStartSource,
       speech.pcmPrefillMs, speech.pcmInitialBufferedMs, speech.pcmUnderruns, speech.pcmGapMs,
       turn.pcm?.delivery.length, turn.pcm?.deliveryDropped, turn.pcm?.renderer.length, turn.pcm?.rendererDropped,
+      turn.speechDelivery?.retrieval, turn.speechDelivery?.server?.status, turn.speechDelivery?.server?.dropped,
       ...METRICS.map(([key]) => metrics[key]),
       servers.length ? observedInferences(servers).length : null,
       [...new Set(servers.flatMap(server => server.spans).filter(span => span.stage === "inference")

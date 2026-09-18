@@ -21,6 +21,71 @@ route test also respects the fail-closed endpoint override used by these suites.
 Deployment is explicitly authorized for the user's Heroku trial. Live provider
 quality, account access and the two-second performance target remain trial gates.
 
+## Server speech delivery timing (Milestone 183, 2026-09-18)
+
+The user's 13:56 trial for fe3cd0bb-66de-4497-b215-34c909477f41 recorded 14
+replies, each with a confirmed interruption after exactly 4,800 consumed samples
+(200 ms). The first browser delivery burst was 9,600 bytes. Confirmed gaps ranged
+from 61 to 627 ms (median 163 ms); no producer backpressure preceded them, and
+received/consumed sample totals matched. This places the immediate problem at
+early delivery starvation, but does not locate the pause between provider,
+server and browser. Original trial logs remain untouched.
+
+Added optional server instrumentation at SpeechAudio's existing read/write/flush
+loop. Each synthesis receives a fresh ID and an independent monotonic timeline
+starting after provider headers, including async dispatch, provider-body reads,
+output writes/flushes, stream closure, cumulative bytes and unfinished/error phase.
+Neither audio bytes nor exception messages enter the trace. The ordinary streaming
+loop, provider request, PCM 60 ms prefill/refill and two-second queue are unchanged.
+
+Valerian enables delivery timing automatically on tracked live canonical speech
+requests (PCM or MP3). A header identifies the trace; one scoped background GET
+after download/teardown attaches it to the existing turn's speechDelivery field.
+Playback and microphone reopening never wait for that GET. The timing drawer
+shows retrieval/stream status and maximum recorded waits; JSON retains operations,
+CSV records coverage. A timeout, missing/expired trace or invalid snapshot remains
+explicit and does not become a speech failure. Late retrieval cannot recreate
+cleared turns or attach to another agent. Startup replay remains outside turn logs.
+
+The service checks current access-code/agent visibility before looking up the
+agent/event/synthesis identity. Storage is in memory only: at most 128 traces,
+ten-minute expiry with pruning on access, and 256 operations per trace preserving
+the first/latest halves with dropped counts. A restart or another instance can
+make detail unavailable; no durable job/store is introduced. Trace status can be
+streaming after early teardown; the single fetch does not promise final completion.
+
+Interpretation: long server reads locate application waiting on the provider
+response, including upstream transport/client buffering. Long writes/flushes
+locate waiting toward servlet output. Prompt writes with later browser delivery
+point downstream. Match cumulative byte positions despite differing read sizes,
+compare intervals within each clock, and never subtract server and browser times.
+Flush completion does not establish browser receipt, OpenAI generation time or
+physical audibility. No live cause or latency improvement is claimed yet.
+
+Verification: 60 focused Java cases passed, including deterministic read/write/
+flush separation, failure phase, retention/expiry, scoped HTTP contracts, CORS,
+legacy speech paths, and real provider-to-Tomcat progressive PCM/MP3 delivery with
+withheld tails. Another 13 scoped controller integration cases passed on disposable
+local MySQL schema prometheus_delivery_d95e2bfb78 with a restricted task account;
+both schema/account were removed. All providers were mocked or loopback fixtures.
+Passed 69 Node performance/speech/transcription cases and four Playwright cases
+(PCM/export and timing drawer at 1440/390px). Desktop/mobile delivery-detail
+screenshots were inspected. The Java set is focused regression, not the full suite.
+
+Commands actually run:
+
+- mvnw.cmd -q "-Dtest=*Speech*UnitTest,*Speech*WebMvcTest,SpeechProgressiveHttpIntegrationTest,SpeechArchitecture*ContractTest,PrometheusCorsConfigurationWebMvcTest,ValerianClientStaticResourceContractTest" test
+- python target/run-speech-delivery-db.py (isolated ScopedDemoControllerIntegrationTest)
+- node --test tests/js/performance/*.test.mjs tests/js/speech/*.test.mjs tests/js/transcription/*.test.mjs
+- npx playwright test tests/playwright/valerian-transcription.spec.mjs --grep "PCM format choice|timing drawer" --output=target/speech-delivery-browser-results
+
+Browser fixtures used the local static server with PROMETHEUS_SKIP_WEBSERVER=true.
+Logs/screenshots are under target/speech-delivery-*. No live paid synthesis was
+performed. Next trial: refresh Heroku, retain Ultra Responsive/Automatic and the
+unchanged buffer, clear timing, speak normally, wait for the final reply and for
+Server audio delivery's retrieval status to be received, then export JSON. This
+measures the same playback policy with the additional server evidence.
+
 ## PCM interruption diagnostics (Milestone 182, 2026-09-18)
 
 The user's 13:08 trial for fc140c0e-eda6-43f2-b420-b1f0d3bce211 contains eight

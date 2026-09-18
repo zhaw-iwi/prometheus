@@ -49,7 +49,9 @@ class PrometheusCorsConfigurationWebMvcTest {
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
                         containsString("X-Prometheus-Behaviour-Id")))
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                        containsString("X-Prometheus-Timing")));
+                        containsString("X-Prometheus-Timing")))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString("X-Prometheus-Speech-Delivery-Id")));
     }
 
     @Test

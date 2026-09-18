@@ -300,6 +300,12 @@ PCM JSON detail also records bounded, content-free body reads, backpressure,
 numbered block delivery and renderer starvation/resume positions, with separate
 browser/audio clocks and explicit truncation. The existing timing export captures
 it automatically; buffer policy is unchanged. README documents interpretation.
+Tracked live speech also captures server provider-body reads and output
+write/flush/close durations, correlated by synthesis ID and cumulative byte counts.
+A scoped, bounded, short-lived in-memory trace is fetched after download/teardown
+into the same JSON export without delaying playback. Server clocks stay separate;
+read timings cannot isolate provider compute from upstream transport, and flush
+completion cannot establish browser receipt. No durable diagnostic jobs are used.
 Live performance and device/proxy evidence are tracked separately in
 .agents/NEEDFORSPEED_RESULTS.md.
 
