@@ -25,6 +25,7 @@ public class StorageEntry {
     }
 
     private String entryKey;
+    private UUID writeToken;
     @Column(name = "entry_value", length = 2048)
     @Convert(converter = JsonObjectConverter.class)
     private JsonElement entryValue;
@@ -32,6 +33,7 @@ public class StorageEntry {
     public StorageEntry(String key, JsonElement value) {
         this.entryKey = key;
         this.entryValue = value;
+        this.writeToken = UUID.randomUUID();
     }
 
     public String getKey() {
@@ -44,6 +46,11 @@ public class StorageEntry {
 
     public void setValue(JsonElement value) {
         this.entryValue = value;
+        this.writeToken = UUID.randomUUID();
+    }
+
+    public String writeVersion() {
+        return writeToken == null ? "legacy:" + String.valueOf(entryValue) : writeToken.toString();
     }
 
     public String toString() {

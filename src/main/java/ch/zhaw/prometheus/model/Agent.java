@@ -45,6 +45,12 @@ import jakarta.persistence.Transient;
 
 @Entity
 public class Agent {
+    private UUID executionEpoch;
+
+    public UUID executionEpoch() {
+        if (executionEpoch == null) executionEpoch = UUID.randomUUID();
+        return executionEpoch;
+    }
 
     @Id
     @GeneratedValue
@@ -197,11 +203,15 @@ public class Agent {
     }
 
     private Event acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
+        GuardEvaluation evaluation = null;
         try {
             if (recordInput) {
                 this.recordEvent(event);
             }
-            Event response = this.currentState.acknowledge(event, runtime);
+            if (runtime.behaviourSpeculation() != null) runtime.behaviourSpeculation().prepare(this.currentState, event, runtime);
+            evaluation = GuardEvaluation.prepare(this.currentState, runtime);
+            PolicyRuntime turnRuntime = runtime.withGuardEvaluation(evaluation);
+            Event response = this.currentState.acknowledge(event, turnRuntime);
             return this.recordEvent(response);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
@@ -211,6 +221,8 @@ public class Agent {
             }
             this.currentState.enter();
             return this.acknowledgeWithoutRegulation(event, false, runtime);
+        } finally {
+            if (evaluation != null) evaluation.invalidate();
         }
     }
 
@@ -278,6 +290,7 @@ public class Agent {
     }
 
     public void reset() {
+        this.executionEpoch = UUID.randomUUID();
         this.currentState = this.initialState;
         this.currentState.reset();
         if (this.eventHistory != null) {
@@ -337,6 +350,13 @@ public class Agent {
         this.initialState.collectStates(visited, states);
         for (State state : states) {
             state.setEventHistory(this.eventHistory);
+            if (state instanceof ch.zhaw.prometheus.model.commons.states.SmallTalkState
+                    || state instanceof ch.zhaw.prometheus.model.commons.states.DynamicActionableCoachingState) {
+                for (Transition transition : state.getTransitions()) for (Action action : transition.getActions())
+                    if (!action.hasExplicitExecutionMode()
+                            && action instanceof ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction)
+                        action.nonBlocking();
+            }
         }
     }
 

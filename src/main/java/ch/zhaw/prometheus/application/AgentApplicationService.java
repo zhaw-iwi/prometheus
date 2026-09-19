@@ -23,6 +23,7 @@ import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.logging.AgentBehaviourBroadcaster;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 import ch.zhaw.prometheus.model.Action;
 import ch.zhaw.prometheus.model.Agent;
@@ -53,6 +54,90 @@ public class AgentApplicationService {
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
     private final SocialSituationChangeDetector socialSituationChangeDetector;
+    private final AgentTurnSerialiser turns = new AgentTurnSerialiser();
+    private BackgroundActionExecutor backgroundActions;
+    private ch.zhaw.prometheus.repositories.StorageRepository storageRepository;
+    private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
+    private BehaviourSpeculationService speculation;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureSpeculation(BehaviourSpeculationService service) { this.speculation = service; }
+
+    void discardSpeculation(UUID id, String reason) { if (speculation != null) speculation.discard(id, reason); }
+
+    private static UUID lastEventId(Agent agent) {
+        var events = agent.getEventHistory().toList();
+        return events.isEmpty() ? null : events.getLast().getId();
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureBackgroundActions(BackgroundActionExecutor executor,
+            ch.zhaw.prometheus.repositories.StorageRepository storage,
+            org.springframework.transaction.PlatformTransactionManager transactionManager) {
+        this.backgroundActions = executor;
+        this.storageRepository = storage;
+        this.backgroundTransaction = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+        this.backgroundTransaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    private <T> T actionTurn(Agent agent, OutputProfile profile, java.util.function.Function<PolicyRuntime, T> work) {
+        if (backgroundActions == null) return work.apply(runtime(profile));
+        UUID id = agent.getId(), epoch = agent.executionEpoch();
+        try (var turn = new BackgroundActionTurn(id, backgroundActions,
+                (action, values, versions) -> applyBackgroundAction(id, epoch, action, values, versions))) {
+            T result = work.apply(runtime(profile).withActionExecution(turn));
+            turn.commit();
+            return result;
+        }
+    }
+
+    private String applyBackgroundAction(UUID id, UUID epoch, ch.zhaw.prometheus.model.PreparedAction action,
+            java.util.Map<String, String> values, BackgroundActionExecutor.Versions versions) {
+        var parsed = new java.util.HashMap<String, com.google.gson.JsonElement>();
+        values.forEach((key, value) -> parsed.put(key, ch.zhaw.prometheus.spi.InferenceResult.json(value)));
+        return serialized(id, () -> {
+            var before = new java.util.HashMap<String, String>();
+            var after = new java.util.HashMap<String, String>();
+            String status = backgroundTransaction.execute(transaction -> {
+                Agent current = repository.findById(id).orElse(null);
+                if (current == null || !epoch.equals(current.executionEpoch())) return "discarded_obsolete_agent";
+                if (values.isEmpty()) return "completed";
+                Storage storage = storageRepository.findById(action.storageId()).orElse(null);
+                if (storage == null) return "discarded_missing_storage";
+                for (var entry : action.expectedVersions().entrySet()) {
+                    String actual = storage.writeVersion(entry.getKey());
+                    if (!actual.equals(versions.expected(action.storageId(), entry.getKey(), entry.getValue())))
+                        return "discarded_storage_conflict";
+                    before.put(entry.getKey(), actual);
+                }
+                parsed.forEach(storage::put);
+                parsed.keySet().forEach(key -> after.put(key, storage.writeVersion(key)));
+                storageRepository.saveAndFlush(storage);
+                return "completed";
+            });
+            if ("completed".equals(status)) {
+                after.forEach((key, value) -> versions.applied(action.storageId(), key, before.get(key), value));
+                repository.findById(id).ifPresent(this::safePublishMonitor);
+            }
+            return status;
+        });
+    }
+
+    <T> T serialized(UUID agentId, java.util.function.Supplier<T> work) { return turns.call(agentId, work); }
+
+    public boolean tick(UUID agentId) {
+        return serialized(agentId, () -> {
+            discardSpeculation(agentId, "tick");
+            Agent agent = findAgent(agentId).orElse(null);
+            if (agent == null || !agent.isActive()) return false;
+            return actionTurn(agent, OutputProfile.FULL_PLAN, runtime -> {
+                Event response = agent.tick(runtime);
+                Agent saved = persistAndPublishMonitor(agent);
+                publishBehaviour(saved, response);
+                return true;
+            });
+        });
+    }
 
     public AgentApplicationService(AgentRepository repository, AgentMonitorBroadcaster monitorBroadcaster,
             AgentBehaviourBroadcaster behaviourBroadcaster,
@@ -136,15 +221,18 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> start(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        Event starter = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, starter);
-        return Optional.of(new ResponseView(starter, agent.isActive()));
+        return serialized(agentID, () -> {
+            discardSpeculation(agentID, "start");
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            Event starter = agent.start(this.runtime());
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, starter);
+            return Optional.of(new ResponseView(starter, agent.isActive()));
+        });
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities) {
@@ -152,20 +240,28 @@ public class AgentApplicationService {
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
-        }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event response = agent.generate(this.runtime(resolvedProfile));
-        if (response == null) {
-            return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
-        }
-        this.applyOmittedModalities(response, omitModalities);
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return BehaviourGenerationOutcome.GENERATED;
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
+            }
+            Agent agent = agentMaybe.get();
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            PolicyRuntime generationRuntime = this.runtime(resolvedProfile);
+            if (speculation != null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
+                    agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
+            PolicyRuntime preparedRuntime = generationRuntime;
+            Event response;
+            try { response = LatencyTrace.measure("generate", () -> agent.generate(preparedRuntime)); }
+            finally { discardSpeculation(agentID, "unused_generation"); }
+            if (response == null) {
+                return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
+            }
+            this.applyOmittedModalities(response, omitModalities);
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, response);
+            return BehaviourGenerationOutcome.GENERATED;
+        });
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
@@ -173,33 +269,46 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-        Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-        PolicyRuntime runtime = this.runtime(resolvedProfile);
-        Event response = agent.acknowledge(event, runtime);
-        Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, runtime);
-        Event responseToReturn = computedResponse == null ? response : computedResponse;
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, responseToReturn);
-        return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+        return serialized(agentID, () -> {
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            try (var preview = speculation == null ? null : speculation.open(agentID, agent.executionEpoch(),
+                    agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {
+                Optional<ResponseView> result = actionTurn(agent, resolvedProfile, runtime -> {
+                    PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
+                    Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
+                    Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
+                    Event responseToReturn = computedResponse == null ? response : computedResponse;
+                    Agent saved = this.persistAndPublishMonitor(agent);
+                    this.publishBehaviour(saved, responseToReturn);
+                    if (preview != null) preview.result(lastEventId(saved), responseToReturn != null);
+                    return Optional.of(new ResponseView(responseToReturn, agent.isActive()));
+                });
+                if (preview != null) preview.commit();
+                return result;
+            }
+        });
     }
 
     public Optional<ResponseView> reset(UUID agentID) {
-        Optional<Agent> agentMaybe = this.findAgent(agentID);
-        if (agentMaybe.isEmpty()) {
-            return Optional.empty();
-        }
-        Agent agent = agentMaybe.get();
-        agent.reset();
-        Event response = agent.start(this.runtime());
-        Agent saved = this.persistAndPublishMonitor(agent);
-        this.publishBehaviour(saved, response);
-        return Optional.of(new ResponseView(response, agent.isActive()));
+        return serialized(agentID, () -> {
+            discardSpeculation(agentID, "reset");
+            Optional<Agent> agentMaybe = this.findAgent(agentID);
+            if (agentMaybe.isEmpty()) {
+                return Optional.empty();
+            }
+            Agent agent = agentMaybe.get();
+            agent.reset();
+            Event response = agent.start(this.runtime());
+            Agent saved = this.persistAndPublishMonitor(agent);
+            this.publishBehaviour(saved, response);
+            return Optional.of(new ResponseView(response, agent.isActive()));
+        });
     }
 
     public Optional<PolicyResponseView> prompt(UUID agentID) {
@@ -259,8 +368,8 @@ public class AgentApplicationService {
         Agent agent = new Agent(data.getAgentName(), data.getAgentDescription(), state, storage);
         agent.setLanguageCode(valueOrDefault(data.getLanguageCode(), AgentDefinition.LANGUAGE_ENGLISH));
         Event starter = agent.start(this.runtime());
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
                 saved.getInteractionProfile(), saved.getLanguageCode()));
@@ -281,8 +390,8 @@ public class AgentApplicationService {
     }
 
     private Agent persistAndPublishMonitor(Agent agent) {
-        Agent saved = this.repository.save(agent);
-        safePublishMonitor(saved);
+        Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
+        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         return saved;
     }
 
@@ -303,7 +412,9 @@ public class AgentApplicationService {
             eventToPublish = candidate;
             break;
         }
-        safePublishBehaviour(agent.getId(), eventToPublish);
+        LatencyTrace.behaviour(eventToPublish.getId());
+        Event published = eventToPublish;
+        LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; });
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {

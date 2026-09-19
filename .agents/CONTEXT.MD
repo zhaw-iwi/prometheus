@@ -83,6 +83,10 @@ PROMETHEUS currently provides:
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
+- typed inference requests with configurable task-purpose model/effort routes,
+  finite provider deadlines, strict structured-result validation and content-free
+  correlated latency diagnostics, including a Valerian Interaction Timing drawer
+  with browser/server JSON and comparison CSV exports (details in README/results);
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;
@@ -97,12 +101,16 @@ PROMETHEUS currently provides:
   item-ordered final transcripts, bounded fresh-session reconnect after
   transport or active-track loss, navigation-safe teardown, live device
   refresh, operator capture settings, and privacy-safe preference persistence;
+- content-free browser timing for commit send/acknowledgement, first/last
+  transcript delta and final receipt, preserving arrival times across ordered
+  final release; these are browser observations, not provider-side clocks;
 - serialized, duplicate-safe live-transcript ingress through the ordinary
   scoped `obs.user_utterance` / `FULL_PLAN` acknowledgement boundary, with
   canonical behaviour rendering left to the existing SSE stream;
 - ordered Valerian Speech synthesis and selected-device playback driven by
   persisted behaviour IDs, with live-delivery deduplication, ordinary replay
-  suppression, explicit latest-assistant playback when transcription starts,
+  suppression, output enabled only by Start Transcription, explicit latest-assistant
+  playback on that start, and pending output invalidated when the session stops,
   ID/envelope replay correlation, per-agent cross-tab output ownership,
   explicit Stop, and microphone gating across output;
 - an explicit Valerian cockpit lifecycle in which operational columns stay
@@ -268,3 +276,66 @@ tests for the actual task rather than relying only on this list.
 - Build a second social motivation or regulation abstraction beside the current
   one.
 - Use the complete milestone history as the current specification.
+
+### Need for Speed speech delivery
+
+Valerian's canonical event-ID Speech playback selects bounded PCM AudioWorklet
+delivery after browser/device preparation, or progressive MP3 MediaSource delivery
+with a same-response buffered fallback. The Continuous output settings expose
+Automatic/MP3 for comparison; existing clients default to MP3 unless they request PCM.
+The shared queue still owns ordering, leases and input gating. The server flushes
+stream chunks; the persisted BehaviourPlan remains the authority for spoken text.
+Timing exports label the format, preparation, buffer interruptions and distinct
+PCM-renderer versus media-element playback markers; neither is physical audibility.
+PCM JSON detail also records bounded, content-free body reads, backpressure,
+numbered block delivery and renderer starvation/resume positions, with separate
+browser/audio clocks and explicit truncation. The existing timing export captures
+it automatically; buffer policy is unchanged. README documents interpretation.
+Tracked live speech also captures server provider-body reads and output
+write/flush/close durations, correlated by synthesis ID and cumulative byte counts.
+A scoped, bounded, short-lived in-memory trace is fetched after download/teardown
+into the same JSON export without delaying playback. Server clocks stay separate;
+read timings cannot isolate provider compute from upstream transport, and flush
+completion cannot establish browser receipt. No durable diagnostic jobs are used.
+Live performance and device/proxy evidence are tracked separately in
+.agents/NEEDFORSPEED_RESULTS.md.
+
+### Need for Speed inference execution
+
+Typed inference purpose and route configuration live at the policy/SPI boundary.
+All PromptPolicy generation, including final-state speech-only output, requests
+a JSON BehaviourPlan. Speech-only output needs only the speech field; deterministic
+policies continue constructing canonical plans without inference.
+Speech and nonverbal prompt output can share one request using compact provider
+JSON that is expanded into the canonical BehaviourPlan before publication.
+Custom/partial nonverbal objects retain their fields; no compact keys enter the
+public or persisted plan contract. Eligible pure guard
+requests can be combined or evaluated through an opt-in bounded executor. The
+state machine still consumes results in priority order and owns all actions.
+Workers never receive entities or persistence contexts. The application serializes
+runtime mutations per agent inside one process; scheduled ticks and scoped
+deletion use that same boundary. See README for limits and multi-instance scope.
+
+Transition actions default to bounded in-memory background execution in the
+application host, with explicit blocking dependencies. Workers consume immutable
+prepared work; completion updates fresh storage under the agent lock after commit.
+Reset epochs and storage write tokens reject obsolete/conflicting results. Jobs
+do not survive restart; completion/failure is correlated in server logs. Legacy
+summary/outcome actions migrate on reload; other unconfigured legacy actions keep
+their ordering. Embedded runtimes without an execution host remain synchronous.
+
+Eligible user-utterance behaviour can overlap transition decisions by default.
+An application-owned bounded, expiring cache bridges acknowledge/generate reloads;
+workers only receive immutable inference requests. No transition and matching
+committed input, epoch, effective prompt and route are required for reuse. All
+transitions invalidate, including self-loops; fresh generation never waits for
+discarded work. No-op regulation and known pure state/policy/assembler/guard paths
+are required; custom and sensory paths remain sequential. Cancellation can leave
+billed work running. Timing exports mark cross-request speculative evidence;
+completed late/discarded work may only be visible in server logs. README documents
+limits and the configuration switch for sequential comparisons.
+
+New persisted events carry a nullable internal history position so reloading
+timestamp ties preserves append order. Legacy rows retain their timestamp order
+without backfill; public IDs/payloads/timestamps are unchanged. The additive
+MySQL column and coordinated writer upgrade are documented in README.

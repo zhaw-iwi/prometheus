@@ -1,3 +1,4 @@
+import { turnTimings } from "../performance/timings.js";
 const ACCESS_CODE_HEADER = "X-Prometheus-Access-Code";
 const FULL_PLAN = "full_plan";
 
@@ -36,6 +37,7 @@ export class ScopedTranscriptIngress {
       this.status("rejected", normalized, { reason: "input_gated" });
       return Promise.resolve(false);
     }
+    normalized.traceId = turnTimings.begin(this.agentId, turn?.timings);
     this.status("queued", normalized);
     this.onQueued(normalized);
     const delivery = this.queue.then(() => this.deliver(normalized));
@@ -59,7 +61,7 @@ export class ScopedTranscriptIngress {
     this.status("acknowledging", turn);
     let response;
     try {
-      response = await this.fetchScoped(`${this.agentPath()}/acknowledge?profile=${FULL_PLAN}`, {
+      response = await turnTimings.fetch(turn.traceId, this.fetchScoped.bind(this), `${this.agentPath()}/acknowledge?profile=${FULL_PLAN}`, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify({
@@ -85,8 +87,12 @@ export class ScopedTranscriptIngress {
       this.reject(turn, "acknowledge_invalid_response", error);
       return false;
     }
+    turnTimings.mark(turn.traceId, "acknowledged");
     if (!acknowledgement?.responseEvent) await this.requestFallbackBehaviour(turn);
-    await this.onAccepted({ ...turn, acknowledgement });
+    turnTimings.mark(turn.traceId, "processing_complete");
+    turnTimings.mark(turn.traceId, "ui_refresh_start");
+    try { await this.onAccepted({ ...turn, acknowledgement }); }
+    finally { turnTimings.mark(turn.traceId, "ui_refresh_end"); }
     this.status("accepted", turn, { active: acknowledgement?.active });
     return true;
   }
@@ -94,7 +100,7 @@ export class ScopedTranscriptIngress {
   async requestFallbackBehaviour(turn) {
     let response;
     try {
-      response = await this.fetchScoped(`${this.agentPath()}/behaviour/generate`, {
+      response = await turnTimings.fetch(turn.traceId, this.fetchScoped.bind(this), `${this.agentPath()}/behaviour/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify({ outputProfile: FULL_PLAN }),
@@ -118,6 +124,7 @@ export class ScopedTranscriptIngress {
   }
 
   status(state, turn, details = {}) {
+    turnTimings.mark(turn.traceId, state);
     this.onStatus({ state, epoch: turn.epoch, itemId: turn.itemId, ...details });
   }
 

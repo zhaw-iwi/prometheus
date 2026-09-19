@@ -72,13 +72,92 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Last completed milestone: Milestone 161, live-transcription device and
-  lifecycle resilience.
+- Last completed follow-up: Milestone 183, automatic server speech delivery timing
+  joined into the existing browser JSON export. Timed provider-response reads and
+  output writes/flushes use synthesis IDs and cumulative byte counts to narrow down
+  delivery pauses. Retrieval is asynchronous, access scoped, bounded and temporary;
+  playback's 60 ms buffer is unchanged. Passed 73 Java cases (13 on a disposable
+  local database), 69 Node cases and four desktop/mobile Playwright cases. Live
+  provider/Heroku pause location still requires the next trial.
+- Milestone 182 added automatic PCM interruption detail in
+  the existing timing JSON export. Bounded content-free body-read/block-delivery,
+  backpressure and renderer starvation/resume traces separate browser receipt
+  clocks from audio positions. The drawer shows interruption positions and export
+  coverage. Passed 66 Node, 22 Java contract and six native/cockpit Playwright cases. Buffer policy
+  is unchanged. A subsequent live trial placed all 14 gaps after 200 ms of source
+  audio; the server detail now enables investigation beyond browser observations.
+- Milestone 181 introduced streamed PCM speech with bounded
+  AudioWorklet playback, browser/speaker preparation before synthesis, and MP3
+  comparison/fallback. Continuous now exposes the existing output settings with
+  Automatic/MP3 selection. Timing exports identify format, preparation, buffering
+  and interruptions. Passed 53 Java cases (16 on a disposable MySQL database),
+  63 client tests and 16 browser cases; desktop/mobile screenshots inspected.
+  Live provider, physical-device latency and speech quality remain trial gates.
+- Milestone 180 transcription timing and Ultra Responsive (0.5-second silence /
+  minimal delay) remain available for those trials. No production latency gain
+  is claimed for PCM; browser playback markers differ between PCM and MP3.
+- Previous runtime follow-up: Milestone 178, bounded speculative behaviour alongside
+  transition decisions, with reuse across persisted acknowledge/generate reloads
+  and immediate invalidation on every transition. Passed 359 full Java cases on
+  an isolated database, 50 client cases and two timing-panel browser cases.
+  Milestone 177 background actions remain in memory as requested. Both optimizations
+  preserve explicit blocking dependencies and ordinary validated publication.
+  Live latency gains, discarded provider cost and response quality need retesting.
+- Integrated acceptance milestone: Milestone 169 (NFS-08), integrated
+  offline acceptance of Need for Speed on `features/needforspeed`.
+  All eight roadmap milestones have implementation/evidence records. Live model
+  quality, human response review, provider cost/latency and physical-device gates
+  remain open; the two-second target is unverified. See
+  `.agents/PLAN_NEEDFORSPEED.md` and `.agents/NEEDFORSPEED_RESULTS.md`.
 - The regulation gap above is a major framework direction, but it should become
   a milestone only after its intended motivation model and acceptance criteria
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 183: Server speech delivery timing
+
+- [x] Milestone 182: PCM interruption diagnostics
+
+- [x] Milestone 181: Progressive PCM speech and format comparison
+
+- [x] Milestone 180: Minimal Ultra Responsive and precise transcription timing
+
+- [x] Milestone 179: Ultra Responsive conversation pace
+
+- [x] Milestone 178: Speculative conversational behaviour with guarded reuse
+
+- [x] Milestone 177: In-memory background transition actions
+
+- [x] Milestone 176: Unified JSON behaviour generation including final states
+
+- [x] Milestone 175: Compact provider behaviour JSON with canonical publication
+
+- [x] Milestone 174: Luna behaviour routes and output-size investigation
+
+- [x] Milestone 173: Interaction timing drawer and shareable evidence
+
+- [x] Milestone 172: Transcription-controlled Valerian speech activation
+
+- [x] Milestone 171: Canonical latest-assistant transcription resume
+
+- [x] Milestone 170: Heroku test routes and hand-sign compatibility
+
+- [x] Milestone 169: Integrated Need for Speed offline acceptance
+
+- [x] Milestone 168: Bounded parallel guard evaluation
+
+- [x] Milestone 167: Explicit responsive turn-completion settings
+
+- [x] Milestone 166: Progressive canonical Speech playback
+
+- [x] Milestone 165: Compatible pure guard batching
+
+- [x] Milestone 164: Combined speech and nonverbal generation
+
+- [x] Milestone 163: Typed inference requests and model/effort routing
+
+- [x] Milestone 162: Correlated latency diagnostics and frozen offline baselines
 
 - [x] Milestone 1: Output-profile-aware prompt and generation flow for realtime compatibility
 - [x] Milestone 2: Realtime multimodal seed agent and complement replay coverage
@@ -7711,3 +7790,509 @@ or weakening the Milestone 159/160 cockpit and starter-speech lifecycles.
 ### Next steps
 1. Execute `.agents/TRANSCRIBE_SMOKE_RESULTS.md` on the target Valerian hardware
    and record the physical English, German, and Arabic acoustic results.
+
+
+## Milestone 162: Correlated latency diagnostics and frozen offline baselines
+
+### What changed
+- Added request-local monotonic spans and opaque correlation headers. Canonical
+  persisted behaviour IDs join HTTP and SSE without changing event payloads.
+- Instrumented inference/token usage, application, persistence/publication and
+  Speech response headers; removed successful provider prompt/result logging.
+- Added bounded in-memory timing through local VAD, ordered finals, ingress,
+  typed input, SSE, rendering, first audio byte and media playing. Both Valerian
+  and multilateral preserve final-transcript timing metadata.
+- Added all-catalog call-count assertions, fourteen synthetic labelled quality
+  cases, two locally synthesized pause fixtures, and a results ledger.
+
+### Verification
+- Focused Java run: 17 tests passed across LatencyTraceUnitTest,
+  CatalogInferenceCountUnitTest, PrometheusCorsConfigurationWebMvcTest,
+  PromptPolicyGestureUnitTest, OpenAILanguageModelGatewayMessageMappingUnitTest,
+  OpenAILanguageModelGatewayHttpUnitTest and OpenAISpeechSynthesisGatewayUnitTest.
+- SpeechArchitectureBrowserClientContractTest and
+  ValerianClientStaticResourceContractTest passed all 19 tests; the gateway HTTP
+  test passed again after the final logging adjustment.
+- `node --test tests/js/performance/*.test.mjs tests/js/transcription/*.test.mjs
+  tests/js/speech/*.test.mjs`: all 33 passed.
+- Playwright `valerian-transcription.spec.mjs --grep 'mocked WebRTC emits'`:
+  one complete mocked browser journey passed with timing-chain assertions.
+- Valerian/multilateral syntax checks and `git diff --check` passed.
+
+### Limits and next step
+- No database, live provider or physical hardware was exercised. Media playing
+  was mocked in this instrumentation check. Live p50/p95, costs, quality, real
+  audio and deployment buffering remain NOT RUN in the results ledger.
+- Continue with NFS-02 model-purpose routing. The user explicitly authorized
+  committing/pushing each milestone and continuing without a review pause.
+
+
+## Milestone 163: Typed inference requests and model/effort routing (NFS-02)
+
+### What changed
+- Added immutable inference snapshots with purpose, expected output shape,
+  optional structured schema and request/trace IDs. Existing custom gateway
+  semantic methods remain supported through the typed SPI extension point.
+- Added global fallback and per-purpose model, effort, endpoint, timeout and
+  output-token settings. The template includes opt-in Sol/Luna routes; no local
+  credentials or deployment model settings were changed.
+- Added finite HTTP deadlines, interruption handling, strict boolean/JSON and
+  response-envelope validation, and content-free provider failure messages.
+  Refused, filtered and truncated output cannot be accepted as a decision.
+- Kept Azure deployment URLs authoritative. Routing requires a corresponding
+  endpoint when a model is overridden, and does not send public model IDs in
+  Azure request bodies. Omitted legacy Azure model metadata remains supported.
+- Omitted optional sampling parameters on reasoning families; recorded this
+  payload difference for subsequent quality comparisons.
+
+### Verification
+- 22 Java tests passed in InferenceRoutingUnitTest,
+  OpenAILanguageModelGatewayHttpUnitTest,
+  OpenAILanguageModelGatewayMessageMappingUnitTest, PromptPolicyGestureUnitTest,
+  CatalogInferenceCountUnitTest, StateTransitionUnitTest,
+  StateTransitionSnapshotUnitTest, AgentOuterStateRoutingUnitTest and
+  AgentNestedOuterStateRoutingUnitTest.
+- The 7 routing/loopback HTTP tests passed again after the final Azure fallback
+  and request-shape validation changes. They cover exact fields, Spring binding,
+  missing usage, strict parsing, refusal/truncation, provider error and timeout
+  without retries. Catalog call counts and branch semantics are unchanged.
+- `git diff --check` passed. No database, live-provider or browser run was needed
+  for these configuration/SPI changes. Live Sol/Luna/OpenAI/Azure checks remain
+  NOT RUN. Official Sol/Luna model pages were fetched on 2026-09-16.
+
+### Next step
+Continue with NFS-03 combined speech/nonverbal generation and persisted-policy
+smoke verification in a disposable local database.
+
+
+## Milestone 164: Combined speech and nonverbal generation (NFS-03)
+
+### What changed
+- PromptPolicy deterministically composes one JSON behaviour request when a
+  nonverbal prompt is configured, preserving outer/task/starter instructions
+  and custom stored nonverbal prompts. Removed sequential nonverbal generation
+  and gesture-repair calls.
+- Validates speech, nonverbal and optional motion/display channels before
+  emitting the existing BehaviourPlan. Invalid combined results fail after one
+  request; no partial plan is recorded. Gesture normalization and unsupported
+  nonverbal locomotion stripping remain.
+- Speech-only and deterministic paths are unchanged. Ordinary coaching/core
+  conversation drops from four text calls to three; role clarification from six
+  to five; prompt startup and sensory generation from two to one.
+
+### Verification
+- 11 tests passed: PromptPolicyUnitTest, PromptPolicyGestureUnitTest,
+  CatalogInferenceCountUnitTest and MultimodalBehaviourPlanEmissionUnitTest.
+- All 10 ScopedDemoControllerIntegrationTest cases passed using disposable local
+  MySQL schema prometheus_nfs_f71ad024 and its test-scoped account. No developer
+  schema was reset. Providers were mocked. New smoke coverage saves and reloads
+  a custom policy, acknowledges, generates in one call, reloads the exact plan,
+  verifies publication/header identity and synthesizes exact persisted speech.
+- 31 neighboring tests passed in AgentApplicationServicePromptUnitTest,
+  AgentApplicationServiceGenerateOptionsUnitTest, ScopedBehaviourSpeechServiceUnitTest,
+  BehaviourSpeechControllerWebMvcTest, HealthcareUseCasePromptContractTest,
+  ValerianCorePromptContractTest and TalkToMePolicyUnitTest.
+- `git diff --check` passed. No browser code changed in this milestone.
+
+### Limits and next step
+Live combined-response quality and elapsed-time gains remain NOT RUN. Continue
+with deterministic batching of compatible guards, retaining Java transition
+priority and action ownership.
+
+## Milestone 165: Compatible pure guard batching (NFS-04)
+
+- Added per-acknowledgement immutable guard requests, local event filtering,
+  route/size grouping, strict boolean maps, and ordered result consumption.
+  Unknown custom work remains a barrier; actions invalidate unused results.
+- Ordinary catalog exchanges now use two text requests: guard group + behaviour.
+  Role clarification groups five eligible predicates (including a predicate that
+  ordered short-circuit evaluation may skip), retaining role/outer priority.
+- Verified 18 focused tests in GuardEvaluationUnitTest, CatalogInferenceCountUnitTest,
+  StateTransitionUnitTest, StateTransitionSnapshotUnitTest,
+  AgentOuterStateRoutingUnitTest and AgentNestedOuterStateRoutingUnitTest.
+  Verified 11 ScopedDemoControllerIntegrationTest cases plus
+  TransitionDecisionActionReplayIntegrationTest on disposable local schema
+  prometheus_nfs_f71ad024 with mocked providers. The replay fixture now represents
+  the NFS-03 combined speech/nonverbal request. The DB process reported a Surefire
+  shutdown timeout after completed tests; test assertions all passed.
+- Covers conflicting priorities, nested/explicit history selectors, changed
+  snapshot rejection, action-dependent storage prompts, malformed maps, barriers,
+  route/count/character limits, real role selection, persisted extraction/reset.
+- Live candidate-model guard corpus, quality, tokens/cost and latency NOT RUN;
+  structural correctness does not establish identical model judgments.
+
+## Milestone 166: Progressive canonical Speech playback (NFS-05)
+
+- Added bounded MediaSource MP3 consumption at the shared speech boundary and
+  integrated it into Valerian's existing scoped canonical-event playback queue.
+  Unsupported capability/setup falls back with the same body; midstream failure
+  fails once. Stop/disconnect release readers, source buffers and object URLs.
+  Servlet output now flushes provider chunks before EOF.
+- Passed 11 Node speech tests, 5 SpeechAudio/OpenAISpeechSynthesisGateway tests,
+  and SpeechProgressiveHttpIntegrationTest (real loopback provider through Tomcat,
+  no database). Passed 23 neighboring speech service/controller/browser-contract
+  tests, including Talk to Me. Passed 3 real-decoder browser tests and 14 Valerian
+  lifecycle/visual cases, plus a visual artifact rerun. No live API calls.
+- Native playback time advances before the test server releases the MP3 tail;
+  unsupported-MSE decoding consumes one request, and native Stop closes the held
+  stream. Unit checks cover malformed/empty/oversized streams, decoding errors,
+  inactivity timeout and resource cleanup. Existing browser checks retain output
+  device selection, two-tab ownership, replay/reset/reconnect and input gating.
+- Inspected desktop and 390px mobile loading/speaking/stopped/error controls.
+  Browser media events are a proxy for audible sound. Live provider latency,
+  deployed proxy behavior, speakers/Bluetooth and non-Chromium devices NOT RUN.
+
+## Milestone 167: Explicit responsive turn-completion settings (NFS-06)
+
+- Added Responsive (0.8s/low) and Pause tolerant (1.5s/medium) choices to the
+  shared typed transcription preferences/panel. Descriptor normalization remains
+  authoritative; unrelated preferences, custom thresholds, manual turns and
+  session locking remain intact. No transport or server-default change.
+- Passed 28 shared-engine Node tests, 13 Java normalization/payload/controller
+  tests and 15 Valerian/multilateral browser cases. Keyboard selection, exact
+  low-delay payload, retained reconnect values and manual mode verified; inspected
+  desktop/mobile pace controls. Partial/stale/duplicate/gated finals stay outside
+  ordinary acknowledgement through existing ingress tests.
+- Added reproducible offline WAV/RMS replay without changing the frozen corpus.
+  At 0.8s both natural sentences split prematurely; 1.5s keeps the shorter pause
+  intact but splits the longer hesitation. Derived low-noise/sequential-utterance
+  checks show the same boundary. Full counts are in NEEDFORSPEED_RESULTS.md. No ASR, real room or multiple-speaker validation.
+- Therefore delivered the explicit responsive option and retained the existing
+  conservative default, as allowed by the roadmap. No claim of passing the
+  healthcare acoustic envelope or achieving the two-second target.
+
+## Milestone 168: Bounded parallel guard evaluation (NFS-07)
+
+- Added opt-in parallel and combined_parallel guard strategies over immutable
+  requests. Global/per-turn permits, admission capacity, queue/turn deadlines,
+  cancellation and shutdown bound speculative work. Logical result consumption
+  retains outer/transition priority; state/actions/persistence remain on caller.
+- Added reference-counted per-agent application serialization, retaining locks
+  through enclosing transaction completion. Scheduled ticks now fetch IDs and
+  enter that boundary, reloading the aggregate inside the lock. Scoped deletion
+  joins the same boundary. This protects one application process, not clusters.
+- Passed 32 focused current unit cases across GuardInferenceExecutorUnitTest,
+  ParallelGuardEvaluationUnitTest, GuardEvaluationUnitTest,
+  AgentTurnSerialiserUnitTest, ContinuousEvaluationSchedulerUnitTest,
+  CatalogInferenceCountUnitTest, InferenceRoutingUnitTest and
+  OpenAILanguageModelGatewayHttpUnitTest. Passed 12 isolated DB cases across
+  ParallelAgentTurnsIntegrationTest/ScopedDemoControllerIntegrationTest and
+  3 AgentContinuousEvaluationUnitTest cases. The final catalog comparison was
+  added after the main unit run and its six-case class passed independently.
+- Latches prove concurrent starts, reversed priority completion, worker isolation,
+  same-agent input order and independent-agent progress. A controllable monotonic
+  clock proves expiry; cancellation, admission exhaustion, required failure,
+  custom barriers, changed snapshots, transactional lock cleanup, extraction and
+  reset are covered. No sleeps used as evidence of concurrency.
+- Ordinary SMART ordered/combined/parallel text calls: 3/2/3; role clarification:
+  5/2/6; RPS readiness: 4/2/5. Parallel pays for speculative checks that ordered
+  short circuiting can skip. Combined remains default. Live p50/p95, quality and
+  tokens/cost comparison NOT RUN; no production speedup claimed for parallel mode.
+
+
+## Milestone 169: Integrated Need for Speed offline acceptance (NFS-08)
+
+- Finished the integrated offline acceptance and evidence record for all five
+  approaches. The roadmap marks functional delivery separately from open live
+  quality, human review, provider latency/cost and physical-device gates. The
+  two-second target remains unverified; no production deployment or merge.
+- Full Java suite passed 281 tests across 79 classes, with zero failures, errors
+  or skips. Shared performance/speech/transcription Node suites passed 45 tests.
+  The combined Playwright matrix passed 31 cases: progressive native audio,
+  Valerian transcription/lifecycle/columns, scoped Talk to Me and API Workbench.
+  Exact commands, environment and fixture boundaries are in the results record.
+- Fixed deterministic Talk to Me consulting gateway guard options, and persisted
+  append ordering for tied timestamps. Nullable internal event.history_position
+  preserves new-event order; legacy IDs/payloads/dates remain unchanged without
+  backfill. Two new isolated MySQL tests cover ties/removal and legacy null rows.
+  The developer schema was untouched. README documents the additive column and
+  coordinated writer upgrade.
+- Made the replay integration server stop immediately at test teardown so its
+  long-lived SSE fixtures no longer cause Surefire's process-exit timeout. The
+  final full-suite run exited cleanly; production shutdown is unchanged.
+- Added a reusable loopback synthetic provider and offline timing/usage summary
+  with missing-stage, unknown-usage and small-sample reporting. Removed obsolete
+  unbounded audio timing code; preserved corpus hashes with Git attributes.
+- Combined ordinary healthcare/core paths use two text requests versus four at
+  baseline; role/RPS continuation use two versus six/five. Real Chromium starts
+  MP3 playback before EOF. Faster model routes and parallel evaluation remain
+  opt-in. Responsive pause timing failed the frozen natural-pause envelope, so
+  the conservative default remains. No mock timing is claimed as a live gain.
+- All test database/browser processes used isolated synthetic fixtures. No live
+  provider, human response assessment, physical-device or reverse-proxy run was
+  performed. Those empirical acceptance gates remain explicitly open.
+
+
+## Milestone 170: Heroku test routes and hand-sign compatibility
+
+- The user authorized deployment to the Heroku testing environment. Configured
+  explicit production-profile Sol behaviour/nonverbal and Luna decision,
+  extraction and summary routes, all at none effort. Kept global GPT-5.2 fallback
+  and the local opt-in template. No credentials were added or modified.
+- Ported the agents-branch top-level hand-sign regression to combined generation
+  on the feature branch, so the reusable fix can later reach main. Wrapped
+  nonverbal instructions retain motion at the correct level; scissors normalizes
+  to scissor and unsupported locomotion is removed without dropping other channels.
+- Passed 23 focused Java tests across routing, actual production-profile binding,
+  loopback HTTP payloads, prompt-policy multimodality, catalog counts and
+  transcription normalization. No live provider or database used in this step.
+- Documented custom cockpit local-VAD timing: 1.0 seconds is 1,000 ms, editable
+  while transcription is stopped; provider delay remains an independent setting.
+- Next integration is features/needforspeed into agents, with application-specific
+  fixtures and merge validation there before the authorized deployment push.
+
+## Milestone 171: Canonical latest-assistant transcription resume
+
+- Fixed the resume endpoint reading a selected state-policy history whose event
+  copies have no persisted IDs. It now reads scoped canonical history, matching
+  the chat and the exact-event Speech endpoint. Fresh greetings and previous
+  assistant utterances are eligible; empty history and a latest user utterance
+  remain silent. Later non-speech events do not replace the latest utterance.
+- Added two database/HTTP regression cases using real persisted/reloaded agents,
+  including an assistant reply outside the current state's selector, exact
+  synthesis, repeated lookup and access scoping. Both reproduced the old HTTP
+  204 failure before the fix. Extended the browser resume test to stop and start
+  again, with input held until the same assistant event finishes each time.
+- Passed 27 focused Java cases on an isolated local MySQL schema with mocked
+  providers, 11 Node speech tests and 18 Playwright transcription/progressive
+  audio cases. Native Chromium verifies streaming; cockpit WebRTC/media are
+  mocked. No live provider, acoustic device or deployed latency measurement.
+- README now distinguishes automatic combining, production Sol/Luna routes and
+  browser streaming from cockpit turn timing and optional parallel guard modes.
+  Lower silence duration affects only that waiting window; the live two-second
+  target remains unverified.
+
+## Milestone 172: Transcription-controlled Valerian speech activation
+
+- Live behaviour SSE previously queued speech even while transcription was off,
+  so resetting an agent could speak the starter immediately. Valerian now admits
+  speech only during a session explicitly enabled by Start Transcription.
+  Rendering chat/behaviour remains independent of audible output.
+- Session identity checks reject delayed live queue work and startup lookups
+  after Stop Transcription, reset, disconnect or another start. Reset/disconnect
+  disable transcription before awaiting audio teardown. Stop Speech still stops
+  output without disabling the transcription session or its input startup.
+- Confirmed one shared saved voice/speed/speaker selection for canonical resume
+  and live replies. No reset-specific speech configuration or alternate browser
+  synthesis path was found. Server defaults remain alloy and 1.0.
+- Four browser regression cases reproduced unwanted synthesis before the fix:
+  reset SSE before/after the HTTP response, and delayed resume after Stop with
+  and without a subsequent start. Added Stop Speech during startup coverage and
+  adjusted the multi-window case so only the started cockpit can speak.
+- Passed 24 Playwright transcription/lifecycle/progressive-audio cases, 11 Node
+  speech cases and 19 Java client-resource contracts. Browser APIs/WebRTC/media
+  are mocked except the three native MP3 streaming cases. No database, live
+  provider or physical acoustic measurement was needed for this client fix.
+
+## Milestone 173: Interaction timing drawer and shareable evidence
+
+- Added the third Interaction Timing tab to Agent & Diagnostics, with expandable
+  turn durations/timelines, individual HTTP/server spans, settings and playback
+  mode, plus JSON/CSV export and Clear. The bounded in-memory recording survives
+  reset/disconnect; assistant restart replay does not change past turn evidence.
+- Renamed Transcript Sending to Processing turn, reflecting that acknowledgement
+  can include model inference, generation and persistence. Timings distinguish
+  acknowledgement, fallback generation and cockpit refresh; speech requests
+  arriving before acknowledgement correlation remain attached to the right turn.
+- Added bounded, content-free response timing headers without changing bodies
+  or buffering audio. Text-model routes/effort, reported usage, queue/application
+  spans and Speech provider-header time can now be shared in one browser export.
+  Pure guard workers share an explicit request-local collector; no trace cache
+  or additional endpoint/provider request was introduced.
+- The offline reporter consumes exported server spans and identifies absent or
+  truncated coverage. Browser/server clocks stay separate and nested/parallel
+  durations are not additive. Missing stages remain unknown. Failed ASR before
+  ingress and startup playback do not create submitted-turn records.
+- Passed 37 Java, 49 Node and 26 Playwright cases, including real HTTP streaming,
+  early-SSE correlation, failure/privacy/clock checks, JSON/CSV downloads and
+  inspected 1440/390-pixel drawer screenshots. Controlled providers and browser
+  media were used; no database, live Heroku or physical acoustic measurement.
+  Detailed evidence and limitations are in .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 174: Luna behaviour routes and output-size investigation
+
+- Changed the Heroku behaviour/nonverbal purpose routes from Sol to Luna at
+  none. Retained independent purpose configuration, the global GPT-5.2 fallback
+  and the opt-in mixed-model template. No authored prompt, output representation,
+  state-machine, persistence, client or synthesis change.
+- Passed nine existing configuration and loopback-provider tests with zero
+  failures/skips. The production-profile expectation reflects all five Luna
+  routes; the separate Sol-behaviour/Luna-decision test still passes unchanged.
+- Assessed compact provider output with deterministic canonical expansion and
+  documented a synthetic 232-to-136-character example in the results ledger.
+  This is an investigation, not an enabled codec or measured token saving.
+  Preset-based expression and omitted-default semantics need separate design.
+- The user's first Heroku recordings compare different model workloads. Repeat
+  with Luna and the unchanged output format before attributing latency/quality
+  changes to representation. No live Luna behaviour evaluation was run here.
+
+## Milestone 175: Compact provider behaviour JSON with canonical publication
+
+- Added a provider-only compact encoding at BehaviourPlanInference, using short
+  nonverbal keys and typed two-value tuples. Canonical speech, motion/display,
+  authored modality choices and values remain unchanged. Other, partial, null
+  and extended nonverbal objects pass through an explicit full-name escape field.
+- Decode before existing validation/publication. Unknown compact keys, malformed
+  tuples, invalid numeric values, ambiguous envelopes and duplicate alias/escape
+  definitions fail once without publication or repair requests. Canonical provider
+  responses remain valid for authored prompts and custom gateways.
+- Added content-free compact/canonical decode stages to the existing timing
+  exports. Existing agents use the new request instructions on their next turn;
+  no schema change, reset, recreation, UI setting or additional model call.
+- Passed 93 Java cases across codec/policy, all twelve baseline catalog paths,
+  core/healthcare prompt contracts, routing, real loopback HTTP, timing and event
+  serialization. A representative fixture shrinks from 232 to 136 characters
+  with identical canonical output. No token or live latency reduction is claimed.
+- No database or client code changed; database/browser/provider quality tests
+  were not run. Actual Luna adherence, output tokens and end-to-end latency need
+  the next Heroku interaction export. Details: .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 176: Unified JSON behaviour generation including final states
+
+- Every PromptPolicy now uses the same typed behaviour JSON request and plan
+  publication path. Speech-only policies request only speech; nonverbal policies
+  keep compact output and validation. All Final constructors inherit the change
+  without modifying stored task prompts or adding unrequested modalities.
+- Passed 95 focused Java and 14 isolated local MySQL/HTTP/SSE cases, covering
+  final-state constructors, persisted closing/reset and canonical history.
+  Providers were mocked/scripted. Disposable schema/account were removed.
+- Scoped non-blocking transition actions and speculative generation in
+  .agents/PLAN_TRANSITION_EXECUTION.md. The restart durability choice remains
+  pending; existing transition actions and behaviour generation remain ordered.
+
+## Milestone 177: In-memory background transition actions
+
+- Added background-by-default authoring with explicit blocking dependencies,
+  immutable prepared work and bounded per-agent FIFO execution after commit.
+  Summaries/outcomes leave the response path; RPS and gather/choice ordering stays
+  explicit. Legacy summary modes migrate on reload; other legacy modes stay safe.
+- Fresh transactional storage patches share the existing agent serialization.
+  Reset epochs and write tokens reject stale results without replacing newer
+  storage; queued background writes preserve order. No durable jobs or retries.
+- Passed the full feature Java suite: 344 cases, no failures/errors/skips, using
+  disposable MySQL schema prometheus_async_a570e7ed1c and controlled providers.
+  Schema/account removed. Final queue-clock refinement passed 25 focused cases.
+- Added latch-controlled background/farewell, reset/delete, write conflict,
+  FIFO/other-agent progress, failure, overload, rollback, legacy reload and shutdown
+  coverage. No UI changes or live provider/acoustic measurements. Details and
+  configuration are in README and .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 178: Speculative conversational behaviour with guarded reuse
+
+- Eligible user-utterance behaviour starts beside pure transition decisions.
+  A bounded application cache spans acknowledge/generate HTTP calls and entity
+  reloads. Only committed, matching event/epoch/prompt/route inputs allow reuse.
+- Every outer/inner/self transition invalidates immediately. Required actions
+  retain order and new-state generation never waits for obsolete inference.
+  Reset, deletion, new input, rollback and expiry discard candidates. Custom,
+  sensory, deterministic and regulation paths preserve existing semantics.
+- Default OpenAI support is enabled with two workers, 64 retained candidates and
+  30-second expiry. Saturation skips speculation; cancellation is best effort.
+  No entities reach workers, hidden retries, duplicate publication or durable jobs.
+- Timing exports identify speculative work and its originating trace, avoiding
+  additive latency interpretation and duplicate CSV counts. Late discarded usage
+  remains server-log evidence, not complete browser cost accounting.
+- Passed 359 Java tests across 86 classes using disposable local MySQL schema
+  prometheus_async_ff4e24ffe4 and controlled providers; schema/account removed.
+  Also passed 50 client tests and two Playwright timing-panel tests at 1440/390px;
+  screenshots inspected. Playwright artifacts now use target/playwright-results
+  so user timing exports in test-results are preserved.
+- No live provider or acoustic latency/quality claim. Implementation, limits,
+  comparison switch and detailed evidence are in README and the results ledger.
+
+## Milestone 179: Ultra Responsive conversation pace
+
+- Added a shared 0.5-second silence / low transcription delay preset, retaining
+  the Pause tolerant default, existing saved preferences, manual turns and
+  reconnect behavior. Valerian and the multilateral listener share the control.
+- Passed ten focused settings/local-VAD Node cases and one Playwright case covering
+  keyboard selection, session payload, reconnect and manual mode. Desktop and
+  390px screenshots inspected. No backend or provider calls changed.
+- Recorded the latest live timing comparison and proposed speech/transcription
+  experiments in .agents/NEEDFORSPEED_RESULTS.md. No new live latency claim or
+  closing-decision change; the next trial should evaluate turn segmentation too.
+- The user's Ultra/minimal export exposed omitted minimal/xhigh timing metadata.
+  Fixed only the export filter; provider settings already support both values.
+  The regression reproduced the omission and all 12 performance Node tests passed.
+  Original user exports remain unchanged; the latest trial analysis is in the ledger.
+
+## Milestone 180: Minimal Ultra Responsive and precise transcription timing
+
+- Ultra Responsive selects 0.5-second silence / minimal delay in the shared
+  settings panel. Previously saved 0.5/low remains Custom until explicitly changed;
+  Pause tolerant remains the default and reconnect retains the selected settings.
+- Timing records preserve local commit send, provider commit acknowledgement,
+  first/last non-empty transcript delta receipt and final receipt on the browser
+  monotonic clock. Manual commits have no fabricated voice boundary. Duplicate and
+  late events do not shift times or consume another turn's pending commit.
+- Ordered final release preserves original receive times. Panel timelines allow
+  partials before speech end; JSON, CSV and the offline reporter expose new stages
+  and intervals, leaving missing data unknown without retaining transcript text.
+- Passed 54 performance/transcription/speech Node tests and three mocked Playwright
+  cases covering export privacy, 1440/390px timing views, keyboard preset choice,
+  session payload, reconnect and manual mode. Screenshots inspected. No Java/DB
+  changes or live provider/acoustic tests; original user timing files preserved.
+- See README for refresh/reselection instructions and the results ledger for
+  test commands and interpretation limits. No speech synthesis or decision change.
+
+## Milestone 181: Progressive PCM speech and format comparison
+
+- Added explicit MP3/PCM speech format validation at the existing canonical
+  event-ID endpoint and provider gateway. Default/legacy clients and Talk to Me
+  use MP3; PCM carries explicit 24 kHz mono signed 16-bit little-endian metadata.
+- Automatic playback prepares the AudioWorklet and selected speaker before
+  requesting PCM; capability/setup failure chooses MP3 before synthesis. PCM
+  consumes a bounded two-second queue with a 60 ms prefill and backpressure.
+  Chunk boundaries, underruns, EOF drain, cancellation and failures are explicit.
+- Existing output ownership, persisted speech identity, replay suppression,
+  Start Transcription activation and input gating remain authoritative. Output
+  settings moved from the hidden sensing block into Continuous without duplicate
+  controls; voice/speed preferences persist alongside Automatic/MP3 selection.
+- Timing exports include format, fallback, preparation and PCM buffering/gaps.
+  PCM renderer and MP3 media-element playback markers are explicitly distinguished;
+  neither certifies physical audibility or a live latency improvement.
+- Passed 37 focused Java cases plus 16 scoped integration cases using disposable
+  MySQL schema prometheus_pcm_4ddd0755a2 and restricted account, both removed.
+  Passed 63 Node cases and 16 Playwright cases (six native PCM/MP3 streaming and
+  ten cockpit lifecycle/export/routing cases). Screenshots at 1440/390px inspected.
+  Final drain/visual refinements passed eight PCM Node cases and five browser cases.
+- Providers were mocked/loopback. Live Heroku/provider speed, physical speakers,
+  Bluetooth and other browsers require testing. Details and comparison instructions
+  are in README and .agents/NEEDFORSPEED_RESULTS.md.
+
+## Milestone 182: PCM interruption diagnostics
+
+- Extended the existing in-memory timing collector with automatically captured,
+  content-free PCM body reads, posted/received block correlation, backpressure
+  waits, and renderer starvation/resume/finish positions. EOF and stop/failure
+  are explicit; no samples or free-form payloads enter the export.
+- JSON retains independent bounded delivery (256) and renderer (64) lists with
+  first/latest retention and explicit dropped counts. The drawer shows positions
+  within source audio; CSV adds coverage counts. Browser receipt, audio clocks,
+  producer outstanding frames and actual renderer occupancy are documented.
+- Preserved playback's 60 ms prefill/refill and two-second queue. Diagnostics do
+  not rerender the panel per sample block or change inference/transcription.
+- Passed 66 Node cases, 22 Java contract and six Playwright native/cockpit cases. Tests cover exact
+  gap positions, provisional tail starvation, read waiting versus backpressure,
+  cancellation/failure, event correlation, privacy, retention and JSON download.
+  Live interruption cause and physical-device quality require the next Heroku trial.
+
+
+## Milestone 183: Server speech delivery timing
+
+- Added content-free provider-body read and HTTP output write/flush/close timings
+  at the existing streaming boundary, with synthesis ID, cumulative byte counts,
+  pending/error phase and bounded first/latest retention. Ordinary streaming and
+  the 60 ms PCM prefill/refill remain unchanged.
+- Valerian automatically requests diagnostics for tracked live PCM/MP3 speech and
+  retrieves them asynchronously into the same timing JSON after download/teardown.
+  The drawer exposes retrieval/stream status and recorded waits; CSV adds coverage.
+  Retrieval failures do not delay playback or become speech failures.
+- The endpoint rechecks access-code/agent visibility and event/synthesis identity.
+  Storage is limited to 128 in-memory traces with ten-minute expiry, each capped
+  at 256 operations. Missing/expired/other-instance traces stay explicit. Browser
+  and server clocks remain separate; flush does not prove browser receipt.
+- Passed 60 focused Java cases and 13 scoped integration cases on an isolated
+  local MySQL schema/account (both removed), 69 Node cases and four desktop/mobile
+  Playwright cases. Delivery-detail screenshots inspected. Providers were mocked
+  or loopback; live Heroku/provider pause location awaits the next exported trial.

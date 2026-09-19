@@ -103,8 +103,8 @@ export class BehaviourSpeechPlaybackQueue {
       const resource = await this.synthesize(item, controller.signal);
       this.current.resource = resource;
       if (controller.signal.aborted || generation !== this.generation) throw aborted();
-      this.status("speaking", item);
-      await this.play(resource, item, controller.signal);
+      if (!resource?.progressive) this.status("speaking", item);
+      await this.play(resource, item, controller.signal, () => this.status("speaking", item));
       if (controller.signal.aborted || generation !== this.generation) throw aborted();
       this.completed.add(item.eventId);
       this.status("completed", item);
@@ -135,7 +135,7 @@ export class BehaviourSpeechPlaybackQueue {
   }
 
   status(state, item, details = {}) {
-    this.onStatus({ state, eventId: item?.eventId || null, ...details });
+    this.onStatus({ state, eventId: item?.eventId || null, delivery: item?.delivery || null, ...details });
   }
 }
 

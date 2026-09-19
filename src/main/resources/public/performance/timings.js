@@ -1,0 +1,295 @@
+const TRACE_HEADER = "X-Prometheus-Trace-Id";
+const BEHAVIOUR_HEADER = "X-Prometheus-Behaviour-Id";
+const TIMING_HEADER = "X-Prometheus-Timing";
+const TRANSCRIPTION_STAGES = ["last_voice", "committed", "commit_sent", "commit_acknowledged",
+  "transcript_first_delta", "transcript_last_delta", "final_transcript"];
+const STAGES = new Set(["submitted", "queued", "acknowledging", "accepted", "rejected", "cancelled",
+  "http_start", "http_end", "sse_received", "rendered", "audio_queued", "audio_request",
+  "audio_first_byte", "audio_downloaded", "audio_playing", "audio_completed", "audio_failed", "audio_stopped",
+  "audio_prepare_start", "audio_prepare_end",
+  ...TRANSCRIPTION_STAGES, "acknowledged", "processing_complete",
+  "ui_refresh_start", "ui_refresh_end"]);
+
+/** Bounded, in-memory metadata only. All times are from the browser's monotonic clock. */
+export class TurnTimings {
+  constructor({ now = () => performance.now(), limit = 128, uuid = () => crypto.randomUUID() } = {}) {
+    Object.assign(this, { now, limit, uuid });
+    this.turns = new Map();
+    this.events = new Map();
+    this.listeners = new Set();
+    this.configuration = () => ({});
+  }
+
+  begin(agentId, times = {}) {
+    const id = this.uuid();
+    this.turns.set(id, { id, agentId, startedAt: new Date().toISOString(), stages: {}, requests: [],
+      configuration: safeConfiguration(this.configuration()) });
+    for (const stage of TRANSCRIPTION_STAGES) {
+      if (Number.isFinite(times[stage])) this.mark(id, stage, times[stage]);
+    }
+    this.mark(id, "submitted");
+    this.trim(this.turns);
+    return id;
+  }
+
+  mark(id, stage, at = this.now()) {
+    const record = this.turns.get(id);
+    if (record && STAGES.has(stage) && Number.isFinite(at)) {
+      record.stages[stage] ??= at;
+      this.changed();
+    }
+  }
+
+  event(agentId, eventId, stage) {
+    if (!agentId || !eventId || !STAGES.has(stage)) return;
+    const record = this.eventRecord(agentId, eventId);
+    record.stages[stage] ??= this.now();
+    if (record.traceId) this.mark(record.traceId, stage, record.stages[stage]);
+    this.trim(this.events);
+  }
+
+  eventRecord(agentId, eventId) {
+    const key = `${agentId}:${eventId}`;
+    if (!this.events.has(key)) this.events.set(key, { agentId, eventId, stages: {}, requests: [], speech: {} });
+    this.trim(this.events);
+    return this.events.get(key);
+  }
+
+  speech(agentId, eventId, values) {
+    if (!agentId || !eventId) return;
+    const record = this.eventRecord(agentId, eventId);
+    Object.assign(record.speech, safeSpeech(values));
+    const turn = this.turns.get(record.traceId);
+    if (turn) turn.speech = { ...record.speech };
+    this.changed();
+  }
+
+  // Delivery can be frequent. Store it without refreshing the panel per chunk;
+  // ordinary stage/renderer notifications refresh it, and export reads live data.
+  pcm(agentId, eventId, value) {
+    if (!agentId || !eventId) return;
+    const entry = safePcmEvent(value);
+    if (!entry) return;
+    const record = this.eventRecord(agentId, eventId);
+    const pcm = record.pcm ??= { version: 1, delivery: [], renderer: [], deliveryDropped: 0, rendererDropped: 0 };
+    const delivery = ["read", "posted", "render_receive", "backpressure_start", "backpressure_end"].includes(entry.type);
+    const key = delivery ? "delivery" : "renderer", limit = delivery ? 256 : 64;
+    pcm[key].push(entry);
+    if (pcm[key].length > limit) {
+      // Preserve startup and the most recent evidence, with explicit loss counts.
+      pcm[key].splice(limit / 2, 1);
+      pcm[`${key}Dropped`]++;
+    }
+    const turn = this.turns.get(record.traceId);
+    if (turn) turn.pcm = pcm;
+    if (!delivery) this.changed();
+  }
+
+  // Fetch once after audio completion/teardown, without delaying playback or input.
+  captureSpeechDelivery(agentId, eventId, response, fetchSnapshot, timeoutMs = 5000) {
+    const id = response.headers.get("X-Prometheus-Speech-Delivery-Id");
+    if (!agentId || !eventId || !uuidPattern.test(id || "")) return () => {};
+    const record = this.eventRecord(agentId, eventId);
+    const delivery = record.speechDelivery = { id, retrieval: "waiting" };
+    const current = () => this.events.get(`${agentId}:${eventId}`) === record && record.speechDelivery === delivery;
+    const publish = () => {
+      if (!current()) return;
+      const turn = this.turns.get(record.traceId);
+      if (turn) turn.speechDelivery = delivery;
+      this.changed();
+    };
+    publish();
+    let started = false;
+    return () => {
+      if (started || !current()) return;
+      started = true; delivery.retrieval = "fetching"; publish();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      void (async () => {
+        try {
+          const result = await fetchSnapshot(id, controller.signal);
+          if (!result.ok) { delivery.retrieval = result.status === 404 ? "unavailable" : "error"; return; }
+          const snapshot = safeSpeechDelivery(await result.json(), id);
+          if (!snapshot) { delivery.retrieval = "invalid"; return; }
+          delivery.server = snapshot;
+          delivery.retrieval = "received";
+        } catch (_) { delivery.retrieval = "error"; }
+        finally { clearTimeout(timer); publish(); }
+      })();
+    };
+  }
+
+  bind(id, eventId) {
+    const turn = this.turns.get(id);
+    if (!turn || !eventId) return;
+    const key = `${turn.agentId}:${eventId}`;
+    const record = this.eventRecord(turn.agentId, eventId);
+    record.traceId = id;
+    turn.eventId = eventId;
+    for (const request of record.requests) if (!turn.requests.includes(request) && turn.requests.length < 16) turn.requests.push(request);
+    turn.speech = { ...record.speech };
+    if (record.pcm) turn.pcm = record.pcm;
+    if (record.speechDelivery) turn.speechDelivery = record.speechDelivery;
+    Object.entries(record.stages).forEach(([stage, at]) => this.mark(id, stage, at));
+    this.events.set(key, record);
+    this.trim(this.events);
+    this.changed();
+  }
+
+  traceFor(agentId, eventId) { return this.events.get(`${agentId}:${eventId}`)?.traceId; }
+
+  async fetch(id, fetchImpl, url, options = {}) {
+    return this.request(this.turns.get(id), id, fetchImpl, url, options);
+  }
+
+  // Speech can start via SSE before acknowledgement headers bind the event to its turn.
+  async fetchEvent(agentId, eventId, fetchImpl, url, options = {}) {
+    const record = this.eventRecord(agentId, eventId);
+    return this.request(record, record.traceId, fetchImpl, url, options);
+  }
+
+  async request(record, id, fetchImpl, url, options) {
+    const headers = new Headers(options.headers || {});
+    if (id) headers.set(TRACE_HEADER, id);
+    const request = { kind: requestKind(url), start: this.now(), status: "pending" };
+    if (record && record.requests.length < 16) record.requests.push(request);
+    const turn = this.turns.get(record?.traceId);
+    if (turn && !turn.requests.includes(request) && turn.requests.length < 16) turn.requests.push(request);
+    this.mark(id, "http_start");
+    try {
+      const response = await fetchImpl(url, { ...options, headers });
+      this.bind(id, response.headers.get(BEHAVIOUR_HEADER));
+      request.status = response.ok ? "ok" : "error";
+      request.httpStatus = response.status;
+      request.traceId = response.headers.get(TRACE_HEADER) || id || null;
+      request.server = decodeServerTiming(response.headers.get(TIMING_HEADER));
+      if (!response.ok) this.mark(id, "rejected");
+      return response;
+    } catch (error) {
+      request.status = error?.name === "AbortError" ? "cancelled" : "error";
+      this.mark(id, error?.name === "AbortError" ? "cancelled" : "rejected");
+      throw error;
+    } finally {
+      request.end = this.now();
+      this.mark(id, "http_end");
+      this.changed();
+    }
+  }
+
+  clear(agentId) {
+    for (const entries of [this.turns, this.events]) {
+      for (const [key, record] of entries) if (!agentId || record.agentId === agentId) entries.delete(key);
+    }
+    this.changed();
+  }
+
+  snapshot(agentId) {
+    return [...this.turns.values()].filter((record) => !agentId || record.agentId === agentId)
+      .map((record) => structuredClone(record));
+  }
+
+  trim(entries) { while (entries.size > this.limit) entries.delete(entries.keys().next().value); }
+
+  subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  changed() {
+    if (this.notificationPending) return;
+    this.notificationPending = true;
+    queueMicrotask(() => {
+      this.notificationPending = false;
+      for (const listener of this.listeners) listener();
+    });
+  }
+}
+
+function requestKind(url) {
+  const path = String(url).split("?")[0];
+  if (path.endsWith("/acknowledge")) return "acknowledge";
+  if (path.endsWith("/behaviour/generate")) return "generate";
+  if (path.endsWith("/speech")) return "speech";
+  return "other";
+}
+
+const identifier = value => typeof value === "string" && /^[A-Za-z0-9_.:/-]{1,96}$/.test(value) ? value : undefined;
+const duration = value => Number.isFinite(value) && value >= 0 ? value : undefined;
+const uuidPattern = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const deliveryPhases = ["read", "write", "flush", "close"];
+
+function safeSpeechDelivery(value, id) {
+  if (value?.version !== 1 || value.id !== id || !["pending", "streaming", "complete", "error"].includes(value.status)
+      || !Array.isArray(value.steps) || value.steps.length > 256) return null;
+  const fields = (source, keys) => Object.fromEntries(keys.filter(key => duration(source[key]) !== undefined).map(key => [key, source[key]]));
+  const validStep = step => step && deliveryPhases.includes(step.phase)
+    && ["sequence", "startedMs", "completedMs", "bytes", "totalBytes"].every(key => duration(step[key]) !== undefined)
+    && step.completedMs >= step.startedMs;
+  if (!value.steps.every(validStep)) return null;
+  return { version: 1, id, status: value.status,
+    ...(deliveryPhases.includes(value.phase) ? { phase: value.phase } : {}),
+    ...fields(value, ["phaseStartedMs", "finishedMs", "bytesRead", "bytesFlushed", "dropped"]),
+    steps: value.steps.map(step => ({ phase: step.phase, ...fields(step, ["sequence", "startedMs", "completedMs", "bytes", "totalBytes"]) })),
+  };
+}
+
+const PCM_FIELDS = {
+  prepared: ["sampleRate", "baseLatencyMs", "outputLatencyMs"],
+  read: ["chunk", "bytes", "totalBytes", "readWaitMs", "previousReadGapMs", "outstandingFrames"],
+  posted: ["chunk", "block", "frames", "outstandingFrames"],
+  render_receive: ["chunk", "block", "frames", "renderFrame", "playedFrames", "bufferedFrames"],
+  backpressure_start: ["chunk", "outstandingFrames"],
+  backpressure_end: ["chunk", "outstandingFrames", "waitMs"],
+  render_start: ["renderFrame", "playedFrames", "bufferedFrames"],
+  buffer_empty: ["renderFrame", "playedFrames", "bufferedFrames"],
+  render_resume: ["renderFrame", "playedFrames", "bufferedFrames", "gapFrames"],
+  render_end: ["renderFrame", "playedFrames", "bufferedFrames", "pendingGapFrames"],
+  eof: ["totalBytes", "readWaitMs", "outstandingFrames"],
+  failed: [], stopped: [],
+};
+
+function safePcmEvent(value) {
+  if (!value || !Object.hasOwn(PCM_FIELDS, value.type) || duration(value.at) === undefined) return null;
+  return { type: value.type, ...Object.fromEntries(["at", "contextTimeMs", ...PCM_FIELDS[value.type]]
+    .filter(key => duration(value[key]) !== undefined).map(key => [key, value[key]])) };
+}
+
+export function decodeServerTiming(value) {
+  if (!value || value.length > 6000) return null;
+  try {
+    const data = JSON.parse(atob(value));
+    if (data.version !== 1 || !Array.isArray(data.spans) || data.spans.length > 64) return null;
+    return { version: 1, durationMs: duration(data.durationMs), truncated: data.truncated === true,
+      spans: data.spans.filter(span => span && identifier(span.stage) && duration(span.durationMs) !== undefined).map(span => ({
+        stage: span.stage, durationMs: span.durationMs, offsetMs: duration(span.offsetMs),
+        scope: span.scope === "speculative" ? "speculative" : undefined,
+        originTrace: identifier(span.originTrace),
+        status: ["ok", "error"].includes(span.status) ? span.status : "unknown",
+        ...Object.fromEntries(["request", "purpose", "model", "effort"].map(key => [key, identifier(span[key])])),
+        ...Object.fromEntries(["promptTokens", "completionTokens", "providerRequests"].map(key =>
+          [key, Number.isInteger(span[key]) && span[key] >= 0 ? span[key] : undefined])),
+      })) };
+  } catch { return null; }
+}
+
+export function safeConfiguration(value = {}) {
+  return {
+    turnDetection: ["local_vad", "manual"].includes(value.turnDetection) ? value.turnDetection : undefined,
+    silenceDurationSeconds: duration(value.silenceDurationSeconds),
+    transcriptionDelay: ["minimal", "low", "medium", "high", "xhigh"].includes(value.transcriptionDelay) ? value.transcriptionDelay : undefined,
+    transcriptionModel: identifier(value.transcriptionModel),
+    ...safeSpeech(value),
+    capture: Object.fromEntries(["echoCancellation", "noiseSuppression", "autoGainControl", "voiceIsolation"]
+      .filter(key => typeof value.capture?.[key] === "boolean").map(key => [key, value.capture[key]])),
+  };
+}
+
+function safeSpeech(value = {}) {
+  return Object.fromEntries(Object.entries({ voice: identifier(value.voice), speed: duration(value.speed),
+    playbackMode: ["progressive", "buffered", "pcm"].includes(value.playbackMode) ? value.playbackMode : undefined,
+    formatPreference: ["auto", "mp3"].includes(value.formatPreference) ? value.formatPreference : undefined,
+    format: ["pcm", "mp3"].includes(value.format) ? value.format : undefined,
+    fallbackReason: ["pcm_unsupported", "pcm_setup_failed"].includes(value.fallbackReason) ? value.fallbackReason : undefined,
+    playbackStartSource: ["pcm_renderer", "media_element"].includes(value.playbackStartSource) ? value.playbackStartSource : undefined,
+    ...Object.fromEntries(["pcmPrefillMs", "pcmInitialBufferedMs", "pcmUnderruns", "pcmGapMs"].map(key => [key, duration(value[key])])),
+    outputDevice: ["default", "selected"].includes(value.outputDevice) ? value.outputDevice : undefined,
+  }).filter(([, entry]) => entry !== undefined));
+}
+
+export const turnTimings = new TurnTimings();

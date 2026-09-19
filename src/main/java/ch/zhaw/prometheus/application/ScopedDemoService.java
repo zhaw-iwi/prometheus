@@ -90,21 +90,25 @@ public class ScopedDemoService {
 
     @Transactional
     public boolean deleteAgent(String accessCodeValue, UUID agentId) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
         if (agentId == null) {
+            this.requireEnabledAccessCode(accessCodeValue);
             return false;
         }
-        Optional<AccessCodeAgent> link = this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(accessCode.getId(),
-                agentId);
-        if (link.isEmpty()) {
-            return false;
-        }
-        this.accessCodeAgents.delete(link.get());
-        this.accessCodeAgents.flush();
-        if (this.accessCodeAgents.countByAgent_Id(agentId) == 0) {
-            this.agents.deleteById(agentId);
-        }
-        return true;
+        return this.agentService.serialized(agentId, () -> {
+            AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
+            Optional<AccessCodeAgent> link = this.accessCodeAgents.findByAccessCode_IdAndAgent_Id(accessCode.getId(),
+                    agentId);
+            if (link.isEmpty()) {
+                return false;
+            }
+            this.accessCodeAgents.delete(link.get());
+            this.accessCodeAgents.flush();
+            if (this.accessCodeAgents.countByAgent_Id(agentId) == 0) {
+                this.agentService.discardSpeculation(agentId, "delete");
+                this.agents.deleteById(agentId);
+            }
+            return true;
+        });
     }
 
     public Optional<AgentInfoView> getAgentInfo(String accessCodeValue, UUID agentId) {

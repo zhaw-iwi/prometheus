@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.spi;
 
 import java.io.InputStream;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -28,6 +29,14 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
 
     @Override
     public SpeechAudio synthesize(String text, String voice, double speed) {
+        return synthesize(text, voice, speed, SpeechAudioFormat.MP3);
+    }
+
+    @Override
+    public SpeechAudio synthesize(String text, String voice, double speed, SpeechAudioFormat format) {
+        java.util.Objects.requireNonNull(format, "speech format");
+        long start = LatencyTrace.now();
+        boolean success = false;
         try {
             JsonObject payload = new JsonObject();
             if ("openai".equals(this.openAIProperties.getOpenaivsazureopenai())) {
@@ -35,7 +44,7 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
             }
             payload.addProperty("input", text);
             payload.addProperty("voice", voice);
-            payload.addProperty("response_format", "mp3");
+            payload.addProperty("response_format", format.wireValue());
             payload.addProperty("speed", speed);
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -50,13 +59,28 @@ public class OpenAISpeechSynthesisGateway implements SpeechSynthesisGateway {
                 throw new SpeechSynthesisException(
                         "OpenAI Speech request returned status code " + response.statusCode());
             }
-            String contentType = response.headers().firstValue("Content-Type").orElse("audio/mpeg");
+            String contentType = response.headers().firstValue("Content-Type").orElse(format.contentType());
+            if (format == SpeechAudioFormat.PCM) {
+                String mediaType = contentType.split(";", 2)[0].trim().toLowerCase(java.util.Locale.ROOT);
+                if (!mediaType.equals("audio/pcm") && !mediaType.equals("application/octet-stream")) {
+                    response.body().close();
+                    throw new SpeechSynthesisException("speech provider returned an unexpected PCM content type");
+                }
+                contentType = format.contentType();
+            }
             long contentLength = response.headers().firstValueAsLong("Content-Length").orElse(-1L);
+            success = true;
             return SpeechAudio.streaming(response.body(), contentType, contentLength);
         } catch (SpeechSynthesisException failure) {
             throw failure;
         } catch (Exception failure) {
             throw new SpeechSynthesisException("unable to request OpenAI Speech synthesis", failure);
+        } finally {
+            LatencyTrace.record("speech_headers", LatencyTrace.elapsedMs(start), success,
+                    null, null, speechProperties.getModel(), null, null, null);
+            org.slf4j.LoggerFactory.getLogger(getClass()).info(
+                    "latency trace={} stage=speech_headers model={} format={} status={} durationMs={}",
+                    LatencyTrace.currentId(), speechProperties.getModel(), format.wireValue(), success ? "ok" : "error", LatencyTrace.elapsedMs(start));
         }
     }
 }

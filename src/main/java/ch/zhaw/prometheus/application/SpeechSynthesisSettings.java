@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.application;
 
 import java.util.Locale;
 import java.util.Set;
+import ch.zhaw.prometheus.spi.SpeechAudioFormat;
 
 public class SpeechSynthesisSettings {
     private static final String DEFAULT_VOICE = "alloy";
@@ -12,11 +13,19 @@ public class SpeechSynthesisSettings {
 
     private final String voice;
     private final double speed;
+    private final SpeechAudioFormat format;
 
     public SpeechSynthesisSettings(String voice, String speed) {
+        this(voice, speed, null);
+    }
+
+    public SpeechSynthesisSettings(String voice, String speed, String format) {
         this.voice = normalizeVoice(voice);
         this.speed = parseSpeed(speed);
+        this.format = SpeechAudioFormat.parse(format);
     }
+
+    public SpeechAudioFormat getFormat() { return this.format; }
 
     public String getVoice() {
         return this.voice;

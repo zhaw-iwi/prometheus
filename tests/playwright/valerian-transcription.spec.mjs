@@ -32,6 +32,129 @@ test.beforeEach(async ({ context }) => {
   await installBrowserMediaMocks(context);
 });
 
+for (const width of [1440, 390]) {
+  test(`PCM format choice preserves speaker, lifecycle, timings and saved MP3 comparison at ${width}px`, async ({ page }, testInfo) => {
+    const requests = [];
+    const deliveryId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    let timingRequests = 0;
+    await page.route(`**/behaviours/${LIVE_BEHAVIOUR_ID}/speech/timing/${deliveryId}`, route => {
+      timingRequests++;
+      return route.fulfill(json({ version: 1, id: deliveryId, status: "complete", bytesRead: 19200,
+        bytesFlushed: 19200, dropped: 0, finishedMs: 415, steps: [
+          { sequence: 1, phase: "read", startedMs: 10, completedMs: 410, bytes: 9600, totalBytes: 19200 },
+          { sequence: 2, phase: "flush", startedMs: 410, completedMs: 411, bytes: 9600, totalBytes: 19200 },
+        ] }));
+    });
+    await page.setViewportSize({ width, height: 1000 });
+    await page.route(`**/behaviours/${LIVE_BEHAVIOUR_ID}/speech*`, route => {
+      if (route.request().url().includes("/timing/")) return route.fallback();
+      requests.push(new URL(route.request().url()));
+      const pcm = new URL(route.request().url()).searchParams.get("format") === "pcm";
+      return route.fulfill({ status: 200, contentType: pcm ? "audio/pcm;rate=24000;channels=1;encoding=s16le" : "audio/mpeg",
+        headers: { "X-Prometheus-Speech-Delivery-Id": deliveryId }, body: Buffer.from([0, 1]) });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.locator('[data-bs-target="#speech_output_settings"]').click();
+    const format = page.getByTestId("speech-format");
+    await expect(format).toHaveValue("auto");
+    await page.getByTestId("speech-voice").selectOption("cedar");
+    await page.getByTestId("speech-output-speed").fill("1.25");
+    await page.getByTestId("speech-output-speed").dispatchEvent("change");
+    await attach(page, testInfo, `speech-format-${width}`, page.getByTestId("speech-output-settings"));
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("speech-output-device").selectOption("room-speaker");
+    // Native PCM decoding is covered separately; this fixture isolates cockpit ownership.
+    await page.evaluate(() => {
+      window.__pcmOptions = [];
+      window.PrometheusSpeechPlayback = Object.freeze({ ...window.PrometheusSpeechPlayback,
+        preparePcmSpeech: async ({ signal, deviceId, onStage, onMetrics, onDiagnostic }) => {
+          window.__pcmOptions.push({ deviceId });
+          onDiagnostic({ type: "prepared", at: performance.now(), sampleRate: 24000 });
+          let response, rejectPlay;
+          return { resource: { format: "pcm", progressive: true,
+            setResponse(value) { response = value; },
+            play(onPlaying) {
+              onMetrics({ playbackStartSource: "pcm_renderer", pcmPrefillMs: 60, pcmInitialBufferedMs: 80, pcmUnderruns: 0, pcmGapMs: 0 });
+              onStage("audio_first_byte"); onPlaying();
+              onDiagnostic({ type: "read", at: performance.now(), chunk: 1, bytes: 4800 });
+              onDiagnostic({ type: "buffer_empty", at: performance.now(), playedFrames: 2400, renderFrame: 4800 });
+              onDiagnostic({ type: "render_resume", at: performance.now(), playedFrames: 2400, renderFrame: 7200, gapFrames: 2400 });
+              return new Promise((resolve, reject) => {
+                rejectPlay = reject;
+                window.__finishPcm = () => { onStage("audio_downloaded"); resolve(); };
+                signal.addEventListener("abort", () => reject(new DOMException("stopped", "AbortError")), { once: true });
+              });
+            },
+            async dispose() { rejectPlay?.(new DOMException("stopped", "AbortError")); await response?.body?.cancel(); },
+          } };
+        },
+      });
+    });
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    await emitProviderEvent(page, { type: "input_audio_buffer.committed", item_id: "pcm-turn" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed", item_id: "pcm-turn", transcript: "Fixture turn" });
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.locator("#assistant_audio")).toBeHidden();
+    await expect(page.locator("#listen_status")).toHaveText("Input Paused");
+    await expect(format).toBeDisabled();
+    expect(requests).toHaveLength(1);
+    expect(Object.fromEntries(requests[0].searchParams)).toEqual({ voice: "cedar", speed: "1.25", format: "pcm", deliveryTiming: "true" });
+    expect(await page.evaluate(() => window.__pcmOptions)).toEqual([{ deviceId: "room-speaker" }]);
+    expect(await page.evaluate(() => window.PrometheusTimings.snapshot()[0].speech)).toMatchObject({
+      format: "pcm", formatPreference: "auto", playbackMode: "pcm", playbackStartSource: "pcm_renderer", pcmPrefillMs: 60,
+    });
+    expect(timingRequests).toBe(0);
+    await page.evaluate(() => window.__finishPcm());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await expect(page.locator("#listen_status")).toHaveText("Listening");
+    await expect(format).toBeEnabled();
+    await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot()[0].speechDelivery.retrieval)).toBe("received");
+    expect(timingRequests).toBe(1);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    const turns = page.getByTestId("timing-turns");
+    await turns.locator("summary").click();
+    await expect(turns).toContainText("PCM detail: 1 delivery and 3 renderer records");
+    await expect(turns).toContainText("inserted silence 100.0 ms");
+    await expect(turns).toContainText("Server audio delivery");
+    await expect(turns).toContainText("400.0 ms");
+    expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await attach(page, testInfo, `pcm-interruption-detail-${width}`, turns.locator("[data-pcm-detail]"));
+    const download = page.waitForEvent("download");
+    await page.getByTestId("timing-export-json").click();
+    const stream = await (await download).createReadStream(), chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    expect(exported.turns[0].pcm.renderer.at(-1)).toMatchObject({ type: "render_resume", gapFrames: 2400 });
+    expect(exported.turns[0].pcm.delivery[0].bytes).toBe(4800);
+    expect(exported.turns[0].speechDelivery.server.bytesFlushed).toBe(19200);
+    expect(exported.turns[0].speechDelivery.server.steps[0].completedMs).toBe(410);
+    await attach(page, testInfo, `server-delivery-detail-${width}`, turns.getByRole("table", { name: "Server audio delivery", exact: true }));
+    await page.locator('#diagnostics_drawer [data-bs-dismiss="offcanvas"]').click();
+    await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
+    await format.selectOption("mp3");
+    await page.getByTestId("toggle-transcription").click();
+    await page.reload();
+    await expect(page.getByTestId("cockpit-shell")).toBeVisible();
+    await expect(format).toHaveValue("mp3");
+    await expect(page.getByTestId("speech-voice")).toHaveValue("cedar");
+    await expect(page.getByTestId("speech-output-speed")).toHaveValue("1.25");
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(requests).toHaveLength(2);
+    expect(requests[1].searchParams.get("format")).toBe("mp3");
+    await page.getByTestId("stop-speech-playback").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  });
+}
+
 test("history hydration and initial SSE replay render one assistant message", async ({ page }) => {
   const greeting = behaviourEvent("Welcome from persisted history.");
   await page.route(`**/demo/agents/${AGENT_ID}/eventhistory`, (route) => route.fulfill(json([greeting])));
@@ -73,6 +196,133 @@ test("starting transcription speaks the latest persisted assistant utterance bef
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
+
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  expect(speechRequests).toHaveLength(2);
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
+  expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
+  await page.evaluate(() => window.__finishSpeechPlayback());
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(2);
+});
+
+for (const delivery of ["before", "after"]) {
+  test(`reset starter stays silent with SSE ${delivery} the reset response until transcription starts`, async ({ page }) => {
+    const starter = behaviourEvent("A fresh reset greeting.");
+    const speechRequests = [];
+    let latestId = REPLAY_BEHAVIOUR_ID;
+    await page.addInitScript(() => {
+      localStorage.setItem("prometheus.valerian.speechVoice", "cedar");
+      localStorage.setItem("prometheus.valerian.speechOutputSpeed", "1.25");
+      localStorage.setItem("prometheus.valerian.speechOutputDevice", "room-speaker");
+    });
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) {
+        speechRequests.push(request);
+      }
+    });
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+      route.fulfill(json({ eventId: latestId })));
+    await page.route(`**/demo/agents/${AGENT_ID}/reset`, async route => {
+      if (delivery === "before") await emitBehaviourSse(page, "behaviour-live", REPLAY_BEHAVIOUR_ID, starter);
+      await route.fulfill(json({ active: true, responseEvent: starter }));
+    });
+    await openConnectedValerian(page);
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("reset-agent").click();
+    await expect(page.getByTestId("message-list")).toContainText("A fresh reset greeting.");
+    if (delivery === "after") await emitBehaviourSse(page, "behaviour-live", REPLAY_BEHAVIOUR_ID, starter);
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(0);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(0);
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(1);
+    expect(new URL(speechRequests[0].url()).pathname).toContain(REPLAY_BEHAVIOUR_ID);
+    expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(0);
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("An active speech reply."));
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(2);
+    for (const request of speechRequests) {
+      expect(new URL(request.url()).searchParams.get("voice")).toBe("cedar");
+      expect(new URL(request.url()).searchParams.get("speed")).toBe("1.25");
+    }
+    expect(await page.evaluate(() => window.__audioPlayback.sinkIds.filter(Boolean)))
+      .toEqual(["room-speaker", "room-speaker"]);
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("A late reply after Stop."));
+    await expect(page.getByTestId("message-list")).toContainText("A late reply after Stop.");
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(2);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(2);
+
+    latestId = SECOND_BEHAVIOUR_ID;
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    expect(speechRequests).toHaveLength(3);
+    expect(new URL(speechRequests[2].url()).pathname).toContain(SECOND_BEHAVIOUR_ID);
+  });
+}
+
+for (const restart of [false, true]) {
+  test(`stopped resume lookup cannot speak or reopen input${restart ? " after a new start" : ""}`, async ({ page }) => {
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    let lookups = 0;
+    const speechRequests = [];
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/speech")) speechRequests.push(request);
+    });
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, async route => {
+      if (++lookups === 1) {
+        await held;
+        await route.fulfill(json({ eventId: REPLAY_BEHAVIOUR_ID }));
+      } else await route.fulfill({ status: 204, body: "" });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    const lookup = page.waitForRequest(`**/behaviours/latest/speech`);
+    await page.getByTestId("toggle-transcription").click();
+    await lookup;
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    if (restart) {
+      await page.getByTestId("toggle-transcription").click();
+      await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    }
+    const oldResponse = page.waitForResponse(`**/behaviours/latest/speech`);
+    release();
+    await oldResponse;
+    await page.waitForTimeout(100);
+    expect(speechRequests).toHaveLength(0);
+    expect(await page.evaluate(() => window.__audioPlayback.plays)).toBe(0);
+    expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(restart ? 1 : 0);
+    await expect(page.getByTestId("transcription-transport-status"))
+      .toHaveText(restart ? "Transcription Connected" : "Transcription Idle");
+  });
+}
+
+test("Stop Speech during the starter still opens transcription input", async ({ page }) => {
+  await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+    route.fulfill(json({ eventId: REPLAY_BEHAVIOUR_ID })));
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await page.getByTestId("stop-speech-playback").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
+  expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
 });
 
 test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ page }) => {
@@ -130,6 +380,16 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   expect(await page.evaluate(() => window.__transcriptionChannels.at(-1).sent
     .map((value) => JSON.parse(value).type))).toContain("input_audio_buffer.clear");
 
+  const timings = await page.evaluate(agentId => window.PrometheusTimings.snapshot(agentId), AGENT_ID);
+  expect(timings).toHaveLength(1);
+  expect(timings[0].id).toBe(acknowledgeRequests[0].headers()["x-prometheus-trace-id"]);
+  expect(timings[0].eventId).toBe(LIVE_BEHAVIOUR_ID);
+  for (const stage of ["final_transcript", "submitted", "acknowledging", "sse_received", "rendered",
+    "audio_request", "audio_first_byte", "audio_downloaded", "audio_playing"]) {
+    expect(timings[0].stages[stage], stage).toEqual(expect.any(Number));
+  }
+  expect(JSON.stringify(timings)).not.toContain("Guten Morgen");
+
   await page.evaluate(() => window.__finishSpeechPlayback());
   await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
@@ -156,6 +416,129 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.every((track) => track.stopped))).toBe(true);
 });
+
+for (const width of [1440, 390]) {
+  test("interaction timing drawer exports correlated turns at " + width + "px", async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    let release;
+    const hold = new Promise(resolve => { release = resolve; });
+    const server = Buffer.from(JSON.stringify({ version: 1, durationMs: 4000, truncated: false, spans: [
+      { stage: "inference", durationMs: 3500, offsetMs: 100, status: "ok", request: "fixture-inference",
+        scope: "speculative", originTrace: "fixture-origin",
+        purpose: "BEHAVIOUR", model: "fixture-model", effort: "none", promptTokens: 10, completionTokens: 2 },
+      { stage: "speculation_started", durationMs: 0, status: "ok", request: "fixture-inference", purpose: "BEHAVIOUR" },
+      { stage: "speculation_reused", durationMs: 0, status: "ok", request: "fixture-inference", purpose: "BEHAVIOUR" },
+    ] })).toString("base64");
+    await page.route("**/acknowledge?profile=full_plan", async route => {
+      await hold;
+      await route.fulfill({ ...json({ active: true, responseEvent: behaviourEvent() }), headers: {
+        "X-Prometheus-Behaviour-Id": LIVE_BEHAVIOUR_ID,
+        "X-Prometheus-Timing": server,
+        "X-Prometheus-Trace-Id": route.request().headers()["x-prometheus-trace-id"],
+      } });
+    });
+    await openConnectedValerian(page);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    await expect(page.getByTestId("timing-count")).toContainText("No turns recorded");
+    await expect(page.getByTestId("timing-export-json")).toBeDisabled();
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    // Feed the same local-VAD commit boundary used by the microphone; no real acoustic claim.
+    await page.evaluate(() => {
+      const runtime = transcription.transcriptionClient.events;
+      const now = performance.now();
+      // A partial can arrive while the person is still speaking.
+      runtime.now = () => now - 800;
+      runtime.handle({ type: "conversation.item.input_audio_transcription.delta",
+        event_id: "timing-d1", item_id: "timing", delta: "Private partial" });
+      runtime.now = () => performance.now();
+      runtime.noteCommit({ lastVoiceAtMs: now - 500, observedAtMs: now, sentAtMs: now });
+    });
+    await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "timing-c", item_id: "timing" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.delta",
+      event_id: "timing-d2", item_id: "timing", delta: " final words" });
+    await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed",
+      event_id: "timing-f", item_id: "timing", transcript: "Private spoken words for export exclusion." });
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Processing turn");
+    // Exercise audio delivery before acknowledgement correlates the event.
+    await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("Private assistant reply."));
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    release();
+    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("interaction-timing-tab").click();
+    const turns = page.getByTestId("timing-turns");
+    await expect(turns.locator("details")).toHaveCount(1);
+    await turns.locator("summary").click();
+    await expect(turns).toContainText("fixture-model");
+    await expect(turns).toContainText("3500.0 ms");
+    await expect(turns).toContainText("Speculative response reused");
+    await expect(turns).toContainText("Its duration is not additional turn latency.");
+    await expect(turns).toContainText("buffered");
+    await expect(turns).toContainText("Silence detection");
+    await expect(turns).toContainText("Commit sent → acknowledgement");
+    await expect(turns).toContainText("Provider commit acknowledgement received");
+    await expect(turns).toContainText("Last transcript delta → final transcript");
+    await expect(turns.getByRole("row", { name: "First transcript delta received -300.0 ms", exact: true })).toBeAttached();
+    await expect(page.getByTestId("interaction-timing-panel")).toHaveCSS("opacity", "1");
+    expect(await page.locator("#diagnostics_drawer").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("interaction-timing-" + width + ".png") });
+    const jsonDownload = page.waitForEvent("download");
+    await page.getByTestId("timing-export-json").click();
+    const downloadedJson = await jsonDownload;
+    const stream = await downloadedJson.createReadStream();
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const text = Buffer.concat(chunks).toString("utf8"), exported = JSON.parse(text);
+    expect(exported.turns).toHaveLength(1);
+    expect(exported.turns[0].requests.map(request => request.kind).sort()).toEqual(["acknowledge", "speech"]);
+    expect(exported.turns[0].speech.playbackMode).toBe("buffered");
+    expect(exported.turns[0].durationsMs.voiceResponse).toBeGreaterThanOrEqual(500);
+    for (const metric of ["commitAcknowledgement", "acknowledgedFinal", "transcriptDeltas", "transcriptDeltaTail"]) {
+      expect(exported.turns[0].durationsMs[metric]).toBeGreaterThanOrEqual(0);
+    }
+    for (const stage of ["commit_sent", "commit_acknowledged", "transcript_first_delta", "transcript_last_delta"]) {
+      expect(Number.isFinite(exported.turns[0].stages[stage])).toBe(true);
+    }
+    expect(exported.turns[0].configuration.silenceDurationSeconds).toBe(1.5);
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].effort).toBe("none");
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].scope).toBe("speculative");
+    expect(exported.turns[0].requests.find(request => request.kind === "acknowledge").server.spans[0].originTrace).toBe("fixture-origin");
+    for (const excluded of ["Private spoken", "Private partial", "Private assistant", ACCESS_CODE, "ephemeral-test", "room-mic"]) {
+      expect(text).not.toContain(excluded);
+    }
+    const csvDownload = page.waitForEvent("download");
+    await page.getByTestId("timing-export-csv").click();
+    expect((await csvDownload).suggestedFilename()).toMatch(/\.csv$/);
+    const originalTiming = await page.evaluate(() => window.PrometheusTimings.snapshot());
+    await page.locator("#diagnostics_drawer .btn-close").click();
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
+    await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
+      route.fulfill(json({ eventId: LIVE_BEHAVIOUR_ID })));
+    await page.getByTestId("toggle-transcription").click();
+    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await page.evaluate(() => window.__finishSpeechPlayback());
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+    expect(await page.evaluate(() => window.PrometheusTimings.snapshot())).toEqual(originalTiming);
+    // A reset retains collected evidence. The explicit Clear action starts a fresh recording.
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("agent-drawer-tab").click();
+    await page.evaluate(() => { window.confirm = () => true; });
+    await page.getByTestId("reset-agent").click();
+    await expect(page.getByTestId("transcription-transport-status")).toHaveText(/^(Transcription|Transport) Idle$/);
+    await page.getByTestId("interaction-timing-tab").click();
+    await expect(turns.locator("details")).toHaveCount(1);
+    await page.getByTestId("timing-clear").click();
+    await expect(turns.locator("details")).toHaveCount(0);
+    await expect(page.getByTestId("timing-export-json")).toBeDisabled();
+  });
+}
 
 test("manual turn commits, device changes persist, and transport reconnects", async ({ page }) => {
   await openConnectedValerian(page);
@@ -289,7 +672,7 @@ test("permission denial is visible and releases ownership", async ({ page }) => 
   await expect(page.getByTestId("toggle-transcription")).toBeEnabled();
 });
 
-test("two Valerian pages elect one output owner for the same live behaviour", async ({ page, context }) => {
+test("only the Valerian page with started transcription speaks a shared live behaviour", async ({ page, context }) => {
   const other = await context.newPage();
   const requests = [];
   page.on("request", (request) => {
@@ -300,11 +683,16 @@ test("two Valerian pages elect one output owner for the same live behaviour", as
   });
   await openConnectedValerian(page);
   await openConnectedValerian(other);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
   await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
   await emitBehaviourSse(other, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
-  await expect(other.getByTestId("speech-playback-status")).toHaveText("Output In Other Window");
+  await expect(other.getByTestId("message-list")).toContainText("One owner.");
+  await expect(other.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  expect(await other.evaluate(() => window.__audioPlayback.plays)).toBe(0);
   expect(requests).toHaveLength(1);
 
   await page.evaluate(() => window.__finishSpeechPlayback());
@@ -333,7 +721,10 @@ test("Stop and synthesis failure both reopen live transcription input", async ({
 test("multilateral listener uses the same shared transcription engine", async ({ page }) => {
   await page.goto(`/multilateral/listen/?agentId=${AGENT_ID}&accessCode=${ACCESS_CODE}`);
   await expect(page.getByTestId("listen-transcription-settings")).toContainText("Provider transcription");
+  await page.getByTestId("transcription-turn-preset").selectOption("responsive");
+  const session = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/transcription/session"));
   await page.locator("#toggle_listen").click();
+  expect((await session).postDataJSON().transcriptionDelay).toBe("low");
   await expect(page.locator("#listen_status")).toHaveText("Listening");
   await emitProviderEvent(page, { type: "input_audio_buffer.committed", event_id: "multi-c1", item_id: "multi-1" });
   await emitProviderEvent(page, {
@@ -348,6 +739,41 @@ test("multilateral listener uses the same shared transcription engine", async ({
   await expect(page.locator("#transcript_log")).toContainText("Meeting transcript.");
   await page.locator("#toggle_listen").click();
   await expect(page.locator("#listen_status")).toHaveText("Idle");
+});
+
+test("conversation pace supports keyboard choice, retained reconnect settings and manual mode", async ({ page }, testInfo) => {
+  const sessions = [];
+  page.on("request", request => { if (request.method() === "POST" && request.url().endsWith("/transcription/session")) sessions.push(request.postDataJSON()); });
+  await openConnectedValerian(page);
+  await page.getByTestId("continuous-speech-tab").click();
+  await page.getByTestId("live-transcription-settings-toggle").click();
+  const preset = page.getByTestId("transcription-turn-preset");
+  await expect(preset).toHaveValue("pause_tolerant");
+  await preset.focus(); await preset.press("Home"); await preset.press("Enter");
+  await expect(preset).toHaveValue("ultra_responsive");
+  await expect(preset.locator("option:checked")).toHaveText("Ultra Responsive (0.5 s pause, minimal delay)");
+  await expect(page.getByTestId("transcription-turnDetection-silenceDurationSeconds")).toHaveValue("0.5");
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("minimal");
+  await page.getByTestId("transcription-languages").selectOption(["de", "en"]);
+  await page.getByTestId("transcription-noiseReduction").selectOption("near_field");
+  await attach(page, testInfo, "conversation-pace-desktop", preset.locator(".."));
+  await page.setViewportSize({ width: 390, height: 900 });
+  await attach(page, testInfo, "conversation-pace-mobile", preset.locator(".."));
+  await page.getByTestId("toggle-transcription").click();
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  await expect(preset).toBeDisabled();
+  expect(sessions[0]).toMatchObject({ turnDetection: { type: "local_vad", silenceDurationSeconds: 0.5 }, transcriptionDelay: "minimal", languages: ["de", "en"], noiseReduction: "near_field" });
+  await page.evaluate(() => {
+    const peer = window.__transcriptionPeers.at(-1);
+    peer.connectionState = "failed"; peer.dispatchEvent(new Event("connectionstatechange"));
+  });
+  await expect.poll(() => sessions.length).toBe(2);
+  expect(sessions[1]).toEqual(sessions[0]);
+  await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
+  await page.getByTestId("toggle-transcription").click();
+  await page.getByTestId("transcription-turnDetection-type").selectOption("manual");
+  await expect(preset).not.toBeVisible();
+  await expect(page.getByTestId("transcription-transcriptionDelay")).toHaveValue("minimal");
 });
 
 test("transcription settings states produce deterministic desktop and narrow visual artifacts", async ({ page }, testInfo) => {
@@ -383,6 +809,35 @@ test("transcription settings states produce deterministic desktop and narrow vis
   await attach(page, testInfo, "speech-error-narrow", page.locator("[data-column-panel=interaction]"));
 });
 
+for (const width of [1440, 390]) {
+  test(`speech controls remain usable through loading, speaking, Stop and failure at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    let release;
+    const ready = new Promise(resolve => { release = resolve; });
+    await page.route(`**/behaviours/${SLOW_BEHAVIOUR_ID}/speech*`, async route => {
+      await ready;
+      await route.fulfill({ status: 200, contentType: "audio/mpeg", body: Buffer.from([1, 2, 3]) });
+    });
+    await openConnectedValerian(page);
+    await page.getByTestId("continuous-speech-tab").click();
+    await page.getByTestId("toggle-transcription").click();
+    await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));
+    const status = page.getByTestId("speech-playback-status"), stop = page.getByTestId("stop-speech-playback");
+    const row = status.locator("..");
+    try {
+      await expect(status).toHaveText("Speech Loading"); await expect(stop).toBeEnabled();
+      await attach(page, testInfo, `speech-loading-${width}`, row);
+    } finally { release(); }
+    await expect(status).toHaveText("Speaking");
+    await attach(page, testInfo, `speech-speaking-${width}`, row);
+    await stop.click(); await expect(status).toHaveText("Playback Stopped"); await expect(stop).toBeDisabled();
+    await attach(page, testInfo, `speech-stopped-${width}`, row);
+    await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Visual provider failure."));
+    await expect(status).toHaveText("Synthesis Error");
+    await attach(page, testInfo, `speech-failed-${width}`, row);
+  });
+}
+
 async function openConnectedValerian(page) {
   await page.goto(`/valerian/?agentId=${AGENT_ID}`);
   await page.getByTestId("access-code-input").fill(ACCESS_CODE);
@@ -408,8 +863,10 @@ async function emitBehaviourSse(page, eventName, eventId, event) {
 
 async function attach(page, testInfo, name, locator) {
   await locator.scrollIntoViewIfNeeded();
+  const path = testInfo.outputPath(`${name}.png`);
+  await locator.screenshot({ path, animations: "disabled" });
   await testInfo.attach(name, {
-    body: await locator.screenshot({ animations: "disabled" }),
+    path,
     contentType: "image/png",
   });
 }
@@ -459,7 +916,8 @@ async function installApiMocks(context) {
       return route.fulfill({ status: 204, body: "" });
     }
     if (request.method() === "POST" && scopedPath === "/acknowledge") {
-      return route.fulfill(json({ active: true, responseEvent: behaviourEvent() }));
+      return route.fulfill({ ...json({ active: true, responseEvent: behaviourEvent() }),
+        headers: { "X-Prometheus-Behaviour-Id": LIVE_BEHAVIOUR_ID } });
     }
     if (request.method() === "DELETE" && scopedPath === "/reset") {
       return route.fulfill(json({ active: true, responseEvent: null }));
@@ -479,14 +937,18 @@ async function installApiMocks(context) {
 
 async function installBrowserMediaMocks(context) {
   await context.addInitScript(() => {
+    // This suite mocks decoding; native MSE is covered by progressive-speech.spec.mjs.
+    window.MediaSource = undefined;
     window.__transcriptionSessionRequests = 0;
     window.__transcriptionChannels = [];
     window.__transcriptionPeers = [];
     window.__eventSources = [];
     window.__audioPlayback = { plays: 0, pauses: 0, sinkIds: [], revoked: [] };
     let objectUrlSequence = 0;
-    URL.createObjectURL = () => `blob:mock-speech-${++objectUrlSequence}`;
-    URL.revokeObjectURL = (url) => window.__audioPlayback.revoked.push(url);
+    const createObjectURL = URL.createObjectURL.bind(URL), revokeObjectURL = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => blob.type === "application/json" || blob.type?.startsWith("text/csv")
+      ? createObjectURL(blob) : `blob:mock-speech-${++objectUrlSequence}`;
+    URL.revokeObjectURL = (url) => { window.__audioPlayback.revoked.push(url); revokeObjectURL(url); };
     Object.defineProperty(HTMLMediaElement.prototype, "src", {
       configurable: true,
       get() { return this.__mockSpeechSrc || ""; },

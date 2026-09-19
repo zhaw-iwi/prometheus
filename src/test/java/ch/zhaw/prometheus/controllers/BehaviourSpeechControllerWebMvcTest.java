@@ -29,6 +29,8 @@ import ch.zhaw.prometheus.application.BehaviourSpeechUnavailableException;
 import ch.zhaw.prometheus.application.DemoAccessDeniedException;
 import ch.zhaw.prometheus.application.ScopedBehaviourSpeechService;
 import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
+import ch.zhaw.prometheus.application.SpeechDeliveryTimingService;
+import ch.zhaw.prometheus.logging.SpeechDeliveryTrace;
 import ch.zhaw.prometheus.spi.SpeechAudio;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 
@@ -42,6 +44,30 @@ class BehaviourSpeechControllerWebMvcTest {
 
     @MockitoBean
     private ScopedBehaviourSpeechService speechService;
+    @MockitoBean private SpeechDeliveryTimingService deliveryTimings;
+
+    @Test void deliveryTimingIsOptInCorrelatedAndRetrievedThroughTheScopedBoundary() throws Exception {
+        var trace = new SpeechDeliveryTrace();
+        when(speechService.synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), any()))
+                .thenReturn(Optional.of(new SpeechAudio(new byte[] {1, 2}, "audio/pcm")));
+        when(deliveryTimings.start(AGENT_ID, EVENT_ID)).thenReturn(trace);
+        var result = mockMvc.perform(post(path()).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
+                .queryParam("deliveryTiming", "true")).andExpect(request().asyncStarted()).andReturn();
+        mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk())
+                .andExpect(header().string(SpeechDeliveryTrace.HEADER, trace.id().toString()))
+                .andExpect(content().bytes(new byte[] {1, 2}));
+        when(deliveryTimings.find("abc12", AGENT_ID, EVENT_ID, trace.id())).thenReturn(Optional.of(trace.snapshot()));
+        String timingPath = path() + "/timing/" + trace.id();
+        mockMvc.perform(get(timingPath).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value("complete"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.bytesFlushed").value(2));
+        when(deliveryTimings.find("other", AGENT_ID, EVENT_ID, trace.id())).thenReturn(Optional.empty());
+        mockMvc.perform(get(timingPath).queryParam("accessCode", "other")).andExpect(status().isNotFound());
+        when(deliveryTimings.find("bad", AGENT_ID, EVENT_ID, trace.id())).thenThrow(new DemoAccessDeniedException());
+        mockMvc.perform(get(timingPath).header(ScopedDemoController.ACCESS_CODE_HEADER, "bad")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(path() + "/timing/not-a-uuid")).andExpect(status().isBadRequest());
+    }
 
     @Test
     void streamsUncachedCanonicalEventAudioWithSharedSettings() throws Exception {
@@ -69,6 +95,23 @@ class BehaviourSpeechControllerWebMvcTest {
         verify(this.speechService).synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), settings.capture());
         assertEquals("cedar", settings.getValue().getVoice());
         assertEquals(1.25, settings.getValue().getSpeed(), 0.0001);
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.MP3, settings.getValue().getFormat());
+        verify(deliveryTimings, never()).start(any(), any());
+    }
+
+    @Test
+    void streamsExplicitPcmWithItsSampleMetadata() throws Exception {
+        String type = ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM.contentType();
+        when(this.speechService.synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), any()))
+                .thenReturn(Optional.of(new SpeechAudio(new byte[] { 0, 1 }, type)));
+        MvcResult result = this.mockMvc.perform(post(path())
+                .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12").queryParam("format", "pcm"))
+                .andExpect(request().asyncStarted()).andReturn();
+        this.mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk())
+                .andExpect(content().contentType(type)).andExpect(content().bytes(new byte[] { 0, 1 }));
+        ArgumentCaptor<SpeechSynthesisSettings> settings = ArgumentCaptor.forClass(SpeechSynthesisSettings.class);
+        verify(this.speechService).synthesize(eq("abc12"), eq(AGENT_ID), eq(EVENT_ID), settings.capture());
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM, settings.getValue().getFormat());
     }
 
     @Test
@@ -111,6 +154,8 @@ class BehaviourSpeechControllerWebMvcTest {
 
     @Test
     void rejectsInvalidVoiceOrSpeedBeforeServiceCall() throws Exception {
+        this.mockMvc.perform(post(path()).header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
+                .queryParam("format", "wav")).andExpect(status().isBadRequest());
         this.mockMvc.perform(post(path())
                 .header(ScopedDemoController.ACCESS_CODE_HEADER, "abc12")
                 .queryParam("voice", "not-a-voice"))

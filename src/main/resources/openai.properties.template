@@ -1,7 +1,9 @@
 # connection data
 openai.openaivsazureopenai = openai | azureopenai
 openai.url = https://api.openai.com/v1/chat/completions | [AZURE AI SERVICE API ENDPOINT]/openai/deployments/[MODEL DEPLOYMENT NAME]/chat/completions?api-version=2023-07-01-preview
-openai.model = gpt-4 | unused for azure openai
+openai.model = gpt-5.2
+# For Azure, set model to the underlying model name for capability validation;
+# the deployment is selected by the URL, and no model field is sent.
 openai.key = openai api key here | azure ai service api key (key 1)
 
 # shared output-only speech synthesis for persisted behaviour plans and Talk to Me
@@ -13,3 +15,41 @@ prometheus.speech.url = https://api.openai.com/v1/audio/speech | [AZURE AI SERVI
 openai.liveTranscriptionSafetyIdentifier =
 openai.liveTranscriptionClientSecretUrl = https://api.openai.com/v1/realtime/client_secrets
 openai.liveTranscriptionWebRtcUrl = https://api.openai.com/v1/realtime/calls
+
+# Text inference: optional explicit effort; leave blank to use provider default.
+# GPT-5.2 default effort is none. GPT-5.6 Sol/Luna default effort is medium.
+openai.reasoning-effort =
+openai.request-timeout-ms = 30000
+# Optional global output-token cap (including reasoning tokens).
+# openai.max-completion-tokens = 2048
+
+# Opt-in candidate routes; validate account access and task quality before enabling.
+# Unspecified purposes keep openai.model and the global effort/limits.
+# openai.routes.behaviour.model = gpt-5.6-sol
+# openai.routes.behaviour.reasoning-effort = none
+# openai.routes.behaviour.max-completion-tokens = 1024
+# openai.routes.nonverbal.model = gpt-5.6-sol
+# openai.routes.nonverbal.reasoning-effort = none
+# openai.routes.decision.model = gpt-5.6-luna
+# openai.routes.decision.reasoning-effort = none
+# openai.routes.decision.max-completion-tokens = 256
+# openai.routes.extraction.model = gpt-5.6-luna
+# openai.routes.extraction.reasoning-effort = none
+# openai.routes.extraction.max-completion-tokens = 2048
+# openai.routes.summary.model = gpt-5.6-luna
+# openai.routes.summary.reasoning-effort = none
+# Each route can also set timeout-ms and url. Azure model overrides must include
+# the matching deployment URL. Azure availability must be checked separately.
+
+# Pure guard evaluation: combined (default) or ordered (provider compatibility / comparison).
+openai.guard-strategy = combined
+openai.guard-batch-size = 16
+openai.guard-max-characters = 65536
+
+# Optional comparison modes: parallel (separate pure checks) or combined_parallel
+# (concurrent compatible groups). Combined remains the default.
+openai.guard-parallelism = 4
+openai.guard-per-turn-parallelism = 3
+openai.guard-queue-capacity = 16
+openai.guard-queue-wait-ms = 5000
+openai.guard-turn-timeout-ms = 30000

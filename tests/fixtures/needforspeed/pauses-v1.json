@@ -1,0 +1,20 @@
+{
+  "revision": "nfs-pauses-v1",
+  "synthetic": true,
+  "voice": "Microsoft Zira Desktop",
+  "cases": [
+    {
+      "file": "pause-short.wav",
+      "transcript": "I would like to draw tomorrow after breakfast.",
+      "insertedPauseMs": 400,
+      "expectedNaturalTurns": 1
+    },
+    {
+      "file": "pause-hesitation.wav",
+      "transcript": "I would like to draw tomorrow after breakfast.",
+      "insertedPauseMs": 1100,
+      "expectedNaturalTurns": 1
+    }
+  ],
+  "limitations": "Clean synthetic speech only; labelled pause includes additional synthesizer phrase-end silence. No evidence for real-room healthcare or multiple speakers."
+}

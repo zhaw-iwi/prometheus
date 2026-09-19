@@ -20,17 +20,32 @@ public class RpsEvaluateRoundAction extends Action {
 
     public RpsEvaluateRoundAction(Storage storage) {
         super(new NoOpPolicy(), storage, RpsStorageKeys.LAST_ROUND);
+        blocking();
     }
 
     @Override
     public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
-        RpsSign agentSign = RpsStorageSupport.currentAgentSign(this.getStorage());
-        JsonObject handPayload = latestHandSignPayload(eventHistory);
+        compute(RpsStorageSupport.currentAgentSign(getStorage()), RpsStorageSupport.currentRoundNumber(getStorage()),
+                latestHandSignPayload(eventHistory).toString(), RpsStorageSupport.rounds(getStorage()).toString())
+                .forEach((key, value) -> getStorage().put(key, JsonParser.parseString(value)));
+    }
+
+    @Override public ch.zhaw.prometheus.model.PreparedAction prepare(EventHistory events,
+            ch.zhaw.prometheus.model.snapshot.ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        RpsSign sign = RpsStorageSupport.currentAgentSign(getStorage());
+        int number = RpsStorageSupport.currentRoundNumber(getStorage());
+        String hand = latestHandSignPayload(events).toString(), rounds = RpsStorageSupport.rounds(getStorage()).toString();
+        return prepared(java.util.Set.of(RpsStorageKeys.LAST_ROUND, RpsStorageKeys.ROUNDS),
+                gateway -> compute(sign, number, hand, rounds));
+    }
+
+    private static java.util.Map<String, String> compute(RpsSign agentSign, int roundNumber, String handJson, String roundsJson) {
+        JsonObject handPayload = JsonParser.parseString(handJson).getAsJsonObject();
         RpsSign userSign = RpsSign.parse(requiredString(handPayload, "sign"));
         RpsRoundOutcome outcome = RpsRules.evaluate(agentSign, userSign);
 
         JsonObject round = new JsonObject();
-        round.addProperty("round", RpsStorageSupport.currentRoundNumber(this.getStorage()));
+        round.addProperty("round", roundNumber);
         round.addProperty("agentSign", agentSign.canonical());
         round.addProperty("userSign", userSign.canonical());
         round.addProperty("outcome", outcome.name().toLowerCase());
@@ -40,10 +55,9 @@ public class RpsEvaluateRoundAction extends Action {
         copyIfPresent(handPayload, round, "detectionMode", "userDetectionMode");
         copyIfPresent(handPayload, round, "hand", "userHand");
 
-        JsonArray rounds = RpsStorageSupport.rounds(this.getStorage());
+        JsonArray rounds = JsonParser.parseString(roundsJson).getAsJsonArray();
         rounds.add(round);
-        this.getStorage().put(RpsStorageKeys.LAST_ROUND, round);
-        this.getStorage().put(RpsStorageKeys.ROUNDS, rounds);
+        return java.util.Map.of(RpsStorageKeys.LAST_ROUND, round.toString(), RpsStorageKeys.ROUNDS, rounds.toString());
     }
 
     private static JsonObject latestHandSignPayload(EventHistory eventHistory) {

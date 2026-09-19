@@ -3,7 +3,6 @@ package ch.zhaw.prometheus.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -20,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.spi.SpeechAudio;
+import ch.zhaw.prometheus.spi.SpeechAudioFormat;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
@@ -42,25 +42,27 @@ class ScopedBehaviourSpeechServiceUnitTest {
         this.service = new ScopedBehaviourSpeechService(this.demoService, this.speechGateway);
     }
 
-    @Test
-    void resolvesCanonicalPersistedSpeechWithoutRewritingIt() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(SpeechAudioFormat.class)
+    void resolvesCanonicalPersistedSpeechWithoutRewritingIt(SpeechAudioFormat format) {
         String speech = "  Exact persisted speech.  ";
         Event event = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
                 "{\"speech\":\"  Exact persisted speech.  \",\"motion\":{\"handSign\":\"rock\"}}");
         SpeechAudio audio = new SpeechAudio(new byte[] { 1 }, "audio/mpeg");
         when(this.demoService.getAgentEventHistory("abc12", AGENT_ID)).thenReturn(Optional.of(List.of(event)));
-        when(this.speechGateway.synthesize(speech, "cedar", 1.2)).thenReturn(audio);
+        when(this.speechGateway.synthesize(speech, "cedar", 1.2, format)).thenReturn(audio);
 
-        assertEquals(audio, this.service.synthesize("abc12", AGENT_ID, EVENT_ID, SETTINGS).orElseThrow());
-        verify(this.speechGateway).synthesize(speech, "cedar", 1.2);
+        assertEquals(audio, this.service.synthesize("abc12", AGENT_ID, EVENT_ID,
+                new SpeechSynthesisSettings("cedar", "1.2", format.wireValue())).orElseThrow());
+        verify(this.speechGateway).synthesize(speech, "cedar", 1.2, format);
     }
 
     @Test
-    void selectsLatestAssistantSpeechEventOnlyWhenItIsTheLatestUtteranceInTheCurrentState() {
+    void selectsLatestAssistantSpeechEventOnlyWhenItIsTheLatestUtteranceInCanonicalHistory() {
         Event assistant = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,
                 "{\"speech\":\"Welcome back.\"}");
         Event user = event(UUID.randomUUID(), Event.TYPE_USER_UTTERANCE, "One more question");
-        when(this.demoService.getAgentCurrentStateEventHistory("abc12", AGENT_ID))
+        when(this.demoService.getAgentEventHistory("abc12", AGENT_ID))
                 .thenReturn(Optional.of(List.of(assistant)))
                 .thenReturn(Optional.of(List.of(assistant, user)))
                 .thenReturn(Optional.empty());
@@ -97,15 +99,14 @@ class ScopedBehaviourSpeechServiceUnitTest {
             assertThrows(BehaviourSpeechUnavailableException.class,
                     () -> this.service.synthesize("abc12", AGENT_ID, EVENT_ID, SETTINGS));
         }
-        verify(this.speechGateway, never()).synthesize(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyDouble());
+        verifyNoInteractions(this.speechGateway);
     }
 
     @Test
     void propagatesProviderFailureForHttpTranslation() {
         Event event = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, "{\"speech\":\"Canonical\"}");
         when(this.demoService.getAgentEventHistory("abc12", AGENT_ID)).thenReturn(Optional.of(List.of(event)));
-        when(this.speechGateway.synthesize("Canonical", "cedar", 1.2))
+        when(this.speechGateway.synthesize("Canonical", "cedar", 1.2, SpeechAudioFormat.MP3))
                 .thenThrow(new SpeechSynthesisException("provider failed"));
 
         assertThrows(SpeechSynthesisException.class,

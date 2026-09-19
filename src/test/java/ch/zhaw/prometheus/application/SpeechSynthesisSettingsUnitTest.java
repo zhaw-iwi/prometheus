@@ -11,6 +11,10 @@ class SpeechSynthesisSettingsUnitTest {
         SpeechSynthesisSettings defaults = new SpeechSynthesisSettings(null, null);
         assertEquals("alloy", defaults.getVoice());
         assertEquals(1.0, defaults.getSpeed(), 0.0001);
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.MP3, defaults.getFormat());
+        assertEquals(ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM,
+                new SpeechSynthesisSettings(null, null, " PCM ").getFormat());
+        assertThrows(IllegalArgumentException.class, () -> new SpeechSynthesisSettings(null, null, "wav"));
 
         SpeechSynthesisSettings selected = new SpeechSynthesisSettings(" Marin ", "1.25");
         assertEquals("marin", selected.getVoice());

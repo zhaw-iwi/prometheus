@@ -65,6 +65,14 @@ public class Event {
     @CreationTimestamp
     @Column(name = "createdDate", nullable = false, updatable = false)
     private Instant createdDate;
+    // Nullable for legacy rows. Internal append order is independent of timestamp precision.
+    @JsonIgnore
+    @GsonExclude
+    @Column(name = "history_position")
+    private Long historyPosition;
+
+    Long historyPosition() { return historyPosition; }
+    void historyPosition(long position) { this.historyPosition = position; }
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "event_state_path", joinColumns = @JoinColumn(name = "event_id"))
     @OrderColumn(name = "path_index")

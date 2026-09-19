@@ -30,8 +30,10 @@ public class PrometheusCorsConfiguration implements WebMvcConfigurer {
                         "Last-Event-ID",
                         "Origin",
                         "X-Prometheus-Access-Code",
-                        "X-Prometheus-Admin-Token")
-                .exposedHeaders("Location")
+                        "X-Prometheus-Admin-Token",
+                        "X-Prometheus-Trace-Id")
+                .exposedHeaders("Location", "X-Prometheus-Trace-Id", "X-Prometheus-Behaviour-Id", "X-Prometheus-Timing",
+                        "X-Prometheus-Speech-Delivery-Id")
                 .maxAge(3600);
 
         if (!origins.isEmpty()) {

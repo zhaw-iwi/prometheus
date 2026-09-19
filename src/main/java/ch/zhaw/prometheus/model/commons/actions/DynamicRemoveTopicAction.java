@@ -28,13 +28,25 @@ public class DynamicRemoveTopicAction extends Action {
 
     @Override
     public void execute(EventHistory eventHistory, PolicyRuntime runtime) {
-        // Get the JSON array from storage
-        JsonElement topicsTo = this.getStorage().get(this.getStorageKeysFrom().get(0));
-        JsonElement topicFrom = this.getStorage().get(this.getStorageKeyTo());
+        String key = getStorageKeysFrom().get(0);
+        getStorage().put(key, com.google.gson.JsonParser.parseString(remove(
+                getStorage().get(key).toString(), getStorage().get(getStorageKeyTo()).toString())));
+    }
+
+    @Override public ch.zhaw.prometheus.model.PreparedAction prepare(EventHistory events,
+            ch.zhaw.prometheus.model.snapshot.ObservationSnapshot snapshot, PolicyRuntime runtime) {
+        String key = getStorageKeysFrom().get(0);
+        String topics = getStorage().get(key).toString(), choice = getStorage().get(getStorageKeyTo()).toString();
+        return prepared(java.util.Set.of(key), gateway -> java.util.Map.of(key, remove(topics, choice)));
+    }
+
+    private static String remove(String topicsJson, String choiceJson) {
+        JsonElement topicsTo = com.google.gson.JsonParser.parseString(topicsJson);
+        JsonElement topicFrom = com.google.gson.JsonParser.parseString(choiceJson);
 
         if (!(topicsTo instanceof JsonArray)) {
             throw new RuntimeException(
-                    "Invalid data in storage. Expected value for key " + this.getStorageKeysFrom().get(0)
+                    "Invalid data in storage. Expected value for key " + "topics"
                             + " to be instance of JsonArray but was " + topicsTo.getClass() + " instead");
         }
 
@@ -57,7 +69,7 @@ public class DynamicRemoveTopicAction extends Action {
             stringToRemove = temporaryElement.getAsJsonPrimitive().getAsString();
         } else {
             throw new RuntimeException(
-                    "Invalid data in storage. Expected value for key " + this.getStorageKeyTo()
+                    "Invalid data in storage. Expected value for key " + "choice"
                             + " to be instance of JsonPrimitive or JsonObject but was " + topicFrom.getClass()
                             + " instead");
         }
@@ -67,7 +79,7 @@ public class DynamicRemoveTopicAction extends Action {
                     "List " + topicsList + " does not contain the item " + stringToRemove + " to be removed");
         }
         topicsList.remove(stringToRemove);
-        this.getStorage().put(this.getStorageKeysFrom().get(0), Storage.toJsonElement(topicsList));
+        return Storage.toJsonElement(topicsList).toString();
     }
 
     @Override

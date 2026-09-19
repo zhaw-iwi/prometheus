@@ -2,12 +2,9 @@ package ch.zhaw.prometheus.model.policy;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.Storage;
@@ -15,6 +12,7 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.logging.LatencyTrace;
 import ch.zhaw.prometheus.utils.NamedParametersFormatter;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -186,18 +184,22 @@ public class PromptPolicy extends Policy {
         return resolvePrompt();
     }
 
-    private BehaviourPlan producePlan(List<PromptMessage> messages, LanguageModelGateway languageModelGateway) {
-        return buildFullPlan(messages, languageModelGateway);
+    private BehaviourPlan producePlan(List<PromptMessage> messages, LanguageModelGateway gateway) {
+        boolean planConfigured = this.nonVerbalPlanPrompt != null && !this.nonVerbalPlanPrompt.isBlank();
+        boolean gestureConfigured = this.nonVerbalGesturePrompt != null && !this.nonVerbalGesturePrompt.isBlank();
+        String instructions = planConfigured ? this.nonVerbalPlanPrompt
+                : gestureConfigured ? this.nonVerbalGesturePrompt : null;
+        return LatencyTrace.measure("behaviour_plan", () -> BehaviourPlanInference.generate(
+                messages, instructions, !planConfigured && gestureConfigured, gateway));
     }
 
-    private BehaviourPlan buildFullPlan(List<PromptMessage> messages, LanguageModelGateway languageModelGateway) {
-        String speech = languageModelGateway.complete(messages);
-        if (speech == null || speech.isBlank()) {
-            return null;
-        }
-        BehaviourPlan plan = BehaviourPlan.speechOnly(speech);
-        plan.setNonVerbal(resolveNonVerbal(speech, languageModelGateway));
-        return plan;
+    public ch.zhaw.prometheus.spi.InferenceRequest responseRequest(EventHistory events, PromptMessageAssembler assembler) {
+        String prompt = resolvePrompt();
+        if (prompt.isEmpty()) return null;
+        boolean plan = nonVerbalPlanPrompt != null && !nonVerbalPlanPrompt.isBlank();
+        boolean gesture = nonVerbalGesturePrompt != null && !nonVerbalGesturePrompt.isBlank();
+        return BehaviourPlanInference.request(assembler.compose(events, prompt),
+                plan ? nonVerbalPlanPrompt : gesture ? nonVerbalGesturePrompt : null, !plan && gesture);
     }
 
     @Override
@@ -206,9 +208,22 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) {
             return false;
         }
-        List<PromptMessage> messages = assembler.composeCondensed(events, prompt,
-                LanguageModelGateway.REMINDER_DECISION);
+        List<PromptMessage> messages = decisionMessages(events, assembler);
         return languageModelGateway.decide(messages);
+    }
+
+    public List<PromptMessage> decisionMessages(EventHistory events, PromptMessageAssembler assembler) {
+        return assembler.composeCondensed(events, resolvePrompt(), LanguageModelGateway.REMINDER_DECISION);
+    }
+
+    public ch.zhaw.prometheus.spi.InferenceRequest actionRequest(EventHistory events,
+            PromptMessageAssembler assembler, boolean summary) {
+        String prompt = resolvePrompt();
+        if (prompt.isEmpty()) return null;
+        return new ch.zhaw.prometheus.spi.InferenceRequest(summary
+                ? ch.zhaw.prometheus.spi.InferencePurpose.SUMMARY : ch.zhaw.prometheus.spi.InferencePurpose.EXTRACTION,
+                assembler.composeCondensed(events, prompt, summary ? LanguageModelGateway.REMINDER_SUMMARISATION
+                        : LanguageModelGateway.REMINDER_EXTRACTION), ch.zhaw.prometheus.spi.InferenceRequest.Output.JSON);
     }
 
     @Override
@@ -313,113 +328,4 @@ public class PromptPolicy extends Policy {
         this.nonVerbalPlanPrompt = nonVerbalPlanPrompt;
     }
 
-    private JsonElement resolveNonVerbal(String speech, LanguageModelGateway languageModelGateway) {
-        JsonElement plan = resolveNonVerbalPlan(speech, languageModelGateway);
-        if (plan != null) {
-            return plan;
-        }
-        return resolveNonVerbalGesture(speech, languageModelGateway);
-    }
-
-    private JsonElement resolveNonVerbalPlan(String speech, LanguageModelGateway languageModelGateway) {
-        if (this.nonVerbalPlanPrompt == null || this.nonVerbalPlanPrompt.isBlank()) {
-            return null;
-        }
-        if (speech == null || speech.isBlank()) {
-            return null;
-        }
-        List<PromptMessage> messages = List.of(
-                PromptMessage.system(this.nonVerbalPlanPrompt),
-                PromptMessage.user("Assistant speech: " + speech));
-        String raw = languageModelGateway.complete(messages);
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        try {
-            JsonElement parsed = JsonParser.parseString(raw);
-            if (!parsed.isJsonObject()) {
-                return null;
-            }
-            JsonObject candidate = parsed.getAsJsonObject();
-            JsonObject nonVerbal = candidate;
-            if (candidate.has("nonVerbal") && candidate.get("nonVerbal").isJsonObject()) {
-                nonVerbal = candidate.getAsJsonObject("nonVerbal");
-            }
-            JsonObject normalized = nonVerbal.deepCopy();
-            String gesture = null;
-            if (normalized.has("gesture") && !normalized.get("gesture").isJsonNull()) {
-                gesture = normalizeGestureLabel(normalized.get("gesture").getAsString());
-            }
-            if (gesture == null) {
-                gesture = "NONE";
-            }
-            normalized.addProperty("gesture", gesture);
-            removeUnsupportedLocomotion(normalized);
-            return normalized;
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private JsonElement resolveNonVerbalGesture(String speech, LanguageModelGateway languageModelGateway) {
-        if (this.nonVerbalGesturePrompt == null || this.nonVerbalGesturePrompt.isBlank()) {
-            return null;
-        }
-        if (speech == null || speech.isBlank()) {
-            return null;
-        }
-        List<PromptMessage> messages = List.of(
-                PromptMessage.system(this.nonVerbalGesturePrompt),
-                PromptMessage.user("Assistant speech: " + speech));
-        String raw = languageModelGateway.complete(messages);
-        String gesture = normalizeGestureLabel(raw);
-        if (gesture == null) {
-            gesture = "NONE";
-        }
-        JsonObject nonVerbal = new JsonObject();
-        nonVerbal.addProperty("gesture", gesture);
-        return nonVerbal;
-    }
-
-    private static String normalizeGestureLabel(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return null;
-        }
-        String fromJson = parseGestureFromJson(raw);
-        if (fromJson != null) {
-            return fromJson;
-        }
-        String normalized = raw.trim()
-                .replace("\"", "")
-                .replace("'", "")
-                .toUpperCase(Locale.ROOT)
-                .replace("-", "_")
-                .replace(" ", "_");
-        return switch (normalized) {
-            case "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE" -> normalized;
-            default -> null;
-        };
-    }
-
-    private static void removeUnsupportedLocomotion(JsonObject nonVerbal) {
-        if (!nonVerbal.has("motion") || !nonVerbal.get("motion").isJsonObject()) {
-            return;
-        }
-        JsonObject motion = nonVerbal.getAsJsonObject("motion");
-        motion.remove("move");
-        motion.remove("turn");
-    }
-
-    private static String parseGestureFromJson(String raw) {
-        try {
-            JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
-            if (!json.has("gesture") || json.get("gesture").isJsonNull()) {
-                return null;
-            }
-            return normalizeGestureLabel(json.get("gesture").getAsString());
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
 }
-

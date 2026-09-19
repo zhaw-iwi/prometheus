@@ -38,14 +38,20 @@ class PrometheusCorsConfigurationWebMvcTest {
                 .header(HttpHeaders.ORIGIN, "https://cockpit.example.test")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS,
-                        "content-type,x-prometheus-access-code"))
+                        "content-type,x-prometheus-access-code,x-prometheus-trace-id"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
                         "https://cockpit.example.test"))
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
                         containsString("POST")))
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                        containsString("x-prometheus-access-code")));
+                        containsString("x-prometheus-trace-id")))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString("X-Prometheus-Behaviour-Id")))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString("X-Prometheus-Timing")))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                        containsString("X-Prometheus-Speech-Delivery-Id")));
     }
 
     @Test
@@ -56,7 +62,7 @@ class PrometheusCorsConfigurationWebMvcTest {
                 .header(HttpHeaders.ORIGIN, "http://127.0.0.1:5010")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
                 .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS,
-                        "content-type,x-prometheus-access-code"))
+                        "content-type,x-prometheus-access-code,x-prometheus-trace-id"))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
                         "http://127.0.0.1:5010"))

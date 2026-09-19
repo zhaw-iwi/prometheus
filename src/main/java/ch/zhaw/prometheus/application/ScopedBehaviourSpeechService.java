@@ -34,11 +34,13 @@ public class ScopedBehaviourSpeechService {
             return Optional.empty();
         }
         String speech = canonicalSpeech(event.get());
-        return Optional.of(this.speechGateway.synthesize(speech, settings.getVoice(), settings.getSpeed()));
+        return Optional.of(this.speechGateway.synthesize(speech, settings.getVoice(), settings.getSpeed(), settings.getFormat()));
     }
 
     public Optional<UUID> latestAssistantSpeechEventId(String accessCode, UUID agentId) {
-        return this.demoService.getAgentCurrentStateEventHistory(accessCode, agentId)
+        // Resume the visible conversation using persisted IDs. State policy views
+        // filter the conversation and copy events without their persistence identity.
+        return this.demoService.getAgentEventHistory(accessCode, agentId)
                 .flatMap(SpeechTurnSelector::latestAssistantBehaviourIfLatestUtterance)
                 .filter(event -> event.getId() != null)
                 .map(Event::getId);
