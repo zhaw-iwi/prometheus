@@ -81,11 +81,11 @@ public class AgentApplicationService {
     }
 
     private <T> T actionTurn(Agent agent, OutputProfile profile, java.util.function.Function<PolicyRuntime, T> work) {
-        if (backgroundActions == null) return work.apply(runtime(profile));
+        if (backgroundActions == null) return work.apply(runtime(agent, profile));
         UUID id = agent.getId(), epoch = agent.executionEpoch();
         try (var turn = new BackgroundActionTurn(id, backgroundActions,
                 (action, values, versions) -> applyBackgroundAction(id, epoch, action, values, versions))) {
-            T result = work.apply(runtime(profile).withActionExecution(turn));
+            T result = work.apply(runtime(agent, profile).withActionExecution(turn));
             turn.commit();
             return result;
         }
@@ -155,7 +155,8 @@ public class AgentApplicationService {
         List<AgentInfoView> result = new ArrayList<>();
         for (Agent current : agents) {
             result.add(new AgentInfoView(current.getId(), current.getName(), current.getDescription(),
-                    current.isActive(), current.getInteractionProfile(), current.getLanguageCode()));
+                    current.isActive(), current.getInteractionProfile(), current.getLanguageCode(),
+                    current.getEmbodiment()));
         }
         return result;
     }
@@ -170,7 +171,8 @@ public class AgentApplicationService {
 
     public Optional<AgentInfoView> getAgentInfo(UUID agentID) {
         return this.findAgent(agentID).map(agent -> new AgentInfoView(agent.getId(), agent.getName(),
-                agent.getDescription(), agent.isActive(), agent.getInteractionProfile(), agent.getLanguageCode()));
+                agent.getDescription(), agent.isActive(), agent.getInteractionProfile(), agent.getLanguageCode(),
+                agent.getEmbodiment()));
     }
 
     public Optional<String> getAgentLanguageCode(UUID agentID) {
@@ -228,7 +230,7 @@ public class AgentApplicationService {
                 return Optional.empty();
             }
             Agent agent = agentMaybe.get();
-            Event starter = agent.start(this.runtime());
+            Event starter = agent.start(this.runtime(agent, OutputProfile.FULL_PLAN));
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, starter);
             return Optional.of(new ResponseView(starter, agent.isActive()));
@@ -247,7 +249,7 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-            PolicyRuntime generationRuntime = this.runtime(resolvedProfile);
+            PolicyRuntime generationRuntime = this.runtime(agent, resolvedProfile);
             if (speculation != null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
                     agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
             PolicyRuntime preparedRuntime = generationRuntime;
@@ -304,7 +306,7 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             agent.reset();
-            Event response = agent.start(this.runtime());
+            Event response = agent.start(this.runtime(agent, OutputProfile.FULL_PLAN));
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, response);
             return Optional.of(new ResponseView(response, agent.isActive()));
@@ -323,7 +325,8 @@ public class AgentApplicationService {
         Agent agent = agentMaybe.get();
         OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         return Optional.of(
-                new PolicyResponseView(agent.getTotalPolicy(this.promptMessageAssembler, resolvedProfile),
+                new PolicyResponseView(agent.getTotalPolicy(
+                        this.promptMessageAssembler.forEmbodiment(agent.getEmbodiment()), resolvedProfile),
                         agent.isActive()));
     }
 
@@ -372,7 +375,7 @@ public class AgentApplicationService {
         LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
-                saved.getInteractionProfile(), saved.getLanguageCode()));
+                saved.getInteractionProfile(), saved.getLanguageCode(), saved.getEmbodiment()));
     }
 
     public Agent persistCreatedAgent(AgentCreationResult creation) {
@@ -508,5 +511,14 @@ public class AgentApplicationService {
     public PolicyRuntime runtime(OutputProfile outputProfile) {
         OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
         return new PolicyRuntime(this.promptMessageAssembler, this.languageModelGateway, resolved);
+    }
+
+    private PolicyRuntime runtime(Agent agent, OutputProfile outputProfile) {
+        OutputProfile resolved = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+        return new PolicyRuntime(
+                this.promptMessageAssembler.forEmbodiment(
+                        agent == null ? null : agent.getEmbodiment()),
+                this.languageModelGateway,
+                resolved);
     }
 }

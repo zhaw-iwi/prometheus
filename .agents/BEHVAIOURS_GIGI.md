@@ -4,6 +4,20 @@ Use this note when creating PROMETHEUS agents for the Valerian cockpit and the
 GIGI robot. PROMETHEUS emits `resp.behaviour_plan` events. The event `payload`
 must be a JSON string containing a `BehaviourPlan`.
 
+## Embodiment and Persona Identity
+
+Scoped agent creation persists one embodiment for the instance:
+
+- `COCKPIT` uses the public persona name **Valerian**;
+- `ROBOT` uses the public persona name **Gigi**.
+
+Valerian Cockpit exposes this choice when an instance is created. Prompt
+assembly resolves existing Valerian or Gigi identity references to the selected
+persona, so an agent definition does not need duplicate prompts for the two
+embodiments. Omitting the value through the API defaults to `COCKPIT` for
+compatibility. Embodiment selects identity; it does not change the
+`BehaviourPlan` shape or automatically add robot motion.
+
 ## BehaviourPlan Shape
 
 ```json

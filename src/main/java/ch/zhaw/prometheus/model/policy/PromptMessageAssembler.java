@@ -2,17 +2,24 @@ package ch.zhaw.prometheus.model.policy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Component;
 
+import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 
 @Component
 public class PromptMessageAssembler {
+    private static final Pattern LEGACY_PERSONA_NAME = Pattern.compile("\\b(?:Valerian|Gigi)\\b",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
     private final List<PromptEventContentAdapter> eventContentAdapters;
     private final List<PromptContextAugmenter> contextAugmenters;
     private final boolean speculativeComposition;
+    private final AgentEmbodiment embodiment;
 
     public PromptMessageAssembler() {
         this(List.of(
@@ -22,27 +29,41 @@ public class PromptMessageAssembler {
                 new SocialContextPromptEventContentAdapter(),
                 new WeatherPromptEventContentAdapter(),
                 new DefaultPayloadPromptEventContentAdapter()),
-                List.of(new NonverbalSummaryPromptContextAugmenter()), true);
+                List.of(new NonverbalSummaryPromptContextAugmenter()), true, AgentEmbodiment.COCKPIT);
     }
 
     public PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
             List<PromptContextAugmenter> contextAugmenters) {
-        this(eventContentAdapters, contextAugmenters, false);
+        this(eventContentAdapters, contextAugmenters, false, AgentEmbodiment.COCKPIT);
     }
 
     private PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
-            List<PromptContextAugmenter> contextAugmenters, boolean speculativeComposition) {
+            List<PromptContextAugmenter> contextAugmenters, boolean speculativeComposition,
+            AgentEmbodiment embodiment) {
         this.eventContentAdapters = eventContentAdapters == null ? List.of() : List.copyOf(eventContentAdapters);
         this.contextAugmenters = contextAugmenters == null ? List.of() : List.copyOf(contextAugmenters);
         this.speculativeComposition = speculativeComposition;
+        this.embodiment = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
     }
 
     public boolean supportsSpeculativeComposition() { return getClass() == PromptMessageAssembler.class && speculativeComposition; }
 
+    public PromptMessageAssembler forEmbodiment(AgentEmbodiment embodiment) {
+        AgentEmbodiment resolved = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
+        if (resolved == this.embodiment) {
+            return this;
+        }
+        return new PromptMessageAssembler(
+                this.eventContentAdapters,
+                this.contextAugmenters,
+                this.speculativeComposition,
+                resolved);
+    }
+
     public List<PromptMessage> compose(EventHistory eventHistory, String systemPrepend) {
         List<PromptMessage> messages = new ArrayList<>();
         requireSystem(systemPrepend);
-        messages.add(PromptMessage.system(systemPrepend));
+        messages.add(PromptMessage.system(resolveSystemPrompt(systemPrepend)));
         if (eventHistory == null) {
             return messages;
         }
@@ -61,7 +82,7 @@ public class PromptMessageAssembler {
     public List<PromptMessage> compose(EventHistory eventHistory, String systemPrepend, String systemAppend) {
         List<PromptMessage> messages = compose(eventHistory, systemPrepend);
         if (systemAppend != null) {
-            messages.add(PromptMessage.system(systemAppend));
+            messages.add(PromptMessage.system(resolveSystemPrompt(systemAppend)));
         }
         return messages;
     }
@@ -72,7 +93,7 @@ public class PromptMessageAssembler {
             throw new RuntimeException("cannot compose condensed prompt from empty events");
         }
         List<PromptMessage> messages = new ArrayList<>();
-        messages.add(PromptMessage.system(systemPrepend));
+        messages.add(PromptMessage.system(resolveSystemPrompt(systemPrepend)));
         messages.add(PromptMessage.system("<eventhistory>" + eventHistory.toString() + "</eventhistory>"));
         return messages;
     }
@@ -83,7 +104,7 @@ public class PromptMessageAssembler {
             throw new NullPointerException("systemAppend cannot be null.");
         }
         List<PromptMessage> messages = composeCondensed(eventHistory, systemPrepend);
-        messages.add(PromptMessage.system(systemAppend));
+        messages.add(PromptMessage.system(resolveSystemPrompt(systemAppend)));
         return messages;
     }
 
@@ -124,5 +145,12 @@ public class PromptMessageAssembler {
             throw new NullPointerException("systemPrepend (Decision prompt) cannot be null.");
         }
     }
-}
 
+    public String resolveSystemPrompt(String prompt) {
+        if (prompt == null) {
+            return prompt;
+        }
+        return LEGACY_PERSONA_NAME.matcher(prompt)
+                .replaceAll(Matcher.quoteReplacement(this.embodiment.personaName()));
+    }
+}

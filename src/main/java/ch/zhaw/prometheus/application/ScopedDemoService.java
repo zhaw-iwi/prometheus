@@ -24,6 +24,7 @@ import ch.zhaw.prometheus.controllers.views.PolicyResponseView;
 import ch.zhaw.prometheus.controllers.views.ResponseView;
 import ch.zhaw.prometheus.controllers.views.StorageEntryView;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.access.AccessCode;
 import ch.zhaw.prometheus.model.access.AccessCodeAgent;
 import ch.zhaw.prometheus.model.access.AccessCodeAllowedAgentType;
@@ -73,15 +74,22 @@ public class ScopedDemoService {
 
     @Transactional
     public AgentInfoView createAgent(String accessCodeValue, String agentDefinitionKey) {
+        return this.createAgent(accessCodeValue, agentDefinitionKey, null);
+    }
+
+    @Transactional
+    public AgentInfoView createAgent(String accessCodeValue, String agentDefinitionKey, String embodimentValue) {
         AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
         String key = this.requireAgentDefinitionKey(agentDefinitionKey);
+        AgentEmbodiment embodiment = AgentEmbodiment.fromExternalValue(embodimentValue);
         if (!this.allowedKeys(accessCode).contains(key)) {
             throw new DemoAgentTypeForbiddenException(key);
         }
         AgentDefinition definition = this.agentDefinitions.findByKey(key)
                 .orElseThrow(() -> new DemoAgentTypeForbiddenException(key));
         AgentCreationResult created = definition.createInstance(
-                new AgentCreationContext(this.promptMessageAssembler, this.languageModelGateway));
+                new AgentCreationContext(this.promptMessageAssembler, this.languageModelGateway, embodiment));
+        created.agent().setEmbodiment(embodiment);
         applyDefinitionLanguage(created.agent(), definition);
         Agent saved = this.agentService.persistCreatedAgent(created);
         this.accessCodeAgents.save(new AccessCodeAgent(accessCode, saved));
@@ -263,7 +271,7 @@ public class ScopedDemoService {
 
     private AgentInfoView toAgentInfo(Agent agent) {
         return new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                agent.getInteractionProfile(), agent.getLanguageCode());
+                agent.getInteractionProfile(), agent.getLanguageCode(), agent.getEmbodiment());
     }
 
     private static void applyDefinitionLanguage(Agent agent, AgentDefinition definition) {

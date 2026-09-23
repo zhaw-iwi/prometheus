@@ -2460,6 +2460,12 @@
           <label class="form-label metric-label" for="agent_type_select">Available Agent Types</label>
           <select id="agent_type_select" class="form-select form-select-sm mb-2"
             data-testid="agent-type-select"></select>
+          <label class="form-label metric-label" for="agent_embodiment_select">Embodiment</label>
+          <select id="agent_embodiment_select" class="form-select form-select-sm mb-2"
+            data-testid="agent-embodiment-select">
+            <option value="COCKPIT" selected>Cockpit — Valerian</option>
+            <option value="ROBOT">Robot — Gigi</option>
+          </select>
           <div class="d-grid mb-2">
             <button id="create_agent_instance" class="btn btn-primary" type="button"
               data-testid="create-agent-instance">
@@ -2499,6 +2505,10 @@
             <div id="agent_info_description" class="mb-3">-</div>
             <div class="metric-label">Language</div>
             <div id="agent_info_language" class="mb-3" data-testid="agent-info-language">-</div>
+            <div class="metric-label">Embodiment</div>
+            <div id="agent_info_embodiment" class="mb-3" data-testid="agent-info-embodiment">-</div>
+            <div class="metric-label">Spoken Persona</div>
+            <div id="agent_info_persona" class="mb-3" data-testid="agent-info-persona">-</div>
             <div class="metric-label">Interaction Profile</div>
             <div id="agent_interaction_profile" class="profile-summary mt-2"
               data-testid="agent-interaction-profile">

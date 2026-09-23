@@ -37,6 +37,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("document.documentElement.dataset.bsTheme = theme;"));
         assertTrue(index.contains("data-testid=\"clear-access-code\""));
         assertTrue(index.contains("data-testid=\"agent-type-select\""));
+        assertTrue(index.contains("data-testid=\"agent-embodiment-select\""));
+        assertTrue(index.contains("Cockpit — Valerian"));
+        assertTrue(index.contains("Robot — Gigi"));
         assertTrue(index.contains("data-testid=\"create-agent-instance\""));
         assertTrue(index.contains("data-testid=\"agent-select\""));
         assertTrue(index.contains("data-testid=\"agent-id-input\""));
@@ -51,6 +54,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"agent-profile-behaviours\""));
         assertTrue(index.contains("data-testid=\"agent-profile-tags\""));
         assertTrue(index.contains("data-testid=\"agent-info-language\""));
+        assertTrue(index.contains("data-testid=\"agent-info-embodiment\""));
+        assertTrue(index.contains("data-testid=\"agent-info-persona\""));
         assertTrue(index.contains("Language"));
         assertTrue(index.contains("Interaction Profile"));
         assertTrue(index.contains("Agent &amp; Diagnostics"));
@@ -70,7 +75,6 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("bi-radar"));
         assertTrue(index.contains("bi-send-fill"));
         assertFalse(index.contains("data-testid=\"push-to-talk-tab\""));
-        assertFalse(index.toLowerCase().contains("gigi"));
         assertFalse(index.toLowerCase().contains("tdsr"));
     }
 
@@ -186,7 +190,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode)"));
         assertTrue(script.contains("fetch(\"/demo/session\""));
         assertTrue(script.contains("scopedFetch(\"/demo/agents\""));
-        assertTrue(script.contains("JSON.stringify({ agentDefinitionKey })"));
+        assertTrue(script.contains("JSON.stringify({ agentDefinitionKey, embodiment })"));
         assertTrue(script.contains("scopedFetch(`/demo/agents/${encodeURIComponent(selectedAgentId)}`"));
         assertTrue(script.contains("headers.set(ACCESS_CODE_HEADER, state.accessCode);"));
         assertTrue(script.contains("demoAgentPath(\"/info\")"));
@@ -205,15 +209,21 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function isVisibleAgentId"));
         assertTrue(script.contains("function prometheusFacingText"));
         assertTrue(script.contains("function agentLanguageLabel"));
+        assertTrue(script.contains("function agentEmbodimentLabel"));
+        assertTrue(script.contains("function selectedPersonaName"));
+        assertTrue(script.contains("function agentPersonaName"));
         assertTrue(script.contains("data.languageCode"));
+        assertTrue(script.contains("data.embodiment"));
+        assertTrue(script.contains("data.personaName"));
         assertTrue(script.contains("agent_info_language"));
+        assertTrue(script.contains("agent_info_embodiment"));
+        assertTrue(script.contains("agent_info_persona"));
         assertTrue(script.contains("show.bs.offcanvas"));
         assertTrue(script.contains("showAgentDrawerTab"));
         assertTrue(script.contains("window.bootstrap.Tab.getOrCreateInstance(tab).show();"));
 
         assertFalse(script.contains("fetch(\"/agent\")"));
         assertFalse(script.contains("fetch(`/${state.agentId}/"));
-        assertFalse(script.toLowerCase().contains("gigi"));
         assertFalse(script.toLowerCase().contains("tdsr"));
     }
 

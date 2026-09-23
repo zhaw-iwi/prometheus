@@ -116,6 +116,10 @@ PROMETHEUS currently provides:
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;
+- persisted creation-time agent embodiments, with `COCKPIT` selecting the
+  Valerian persona and `ROBOT` selecting Gigi; the selected persona is exposed
+  in agent metadata and consistently resolves legacy identity references in
+  system prompts;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -192,7 +196,8 @@ Keep controllers focused on transport validation and delegation. Put reusable
 semantics in model or application packages. Preserve the event, behaviour-plan,
 interaction-profile, storage, and event-history contracts.
 
-Published scoped client contracts include agent creation and info,
+Published scoped client contracts include agent creation and info, including
+the persisted `COCKPIT`/`ROBOT` embodiment and derived persona name,
 `acknowledge`, explicit behaviour generation, behaviour SSE, monitor SSE,
 typed live-transcription capabilities/session issuance, and Speech synthesis
 from persisted behaviour identity. Exact paths and request shapes are maintained in

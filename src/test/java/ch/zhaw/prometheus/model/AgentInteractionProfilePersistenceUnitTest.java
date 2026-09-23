@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +13,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.NoOpPolicy;
 import ch.zhaw.prometheus.repositories.AgentRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @SpringBootTest
 class AgentInteractionProfilePersistenceUnitTest {
 
     @Autowired
     private AgentRepository repository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Test
     void interactionProfilePersistsAcrossSaveAndReload() {
@@ -61,5 +67,25 @@ class AgentInteractionProfilePersistenceUnitTest {
         assertTrue(loaded.getInteractionProfile().getSupportedObservations().isEmpty());
         assertTrue(loaded.getInteractionProfile().getSupportedBehaviourModalities().isEmpty());
         assertTrue(loaded.getInteractionProfile().getProfileTags().isEmpty());
+        assertEquals(AgentEmbodiment.COCKPIT, loaded.getEmbodiment());
+        assertEquals("Valerian", loaded.getPersonaName());
+    }
+
+    @Test
+    void embodimentPersistsAcrossSaveAndReload() {
+        State start = new State("robot-embodiment", new NoOpPolicy(), List.of());
+        Agent agent = new Agent("robot agent", "embodiment persistence", start);
+        agent.setEmbodiment(AgentEmbodiment.ROBOT);
+
+        Agent saved = this.repository.saveAndFlush(agent);
+        UUID savedId = saved.getId();
+        this.entityManager.clear();
+        Agent loaded = this.repository.findById(savedId).orElseThrow();
+
+        assertEquals(AgentEmbodiment.ROBOT, loaded.getEmbodiment());
+        assertEquals("Gigi", loaded.getPersonaName());
+
+        this.repository.delete(loaded);
+        this.repository.flush();
     }
 }

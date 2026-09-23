@@ -80,7 +80,7 @@ public class ScopedDemoController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         AgentInfoView created = this.demoService.createAgent(accessCode(headerAccessCode, queryAccessCode),
-                request.getAgentDefinitionKey());
+                request.getAgentDefinitionKey(), request.getEmbodiment());
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 

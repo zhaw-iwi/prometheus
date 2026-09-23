@@ -149,7 +149,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         List<PromptMessage> messages = assembler.compose(events, prompt, this.starterPrompt);
-        return this.producePlan(messages, languageModelGateway);
+        return this.producePlan(messages, assembler, languageModelGateway);
     }
 
     @Override
@@ -166,7 +166,7 @@ public class PromptPolicy extends Policy {
             return null;
         }
         List<PromptMessage> messages = assembler.compose(events, prompt);
-        return this.producePlan(messages, languageModelGateway);
+        return this.producePlan(messages, assembler, languageModelGateway);
     }
 
     @Override
@@ -184,13 +184,15 @@ public class PromptPolicy extends Policy {
         return resolvePrompt();
     }
 
-    private BehaviourPlan producePlan(List<PromptMessage> messages, LanguageModelGateway gateway) {
+    private BehaviourPlan producePlan(List<PromptMessage> messages, PromptMessageAssembler assembler,
+            LanguageModelGateway gateway) {
         boolean planConfigured = this.nonVerbalPlanPrompt != null && !this.nonVerbalPlanPrompt.isBlank();
         boolean gestureConfigured = this.nonVerbalGesturePrompt != null && !this.nonVerbalGesturePrompt.isBlank();
         String instructions = planConfigured ? this.nonVerbalPlanPrompt
                 : gestureConfigured ? this.nonVerbalGesturePrompt : null;
+        String resolvedInstructions = assembler.resolveSystemPrompt(instructions);
         return LatencyTrace.measure("behaviour_plan", () -> BehaviourPlanInference.generate(
-                messages, instructions, !planConfigured && gestureConfigured, gateway));
+                messages, resolvedInstructions, !planConfigured && gestureConfigured, gateway));
     }
 
     public ch.zhaw.prometheus.spi.InferenceRequest responseRequest(EventHistory events, PromptMessageAssembler assembler) {
@@ -198,8 +200,9 @@ public class PromptPolicy extends Policy {
         if (prompt.isEmpty()) return null;
         boolean plan = nonVerbalPlanPrompt != null && !nonVerbalPlanPrompt.isBlank();
         boolean gesture = nonVerbalGesturePrompt != null && !nonVerbalGesturePrompt.isBlank();
+        String instructions = plan ? nonVerbalPlanPrompt : gesture ? nonVerbalGesturePrompt : null;
         return BehaviourPlanInference.request(assembler.compose(events, prompt),
-                plan ? nonVerbalPlanPrompt : gesture ? nonVerbalGesturePrompt : null, !plan && gesture);
+                assembler.resolveSystemPrompt(instructions), !plan && gesture);
     }
 
     @Override

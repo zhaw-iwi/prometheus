@@ -56,6 +56,10 @@ code.
 - A connection-scoped Valerian cockpit lifecycle that clears operational
   sensing, interaction, and behaviour state outside an active connection and
   hydrates persisted conversation, sensing, and behaviour history on connect.
+- Persisted creation-time embodiments with a cockpit selector: `COCKPIT` uses
+  the Valerian persona and `ROBOT` uses Gigi. Agent metadata exposes both the
+  embodiment and derived persona, and prompt assembly resolves identity
+  references consistently for the selected embodiment.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -74,6 +78,14 @@ behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
 and regulation diagnostics remain future work.
 
 ### Current milestone state
+
+- Latest completed product follow-up (2026-09-23): added the persisted
+  Valerian/Gigi embodiment selector across scoped creation, agent metadata,
+  prompt assembly, and the cockpit. Omitted embodiment values remain compatible
+  by defaulting to `COCKPIT`; unsupported values are rejected. Focused persona
+  unit, persistence, controller, and static-client checks passed. The broader
+  scoped-controller run still has the previously reported unrelated RPS motion
+  assertion failure.
 
 - Agents integration (2026-09-17): merged Need for Speed for the authorized
   Heroku testing deployment. The initial integration passed 398 Java and 45

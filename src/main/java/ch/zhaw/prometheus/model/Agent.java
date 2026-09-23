@@ -83,6 +83,9 @@ public class Agent {
     private String interactionProfileJson;
     @Column(length = 16)
     private String languageCode;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private AgentEmbodiment embodiment;
 
     @Transient
     private RegulationSystem regulationSystem;
@@ -104,6 +107,7 @@ public class Agent {
         this.regulationSystemSpecJson = RegulationSystemSpec.noOp().toJson();
         this.regulationSnapshotAggregatorType = SnapshotAggregatorType.DEFAULT_OBSERVATION;
         this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
+        this.embodiment = AgentEmbodiment.COCKPIT;
         this.latestModulation = ModulationBundle.neutral();
         this.attachEventHistory();
     }
@@ -122,6 +126,18 @@ public class Agent {
 
     public void setLanguageCode(String languageCode) {
         this.languageCode = normalizeLanguageCode(languageCode);
+    }
+
+    public AgentEmbodiment getEmbodiment() {
+        return this.embodiment == null ? AgentEmbodiment.COCKPIT : this.embodiment;
+    }
+
+    public void setEmbodiment(AgentEmbodiment embodiment) {
+        this.embodiment = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
+    }
+
+    public String getPersonaName() {
+        return this.getEmbodiment().personaName();
     }
 
     public AgentInteractionProfile getInteractionProfile() {
@@ -328,6 +344,7 @@ public class Agent {
             this.interactionProfileJson = AgentInteractionProfile.empty().toJson();
         }
         this.languageCode = normalizeLanguageCode(this.languageCode);
+        this.embodiment = this.getEmbodiment();
         if (this.latestModulation == null) {
             this.latestModulation = ModulationBundle.neutral();
         }
@@ -436,4 +453,3 @@ public class Agent {
         this.regulationSystemSpecJson = persistable.toSpec().toJson();
     }
 }
-

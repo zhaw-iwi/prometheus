@@ -40,6 +40,7 @@ import ch.zhaw.prometheus.application.AccessCodeAdminService;
 import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.model.Agent;
+import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -206,6 +207,68 @@ class ScopedDemoControllerIntegrationTest {
                         }
                         """.formatted(DISALLOWED_TYPE_KEY)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void creationPersistsSelectedRobotEmbodimentAndExposesGigiPersona() throws Exception {
+        this.allowType("R49r4", TYPE_KEY);
+
+        MvcResult result = this.mockMvc.perform(post("/demo/agents")
+                .header(HEADER, "R49r4")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "agentDefinitionKey": "%s",
+                          "embodiment": "ROBOT"
+                        }
+                        """.formatted(TYPE_KEY)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.embodiment").value("ROBOT"))
+                .andExpect(jsonPath("$.personaName").value("Gigi"))
+                .andReturn();
+
+        UUID agentId = UUID.fromString(this.objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("id").asText());
+        this.entityManager.flush();
+        this.entityManager.clear();
+
+        Agent persisted = this.agents.findById(agentId).orElseThrow();
+        assertEquals(AgentEmbodiment.ROBOT, persisted.getEmbodiment());
+        assertEquals("Gigi", persisted.getPersonaName());
+
+        this.mockMvc.perform(get("/demo/agents/" + agentId + "/info")
+                .header(HEADER, "R49r4"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.embodiment").value("ROBOT"))
+                .andExpect(jsonPath("$.personaName").value("Gigi"));
+    }
+
+    @Test
+    void omittedEmbodimentDefaultsToCockpitAndUnknownEmbodimentIsRejected() throws Exception {
+        this.allowType("E49e4", TYPE_KEY);
+
+        this.mockMvc.perform(post("/demo/agents")
+                .header(HEADER, "E49e4")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "agentDefinitionKey": "%s"
+                        }
+                        """.formatted(TYPE_KEY)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.embodiment").value("COCKPIT"))
+                .andExpect(jsonPath("$.personaName").value("Valerian"));
+
+        this.mockMvc.perform(post("/demo/agents")
+                .header(HEADER, "E49e4")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "agentDefinitionKey": "%s",
+                          "embodiment": "AVATAR"
+                        }
+                        """.formatted(TYPE_KEY)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

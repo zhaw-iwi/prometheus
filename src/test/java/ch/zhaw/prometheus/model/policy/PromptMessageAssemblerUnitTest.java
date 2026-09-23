@@ -2,11 +2,13 @@ package ch.zhaw.prometheus.model.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 
@@ -76,5 +78,30 @@ class PromptMessageAssemblerUnitTest {
         assertEquals("user", assembler.mapRole(conflictingAssistant));
         assertEquals("system", assembler.mapRole(explicitSystem));
     }
-}
 
+    @Test
+    void robotEmbodimentUsesGigiAcrossAllSystemPromptPositions() {
+        EventHistory history = new EventHistory();
+        history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER,
+                "Please tell Valerian I am ready."));
+
+        List<PromptMessage> messages = assembler.forEmbodiment(AgentEmbodiment.ROBOT)
+                .composeCondensed(
+                        history,
+                        "You are Valerian. Introduce yourself as Valerian.",
+                        "Valerian should answer now.");
+
+        assertEquals("You are Gigi. Introduce yourself as Gigi.", messages.get(0).getContent());
+        assertTrue(messages.get(1).getContent().contains("Please tell Valerian I am ready."));
+        assertEquals("Gigi should answer now.", messages.get(2).getContent());
+    }
+
+    @Test
+    void cockpitEmbodimentKeepsValerianPrompts() {
+        List<PromptMessage> messages = assembler.forEmbodiment(AgentEmbodiment.COCKPIT)
+                .compose(null, "You are GIGI.", "Introduce yourself as Valerian.");
+
+        assertEquals("You are Valerian.", messages.get(0).getContent());
+        assertEquals("Introduce yourself as Valerian.", messages.get(1).getContent());
+    }
+}

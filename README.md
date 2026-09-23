@@ -69,6 +69,12 @@ the right with the heartbeat button, choose an agent type, create an instance,
 connect to it, and reset or delete it when needed. The drawer's diagnostics tab
 shows runtime events and agent state.
 
+When creating an instance, select its embodiment: **Cockpit — Valerian** or
+**Robot — Gigi**. The choice is persisted with the agent, shown in the agent
+metadata, and used to resolve Valerian/Gigi identity references in system
+prompts. Existing agents and API requests that omit the embodiment retain the
+cockpit default and therefore use the Valerian persona.
+
 The cockpit is organised into three columns: sensing, verbal interaction by
 text or speech, and behaviour. Each column can be maximised or opened in a
 separate window when an experiment needs more screen space.
@@ -719,9 +725,14 @@ X-Prometheus-Access-Code: VX102
 Content-Type: application/json
 
 {
-  "agentDefinitionKey": "core.social_context_sensitivity"
+  "agentDefinitionKey": "core.social_context_sensitivity",
+  "embodiment": "COCKPIT"
 }
 ```
+
+`embodiment` accepts `COCKPIT` (persona `Valerian`) or `ROBOT` (persona
+`Gigi`). It is persisted for the lifetime of the agent. Omitting it defaults to
+`COCKPIT`; unsupported values are rejected with `400 Bad Request`.
 
 Read the agent metadata before enabling perception or rendering controls:
 
@@ -739,6 +750,8 @@ Relevant response fields:
   "description": "English Valerian Core agent for social-context sensing.",
   "active": true,
   "languageCode": "en",
+  "embodiment": "COCKPIT",
+  "personaName": "Valerian",
   "interactionProfile": {
     "supportedObservations": [
       "obs.user_utterance",
