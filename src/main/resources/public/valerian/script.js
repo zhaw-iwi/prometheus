@@ -164,6 +164,9 @@ const GESTURE_UI = {
   UNCERTAIN: { icon: "bi-question-circle", label: "Uncertainty", hint: "Low certainty" },
   ACKNOWLEDGE: { icon: "bi-check2-circle", label: "Acknowledgement", hint: "Closing acknowledgement" },
   POLITE: { icon: "bi-heart", label: "Polite", hint: "Softening social tone" },
+  ROCK: { icon: "bi-circle-fill", label: "Rock", hint: "Playing rock" },
+  SCISSOR: { icon: "bi-scissors", label: "Scissor", hint: "Playing scissor" },
+  PAPER: { icon: "bi-file-earmark", label: "Paper", hint: "Playing paper" },
   NONE: { icon: "bi-dash-lg", label: "NONE", hint: "No gesture" },
 };
 
@@ -2485,6 +2488,11 @@ function renderMotionEnergyState(motion) {
 function renderDisplay(display) {
   if (!display || typeof display !== "object") {
     return;
+  }
+  if (display.awaitingUserSign === true) {
+    camera.stableGestureKey = null;
+    camera.stableGestureCount = 0;
+    resetCameraEmissionGate();
   }
   setBehaviourChannelActive("display", true);
   setText("display_value", JSON.stringify(display, null, 2));

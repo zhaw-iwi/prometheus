@@ -252,6 +252,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
+| `core.rock_scissor_paper_match` | Core scored rock-scissor-paper match with a configurable target-win count. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
 | `core.talk_to_me` | Deterministic exact-text output-only speech utility. |

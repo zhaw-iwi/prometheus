@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity;
 import ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour;
 import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
+import ch.zhaw.prometheus.agentdefs.core.RockScissorPaperMatch;
 import ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame;
 import ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity;
 import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
@@ -32,6 +33,7 @@ class SeedAgentInteractionProfileContractTest {
             new FacialExpressionSensitivity(),
             new MultimodalBehaviour(),
             new RockScissorPaper(),
+            new RockScissorPaperMatch(),
             new RoleClarificationGuessingGame(),
             new SocialContextSensitivity(),
             new TalkToMe(),
@@ -139,7 +141,7 @@ class SeedAgentInteractionProfileContractTest {
         AgentInteractionProfile rps = new RockScissorPaper().createAgent().getInteractionProfile();
         assertTrue(rps.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
-        assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
+        assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
 
         AgentInteractionProfile healthcare = new SingleStateTherapyAppointmentReminder().createAgent()
                 .getInteractionProfile();

@@ -35,6 +35,9 @@ public class PromptPolicy extends Policy {
             UNCERTAIN
             ACKNOWLEDGE
             POLITE
+            rock
+            scissor
+            paper
             NONE
             Return only the label.
             """;
@@ -43,7 +46,7 @@ public class PromptPolicy extends Policy {
             Output STRICT JSON only. No markdown, no code fences.
 
             Required top-level key:
-            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE, NONE
+            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE, rock, scissor, paper, NONE
 
             Optional keys:
             - "facialExpression": {"type":"string","intensity":0.0-1.0}
@@ -53,6 +56,7 @@ public class PromptPolicy extends Policy {
             - "proxemics": {"distance":"string"}
             - "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
 
+            Use rock, scissor, or paper only when that hand sign is deliberately being played.
             Keep values concise and plausible for the provided speech.
             """;
 

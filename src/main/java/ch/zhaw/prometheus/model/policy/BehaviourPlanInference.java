@@ -117,7 +117,8 @@ final class BehaviourPlanInference {
         if (value == null) return "NONE";
         String normalized = value.trim().replace("\"", "").replace("'", "").toUpperCase(Locale.ROOT)
                 .replace("-", "_").replace(" ", "_");
-        return Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE").contains(normalized)
+        return Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE",
+                "ROCK", "SCISSOR", "PAPER", "NONE").contains(normalized)
                 ? normalized : "NONE";
     }
 

@@ -6,12 +6,11 @@ public final class ValerianCorePrompts {
             Shape:
             {
               "nonVerbal": {
-                "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|rock|scissor|paper|NONE",
                 "facialExpression": {"type":"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm|playfulCurious","intensity":0.0-1.0},
                 "gaze": {"direction":"toward_user|briefly_aside|soft_down|toward_group|forward","focus":"person|group|shared_space|none"},
                 "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
-              },
-              "motion": {"handSign":"rock|scissor|paper"} or null
+              }
             }
 
             Gesture labels:
@@ -20,6 +19,9 @@ public final class ValerianCorePrompts {
             - UNCERTAIN: not knowing or gentle hesitation.
             - ACKNOWLEDGE: confirming, noticing, or closing a step.
             - POLITE: apology, refusal, or careful correction.
+            - rock: perform the rock hand sign during a rock-scissor-paper reveal.
+            - scissor: perform the scissor hand sign during a rock-scissor-paper reveal.
+            - paper: perform the paper hand sign during a rock-scissor-paper reveal.
             - NONE: no gesture should run.
 
             Use gestures sparsely. Prefer NONE for listening-heavy, serious, personal,
@@ -37,11 +39,6 @@ public final class ValerianCorePrompts {
             - Use only stillness and energy.
             - Higher energy is allowed for playful lab demonstrations, but never suggest
               locomotion, moving closer, turning, or physical contact.
-
-            Top-level motion.handSign:
-            - Use only rock, scissor, or paper.
-            - Use it only when speech names that sign or the game asks Valerian to show one.
-            - Otherwise omit top-level motion or set it to null.
 
             Do not output physical-actuator command IDs such as open_question_gesture,
             explanatory_sweep_gesture, uncertainty_shrug_gesture,
@@ -134,4 +131,3 @@ public final class ValerianCorePrompts {
     private ValerianCorePrompts() {
     }
 }
-

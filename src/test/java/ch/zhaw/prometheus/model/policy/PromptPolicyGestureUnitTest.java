@@ -129,6 +129,15 @@ class PromptPolicyGestureUnitTest {
         }
     }
 
+    @Test void rockPaperAndScissorArePreservedAsSemanticGestures() {
+        for (String gesture : List.of("rock", "paper", "scissor")) {
+            var plan = respond(policy(), new Gateway("{\"speech\":\"I play " + gesture
+                    + ".\",\"nonVerbal\":{\"gesture\":\"" + gesture + "\"}}"));
+                    assertEquals(gesture.toUpperCase(),
+                    plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        }
+    }
+
     private static PromptPolicy policy() {
         var policy = new PromptPolicy("base prompt", null, "summary");
         policy.setNonVerbalPlanPrompt(PromptPolicy.DEFAULT_NONVERBAL_PLAN_PROMPT);

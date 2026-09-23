@@ -677,6 +677,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("plan.motion"));
         assertTrue(script.contains("plan.display"));
         assertTrue(script.contains("const GESTURE_UI = {"));
+        assertTrue(script.contains("ROCK: {"));
+        assertTrue(script.contains("SCISSOR: {"));
+        assertTrue(script.contains("PAPER: {"));
         assertTrue(script.contains("const BEHAVIOUR_CHANNELS = [\"speech\", \"gesture\", \"face\", \"gaze\", \"motion\", \"display\"]"));
         assertTrue(script.contains("resetBehaviourPanels();"));
         assertTrue(script.contains("setGestureVisual(nonVerbal.gesture || \"NONE\")"));
@@ -697,6 +700,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("motion.handSign"));
         assertTrue(script.contains("renderAgentSign(sign)"));
         assertTrue(script.contains("renderUserSign(sign)"));
+        assertTrue(script.contains("display.awaitingUserSign === true"));
+        assertTrue(script.contains("camera.stableGestureCount = 0"));
+        assertTrue(script.contains("resetCameraEmissionGate();"));
         assertTrue(script.contains("latest_behaviour_event"));
         assertFalse(script.contains("latest_event"));
         assertFalse(script.contains("camera_sign_value"));

@@ -18,7 +18,7 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class CoreRpsRevealPolicy extends Policy {
-    private static final String SPEECH = "Rock, scissor, paper";
+    private static final String SPEECH = "Rock, scissor, paper—show!";
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Storage storage;
@@ -33,9 +33,11 @@ public class CoreRpsRevealPolicy extends Policy {
     @Override
     public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {
-        RpsSign sign = currentAgentSign(this.storage);
+        // Validate that the choice was committed before inviting the user to play,
+        // but keep that choice out of every emitted channel until their sign arrives.
+        currentAgentSign(this.storage);
         int round = currentRoundNumber(this.storage);
-        return new BehaviourPlan(SPEECH, nonVerbal(), motion(sign), display(sign, round));
+        return new BehaviourPlan(SPEECH, nonVerbal(), null, display(round));
     }
 
     @Override
@@ -53,9 +55,9 @@ public class CoreRpsRevealPolicy extends Policy {
     @Override
     public String describe() {
         return """
-                Deterministic English Core rock-scissor-paper reveal policy.
-                Emits speech "Rock, scissor, paper", visible nonverbal state, display state,
-                and a top-level motion.handSign payload.
+                Deterministic English Core rock-scissor-paper countdown policy.
+                The agent sign is already committed in storage, but this policy emits only
+                the countdown and capture state so the user cannot see the sign early.
                 """.trim();
     }
 
@@ -87,34 +89,20 @@ public class CoreRpsRevealPolicy extends Policy {
         expressiveMotion.addProperty("energy", 0.48);
 
         JsonObject nonVerbal = new JsonObject();
-        nonVerbal.addProperty("gesture", "ACKNOWLEDGE");
+        nonVerbal.addProperty("gesture", "NONE");
         nonVerbal.add("facialExpression", face);
         nonVerbal.add("gaze", gaze);
         nonVerbal.add("motion", expressiveMotion);
         return nonVerbal;
     }
 
-    private static JsonObject motion(RpsSign sign) {
-        JsonObject timing = new JsonObject();
-        timing.addProperty("synchronizeWithSpeech", SPEECH);
-        timing.addProperty("revealAt", "phrase_end");
-
-        JsonObject motion = new JsonObject();
-        motion.addProperty("effector", "right_hand");
-        motion.addProperty("armPose", "present_forward");
-        motion.addProperty("handSign", sign.canonical());
-        motion.add("timing", timing);
-        motion.addProperty("confidence", 1.0);
-        return motion;
-    }
-
-    private static JsonObject display(RpsSign sign, int round) {
+    private static JsonObject display(int round) {
         JsonObject display = new JsonObject();
-        display.addProperty("mode", "game_status");
+        display.addProperty("mode", "game_countdown");
         display.addProperty("title", "Rock, Scissor, Paper");
-        display.addProperty("agentSign", sign.canonical());
         display.addProperty("round", round);
+        display.addProperty("phase", "capture_user_sign");
+        display.addProperty("awaitingUserSign", true);
         return display;
     }
 }
-

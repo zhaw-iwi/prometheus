@@ -35,7 +35,8 @@ public class CoreRpsResultPolicy extends Policy {
         JsonObject round = lastRound(this.storage);
         String winner = round.get("winner").getAsString();
         String speech = speech(round, winner);
-        return new BehaviourPlan(speech, nonVerbal(winner), null, display(round));
+        RpsSign agentSign = RpsSign.parse(round.get("agentSign").getAsString());
+        return new BehaviourPlan(speech, nonVerbal(winner, agentSign), null, display(round));
     }
 
     @Override
@@ -80,7 +81,7 @@ public class CoreRpsResultPolicy extends Policy {
         };
     }
 
-    private static JsonObject nonVerbal(String winner) {
+    private static JsonObject nonVerbal(String winner, RpsSign agentSign) {
         JsonObject face = new JsonObject();
         face.addProperty("type", "user".equals(winner) ? "playfulCurious" : "gentleSmile");
         face.addProperty("intensity", "draw".equals(winner) ? 0.45 : 0.62);
@@ -94,7 +95,7 @@ public class CoreRpsResultPolicy extends Policy {
         expressiveMotion.addProperty("energy", "draw".equals(winner) ? 0.32 : 0.52);
 
         JsonObject nonVerbal = new JsonObject();
-        nonVerbal.addProperty("gesture", "ACKNOWLEDGE");
+        nonVerbal.addProperty("gesture", agentSign.canonical());
         nonVerbal.add("facialExpression", face);
         nonVerbal.add("gaze", gaze);
         nonVerbal.add("motion", expressiveMotion);
@@ -130,11 +131,6 @@ public class CoreRpsResultPolicy extends Policy {
     }
 
     private static String label(RpsSign sign) {
-        return switch (sign) {
-            case ROCK -> "rock";
-            case SCISSOR -> "scissor";
-            case PAPER -> "paper";
-        };
+        return sign.canonical();
     }
 }
-

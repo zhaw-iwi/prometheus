@@ -58,6 +58,9 @@ These labels are safe for `nonVerbal.gesture`:
 | `UNCERTAIN` | uncertain, hedging, saying the answer is unknown | `uncertainty_shrug_gesture` |
 | `ACKNOWLEDGE` | confirming, accepting input, closing a step, saying OK | `acknowledgement_close_hands_gesture` |
 | `POLITE` | apologies, polite refusals, soft corrections, socially careful responses | `polite_apology_gesture` |
+| `ROCK` | playing rock in rock-scissor-paper | `rock` |
+| `SCISSOR` | playing scissor in rock-scissor-paper | `scissor` |
+| `PAPER` | playing paper in rock-scissor-paper | `paper` |
 | `NONE` | no robot gesture should run | no gesture |
 
 Do not emit robot-server IDs such as `open_question_gesture`,
@@ -118,7 +121,9 @@ Rules:
 
 ## Hand Signs
 
-Use top-level `motion.handSign`, not `nonVerbal.gesture`, for hand output.
+Use top-level `motion.handSign` for hand-sign output. During a rock-scissor-paper
+reveal, also emit the matching `ROCK`, `SCISSOR`, or `PAPER` semantic label in
+`nonVerbal.gesture` so Valerian dispatches the gesture.
 
 Canonical values:
 - `rock`
@@ -133,7 +138,7 @@ Example RPS reveal:
 ```json
 {
   "speech": "Ich waehle Papier.",
-  "nonVerbal": { "gesture": "ACKNOWLEDGE" },
+  "nonVerbal": { "gesture": "PAPER" },
   "motion": { "handSign": "paper" },
   "display": null
 }
@@ -172,13 +177,13 @@ If Valerian is extended later, these semantic mappings are recommended:
 - `RELEASE_ARM` -> `release_arm`
 - `IDLE_POSE` -> `idle_pose`
 
-Do not use `ROCK`, `SCISSOR`, or `PAPER` as `nonVerbal.gesture` for RPS unless
-there is a deliberate cockpit mapping change. Use `motion.handSign` instead.
+For RPS reveals, use `ROCK`, `SCISSOR`, or `PAPER` as `nonVerbal.gesture` and
+emit the matching lower-case value in `motion.handSign`.
 
 ## Test Checklist
 
 For Valerian-facing agents, add or update tests proving:
 - generated behaviour plans use only known gesture labels;
-- RPS agents emit `motion.handSign` with `rock`, `scissor`, or `paper`;
+- RPS agents emit matching semantic gestures and `motion.handSign` values;
 - no agent emits unsupported locomotion such as `motion.move` or `motion.turn`;
 - `resp.behaviour_plan` payloads remain valid JSON strings.

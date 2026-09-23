@@ -17,6 +17,7 @@ class ValerianCorePromptContractTest {
             new FacialExpressionSensitivity(),
             new MultimodalBehaviour(),
             new RockScissorPaper(),
+            new RockScissorPaperMatch(),
             new RoleClarificationGuessingGame(),
             new SocialContextSensitivity());
 

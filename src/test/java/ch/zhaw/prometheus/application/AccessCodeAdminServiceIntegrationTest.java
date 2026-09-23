@@ -68,6 +68,7 @@ class AccessCodeAdminServiceIntegrationTest {
         assertTrue(keys.contains(CORE_SOCIAL_CONTEXT));
         assertTrue(keys.contains(CORE_MULTIMODAL_BEHAVIOUR));
         assertTrue(keys.contains("core.rock_scissor_paper"));
+        assertTrue(keys.contains("core.rock_scissor_paper_match"));
         assertTrue(keys.contains(HEALTHCARE_THERAPY_REMINDER));
         assertTrue(keys.contains("usecases.healthcare.healthcare_conversation"));
         assertTrue(keys.contains("tdsr.core.de.rock_scissor_paper"));

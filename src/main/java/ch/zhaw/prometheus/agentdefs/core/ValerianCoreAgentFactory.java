@@ -16,7 +16,11 @@ import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.rps.RpsEvaluateRoundAction;
+import ch.zhaw.prometheus.model.rps.RpsRoundCompletesMatchDecision;
 import ch.zhaw.prometheus.model.rps.RpsSelectAgentSignAction;
+import ch.zhaw.prometheus.model.rps.RpsSetTargetWinsAction;
+import ch.zhaw.prometheus.model.rps.RpsStorageKeys;
+import ch.zhaw.prometheus.model.rps.RpsTargetWinsDecision;
 
 final class ValerianCoreAgentFactory {
     private static final String TAG_VALERIAN_CORE = "demo.valerian.core";
@@ -37,6 +41,9 @@ final class ValerianCoreAgentFactory {
 
     record RpsPrompts(String start, String starter, String ready, String playAgain, String toFinal,
             String finalPrompt) {
+    }
+
+    record RpsMatchPrompts(String setup, String starter, String ready, String toFinal, String finalPrompt) {
     }
 
     record RoleClarificationPrompts(String roleClarificationState, String roleClarificationStarter,
@@ -92,7 +99,7 @@ final class ValerianCoreAgentFactory {
                 new CoreRpsResultPolicy(storage),
                 List.of());
         State revealState = new State(
-                "Valerian Core RPS Reveal Sign",
+                "Valerian Core RPS Await User Sign",
                 new CoreRpsRevealPolicy(storage),
                 List.of());
 
@@ -132,6 +139,71 @@ final class ValerianCoreAgentFactory {
         resultState.addTransition(resultToReveal);
 
         State outerState = coreOuterState(finalState, prompts.toFinal(), null, storage, startState);
+        Agent agent = new Agent(agentName, agentDescription, outerState, storage);
+        agent.setInteractionProfile(rockScissorPaperProfile());
+        return agent;
+    }
+
+    static Agent rockScissorPaperMatch(RpsMatchPrompts prompts, String agentName, String agentDescription) {
+        Storage storage = new Storage();
+
+        Final stoppedState = new Final("Valerian Core RPS Match stopped", prompts.finalPrompt(),
+                ValerianCorePrompts.FINAL_STARTER);
+        stoppedState.setEventSelectorSpec(EventSelectorSpec.any());
+        Final matchResultState = new Final("Valerian Core RPS Match Result");
+        matchResultState.setPolicy(new CoreRpsMatchResultPolicy(storage));
+        matchResultState.setEventSelectorSpec(EventSelectorSpec.any());
+        State roundResultState = new State(
+                "Valerian Core RPS Match Round Result",
+                new CoreRpsMatchRoundResultPolicy(storage),
+                List.of());
+        State revealState = new State(
+                "Valerian Core RPS Match Await User Sign",
+                new CoreRpsRevealPolicy(storage),
+                List.of());
+        State setupState = new State(
+                "Valerian Core RPS Match Setup",
+                corePromptPolicy(prompts.setup(), prompts.starter()),
+                List.of());
+
+        Transition setupToFinal = rpsFinalTransition(prompts.toFinal(), stoppedState);
+        Transition setupToReveal = new Transition(
+                List.of(
+                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new RpsTargetWinsDecision(true)),
+                List.of(
+                        new RpsSetTargetWinsAction(storage),
+                        new RpsSelectAgentSignAction(storage)),
+                revealState);
+        Transition revealToFinal = rpsFinalTransition(prompts.toFinal(), stoppedState);
+        Transition revealToMatchResult = new Transition(
+                List.of(
+                        new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
+                        new RpsRoundCompletesMatchDecision(storage)),
+                List.of(new RpsEvaluateRoundAction(storage)),
+                matchResultState);
+        Transition revealToRoundResult = new Transition(
+                List.of(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN)),
+                List.of(new RpsEvaluateRoundAction(storage)),
+                roundResultState);
+
+        Transition roundResultToFinal = rpsFinalTransition(prompts.toFinal(), stoppedState);
+        Transition roundResultToReveal = new Transition(
+                List.of(
+                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                        new StaticDecision(prompts.ready())),
+                List.of(new RpsSelectAgentSignAction(storage)),
+                revealState);
+
+        setupState.addTransition(setupToFinal);
+        setupState.addTransition(setupToReveal);
+        revealState.addTransition(revealToFinal);
+        revealState.addTransition(revealToMatchResult);
+        revealState.addTransition(revealToRoundResult);
+        roundResultState.addTransition(roundResultToFinal);
+        roundResultState.addTransition(roundResultToReveal);
+
+        State outerState = coreOuterState(stoppedState, prompts.toFinal(), null, storage, setupState);
         Agent agent = new Agent(agentName, agentDescription, outerState, storage);
         agent.setInteractionProfile(rockScissorPaperProfile());
         return agent;
@@ -325,8 +397,6 @@ final class ValerianCoreAgentFactory {
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
                 AgentInteractionProfile.MODALITY_NONVERBAL_GAZE,
                 AgentInteractionProfile.MODALITY_NONVERBAL_MOTION,
-                AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,
                 AgentInteractionProfile.MODALITY_DISPLAY);
     }
 }
-
