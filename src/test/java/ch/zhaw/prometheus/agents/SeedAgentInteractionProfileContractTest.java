@@ -13,12 +13,15 @@ import org.junit.jupiter.api.Test;
 
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity;
+import ch.zhaw.prometheus.agentdefs.core.GermanRockScissorPaperMatch;
 import ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour;
 import ch.zhaw.prometheus.agentdefs.core.RockScissorPaper;
 import ch.zhaw.prometheus.agentdefs.core.RockScissorPaperMatch;
 import ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame;
 import ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity;
 import ch.zhaw.prometheus.agentdefs.core.TalkToMe;
+import ch.zhaw.prometheus.agentdefs.usecases.healthcare.GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder;
+import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateExcessivelyCompassionateTherapyAppointmentReminder;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGame;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateGuessingGameUserGuess;
 import ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation;
@@ -34,6 +37,7 @@ class SeedAgentInteractionProfileContractTest {
             new MultimodalBehaviour(),
             new RockScissorPaper(),
             new RockScissorPaperMatch(),
+            new GermanRockScissorPaperMatch(),
             new RoleClarificationGuessingGame(),
             new SocialContextSensitivity(),
             new TalkToMe(),
@@ -42,6 +46,8 @@ class SeedAgentInteractionProfileContractTest {
             new SingleStateHealthcareConversation(),
             new SingleStateSmartGoalCoaching(),
             new SingleStateTherapyAppointmentReminder(),
+            new SingleStateExcessivelyCompassionateTherapyAppointmentReminder(),
+            new GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder(),
             new TwoStateTherapyAppointmentReminder());
 
     private static final List<Path> APPLICATION_AGENT_FILES = List.of(

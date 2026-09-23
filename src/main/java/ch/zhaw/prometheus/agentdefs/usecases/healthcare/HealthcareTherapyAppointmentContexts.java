@@ -26,6 +26,24 @@ final class HealthcareTherapyAppointmentContexts {
                     List.of("a short movement activity", "a memory or thinking activity",
                             "a creative or social activity")));
 
+    private static final List<TherapyAppointmentContext> GERMAN_CONTEXTS = List.of(
+            new TherapyAppointmentContext(
+                    "physiotherapy",
+                    "Physiotherapie",
+                    "Gleichgewicht, Kraft, Gehen, Mobilität und sichere Bewegung",
+                    List.of("Gehen mit Unterstützung", "sanftes Krafttraining", "Mobilitätsübungen")),
+            new TherapyAppointmentContext(
+                    "occupational_therapy",
+                    "Ergotherapie",
+                    "Alltagstätigkeiten wie Anziehen, Körperpflege, Essen, Greifen und sichere Abläufe",
+                    List.of("Kleidung zuknöpfen", "Greifen üben", "angepasstes Besteck verwenden")),
+            new TherapyAppointmentContext(
+                    "activation",
+                    "Aktivierung",
+                    "sanfte körperliche, kognitive, kreative oder soziale Aktivität für das tägliche Wohlbefinden",
+                    List.of("eine kurze Bewegungsaktivität", "eine Gedächtnis- oder Denkaktivität",
+                            "eine kreative oder soziale Aktivität")));
+
     private HealthcareTherapyAppointmentContexts() {
     }
 
@@ -41,16 +59,27 @@ final class HealthcareTherapyAppointmentContexts {
     }
 
     static void preselect(Storage storage, RandomGenerator random) {
+        preselect(storage, random, CONTEXTS);
+    }
+
+    static void preselectGerman(Storage storage, RandomGenerator random) {
+        preselect(storage, random, GERMAN_CONTEXTS);
+    }
+
+    private static void preselect(Storage storage, RandomGenerator random,
+            List<TherapyAppointmentContext> contexts) {
         if (storage == null) {
             throw new IllegalArgumentException("storage must not be null");
         }
         if (storage.containsKey(STORAGE_KEY)) {
             return;
         }
-        storage.put(STORAGE_KEY, Storage.toJsonElement(select(random)));
+        if (random == null) {
+            throw new IllegalArgumentException("random must not be null");
+        }
+        storage.put(STORAGE_KEY, Storage.toJsonElement(contexts.get(random.nextInt(contexts.size()))));
     }
 
     record TherapyAppointmentContext(String type, String label, String safeFocus, List<String> examples) {
     }
 }
-

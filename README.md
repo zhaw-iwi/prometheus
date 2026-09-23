@@ -253,6 +253,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.rock_scissor_paper_match` | Core scored rock-scissor-paper match with a configurable target-win count. |
+| `core.rock_scissor_paper_match_german` | German-language clone of the scored rock-scissor-paper match. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
 | `core.talk_to_me` | Deterministic exact-text output-only speech utility. |
@@ -261,6 +262,8 @@ The main branch ships the Valerian baseline catalog:
 | `usecases.healthcare.healthcare_conversation` | Open healthcare conversation use case. |
 | `usecases.healthcare.smart_goal_coaching` | Healthcare SMART-goal coaching use case. |
 | `usecases.healthcare.therapy_appointment_reminder` | Single-state therapy appointment reminder. |
+| `usecases.healthcare.therapy_appointment_reminder_excessively_compassionate` | Single-state therapy appointment reminder with deliberately heightened empathy. |
+| `usecases.healthcare.therapy_appointment_reminder_excessively_compassionate_german` | German-language clone of the single-state therapy reminder with deliberately heightened empathy. |
 | `usecases.healthcare.therapy_appointment_reminder_intro` | Two-state therapy appointment reminder with introduction. |
 
 This `agents` branch keeps the main baseline catalog and adds event- and

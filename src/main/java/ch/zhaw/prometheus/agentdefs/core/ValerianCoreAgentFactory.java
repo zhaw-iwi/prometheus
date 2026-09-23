@@ -2,6 +2,8 @@ package ch.zhaw.prometheus.agentdefs.core;
 
 import java.util.List;
 
+import com.google.gson.JsonPrimitive;
+
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.OuterState;
@@ -43,7 +45,20 @@ final class ValerianCoreAgentFactory {
             String finalPrompt) {
     }
 
-    record RpsMatchPrompts(String setup, String starter, String ready, String toFinal, String finalPrompt) {
+    record RpsMatchPrompts(String setup, String starter, String ready, String toFinal, String finalPrompt,
+            String outerState, String outerToFinal, String finalStarter, String languageCode) {
+        RpsMatchPrompts(String setup, String starter, String ready, String toFinal, String finalPrompt) {
+            this(
+                    setup,
+                    starter,
+                    ready,
+                    toFinal,
+                    finalPrompt,
+                    ValerianCorePrompts.OUTER_STATE,
+                    ValerianCorePrompts.OUTER_STATE_TO_FINAL,
+                    ValerianCorePrompts.FINAL_STARTER,
+                    "en");
+        }
     }
 
     record RoleClarificationPrompts(String roleClarificationState, String roleClarificationStarter,
@@ -146,9 +161,10 @@ final class ValerianCoreAgentFactory {
 
     static Agent rockScissorPaperMatch(RpsMatchPrompts prompts, String agentName, String agentDescription) {
         Storage storage = new Storage();
+        storage.put(RpsStorageKeys.LANGUAGE_CODE, new JsonPrimitive(prompts.languageCode()));
 
         Final stoppedState = new Final("Valerian Core RPS Match stopped", prompts.finalPrompt(),
-                ValerianCorePrompts.FINAL_STARTER);
+                prompts.finalStarter());
         stoppedState.setEventSelectorSpec(EventSelectorSpec.any());
         Final matchResultState = new Final("Valerian Core RPS Match Result");
         matchResultState.setPolicy(new CoreRpsMatchResultPolicy(storage));
@@ -203,7 +219,14 @@ final class ValerianCoreAgentFactory {
         roundResultState.addTransition(roundResultToFinal);
         roundResultState.addTransition(roundResultToReveal);
 
-        State outerState = coreOuterState(stoppedState, prompts.toFinal(), null, storage, setupState);
+        State outerState = coreOuterState(
+                stoppedState,
+                prompts.toFinal(),
+                null,
+                storage,
+                setupState,
+                prompts.outerState(),
+                prompts.outerToFinal());
         Agent agent = new Agent(agentName, agentDescription, outerState, storage);
         agent.setInteractionProfile(rockScissorPaperProfile());
         return agent;
@@ -363,18 +386,30 @@ final class ValerianCoreAgentFactory {
 
     private static State coreOuterState(State finalState, String toFinalPrompt, String outcomeExtractionPrompt,
             Storage storage, State initialState) {
+        return coreOuterState(
+                finalState,
+                toFinalPrompt,
+                outcomeExtractionPrompt,
+                storage,
+                initialState,
+                ValerianCorePrompts.OUTER_STATE,
+                ValerianCorePrompts.OUTER_STATE_TO_FINAL);
+    }
+
+    private static State coreOuterState(State finalState, String toFinalPrompt, String outcomeExtractionPrompt,
+            Storage storage, State initialState, String outerStatePrompt, String outerToFinalPrompt) {
         List<ch.zhaw.prometheus.model.Action> actions = outcomeExtractionPrompt == null
                 ? List.of()
                 : List.of(new StaticExtractionAction(outcomeExtractionPrompt, storage, "outcome"));
         Transition outerToFinal = new Transition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                        new StaticDecision(ValerianCorePrompts.OUTER_STATE_TO_FINAL),
+                        new StaticDecision(outerToFinalPrompt),
                         new StaticDecision(toFinalPrompt)),
                 actions,
                 finalState);
         return new OuterState(
-                ValerianCorePrompts.OUTER_STATE,
+                outerStatePrompt,
                 "Valerian Core context",
                 List.of(outerToFinal),
                 initialState);

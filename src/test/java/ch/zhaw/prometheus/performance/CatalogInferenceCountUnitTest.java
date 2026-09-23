@@ -36,7 +36,7 @@ class CatalogInferenceCountUnitTest {
   }
   static Event input(String type) { return Event.observation(type, Event.ACTOR_USER, type.equals(Event.TYPE_USER_UTTERANCE) ? "Example user turn" : "{\"sign\":\"rock\"}"); }
   @Test void ordinaryCatalogPaths() {
-    List<AgentDefinition> defs = List.of(new FacialExpressionSensitivity(), new MultimodalBehaviour(), new RockScissorPaper(), new RoleClarificationGuessingGame(), new SocialContextSensitivity(), new TalkToMe(), new SingleStateGuessingGame(), new SingleStateGuessingGameUserGuess(), new SingleStateHealthcareConversation(), new SingleStateSmartGoalCoaching(), new SingleStateTherapyAppointmentReminder(), new TwoStateTherapyAppointmentReminder());
+    List<AgentDefinition> defs = List.of(new FacialExpressionSensitivity(), new MultimodalBehaviour(), new RockScissorPaper(), new RoleClarificationGuessingGame(), new SocialContextSensitivity(), new TalkToMe(), new SingleStateGuessingGame(), new SingleStateGuessingGameUserGuess(), new SingleStateHealthcareConversation(), new SingleStateSmartGoalCoaching(), new SingleStateTherapyAppointmentReminder(), new SingleStateExcessivelyCompassionateTherapyAppointmentReminder(), new GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder(), new TwoStateTherapyAppointmentReminder());
     for (AgentDefinition def : defs) {
       Gateway g = new Gateway(); PolicyRuntime rt = new PolicyRuntime(new PromptMessageAssembler(), g);
       Agent a = def.createAgent(); a.start(rt);

@@ -53,6 +53,58 @@ public class RpsSetTargetWinsAction extends Action {
             Map.entry("seventy", 70),
             Map.entry("eighty", 80),
             Map.entry("ninety", 90));
+    private static final Map<String, Integer> GERMAN_SMALL_NUMBER_WORDS = Map.ofEntries(
+            Map.entry("null", 0),
+            Map.entry("ein", 1),
+            Map.entry("eine", 1),
+            Map.entry("einen", 1),
+            Map.entry("einem", 1),
+            Map.entry("eins", 1),
+            Map.entry("zwo", 2),
+            Map.entry("zwei", 2),
+            Map.entry("drei", 3),
+            Map.entry("vier", 4),
+            Map.entry("fünf", 5),
+            Map.entry("fuenf", 5),
+            Map.entry("sechs", 6),
+            Map.entry("sieben", 7),
+            Map.entry("acht", 8),
+            Map.entry("neun", 9),
+            Map.entry("zehn", 10),
+            Map.entry("elf", 11),
+            Map.entry("zwölf", 12),
+            Map.entry("zwoelf", 12),
+            Map.entry("dreizehn", 13),
+            Map.entry("vierzehn", 14),
+            Map.entry("fünfzehn", 15),
+            Map.entry("fuenfzehn", 15),
+            Map.entry("sechzehn", 16),
+            Map.entry("siebzehn", 17),
+            Map.entry("achtzehn", 18),
+            Map.entry("neunzehn", 19));
+    private static final Map<String, Integer> GERMAN_TENS_NUMBER_WORDS = Map.ofEntries(
+            Map.entry("zwanzig", 20),
+            Map.entry("dreißig", 30),
+            Map.entry("dreissig", 30),
+            Map.entry("vierzig", 40),
+            Map.entry("fünfzig", 50),
+            Map.entry("fuenfzig", 50),
+            Map.entry("sechzig", 60),
+            Map.entry("siebzig", 70),
+            Map.entry("achtzig", 80),
+            Map.entry("neunzig", 90));
+    private static final Map<String, Integer> GERMAN_COMPOUND_UNITS = Map.ofEntries(
+            Map.entry("ein", 1),
+            Map.entry("eins", 1),
+            Map.entry("zwei", 2),
+            Map.entry("drei", 3),
+            Map.entry("vier", 4),
+            Map.entry("fünf", 5),
+            Map.entry("fuenf", 5),
+            Map.entry("sechs", 6),
+            Map.entry("sieben", 7),
+            Map.entry("acht", 8),
+            Map.entry("neun", 9));
     private static final Map<String, Integer> SPOKEN_NUMBER_ALIASES = Map.ofEntries(
             Map.entry("won", 1),
             Map.entry("to", 2),
@@ -92,10 +144,10 @@ public class RpsSetTargetWinsAction extends Action {
             return OptionalInt.empty();
         }
         String normalized = utterance.toLowerCase(Locale.ROOT);
-        if (normalized.matches(".*\\b(?:minus|negative)\\b.*")) {
+        if (normalized.matches(".*\\b(?:minus|negative|negativ)\\b.*")) {
             return OptionalInt.empty();
         }
-        if (normalized.matches(".*\\b(?:hundred|thousand|million|billion)\\b.*")) {
+        if (normalized.matches(".*\\b(?:hundred|thousand|million|billion|hundert|tausend|milliarde)\\b.*")) {
             return OptionalInt.empty();
         }
         String singleToken = normalized.replaceAll("^[^\\p{L}]+|[^\\p{L}]+$", "");
@@ -133,12 +185,37 @@ public class RpsSetTargetWinsAction extends Action {
                 candidates.add(value);
                 continue;
             }
+            Integer germanValue = parseGermanNumberWord(tokens[index]);
+            if (germanValue != null) {
+                candidates.add(germanValue);
+            }
         }
         List<Integer> distinctCandidates = candidates.stream().distinct().toList();
         if (distinctCandidates.size() != 1 || distinctCandidates.get(0) < 1) {
             return OptionalInt.empty();
         }
         return OptionalInt.of(distinctCandidates.get(0));
+    }
+
+    private static Integer parseGermanNumberWord(String token) {
+        Integer direct = GERMAN_SMALL_NUMBER_WORDS.get(token);
+        if (direct != null) {
+            return direct;
+        }
+        Integer tens = GERMAN_TENS_NUMBER_WORDS.get(token);
+        if (tens != null) {
+            return tens;
+        }
+        int conjunction = token.indexOf("und");
+        if (conjunction < 1 || conjunction + 3 >= token.length()) {
+            return null;
+        }
+        Integer unit = GERMAN_COMPOUND_UNITS.get(token.substring(0, conjunction));
+        Integer compoundTens = GERMAN_TENS_NUMBER_WORDS.get(token.substring(conjunction + 3));
+        if (unit == null || compoundTens == null) {
+            return null;
+        }
+        return unit + compoundTens;
     }
 
     private static int requireTargetWins(EventHistory events) {

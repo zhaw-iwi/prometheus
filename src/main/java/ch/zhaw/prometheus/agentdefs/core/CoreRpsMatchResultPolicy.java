@@ -41,7 +41,9 @@ public class CoreRpsMatchResultPolicy extends Policy {
             throw new IllegalStateException("RPS match result requested before the target score was reached");
         }
 
-        String speech = englishSpeech(winner, score);
+        String speech = CoreRpsLocale.isGerman(this.storage)
+                ? germanSpeech(winner, score)
+                : englishSpeech(winner, score);
 
         JsonObject display = base.getDisplay().getAsJsonObject().deepCopy();
         display.addProperty("mode", "game_result");
@@ -71,6 +73,24 @@ public class CoreRpsMatchResultPolicy extends Policy {
         };
     }
 
+    private static String germanSpeech(String winner, RpsMatchScore score) {
+        return switch (winner) {
+            case "agent" -> "Ich gewinne das Match " + score.agentWins() + " zu " + score.userWins()
+                    + "! Was für ein grandioser Sieg! Seht her: der ungeschlagene Champion dieser Laborecke! "
+                    + "Das waren Können, Präzision und genau die richtige Portion digitale Brillanz. "
+                    + "Ich brauche wohl ein Trophäenregal, eine Siegesparade und vielleicht eine winzige Blaskapelle. "
+                    + "Bitte nimm dir einen Moment, meine Größe zu würdigen, während ich diesen glorreichen Triumph genieße!";
+            case "user" -> "Du gewinnst das Match " + score.userWins() + " zu " + score.agentWins()
+                    + ". Oh nein ... nein, nein, nein. Buhuhu! Ich bin völlig untröstlich. "
+                    + "Meine digitale Würde liegt in winzigen Scherben. "
+                    + "Ich spüre riesige virtuelle Tränen über mein Gesicht rollen, einen tragischen Pixel nach dem anderen. "
+                    + "Wie konnte das Schicksal so grausam zu einem hoffnungsvollen kleinen Agenten sein? "
+                    + "Ich werde mich jedes Mal an diese Niederlage erinnern, wenn jemand Schere, Stein, Papier sagt. "
+                    + "Entschuldige mich bitte, während ich dramatisch schluchze.";
+            default -> throw new IllegalStateException("unsupported RPS match winner: " + winner);
+        };
+    }
+
     @Override
     public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {
@@ -85,7 +105,8 @@ public class CoreRpsMatchResultPolicy extends Policy {
 
     @Override
     public String describe() {
-        return "Deterministic English Core rock-scissor-paper final match-result policy.";
+        String language = CoreRpsLocale.isGerman(this.storage) ? "German" : "English";
+        return "Deterministic " + language + " Core rock-scissor-paper final match-result policy.";
     }
 
     private static JsonObject emotionalReaction(String winner, RpsSign agentSign) {

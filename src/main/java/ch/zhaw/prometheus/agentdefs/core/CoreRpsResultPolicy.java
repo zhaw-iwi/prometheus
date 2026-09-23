@@ -53,7 +53,8 @@ public class CoreRpsResultPolicy extends Policy {
 
     @Override
     public String describe() {
-        return "Deterministic English Core rock-scissor-paper result policy.";
+        String language = CoreRpsLocale.isGerman(this.storage) ? "German" : "English";
+        return "Deterministic " + language + " Core rock-scissor-paper result policy.";
     }
 
     private static JsonObject lastRound(Storage storage) {
@@ -67,9 +68,20 @@ public class CoreRpsResultPolicy extends Policy {
         return value.getAsJsonObject();
     }
 
-    private static String speech(JsonObject round, String winner) {
+    private String speech(JsonObject round, String winner) {
         RpsSign agentSign = RpsSign.parse(round.get("agentSign").getAsString());
         RpsSign userSign = RpsSign.parse(round.get("userSign").getAsString());
+        if (CoreRpsLocale.isGerman(this.storage)) {
+            return switch (winner) {
+                case "agent" -> "Ich gewinne: " + reason(agentSign, userSign)
+                        + ". Mein Laborkittel bleibt zwölf Sekunden lang ungeschlagen. Noch einmal?";
+                case "user" -> "Du gewinnst: " + reason(userSign, agentSign)
+                        + ". Meine digitale Agentenwürde hat eine kleine Delle. Noch einmal?";
+                case "draw" -> "Unentschieden: Wir haben beide " + label(agentSign)
+                        + " gezeigt. Sehr synchron, verdächtig professionell. Noch einmal?";
+                default -> throw new IllegalStateException("unsupported RPS winner: " + winner);
+            };
+        }
         return switch (winner) {
             case "agent" -> "I win: " + reason(agentSign, userSign)
                     + ". My lab coat remains undefeated for twelve seconds. Again?";
@@ -102,35 +114,37 @@ public class CoreRpsResultPolicy extends Policy {
         return nonVerbal;
     }
 
-    private static JsonObject display(JsonObject round) {
+    private JsonObject display(JsonObject round) {
         JsonObject display = new JsonObject();
         display.addProperty("mode", "game_status");
-        display.addProperty("title", "Rock, Scissor, Paper");
+        display.addProperty("title", CoreRpsLocale.isGerman(this.storage)
+                ? "Schere, Stein, Papier"
+                : "Rock, Scissor, Paper");
         display.addProperty("round", round.get("round").getAsInt());
         display.addProperty("agentSign", round.get("agentSign").getAsString());
         display.addProperty("userSign", round.get("userSign").getAsString());
         display.addProperty("winner", round.get("winner").getAsString());
-        display.addProperty("reason", englishReason(round));
+        display.addProperty("reason", localizedReason(round));
         return display;
     }
 
-    private static String englishReason(JsonObject round) {
+    private String localizedReason(JsonObject round) {
         String winner = round.get("winner").getAsString();
         RpsSign agentSign = RpsSign.parse(round.get("agentSign").getAsString());
         RpsSign userSign = RpsSign.parse(round.get("userSign").getAsString());
         return switch (winner) {
             case "agent" -> reason(agentSign, userSign);
             case "user" -> reason(userSign, agentSign);
-            case "draw" -> label(agentSign) + " against " + label(userSign);
+            case "draw" -> CoreRpsLocale.drawReason(this.storage, agentSign);
             default -> throw new IllegalStateException("unsupported RPS winner: " + winner);
         };
     }
 
-    private static String reason(RpsSign winningSign, RpsSign losingSign) {
-        return label(winningSign) + " beats " + label(losingSign);
+    private String reason(RpsSign winningSign, RpsSign losingSign) {
+        return CoreRpsLocale.reason(this.storage, winningSign, losingSign);
     }
 
-    private static String label(RpsSign sign) {
-        return sign.canonical();
+    private String label(RpsSign sign) {
+        return CoreRpsLocale.label(this.storage, sign);
     }
 }

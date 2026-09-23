@@ -22,6 +22,11 @@ class RpsMatchMechanicsUnitTest {
         assertEquals(21, RpsSetTargetWinsAction.parseTargetWins("twenty-one wins").orElseThrow());
         assertEquals(3, RpsSetTargetWinsAction.parseTargetWins("Three, yes, three wins").orElseThrow());
         assertEquals(5, RpsSetTargetWinsAction.parseTargetWins("5 games, first to 5").orElseThrow());
+        assertEquals(2, RpsSetTargetWinsAction.parseTargetWins("Zwei Siege").orElseThrow());
+        assertEquals(1, RpsSetTargetWinsAction.parseTargetWins("einen Sieg").orElseThrow());
+        assertEquals(3, RpsSetTargetWinsAction.parseTargetWins("Drei, ja, drei Siege").orElseThrow());
+        assertEquals(5, RpsSetTargetWinsAction.parseTargetWins("fünf Rundensiege").orElseThrow());
+        assertEquals(21, RpsSetTargetWinsAction.parseTargetWins("einundzwanzig Siege").orElseThrow());
         assertEquals(2, RpsSetTargetWinsAction.parseTargetWins("to").orElseThrow());
         assertEquals(4, RpsSetTargetWinsAction.parseTargetWins("fore").orElseThrow());
 
@@ -29,6 +34,7 @@ class RpsMatchMechanicsUnitTest {
         assertTrue(RpsSetTargetWinsAction.parseTargetWins("-3").isEmpty());
         assertTrue(RpsSetTargetWinsAction.parseTargetWins("one hundred").isEmpty());
         assertTrue(RpsSetTargetWinsAction.parseTargetWins("two or three").isEmpty());
+        assertTrue(RpsSetTargetWinsAction.parseTargetWins("zwei oder drei").isEmpty());
         assertTrue(RpsSetTargetWinsAction.parseTargetWins("I want to play").isEmpty());
         assertTrue(RpsSetTargetWinsAction.parseTargetWins("whenever").isEmpty());
     }

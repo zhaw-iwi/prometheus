@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.OuterState;
+import ch.zhaw.prometheus.model.rps.RpsStorageKeys;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import jakarta.persistence.EntityManager;
 
@@ -37,5 +38,18 @@ class RockScissorPaperMatchPersistenceIntegrationTest {
         assertTrue(loaded.listStates().contains("Valerian Core RPS Match Setup"));
         assertTrue(loaded.listStates().contains("Valerian Core RPS Match Round Result"));
         assertTrue(loaded.listStates().contains("Valerian Core RPS Match Result"));
+    }
+
+    @Test
+    void germanMatchLanguageSurvivesPersistenceRoundTrip() {
+        Agent saved = this.agents.saveAndFlush(new GermanRockScissorPaperMatch().createAgent());
+        UUID id = saved.getId();
+        this.entityManager.clear();
+
+        Agent loaded = this.agents.findById(id).orElseThrow();
+
+        assertEquals("Valerian Core - Schere, Stein, Papier Match (Deutsch)", loaded.getName());
+        assertEquals("de", loaded.getLanguageCode());
+        assertEquals("de", loaded.getStorage().get(RpsStorageKeys.LANGUAGE_CODE).getAsString());
     }
 }

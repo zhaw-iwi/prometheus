@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.agentdefs.usecases.healthcare;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -7,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,7 @@ class HealthcareUseCasePromptContractTest {
             new SingleStateHealthcareConversation(),
             new SingleStateSmartGoalCoaching(),
             new SingleStateTherapyAppointmentReminder(),
+            new SingleStateExcessivelyCompassionateTherapyAppointmentReminder(),
             new TwoStateTherapyAppointmentReminder());
 
     private static final List<String> STALE_PERSONA_TERMS = List.of(
@@ -66,6 +69,75 @@ class HealthcareUseCasePromptContractTest {
         assertTrue(SingleStateHealthcareConversation.PROMPT_FINAL.contains("Answer only in English"));
         assertFalse(SingleStateHealthcareConversation.PROMPT_STATE.contains("Hotel"));
         assertFalse(SingleStateHealthcareConversation.PROMPT_STATE.contains("Davos"));
+    }
+
+    @Test
+    void excessivelyCompassionateTherapyVariantMakesEmpathyExplicitWithoutAddingPressure() {
+        String compassionatePrompt =
+                SingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE;
+
+        assertTrue(compassionatePrompt.startsWith(SingleStateTherapyAppointmentReminder.PROMPT_STATE));
+        assertTrue(compassionatePrompt.contains("Make empathy unmistakable"));
+        assertTrue(compassionatePrompt.contains("explicitly validate the person's reaction"));
+        assertTrue(compassionatePrompt.contains("reflect the specific concern"));
+        assertTrue(compassionatePrompt.contains("the person retains control"));
+        assertTrue(compassionatePrompt.contains("never be used to create guilt"));
+        assertTrue(compassionatePrompt.contains("claim human feelings"));
+        assertTrue(SingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE_STARTER
+                .contains("You are in control"));
+        assertTrue(SingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_FINAL
+                .contains("make the closing visibly empathetic"));
+
+        assertEquals(SingleStateTherapyAppointmentReminder.PROMPT_TO_FINAL,
+                SingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_TO_FINAL);
+        assertEquals(SingleStateTherapyAppointmentReminder.PROMPT_OUTCOME_EXTRACTION,
+                SingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_OUTCOME_EXTRACTION);
+    }
+
+    @Test
+    void germanCompassionateReminderKeepsTheSingleStateContractInGerman() {
+        AgentDefinition definition = new GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder();
+
+        assertTrue(definition.key().startsWith("usecases.healthcare."));
+        assertTrue(definition.displayName().contains("Deutsch"));
+        assertTrue(definition.description().startsWith("Deutschsprachiger Gesundheitswesen-Agent"));
+        assertTrue(AgentDefinition.LANGUAGE_GERMAN.equals(definition.languageCode()));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE
+                .contains("Antworte ausnahmslos auf Deutsch"));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE
+                .contains("Mache Empathie in jeder inhaltlichen Antwort unübersehbar"));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE
+                .contains("die Person die Kontrolle behält"));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE
+                .contains("niemals Schuld, Verpflichtung, Scham"));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_STATE_STARTER
+                .contains("Sie behalten die Kontrolle"));
+        assertTrue(GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder.PROMPT_FINAL
+                .contains("deutlich empathisch"));
+        assertTrue(GermanHealthcarePrompts.OUTER_STATE.contains("Antworte ausnahmslos auf Deutsch"));
+        assertTrue(GermanHealthcarePrompts.OUTER_STATE.contains("Ich bin Valerian"));
+        assertFalse(GermanHealthcarePrompts.OUTER_STATE.contains("Answer only in English"));
+
+        String therapyLabel = definition.createAgent().getStorage()
+                .get(HealthcareTherapyAppointmentContexts.STORAGE_KEY)
+                .getAsJsonObject()
+                .get("label")
+                .getAsString();
+        assertTrue(Set.of("Physiotherapie", "Ergotherapie", "Aktivierung").contains(therapyLabel));
+
+        var englishProfile = new SingleStateExcessivelyCompassionateTherapyAppointmentReminder()
+                .createAgent()
+                .getInteractionProfile();
+        var germanProfile = definition.createAgent().getInteractionProfile();
+        assertEquals(englishProfile.getSupportedObservations(), germanProfile.getSupportedObservations());
+        assertEquals(englishProfile.getSupportedBehaviourModalities(), germanProfile.getSupportedBehaviourModalities());
+        assertEquals(englishProfile.getProfileTags(), germanProfile.getProfileTags());
+        assertEquals(
+                new SingleStateExcessivelyCompassionateTherapyAppointmentReminder()
+                        .createAgent()
+                        .listStates()
+                        .size(),
+                definition.createAgent().listStates().size());
     }
 
     @Test

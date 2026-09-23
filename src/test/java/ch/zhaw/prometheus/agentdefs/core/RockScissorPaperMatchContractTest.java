@@ -125,6 +125,42 @@ class RockScissorPaperMatchContractTest {
         assertFalse(agent.isActive());
     }
 
+    @Test
+    void germanCloneAcceptsGermanTargetAndKeepsTheWholeMatchInGerman() {
+        Agent agent = new GermanRockScissorPaperMatch().createAgent();
+        PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), new GermanMatchGateway());
+
+        BehaviourPlan setup = BehaviourPlan.fromJson(agent.start(runtime).getPayload());
+        assertTrue(setup.getSpeech().contains("Wie viele"));
+        assertTrue(setup.getSpeech().contains("Schere, Stein, Papier"));
+
+        BehaviourPlan firstCountdown = BehaviourPlan.fromJson(
+                agent.acknowledge(userUtterance("Zwei Siege"), runtime).getPayload());
+        assertEquals("Schere, Stein, Papier – zeig!", firstCountdown.getSpeech());
+        assertFalse(firstCountdown.getDisplay().getAsJsonObject().has("agentSign"));
+        assertEquals(2, agent.getStorage().get(RpsStorageKeys.TARGET_WINS).getAsInt());
+        assertEquals("de", agent.getStorage().get(RpsStorageKeys.LANGUAGE_CODE).getAsString());
+
+        BehaviourPlan firstResult = BehaviourPlan.fromJson(
+                agent.acknowledge(handSign("paper"), runtime).getPayload());
+        assertTrue(firstResult.getSpeech().contains("Du gewinnst diese Runde"));
+        assertTrue(firstResult.getSpeech().contains("Der Spielstand ist: du 1, ich 0"));
+        assertTrue(firstResult.getSpeech().contains("Sag „bereit“"));
+
+        BehaviourPlan secondCountdown = BehaviourPlan.fromJson(
+                agent.acknowledge(userUtterance("Bereit für die nächste Runde"), runtime).getPayload());
+        assertEquals("Schere, Stein, Papier – zeig!", secondCountdown.getSpeech());
+
+        BehaviourPlan matchResult = BehaviourPlan.fromJson(
+                agent.acknowledge(handSign("rock"), runtime).getPayload());
+        assertTrue(matchResult.getSpeech().contains("Du gewinnst das Match 2 zu 0"));
+        assertTrue(matchResult.getSpeech().contains("Buhuhu"));
+        assertTrue(matchResult.getSpeech().contains("dramatisch schluchze"));
+        assertEquals("Schere, Stein, Papier",
+                matchResult.getDisplay().getAsJsonObject().get("title").getAsString());
+        assertFalse(agent.isActive());
+    }
+
     private static Event userUtterance(String text) {
         return Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, text);
     }
@@ -183,6 +219,44 @@ class RockScissorPaperMatchContractTest {
         @Override
         public boolean decide(List<PromptMessage> messages) {
             return join(messages).contains("ready to start the next round of rock-scissor-paper");
+        }
+
+        @Override
+        public JsonElement extract(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public JsonElement summarise(List<PromptMessage> messages) {
+            return JsonNull.INSTANCE;
+        }
+
+        @Override
+        public String summariseOffline(List<PromptMessage> messages) {
+            return "";
+        }
+
+        private static String join(List<PromptMessage> messages) {
+            return messages.stream().map(PromptMessage::getContent).reduce("", (left, right) -> left + "\n" + right);
+        }
+    }
+
+    private static final class GermanMatchGateway implements LanguageModelGateway {
+        @Override
+        public String complete(List<PromptMessage> messages) {
+            return """
+                    {
+                      "speech": "Hallo, ich bin Valerian. Wir spielen Schere, Stein, Papier. Wie viele Rundensiege sollen nötig sein? Zum Beispiel drei.",
+                      "nonVerbal": {"gesture": "OPEN_QUESTION"},
+                      "motion": null,
+                      "display": null
+                    }
+                    """;
+        }
+
+        @Override
+        public boolean decide(List<PromptMessage> messages) {
+            return join(messages).contains("eindeutig bereit ist");
         }
 
         @Override

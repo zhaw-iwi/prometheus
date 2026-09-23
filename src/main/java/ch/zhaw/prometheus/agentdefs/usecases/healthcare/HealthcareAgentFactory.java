@@ -30,6 +30,10 @@ final class HealthcareAgentFactory {
     record TaskPrompts(String state, String starter, String toFinal, String outcomeExtraction, String finalPrompt) {
     }
 
+    record CareContextPrompts(String nonVerbalPlan, String outerState, String outerStateName,
+            String outerToFinal, String socialInterjection, String finalStarter) {
+    }
+
     static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
             String stateName, String finalStateName) {
         return singleStateCareAgent(prompts, agentName, agentDescription, stateName, finalStateName, storage -> {
@@ -45,6 +49,26 @@ final class HealthcareAgentFactory {
     static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
             String stateName, String finalStateName, Consumer<Storage> storageInitializer,
             List<String> stateStorageKeysFrom) {
+        return singleStateCareAgent(
+                prompts,
+                agentName,
+                agentDescription,
+                stateName,
+                finalStateName,
+                storageInitializer,
+                stateStorageKeysFrom,
+                new CareContextPrompts(
+                        HealthcarePrompts.NONVERBAL_PLAN,
+                        HealthcarePrompts.OUTER_STATE,
+                        "Valerian Use Cases Healthcare context",
+                        HealthcarePrompts.OUTER_STATE_TO_FINAL,
+                        HealthcarePrompts.SOCIAL_INTERJECTION_OPPORTUNITY,
+                        HealthcarePrompts.FINAL_STARTER));
+    }
+
+    static Agent singleStateCareAgent(TaskPrompts prompts, String agentName, String agentDescription,
+            String stateName, String finalStateName, Consumer<Storage> storageInitializer,
+            List<String> stateStorageKeysFrom, CareContextPrompts contextPrompts) {
         return singleStateAgent(
                 prompts,
                 agentName,
@@ -53,12 +77,12 @@ final class HealthcareAgentFactory {
                 finalStateName,
                 storageInitializer,
                 stateStorageKeysFrom,
-                HealthcarePrompts.NONVERBAL_PLAN,
-                HealthcarePrompts.OUTER_STATE,
-                "Valerian Use Cases Healthcare context",
-                HealthcarePrompts.OUTER_STATE_TO_FINAL,
-                HealthcarePrompts.SOCIAL_INTERJECTION_OPPORTUNITY,
-                HealthcarePrompts.FINAL_STARTER,
+                contextPrompts.nonVerbalPlan(),
+                contextPrompts.outerState(),
+                contextPrompts.outerStateName(),
+                contextPrompts.outerToFinal(),
+                contextPrompts.socialInterjection(),
+                contextPrompts.finalStarter(),
                 healthcareCareProfile());
     }
 
@@ -193,4 +217,3 @@ final class HealthcareAgentFactory {
                         TAG_VALERIAN_PUBLIC_DEMO));
     }
 }
-

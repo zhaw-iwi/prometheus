@@ -18,7 +18,6 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class CoreRpsRevealPolicy extends Policy {
-    private static final String SPEECH = "Rock, scissor, paper—show!";
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Storage storage;
@@ -37,7 +36,7 @@ public class CoreRpsRevealPolicy extends Policy {
         // but keep that choice out of every emitted channel until their sign arrives.
         currentAgentSign(this.storage);
         int round = currentRoundNumber(this.storage);
-        return new BehaviourPlan(SPEECH, nonVerbal(), null, display(round));
+        return new BehaviourPlan(speech(), nonVerbal(), null, display(round));
     }
 
     @Override
@@ -54,11 +53,18 @@ public class CoreRpsRevealPolicy extends Policy {
 
     @Override
     public String describe() {
+        String language = CoreRpsLocale.isGerman(this.storage) ? "German" : "English";
         return """
-                Deterministic English Core rock-scissor-paper countdown policy.
+                Deterministic %s Core rock-scissor-paper countdown policy.
                 The agent sign is already committed in storage, but this policy emits only
                 the countdown and capture state so the user cannot see the sign early.
-                """.trim();
+                """.formatted(language).trim();
+    }
+
+    private String speech() {
+        return CoreRpsLocale.isGerman(this.storage)
+                ? "Schere, Stein, Papier – zeig!"
+                : "Rock, scissor, paper—show!";
     }
 
     private static RpsSign currentAgentSign(Storage storage) {
@@ -96,10 +102,12 @@ public class CoreRpsRevealPolicy extends Policy {
         return nonVerbal;
     }
 
-    private static JsonObject display(int round) {
+    private JsonObject display(int round) {
         JsonObject display = new JsonObject();
         display.addProperty("mode", "game_countdown");
-        display.addProperty("title", "Rock, Scissor, Paper");
+        display.addProperty("title", CoreRpsLocale.isGerman(this.storage)
+                ? "Schere, Stein, Papier"
+                : "Rock, Scissor, Paper");
         display.addProperty("round", round);
         display.addProperty("phase", "capture_user_sign");
         display.addProperty("awaitingUserSign", true);

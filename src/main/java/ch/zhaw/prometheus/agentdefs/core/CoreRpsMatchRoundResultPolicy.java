@@ -38,7 +38,9 @@ public class CoreRpsMatchRoundResultPolicy extends Policy {
         int targetWins = targetWins();
         String winner = round.get("winner").getAsString();
         String reason = base.getDisplay().getAsJsonObject().get("reason").getAsString();
-        String speech = englishSpeech(winner, reason, score, targetWins);
+        String speech = CoreRpsLocale.isGerman(this.storage)
+                ? germanSpeech(winner, reason, score, targetWins)
+                : englishSpeech(winner, reason, score, targetWins);
 
         JsonObject display = base.getDisplay().getAsJsonObject().deepCopy();
         display.addProperty("agentScore", score.agentWins());
@@ -61,7 +63,8 @@ public class CoreRpsMatchRoundResultPolicy extends Policy {
 
     @Override
     public String describe() {
-        return "Deterministic English Core rock-scissor-paper match round-result policy.";
+        String language = CoreRpsLocale.isGerman(this.storage) ? "German" : "English";
+        return "Deterministic " + language + " Core rock-scissor-paper match round-result policy.";
     }
 
     private static String englishSpeech(String winner, String reason, RpsMatchScore score, int targetWins) {
@@ -73,6 +76,17 @@ public class CoreRpsMatchRoundResultPolicy extends Policy {
         };
         return roundResult + " The score is you " + score.userWins() + ", me " + score.agentWins()
                 + "; first to " + targetWins + " wins. Say ready for the next round.";
+    }
+
+    private static String germanSpeech(String winner, String reason, RpsMatchScore score, int targetWins) {
+        String roundResult = switch (winner) {
+            case "agent" -> "Ich gewinne diese Runde: " + reason + ".";
+            case "user" -> "Du gewinnst diese Runde: " + reason + ".";
+            case "draw" -> "Diese Runde endet unentschieden.";
+            default -> throw new IllegalStateException("unsupported RPS winner: " + winner);
+        };
+        return roundResult + " Der Spielstand ist: du " + score.userWins() + ", ich " + score.agentWins()
+                + "; wer zuerst " + targetWins + " Siege erreicht, gewinnt. Sag „bereit“ für die nächste Runde.";
     }
 
     private JsonObject lastRound() {

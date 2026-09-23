@@ -59,6 +59,20 @@ class ValerianCorePromptContractTest {
     }
 
     @Test
+    void germanMatchUsesGermanLanguageMetadataAndPrompts() {
+        AgentDefinition definition = new GermanRockScissorPaperMatch();
+
+        assertTrue(definition.key().startsWith("core."));
+        assertTrue(definition.displayName().contains("Deutsch"));
+        assertTrue(definition.description().startsWith("Deutschsprachiger Core"));
+        assertTrue(AgentDefinition.LANGUAGE_GERMAN.equals(definition.languageCode()));
+        assertTrue(GermanRockScissorPaperMatch.PROMPT_SETUP.contains("Antworte ausnahmslos auf Deutsch"));
+        assertTrue(GermanRockScissorPaperMatch.PROMPT_STARTER.contains("Schere, Stein, Papier"));
+        assertTrue(GermanRockScissorPaperMatch.PROMPT_OUTER_STATE.contains("Antworte ausnahmslos auf Deutsch"));
+        assertFalse(GermanRockScissorPaperMatch.PROMPT_OUTER_STATE.contains("Answer only in English"));
+    }
+
+    @Test
     void coreSourcesDoNotMentionRetiredRobotOrTdsrPersona() throws IOException {
         for (Path source : Files.walk(Path.of("src/main/java/ch/zhaw/prometheus/agentdefs/core"))
                 .filter(path -> path.toString().endsWith(".java"))

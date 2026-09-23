@@ -21,6 +21,7 @@ class AgentDefinitionRegistryUnitTest {
             "core.multimodal_behaviour",
             "core.rock_scissor_paper",
             "core.rock_scissor_paper_match",
+            "core.rock_scissor_paper_match_german",
             "core.role_clarification_guessing_game",
             "core.social_context_sensitivity",
             "core.talk_to_me",
@@ -29,6 +30,8 @@ class AgentDefinitionRegistryUnitTest {
             "usecases.healthcare.healthcare_conversation",
             "usecases.healthcare.smart_goal_coaching",
             "usecases.healthcare.therapy_appointment_reminder",
+            "usecases.healthcare.therapy_appointment_reminder_excessively_compassionate",
+            "usecases.healthcare.therapy_appointment_reminder_excessively_compassionate_german",
             "usecases.healthcare.therapy_appointment_reminder_intro");
 
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
@@ -36,6 +39,7 @@ class AgentDefinitionRegistryUnitTest {
             Map.entry("core.multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.rock_scissor_paper", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.rock_scissor_paper_match", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.rock_scissor_paper_match_german", AgentDefinition.LANGUAGE_GERMAN),
             Map.entry("core.role_clarification_guessing_game", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.social_context_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.talk_to_me", AgentDefinition.LANGUAGE_ENGLISH),
@@ -44,6 +48,10 @@ class AgentDefinitionRegistryUnitTest {
             Map.entry("usecases.healthcare.healthcare_conversation", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("usecases.healthcare.smart_goal_coaching", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("usecases.healthcare.therapy_appointment_reminder", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.therapy_appointment_reminder_excessively_compassionate",
+                    AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("usecases.healthcare.therapy_appointment_reminder_excessively_compassionate_german",
+                    AgentDefinition.LANGUAGE_GERMAN),
             Map.entry("usecases.healthcare.therapy_appointment_reminder_intro", AgentDefinition.LANGUAGE_ENGLISH));
 
     @Test
@@ -97,6 +105,7 @@ class AgentDefinitionRegistryUnitTest {
                 new ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour(),
                 new ch.zhaw.prometheus.agentdefs.core.RockScissorPaper(),
                 new ch.zhaw.prometheus.agentdefs.core.RockScissorPaperMatch(),
+                new ch.zhaw.prometheus.agentdefs.core.GermanRockScissorPaperMatch(),
                 new ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame(),
                 new ch.zhaw.prometheus.agentdefs.core.SocialContextSensitivity(),
                 new ch.zhaw.prometheus.agentdefs.core.TalkToMe(),
@@ -105,6 +114,8 @@ class AgentDefinitionRegistryUnitTest {
                 new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateHealthcareConversation(),
                 new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateSmartGoalCoaching(),
                 new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateTherapyAppointmentReminder(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.SingleStateExcessivelyCompassionateTherapyAppointmentReminder(),
+                new ch.zhaw.prometheus.agentdefs.usecases.healthcare.GermanSingleStateExcessivelyCompassionateTherapyAppointmentReminder(),
                 new ch.zhaw.prometheus.agentdefs.usecases.healthcare.TwoStateTherapyAppointmentReminder()));
     }
 }
