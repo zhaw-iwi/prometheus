@@ -19,7 +19,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import jakarta.annotation.PreDestroy;
 import ch.zhaw.prometheus.controllers.dto.LiveSessionRequest;
@@ -27,12 +26,13 @@ import ch.zhaw.prometheus.controllers.views.AgentInfoView;
 import ch.zhaw.prometheus.spi.live.LiveProperties;
 import ch.zhaw.prometheus.spi.live.LiveProviderException;
 import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
+import ch.zhaw.prometheus.application.live.LiveContextSnapshot;
 
 /** GL-01 diagnostic session host. Transcript events are not yet agent input. */
 @Service
 public class ScopedLiveSessionService {
     public static final List<String> VOICES = List.of("marin", "quartz", "willow", "meridian");
-    public record Capabilities(boolean enabled, String model, List<String> voices, boolean diagnosticOnly) {}
+    public record Capabilities(boolean enabled, String model, List<String> voices, boolean diagnosticOnly, boolean eligible) {}
     public record SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady) {
         @Override public String toString() { return "SessionView[handle=" + handle + ",sdp=redacted]"; }
     }
@@ -43,18 +43,20 @@ public class ScopedLiveSessionService {
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
     private final LiveProperties properties;
+    private final LiveAgentContextService contexts;
     private final Clock clock;
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
 
-    @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties) {
-        this(demo, gateway, properties, Clock.systemUTC());
+    @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties, LiveAgentContextService contexts) {
+        this(demo, gateway, properties, contexts, Clock.systemUTC());
     }
-    ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties, Clock clock) {
-        this.demo = demo; this.gateway = gateway; this.properties = properties; this.clock = clock;
+    ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties, LiveAgentContextService contexts, Clock clock) {
+        this.demo = demo; this.gateway = gateway; this.properties = properties; this.contexts = contexts; this.clock = clock;
     }
 
     public Optional<Capabilities> capabilities(String code, UUID agentId) {
-        return demo.getAgentInfo(code, agentId).map(info -> new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, true));
+        return demo.getAgentInfo(code, agentId).map(info -> new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, true,
+                contexts.supported(code, agentId)));
     }
 
     public Optional<SessionView> create(String code, UUID agentId, LiveSessionRequest request) {
@@ -72,10 +74,10 @@ public class ScopedLiveSessionService {
             sessions.put(lease.handle, lease);
         }
         try {
-            String language = Optional.ofNullable(info.get().getLanguageCode()).filter(s -> s.matches("[a-z-]{2,16}")).orElse("en");
+            lease.context = contexts.snapshot(code, agentId).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
-                    "You are a diagnostic voice assistant. Speak briefly in language " + language
-                    + ". Wait silently until the user speaks. No task actions are available in this diagnostic session.", new JsonArray()));
+                    lease.context.instructions() + "\nDiagnostic session: task actions are unavailable; do not claim to perform them.",
+                    lease.context.startupInput()));
             lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> lease.disconnected.set(true));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
@@ -163,6 +165,7 @@ public class ScopedLiveSessionService {
         final Semaphore commandSlots = new Semaphore(4);
         final ArrayDeque<Diagnostic> recent = new ArrayDeque<>();
         volatile LiveSessionGateway.Session provider;
+        volatile LiveContextSnapshot context;
         volatile LiveSessionGateway.Connection connection;
         volatile boolean cleanupFailed;
         long count, dropped, inputSamples, outputSamples, voicedInputSamples;

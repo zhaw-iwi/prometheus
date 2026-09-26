@@ -3,8 +3,8 @@
 - Branch: `feature/gptlive`
 - Baseline: `main` at `2104b11`, through project Milestone 183
 - Created: 2026-09-27
-- Status: GL-01 automated implementation complete (project Milestone 184);
-  GL-02 next. Live voice and physical acceptance remain NOT RUN.
+- Status: GL-01 and GL-02 automated implementation complete (project Milestones
+  184–185); GL-03 next. Live voice and physical acceptance remain NOT RUN.
 - Target voice model: `gpt-live-1`, using client delegation.
 
 The user authorized implementation on 2026-09-27: complete each milestone, commit
@@ -310,8 +310,8 @@ transport; share genuinely transport-neutral media/lifecycle utilities only.
 
 ## 6. Milestone roadmap
 
-GL-01 is **Automated complete; physical acceptance pending**; subsequent milestones
-are **Not started**. See `GPTLIVE_RESULTS.md`. Names of new tests, DTOs and
+GL-01 is **Automated complete; physical acceptance pending**; GL-02 is **Complete**;
+subsequent milestones are **Not started**. See `GPTLIVE_RESULTS.md`. Names of new tests, DTOs and
 configuration properties below are proposed deliverables, not files that already
 exist. Each milestone records its own executed commands, results and limitations
 in `.agents/GPTLIVE_RESULTS.md` and updates relevant current documentation.

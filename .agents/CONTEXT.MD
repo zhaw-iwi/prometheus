@@ -131,8 +131,11 @@ catalog keys into new context documents.
 ## GPT-Live Experiment
 
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
-session gateway and temporary `/live/probe.html`. It is separate from current
-transcription/TTS and does not yet execute agent tasks or persist speech. Read
+session gateway and temporary `/live/probe.html`. GL-02 seeds it from an immutable,
+bounded active-state context with source IDs/times and explicit sensory freshness.
+Only the three documented core pilot profiles and known policy classes qualify.
+It is separate from current transcription/TTS and does not yet execute tasks or
+persist speech. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
 sideband owns provider credentials; diagnostic state is bounded and excludes

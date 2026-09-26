@@ -4,6 +4,46 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-02 / project Milestone 185 — 2026-09-27
+
+Initial sessions now receive immutable selected dialogue/sensory context and the
+current composed conversational policy. The adapter checks explicit core pilot
+tags and known active state/policy classes; it does not infer voice support for
+custom or exact-text policies. `State.ownPolicy()` is application introspection,
+not another generation path. RPS guidance defers deterministic results to the
+backend. No inference call is required for context projection.
+
+The leaf selector filters original events before adapters/face aggregation run.
+IDs, receipt time and source `observed_at`/`ts` survive; earlier working-copy history
+does not supply these. Facts remain developer observation data, dialogue retains
+user/assistant roles, and full BehaviourPlan output schema is absent from speech
+instructions. Current sensory values coalesce; expired values become unknown;
+unknown/future source time is explicit. Source times are not refreshed on reads.
+Stable revisions change when selected content/policy/freshness changes. Removed
+source keys are available to GL-05. Voice continuity remains the agreed policy.
+
+Conservative UTF-8 byte limits protect provider token bounds: startup JSON at most
+7,000 bytes/40 messages, per-item text at most 1,000 bytes, instructions at most
+12,000 bytes (oversize instructions fail; evidence truncation is marked). Face
+summary uses at most eight selected fresh samples. Pilot TTLs are documented in
+README and remain subject to physical/context trials.
+
+Actual verification:
+
+- `mvnw.cmd -q -DskipTests compile`: PASS.
+- `mvnw.cmd -q "-Dtest=LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,ScopedLiveSessionControllerWebMvcTest,PromptMessageAssemblerUnitTest,PromptEventContentAdapterUnitTest" test`:
+  30 tests PASS, including six new projection cases. Initial service-test setup
+  had nested Mockito stubbing; corrected before the successful run.
+- Extended `LiveSessionSmokeIntegrationTest`: PASS on disposable MySQL
+  `prometheus_gptlive_533cb5aa2a`. Real transaction/reload boundaries retain the
+  same epoch/revision and persisted source IDs/times; unauthorized scope is empty.
+  Session issuance consumes this context. Schema/restricted account removed.
+- `git diff --check`: PASS.
+
+GL-01 is committed/pushed as `c32cea9`. No additional paid provider request or
+physical trial was run for GL-02. Asynchronous updates, durable utterance ingress,
+the third tab and end-to-end physical acceptance remain later milestones.
+
 ## GL-01 / project Milestone 184 — 2026-09-27
 
 Implemented an opt-in scoped typed session gateway, WebRTC SDP exchange, backend

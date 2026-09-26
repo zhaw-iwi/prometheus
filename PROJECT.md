@@ -72,6 +72,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 185 (GL-02), immutable selected-context and
+  explicit pilot voice-policy projection. Preserves event provenance/time,
+  separates conversational guidance from sensory data, bounds history and marks
+  expired/unknown observations. Thirty focused Java tests and an extended local
+  MySQL reload/scope smoke passed. Voice remains diagnostic until execution and
+  ingress milestones; live-provider/audio acceptance is pending.
 - Experimental branch follow-up: Milestone 184 (GL-01), disabled-by-default
   GPT-Live scoped session gateway, backend sideband, bounded diagnostics and a
   temporary browser probe. Ten focused Java cases and one disposable-MySQL smoke
@@ -121,6 +127,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 185: Selected agent context for GPT-Live (GL-02)
 
 - [x] Milestone 184: GPT-Live provider boundary and diagnostic probe (GL-01)
 
@@ -8318,3 +8326,16 @@ priority and action ownership.
   HTTP 200 for gpt-live-1 metadata.
 - Live voice, Windows/Linux built-in audio and Bluetooth remain NOT RUN. Exact
   commands, limits and evidence are in .agents/GPTLIVE_RESULTS.md.
+
+
+## Milestone 185: Selected agent context for GPT-Live (GL-02)
+
+- Added immutable selected context with source provenance, stable revision,
+  coalesced sensor freshness and bounded startup history. Known core pilot
+  policies contribute composed conversational guidance without a JSON output
+  contract. Original history selection retains IDs and timestamps.
+- Scoped session creation reads a fresh serialized agent snapshot; unsupported
+  policy/state implementations fail closed. Existing execution is unchanged.
+- Thirty focused Java checks and the extended disposable-MySQL reload/scope
+  smoke passed. Full evidence is in .agents/GPTLIVE_RESULTS.md.
+- Provider speech/context quality and physical audio remain NOT RUN.

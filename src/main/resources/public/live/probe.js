@@ -37,6 +37,7 @@ $("start").onclick = async () => {
   try {
     const capabilities = await api(run, "capabilities"); check(run);
     if (!capabilities.enabled) throw new Error("GPT-Live is disabled on this server.");
+    if (!capabilities.eligible) throw new Error("This agent is not supported by the Live pilot.");
     run.output = new OutputLease({ agentId: run.agent, onConflict: () => void stop("Output lease lost") });
     if (!run.output.acquire()) throw new Error("Another tab owns this agent's output.");
     run.media = new TranscriptionMedia({ lease: new MicrophoneLease({ onConflict: () => void stop("Microphone lease lost") }) });

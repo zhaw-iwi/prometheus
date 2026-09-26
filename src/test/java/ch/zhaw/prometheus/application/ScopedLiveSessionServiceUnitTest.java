@@ -24,12 +24,15 @@ class ScopedLiveSessionServiceUnitTest {
     final Clock clock = mock(Clock.class);
     final LiveProperties properties = new LiveProperties();
     final FakeGateway gateway = new FakeGateway();
+    final LiveAgentContextService contexts = mock(LiveAgentContextService.class);
     ScopedLiveSessionService service;
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
         when(demo.getAgentInfo(anyString(), eq(agent))).thenReturn(Optional.of(new AgentInfoView(agent, "Test", "", true)));
-        service = new ScopedLiveSessionService(demo, gateway, properties, clock);
+        when(contexts.snapshot(anyString(), eq(agent))).thenReturn(Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
+                agent, UUID.randomUUID(), "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0)));
+        service = new ScopedLiveSessionService(demo, gateway, properties, contexts, clock);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
     @Test void scopeAndFeatureGateRunBeforeProviderAndOnlyOneSessionOwnsAgent() {

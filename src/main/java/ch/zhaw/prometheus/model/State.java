@@ -133,6 +133,9 @@ public class State extends PersistedNode {
         this.policy = policy;
     }
 
+    /** Introspection for application adapters; does not execute or compose the policy. */
+    public Policy ownPolicy() { return this.policy; }
+
     public void addTransition(Transition transition) {
         this.transitions.add(transition);
     }

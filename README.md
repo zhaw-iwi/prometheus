@@ -1123,7 +1123,7 @@ The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
 `PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
 OpenAI API credentials and model access. Current milestone: diagnostic transport
-only, without agent task execution or persisted voice transcripts. The planned
+with selected agent context, without task execution or persisted voice transcripts. The planned
 third cockpit tab and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
 
 The temporary `/live/probe.html` accepts an existing scoped agent ID and access
@@ -1138,7 +1138,7 @@ All REST requests below require `X-Prometheus-Access-Code` and a linked agent:
 
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
-| `GET /capabilities` | Enabled flag, model, allowed voices, diagnostic-only marker. |
+| `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
 | `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Unknown fields are rejected. |
 | `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
 | `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
@@ -1160,6 +1160,27 @@ finalization remains unconfirmed without `session.closed`.
 
 See `.agents/GPTLIVE_RESULTS.md` for actual verification and separate live/audio
 gates. Provider metadata access alone does not prove a usable voice session.
+
+The initial voice context uses the active leaf state's existing history selector,
+the composed outer/inner conversational prompt, and the existing sensory text
+adapters. It never copies the structured BehaviourPlan output schema into voice
+instructions. Pilot eligibility is explicit: existing core profile tags for
+multimodal behaviour, role clarification and rock-scissor-paper, with known
+`PromptPolicy`/core RPS policies only. Unknown policies and other agent types are
+rejected; existing text and transcription modes retain their normal support.
+
+Selected context keeps original event IDs and times. Current sensor readings are
+coalesced by type; face aggregation uses up to eight selected fresh readings.
+Provisional freshness windows are 15 seconds for face/presence/social/hand cues,
+30 seconds for situation changes, 10 minutes for current weather and six hours
+for forecasts. Source `observed_at`/`ts` takes precedence over event receipt time.
+Expired values become unknown, and missing/malformed/future timestamps are labeled
+unknown. These are pilot context limits, not changes to stored observations.
+Startup history is limited to 40 messages and 7,000 UTF-8 JSON bytes, retaining
+recent evidence; individual text is visibly truncated above 1,000 bytes.
+Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
+State changes preserve the voice conversation; a narrower selector cannot erase
+what an ongoing voice session already heard. Live updates arrive in GL-05.
 
 ## Admin API
 

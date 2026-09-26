@@ -29,6 +29,7 @@ class LiveSessionSmokeIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired AccessCodeAdminService admin;
     @Autowired ScopedDemoService demo;
+    @Autowired ch.zhaw.prometheus.application.LiveAgentContextService contexts;
     @MockitoBean LiveSessionGateway gateway;
     @MockitoBean LanguageModelGateway language;
 
@@ -41,6 +42,12 @@ class LiveSessionSmokeIntegrationTest {
         admin.createAccessCode(other, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of("core.multimodal_behaviour"));
         UUID agent = demo.createAgent(code, "core.multimodal_behaviour").getID();
+        var snapshot = contexts.snapshot(code, agent).orElseThrow();
+        var reloaded = contexts.snapshot(code, agent).orElseThrow();
+        assertEquals(snapshot.epoch(), reloaded.epoch()); assertEquals(snapshot.revision(), reloaded.revision());
+        assertFalse(snapshot.items().isEmpty()); assertNotNull(snapshot.items().getFirst().receivedAt());
+        assertFalse(snapshot.items().getFirst().sourceIds().isEmpty());
+        assertTrue(contexts.snapshot(other, agent).isEmpty());
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("live_synthetic", "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {
             Consumer<JsonObject> receive = call.getArgument(1);
