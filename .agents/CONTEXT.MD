@@ -128,6 +128,16 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
+## GPT-Live Experiment
+
+On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
+session gateway and temporary `/live/probe.html`. It is separate from current
+transcription/TTS and does not yet execute agent tasks or persist speech. Read
+`.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
+`.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
+sideband owns provider credentials; diagnostic state is bounded and excludes
+audio/text content. See README for scoped session contracts and configuration.
+
 ## Regulation: Implemented Foundation and Missing System
 
 Regulation is intended to become a bounded internal motivation system alongside

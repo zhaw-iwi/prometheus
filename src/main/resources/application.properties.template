@@ -33,6 +33,16 @@ prometheus.behaviour.speculation.ttl-ms=30000
 # admin access-code management
 prometheus.admin.token=
 
+# Experimental GPT-Live diagnostic sessions (separate from live transcription).
+# Requires OpenAI credentials in openai.properties. Disabled until explicitly enabled.
+prometheus.live.enabled=false
+prometheus.live.model=gpt-live-1
+prometheus.live.sessions-url=https://api.openai.com/v1/live/sessions
+prometheus.live.request-timeout-ms=15000
+prometheus.live.close-timeout-ms=3000
+prometheus.live.session-lifetime-seconds=900
+prometheus.live.capacity=16
+
 # cross-origin browser clients, for example an external Valerian cockpit
 prometheus.cors.allowed-origins=
 prometheus.cors.allowed-origin-patterns=

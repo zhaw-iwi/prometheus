@@ -72,6 +72,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental branch follow-up: Milestone 184 (GL-01), disabled-by-default
+  GPT-Live scoped session gateway, backend sideband, bounded diagnostics and a
+  temporary browser probe. Ten focused Java cases and one disposable-MySQL smoke
+  passed; configured account can retrieve `gpt-live-1` metadata. Live WebRTC,
+  built-in audio and Bluetooth trials remain NOT RUN. No agent task or transcript
+  ingress is enabled yet. Roadmap/evidence: `.agents/PLAN_GPTLIVE.md` and
+  `.agents/GPTLIVE_RESULTS.md`.
 - Last completed follow-up: Milestone 183, automatic server speech delivery timing
   joined into the existing browser JSON export. Timed provider-response reads and
   output writes/flushes use synthesis IDs and cumulative byte counts to narrow down
@@ -114,6 +121,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 184: GPT-Live provider boundary and diagnostic probe (GL-01)
 
 - [x] Milestone 183: Server speech delivery timing
 
@@ -8296,3 +8305,16 @@ priority and action ownership.
   local MySQL schema/account (both removed), 69 Node cases and four desktop/mobile
   Playwright cases. Delivery-detail screenshots inspected. Providers were mocked
   or loopback; live Heroku/provider pause location awaits the next exported trial.
+
+
+## Milestone 184: GPT-Live provider boundary and diagnostic probe (GL-01)
+
+- Added opt-in Live API session creation, backend sideband, acknowledged input
+  mute/unmute, scoped handles and bounded cleanup/diagnostics. Existing speech
+  modes are unchanged; no agent ingress is enabled at this milestone.
+- Added a temporary developer WebRTC probe and synthetic provider-event fixture.
+- Verified ten focused Java cases, one real local-MySQL scope smoke and JavaScript
+  syntax. Disposable schema/account removed. Configured provider account returns
+  HTTP 200 for gpt-live-1 metadata.
+- Live voice, Windows/Linux built-in audio and Bluetooth remain NOT RUN. Exact
+  commands, limits and evidence are in .agents/GPTLIVE_RESULTS.md.

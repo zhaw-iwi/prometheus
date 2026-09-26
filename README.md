@@ -1117,6 +1117,50 @@ with the ordinary `FULL_PLAN` output profile, persists the deterministic
 voice/speed validation, and streamed HTTP audio mechanics with canonical
 behaviour speech.
 
+## Experimental GPT-Live
+
+The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
+from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
+`PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
+OpenAI API credentials and model access. Current milestone: diagnostic transport
+only, without agent task execution or persisted voice transcripts. The planned
+third cockpit tab and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
+
+The temporary `/live/probe.html` accepts an existing scoped agent ID and access
+code. Use Chrome on HTTPS or localhost, grant microphone permission, and explicitly
+start the probe. It shares microphone and per-agent output leases with existing
+clients. Mute affects input; Stop immediately silences local input/output and asks
+the backend to finalize. Captions remain temporary and are never stored by this
+probe. It requests browser echo cancellation, which does not certify room or
+Bluetooth echo performance. Default OS input/output devices are used in the probe.
+
+All REST requests below require `X-Prometheus-Access-Code` and a linked agent:
+
+| Method and path below `/demo/agents/{agentId}/live` | Contract |
+| --- | --- |
+| `GET /capabilities` | Enabled flag, model, allowed voices, diagnostic-only marker. |
+| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Unknown fields are rejected. |
+| `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
+| `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
+| `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
+
+Agent and session scope mismatches return 404; invalid access codes return 401;
+invalid settings return 400; disabled sessions return 503; an occupied agent or
+full capacity returns 409; provider failures return 502 without provider bodies.
+The backend owns provider credentials and permits one session per agent per
+process. Session handles are also bound to the creating access code.
+
+Settings in `application.properties.template` bound request deadlines (15 seconds),
+graceful close (3 seconds), local session lifetime (15 minutes, checked every five
+seconds), and capacity (16). Session storage is disabled at the provider. Sideband
+audio is measured and immediately discarded; neither raw audio nor captions enter
+diagnostic history. RMS activity is a coarse diagnostic signal, not turn detection
+or evidence that audio was heard. Unexpected disconnect uses the hangup fallback;
+finalization remains unconfirmed without `session.closed`.
+
+See `.agents/GPTLIVE_RESULTS.md` for actual verification and separate live/audio
+gates. Provider metadata access alone does not prove a usable voice session.
+
 ## Admin API
 
 Admin endpoints require:
