@@ -44,14 +44,18 @@ public class ScopedLiveSessionService {
     private final LiveSessionGateway gateway;
     private final LiveProperties properties;
     private final LiveAgentContextService contexts;
+    private final ExternalSpeechOwnership ownership;
     private final Clock clock;
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
 
-    @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties, LiveAgentContextService contexts) {
-        this(demo, gateway, properties, contexts, Clock.systemUTC());
+    @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
+            LiveAgentContextService contexts, ExternalSpeechOwnership ownership) {
+        this(demo, gateway, properties, contexts, ownership, Clock.systemUTC());
     }
-    ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties, LiveAgentContextService contexts, Clock clock) {
+    ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
+            LiveAgentContextService contexts, ExternalSpeechOwnership ownership, Clock clock) {
         this.demo = demo; this.gateway = gateway; this.properties = properties; this.contexts = contexts; this.clock = clock;
+        this.ownership = ownership;
     }
 
     public Optional<Capabilities> capabilities(String code, UUID agentId) {
@@ -74,7 +78,7 @@ public class ScopedLiveSessionService {
             sessions.put(lease.handle, lease);
         }
         try {
-            lease.context = contexts.snapshot(code, agentId).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
+            lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions() + "\nDiagnostic session: task actions are unavailable; do not claim to perform them.",
                     lease.context.startupInput()));
@@ -147,6 +151,7 @@ public class ScopedLiveSessionService {
             try { gateway.hangup(lease.provider.id()); }
             catch (RuntimeException failure) { lease.cleanupFailed = true; }
         }
+        ownership.release(lease.agentId, lease.handle);
     }
 
     private static byte[] digest(String code) {

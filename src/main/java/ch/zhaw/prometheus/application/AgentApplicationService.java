@@ -59,6 +59,14 @@ public class AgentApplicationService {
     private ch.zhaw.prometheus.repositories.StorageRepository storageRepository;
     private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
     private BehaviourSpeculationService speculation;
+    private ExternalSpeechOwnership speechOwnership;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureSpeechOwnership(ExternalSpeechOwnership ownership) { this.speechOwnership = ownership; }
+
+    private PolicyRuntime runtimeFor(Agent agent, OutputProfile profile) {
+        return runtime(profile).withExternalSpeech(speechOwnership == null ? null : speechOwnership.current(agent));
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void configureSpeculation(BehaviourSpeculationService service) { this.speculation = service; }
@@ -81,11 +89,11 @@ public class AgentApplicationService {
     }
 
     private <T> T actionTurn(Agent agent, OutputProfile profile, java.util.function.Function<PolicyRuntime, T> work) {
-        if (backgroundActions == null) return work.apply(runtime(profile));
+        if (backgroundActions == null) return work.apply(runtimeFor(agent, profile));
         UUID id = agent.getId(), epoch = agent.executionEpoch();
         try (var turn = new BackgroundActionTurn(id, backgroundActions,
                 (action, values, versions) -> applyBackgroundAction(id, epoch, action, values, versions))) {
-            T result = work.apply(runtime(profile).withActionExecution(turn));
+            T result = work.apply(runtimeFor(agent, profile).withActionExecution(turn));
             turn.commit();
             return result;
         }
@@ -228,7 +236,7 @@ public class AgentApplicationService {
                 return Optional.empty();
             }
             Agent agent = agentMaybe.get();
-            Event starter = agent.start(this.runtime());
+            Event starter = agent.start(this.runtimeFor(agent, OutputProfile.FULL_PLAN));
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, starter);
             return Optional.of(new ResponseView(starter, agent.isActive()));
@@ -247,8 +255,8 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-            PolicyRuntime generationRuntime = this.runtime(resolvedProfile);
-            if (speculation != null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
+            PolicyRuntime generationRuntime = this.runtimeFor(agent, resolvedProfile);
+            if (speculation != null && generationRuntime.externalSpeech() == null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
                     agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
             PolicyRuntime preparedRuntime = generationRuntime;
             Event response;
@@ -277,7 +285,7 @@ public class AgentApplicationService {
             Agent agent = agentMaybe.get();
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-            try (var preview = speculation == null ? null : speculation.open(agentID, agent.executionEpoch(),
+            try (var preview = speculation == null || runtimeFor(agent, resolvedProfile).externalSpeech() != null ? null : speculation.open(agentID, agent.executionEpoch(),
                     agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {
                 Optional<ResponseView> result = actionTurn(agent, resolvedProfile, runtime -> {
                     PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
@@ -304,6 +312,7 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             agent.reset();
+            if (speechOwnership != null) speechOwnership.revoke(agentID);
             Event response = agent.start(this.runtime());
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, response);

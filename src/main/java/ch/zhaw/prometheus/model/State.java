@@ -287,18 +287,28 @@ public class State extends PersistedNode {
         }
         Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 behaviourPlan.toJson());
+        if (runtime.externalSpeech() != null) responseEvent.speechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.intent(runtime.externalSpeech()));
         return responseEvent;
     }
 
     private Event executeResponse(Policy outerPolicy, PolicyRuntime runtime) {
         Policy policy = this.resolvePolicy(outerPolicy);
-        BehaviourPlan behaviourPlan = policy.onRespond(this, this.getEventHistory(),
-                runtime.promptMessageAssembler(), runtime.languageModelGateway(), runtime.outputProfile());
+        BehaviourPlan behaviourPlan;
+        if (runtime.externalSpeech() != null && policy instanceof PromptPolicy prompt) {
+            behaviourPlan = prompt.nonSpeechResponse(this.getEventHistory(), runtime.promptMessageAssembler(), runtime.languageModelGateway());
+        } else {
+            behaviourPlan = policy.onRespond(this, this.getEventHistory(),
+                    runtime.promptMessageAssembler(), runtime.languageModelGateway(), runtime.outputProfile());
+            if (runtime.externalSpeech() != null && behaviourPlan != null) behaviourPlan.setSpeech(null);
+        }
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
         Event responseEvent = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 behaviourPlan.toJson());
+        if (runtime.externalSpeech() != null) responseEvent.speechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.intent(runtime.externalSpeech()));
         return responseEvent;
     }
 

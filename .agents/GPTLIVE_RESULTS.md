@@ -4,6 +4,62 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-03 / project Milestone 186 — 2026-09-27
+
+Implemented the following association rules and execution boundary. GL-02 was
+committed/pushed as `b842d04`.
+
+Backend-generated speech while an external session owns speech is an **intent**;
+the original BehaviourPlan remains persisted and inspectable with all modalities.
+A native assistant segment is a separate canonical speech BehaviourPlan and never
+enters acknowledgement. Ordinary backend generation may supply non-speech
+complements but cannot generate competing spoken text. State-entry, final and
+sensory-triggered plans retain their authored speech as narration intents.
+
+An association is **confirmed** only when a trusted adapter supplies an explicit
+correlation backed by its protocol. This Live protocol supplies no such playback
+identity. Its pending source IDs are therefore **possible** associations, marked
+ambiguous even when only one exists. Timing, text similarity and append ACK alone
+never confirm realization. With no candidates, a native segment is unassociated.
+Interrupted/incomplete text is labeled independently of this association.
+
+The shared conversational projection excludes intent speech regardless of whether
+an association exists. Each native segment appears once; a later realization
+does not rewrite the original intent. Raw event history retains all events;
+the additive scoped projected history exposes intent metadata separately while
+preserving non-speech channels. Legacy events without provenance remain ordinary
+backend conversation. No reset/backfill of existing history is required.
+
+The nullable `event.speech_provenance` TEXT column is additive. A shared
+`ConversationProjection` drives prompt exclusion and scoped `/live/history`;
+raw history and every non-speech channel remain inspectable. TTS cannot synthesize
+an intent as if it were a realized utterance. Startup claim is serialized with
+existing agent turns; ordinary generation supplies a validated non-speech-only
+complement, and speculation cannot compete. Reset revokes the old owner.
+
+Actual verification:
+
+- `mvnw.cmd -q -DskipTests compile`: PASS.
+- `mvnw.cmd -q "-Dtest=LiveSpeechExecutionUnitTest,LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,ScopedLiveSessionControllerWebMvcTest,OutputProfileUnitTest,PromptPolicyUnitTest,PromptPolicyGestureUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,PromptMessageAssemblerUnitTest,ScopedBehaviourSpeechServiceUnitTest,SpeechArchitectureSourceContractTest" test`:
+  49 checks PASS; four new execution cases cover ordinary non-speech response,
+  nested start/self-loop/sensory/final/tick plans, actions, native recording without
+  acknowledgement and unchanged default generation. A later scoped projected-
+  history case brought distinct focused coverage to 50; the final seven execution/
+  controller checks passed after that addition.
+- `LiveSessionSmokeIntegrationTest,LiveSpeechPersistenceIntegrationTest`: two
+  PASS on final disposable MySQL `prometheus_gptlive_a17acc660d`; schema/restricted
+  account removed. Persisted intent, confirmed synthetic association, ambiguous
+  association and incomplete native segment reload in append order. Repeated native
+  segment returns the same persisted event ID; revoked ownership rejects late
+  recording. Real Live adapters will never infer confirmed linkage from timing.
+- The initial persistence run found a cascade-merge identity bug. Recording now
+  returns/publishes the saved event identified by session/segment, and two subsequent
+  database runs passed (final one after epoch validation was tightened).
+- `git diff --check`: PASS.
+
+Provider transcript ingress, proactive transport, cockpit UI and physical audio
+remain subsequent gates. No provider voice request or acoustic trial was run.
+
 ## GL-02 / project Milestone 185 — 2026-09-27
 
 Initial sessions now receive immutable selected dialogue/sensory context and the

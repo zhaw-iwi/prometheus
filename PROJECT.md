@@ -72,6 +72,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 186 (GL-03), provider-neutral external speech
+  ownership, non-speech complements, persisted intent/native provenance and shared
+  conversational projection. Native recording cannot acknowledge or advance tasks;
+  normal output profiles remain unchanged. Focused runtime/controller/prompt tests
+  and disposable MySQL provenance/reload checks passed; see the GPT-Live results
+  record. Automatic transcript ingress and narration transport remain subsequent
+  milestones; live/acoustic acceptance is still pending.
 - Experimental follow-up: Milestone 185 (GL-02), immutable selected-context and
   explicit pilot voice-policy projection. Preserves event provenance/time,
   separates conversational guidance from sensory data, bounds history and marks
@@ -127,6 +134,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 186: External speech execution and provenance (GL-03)
 
 - [x] Milestone 185: Selected agent context for GPT-Live (GL-02)
 
@@ -8339,3 +8348,19 @@ priority and action ownership.
 - Thirty focused Java checks and the extended disposable-MySQL reload/scope
   smoke passed. Full evidence is in .agents/GPTLIVE_RESULTS.md.
 - Provider speech/context quality and physical audio remain NOT RUN.
+
+
+## Milestone 186: External speech execution and provenance (GL-03)
+
+- Added provider-neutral external speech ownership at the runtime boundary.
+  Ordinary generation supplies non-speech complements only; entry/final/sensory
+  plans retain speech intent. Speculation cannot generate a competing reply.
+- Native assistant recording persists a speech BehaviourPlan without evaluation
+  of guards/actions. Additive provenance separates intent, native output,
+  completeness and confirmed/ambiguous associations. Shared prompt/history
+  projection prevents duplicate conversational representations; raw plans remain.
+- Fifty distinct focused Java cases passed, plus two disposable-MySQL scope and
+  persistence cases. Cascade-merge identity handling was corrected based on the
+  first database failure; final reload/identity verification passed.
+- No voice/acoustic trial was run. See .agents/GPTLIVE_RESULTS.md for commands,
+  schema details and remaining transport/ingress work.

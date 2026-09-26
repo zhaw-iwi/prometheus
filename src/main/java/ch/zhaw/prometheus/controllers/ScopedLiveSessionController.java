@@ -15,7 +15,17 @@ import ch.zhaw.prometheus.spi.live.LiveProviderException;
 @RequestMapping("/demo/agents/{agentId}/live")
 public class ScopedLiveSessionController {
     private final ScopedLiveSessionService service;
-    public ScopedLiveSessionController(ScopedLiveSessionService service) { this.service = service; }
+    private final ch.zhaw.prometheus.application.ScopedDemoService demo;
+    public ScopedLiveSessionController(ScopedLiveSessionService service, ch.zhaw.prometheus.application.ScopedDemoService demo) {
+        this.service = service; this.demo = demo;
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<java.util.List<ch.zhaw.prometheus.model.event.ConversationProjection.View>> history(@PathVariable UUID agentId,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
+        return ResponseEntity.of(demo.getAgentEventHistory(code, agentId).map(events -> events.stream()
+                .map(ch.zhaw.prometheus.model.event.ConversationProjection::view).toList()));
+    }
 
     @GetMapping("/capabilities")
     public ResponseEntity<Capabilities> capabilities(@PathVariable UUID agentId,

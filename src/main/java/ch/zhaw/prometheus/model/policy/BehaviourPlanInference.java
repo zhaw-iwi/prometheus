@@ -59,6 +59,24 @@ final class BehaviourPlanInference {
         return parse(raw, true);
     }
 
+    static BehaviourPlan nonSpeech(List<PromptMessage> context, String authored, boolean gestureOnly, LanguageModelGateway gateway) {
+        if (authored == null || authored.isBlank()) return null;
+        var messages = new ArrayList<>(context);
+        messages.add(PromptMessage.system("External speech owns the spoken response. Generate only the non-speech complement. "
+                + "Return one JSON object with nonVerbal and optional motion/display. Never include speech or choose task outcomes. "
+                + "Apply these nonverbal instructions inside nonVerbal (or their configured motion/display channel):\n" + authored
+                + (gestureOnly ? "\nPut the selected label in nonVerbal.gesture." : "")
+                + "\nThe output must omit speech completely. Do not invent speech to coordinate with."));
+        JsonObject object = InferenceResult.json(gateway.infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,
+                messages, InferenceRequest.Output.JSON_OBJECT))).getAsJsonObject();
+        if (object.has("speech")) throw new IllegalStateException("External speech complement included competing speech");
+        object = CompactBehaviourPlan.expand(object);
+        object.addProperty("speech", "validation-only");
+        BehaviourPlan plan = parseCanonical(object, true);
+        plan.setSpeech(null);
+        return plan;
+    }
+
     private static BehaviourPlan parse(String raw, boolean nonverbalRequired) {
         JsonElement parsed = InferenceResult.json(raw);
         if (!parsed.isJsonObject()) throw invalid();

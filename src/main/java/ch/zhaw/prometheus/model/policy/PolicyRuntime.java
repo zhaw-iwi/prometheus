@@ -9,7 +9,19 @@ public record PolicyRuntime(
         OutputProfile outputProfile,
         GuardEvaluation guardEvaluation,
         ch.zhaw.prometheus.model.ActionExecution actionExecution,
-        ch.zhaw.prometheus.model.BehaviourSpeculation behaviourSpeculation) {
+        ch.zhaw.prometheus.model.BehaviourSpeculation behaviourSpeculation,
+        ExternalSpeech externalSpeech) {
+
+    public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
+            GuardEvaluation evaluation, ch.zhaw.prometheus.model.ActionExecution actions,
+            ch.zhaw.prometheus.model.BehaviourSpeculation speculation) {
+        this(assembler, gateway, profile, evaluation, actions, speculation, null);
+    }
+
+    public PolicyRuntime withExternalSpeech(ExternalSpeech owner) {
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, actionExecution,
+                owner == null ? behaviourSpeculation : null, owner);
+    }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
             GuardEvaluation evaluation, ch.zhaw.prometheus.model.ActionExecution actions) {
@@ -17,18 +29,18 @@ public record PolicyRuntime(
     }
 
     public PolicyRuntime withBehaviourSpeculation(ch.zhaw.prometheus.model.BehaviourSpeculation speculation) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, actionExecution, speculation);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, actionExecution, externalSpeech == null ? speculation : null, externalSpeech);
     }
 
     public PolicyRuntime withGateway(LanguageModelGateway gateway) {
-        return new PolicyRuntime(promptMessageAssembler, gateway, outputProfile, guardEvaluation, actionExecution, behaviourSpeculation);
+        return new PolicyRuntime(promptMessageAssembler, gateway, outputProfile, guardEvaluation, actionExecution, behaviourSpeculation, externalSpeech);
     }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
             GuardEvaluation evaluation) { this(assembler, gateway, profile, evaluation, null); }
 
     public PolicyRuntime withActionExecution(ch.zhaw.prometheus.model.ActionExecution execution) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, execution, behaviourSpeculation);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, guardEvaluation, execution, behaviourSpeculation, externalSpeech);
     }
 
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile) {
@@ -36,7 +48,7 @@ public record PolicyRuntime(
     }
 
     public PolicyRuntime withGuardEvaluation(GuardEvaluation evaluation) {
-        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation, actionExecution, behaviourSpeculation);
+        return new PolicyRuntime(promptMessageAssembler, languageModelGateway, outputProfile, evaluation, actionExecution, behaviourSpeculation, externalSpeech);
     }
 
     public PolicyRuntime(PromptMessageAssembler promptMessageAssembler,

@@ -19,6 +19,7 @@ import ch.zhaw.prometheus.spi.live.LiveProviderException;
 class ScopedLiveSessionControllerWebMvcTest {
     @Autowired MockMvc mvc;
     @MockitoBean ScopedLiveSessionService service;
+    @MockitoBean ScopedDemoService demo;
     final UUID agent = UUID.randomUUID(), handle = UUID.randomUUID();
     String path() { return "/demo/agents/" + agent + "/live/sessions"; }
     @Test void typedSessionHidesProviderIdentityAndRejectsArbitraryConfiguration() throws Exception {
@@ -44,6 +45,17 @@ class ScopedLiveSessionControllerWebMvcTest {
         mvc.perform(request()).andExpect(status().isConflict());
         when(service.create(eq("ABCDE"), eq(agent), any())).thenThrow(new LiveProviderException("private-sentinel"));
         mvc.perform(request()).andExpect(status().isBadGateway()).andExpect(content().string(""));
+    }
+    @Test void projectedHistoryKeepsPlannedTextSeparateFromConversation() throws Exception {
+        var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(handle, UUID.randomUUID());
+        var event = ch.zhaw.prometheus.model.event.Event.response("resp.behaviour_plan", "assistant",
+                "{\"speech\":\"Planned only\",\"display\":{\"mode\":\"ready\"}}");
+        event.speechProvenance(ch.zhaw.prometheus.model.event.SpeechProvenance.intent(owner));
+        when(demo.getAgentEventHistory("ABCDE", agent)).thenReturn(Optional.of(java.util.List.of(event)));
+        mvc.perform(get("/demo/agents/" + agent + "/live/history").header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].plannedSpeech").value("Planned only"))
+                .andExpect(jsonPath("$[0].payload").value("{\"display\":{\"mode\":\"ready\"}}"))
+                .andExpect(jsonPath("$[0].provenance.origin").value("BACKEND_INTENT"));
     }
     org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request() {
         return post(path()).header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE")

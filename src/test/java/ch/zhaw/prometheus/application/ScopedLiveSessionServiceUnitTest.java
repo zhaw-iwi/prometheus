@@ -30,9 +30,9 @@ class ScopedLiveSessionServiceUnitTest {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
         when(demo.getAgentInfo(anyString(), eq(agent))).thenReturn(Optional.of(new AgentInfoView(agent, "Test", "", true)));
-        when(contexts.snapshot(anyString(), eq(agent))).thenReturn(Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
+        when(contexts.claim(anyString(), eq(agent), any())).thenReturn(Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
                 agent, UUID.randomUUID(), "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0)));
-        service = new ScopedLiveSessionService(demo, gateway, properties, contexts, clock);
+        service = new ScopedLiveSessionService(demo, gateway, properties, contexts, new ExternalSpeechOwnership(), clock);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
     @Test void scopeAndFeatureGateRunBeforeProviderAndOnlyOneSessionOwnsAgent() {

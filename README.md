@@ -1182,6 +1182,36 @@ Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
 what an ongoing voice session already heard. Live updates arrive in GL-05.
 
+An active external speech session owns ordinary spoken replies across the
+application runtime. Backend generation can still produce configured non-speech
+behaviour, but cannot compete with native speech; speculative speech generation
+is disabled for that session. Start, state-entry/self-loop, final, sensory and
+tick-triggered plans retain their speech as **narration intent**. Guard/action
+execution and the existing `FULL_PLAN` public output profile are unchanged.
+
+The additive nullable `event.speech_provenance` TEXT column records native speech
+versus backend intent, session/epoch/segment identities, completeness and intent
+association. Hibernate `ddl-auto=update` creates it in the local prototype; managed
+deployments must add that column before starting the new writer. Existing null
+rows retain ordinary backend semantics, without backfill or database reset. Use
+one application instance for the pilot: speech ownership is in memory, as are the
+existing runtime locks and background actions. Coordinate writer upgrades.
+
+`GET /demo/agents/{agentId}/live/history` is an additive scoped projection. It
+returns event IDs, original modalities and provenance; for an intent it moves
+speech into `plannedSpeech`, leaving it out of conversational `payload`. The raw
+event-history API still exposes the original plan. Prompt assembly applies the
+same intent exclusion. Native speech is recorded by a trusted backend adapter as
+an ordinary speech BehaviourPlan, without acknowledgement, guard evaluation or
+narration recursion. There is no browser-authored assistant-recording route.
+Canonical TTS rejects intent events and resumes only actual conversational speech.
+
+Intent/transcript links are confirmed only with explicit protocol correlation.
+GPT-Live does not supply that identity, so pending source IDs are ambiguous
+candidates, even if only one exists. Native transcripts do not prove physical
+audibility. Interrupted text remains labeled incomplete. At this milestone,
+automatic provider transcript ingress and narration delivery are still pending.
+
 ## Admin API
 
 Admin endpoints require:
