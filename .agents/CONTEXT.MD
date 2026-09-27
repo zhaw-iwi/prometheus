@@ -168,7 +168,8 @@ cannot rehydrate an obsolete session. GL-08 adds a repeatable isolated-MySQL
 acceptance runner with real cockpit controllers, persistence and SSE, synthetic
 providers/media, and a feature-disabled text/TTS trial. Full Java, all three Node
 suites and focused browser checks passed. Live voice and Windows/Linux built-in
-and Bluetooth acoustic trials remain NOT RUN; the default feature flag is off.
+and Bluetooth acoustic trials remain NOT RUN. The local template keeps the flag
+off; the production profile now enables it, with environment overrides supported.
 It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
@@ -190,7 +191,8 @@ all other registered definitions (including scored RPS and Talk to Me) stay out.
 The existing per-agent embodiment assembler resolves authored Live voice and
 nonverbal prompts to Valerian/Gigi without rewriting observation/dialogue content.
 The merged runtime retains both persona selection and external speech ownership,
-including reset. Production Live enablement remains a separate configuration flag.
+including reset. The production profile now enables the separate Live flag;
+`PROMETHEUS_LIVE_ENABLED=false` can override it without changing agent capabilities.
 
 ## Regulation: Implemented Foundation and Missing System
 

@@ -1165,7 +1165,8 @@ behaviour speech.
 
 The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
-`PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
+`PROMETHEUS_LIVE_ENABLED=true`); the local template defaults to disabled, while
+the production profile enables it. It requires the existing
 OpenAI API credentials and model access. Valerian exposes an experimental third
 **GPT-Live** tab beside Text and Continuous when enabled. Connect a supported
 agent, choose voice/microphone/speaker settings, then explicitly click **Start
@@ -1267,10 +1268,9 @@ capability. Scored RPS, Talk to Me and all other registered deployment definitio
 remain opted out. The selected COCKPIT/ROBOT embodiment resolves Valerian/Gigi in
 authored Live voice and nonverbal instructions; quoted conversation history keeps
 its original wording. Ordinary generation and reset use the same persona choice.
-Deploying this branch preserves the production feature flag: configure
-`PROMETHEUS_LIVE_ENABLED=true` on Heroku separately to expose the tab, and ensure
-its `OPENAI_KEY` has provider access and credit. Local properties do not update
-Heroku configuration.
+The production profile enables the tab; `PROMETHEUS_LIVE_ENABLED=false` on Heroku
+can disable it. Its `OPENAI_KEY` still needs provider access and credit. Local
+properties do not update Heroku configuration.
 
 The backend additionally checks every reachable state's policy and the active
 state chain before creating a provider session. Unknown policies/states are
@@ -1516,8 +1516,8 @@ routes. Background-action, speculation, GPT-Live, inference-timeout and guard
 limits are explicit; environment overrides still take precedence. Logging uses
 the current template levels and Hibernate uses `MySQLDialect`.
 
-Synchronizing these files does not enable GPT-Live: its default remains `false`.
-Set `PROMETHEUS_LIVE_ENABLED=true` in Heroku config to enable it. Updating a local
+The production profile enables GPT-Live; the local template remains disabled.
+Set `PROMETHEUS_LIVE_ENABLED=false` in Heroku config to disable it. Updating a local
 OpenAI key does not update the separate production `OPENAI_KEY` config var.
 
 Need for Speed adds nullable internal `event.history_position` to preserve new
