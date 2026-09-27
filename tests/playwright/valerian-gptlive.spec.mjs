@@ -39,10 +39,10 @@ async function setup(context, scenario = {}) {
     } });
     class Channel extends EventTarget { constructor() { super(); this.readyState = "connecting"; } send() {} close() { this.readyState = "closed"; this.onclose?.(); this.dispatchEvent(new Event("close")); } emit(value) { const event = new MessageEvent("message", { data: JSON.stringify(value) }); this.onmessage?.(event); this.dispatchEvent(event); } }
     class Peer extends EventTarget {
-      constructor() { super(); this.connectionState = "new"; this.senders = []; window.__live.peers.push(this); }
+      constructor() { super(); this.iceGatheringState = "complete"; this.connectionState = "new"; this.senders = []; window.__live.peers.push(this); }
       createDataChannel() { return this.channel = new Channel(); }
       addTrack(track) { this.senders.push({ track }); } getSenders() { return this.senders; }
-      async createOffer() { return { type: "offer", sdp: "v=0 offer" }; } async setLocalDescription() {}
+      async createOffer() { return { type: "offer", sdp: "v=0 offer" }; } async setLocalDescription(value) { this.localDescription = value; }
       async setRemoteDescription() { this.connectionState = "connected"; this.channel.readyState = "open"; this.channel.dispatchEvent(new Event("open")); this.channel.emit({ type: "session.started" }); this.ontrack?.({ streams: [{}], track: new Track() }); }
       close() { this.connectionState = "closed"; }
     }

@@ -20,6 +20,19 @@ export class LiveClient {
   invalidate(reason = "Agent connection changed.") {
     const closing = this.stop(reason); this.generation++; this.status("Idle", reason); return closing;
   }
+  async gatherIce(run) {
+    if (run.peer.iceGatheringState === "complete") return;
+    await new Promise((resolve, reject) => {
+      const finish = error => {
+        clearTimeout(timer); run.peer.removeEventListener("icegatheringstatechange", changed); run.cancelGathering = null;
+        if (error) reject(error); else resolve();
+      };
+      const changed = () => { if (run.peer.iceGatheringState === "complete") finish(); };
+      const timer = setTimeout(() => finish(new Error("Voice connection setup timed out. Reconnect when ready.")), this.timeoutMs);
+      run.cancelGathering = () => finish(new DOMException("Session stopped", "AbortError"));
+      run.peer.addEventListener("icegatheringstatechange", changed); changed();
+    });
+  }
   async api(run, suffix, options = {}) {
     const response = await this.fetch(`/demo/agents/${encodeURIComponent(run.agentId)}/live/${suffix}`, {
       ...options, headers: { "Content-Type": "application/json", "X-Prometheus-Access-Code": run.accessCode },
@@ -76,7 +89,10 @@ export class LiveClient {
       };
       const offer = await run.peer.createOffer(); this.check(run);
       await run.peer.setLocalDescription(offer); this.check(run);
-      run.creation = this.api(run, "sessions", { method: "POST", body: JSON.stringify({ sdp: offer.sdp, voice }) });
+      await this.gatherIce(run); this.check(run);
+      const sdp = run.peer.localDescription?.sdp;
+      if (!sdp) throw new Error("Voice connection did not produce an offer.");
+      run.creation = this.api(run, "sessions", { method: "POST", body: JSON.stringify({ sdp, voice }) });
       const session = await run.creation; run.handle = session.handle;
       if (this.current !== run) { await this.finalize(run); return; }
       await run.peer.setRemoteDescription({ type: "answer", sdp: session.sdp }); this.check(run);
@@ -126,6 +142,7 @@ export class LiveClient {
     run.media?.release(); run.output?.release(); clearInterval(run.timer);
     run.channel?.close(); run.peer?.close();
     run.cancelStartup?.();
+    run.cancelGathering?.();
     this.diagnostic(run, { phase: "local_stop" });
     this.status("Stopping", detail);
     const closing = this.finalize(run).then(result => {

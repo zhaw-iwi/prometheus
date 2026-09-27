@@ -150,7 +150,12 @@ reconciled captions/history. Conversation projection is opt-in on behaviour SSE;
 the raw contract remains available. GL-07 fences pending input on Stop and scope
 revocation, checks browser/sideband liveness, preserves scoped close diagnostics,
 and adds content-free Live traces to the timing drawer/JSON. Reset/switch callbacks
-cannot rehydrate an obsolete session. It is separate from current
+cannot rehydrate an obsolete session. GL-08 adds a repeatable isolated-MySQL
+acceptance runner with real cockpit controllers, persistence and SSE, synthetic
+providers/media, and a feature-disabled text/TTS trial. Full Java, all three Node
+suites and focused browser checks passed. Live voice and Windows/Linux built-in
+and Bluetooth acoustic trials remain NOT RUN; the default feature flag is off.
+It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend

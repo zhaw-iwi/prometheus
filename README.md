@@ -1185,6 +1185,19 @@ ordinary turns. Reconnect is explicit and seeds a fresh session from persisted s
 See `.agents/GPTLIVE_RESULTS.md` for actual verification and separate live/audio
 gates. Provider metadata access alone does not prove a usable voice session.
 
+Offline acceptance can be repeated with
+`python tests/gptlive/run_acceptance.py --browser`; it provisions disposable local
+MySQL, runs real controller/persistence/SSE smoke, and checks feature-disabled
+text/TTS. Use `--java-tests all` for the full Java suite. Setup and isolation rules
+are in [tests/gptlive/README.md](tests/gptlive/README.md).
+
+WebRTC startup waits for ICE gathering and sends the completed local SDP, then
+waits for `session.started` before unmuting. This follows the
+[Live WebRTC connection sequence](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live).
+The browser sends no provider context/delegation commands. A documented creation
+field for restricting frontend provider permissions was not established in this
+implementation; backend scope/epoch checks remain the task-authority boundary.
+
 The initial voice context uses the active leaf state's existing history selector,
 the composed outer/inner conversational prompt, and the existing sensory text
 adapters. It never copies the structured BehaviourPlan output schema into voice

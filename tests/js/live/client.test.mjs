@@ -6,6 +6,23 @@ import { MicrophoneLease } from "../../../src/main/resources/public/transcriptio
 import { OutputLease } from "../../../src/main/resources/public/speech/playback.js";
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+test("provider receives the completed ICE offer; Stop also cancels gathering before creating a session", async () => {
+  for (const stop of [false, true]) {
+    const f = fixture(), waiting = deferred(); let changed;
+    f.peer.iceGatheringState = "gathering";
+    f.peer.addEventListener = (_, listener) => { changed = listener; waiting.resolve(); };
+    f.peer.removeEventListener = () => { changed = null; };
+    const start = f.start(); await waiting.promise;
+    assert.equal(f.requests.some(value => value.url.endsWith("sessions")), false);
+    if (stop) { await f.client.stop(); await start; assert.equal(f.requests.length, 1); }
+    else {
+      f.peer.localDescription = { sdp: "v=0 gathered-candidates" }; f.peer.iceGatheringState = "complete"; changed(); await start;
+      assert.equal(JSON.parse(f.requests.find(value => value.url.endsWith("sessions")).request.body).sdp, "v=0 gathered-candidates");
+      assert.equal(f.client.state, "Active"); await f.client.stop();
+    }
+    assert.equal(changed, null);
+  }
+});
 test("scope invalidation fences same-agent reset callbacks while completing old cleanup", async () => {
   const cleanup = deferred(); const f = fixture({ respond: async (_, request) => request.method === "DELETE" ? cleanup.promise : null });
   await f.start(); const closed = f.client.invalidate("Agent reset.");
@@ -31,7 +48,8 @@ function fixture(options = {}) {
     setEnabled(value) { track.enabled = value; }, release() { track.enabled = false; this.released = true; }, appliedAudioSettings: () => ({ echoCancellation: true }) };
   const audio = { srcObject: null, muted: false, pause() { this.paused = true; }, play: async () => {}, setSinkId: async () => {} };
   const channel = { close() { this.closed = true; this.onclose?.(); } };
-  const peer = { createDataChannel: () => channel, createOffer: async () => ({ sdp: "v=0 offer" }), setLocalDescription: async () => {},
+  const peer = { iceGatheringState: "complete", createDataChannel: () => channel, createOffer: async () => ({ sdp: "v=0 offer" }),
+    async setLocalDescription(value) { this.localDescription = value; },
     setRemoteDescription: async () => { channel.onmessage({ data: JSON.stringify({ type: "session.started" }) }); }, close() { this.closed = true; } };
   const output = { acquire: () => true, release() { this.released = true; } };
   const state = { ledger: [], history: [], status: { state: "attached", captureState: "active" }, capability: { enabled: true, eligible: true } };

@@ -39,6 +39,9 @@ code.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   typed live transcription, and output-only Speech synthesis.
+- Opt-in GPT-Live cockpit speech with backend-owned task control, selected sensory
+  context, durable transcript/provenance capture, proactive narration and bounded
+  lifecycle diagnostics. Offline acceptance is complete; physical quality is unverified.
 - Access-code-scoped live-transcription sessions, bounded fresh-session/media
   recovery after transport or active-track loss, and serialized finalized-turn
   ingress through the ordinary full-plan acknowledgement pipeline.
@@ -72,46 +75,20 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Experimental follow-up: Milestone 190 (GL-07), scoped Live liveness, pending-input
-  fences, bounded cleanup and content-free timing diagnostics. Focused Java/Node,
-  disposable MySQL and browser lifecycle checks passed. GL-08 integrated acceptance
-  follows; paid Live sessions and physical acoustic trials remain NOT RUN.
-- Experimental follow-up: Milestone 189 (GL-06), third GPT-Live cockpit tab with
-  explicit start/mute/stop, shared leases, voice/device settings and receipt-based
-  caption reconciliation. Conversation history/SSE separates planned and spoken
-  output; native speech preserves non-speech display. Focused Java/Node, MySQL and
-  desktop/mobile browser checks passed. GL-07 hardening and GL-08 integrated
-  acceptance follow; real voice and physical audio remain NOT RUN.
-- Experimental follow-up: Milestone 188 (GL-05), after-commit asynchronous Live
-  context, client delegation and proactive narration. State guidance, silent
-  facts and speakable intent are routed separately; ACK uncertainty never retries
-  an announcement. A disposable-MySQL fake-sideband test covers user transition,
-  sensory updates, rollback exclusion and visual narration without TTS/feedback.
-  The cockpit tab is next; live/acoustic gates remain NOT RUN.
-- Experimental follow-up: Milestone 187 (GL-04), bounded transcript segmentation
-  and durable receipt/segment admission. Restart replay cannot run the same
-  blocking action twice; uncertain, late and interrupted input remains inspectable
-  without automatic action retry. Thirteen focused checks and five disposable
-  MySQL cases passed. Real audio coverage and acoustics remain unverified.
-- Experimental follow-up: Milestone 186 (GL-03), provider-neutral external speech
-  ownership, non-speech complements, persisted intent/native provenance and shared
-  conversational projection. Native recording cannot acknowledge or advance tasks;
-  normal output profiles remain unchanged. Focused runtime/controller/prompt tests
-  and disposable MySQL provenance/reload checks passed; see the GPT-Live results
-  record. Automatic transcript ingress and narration transport remain subsequent
-  milestones; live/acoustic acceptance is still pending.
-- Experimental follow-up: Milestone 185 (GL-02), immutable selected-context and
-  explicit pilot voice-policy projection. Preserves event provenance/time,
-  separates conversational guidance from sensory data, bounds history and marks
-  expired/unknown observations. Thirty focused Java tests and an extended local
-  MySQL reload/scope smoke passed. Voice remains diagnostic until execution and
-  ingress milestones; live-provider/audio acceptance is pending.
-- Experimental branch follow-up: Milestone 184 (GL-01), disabled-by-default
-  GPT-Live scoped session gateway, backend sideband, bounded diagnostics and a
-  temporary browser probe. Ten focused Java cases and one disposable-MySQL smoke
-  passed; configured account can retrieve `gpt-live-1` metadata. Live WebRTC,
-  built-in audio and Bluetooth trials remain NOT RUN. No agent task or transcript
-  ingress is enabled yet. Roadmap/evidence: `.agents/PLAN_GPTLIVE.md` and
+- Experimental follow-up: Milestone 191 (GL-08), offline GPT-Live acceptance and
+  repeatable physical-trial handoff. The real application/SQL/SSE smoke covers
+  speech ingress, task control, sensory context, visual narration and reload;
+  feature-disabled text/TTS also passes. All 415 Java, 60 Node and 41 distinct
+  browser cases passed, with final visual/package checks. GL-01 through GL-08
+  automated implementation is complete. Paid voice and built-in/Bluetooth trials
+  on Windows/Linux remain NOT RUN; GPT-Live stays experimental and opt-in.
+- GPT-Live foundation, Milestones 184–190 (GL-01–07): scoped gateway and selected
+  context, external speech ownership and intent/native provenance, durable
+  transcript receipts/segments, asynchronous context/delegation/narration, third
+  cockpit tab and lifecycle/diagnostic hardening. Ordinary speech modes remain
+  available. Ambiguous input and unconfirmed announcements never retry actions
+  automatically. The temporary probe has been removed. Per-milestone details are
+  in the historical records; roadmap/evidence are `.agents/PLAN_GPTLIVE.md` and
   `.agents/GPTLIVE_RESULTS.md`.
 - Last completed follow-up: Milestone 183, automatic server speech delivery timing
   joined into the existing browser JSON export. Timed provider-response reads and
@@ -155,6 +132,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 191: GPT-Live offline acceptance and physical-trial handoff (GL-08)
 
 - [x] Milestone 190: GPT-Live lifecycle hardening and diagnostics (GL-07)
 
@@ -8448,3 +8427,26 @@ Verified 18 focused Java, nine Live Node and nine browser UI cases, plus six
 accumulated Live cases on disposable MySQL. Tested Stop-before-admission, provider
 silence, overflow, scope revocation and lifecycle recovery. Screenshots inspected.
 See `.agents/GPTLIVE_RESULTS.md`; live voice and physical trials remain NOT RUN.
+
+## Milestone 191: GPT-Live offline acceptance and physical-trial handoff (GL-08)
+
+Added an isolated-MySQL acceptance runner, real scoped-controller/capture/runtime/
+SSE smoke, and application-backed browser coverage with test-only model/audio
+providers. The built-in RPS agent advances from one recorded utterance, receives
+weather context and narrates a visual result. Persisted native provenance survives
+reload; fresh sessions use the current history selector. Feature-disabled text and
+scoped TTS pass. WebRTC startup now sends the completed ICE offer and cancels
+pending gathering on Stop. Final capture status follows close acknowledgements.
+
+Verified 415 Java tests, 60 Node tests and 41 distinct browser cases. Inspected
+real-app and desktop/mobile light/dark screenshots. Production packaging passes;
+fixtures and retired probe resources are absent. The final full suite and focused
+reruns resolved old transaction/source/SSE test expectations. All disposable SQL
+schemas/accounts and owned app processes were removed.
+
+All eight offline implementation milestones are complete. Paid Live WebRTC and
+Windows/Linux built-in/Bluetooth acoustic acceptance remain NOT RUN. Keep the
+feature experimental and disabled by default until those independent trials are
+recorded. Commands, evidence paths, resolved failures and the physical protocol
+are in `.agents/GPTLIVE_RESULTS.md`, `.agents/PLAN_GPTLIVE.md` and
+`tests/gptlive/README.md`.

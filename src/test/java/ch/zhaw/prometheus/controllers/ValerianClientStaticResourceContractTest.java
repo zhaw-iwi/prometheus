@@ -190,7 +190,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("scopedFetch(`/demo/agents/${encodeURIComponent(selectedAgentId)}`"));
         assertTrue(script.contains("headers.set(ACCESS_CODE_HEADER, state.accessCode);"));
         assertTrue(script.contains("demoAgentPath(\"/info\")"));
-        assertTrue(script.contains("demoAgentPath(\"/eventhistory\")"));
+        assertTrue(script.contains("demoAgentPath(\"/live/history\")"));
+        assertTrue(script.contains("scopedFetch(`/demo/agents/${encodeURIComponent(agentId)}/eventhistory`)"));
         assertTrue(script.contains("demoAgentPath(\"/state\")"));
         assertTrue(script.contains("demoAgentPath(\"/states\")"));
         assertTrue(script.contains("demoAgentPath(\"/storage\")"));
@@ -697,7 +698,7 @@ class ValerianClientStaticResourceContractTest {
         String script = Files.readString(SCRIPT);
 
         assertTrue(script.contains("await loadEventHistory();"));
-        assertTrue(script.contains("handleBehaviourEnvelope(event, { fromHistory: true });"));
+        assertTrue(script.contains("handleBehaviourEnvelope(event, { fromHistory: true, eventId: event.id });"));
         assertTrue(script.contains("event.type === \"obs.user_utterance\""));
         assertTrue(script.contains("renderHistoricalUserUtterance(event);"));
         assertTrue(script.contains("renderHistoricalSensingEvent(event);"));
@@ -705,9 +706,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("function renderSocialFromHistory"));
         assertTrue(script.contains("function renderHistoricalUserUtterance"));
         assertTrue(script.contains("const text = eventPayloadText(event && event.payload);"));
-        assertTrue(script.contains("appendMessage(\"user\", text);"));
+        assertTrue(script.contains("appendMessage(\"user\", text, event.id);"));
         assertTrue(script.contains("options.renderTranscript !== false"));
-        assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim());"));
+        assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim(), event.id || options.eventId);"));
         assertTrue(script.contains("!options.fromHistory && recentBehaviourPayloadSeen(event.payload)"));
     }
 

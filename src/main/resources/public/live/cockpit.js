@@ -118,7 +118,7 @@ export class LiveCockpit {
     if (value.generation !== this.client.generation) return;
     this.lastDiagnostic = value;
     if (value.phase === "capture") $("gptlive_capture").textContent = JSON.stringify(value.capture, null, 2);
-    if (value.phase === "status") {
+    if (value.status && (value.phase === "status" || value.phase === "stopped")) {
       const before = this.activity || {}; const current = value.status;
       $("gptlive_input_activity").textContent = this.muted ? "Microphone muted" : current.voicedInputSamples > (before.voicedInputSamples || 0) ? "Input activity" : "Microphone on";
       $("gptlive_output_activity").textContent = current.outputSamples > (before.outputSamples || 0) ? "Output activity" : "Speaker ready";

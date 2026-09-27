@@ -4,6 +4,86 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-08 / project Milestone 191 — 2026-09-28
+
+GL-07 is committed/pushed as `211f157`. All eight milestones have completed
+offline implementation and automated acceptance. Live voice/acoustic acceptance
+is still pending. The default flag remains off; no acoustic PASS is inferred.
+
+Added `LiveCockpitSmokeIntegrationTest`, test-classpath provider fixtures, an
+application-backed Playwright smoke and `tests/gptlive/run_acceptance.py`. The
+runner creates restricted disposable MySQL credentials, uses a free loopback
+port, overrides real provider URLs/keys, stops owned processes and removes its
+schema/account. The smoke uses real scoped APIs, capture workers, transactions,
+state machine, provenance and SSE; only providers and browser hardware are fake.
+The built-in RPS agent advances once from recorded speech, receives weather
+context and narrates a hand-sign result. Native output is persisted, no TTS runs
+during Live, reload hydrates history without capture, and reconnect seeds the
+current selector snapshot. Feature-off text and scoped PCM TTS remain usable.
+
+Final verification:
+
+- `python tests/gptlive/run_acceptance.py --java-tests all`: **415 tests PASS**,
+  zero failures/errors/skips, disposable schema `prometheus_gptlive_d94dc420c5`.
+  Counted only reports written during this run, excluding stale local reports.
+- `npm.cmd run test:transcription:unit`, `test:speech:unit`, `test:live:unit`:
+  **29 + 21 + 10 = 60 tests PASS**.
+- Application-backed browser smoke plus nine Live UI, 24 transcription, one
+  lifecycle and five column cases: **40 PASS** on
+  `prometheus_gptlive_dd5901c2bf`. After the final Stop-label fix, ten Live cases
+  and the feature-off smoke passed on `prometheus_gptlive_141a8ffb2c`:
+  **41 distinct browser cases PASS**, with repetitions counted once.
+- Java smoke also passed independently on `prometheus_gptlive_be274445e5` before
+  the full suite. Every schema/account above was removed after its run.
+- `mvnw.cmd -q -DskipTests package`: PASS. Production package inspected for
+  test-only fixture routes/classes and retired probe files; none included.
+- Final real-app conversation/Stop and feature-off screenshots inspected, plus
+  desktop/mobile light/dark Live settings/overlap and timing drawer evidence.
+  Controls wrap without clipping; Stop shows closed context/capture. An interrupted
+  synthetic assistant capture remains honestly labeled incomplete.
+
+Evidence directories are `target/gptlive-acceptance-<suffix>` for the schemas
+above, with logs, Playwright traces and screenshots. The full run was repeated
+after three outdated expectations failed: after-commit SSE publication and two
+static source checks. The browser reset fixture was corrected to target the
+replacement SSE source. The feature-off smoke now obtains the canonical speech
+ID from the existing latest-speech API; raw legacy history intentionally omits
+IDs. Earlier fixture failures (duplicate controller bean and a guard returning
+false) were corrected. No unresolved automated failure remains.
+
+The final official WebRTC guide check exposed missing ICE gathering in the first
+client version. Startup now waits with a finite deadline, sends the gathered local
+SDP, and Stop cancels gathering before session creation. A focused test verifies
+both branches. No documented creation field for frontend provider permissions
+was established; the client sends no provider control commands, and application
+scope/epoch checks enforce backend task authority. This provider-control setting
+remains a live-provider compatibility limit, not a claimed permission guarantee.
+
+### Live and physical gates — NOT RUN
+
+| Gate | Status / next evidence |
+| --- | --- |
+| Account/model visibility | Prior read-only model lookup PASS; this is not voice access validation. |
+| Paid Live WebRTC, sideband and acoustic output | NOT RUN; requires an interactive physical trial. |
+| Chrome / Windows / built-in audio | NOT RUN, quiet and noisy-room comparison separately. |
+| Chrome / Linux / built-in audio | NOT RUN, quiet and noisy-room comparison separately. |
+| Chrome / Windows / Bluetooth input/output | NOT RUN, after the built-in baseline. |
+| Chrome / Linux / Bluetooth input/output | NOT RUN, after the built-in baseline. |
+| Heard response latency, echo/self-hearing and interruptions | NOT RUN; browser callbacks are not acoustic measurements. |
+
+Follow PLAN_GPTLIVE section 8: same agent/corpus/language/settings, at least 20
+ordinary exchanges, five interruptions, five state changes, five sensory events
+and two minutes of assistant playback with the human silent per configuration.
+Record actual hardware/routes, browser/OS versions, room/noise, requested/applied
+capture settings, false accepts, omissions, cutoffs, median/p95 heard latency,
+cost/usage and finalization. Start with the agent's language; English/German
+remain proposed trial languages rather than certified language coverage.
+
+Continuity across state changes and paraphrased announcements follow the user's
+decisions. Exact wording, strict forgetting, acoustic turn boundaries, startup
+coverage and Bluetooth echo suppression remain the documented limits. Use the
+existing text/transcription-TTS modes when those pilot limits are unsuitable.
+
 ## GL-07 / project Milestone 190 — 2026-09-28
 
 GL-06 is committed/pushed as `3935f59`. Added immediate pending-input fencing,
