@@ -79,7 +79,9 @@ and regulation diagnostics remain future work.
   property files with every active template setting, retaining Heroku credential
   placeholders, Luna task routes and CORS origins. Added explicit worker, Live,
   inference and guard limits, replaced the obsolete logger and updated the MySQL
-  dialect. Live remains disabled until an environment override enables it.
+  dialect. A subsequent user-authorized change enables Live in the production
+  profile; `PROMETHEUS_LIVE_ENABLED=false` can override it. Agent capability gates
+  still apply, and the local template remains disabled.
   Verified complete key coverage without duplicates and 33 focused Java cases
   with the prod profile, including disposable-MySQL scoped Live/legacy smoke.
 
@@ -8562,3 +8564,15 @@ profile and used disposable local MySQL plus stubbed/loopback providers.
 Artifacts: target/gptlive-acceptance-77a6d85e29/ in the feature worktree.
 The runner removed its disposable schema/account. No paid provider/audio trial
 was performed. This change requires no database migration or API/UI change.
+
+
+## Production GPT-Live enablement (2026-09-27)
+
+Enabled prometheus.live.enabled in application-prod.properties at the user's
+request. The local template remains false, and the twelve-definition capability
+gate still controls session eligibility. Heroku had no PROMETHEUS_LIVE_ENABLED
+override at the pre-deployment check. Updated current setup instructions and the
+property comment; operators can disable Live with the environment override.
+No runtime or schema changes. The enabled path was covered by the preceding
+prod-profile smoke checks; this flag-only follow-up uses property/diff checks and
+post-deployment health verification, without a new paid voice session.

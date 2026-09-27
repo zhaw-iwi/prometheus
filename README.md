@@ -1122,7 +1122,8 @@ behaviour speech.
 
 The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
-`PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
+`PROMETHEUS_LIVE_ENABLED=true`); the local template defaults to disabled, while
+the production profile enables it. It requires the existing
 OpenAI API credentials and model access. Valerian exposes an experimental third
 **GPT-Live** tab beside Text and Continuous when enabled. Connect a supported
 agent, choose voice/microphone/speaker settings, then explicitly click **Start
@@ -1463,8 +1464,8 @@ routes. Background-action, speculation, GPT-Live, inference-timeout and guard
 limits are explicit; environment overrides still take precedence. Logging uses
 the current template levels and Hibernate uses `MySQLDialect`.
 
-Synchronizing these files does not enable GPT-Live: its default remains `false`.
-Set `PROMETHEUS_LIVE_ENABLED=true` in Heroku config to enable it. Updating a local
+The production profile enables GPT-Live; the local template remains disabled.
+Set `PROMETHEUS_LIVE_ENABLED=false` in Heroku config to disable it. Updating a local
 OpenAI key does not update the separate production `OPENAI_KEY` config var.
 
 Need for Speed adds nullable internal `event.history_position` to preserve new

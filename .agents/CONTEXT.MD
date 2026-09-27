@@ -161,7 +161,8 @@ cannot rehydrate an obsolete session. GL-08 adds a repeatable isolated-MySQL
 acceptance runner with real cockpit controllers, persistence and SSE, synthetic
 providers/media, and a feature-disabled text/TTS trial. Full Java, all three Node
 suites and focused browser checks passed. Live voice and Windows/Linux built-in
-and Bluetooth acoustic trials remain NOT RUN; the default feature flag is off.
+and Bluetooth acoustic trials remain NOT RUN. The local template keeps the flag
+off; the production profile now enables it, with environment overrides supported.
 It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
