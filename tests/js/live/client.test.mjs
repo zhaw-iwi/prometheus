@@ -130,6 +130,29 @@ test("Stop during session creation cleans up a late handle without enabling the 
   assert.equal(f.requests.some(value => value.url.includes("muted=false")), false);
 });
 
+test("provider errors show only known billing/access categories and always release media without retry", async () => {
+  const cases = [
+    ["live_provider_quota_exhausted", /credits or quota are exhausted/],
+    ["live_provider_rate_limited", /limiting voice requests/],
+    ["live_provider_authentication", /API credentials/],
+    ["live_provider_access_denied", /permissions and model access/],
+    ["private-sentinel", /voice provider is unavailable/],
+    ["constructor", /voice provider is unavailable/],
+    [null, /voice provider is unavailable/],
+  ];
+  for (const [code, expected] of cases) {
+    const f = fixture({ respond: async (url, request) => url.endsWith("sessions") && request.method === "POST"
+      ? { ok: false, status: 502, json: async () => { if (code === null) throw new Error("empty response"); return { code, message: "private-sentinel" }; } }
+      : null });
+    await f.start();
+    const detail = f.states.find(value => value.state === "Error").detail;
+    assert.match(detail, expected); assert.equal(detail.includes("private-sentinel"), false);
+    assert.equal(f.client.active, false); assert.equal(f.media.released, true); assert.equal(f.output.released, true);
+    assert.equal(f.peer.closed, true); assert.equal(f.track.enabled, false);
+    assert.equal(f.requests.filter(value => value.url.endsWith("sessions")).length, 1);
+  }
+});
+
 test("shared microphone and per-agent speaker leases exclude another mode and recover after expiry", () => {
   const data = new Map(), storage = { getItem: key => data.get(key), setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
   let now = 0;

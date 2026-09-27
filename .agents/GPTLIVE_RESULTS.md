@@ -4,6 +4,29 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## Provider failure diagnosis follow-up — 2026-09-27
+
+A local user trial reported the generic provider-unavailable message and
+unconfirmed finalization after reportedly reaching Active. The original failure
+was not retained with sufficient provider detail to establish its cause.
+A read-only model-access check returned HTTP 200 for `gpt-live-1`. One subsequent
+session-creation probe, using a Chromium-generated SDP offer, synthetic silent
+audio and no agent history, returned HTTP 429 with `credit_balance_exhausted` /
+`insufficient_quota`. No provider session was created. This establishes the
+current billing blocker, not the exact cause of the earlier active-session loss.
+
+The gateway now classifies known HTTP billing, rate-limit and access failures
+without retaining provider messages. Scoped 502 responses carry only an
+application-owned code for these cases; unknown failures keep the empty response.
+The cockpit supplies corresponding guidance and still releases media without
+automatic retries. Server warnings contain only category and HTTP status.
+
+Verification: 11 focused Java gateway/controller tests, all 11 Live Node tests,
+and one Playwright billing-error case covering desktop/mobile passed. The browser
+case uses synthetic provider/media responses and verifies cleanup and redaction.
+No database migration or persistence change was made. A successful paid voice
+session and physical audio quality remain unverified until credits are available.
+
 ## GL-09 / project Milestone 192 — 2026-09-27
 
 Added the dedicated Live Multimodal agent and persisted `EmbodimentPolicy`.

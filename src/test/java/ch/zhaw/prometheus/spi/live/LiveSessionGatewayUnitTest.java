@@ -81,6 +81,25 @@ class LiveSessionGatewayUnitTest {
         assertTrue(paths.contains("/live/sessions/live_orphan/hangup"));
         assertThrows(IllegalArgumentException.class, () -> gateway.hangup("../escape"));
     }
+    @Test void classifiesProviderRejectionsWithoutRetainingPrivateResponseContent() {
+        record Rejection(int status, String body, LiveProviderException.Reason reason) {}
+        var cases = List.of(
+                new Rejection(429, "{\"error\":{\"code\":\"credit_balance_exhausted\",\"message\":\"private-sentinel\"}}", LiveProviderException.Reason.QUOTA_EXHAUSTED),
+                new Rejection(429, "{\"error\":{\"type\":\"insufficient_quota\"}}", LiveProviderException.Reason.QUOTA_EXHAUSTED),
+                new Rejection(429, "{\"error\":{\"code\":\"rate_limit_exceeded\"}}", LiveProviderException.Reason.RATE_LIMITED),
+                new Rejection(429, "{\"error\":{\"code\":{\"private-sentinel\":true}}}", LiveProviderException.Reason.RATE_LIMITED),
+                new Rejection(429, "private-sentinel", LiveProviderException.Reason.RATE_LIMITED),
+                new Rejection(401, "private-sentinel", LiveProviderException.Reason.AUTHENTICATION),
+                new Rejection(403, "private-sentinel", LiveProviderException.Reason.ACCESS_DENIED),
+                new Rejection(500, "{\"error\":{\"code\":\"credit_balance_exhausted\"}}", LiveProviderException.Reason.UNAVAILABLE));
+        for (var rejection : cases) {
+            status = rejection.status(); response = rejection.body();
+            var error = assertThrows(LiveProviderException.class, () -> gateway.create(offer()));
+            assertEquals(rejection.reason(), error.getReason());
+            assertEquals(rejection.status(), error.getProviderStatus());
+            assertFalse(error.toString().contains("private-sentinel")); assertNull(error.getCause());
+        }
+    }
     @Test void responseSizeAndSlowBodyAreBounded() {
         response = "x".repeat(140000);
         assertThrows(LiveProviderException.class, () -> gateway.create(offer()));

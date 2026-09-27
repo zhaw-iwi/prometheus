@@ -78,7 +78,18 @@ public class ScopedLiveSessionController {
     @ExceptionHandler(LiveSessionUnavailableException.class) public ResponseEntity<Void> unavailable(LiveSessionUnavailableException error) {
         return ResponseEntity.status(error.isConflict() ? HttpStatus.CONFLICT : HttpStatus.SERVICE_UNAVAILABLE).build();
     }
-    @ExceptionHandler(LiveProviderException.class) public ResponseEntity<Void> provider() {
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+    public record ProviderError(String code) {}
+    @ExceptionHandler(LiveProviderException.class) public ResponseEntity<ProviderError> provider(LiveProviderException error) {
+        org.slf4j.LoggerFactory.getLogger(ScopedLiveSessionController.class).warn(
+                "Live provider failure: reason={}, providerStatus={}", error.getReason(), error.getProviderStatus());
+        String code = switch (error.getReason()) {
+            case QUOTA_EXHAUSTED -> "live_provider_quota_exhausted";
+            case RATE_LIMITED -> "live_provider_rate_limited";
+            case AUTHENTICATION -> "live_provider_authentication";
+            case ACCESS_DENIED -> "live_provider_access_denied";
+            case UNAVAILABLE -> null;
+        };
+        return code == null ? ResponseEntity.status(HttpStatus.BAD_GATEWAY).build()
+                : ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ProviderError(code));
     }
 }

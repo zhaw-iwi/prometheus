@@ -38,8 +38,22 @@ export class LiveClient {
       ...options, headers: { "Content-Type": "application/json", "X-Prometheus-Access-Code": run.accessCode },
       cache: "no-store", signal: AbortSignal.timeout(this.timeoutMs),
     });
-    if (!response.ok) throw new Error(({ 401: "Access is no longer valid.", 404: "Agent or session is unavailable.",
-      409: "This agent already has an active voice session.", 503: "GPT-Live is disabled.", 502: "The voice provider is unavailable." })[response.status] || `Voice request failed (${response.status}).`);
+    if (!response.ok) {
+      let detail;
+      if (response.status === 502) {
+        try {
+          const { code } = await response.json();
+          detail = new Map([
+            ["live_provider_quota_exhausted", "OpenAI API credits or quota are exhausted. Check API billing and limits, then start GPT-Live again."],
+            ["live_provider_rate_limited", "OpenAI is limiting voice requests. Wait briefly, then start GPT-Live again."],
+            ["live_provider_authentication", "OpenAI rejected the configured API credentials. Check the server's API key."],
+            ["live_provider_access_denied", "OpenAI denied this voice request. Check the API project's permissions and model access."],
+          ]).get(code);
+        } catch (_) { /* Empty or unknown error responses retain the generic status message. */ }
+      }
+      throw new Error(detail || ({ 401: "Access is no longer valid.", 404: "Agent or session is unavailable.",
+        409: "This agent already has an active voice session.", 503: "GPT-Live is disabled.", 502: "The voice provider is unavailable." })[response.status] || `Voice request failed (${response.status}).`);
+    }
     return response.json();
   }
   async start({ agentId, accessCode, voice = "marin", mediaPreferences = {}, outputDeviceId = "" }) {

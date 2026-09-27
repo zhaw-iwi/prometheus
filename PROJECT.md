@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Provider diagnosis follow-up (2026-09-27): model metadata access succeeded, but
+  a synthetic Live session-creation probe was rejected with exhausted API credits.
+  Known HTTP quota/rate-limit/access failures now yield safe cockpit guidance and
+  content-free server warnings. Eleven focused Java tests, eleven Live Node tests
+  and one desktop/mobile browser case passed. The earlier user-reported loss after
+  Active is not conclusively diagnosed; successful provider/audio trials remain
+  pending. See `.agents/GPTLIVE_RESULTS.md` for the bounded probe and evidence.
 - Latest follow-up: Milestone 192 (GL-09), a dedicated Live Multimodal core agent
   with separate external voice and backend embodiment instructions. All current
   observations and declared modalities are available; backend generation omits

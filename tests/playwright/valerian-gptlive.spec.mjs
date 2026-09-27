@@ -19,7 +19,9 @@ async function setup(context, scenario = {}) {
     if (path.endsWith("/states")) return route.fulfill(json(["Listening"]));
     if (path.endsWith("/state")) return route.fulfill(json({ name: "Listening", innerNames: [] }));
     if (path.endsWith("/transcription/capabilities")) return route.fulfill(json({ schemaVersion: 1, sessionType: "transcription", model: "gpt-live-transcribe", capabilities: { assistantOutput: false, inputTranscription: true }, settings: [] }));
-    if (path.endsWith("/live/sessions") && method === "POST") return route.fulfill(scenario.providerError ? { status: scenario.providerError } : { ...json({ handle: "session1", sdp: "v=0 answer", sidebandReady: true }), status: 201 });
+    if (path.endsWith("/live/sessions") && method === "POST") return route.fulfill(scenario.providerError
+      ? { ...json(scenario.providerErrorBody || {}), status: scenario.providerError }
+      : { ...json({ handle: "session1", sdp: "v=0 answer", sidebandReady: true }), status: 201 });
     if (path.endsWith("/live/transcripts")) return route.fulfill(json(scenario.ledger));
     if (path.includes("/live/sessions/")) return route.fulfill(json(method === "DELETE" ? { state: "closed", finalized: true } : { state: scenario.disconnected ? "disconnected" : "attached", captureState: "active", inputSamples: 100, outputSamples: 100, voicedInputSamples: 20, context: { state: "ready", revision: "r1", recent: [] } }));
     if (path.endsWith("/reset")) { scenario.history = []; return route.fulfill(json({ active: true, responseEvent: null })); }
@@ -127,6 +129,24 @@ test("provider error, keyboard navigation and another window's lease require exp
   expect(await page.evaluate(() => window.__live.tracks.every(track => track.stopped))).toBe(true);
   await other.getByTestId("gptlive-stop").click(); await expect(other.getByTestId("gptlive-status")).toHaveText("Idle");
   await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+});
+
+test("exhausted API credits show billing guidance and release capture on desktop and mobile", async ({ page, context }, info) => {
+  const scenario = await setup(context, { providerError: 502,
+    providerErrorBody: { code: "live_provider_quota_exhausted", message: "private-provider-sentinel" } });
+  await open(page);
+  await page.getByTestId("gptlive-start").click();
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Error");
+  await expect(page.getByTestId("gptlive-panel")).toContainText("OpenAI API credits or quota are exhausted.");
+  await expect(page.getByTestId("gptlive-panel")).toContainText("Check API billing and limits");
+  await expect(page.getByTestId("gptlive-panel")).not.toContainText("private-provider-sentinel");
+  await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+  expect(await page.evaluate(() => window.__live.tracks.every(track => track.stopped))).toBe(true);
+  expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject)).toBeNull();
+  expect(scenario.requests.filter(value => value.path.endsWith("/live/sessions") && value.method === "POST")).toHaveLength(1);
+  await screenshot(page, info, "live-quota-desktop.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await screenshot(page, info, "live-quota-mobile.png");
 });
 
 test("feature disabled preserves the two existing tabs", async ({ page, context }) => {

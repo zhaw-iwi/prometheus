@@ -116,7 +116,7 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
                 throw new LiveProviderException("Live provider request deadline or transport failure");
             }
             if (response.statusCode() < 200 || response.statusCode() >= 300)
-                throw new LiveProviderException("Live provider rejected request (HTTP " + response.statusCode() + ")");
+                throw LiveProviderException.rejected(response.statusCode(), new String(response.body(), StandardCharsets.UTF_8));
             if (response.body().length == 0) return new JsonObject();
             return JsonParser.parseString(new String(response.body(), StandardCharsets.UTF_8)).getAsJsonObject();
         } catch (LiveProviderException failure) { throw failure;

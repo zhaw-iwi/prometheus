@@ -65,6 +65,22 @@ class ScopedLiveSessionControllerWebMvcTest {
                 .andExpect(jsonPath("$[0].payload").value("{\"display\":{\"mode\":\"ready\"}}"))
                 .andExpect(jsonPath("$[0].provenance.origin").value("BACKEND_INTENT"));
     }
+    @Test void providerCategoriesKeep502AndExposeOnlyApplicationOwnedCodes() throws Exception {
+        for (int providerStatus : new int[] { 401, 403, 429 }) {
+            String code = switch (providerStatus) {
+                case 401 -> "live_provider_authentication";
+                case 403 -> "live_provider_access_denied";
+                default -> "live_provider_quota_exhausted";
+            };
+            when(service.create(eq("ABCDE"), eq(agent), any())).thenThrow(LiveProviderException.rejected(providerStatus,
+                    "{\"error\":{\"code\":\"credit_balance_exhausted\",\"message\":\"private-sentinel\"}}"));
+            mvc.perform(request()).andExpect(status().isBadGateway())
+                    .andExpect(content().json("{\"code\":\"" + code + "\"}", org.springframework.test.json.JsonCompareMode.STRICT));
+        }
+        when(service.create(eq("ABCDE"), eq(agent), any())).thenThrow(LiveProviderException.rejected(429, "private-sentinel"));
+        mvc.perform(request()).andExpect(status().isBadGateway())
+                .andExpect(content().json("{\"code\":\"live_provider_rate_limited\"}", org.springframework.test.json.JsonCompareMode.STRICT));
+    }
     org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request() {
         return post(path()).header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE")
                 .contentType(MediaType.APPLICATION_JSON).content("{\"sdp\":\"v=0 offer\"}");

@@ -1156,6 +1156,14 @@ the tab is enabled, its model and allowed voices; it never grants eligibility.
 Agent and session scope mismatches return 404; invalid access codes return 401;
 invalid settings return 400; disabled sessions return 503; an occupied agent or
 full capacity returns 409; provider failures return 502 without provider bodies.
+Known provider failures include an application-owned JSON `code`:
+`live_provider_quota_exhausted`, `live_provider_rate_limited`,
+`live_provider_authentication` or `live_provider_access_denied`. Unknown failures
+retain an empty 502 response. The cockpit displays billing, retry or access
+guidance for these codes; provider messages and credentials remain private.
+For exhausted credits/quota, check the API organization's billing balance and
+project limits before starting again. Being able to retrieve model metadata
+does not prove sufficient credits to create a voice session.
 The backend owns provider credentials and permits one session per agent per
 process. Session handles are also bound to the creating access code.
 
