@@ -9,6 +9,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class RoleClarificationGuessingGame implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
     static final String PROMPT_ROLE_CLARIFICATION_STATE = """
             Task: Clarify the roles before a yes/no guessing game at the ZHAW SIRA Lab.
 

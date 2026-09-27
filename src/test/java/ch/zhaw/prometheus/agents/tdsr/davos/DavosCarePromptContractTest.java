@@ -458,7 +458,7 @@ class DavosCarePromptContractTest {
             String speech = therapy
                     ? "Hello, I am GIGI. I wanted to gently remind you about your upcoming appointment. How does that feel right now?"
                     : "Hello, I am GIGI. I am not here to replace care; I am here to make your next step feel a little less lonely.";
-            if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
+            if (prompt.contains("Output one JSON behaviour plan, not raw speech.")) {
                 return """
                         {
                           "speech": "%s",
@@ -477,7 +477,7 @@ class DavosCarePromptContractTest {
 
         @Override
         public boolean decide(List<PromptMessage> messages) {
-            return join(messages).contains("leave the GIGI introduction state");
+            return join(messages).contains("and start the therapy-reminder demonstration now.");
         }
 
         @Override

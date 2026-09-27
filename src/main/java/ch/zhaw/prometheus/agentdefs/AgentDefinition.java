@@ -22,7 +22,16 @@ public interface AgentDefinition {
         return null;
     }
 
+    /** Explicit definition opt-in; descriptive tags and shared factories do not grant it. */
+    default boolean externalRealtimeSpeech() {
+        return false;
+    }
+
     default Agent applyDefinitionMetadata(Agent agent) {
+        if (agent != null) {
+            agent.setInteractionProfile(agent.getInteractionProfile()
+                    .withExternalRealtimeSpeech(this.externalRealtimeSpeech()));
+        }
         if (agent != null && !isPresent(agent.getLanguageCode()) && isPresent(this.languageCode())) {
             agent.setLanguageCode(this.languageCode());
         }

@@ -9,6 +9,23 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class AgentInteractionProfileUnitTest {
+    @Test
+    void externalRealtimeSpeechIsExplicitAndRoundTripsWithoutChangingOtherCapabilities() {
+        AgentInteractionProfile original = AgentInteractionProfiles.multimodalInputOutput();
+        assertFalse(original.isExternalRealtimeSpeech());
+        AgentInteractionProfile enabled = original.withExternalRealtimeSpeech(true);
+        AgentInteractionProfile loaded = AgentInteractionProfile.fromJson(enabled.toJson());
+        assertTrue(loaded.isExternalRealtimeSpeech());
+        assertEquals(original.getSupportedObservations(), loaded.getSupportedObservations());
+        assertEquals(original.getSupportedBehaviourModalities(), loaded.getSupportedBehaviourModalities());
+        assertEquals(original.getProfileTags(), loaded.getProfileTags());
+        assertFalse(original.isExternalRealtimeSpeech());
+        assertFalse(AgentInteractionProfile.fromJson(loaded.withExternalRealtimeSpeech(false).toJson()).isExternalRealtimeSpeech());
+        assertFalse(AgentInteractionProfile.fromJson("{\"profileTags\":[\"demo.valerian.core\",\"demo.valerian.rps\"]}")
+                .isExternalRealtimeSpeech());
+        assertFalse(AgentInteractionProfile.fromJson(null).isExternalRealtimeSpeech());
+    }
+
 
     @Test
     void profileNormalizesAndDeduplicatesDeclaredCapabilities() {

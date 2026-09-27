@@ -2040,6 +2040,12 @@
                     <i class="bi bi-soundwave me-2"></i>Continuous
                   </button>
                 </li>
+                <li id="gptlive_tab_item" class="nav-item" role="presentation" hidden>
+                  <button id="gptlive_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
+                    data-bs-target="#gptlive_panel" aria-controls="gptlive_panel" aria-selected="false" data-testid="gptlive-tab">
+                    <i class="bi bi-broadcast me-2"></i>GPT-Live
+                  </button>
+                </li>
               </ul>
               <div class="tab-content">
                 <div id="text_interaction_panel" class="tab-pane fade show active" role="tabpanel"
@@ -2067,6 +2073,51 @@
                         data-testid="shortcut-stop">Beenden</button>
                     </div>
                   </div>
+                </div>
+                <div id="gptlive_panel" class="tab-pane fade" role="tabpanel" aria-labelledby="gptlive_tab" tabindex="0" data-testid="gptlive-panel">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <span class="metric-label">GPT-Live <span class="badge text-bg-secondary ms-1">Experimental</span></span>
+                    <span id="gptlive_status" class="status-pill is-idle" role="status" data-testid="gptlive-status">Idle</span>
+                  </div>
+                  <p id="gptlive_language" class="small text-muted mb-2">Connect a supported agent to begin.</p>
+                  <div class="d-grid gap-2">
+                    <button id="gptlive_start" class="btn btn-primary" type="button" data-testid="gptlive-start" disabled>Start GPT-Live</button>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button id="gptlive_mute" class="btn btn-outline-ink btn-sm flex-grow-1" type="button" aria-pressed="false" data-testid="gptlive-mute" disabled>Mute microphone</button>
+                      <button id="gptlive_stop" class="btn btn-outline-ink btn-sm flex-grow-1" type="button" data-testid="gptlive-stop" disabled>Stop GPT-Live</button>
+                    </div>
+                  </div>
+                  <div id="gptlive_detail" class="small mt-2" role="status" data-testid="gptlive-detail">Start when you are ready to speak.</div>
+                  <div class="d-flex flex-wrap gap-2 mt-2 small text-muted">
+                    <span id="gptlive_input_activity">Microphone idle</span><span aria-hidden="true">·</span><span id="gptlive_output_activity">Speaker idle</span>
+                  </div>
+                  <audio id="gptlive_audio" hidden></audio>
+                  <div class="surface-panel mt-3" data-testid="gptlive-captions">
+                    <div class="metric-label mb-2">Transcript preview</div>
+                    <div class="small fw-semibold">You</div>
+                    <div id="gptlive_user_caption" class="mb-3 text-break" data-testid="gptlive-user-caption">Your speech will appear here.</div>
+                    <div class="small fw-semibold">Assistant</div>
+                    <div id="gptlive_assistant_caption" class="text-break" data-testid="gptlive-assistant-caption">The assistant’s speech will appear here.</div>
+                    <div class="small text-muted mt-2">Previews may change before they are recorded.</div>
+                  </div>
+                  <details class="surface-panel mt-3" data-testid="gptlive-settings">
+                    <summary class="fw-semibold">Voice and audio settings</summary>
+                    <div class="row g-2 mt-1">
+                      <div class="col-12"><label class="form-label" for="gptlive_voice">Voice</label><select id="gptlive_voice" class="form-select form-select-sm" data-testid="gptlive-voice"><option value="marin">marin</option></select></div>
+                      <div class="col-12"><label class="form-label" for="gptlive_input">Microphone</label><select id="gptlive_input" class="form-select form-select-sm" data-testid="gptlive-input"><option value="">System / browser default</option></select></div>
+                      <div class="col-12"><label class="form-label" for="gptlive_output">Speaker</label><select id="gptlive_output" class="form-select form-select-sm" data-testid="gptlive-output"><option value="">System / browser default</option></select></div>
+                      <div class="col-12"><button id="gptlive_refresh" class="btn btn-outline-ink btn-sm" type="button">Refresh audio devices</button></div>
+                      <div id="gptlive_routing" class="col-12 small text-muted"></div>
+                      <div class="col-12"><label class="d-flex align-items-center gap-2"><input id="gptlive_echo" type="checkbox" checked>Echo cancellation</label></div>
+                      <div class="col-12"><label class="d-flex align-items-center gap-2"><input id="gptlive_noise" type="checkbox" checked>Noise suppression</label></div>
+                      <div class="col-12"><label class="d-flex align-items-center gap-2"><input id="gptlive_gain" type="checkbox" checked>Automatic gain control</label></div>
+                    </div>
+                    <p class="small text-muted mt-2 mb-0">Chrome and the selected device determine applied capture settings. Bluetooth audio remains experimental.</p>
+                    <details class="mt-2 small"><summary>Requested and applied capture</summary><pre id="gptlive_capture" class="text-wrap text-break mb-0">Capture has not started.</pre></details>
+                  </details>
+                  <div class="metric-label mt-3 mb-2">Recorded conversation</div>
+                  <div id="gptlive_history" class="message-list" style="height: auto; max-height: 22rem; min-height: 5rem" data-testid="gptlive-history"><p class="text-muted small m-0">Recorded conversation will appear here.</p></div>
+                  <div id="gptlive_context" class="small text-muted mt-2" data-testid="gptlive-context">Context: idle</div>
                 </div>
                 <div id="continuous_speech_panel" class="tab-pane fade" role="tabpanel"
                   aria-labelledby="continuous_speech_tab" tabindex="0">

@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -389,7 +390,8 @@ class ScopedDemoControllerIntegrationTest {
         assertNotNull(responsePlan);
         assertNotNull(responsePlan.getSpeech());
         assertNotNull(responsePlan.getNonVerbal());
-        assertNotNull(responsePlan.getMotion());
+        // Core countdown deliberately withholds the chosen hand sign until user input.
+        assertNull(responsePlan.getMotion());
         assertNotNull(responsePlan.getDisplay());
 
         List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
@@ -406,7 +408,7 @@ class ScopedDemoControllerIntegrationTest {
         BehaviourPlan persistedPlan = BehaviourPlan.fromJson(generatedPlans.get(0).getPayload());
         assertNotNull(persistedPlan.getSpeech());
         assertNotNull(persistedPlan.getNonVerbal());
-        assertNotNull(persistedPlan.getMotion());
+        assertNull(persistedPlan.getMotion());
         assertNotNull(persistedPlan.getDisplay());
 
         Event persistedEvent = generatedPlans.get(0);
@@ -581,6 +583,10 @@ class ScopedDemoControllerIntegrationTest {
         var saved = agents.findById(agentId).orElseThrow().getEventHistory().toList().stream()
                 .filter(event -> eventId.equals(event.getId().toString())).findFirst().orElseThrow();
         assertEquals("Stored policy reply.", BehaviourPlan.fromJson(saved.getPayload()).getSpeech());
+        org.mockito.Mockito.verifyNoInteractions(behaviourBroadcaster);
+        // Publication is after commit: a surrounding test transaction must cross that boundary too.
+        org.springframework.test.context.transaction.TestTransaction.flagForCommit();
+        org.springframework.test.context.transaction.TestTransaction.end();
         verify(behaviourBroadcaster).publish(org.mockito.ArgumentMatchers.eq(agentId),
                 org.mockito.ArgumentMatchers.argThat(event -> eventId.equals(event.getId().toString())));
         byte[] audio = { 3, 2, 1 };

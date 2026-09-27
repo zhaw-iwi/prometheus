@@ -9,6 +9,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class SingleStateHealthcareConversation implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
 
     static final String PROMPT_STATE = """
             Task: Lead an open English healthcare use-case demonstration conversation.

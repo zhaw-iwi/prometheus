@@ -856,7 +856,7 @@ async function emitProviderEvent(page, event) {
 
 async function emitBehaviourSse(page, eventName, eventId, event) {
   await page.evaluate(({ eventName: name, eventId: id, envelope }) => {
-    const source = window.__eventSources.find((candidate) => candidate.url.includes("/behaviour/stream"));
+    const source = window.__eventSources.findLast((candidate) => candidate.url.includes("/behaviour/stream"));
     source.emit(name, envelope, id);
   }, { eventName, eventId, envelope: event });
 }

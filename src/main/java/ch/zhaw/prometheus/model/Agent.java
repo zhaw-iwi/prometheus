@@ -218,6 +218,18 @@ public class Agent {
         return responseFromRegulation != null ? responseFromRegulation : response;
     }
 
+    /** Records externally generated assistant speech without evaluating guards, actions or regulation. */
+    public Event recordExternalSpeech(String text, ch.zhaw.prometheus.model.event.SpeechProvenance provenance) {
+        if (text == null || text.isBlank() || text.length() > 3000 || provenance == null
+                || provenance.origin() != ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE)
+            throw new IllegalArgumentException("Invalid native speech segment");
+        Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(text).toJson());
+        if (event.getPayload().length() > 4096) throw new IllegalArgumentException("Native speech payload too large");
+        event.speechProvenance(provenance);
+        return recordEvent(event);
+    }
+
     private Event acknowledgeWithoutRegulation(Event event, boolean recordInput, PolicyRuntime runtime) {
         GuardEvaluation evaluation = null;
         try {
@@ -299,10 +311,16 @@ public class Agent {
     }
 
     public List<String> listStates() {
+        return this.reachableStates().stream().map(State::getName).distinct().toList();
+    }
+
+    /** Read-only graph inspection, including inactive states; no transitions or policies execute. */
+    public List<State> reachableStates() {
         Set<State> visited = new HashSet<>();
         List<State> states = new ArrayList<>();
         this.initialState.collectStates(visited, states);
-        return states.stream().map(State::getName).distinct().toList();
+        this.currentState.collectStates(visited, states);
+        return List.copyOf(states);
     }
 
     public void reset() {

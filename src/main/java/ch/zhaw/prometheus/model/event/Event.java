@@ -24,6 +24,7 @@ import jakarta.persistence.OrderColumn;
 
 @Entity
 public class Event {
+    private static final com.google.gson.Gson PROVENANCE_JSON = new com.google.gson.Gson();
     public static final String TYPE_USER_UTTERANCE = "obs.user_utterance";
     public static final String TYPE_FACE_EMOTION = "obs.emotion.face";
     public static final String TYPE_HUMAN_PRESENCE = "obs.human.presence";
@@ -70,6 +71,18 @@ public class Event {
     @GsonExclude
     @Column(name = "history_position")
     private Long historyPosition;
+
+    @JsonIgnore
+    @GsonExclude
+    @Column(name = "speech_provenance", columnDefinition = "TEXT")
+    private String speechProvenanceJson;
+
+    public SpeechProvenance speechProvenance() {
+        return speechProvenanceJson == null ? null : PROVENANCE_JSON.fromJson(speechProvenanceJson, SpeechProvenance.class);
+    }
+    public void speechProvenance(SpeechProvenance value) {
+        speechProvenanceJson = value == null ? null : PROVENANCE_JSON.toJson(value);
+    }
 
     Long historyPosition() { return historyPosition; }
     void historyPosition(long position) { this.historyPosition = position; }

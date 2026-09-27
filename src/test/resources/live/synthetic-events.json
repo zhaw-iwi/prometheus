@@ -1,0 +1,10 @@
+[
+  {"type":"session.started","event_id":"synthetic-start"},
+  {"type":"session.input_audio.append","audio":"6APoAw=="},
+  {"type":"session.input_transcript.delta","event_id":"synthetic-input","delta":"Hello","start_ms":100,"end_ms":400},
+  {"type":"session.output_transcript.delta","event_id":"synthetic-output","delta":"Welcome.","start_ms":550,"end_ms":1100},
+  {"type":"session.output_audio.delta","delta":"6APoAw==","start_ms":550,"end_ms":551},
+  {"type":"session.delegation.created","event_id":"synthetic-delegate","offset_ms":500,"delegation":{"id":"delegation_synthetic","type":"delegation","target":"client"}},
+  {"type":"session.input_audio.muted","event_id":"synthetic-muted","client_event_id":"synthetic-mute-command"},
+  {"type":"session.closed","event_id":"synthetic-close","reason":"close_requested"}
+]

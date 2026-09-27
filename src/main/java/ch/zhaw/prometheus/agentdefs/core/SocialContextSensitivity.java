@@ -12,6 +12,11 @@ import ch.zhaw.prometheus.model.event.Event;
 
 @Component
 public class SocialContextSensitivity implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
     static final String PROMPT_STATE = """
             Task: Demonstrate social context sensing at the ZHAW SIRA Lab.
 

@@ -354,7 +354,7 @@ class TdsrLabPromptContractTest {
         @Override
         public String complete(List<PromptMessage> messages) {
             String prompt = join(messages);
-            if (prompt.contains("Produce STRICT JSON only for GIGI's nonverbal behaviour")) {
+            if (prompt.contains("Output one JSON behaviour plan, not raw speech.")) {
                 return """
                         {
                           "speech": "Hello, I am GIGI. The lab game is ready.",

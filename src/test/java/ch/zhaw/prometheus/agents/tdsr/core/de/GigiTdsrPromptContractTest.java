@@ -46,8 +46,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(agent.getDescription().contains("Deutschsprachiger"));
         assertTrue(agent.getDescription().contains("Gesten"));
 
-        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
-        assertTrue(prompt.contains("Du bist GIGI"));
+        String prompt = agent.getTotalPolicy(new ch.zhaw.prometheus.model.policy.PromptMessageAssembler()
+                .forEmbodiment(ch.zhaw.prometheus.model.AgentEmbodiment.ROBOT)).getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("Du bist Gigi"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTdsrContextIsGuarded(prompt);
@@ -108,8 +109,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(agent.getName().contains("GIGI TDSR"));
         assertTrue(agent.getDescription().contains("soziale Kontextwechsel"));
 
-        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
-        assertTrue(prompt.contains("Du bist GIGI"));
+        String prompt = agent.getTotalPolicy(new ch.zhaw.prometheus.model.policy.PromptMessageAssembler()
+                .forEmbodiment(ch.zhaw.prometheus.model.AgentEmbodiment.ROBOT)).getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("Du bist Gigi"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("obs.social.situation_change"));
         assertTdsrContextIsGuarded(prompt);
@@ -150,8 +152,9 @@ class GigiTdsrPromptContractTest {
         assertTrue(agent.listStates().contains("GIGI TDSR RPS Zeichen zeigen"));
         assertTrue(agent.listStates().contains("GIGI TDSR RPS Rundenergebnis"));
 
-        String prompt = agent.getTotalPolicy().getPromptMessages().get(0).getContent();
-        assertTrue(prompt.contains("Du bist GIGI"));
+        String prompt = agent.getTotalPolicy(new ch.zhaw.prometheus.model.policy.PromptMessageAssembler()
+                .forEmbodiment(ch.zhaw.prometheus.model.AgentEmbodiment.ROBOT)).getPromptMessages().get(0).getContent();
+        assertTrue(prompt.contains("Du bist Gigi"));
         assertTrue(prompt.contains("Antworte immer auf Deutsch"));
         assertTrue(prompt.contains("BehaviourPlan"));
         assertTrue(prompt.contains("deterministisch"));

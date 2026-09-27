@@ -25,6 +25,11 @@ import ch.zhaw.prometheus.model.policy.PromptValueShape;
 
 @Component
 public class TwoStateTherapyAppointmentReminder implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
 
     static final String PROMPT_INTRO_STATE = """
             Task: Introduce Valerian before an optional therapy-reminder demonstration.

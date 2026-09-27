@@ -205,12 +205,14 @@ public class ScopedDemoController {
             @RequestParam(value = "accessCode", required = false) String queryAccessCode,
             @PathVariable UUID agentId,
             @RequestHeader(value = "Last-Event-ID", required = false) String lastEventIdHeader,
-            @RequestParam(value = "lastEventId", required = false) String lastEventIdParam) {
+            @RequestParam(value = "lastEventId", required = false) String lastEventIdParam,
+            @RequestParam(value = "projection", defaultValue = "raw") String projection) {
         String lastEventId = lastEventIdParam == null || lastEventIdParam.isBlank()
                 ? lastEventIdHeader
                 : lastEventIdParam;
-        Optional<SseEmitter> emitter = this.demoService.subscribeBehaviour(accessCode(headerAccessCode,
-                queryAccessCode), agentId, lastEventId);
+        Optional<SseEmitter> emitter = "conversation".equals(projection)
+                ? this.demoService.subscribeConversationBehaviour(accessCode(headerAccessCode, queryAccessCode), agentId, lastEventId)
+                : this.demoService.subscribeBehaviour(accessCode(headerAccessCode, queryAccessCode), agentId, lastEventId);
         return emitter.map(ResponseEntity::ok)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

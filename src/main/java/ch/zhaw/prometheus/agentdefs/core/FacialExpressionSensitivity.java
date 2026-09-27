@@ -108,6 +108,11 @@ public class FacialExpressionSensitivity implements AgentDefinition {
     }
 
     @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
+    @Override
     public String languageCode() {
         return LANGUAGE_ENGLISH;
     }

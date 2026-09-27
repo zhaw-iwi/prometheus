@@ -13,6 +13,7 @@ public class BehaviourPlanPromptEventContentAdapter implements PromptEventConten
 
     @Override
     public String toPromptContent(Event event) {
+        if (ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event)) return "";
         String speech = extractJsonString(event.getPayload(), "speech");
         if (speech != null && !speech.isBlank()) {
             return speech;

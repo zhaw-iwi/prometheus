@@ -42,6 +42,9 @@ code.
 - Speech, nonverbal, motion, and display behaviour-plan channels.
 - Scoped access-code and trusted global APIs, resilient behaviour/monitor SSE,
   typed live transcription, and output-only Speech synthesis.
+- Opt-in GPT-Live cockpit speech with backend-owned task control, selected sensory
+  context, durable transcript/provenance capture, proactive narration and bounded
+  lifecycle diagnostics. Offline acceptance is complete; physical quality is unverified.
 - Access-code-scoped live-transcription sessions, bounded fresh-session/media
   recovery after transport or active-track loss, and serialized finalized-turn
   ingress through the ordinary full-plan acknowledgement pipeline.
@@ -79,13 +82,60 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Agents deployment integration (2026-09-27): merged main's GPT-Live and explicit
+  capability work, preserving the deployment catalog and production settings.
+  Only the twelve validated conversational definitions opt in; all others,
+  including scored RPS, remain out. Live and nonverbal prompts honor Valerian/Gigi
+  embodiment; ordinary generation and reset retain it alongside speech ownership.
+  Old prompt/fixture/countdown assertions were aligned with existing contracts.
+  Verified 562 Java cases across full/focused runs, 61 Node cases and 44 browser
+  cases, including disposable MySQL smoke and desktop/mobile visual checks.
+  See `.agents/GPTLIVE_RESULTS.md` for evidence and deployment limitations.
+
+- Milestone 193 (GL-10): explicit persisted external realtime speech capability,
+  per-definition opt-in and full reachable-policy checks replace profile-tag
+  eligibility. Main conversational definitions opt in; Talk to Me stays exact-text
+  only. Older saved profiles remain opted out. Passed 428 Java, 61 Node and 44
+  browser cases on isolated fixtures; deployment persona integration remains separate.
+
+- Provider diagnosis follow-up (2026-09-27): model metadata access succeeded, but
+  a synthetic Live session-creation probe was rejected with exhausted API credits.
+  Known HTTP quota/rate-limit/access failures now yield safe cockpit guidance and
+  content-free server warnings. Eleven focused Java tests, eleven Live Node tests
+  and one desktop/mobile browser case passed. The earlier user-reported loss after
+  Active is not conclusively diagnosed; successful provider/audio trials remain
+  pending. See `.agents/GPTLIVE_RESULTS.md` for the bounded probe and evidence.
+- Latest follow-up: Milestone 192 (GL-09), a dedicated Live Multimodal core agent
+  with separate external voice and backend embodiment instructions. All current
+  observations and declared modalities are available; backend generation omits
+  speech in one request, including state entry, with no competing text/TTS fallback.
+  Quiet creation, discrete social reactions, final-state control, persistence and
+  native-speech coexistence are tested. All 421 Java and 12 browser cases passed;
+  desktop/mobile screenshots inspected. Physical/provider quality and enforced
+  silence remain unverified. Setup and evidence are in README/GPTLIVE_RESULTS.
+- Experimental follow-up: Milestone 191 (GL-08), offline GPT-Live acceptance and
+  repeatable physical-trial handoff. The real application/SQL/SSE smoke covers
+  speech ingress, task control, sensory context, visual narration and reload;
+  feature-disabled text/TTS also passes. All 415 Java, 60 Node and 41 distinct
+  browser cases passed, with final visual/package checks. GL-01 through GL-08
+  automated implementation is complete. Paid voice and built-in/Bluetooth trials
+  on Windows/Linux remain NOT RUN; GPT-Live stays experimental and opt-in.
+- GPT-Live foundation, Milestones 184–190 (GL-01–07): scoped gateway and selected
+  context, external speech ownership and intent/native provenance, durable
+  transcript receipts/segments, asynchronous context/delegation/narration, third
+  cockpit tab and lifecycle/diagnostic hardening. Ordinary speech modes remain
+  available. Ambiguous input and unconfirmed announcements never retry actions
+  automatically. The temporary probe has been removed. Per-milestone details are
+  in the historical records; roadmap/evidence are `.agents/PLAN_GPTLIVE.md` and
+  `.agents/GPTLIVE_RESULTS.md`.
+
 - Latest completed product follow-up (2026-09-23): added the persisted
   Valerian/Gigi embodiment selector across scoped creation, agent metadata,
   prompt assembly, and the cockpit. Omitted embodiment values remain compatible
   by defaulting to `COCKPIT`; unsupported values are rejected. Focused persona
-  unit, persistence, controller, and static-client checks passed. The broader
-  scoped-controller run still has the previously reported unrelated RPS motion
-  assertion failure.
+  unit, persistence, controller, and static-client checks passed. The unrelated
+  RPS motion assertion was corrected to match the hidden countdown sign in the
+  2026-09-27 integration; the scoped-controller suite now passes.
 
 - Agents integration (2026-09-17): merged Need for Speed for the authorized
   Heroku testing deployment. The initial integration passed 398 Java and 45
@@ -133,6 +183,26 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 193: Explicit external realtime speech capability (GL-10)
+
+- [x] Milestone 192: Dedicated Live Multimodal agent and embodiment policy (GL-09)
+
+- [x] Milestone 191: GPT-Live offline acceptance and physical-trial handoff (GL-08)
+
+- [x] Milestone 190: GPT-Live lifecycle hardening and diagnostics (GL-07)
+
+- [x] Milestone 189: Third GPT-Live cockpit tab (GL-06)
+
+- [x] Milestone 188: GPT-Live context, delegation and narration (GL-05)
+
+- [x] Milestone 187: Durable GPT-Live transcript ingress (GL-04)
+
+- [x] Milestone 186: External speech execution and provenance (GL-03)
+
+- [x] Milestone 185: Selected agent context for GPT-Live (GL-02)
+
+- [x] Milestone 184: GPT-Live provider boundary and diagnostic probe (GL-01)
 
 - [x] Milestone 183: Server speech delivery timing
 
@@ -9155,3 +9225,207 @@ priority and action ownership.
   local MySQL schema/account (both removed), 69 Node cases and four desktop/mobile
   Playwright cases. Delivery-detail screenshots inspected. Providers were mocked
   or loopback; live Heroku/provider pause location awaits the next exported trial.
+
+
+## Milestone 184: GPT-Live provider boundary and diagnostic probe (GL-01)
+
+- Added opt-in Live API session creation, backend sideband, acknowledged input
+  mute/unmute, scoped handles and bounded cleanup/diagnostics. Existing speech
+  modes are unchanged; no agent ingress is enabled at this milestone.
+- Added a temporary developer WebRTC probe and synthetic provider-event fixture.
+- Verified ten focused Java cases, one real local-MySQL scope smoke and JavaScript
+  syntax. Disposable schema/account removed. Configured provider account returns
+  HTTP 200 for gpt-live-1 metadata.
+- Live voice, Windows/Linux built-in audio and Bluetooth remain NOT RUN. Exact
+  commands, limits and evidence are in .agents/GPTLIVE_RESULTS.md.
+
+
+## Milestone 185: Selected agent context for GPT-Live (GL-02)
+
+- Added immutable selected context with source provenance, stable revision,
+  coalesced sensor freshness and bounded startup history. Known core pilot
+  policies contribute composed conversational guidance without a JSON output
+  contract. Original history selection retains IDs and timestamps.
+- Scoped session creation reads a fresh serialized agent snapshot; unsupported
+  policy/state implementations fail closed. Existing execution is unchanged.
+- Thirty focused Java checks and the extended disposable-MySQL reload/scope
+  smoke passed. Full evidence is in .agents/GPTLIVE_RESULTS.md.
+- Provider speech/context quality and physical audio remain NOT RUN.
+
+
+## Milestone 186: External speech execution and provenance (GL-03)
+
+- Added provider-neutral external speech ownership at the runtime boundary.
+  Ordinary generation supplies non-speech complements only; entry/final/sensory
+  plans retain speech intent. Speculation cannot generate a competing reply.
+- Native assistant recording persists a speech BehaviourPlan without evaluation
+  of guards/actions. Additive provenance separates intent, native output,
+  completeness and confirmed/ambiguous associations. Shared prompt/history
+  projection prevents duplicate conversational representations; raw plans remain.
+- Fifty distinct focused Java cases passed, plus two disposable-MySQL scope and
+  persistence cases. Cascade-merge identity handling was corrected based on the
+  first database failure; final reload/identity verification passed.
+- No voice/acoustic trial was run. See .agents/GPTLIVE_RESULTS.md for commands,
+  schema details and remaining transport/ingress work.
+
+## Milestone 187: Durable GPT-Live transcript ingress (GL-04)
+
+- Added bounded independent speaker segmentation, durable receipt identity and
+  segment claims, and ordered asynchronous sideband processing. Complete user
+  segments enter existing acknowledgement; native speech never does.
+- Uncertain short replies, late fragments and incomplete input remain in a scoped
+  ledger. Failed/pending claims cannot automatically repeat actions after restart.
+- Thirteen focused Java cases and five disposable-MySQL cases passed, including
+  application-context reload and persisted blocking-action write-version checks.
+- Audio coverage/segmentation thresholds remain provisional until live trials.
+  See .agents/GPTLIVE_RESULTS.md for actual commands and remaining gates.
+
+## Milestone 188: GPT-Live context, delegation and narration (GL-05)
+
+- Added after-commit context invalidation and bounded/coalesced asynchronous
+  delivery with revision/epoch fencing. Sensory expiry refreshes without an event.
+- Instructions, quiet facts and source-deduplicated narration use distinct Live
+  append commands. Uncertain ACK delivery is inspectable and never blindly retried.
+- Delegation reports committed context/work without acknowledging again. Short
+  replies with uncertain spoken context receive a clarification request.
+- Twenty-nine focused Java cases and six disposable-MySQL cases passed. The new
+  fake-sideband integration covers a user action, weather, rollback exclusion,
+  visual narration/non-speech output and no native feedback or TTS calls.
+- Live provider and physical acoustic gates remain NOT RUN; evidence and limits
+  are in .agents/GPTLIVE_RESULTS.md and README.
+
+## Milestone 189: Third GPT-Live cockpit tab (GL-06)
+
+- Added an opt-in third interaction tab, independent transport/caption modules,
+  Start/Mute/Stop, voice/device controls, shared microphone/output leases and
+  provisional-to-persisted caption reconciliation. Removed the developer probe.
+- The cockpit uses shared conversation history and opts into projected behaviour
+  SSE. Intent speech stays distinct; native speech preserves non-speech display.
+- Passed 23 focused Java cases, six disposable-MySQL cases, 56 Node cases and
+  37 distinct browser cases across Live/lifecycle/transcription/column expansion.
+  The column setup required a real isolated app; its initial static-server failure
+  was resolved by rerunning all five cases against disposable MySQL.
+- Desktop/mobile light/dark screenshots inspected, including wrapped tabs and
+  permission errors. Live provider/audio gates remain NOT RUN. Detailed evidence
+  and the distinction from GL-08 end-to-end acceptance are in GPTLIVE_RESULTS.md.
+
+## Milestone 190: GPT-Live lifecycle hardening and diagnostics (GL-07)
+
+Implemented pending-input fences on Stop, access-code/link and epoch validation,
+browser heartbeat expiry and WebSocket ping/pong. Bounded cleanup workers preserve
+capture scheduling; short-lived scoped tombstones expose close uncertainty.
+Reset/switch invalidates browser callbacks and obsolete SSE sources. The timing
+drawer and JSON export contain bounded metadata with independently labeled clocks,
+queue coverage and dropped counts; no conversation/audio/secrets/device IDs.
+
+Verified 18 focused Java, nine Live Node and nine browser UI cases, plus six
+accumulated Live cases on disposable MySQL. Tested Stop-before-admission, provider
+silence, overflow, scope revocation and lifecycle recovery. Screenshots inspected.
+See `.agents/GPTLIVE_RESULTS.md`; live voice and physical trials remain NOT RUN.
+
+## Milestone 191: GPT-Live offline acceptance and physical-trial handoff (GL-08)
+
+Added an isolated-MySQL acceptance runner, real scoped-controller/capture/runtime/
+SSE smoke, and application-backed browser coverage with test-only model/audio
+providers. The built-in RPS agent advances from one recorded utterance, receives
+weather context and narrates a visual result. Persisted native provenance survives
+reload; fresh sessions use the current history selector. Feature-disabled text and
+scoped TTS pass. WebRTC startup now sends the completed ICE offer and cancels
+pending gathering on Stop. Final capture status follows close acknowledgements.
+
+Verified 415 Java tests, 60 Node tests and 41 distinct browser cases. Inspected
+real-app and desktop/mobile light/dark screenshots. Production packaging passes;
+fixtures and retired probe resources are absent. The final full suite and focused
+reruns resolved old transaction/source/SSE test expectations. All disposable SQL
+schemas/accounts and owned app processes were removed.
+
+All eight offline implementation milestones are complete. Paid Live WebRTC and
+Windows/Linux built-in/Bluetooth acoustic acceptance remain NOT RUN. Keep the
+feature experimental and disabled by default until those independent trials are
+recorded. Commands, evidence paths, resolved failures and the physical protocol
+are in `.agents/GPTLIVE_RESULTS.md`, `.agents/PLAN_GPTLIVE.md` and
+`tests/gptlive/README.md`.
+
+## Milestone 192: Dedicated Live Multimodal agent and embodiment policy (GL-09)
+
+Added `core.live_multimodal`, explicitly eligible for GPT-Live, with all nine
+current observation types and seven declared behaviour modalities. A persisted,
+provider-neutral `EmbodimentPolicy` separates voice guidance from a single backend
+non-speech generation request and rejects competing speech before publication.
+Voice guidance contains no behaviour JSON schema. Instance creation performs no
+inference/greeting; raw sensor readings refresh context without per-frame model
+calls. Admitted user turns, explicit generation and derived social changes produce
+embodiment. An explicit end-interaction guard reaches a non-speech final policy.
+Existing combined PromptPolicy speech/nonverbal generation stays unchanged.
+
+Added unit, catalog/profile and isolated-MySQL smoke coverage for separated prompts,
+one-request embodiment, speech rejection, discrete event routing, policy reload,
+all sensory context and independently recorded native speech. The real cockpit
+Playwright case verifies the new catalog entry and visible full embodiment beside
+native speech. All 421 Java and 12 browser cases passed; one Live-only case is
+intentionally skipped in the disabled-feature run. Desktop/mobile visuals and
+production packaging checked.
+
+Location uses existing weather context, with no new GPS event. The dedicated agent
+has no backend speech fallback or automatic sensor announcements. Prompt-level
+silence is not enforced playback suppression. Physical Live/Chrome/device trials
+remain NOT RUN. Additive nullable policy TEXT columns and local setup are documented
+in README; detailed verification and artifacts are in `.agents/GPTLIVE_RESULTS.md`.
+
+
+## Milestone 193: Explicit external realtime speech capability (GL-10)
+
+Added the default-false `externalRealtimeSpeech` interaction-profile field and a
+per-definition opt-in. All twelve main conversational definitions declare it;
+Talk to Me retains its exact-text-only contract. Shared factories and descriptive
+tags do not grant eligibility. Existing persisted JSON without the field stays
+opted out, with no schema change, history rewrite or automatic backfill.
+
+Live validates reachable and active state/policy implementations before creating
+a session. This prevents a partly supported agent from starting successfully and
+failing only on a later result state. Instructions retain bounded admission at
+16,000 UTF-8 bytes, enough for the existing therapy-reminder conversational policy.
+The cockpit explains unavailable capability and keeps Start disabled. Ordinary
+text/transcription/TTS behavior and explicit Live speech ownership are unchanged.
+
+Passed all 428 Java tests on a disposable local MySQL schema, all 61 Node tests,
+and 44 browser cases across enabled/disabled Live runs. One Live-only browser
+case was intentionally skipped with the feature disabled. Desktop/mobile
+unsupported-agent screenshots were inspected. See `.agents/GPTLIVE_RESULTS.md`.
+Robot persona
+selection exists only on the agents branch; its Live prompt adaptation remains
+part of that branch's integration before enabling Live for robot embodiments.
+
+
+## Agents integration: Explicit Live capability and embodiment (2026-09-27)
+
+Integrated main through c699e5f into the latest agents branch (103bab1). Kept the
+application catalog, scored RPS behavior, persona selector and production settings.
+The runtime conflict was resolved with both per-agent prompt assembly and external
+speech ownership; reset revokes ownership before restarting with the chosen persona.
+
+Only the twelve main conversational definitions opt into external realtime speech.
+All other registered definitions remain default-false, verified across the real
+Spring catalog. Scored RPS direct session requests are rejected before provider
+creation. Existing saved profiles without the capability stay opted out.
+
+Live voice instructions, including deterministic RPS guidance, now use the existing
+embodiment resolver. New PromptPolicy/EmbodimentPolicy nonverbal paths resolve
+names through the same assembler; quoted dialogue remains untouched. Tests cover
+robot generation with and without Live ownership, reset, persisted context and
+both persona choices. Updated stale fixtures/assertions for selected persona names,
+combined behaviour JSON, and the already-existing hidden RPS countdown sign; no
+production behavior of those deployment agents was changed.
+
+Verification: 562 Java tests in 125 fresh suites pass across the full run and
+focused rerun, with disposable local MySQL smoke. All 61 Node tests and 44 browser
+cases pass (43 Live-enabled, one feature-off, one intentional Live-only skip).
+Desktop/mobile unsupported-agent screenshots were inspected. Full Java artifacts:
+`target/gptlive-acceptance-70000b4814/`; successful focused/browser artifacts:
+`target/gptlive-acceptance-3052cad8dd/`. Owned apps and disposable accounts/schemas
+were cleaned up. Detailed evidence is in `.agents/GPTLIVE_RESULTS.md`.
+
+Heroku CLI authentication is unavailable, so app
+configuration, provider credit/access and production database privileges were not
+inspected. The push-triggered deployment workflow and production configuration
+are preserved. This integration does not enable the global Live flag automatically.

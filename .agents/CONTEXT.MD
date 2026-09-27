@@ -59,7 +59,10 @@ not introduce ad-hoc response objects that bypass the behaviour-plan contract.
 ### Interaction profiles
 
 `AgentInteractionProfile` declares which observation event types an agent
-accepts and which behaviour modalities it can emit. Profiles are part of the
+accepts and which behaviour modalities it can emit. Its `externalRealtimeSpeech`
+boolean declares compatibility with external voice, defaults to false, and is
+explicitly supplied by each definition through `applyDefinitionMetadata`. The
+Live gateway also validates reachable state/policy implementations. Profiles are part of the
 agent/client contract and must be updated when capabilities change.
 
 ### Event families
@@ -134,6 +137,60 @@ PROMETHEUS currently provides:
 The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
+
+## GPT-Live Experiment
+
+On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
+session gateway. GL-02 seeds it from an immutable,
+bounded active-state context with source IDs/times and explicit sensory freshness.
+Eligibility now requires an explicit persisted external-realtime-speech capability
+and supported policies throughout the reachable graph. Main conversational
+definitions opt in individually; Talk to Me and unadapted application definitions
+remain out. Older saved profiles default to no Live support; recreate selected
+instances deliberately, without deleting existing history. See README for details.
+GL-03 adds provider-neutral speech ownership, non-speech-only ordinary backend
+generation and trusted native recording without acknowledgement. State-entry
+plans retain narration intent; additive event provenance distinguishes intent
+from native realization. Shared conversation projection excludes intent speech
+while raw history preserves the original plan. GL-04 adds bounded per-speaker
+capture and durable receipt/segment claims. Complete user segments acknowledge
+once; ambiguous short answers, late fragments and interrupted input do not act.
+Failed/pending claims are retained without automatic replay across restarts.
+GL-05 publishes committed state/sensory updates and narration asynchronously;
+client delegation reports existing work without a second acknowledgement. Lost
+append ACKs fail visibly without blind retry. GL-06 replaces the temporary probe
+with a third cockpit tab, shared media leases, device/voice controls and receipt-
+reconciled captions/history. Conversation projection is opt-in on behaviour SSE;
+the raw contract remains available. GL-07 fences pending input on Stop and scope
+revocation, checks browser/sideband liveness, preserves scoped close diagnostics,
+and adds content-free Live traces to the timing drawer/JSON. Reset/switch callbacks
+cannot rehydrate an obsolete session. GL-08 adds a repeatable isolated-MySQL
+acceptance runner with real cockpit controllers, persistence and SSE, synthetic
+providers/media, and a feature-disabled text/TTS trial. Full Java, all three Node
+suites and focused browser checks passed. Live voice and Windows/Linux built-in
+and Bluetooth acoustic trials remain NOT RUN; the default feature flag is off.
+It is separate from current
+transcription/TTS. Read
+`.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
+`.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
+sideband owns provider credentials; diagnostic state is bounded and excludes
+audio/text content. See README for scoped session contracts and configuration.
+
+The dedicated Live Multimodal core definition separates external voice guidance
+from embodiment generation through persisted `EmbodimentPolicy`. It accepts all
+current observations and exposes all declared behaviour modalities. Backend plans
+omit speech even without Live ownership; this agent has no text/TTS speech fallback.
+Raw sensor frames update context; user ingress, explicit generation and derived
+social changes generate embodiment. Location remains weather-provided context.
+Ordinary agents retain their combined speech/nonverbal request path. See README
+for setup, additive policy columns and limits; strict silence is not enforced.
+
+On the agents branch, the twelve main conversational definitions remain opted in;
+all other registered definitions (including scored RPS and Talk to Me) stay out.
+The existing per-agent embodiment assembler resolves authored Live voice and
+nonverbal prompts to Valerian/Gigi without rewriting observation/dialogue content.
+The merged runtime retains both persona selection and external speech ownership,
+including reset. Production Live enablement remains a separate configuration flag.
 
 ## Regulation: Implemented Foundation and Missing System
 

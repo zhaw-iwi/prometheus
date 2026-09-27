@@ -9,6 +9,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class RockScissorPaper implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
     static final String PROMPT_START = """
             Task: Play rock-scissor-paper in English at the ZHAW SIRA Lab.
 

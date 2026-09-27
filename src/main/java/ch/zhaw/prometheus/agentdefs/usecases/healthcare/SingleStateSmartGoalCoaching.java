@@ -9,6 +9,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class SingleStateSmartGoalCoaching implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
 
     static final String PROMPT_STATE = """
             Task: Conduct SMART goal coaching for an older adult in the care center.

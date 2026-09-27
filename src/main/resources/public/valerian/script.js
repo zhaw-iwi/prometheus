@@ -27,7 +27,41 @@ const state = {
   storage: [],
   openStorageKeys: new Set(),
   storageSnapshot: null,
+  seenConversationEvents: new Set(),
 };
+
+const liveVoice = { ui: null };
+
+async function initGptLive() {
+  const { LiveCockpit } = await import("../live/cockpit.js");
+  liveVoice.ui = new LiveCockpit({
+    beforeStart: async () => {
+      await stopTranscription();
+      await stopSpeechPlayback("gptlive_start", { reset: true, silent: true });
+      if (!claimControlOwnership("microphone")) throw new Error("Another Valerian window owns the microphone.");
+    },
+    onHistory: applyConversationHistory,
+    onLifecycle: value => {
+      if (["Idle", "Error", "Disconnected"].includes(value.state)) releaseControlOwnership("microphone");
+      updateGptLiveControls();
+    },
+  });
+}
+
+function configureGptLive() {
+  return liveVoice.ui?.configure({ agentId: state.agentId, accessCode: state.accessCode,
+    language: state.agentInfo?.languageCode, mediaPreferences: transcription.transcriptionSettingsPanel?.mediaValues(),
+    outputDeviceId: selectedSpeechOutputDeviceId() });
+}
+
+function updateGptLiveControls() {
+  liveVoice.ui?.controls();
+  const busy = liveVoice.ui?.busy || liveVoice.ui?.starting;
+  for (const id of ["text_input", "send_text"]) document.getElementById(id).disabled = !state.agentId || busy;
+  document.querySelectorAll("[data-utterance]").forEach(element => { element.disabled = !state.agentId || busy; });
+  if (busy) document.getElementById("toggle_transcription").disabled = true;
+  else setTranscriptionControlsLocked(state.transcriptionListening);
+}
 
 const transcription = {
   sessionGeneration: 0,
@@ -237,6 +271,7 @@ async function init() {
   resetStateView();
   resetStorageList();
   resetCockpitColumns();
+  await initGptLive();
   refreshAudioDevices({ requestPermission: false, silent: true });
   refreshCameraDevices({ requestPermission: false, silent: true });
 
@@ -306,6 +341,10 @@ function wireUi() {
   document.getElementById("diagnostics_drawer").addEventListener("show.bs.offcanvas", showAgentDrawerTab);
   document.getElementById("continuous_speech_tab").addEventListener("shown.bs.tab", () => {
     refreshAudioDevices({ requestPermission: false, silent: true });
+  });
+  document.getElementById("interaction_tabs").addEventListener("show.bs.tab", event => {
+    if (event.target.id !== "gptlive_tab") void liveVoice.ui?.stop("Interaction tab changed.");
+    if (event.target.id !== "continuous_speech_tab" && state.transcriptionListening) void stopTranscription();
   });
   speechOutputSettingControls().forEach((control) => {
     control.addEventListener("change", saveSpeechOutputSettingSelection);
@@ -813,6 +852,7 @@ async function openAccessSession(accessCode, options = {}) {
     state.accessCode = session.accessCode || accessCode;
     state.agentTypes = Array.isArray(session.agentTypes) ? session.agentTypes : [];
     state.agents = Array.isArray(session.agents) ? session.agents : [];
+    await configureGptLive();
     resetCockpitColumns();
     clearActivityLog();
     sessionStorage.setItem(ACCESS_CODE_STORAGE_KEY, state.accessCode);
@@ -1032,6 +1072,7 @@ async function connectToAgent(agentId) {
     return;
   }
   state.selectedAgentId = selectedAgentId;
+  await liveVoice.ui?.invalidate("Agent connection changed.");
   if (state.transcriptionListening) {
     await stopTranscription();
   }
@@ -1057,6 +1098,7 @@ async function connectToAgent(agentId) {
   }
   await ensureLiveTranscriptionUi();
   await ensureSpeechPlaybackCoordinator();
+  await configureGptLive();
   await loadEventHistory();
   await loadStorage();
   await loadAgentState();
@@ -1099,6 +1141,7 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
+  await liveVoice.ui?.invalidate("Agent disconnected.");
   if (state.transcriptionListening) {
     await stopTranscription();
   }
@@ -1109,6 +1152,7 @@ async function disconnectAgent(options = {}) {
   cleanupStreams();
   state.agentId = null;
   state.agentInfo = null;
+  void configureGptLive();
   state.lastBehaviourEventId = null;
   resetBehaviourDeduplication();
   resetCockpitColumns();
@@ -1354,27 +1398,35 @@ function updateConnectionButton() {
 }
 
 async function loadEventHistory() {
+  const agentId = state.agentId, accessCode = state.accessCode;
   try {
-    const response = await scopedFetch(demoAgentPath("/eventhistory"));
+    let response = await scopedFetch(demoAgentPath("/live/history"));
+    if (response.status === 404) response = await scopedFetch(`/demo/agents/${encodeURIComponent(agentId)}/eventhistory`);
     if (!response.ok) {
       appendLog("app", `event history failed: ${response.status}`);
       return [];
     }
     const events = await response.json();
+    if (agentId !== state.agentId || accessCode !== state.accessCode) return [];
+    applyConversationHistory(events);
+    return events || [];
+  } catch (error) {
+    appendLog("app", "event history failed: " + error.message);
+    return [];
+  }
+}
+
+function applyConversationHistory(events) {
+    liveVoice.ui?.setHistory(events);
     for (const event of events || []) {
       if (event.type === "resp.behaviour_plan") {
-        handleBehaviourEnvelope(event, { fromHistory: true });
+        handleBehaviourEnvelope(event, { fromHistory: true, eventId: event.id });
       } else if (event.type === "obs.user_utterance") {
         renderHistoricalUserUtterance(event);
       } else {
         renderHistoricalSensingEvent(event);
       }
     }
-    return events || [];
-  } catch (error) {
-    appendLog("app", "event history failed: " + error.message);
-    return [];
-  }
 }
 
 function renderHistoricalSensingEvent(event) {
@@ -1732,14 +1784,18 @@ function connectBehaviourStream() {
     state.streamReconnectTimer = null;
   }
   state.behaviourSource = new EventSource(behaviourStreamUrl());
+  const source = state.behaviourSource, agentId = state.agentId;
+  const current = () => state.behaviourSource === source && state.agentId === agentId;
   setBehaviourStatus("Behaviour Connecting", "idle");
   state.behaviourSource.addEventListener("open", () => {
+    if (!current()) return;
     state.streamReconnectAttempt = 0;
     setBehaviourStatus("Behaviour Live", "live");
     appendLog("stream", "behaviour stream connected.");
   });
   ["behaviour-live", "behaviour-replay"].forEach((eventName) => {
     state.behaviourSource.addEventListener(eventName, (event) => {
+      if (!current()) return;
       if (event.lastEventId) {
         state.lastBehaviourEventId = event.lastEventId;
       }
@@ -1754,6 +1810,7 @@ function connectBehaviourStream() {
     });
   });
   state.behaviourSource.onerror = () => {
+    if (!current()) return;
     closeBehaviourStream();
     setBehaviourStatus("Behaviour Error", "error");
     scheduleBehaviourReconnect();
@@ -1765,10 +1822,14 @@ function connectMonitorStream() {
     return;
   }
   state.monitorSource = new EventSource(monitorStreamUrl());
+  const source = state.monitorSource, agentId = state.agentId;
+  const current = () => state.monitorSource === source && state.agentId === agentId;
   state.monitorSource.addEventListener("open", () => {
+    if (!current()) return;
     state.monitorReconnectAttempt = 0;
   });
   state.monitorSource.addEventListener("snapshot", (event) => {
+    if (!current()) return;
     try {
       const data = JSON.parse(event.data);
       applyMonitorSnapshot(data);
@@ -1777,6 +1838,7 @@ function connectMonitorStream() {
     }
   });
   state.monitorSource.onerror = () => {
+    if (!current()) return;
     if (state.monitorSource) {
       state.monitorSource.close();
       state.monitorSource = null;
@@ -1787,6 +1849,7 @@ function connectMonitorStream() {
 
 function behaviourStreamUrl() {
   const params = new URLSearchParams();
+  params.set("projection", "conversation");
   if (state.accessCode) {
     params.set("accessCode", state.accessCode);
   }
@@ -1857,6 +1920,8 @@ async function resetAgent() {
     return;
   }
   try {
+    cleanupStreams();
+    await liveVoice.ui?.invalidate("Agent reset.");
     if (state.transcriptionListening) {
       await stopTranscription();
     }
@@ -1867,6 +1932,7 @@ async function resetAgent() {
     const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
+      connectBehaviourStream(); connectMonitorStream();
       return;
     }
     const data = await response.json();
@@ -1875,12 +1941,15 @@ async function resetAgent() {
     resetCockpitColumns();
     await ensureLiveTranscriptionUi();
     await ensureSpeechPlaybackCoordinator();
+    await configureGptLive();
     handleResponseEvent(data.responseEvent);
     await loadAgentState();
     await loadStorage();
     appendLog("app", "agent reset.");
+    connectBehaviourStream(); connectMonitorStream();
   } catch (error) {
     appendLog("app", "reset failed: " + error.message);
+    connectBehaviourStream(); connectMonitorStream();
   }
 }
 
@@ -1903,7 +1972,7 @@ async function sendTextInput() {
 }
 
 async function sendUserUtterance(text, options = {}) {
-  if (!state.agentId || !text) {
+  if (!state.agentId || !text || liveVoice.ui?.busy) {
     return false;
   }
   if (options.renderUser) {
@@ -1941,6 +2010,7 @@ async function acknowledgeEvent(request, options = {}) {
     return null;
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
+  const externalSpeech = liveVoice.ui?.active;
   try {
     const response = await timedScopedFetch(options.traceId, demoAgentPath(`/acknowledge${profile}`), {
       method: "POST",
@@ -1958,7 +2028,7 @@ async function acknowledgeEvent(request, options = {}) {
     renderLatestEvent({ type: request.type, payload: request.payload });
     appendLog("ack", request.type);
     if (options.renderResponse !== false) {
-      handleResponseEvent(data.responseEvent);
+      handleResponseEvent(data.responseEvent, { externalSpeech });
     }
     return data;
   } catch (error) {
@@ -1986,11 +2056,15 @@ async function generateBehaviour(outputProfile, traceId) {
   }
 }
 
-function handleResponseEvent(responseEvent) {
+function handleResponseEvent(responseEvent, options = {}) {
   if (!responseEvent) {
     return;
   }
   if (responseEvent.type === "resp.behaviour_plan") {
+    if (options.externalSpeech ?? liveVoice.ui?.active) {
+      const plan = JSON.parse(responseEvent.payload); const plannedSpeech = plan.speech; delete plan.speech;
+      responseEvent = { ...responseEvent, plannedSpeech, payload: JSON.stringify(plan), provenance: { origin: "BACKEND_INTENT" } };
+    }
     handleBehaviourEnvelope(responseEvent, { delivery: "acknowledgement" });
   } else {
     renderLatestEvent(responseEvent);
@@ -2009,10 +2083,11 @@ function handleBehaviourEnvelope(event, options = {}) {
     return;
   }
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
-  queueBehaviourSpeech(plan, options);
+  liveVoice.ui?.event({ ...event, id: event.id || options.eventId });
+  if (!liveVoice.ui?.busy && event.provenance?.origin !== "BACKEND_INTENT") queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))
-    || (!options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
+    || (!event.provenance && !options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
     return;
   }
   for (const key of keys) {
@@ -2021,11 +2096,11 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!options.fromHistory) {
     rememberRecentBehaviourPayload(event.payload);
   }
-  renderBehaviourPlan(plan);
+  renderBehaviourPlan(plan, { preserveNonSpeech: event.provenance?.origin === "NATIVE" });
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
-    appendMessage("assistant", plan.speech.trim());
+    appendMessage("assistant", plan.speech.trim(), event.id || options.eventId);
   }
 }
 
@@ -2371,7 +2446,7 @@ function getEventSpeech(event) {
 function renderHistoricalUserUtterance(event) {
   const text = eventPayloadText(event && event.payload);
   if (text) {
-    appendMessage("user", text);
+    appendMessage("user", text, event.id);
   }
 }
 
@@ -2388,18 +2463,20 @@ function eventPayloadText(payload) {
   return String(payload).trim();
 }
 
-function renderBehaviourPlan(plan) {
+function renderBehaviourPlan(plan, options = {}) {
   if (!plan || typeof plan !== "object") {
     return;
   }
-  resetBehaviourPanels();
+  if (!options.preserveNonSpeech) resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
     setBehaviourChannelActive("speech", true);
   }
-  renderNonVerbal(plan.nonVerbal);
-  renderMotion(plan.motion);
-  renderDisplay(plan.display);
+  if (!options.preserveNonSpeech) {
+    renderNonVerbal(plan.nonVerbal);
+    renderMotion(plan.motion);
+    renderDisplay(plan.display);
+  }
   appendLog("behaviour", `received ${behaviourSummary(plan)}`);
 }
 
@@ -2525,6 +2602,7 @@ async function toggleTranscription() {
 }
 
 async function startTranscription() {
+  await liveVoice.ui?.stop("Continuous transcription selected.");
   if (!state.agentId) {
     return;
   }
@@ -5391,7 +5469,9 @@ function renderLatestEvent(event) {
   setText("latest_behaviour_event", payload ? `${event.type}: ${payload}` : event.type);
 }
 
-function appendMessage(role, text) {
+function appendMessage(role, text, eventId = null) {
+  if (eventId && state.seenConversationEvents.has(eventId)) return;
+  if (eventId) state.seenConversationEvents.add(eventId);
   const list = document.getElementById("messages");
   const row = document.createElement("div");
   row.className = `demo-message ${role}`;
@@ -5405,10 +5485,12 @@ function appendMessage(role, text) {
 
 function clearMessages() {
   document.getElementById("messages").innerHTML = "";
+  state.seenConversationEvents.clear();
 }
 
 function resetCockpitColumns() {
   clearMessages();
+  if (liveVoice.ui) { liveVoice.ui.ledger = []; liveVoice.ui.setHistory([]); liveVoice.ui.captions({}); }
   const textInput = document.getElementById("text_input");
   if (textInput) {
     textInput.value = "";
@@ -5524,6 +5606,7 @@ function setControlsEnabled(enabled) {
     "activity_log_timestamps",
     "text_interaction_tab",
     "continuous_speech_tab",
+    "gptlive_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
     if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.classList.contains("btn-close") ||
@@ -5540,6 +5623,7 @@ function setControlsEnabled(enabled) {
   setTranscriptionControlsLocked(state.transcriptionListening);
   updateAgentTypeControls();
   updateAgentSelectionControls();
+  updateGptLiveControls();
 }
 
 function setActiveStatus(isActive) {
@@ -5634,6 +5718,7 @@ function setCameraStatus(text, mode) {
 
 function cleanupAll() {
   state.isPageUnloading = true;
+  void liveVoice.ui?.stop("Page closed.");
   void stopSpeechPlayback("page_unload", { reset: true, silent: true });
   releaseAllControlOwnership();
   cleanupStreams();
