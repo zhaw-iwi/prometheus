@@ -28,7 +28,7 @@ import ch.zhaw.prometheus.spi.live.LiveProviderException;
 import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
 import ch.zhaw.prometheus.application.live.LiveContextSnapshot;
 
-/** GL-01 diagnostic session host. Transcript events are not yet agent input. */
+/** Scoped provider session host; transcript processing runs in bounded session mailboxes. */
 @Service
 public class ScopedLiveSessionService {
     public static final List<String> VOICES = List.of("marin", "quartz", "willow", "meridian");
@@ -38,7 +38,7 @@ public class ScopedLiveSessionService {
     }
     public record Diagnostic(String type, long sequence) {}
     public record StatusView(String state, boolean finalized, long eventCount, long inputSamples,
-            long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped) {}
+            long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState) {}
 
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
@@ -46,6 +46,8 @@ public class ScopedLiveSessionService {
     private final LiveAgentContextService contexts;
     private final ExternalSpeechOwnership ownership;
     private final Clock clock;
+    private LiveTranscriptCaptureService captures;
+    @Autowired void configureCaptures(LiveTranscriptCaptureService captures) { this.captures = captures; }
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
 
     @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
@@ -59,7 +61,7 @@ public class ScopedLiveSessionService {
     }
 
     public Optional<Capabilities> capabilities(String code, UUID agentId) {
-        return demo.getAgentInfo(code, agentId).map(info -> new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, true,
+        return demo.getAgentInfo(code, agentId).map(info -> new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false,
                 contexts.supported(code, agentId)));
     }
 
@@ -79,8 +81,11 @@ public class ScopedLiveSessionService {
         }
         try {
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
+            if (captures != null) lease.capture = captures.open(agentId,
+                    new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
+                    () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; lease.disconnected.set(true); });
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
-                    lease.context.instructions() + "\nDiagnostic session: task actions are unavailable; do not claim to perform them.",
+                    lease.context.instructions(),
                     lease.context.startupInput()));
             lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> lease.disconnected.set(true));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
@@ -102,6 +107,7 @@ public class ScopedLiveSessionService {
             String command = muted ? "session.input_audio.mute" : "session.input_audio.unmute";
             String acknowledgement = muted ? "session.input_audio.muted" : "session.input_audio.unmuted";
             lease.command(command, acknowledgement, properties.getRequestTimeoutMs());
+            if (lease.capture != null) lease.capture.inputMuted(muted);
             return lease.status();
         });
     }
@@ -151,6 +157,11 @@ public class ScopedLiveSessionService {
             try { gateway.hangup(lease.provider.id()); }
             catch (RuntimeException failure) { lease.cleanupFailed = true; }
         }
+        if (lease.capture != null) {
+            try { lease.capture.close().get(properties.getCloseTimeoutMs(), TimeUnit.MILLISECONDS); lease.captureDrained = true; }
+            catch (Exception failure) { lease.captureProblem = "capture_finalization_unconfirmed";
+                if (failure instanceof InterruptedException) Thread.currentThread().interrupt(); }
+        }
         ownership.release(lease.agentId, lease.handle);
     }
 
@@ -171,6 +182,9 @@ public class ScopedLiveSessionService {
         final ArrayDeque<Diagnostic> recent = new ArrayDeque<>();
         volatile LiveSessionGateway.Session provider;
         volatile LiveContextSnapshot context;
+        volatile LiveTranscriptCaptureService.Capture capture;
+        volatile String captureProblem;
+        volatile boolean captureDrained;
         volatile LiveSessionGateway.Connection connection;
         volatile boolean cleanupFailed;
         long count, dropped, inputSamples, outputSamples, voicedInputSamples;
@@ -181,6 +195,7 @@ public class ScopedLiveSessionService {
             String type = event.has("type") ? event.get("type").getAsString() : "invalid";
             if (!type.matches("[a-z_.]{1,100}")) type = "invalid";
             count++;
+            if (capture != null) capture.receive(event);
             if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
                 String field = type.equals("session.input_audio.append") ? "audio" : "delta";
                 if (event.has(field)) {
@@ -226,7 +241,8 @@ public class ScopedLiveSessionService {
         }
         synchronized StatusView status() {
             String state = cleanupFailed ? "cleanup_unconfirmed" : stopped.get() ? "closed" : disconnected.get() ? "disconnected" : "attached";
-            return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped);
+            return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped,
+                    captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable");
         }
     }
 }

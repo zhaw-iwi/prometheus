@@ -61,8 +61,10 @@ public class ExternalSpeechRecordingService {
                         && segmentId.equals(event.speechProvenance().segmentId())).findFirst();
             });
             if (created[0]) {
-                result.ifPresent(event -> behaviour.publish(id, event));
-                agents.findById(id).ifPresent(monitor::publish);
+                AfterCommit.run(() -> {
+                    result.ifPresent(event -> behaviour.publish(id, event));
+                    agents.findById(id).ifPresent(monitor::publish);
+                });
             }
             return result;
         });

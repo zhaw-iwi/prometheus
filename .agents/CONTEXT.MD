@@ -138,8 +138,11 @@ GL-03 adds provider-neutral speech ownership, non-speech-only ordinary backend
 generation and trusted native recording without acknowledgement. State-entry
 plans retain narration intent; additive event provenance distinguishes intent
 from native realization. Shared conversation projection excludes intent speech
-while raw history preserves the original plan. Automatic provider transcript
-ingress and narration delivery remain pending. It is separate from current
+while raw history preserves the original plan. GL-04 adds bounded per-speaker
+capture and durable receipt/segment claims. Complete user segments acknowledge
+once; ambiguous short answers, late fragments and interrupted input do not act.
+Failed/pending claims are retained without automatic replay across restarts.
+Narration delivery remains pending. It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend

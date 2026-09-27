@@ -1122,16 +1122,16 @@ behaviour speech.
 The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
 `PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
-OpenAI API credentials and model access. Current milestone: diagnostic transport
-with selected agent context, without task execution or persisted voice transcripts. The planned
+OpenAI API credentials and model access. Current milestone: scoped transport,
+selected agent context and durable transcript ingress. The planned
 third cockpit tab and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
 
 The temporary `/live/probe.html` accepts an existing scoped agent ID and access
 code. Use Chrome on HTTPS or localhost, grant microphone permission, and explicitly
 start the probe. It shares microphone and per-agent output leases with existing
 clients. Mute affects input; Stop immediately silences local input/output and asks
-the backend to finalize. Captions remain temporary and are never stored by this
-probe. It requests browser echo cancellation, which does not certify room or
+the backend to finalize. Browser captions are provisional; the backend records
+provider transcript segments independently. It requests browser echo cancellation, which does not certify room or
 Bluetooth echo performance. Default OS input/output devices are used in the probe.
 
 All REST requests below require `X-Prometheus-Access-Code` and a linked agent:
@@ -1209,8 +1209,36 @@ Canonical TTS rejects intent events and resumes only actual conversational speec
 Intent/transcript links are confirmed only with explicit protocol correlation.
 GPT-Live does not supply that identity, so pending source IDs are ambiguous
 candidates, even if only one exists. Native transcripts do not prove physical
-audibility. Interrupted text remains labeled incomplete. At this milestone,
-automatic provider transcript ingress and narration delivery are still pending.
+audibility. Interrupted text remains labeled incomplete. Narration delivery follows in GL-05.
+
+Continuous transcripts are aggregated independently per speaker. A complete
+segment requires 800 ms of observed quiet PCM, a 400 ms fragment grace period and
+recent audio coverage; a network pause alone never ends an utterance. The RMS
+threshold (500 PCM16 units) and 20 ms activity windows are provisional trial
+settings, not a guarantee against echo or background speech. Output timing gaps,
+missing timing and interrupted capture produce incomplete records. Late fragments
+are retained separately and never replay an accepted user observation.
+
+The additive `live_transcript_receipt` and `live_transcript_segment` tables retain
+text, provider receipt identity, session/epoch, segment status and event linkage.
+Their agent foreign keys cascade on deletion; reset keeps prior-epoch audit rows.
+Apply the entity-defined tables, unique receipt index and foreign keys before a
+managed deployment. Local `ddl-auto=update` creates them without a database reset.
+Each segment is durably claimed before agent processing. PENDING/FAILED claims
+survive restart and are never automatically retried: this prevents duplicate
+admission but does not promise exactly-once external action side effects.
+
+Capture limits are 8,192 receipts per session, 128 fragments/2,800 characters per
+open segment, 30 seconds open duration and 128 pending work items per session.
+Four capture workers share a 32-session scheduling queue. Overflow fails the
+session visibly; duration expiry records an incomplete segment. Assistant capture
+never acknowledges user input. Ambiguous bare answers such as yes/no during state
+changes or following uncorrelated backend questions request clarification and do
+not advance the agent; explicit, self-contained replies remain usable.
+`GET /demo/agents/{agentId}/live/transcripts?sessionId={handle}` returns the last
+100 ledger outcomes under the same access scope, including incomplete/late text.
+No raw audio is stored. Real continuous quiet-audio coverage remains a live-trial
+gate; if it is absent, capture fails conservatively rather than guessing silence.
 
 ## Admin API
 

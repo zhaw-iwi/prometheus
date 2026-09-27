@@ -72,6 +72,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 187 (GL-04), bounded transcript segmentation
+  and durable receipt/segment admission. Restart replay cannot run the same
+  blocking action twice; uncertain, late and interrupted input remains inspectable
+  without automatic action retry. Thirteen focused checks and five disposable
+  MySQL cases passed. Real audio coverage and acoustics remain unverified.
 - Experimental follow-up: Milestone 186 (GL-03), provider-neutral external speech
   ownership, non-speech complements, persisted intent/native provenance and shared
   conversational projection. Native recording cannot acknowledge or advance tasks;
@@ -134,6 +139,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 187: Durable GPT-Live transcript ingress (GL-04)
 
 - [x] Milestone 186: External speech execution and provenance (GL-03)
 
@@ -8364,3 +8371,15 @@ priority and action ownership.
   first database failure; final reload/identity verification passed.
 - No voice/acoustic trial was run. See .agents/GPTLIVE_RESULTS.md for commands,
   schema details and remaining transport/ingress work.
+
+## Milestone 187: Durable GPT-Live transcript ingress (GL-04)
+
+- Added bounded independent speaker segmentation, durable receipt identity and
+  segment claims, and ordered asynchronous sideband processing. Complete user
+  segments enter existing acknowledgement; native speech never does.
+- Uncertain short replies, late fragments and incomplete input remain in a scoped
+  ledger. Failed/pending claims cannot automatically repeat actions after restart.
+- Thirteen focused Java cases and five disposable-MySQL cases passed, including
+  application-context reload and persisted blocking-action write-version checks.
+- Audio coverage/segmentation thresholds remain provisional until live trials.
+  See .agents/GPTLIVE_RESULTS.md for actual commands and remaining gates.

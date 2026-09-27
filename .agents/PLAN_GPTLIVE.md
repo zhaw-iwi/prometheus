@@ -3,8 +3,8 @@
 - Branch: `feature/gptlive`
 - Baseline: `main` at `2104b11`, through project Milestone 183
 - Created: 2026-09-27
-- Status: GL-01 through GL-03 automated implementation complete (project Milestones
-  184–186); GL-04 next. Live voice and physical acceptance remain NOT RUN.
+- Status: GL-01 through GL-04 automated implementation complete (project Milestones
+  184–187); GL-05 next. Live voice and physical acceptance remain NOT RUN.
 - Target voice model: `gpt-live-1`, using client delegation.
 
 The user authorized implementation on 2026-09-27: complete each milestone, commit

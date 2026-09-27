@@ -20,6 +20,7 @@ class ScopedLiveSessionControllerWebMvcTest {
     @Autowired MockMvc mvc;
     @MockitoBean ScopedLiveSessionService service;
     @MockitoBean ScopedDemoService demo;
+    @MockitoBean LiveTranscriptIngressService ingress;
     final UUID agent = UUID.randomUUID(), handle = UUID.randomUUID();
     String path() { return "/demo/agents/" + agent + "/live/sessions"; }
     @Test void typedSessionHidesProviderIdentityAndRejectsArbitraryConfiguration() throws Exception {

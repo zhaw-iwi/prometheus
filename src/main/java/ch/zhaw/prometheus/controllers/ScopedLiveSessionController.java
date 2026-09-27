@@ -16,8 +16,18 @@ import ch.zhaw.prometheus.spi.live.LiveProviderException;
 public class ScopedLiveSessionController {
     private final ScopedLiveSessionService service;
     private final ch.zhaw.prometheus.application.ScopedDemoService demo;
-    public ScopedLiveSessionController(ScopedLiveSessionService service, ch.zhaw.prometheus.application.ScopedDemoService demo) {
-        this.service = service; this.demo = demo;
+    private final ch.zhaw.prometheus.application.LiveTranscriptIngressService ingress;
+    public ScopedLiveSessionController(ScopedLiveSessionService service, ch.zhaw.prometheus.application.ScopedDemoService demo,
+            ch.zhaw.prometheus.application.LiveTranscriptIngressService ingress) {
+        this.service = service; this.demo = demo; this.ingress = ingress;
+    }
+
+    @GetMapping("/transcripts")
+    public ResponseEntity<java.util.List<ch.zhaw.prometheus.application.LiveTranscriptIngressService.Outcome>> transcripts(@PathVariable UUID agentId,
+            @RequestParam UUID sessionId,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
+        return demo.getAgentInfo(code, agentId).isEmpty() ? ResponseEntity.notFound().build()
+                : ResponseEntity.ok(ingress.history(agentId, sessionId));
     }
 
     @GetMapping("/history")

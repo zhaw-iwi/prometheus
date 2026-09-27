@@ -4,6 +4,46 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-04 / project Milestone 187 — 2026-09-28
+
+GL-03 is committed/pushed as `dededed`. Added independent speaker aggregation,
+sample-based quiet detection with receipt-coverage checks, stable segment identity,
+bounded mailboxes, durable receipt/segment tables and scoped ledger retrieval.
+Provider fragments remain provisional until a ledger outcome is committed.
+Assistant outcomes use trusted recording and after-commit publication; user
+outcomes alone enter serialized acknowledgement. Short replies with uncertain
+spoken context are labeled CLARIFICATION for the next delivery milestone.
+
+Receipt persistence, segment claim and agent processing have separate transaction
+boundaries. A failed processing transaction retains the claim and marks FAILED;
+an interrupted process leaves PENDING. Neither is automatically replayed. This is
+duplicate-safe admission, not exactly-once external side effects or a replacement
+for the existing in-memory background-action semantics. Reset fences old epochs;
+agent deletion cascades ledger rows. README records limits and schema additions.
+
+Actual verification:
+
+- `mvnw.cmd -q "-Dtest=LiveTranscriptSegmenterUnitTest,LiveTranscriptCaptureServiceUnitTest,ScopedLiveSessionServiceUnitTest,ScopedLiveSessionControllerWebMvcTest" test`:
+  13 cases PASS. Tests cover observed silence versus network delay, hesitation,
+  overlap, reorder/duplicate receipt, repeated words, late/missing timing,
+  interrupted/max-duration closure, PCM activity and ordered asynchronous capture.
+- `LiveSessionSmokeIntegrationTest,LiveSpeechPersistenceIntegrationTest,LiveTranscriptIngressIntegrationTest`:
+  five cases PASS on disposable MySQL `prometheus_gptlive_68518774c7`. Application
+  contexts are rebuilt between ingress cases. A persisted blocking-action write
+  version proves replay exclusion; a new identity with the same words writes
+  again. Failed inference rolls back agent history but retains its ledger claim.
+  Schema/restricted account removed. Initial fixture assertions incorrectly used
+  RPS round count, then the map view instead of Storage for write versions;
+  corrected before this passing run.
+- `git diff --check`: PASS.
+
+No paid provider voice or physical trial ran. Quiet reflected PCM coverage and
+provisional activity thresholds are acoustically unverified. Missing coverage
+produces incomplete capture rather than a guessed end of speech. Bare replies
+after an uncorrelated backend question require a self-contained restatement;
+the protocol cannot prove which question was heard. GL-05 supplies clarification
+and narration transport; GL-06 replaces the temporary probe with the cockpit tab.
+
 ## GL-03 / project Milestone 186 — 2026-09-27
 
 Implemented the following association rules and execution boundary. GL-02 was
