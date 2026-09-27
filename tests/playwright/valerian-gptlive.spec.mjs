@@ -10,7 +10,8 @@ async function setup(context, scenario = {}) {
   Object.assign(scenario, { requests: [], history: [], ledger: [], ...scenario });
   await context.route("**/demo/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(); scenario.requests.push({ path, method });
-    if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: [AGENT] }));
+    if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: scenario.agents || [AGENT] }));
+    if (method === "DELETE" && /^\/demo\/agents\/[^/]+$/.test(path)) return route.fulfill({ status: 204 });
     if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: true, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
     if (path.endsWith("/info")) return route.fulfill(json(AGENT));
     if (path.endsWith("/history") || path.endsWith("/eventhistory")) return route.fulfill(json(scenario.history));
@@ -133,4 +134,54 @@ test("feature disabled preserves the two existing tabs", async ({ page, context 
   await page.getByTestId("access-code-input").fill("LIVE1"); await page.getByTestId("submit-access-code").click();
   await expect(page.getByTestId("send-text")).toBeEnabled(); await expect(page.getByTestId("gptlive-tab")).toBeHidden();
   await expect(page.getByTestId("continuous-speech-tab")).toBeVisible(); expect(await page.evaluate(() => window.__live.captures)).toBe(0);
+});
+
+test("network, sideband and microphone loss require a fresh explicit connection", async ({ page, context }, info) => {
+  const scenario = await setup(context); await open(page);
+  for (const failure of ["network", "sideband", "track"]) {
+    await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    if (failure === "sideband") scenario.disconnected = true;
+    else await page.evaluate(kind => {
+      if (kind === "track") window.__live.tracks.at(-1).dispatchEvent(new Event("ended"));
+      else { const peer = window.__live.peers.at(-1); peer.connectionState = "failed"; peer.onconnectionstatechange(); }
+    }, failure);
+    await expect(page.getByTestId("gptlive-status")).toHaveText("Disconnected");
+    expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject)).toBeNull();
+    expect(await page.evaluate(() => window.__live.tracks.every(track => track.stopped))).toBe(true);
+    scenario.disconnected = false;
+  }
+  expect(scenario.requests.filter(value => value.path.endsWith("/live/sessions") && value.method === "POST")).toHaveLength(3);
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("interaction-timing-tab").click();
+  await expect(page.getByTestId("timing-turns")).toContainText("GPT-Live");
+  await page.getByTestId("timing-turns").locator("summary").first().click();
+  await expect(page.getByTestId("timing-turns")).toContainText("separate clocks");
+  await page.getByTestId("interaction-timing-panel").screenshot({ path: info.outputPath("live-timing-drawer.png") });
+});
+
+test("reload, reset, switch, delete and logout cannot restore old captions or tracks", async ({ page, context }) => {
+  const second = { ...AGENT, id: "22222222-2222-4222-8222-222222222222", name: "Second agent" };
+  await setup(context, { agents: [AGENT, second] }); page.on("dialog", dialog => dialog.accept()); await open(page);
+  await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.reload(); await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+  expect(await page.evaluate(() => window.__live.captures)).toBe(0);
+  await page.getByTestId("gptlive-tab").click(); await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.locator("#open_diagnostics").click();
+  await page.evaluate(() => { window.__oldLivePeer = window.__live.peers.at(-1); window.__oldLiveSource = window.__live.sources.find(source => source.url.includes("/behaviour/")); });
+  await page.getByTestId("reset-agent").click(); await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+  await page.evaluate(() => { window.__oldLivePeer.channel.emit({ type: "session.output_transcript.delta", event_id: "late", delta: "Obsolete caption" }); window.__oldLiveSource.emit({ id: "late", type: "resp.behaviour_plan", payload: '{"speech":"Obsolete speech"}' }); });
+  await expect(page.getByTestId("gptlive-assistant-caption")).not.toContainText("Obsolete");
+  await expect(page.getByTestId("message-list")).not.toContainText("Obsolete");
+  await page.keyboard.press("Escape"); await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("agent-select").selectOption(second.id);
+  await expect(page.getByTestId("agent-connection-state")).toContainText(`Selected ${second.id}`);
+  expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject)).toBeNull();
+  await page.getByTestId("connect-agent").click(); await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+  await page.keyboard.press("Escape"); await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("delete-agent").click();
+  await expect(page.getByTestId("agent-connection-state")).toHaveText("No agent selected");
+  expect(await page.evaluate(() => window.__live.tracks.every(track => track.stopped))).toBe(true);
+  await page.getByTestId("agent-select").selectOption(ID); await page.getByTestId("connect-agent").click();
+  await page.keyboard.press("Escape"); await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.getByTestId("clear-access-code").click(); await expect(page.getByTestId("access-screen")).toBeVisible();
+  expect(await page.evaluate(() => window.__live.tracks.every(track => track.stopped))).toBe(true);
 });

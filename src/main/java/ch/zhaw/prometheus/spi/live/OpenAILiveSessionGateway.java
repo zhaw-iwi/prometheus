@@ -131,6 +131,8 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
         private final StringBuilder fragment = new StringBuilder();
         private final AtomicBoolean closed = new AtomicBoolean();
         private volatile WebSocket socket;
+        private long heartbeatAt, pingSequence;
+        private boolean pingPending;
 
         Sideband(Consumer<JsonObject> receiver, Runnable disconnected, int timeout) {
             this.receiver = receiver; this.disconnected = disconnected; this.timeout = timeout;
@@ -154,6 +156,19 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
         }
         @Override public CompletionStage<?> onClose(WebSocket socket, int statusCode, String reason) { fail(); return null; }
         @Override public void onError(WebSocket socket, Throwable error) { fail(); }
+        @Override public synchronized CompletionStage<?> onPong(WebSocket socket, java.nio.ByteBuffer message) {
+            if (message.remaining() == Long.BYTES && message.getLong() == pingSequence) pingPending = false;
+            socket.request(1); return null;
+        }
+        @Override public synchronized void heartbeat(long nowMs) {
+            if (!isOpen()) return;
+            if (pingPending) { if (nowMs - heartbeatAt >= 10000) fail(); return; }
+            if (pingSequence != 0 && nowMs - heartbeatAt < 10000) return;
+            heartbeatAt = nowMs; pingPending = true;
+            var payload = java.nio.ByteBuffer.allocate(Long.BYTES).putLong(++pingSequence).flip();
+            try { socket.sendPing(payload).whenComplete((ignored, error) -> { if (error != null) fail(); }); }
+            catch (RuntimeException error) { fail(); }
+        }
         private void fail() { if (closed.compareAndSet(false, true)) { if (socket != null) socket.abort(); disconnected.run(); } }
         @Override public void send(JsonObject event) {
             if (!isOpen()) throw new LiveProviderException("Live sideband disconnected");

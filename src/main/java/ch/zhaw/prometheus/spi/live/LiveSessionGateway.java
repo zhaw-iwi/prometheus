@@ -14,6 +14,8 @@ public interface LiveSessionGateway {
     interface Connection extends AutoCloseable {
         void send(JsonObject event);
         boolean isOpen();
+        /** Nonblocking WebSocket ping/pong liveness, independent of speech activity. */
+        default void heartbeat(long nowMs) {}
         @Override void close();
     }
     Session create(Request request);

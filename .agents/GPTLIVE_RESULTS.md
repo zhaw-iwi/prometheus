@@ -4,6 +4,38 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-07 / project Milestone 190 — 2026-09-28
+
+GL-06 is committed/pushed as `3935f59`. Added immediate pending-input fencing,
+access-code/link revalidation, browser heartbeat expiry, sideband ping/pong,
+bounded asynchronous cleanup and scoped close-status retention. Reset and scope
+changes invalidate pending browser callbacks; old SSE sources cannot repaint.
+Metadata traces and finalization status are available in Interaction Timing/JSON.
+
+Actual verification:
+
+- Eighteen focused Java cases PASS: `ScopedLiveSessionServiceUnitTest`,
+  `LiveTranscriptCaptureServiceUnitTest`, `ExternalSpeechOwnershipUnitTest`,
+  `LiveSessionGatewayUnitTest`, `ScopedLiveSessionControllerWebMvcTest`.
+  Fake time covers abandoned browsers and silent WebSockets. A blocked worker
+  exercises mailbox overflow; command/close timeout remains unconfirmed.
+- Nine Live Node cases PASS, including scope invalidation, immediate failure
+  silence, explicit reconnect, export correlation/redaction and retention limits.
+- Six accumulated Live MySQL cases PASS on disposable schema
+  `prometheus_gptlive_9b5b2b4b7e`, removed afterward. Added a receipt queued before
+  Stop that cannot run its blocking action when committed afterward.
+- Nine `valerian-gptlive.spec.mjs` cases PASS. Added network/sideband/track loss,
+  explicit recovery, reload, reset, agent switch/delete, logout and stale SSE.
+  Timing drawer screenshot inspected; labels and wrapping remain readable.
+  These are browser UI tests with application HTTP mocked, not GL-08 E2E.
+- Initial overflow fixture hit the segment-fragment bound first; alternating
+  speakers isolated mailbox capacity. A shadowed exception variable was corrected
+  before the final passing Java run. No failed check is counted as a pass.
+
+An action already admitted before Stop may complete. Finalization is confirmed
+only by `session.closed`; hangup success alone does not claim complete transcripts.
+Quiet speech is not treated as transport failure. Physical/live gates NOT RUN.
+
 ## GL-06 / project Milestone 189 — 2026-09-28
 
 GL-05 is committed/pushed as `053b0c6`. Added the opt-in third cockpit tab and

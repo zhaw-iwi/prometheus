@@ -96,6 +96,8 @@ public class LiveTranscriptIngressService {
                         candidates.isEmpty() ? SpeechProvenance.Association.NONE : SpeechProvenance.Association.AMBIGUOUS,
                         segment.closure() == Closure.COMPLETE);
                 persisted.finish(segment.closure().name(), segment.reason(), result.map(Event::getId).orElse(null));
+            } else if (!ownership.acceptingInput(id, owner)) {
+                persisted.finish("INCOMPLETE", "input_stopped_before_admission", null);
             } else if (segment.closure() != Closure.COMPLETE) {
                 persisted.finish("INCOMPLETE", segment.reason(), null);
             } else if (ambiguousShortReply(agent, owner, segment, observedStatePath)) {

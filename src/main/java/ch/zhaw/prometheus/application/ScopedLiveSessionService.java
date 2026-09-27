@@ -36,10 +36,11 @@ public class ScopedLiveSessionService {
     public record SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady) {
         @Override public String toString() { return "SessionView[handle=" + handle + ",sdp=redacted]"; }
     }
-    public record Diagnostic(String type, long sequence) {}
+    public record Diagnostic(String type, long sequence, long serverMs, String eventId, String clientEventId) {}
     public record StatusView(String state, boolean finalized, long eventCount, long inputSamples,
             long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState,
-            LiveContextBridgeService.Status context) {}
+            LiveContextBridgeService.Status context, UUID handle, UUID epoch, String clock,
+            LiveTranscriptCaptureService.Status capture, String reason) {}
 
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
@@ -52,10 +53,16 @@ public class ScopedLiveSessionService {
     private LiveContextBridgeService bridge;
     @Autowired void configureBridge(LiveContextBridgeService bridge) { this.bridge = bridge; }
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
+    private record Closed(UUID agent, byte[] scope, Instant expires, StatusView status) {}
+    private final Map<UUID, Closed> closed = new ConcurrentHashMap<>();
+    private final java.util.concurrent.ThreadPoolExecutor cleanup = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
+            new java.util.concurrent.ArrayBlockingQueue<>(128), work -> { var thread = new Thread(work, "live-cleanup"); thread.setDaemon(true); return thread; });
+    private java.util.concurrent.Executor disposer = Runnable::run;
 
     @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
             LiveAgentContextService contexts, ExternalSpeechOwnership ownership) {
         this(demo, gateway, properties, contexts, ownership, Clock.systemUTC());
+        disposer = cleanup;
     }
     ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
             LiveAgentContextService contexts, ExternalSpeechOwnership ownership, Clock clock) {
@@ -81,25 +88,27 @@ public class ScopedLiveSessionService {
                 || request.sdp().length() > 65536) throw new IllegalArgumentException("Invalid SDP offer");
         String voice = request.voice() == null ? "marin" : request.voice();
         if (!VOICES.contains(voice)) throw new IllegalArgumentException("Unsupported Live voice");
-        Lease lease = new Lease(agentId, digest(code), clock.instant().plusSeconds(properties.getSessionLifetimeSeconds()));
+        Lease lease = new Lease(agentId, digest(code), clock.instant().plusSeconds(properties.getSessionLifetimeSeconds()), clock);
         synchronized (sessions) {
             if (sessions.size() >= properties.getCapacity() || sessions.values().stream().anyMatch(s -> s.agentId.equals(agentId)))
                 throw new LiveSessionUnavailableException(true);
             sessions.put(lease.handle, lease);
         }
         try {
+            lease.failure = reason -> failed(lease, reason);
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
+            lease.authorized = () -> ownership.isCurrent(agentId, new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()));
             if (bridge != null) lease.bridge = bridge.open(lease.context,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
                     command -> lease.append(command, properties.getRequestTimeoutMs()), context -> lease.context = context,
-                    codeName -> { lease.contextProblem = codeName; lease.disconnected.set(true); });
+                    codeName -> { lease.contextProblem = codeName; failed(lease, codeName); });
             if (captures != null) lease.capture = captures.open(agentId,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
-                    () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; lease.disconnected.set(true); });
+                    () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; failed(lease, codeName); });
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions(),
                     lease.context.startupInput()));
-            lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> lease.disconnected.set(true));
+            lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> failed(lease, "sideband_disconnected"));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
             if (lease.bridge != null) lease.bridge.ready();
@@ -112,7 +121,8 @@ public class ScopedLiveSessionService {
     }
 
     public Optional<StatusView> status(String code, UUID agentId, UUID handle) {
-        return owned(code, agentId, handle).map(Lease::status);
+        return owned(code, agentId, handle).map(lease -> { lease.clientSeen = clock.instant(); return lease.status(); })
+                .or(() -> closedStatus(code, agentId, handle));
     }
 
     public Optional<StatusView> mute(String code, UUID agentId, UUID handle, boolean muted) {
@@ -127,11 +137,12 @@ public class ScopedLiveSessionService {
 
     public Optional<StatusView> close(String code, UUID agentId, UUID handle) {
         Optional<Lease> owned = owned(code, agentId, handle);
-        if (owned.isEmpty()) return Optional.empty();
+        if (owned.isEmpty()) return closedStatus(code, agentId, handle);
         Lease lease = owned.get();
         // Retain the reservation until transport cleanup finishes.
         dispose(lease, true);
         sessions.remove(handle, lease);
+        remember(lease);
         return Optional.of(lease.status());
     }
 
@@ -144,19 +155,48 @@ public class ScopedLiveSessionService {
 
     @Scheduled(fixedDelay = 5000)
     public void expire() {
+        closed.entrySet().removeIf(entry -> !clock.instant().isBefore(entry.getValue().expires));
         for (Lease lease : sessions.values()) {
-            if (!clock.instant().isBefore(lease.expires) || lease.disconnected.get() || lease.finalized.isDone()) {
-                dispose(lease, false); sessions.remove(lease.handle, lease);
+            if (lease.connection != null && !lease.stopped.get()) lease.connection.heartbeat(clock.millis());
+            String reason = !clock.instant().isBefore(lease.expires) ? "session_expired"
+                    : !clock.instant().isBefore(lease.clientSeen.plusSeconds(properties.getClientIdleSeconds())) ? "client_heartbeat_expired"
+                    : lease.context != null && !lease.authorized.getAsBoolean() ? "speech_scope_revoked"
+                    : lease.disconnected.get() ? lease.reason : lease.finalized.isDone() ? "provider_closed" : null;
+            if (reason != null && lease.cleanupQueued.compareAndSet(false, true)) {
+                failed(lease, reason);
+                try { disposer.execute(() -> { dispose(lease, false); sessions.remove(lease.handle, lease); remember(lease); }); }
+                catch (java.util.concurrent.RejectedExecutionException full) { lease.cleanupQueued.set(false); }
             }
         }
     }
     @PreDestroy public void shutdown() {
         for (Lease lease : sessions.values()) dispose(lease, false);
         sessions.clear();
+        cleanup.shutdownNow(); closed.clear();
+    }
+
+    private Optional<StatusView> closedStatus(String code, UUID agentId, UUID handle) {
+        if (demo.getAgentInfo(code, agentId).isEmpty()) return Optional.empty();
+        Closed value = closed.get(handle);
+        return value != null && value.agent.equals(agentId) && clock.instant().isBefore(value.expires)
+                && MessageDigest.isEqual(value.scope, digest(code)) ? Optional.of(value.status) : Optional.empty();
+    }
+    private synchronized void remember(Lease lease) {
+        if (closed.size() >= 128) closed.entrySet().stream().min(java.util.Comparator.comparing(entry -> entry.getValue().expires))
+                .ifPresent(entry -> closed.remove(entry.getKey()));
+        closed.put(lease.handle, new Closed(lease.agentId, lease.scope, clock.instant().plusSeconds(120), lease.status()));
+    }
+    private void failed(Lease lease, String reason) {
+        lease.reason = reason; lease.disconnected.set(true);
+        ownership.pauseInput(lease.agentId, lease.handle);
+        lease.pending.values().forEach(value -> value.result.completeExceptionally(new LiveProviderException("Live session disconnected")));
     }
 
     private void dispose(Lease lease, boolean graceful) {
         boolean first = lease.stopped.compareAndSet(false, true);
+        ownership.pauseInput(lease.agentId, lease.handle);
+        if (lease.capture != null) lease.capture.inputMuted(true);
+        lease.pending.values().forEach(value -> value.result.completeExceptionally(new LiveProviderException("Live session stopped")));
         if (lease.bridge != null) lease.bridge.close();
         if (first && graceful && lease.connection != null && lease.connection.isOpen()) {
             try {
@@ -189,6 +229,12 @@ public class ScopedLiveSessionService {
         final UUID agentId;
         final byte[] scope;
         final Instant expires;
+        final Clock clock;
+        volatile Instant clientSeen;
+        volatile String reason = "operator_stop";
+        volatile java.util.function.BooleanSupplier authorized = () -> true;
+        volatile java.util.function.Consumer<String> failure = ignored -> {};
+        final AtomicBoolean cleanupQueued = new AtomicBoolean();
         final AtomicBoolean stopped = new AtomicBoolean(), disconnected = new AtomicBoolean(), hungUp = new AtomicBoolean();
         final CompletableFuture<Void> finalized = new CompletableFuture<>();
         final Map<String, Pending> pending = new ConcurrentHashMap<>();
@@ -206,7 +252,9 @@ public class ScopedLiveSessionService {
         long count, dropped, inputSamples, outputSamples, voicedInputSamples;
         record Pending(String type, CompletableFuture<Void> result) {}
 
-        Lease(UUID agentId, byte[] scope, Instant expires) { this.agentId = agentId; this.scope = scope; this.expires = expires; }
+        Lease(UUID agentId, byte[] scope, Instant expires, Clock clock) {
+            this.agentId = agentId; this.scope = scope; this.expires = expires; this.clock = clock; this.clientSeen = clock.instant();
+        }
         synchronized void receive(JsonObject event) {
             String type = event.has("type") ? event.get("type").getAsString() : "invalid";
             if (!type.matches("[a-z_.]{1,100}")) type = "invalid";
@@ -230,14 +278,16 @@ public class ScopedLiveSessionService {
                 return; // Audio is measured and discarded, never retained in the diagnostic log.
             }
             if (recent.size() == 64) { recent.removeFirst(); dropped++; }
-            recent.addLast(new Diagnostic(type, count));
+            recent.addLast(new Diagnostic(type, count, clock.millis(), safeId(string(event, "event_id")), safeId(string(event, "client_event_id"))));
             if (type.equals("session.closed")) finalized.complete(null);
+            if (type.equals("session.closed")) failure.accept("provider_closed");
             String clientId = string(event, "client_event_id");
             if (type.equals("error") && event.has("error") && event.get("error").isJsonObject())
                 clientId = string(event.getAsJsonObject("error"), "client_event_id");
             Pending wait = clientId == null ? null : pending.get(clientId);
             if (wait != null && wait.type().equals(type)) wait.result().complete(null);
             if (wait != null && type.equals("error")) wait.result().completeExceptionally(new LiveProviderException("Live command rejected"));
+            if (type.equals("error")) failure.accept("provider_error");
         }
         void command(String type, String ack, int timeout) {
             JsonObject event = new JsonObject(); event.addProperty("type", type);
@@ -249,7 +299,7 @@ public class ScopedLiveSessionService {
             command(event, command.type().replace(".append", ".appended"), timeout);
         }
         private void command(JsonObject event, String ack, int timeout) {
-            if (stopped.get() || disconnected.get()) throw new LiveProviderException("Live session disconnected");
+            if (stopped.get() || disconnected.get() || !authorized.getAsBoolean()) throw new LiveProviderException("Live session disconnected");
             if (!commandSlots.tryAcquire()) throw new LiveProviderException("Live command capacity reached");
             String id = UUID.randomUUID().toString();
             CompletableFuture<Void> result = new CompletableFuture<>();
@@ -258,6 +308,7 @@ public class ScopedLiveSessionService {
                 event.addProperty("event_id", id);
                 connection.send(event); result.get(timeout, TimeUnit.MILLISECONDS);
             } catch (Exception failure) {
+                this.failure.accept("command_ack_unconfirmed");
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 throw new LiveProviderException("Live command not acknowledged");
             } finally { pending.remove(id); commandSlots.release(); }
@@ -265,11 +316,13 @@ public class ScopedLiveSessionService {
         private static String string(JsonObject event, String name) {
             return event.has(name) && event.get(name).isJsonPrimitive() ? event.get(name).getAsString() : null;
         }
+        private static String safeId(String value) { return value != null && value.matches("[A-Za-z0-9_-]{1,128}") ? value : null; }
         synchronized StatusView status() {
             String state = cleanupFailed ? "cleanup_unconfirmed" : stopped.get() ? "closed" : disconnected.get() ? "disconnected" : "attached";
             return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped,
                     captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable",
-                    bridge == null ? null : bridge.status());
+                    bridge == null ? null : bridge.status(), handle, context == null ? null : context.epoch(), "server_unix_ms",
+                    capture == null ? null : capture.status(), reason);
         }
     }
 }

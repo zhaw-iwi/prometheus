@@ -1,4 +1,5 @@
 import { LiveClient } from "./client.js";
+import { liveDiagnostics } from "./diagnostics.js";
 import { sanitizeMediaPreferences, captureSummary } from "../transcription/settings.js";
 
 const PREFERENCES = "prometheus.valerian.gptlive.preferences.v1";
@@ -22,8 +23,10 @@ export class LiveCockpit {
   get active() { return this.client.active; }
   get busy() { return this.client.busy; }
   stop(reason) { return this.client.stop(reason); }
+  invalidate(reason) { return this.client.invalidate(reason); }
   async configure(scope) {
     const version = ++this.version;
+    void this.client.invalidate();
     if (this.scope.agentId !== scope.agentId || this.scope.accessCode !== scope.accessCode) {
       void this.stop("Agent connection changed."); this.history = []; this.ledger = []; this.captions({}); this.renderHistory();
     }
@@ -58,6 +61,7 @@ export class LiveCockpit {
   }
   state(value) {
     if (value.state) {
+      this.client.state = value.state;
       $("gptlive_status").textContent = value.state;
       $("gptlive_status").className = `status-pill is-${value.state === "Active" ? "live" : ["Error", "Disconnected"].includes(value.state) ? "error" : "idle"}`;
     }
@@ -110,6 +114,8 @@ export class LiveCockpit {
     root.scrollTop = root.scrollHeight;
   }
   diagnostic(value) {
+    liveDiagnostics.record(value);
+    if (value.generation !== this.client.generation) return;
     this.lastDiagnostic = value;
     if (value.phase === "capture") $("gptlive_capture").textContent = JSON.stringify(value.capture, null, 2);
     if (value.phase === "status") {

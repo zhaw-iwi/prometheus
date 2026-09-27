@@ -6,6 +6,24 @@ import { MicrophoneLease } from "../../../src/main/resources/public/transcriptio
 import { OutputLease } from "../../../src/main/resources/public/speech/playback.js";
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+test("scope invalidation fences same-agent reset callbacks while completing old cleanup", async () => {
+  const cleanup = deferred(); const f = fixture({ respond: async (_, request) => request.method === "DELETE" ? cleanup.promise : null });
+  await f.start(); const closed = f.client.invalidate("Agent reset.");
+  assert.equal(f.audio.srcObject, null); assert.equal(f.client.state, "Idle");
+  cleanup.resolve({ ok: true, json: async () => ({ finalized: true }) }); await closed;
+  await new Promise(resolve => setImmediate(resolve)); assert.equal(f.histories.length, 0); assert.equal(f.client.state, "Idle");
+});
+
+test("network, sideband and track failures silence locally and reconnect only by explicit Start", async () => {
+  for (const fail of [f => { f.state.status.state = "disconnected"; return f.client.poll(); },
+    f => { f.peer.connectionState = "failed"; f.peer.onconnectionstatechange(); },
+    f => f.track.dispatchEvent(new Event("ended"))]) {
+    const f = fixture(); await f.start(); await fail(f); await f.client.closing;
+    assert.equal(f.audio.paused, true); assert.equal(f.track.enabled, false); assert.equal(f.client.state, "Disconnected");
+    assert.equal(f.requests.filter(value => value.url.endsWith("sessions")).length, 1);
+    f.state.status.state = "attached"; await f.start(); assert.equal(f.client.state, "Active"); await f.client.stop();
+  }
+});
 function fixture(options = {}) {
   const requests = [], states = [], diagnostics = [], captions = [], histories = [];
   const track = new EventTarget(); Object.assign(track, { enabled: false });

@@ -1,4 +1,5 @@
 import { turnTimings } from "./timings.js";
+import { liveDiagnostics } from "../live/diagnostics.js";
 import { METRICS, STAGE_LABELS, SERVER_LABELS, difference, measurements, outcome, timingExport, timingCsv } from "./report.js";
 
 const ms = value => Number.isFinite(value) ? `${value.toFixed(1)} ms` : "Unknown";
@@ -110,10 +111,25 @@ function mount() {
   const render = () => {
     scheduled = false;
     const turns = turnTimings.snapshot();
+    const live = liveDiagnostics.snapshot();
     count.textContent = turns.length ? `${turns.length} turn${turns.length === 1 ? "" : "s"} retained · latest 20 shown` : "No turns recorded yet. Start transcription and speak to collect timings.";
-    buttons.forEach(button => { button.disabled = !turns.length; });
+    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv" || !live.sessions.length); });
     const open = new Set([...list.querySelectorAll("details[open]")].map(node => node.dataset.traceId));
     list.replaceChildren();
+    if (live.sessions.length) {
+      count.textContent += ` GPT-Live: ${live.sessions.length} sessions, ${live.droppedSessions} sessions omitted.`;
+      for (const session of live.sessions.slice(-5).reverse()) {
+        const section = element("details", undefined, "surface-panel timing-turn mb-2");
+        section.dataset.traceId = session.handle; section.open = open.has(session.handle);
+        section.append(element("summary", `GPT-Live · ${session.server?.state || "connecting"} · finalization ${session.finalization}`));
+        section.append(table([["Session", session.handle], ["Epoch", session.server?.epoch || "Unknown"],
+          ["Context", session.server?.context?.state || "Unknown"], ["Revision", session.server?.context?.revision || "Unknown"],
+          ["Capture", session.server?.captureState || "Unknown"], ["Queue peak", session.server?.capture?.queueHighWater ?? "Unknown"],
+          ["Records omitted", session.browserDropped + (session.server?.dropped || 0) + (session.server?.capture?.dropped || 0) + (session.server?.context?.dropped || 0)]], "Live session diagnostics"));
+        section.append(element("p", "Browser monotonic time, server Unix time and provider audio offsets are separate clocks. Output activity does not prove audibility. JSON includes metadata only; CSV contains ordinary turns.", "small text-body-secondary"));
+        list.append(section);
+      }
+    }
     turns.slice(-20).reverse().forEach((turn, index) => {
       const node = element("details", undefined, "surface-panel timing-turn mb-2");
       node.dataset.traceId = turn.id;
@@ -132,13 +148,14 @@ function mount() {
   };
   document.getElementById("interaction_timing_tab").addEventListener("shown.bs.tab", schedule);
   turnTimings.subscribe(schedule);
-  root.querySelector("[data-timing-clear]").addEventListener("click", () => turnTimings.clear());
+  liveDiagnostics.subscribe(schedule);
+  root.querySelector("[data-timing-clear]").addEventListener("click", () => { turnTimings.clear(); liveDiagnostics.clear(); });
   buttons.forEach(button => button.addEventListener("click", () => {
     const turns = turnTimings.snapshot();
     const csv = button.dataset.timingExport === "csv";
-    const content = csv ? timingCsv(turns) : JSON.stringify(timingExport(turns, {
+    const content = csv ? timingCsv(turns) : JSON.stringify({ ...timingExport(turns, {
       userAgent: navigator.userAgent, timeOrigin: performance.timeOrigin,
-    }), null, 2);
+    }), live: liveDiagnostics.snapshot() }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: csv ? "text/csv;charset=utf-8" : "application/json" }));
     const link = element("a");
     link.href = url;

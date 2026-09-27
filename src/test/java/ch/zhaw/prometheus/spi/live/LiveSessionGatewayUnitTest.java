@@ -22,6 +22,15 @@ import com.sun.net.httpserver.HttpServer;
 import ch.zhaw.prometheus.spi.OpenAIProperties;
 
 class LiveSessionGatewayUnitTest {
+    @Test void heartbeatTimesOutSilentTransportButAcceptsMatchingPongWithoutSpeech() {
+        var socket = mock(WebSocket.class); var lost = new AtomicBoolean();
+        var payload = new AtomicReference<java.nio.ByteBuffer>();
+        when(socket.sendPing(any())).thenAnswer(call -> { payload.set(((java.nio.ByteBuffer) call.getArgument(0)).duplicate()); return java.util.concurrent.CompletableFuture.completedFuture(socket); });
+        var sideband = new OpenAILiveSessionGateway.Sideband(ignored -> {}, () -> lost.set(true), 100);
+        sideband.onOpen(socket); sideband.heartbeat(1000); sideband.onPong(socket, payload.get());
+        sideband.heartbeat(11000); sideband.heartbeat(20999); assertFalse(lost.get());
+        sideband.heartbeat(21000); assertTrue(lost.get()); assertFalse(sideband.isOpen()); verify(socket).abort();
+    }
     HttpServer server;
     HttpClient client;
     LiveProperties properties;

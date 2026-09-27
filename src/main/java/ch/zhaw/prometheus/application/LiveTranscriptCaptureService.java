@@ -26,6 +26,8 @@ import jakarta.annotation.PreDestroy;
 @Service
 public class LiveTranscriptCaptureService {
     public record Committed(UUID agentId, ExternalSpeech owner, LiveTranscriptIngressService.Outcome outcome) {}
+    public record Trace(long serverMs, String phase, String receiptId, UUID segmentId, String outcome, Long providerStartMs, Long providerEndMs) {}
+    public record Status(String state, int queued, int queueHighWater, long receipts, List<Trace> recent, long dropped) {}
     private final LiveTranscriptIngressService ingress;
     private final ApplicationEventPublisher events;
     private final Clock clock;
@@ -62,6 +64,9 @@ public class LiveTranscriptCaptureService {
         private boolean closed, muted = true, failed;
         private long sequence;
         private Long outputEnd;
+        private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
+        private long dropped;
+        private int queueHighWater;
         Capture(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure) {
             this.agent = agent; this.owner = owner; this.state = state; this.failure = failure;
             this.segmenter = new LiveTranscriptSegmenter(owner.sessionId());
@@ -93,7 +98,11 @@ public class LiveTranscriptCaptureService {
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());
                     List<Segment> ready = segmenter.fragment(fragment); seen.add(id); fragmentStates.put(id, List.copyOf(state.get()));
-                    enqueue(() -> ingress.receipt(agent, owner, fragment));
+                    trace("receipt_queued", id, null, null, fragment.startMs(), fragment.endMs());
+                    enqueue(() -> {
+                        boolean saved = ingress.receipt(agent, owner, fragment);
+                        trace("receipt_processed", id, null, saved ? "persisted" : "duplicate_or_obsolete", fragment.startMs(), fragment.endMs());
+                    });
                     if (!identified) segmenter.uncertain(speaker, "missing_provider_identity");
                     if (speaker == Speaker.USER && muted) segmenter.uncertain(speaker, "input_muted");
                     completed(ready);
@@ -122,12 +131,17 @@ public class LiveTranscriptCaptureService {
                 String first = segment.fragments().stream().min(java.util.Comparator.comparingLong(Fragment::sequence)).orElseThrow().eventId();
                 List<String> observedState = fragmentStates.getOrDefault(first, List.copyOf(state.get()));
                 segment.fragments().forEach(fragment -> fragmentStates.remove(fragment.eventId()));
-                enqueue(() -> ingress.commit(agent, owner, segment, observedState)
-                        .ifPresent(outcome -> events.publishEvent(new Committed(agent, owner, outcome))));
+                trace("segment_queued", null, segment.id(), segment.closure().name(), segment.startMs(), segment.endMs());
+                enqueue(() -> {
+                    var result = ingress.commit(agent, owner, segment, observedState);
+                    trace("agent_completed", null, segment.id(), result.map(LiveTranscriptIngressService.Outcome::status).orElse("OBSOLETE"), segment.startMs(), segment.endMs());
+                    result.ifPresent(outcome -> events.publishEvent(new Committed(agent, owner, outcome)));
+                });
             }
         }
         private void enqueue(Runnable action) {
             if (!work.offer(action)) { fail("capture_queue_full"); return; }
+            queueHighWater = Math.max(queueHighWater, work.size());
             startDrain();
         }
         private void startDrain() {
@@ -150,6 +164,15 @@ public class LiveTranscriptCaptureService {
         }
         private void fail(String code) { if (!failed) { failed = true; failure.accept(code); } }
         public synchronized boolean failed() { return failed; }
+        private synchronized void trace(String phase, String receipt, UUID segment, String outcome, Long start, Long end) {
+            if (traces.size() == 64) { traces.removeFirst(); dropped++; }
+            String safeReceipt = receipt != null && receipt.matches("[A-Za-z0-9_-]{1,128}") ? receipt : null;
+            traces.addLast(new Trace(clock.millis(), phase, safeReceipt, segment, outcome, start, end));
+        }
+        public synchronized Status status() {
+            return new Status(failed ? "failed" : closed ? drained.isDone() ? "closed" : "draining" : "active",
+                    work.size(), queueHighWater, sequence, List.copyOf(traces), dropped);
+        }
         private Long number(JsonObject event, String key) {
             if (!event.has(key) || event.get(key).isJsonNull()) return null;
             try { double value = event.get(key).getAsDouble(); return Double.isFinite(value) ? Math.round(value) : null; }

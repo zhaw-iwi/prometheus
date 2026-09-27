@@ -1064,7 +1064,7 @@ async function connectToAgent(agentId) {
     return;
   }
   state.selectedAgentId = selectedAgentId;
-  await liveVoice.ui?.stop("Agent connection changed.");
+  await liveVoice.ui?.invalidate("Agent connection changed.");
   if (state.transcriptionListening) {
     await stopTranscription();
   }
@@ -1128,7 +1128,7 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
-  await liveVoice.ui?.stop("Agent disconnected.");
+  await liveVoice.ui?.invalidate("Agent disconnected.");
   if (state.transcriptionListening) {
     await stopTranscription();
   }
@@ -1741,14 +1741,18 @@ function connectBehaviourStream() {
     state.streamReconnectTimer = null;
   }
   state.behaviourSource = new EventSource(behaviourStreamUrl());
+  const source = state.behaviourSource, agentId = state.agentId;
+  const current = () => state.behaviourSource === source && state.agentId === agentId;
   setBehaviourStatus("Behaviour Connecting", "idle");
   state.behaviourSource.addEventListener("open", () => {
+    if (!current()) return;
     state.streamReconnectAttempt = 0;
     setBehaviourStatus("Behaviour Live", "live");
     appendLog("stream", "behaviour stream connected.");
   });
   ["behaviour-live", "behaviour-replay"].forEach((eventName) => {
     state.behaviourSource.addEventListener(eventName, (event) => {
+      if (!current()) return;
       if (event.lastEventId) {
         state.lastBehaviourEventId = event.lastEventId;
       }
@@ -1763,6 +1767,7 @@ function connectBehaviourStream() {
     });
   });
   state.behaviourSource.onerror = () => {
+    if (!current()) return;
     closeBehaviourStream();
     setBehaviourStatus("Behaviour Error", "error");
     scheduleBehaviourReconnect();
@@ -1774,10 +1779,14 @@ function connectMonitorStream() {
     return;
   }
   state.monitorSource = new EventSource(monitorStreamUrl());
+  const source = state.monitorSource, agentId = state.agentId;
+  const current = () => state.monitorSource === source && state.agentId === agentId;
   state.monitorSource.addEventListener("open", () => {
+    if (!current()) return;
     state.monitorReconnectAttempt = 0;
   });
   state.monitorSource.addEventListener("snapshot", (event) => {
+    if (!current()) return;
     try {
       const data = JSON.parse(event.data);
       applyMonitorSnapshot(data);
@@ -1786,6 +1795,7 @@ function connectMonitorStream() {
     }
   });
   state.monitorSource.onerror = () => {
+    if (!current()) return;
     if (state.monitorSource) {
       state.monitorSource.close();
       state.monitorSource = null;
@@ -1867,7 +1877,8 @@ async function resetAgent() {
     return;
   }
   try {
-    await liveVoice.ui?.stop("Agent reset.");
+    cleanupStreams();
+    await liveVoice.ui?.invalidate("Agent reset.");
     if (state.transcriptionListening) {
       await stopTranscription();
     }
@@ -1878,6 +1889,7 @@ async function resetAgent() {
     const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
+      connectBehaviourStream(); connectMonitorStream();
       return;
     }
     const data = await response.json();
@@ -1891,8 +1903,10 @@ async function resetAgent() {
     await loadAgentState();
     await loadStorage();
     appendLog("app", "agent reset.");
+    connectBehaviourStream(); connectMonitorStream();
   } catch (error) {
     appendLog("app", "reset failed: " + error.message);
+    connectBehaviourStream(); connectMonitorStream();
   }
 }
 

@@ -8,5 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import ch.zhaw.prometheus.model.access.AccessCode;
 
 public interface AccessCodeRepository extends JpaRepository<AccessCode, UUID> {
+    boolean existsByIdAndEnabledTrue(UUID id);
     Optional<AccessCode> findByCode(String code);
 }

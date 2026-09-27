@@ -1166,6 +1166,22 @@ diagnostic history. RMS activity is a coarse diagnostic signal, not turn detecti
 or evidence that audio was heard. Unexpected disconnect uses the hangup fallback;
 finalization remains unconfirmed without `session.closed`.
 
+The cockpit polls once per second. A missing browser heartbeat expires its lease
+after `prometheus.live.client-idle-seconds` (default 30, checked every five seconds).
+Sideband WebSocket ping/pong detects a silent transport independently of speech.
+Cleanup runs on bounded workers; it does not block the shared capture scheduler.
+Stop immediately fences user segments that have not entered acknowledgement;
+an already admitted action can finish. Assistant capture may drain during close.
+Access-code disable/unlink and epoch changes fence subsequent worker operations.
+Closed metadata stays scoped and readable for two minutes (maximum 128 sessions).
+
+Interaction Timing includes a Live section and bounded metadata in JSON exports:
+session/epoch, receipt/segment/source IDs, context revision, queue coverage,
+send/ACK, output counters and finalization. Browser monotonic time, server Unix time
+and provider audio offsets are separate clocks. Dropped-record counts are explicit.
+Text, audio, SDP, credentials and device identifiers are excluded. CSV still covers
+ordinary turns. Reconnect is explicit and seeds a fresh session from persisted state.
+
 See `.agents/GPTLIVE_RESULTS.md` for actual verification and separate live/audio
 gates. Provider metadata access alone does not prove a usable voice session.
 

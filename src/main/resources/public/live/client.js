@@ -16,6 +16,10 @@ export class LiveClient {
   get busy() { return this.active || !!this.closing; }
   status(state, detail = "", extra = {}) { this.state = state; this.onState({ state, detail, ...extra }); }
   check(run) { if (this.current !== run) throw new DOMException("Session stopped", "AbortError"); }
+  diagnostic(run, value) { this.onDiagnostic({ ...value, agentId: run.agentId, handle: run.handle, generation: run.generation }); }
+  invalidate(reason = "Agent connection changed.") {
+    const closing = this.stop(reason); this.generation++; this.status("Idle", reason); return closing;
+  }
   async api(run, suffix, options = {}) {
     const response = await this.fetch(`/demo/agents/${encodeURIComponent(run.agentId)}/live/${suffix}`, {
       ...options, headers: { "Content-Type": "application/json", "X-Prometheus-Access-Code": run.accessCode },
@@ -34,13 +38,13 @@ export class LiveClient {
       const capability = await this.api(run, "capabilities"); this.check(run);
       if (!capability.enabled || !capability.eligible) throw new Error("This agent is not available for the GPT-Live pilot.");
       if (outputDeviceId && typeof this.audio.setSinkId !== "function") throw new Error("Speaker selection is unavailable. Choose the system default.");
-      run.output = this.createOutputLease(agentId, () => void this.stop("Output ownership was lost.", "Disconnected"));
+      run.output = this.createOutputLease(agentId, () => { if (this.current === run) void this.stop("Output ownership was lost.", "Disconnected"); });
       if (!run.output.acquire()) throw new Error("Another window owns this agent's speaker output.");
       run.media = this.createMedia(() => { if (this.current === run) void this.stop("Another window owns the microphone.", "Disconnected"); });
       await run.media.acquire(mediaPreferences);
       if (this.current !== run) { run.media.release(); return; }
       run.media.setEnabled(false);
-      this.onDiagnostic({ phase: "capture", capture: captureSummary(mediaPreferences, run.media.appliedAudioSettings()) });
+      this.diagnostic(run, { phase: "capture", capture: captureSummary(mediaPreferences, run.media.appliedAudioSettings()) });
       this.audio.muted = false;
       if (typeof this.audio.setSinkId === "function") await this.audio.setSinkId(outputDeviceId);
       this.check(run);
@@ -49,6 +53,7 @@ export class LiveClient {
       run.peer.ontrack = event => {
         if (this.current !== run) return;
         this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+        this.diagnostic(run, { phase: "output_track" });
         event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected"); });
         Promise.resolve(this.audio.play()).catch(() => { if (this.current === run) void this.stop("Speaker playback was blocked.", "Error"); });
       };
@@ -61,6 +66,8 @@ export class LiveClient {
         if (this.current !== run) return;
         try {
           const event = JSON.parse(data);
+          if (event.type === "session.input_transcript.delta" || event.type === "session.output_transcript.delta")
+            this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, providerStartMs: event.start_ms, providerEndMs: event.end_ms });
           if (event.type === "session.started") started();
           if (run.captions.receive(event)) this.onCaptions(run.captions.snapshot());
           if (event.type === "session.closed") void this.stop("Voice session ended.", "Disconnected");
@@ -80,7 +87,7 @@ export class LiveClient {
       await this.api(run, `sessions/${run.handle}/input?muted=false`, { method: "POST" }); this.check(run);
       run.media.setEnabled(true); this.status("Active", "Speak naturally. You can interrupt while the assistant speaks.", { muted: false });
       if (this.pollMs) run.timer = setInterval(() => void this.poll(), this.pollMs);
-      this.onDiagnostic({ phase: "started", handle: run.handle });
+      this.diagnostic(run, { phase: "started" });
     } catch (error) {
       if (this.current === run) await this.stop(error?.name === "NotAllowedError" ? "Microphone permission was denied. Allow it in Chrome, then reconnect." : error.message, "Error");
     }
@@ -89,11 +96,12 @@ export class LiveClient {
     const run = this.current; if (!run?.handle || run.polling) return; run.polling = true;
     try {
       const status = await this.api(run, `sessions/${run.handle}`); this.check(run);
-      this.onDiagnostic({ phase: "status", handle: run.handle, status });
+      this.diagnostic(run, { phase: "status", status });
       if (status.state !== "attached") throw new Error("Backend voice connection lost. Reconnect when ready.");
       const ledger = await this.api(run, `transcripts?sessionId=${encodeURIComponent(run.handle)}`); this.check(run);
       const key = ledger.map(value => `${value.segmentId}:${value.status}:${value.eventId}`).join("|");
       if (key !== run.ledgerKey) {
+        for (const value of ledger) this.diagnostic(run, { phase: "segment_observed", segmentId: value.segmentId, outcome: value.status });
         run.ledgerKey = key; run.captions.reconcile(ledger); this.onCaptions(run.captions.snapshot()); this.onLedger(ledger, run.agentId);
         const history = await this.api(run, "history"); this.check(run); this.onHistory(history, run.agentId);
       }
@@ -118,10 +126,11 @@ export class LiveClient {
     run.media?.release(); run.output?.release(); clearInterval(run.timer);
     run.channel?.close(); run.peer?.close();
     run.cancelStartup?.();
+    this.diagnostic(run, { phase: "local_stop" });
     this.status("Stopping", detail);
     const closing = this.finalize(run).then(result => {
+      this.diagnostic(run, { phase: "stopped", finalized: result?.finalized === true, status: result?.state ? result : undefined });
       if (this.generation !== run.generation) return;
-      this.onDiagnostic({ phase: "stopped", handle: run.handle, finalized: result?.finalized === true });
       this.status(finalState, `${detail} Finalization ${result?.finalized ? "confirmed" : "unconfirmed"}.`);
     }).finally(() => { if (this.closing === closing) { this.closing = null; this.onState({ state: this.state, settled: true }); } });
     this.closing = closing; return closing;

@@ -25,14 +25,18 @@ class ScopedLiveSessionServiceUnitTest {
     final LiveProperties properties = new LiveProperties();
     final FakeGateway gateway = new FakeGateway();
     final LiveAgentContextService contexts = mock(LiveAgentContextService.class);
+    final ExternalSpeechOwnership ownership = new ExternalSpeechOwnership();
     ScopedLiveSessionService service;
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
         when(demo.getAgentInfo(anyString(), eq(agent))).thenReturn(Optional.of(new AgentInfoView(agent, "Test", "", true)));
-        when(contexts.claim(anyString(), eq(agent), any())).thenReturn(Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
-                agent, UUID.randomUUID(), "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0)));
-        service = new ScopedLiveSessionService(demo, gateway, properties, contexts, new ExternalSpeechOwnership(), clock);
+        when(contexts.claim(anyString(), eq(agent), any())).thenAnswer(call -> {
+            var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
+            return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
+                agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0));
+        });
+        service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
     @Test void scopeAndFeatureGateRunBeforeProviderAndOnlyOneSessionOwnsAgent() {
@@ -56,7 +60,7 @@ class ScopedLiveSessionServiceUnitTest {
         assertEquals("session.input_audio.mute", gateway.sent.getFirst().get("type").getAsString());
         var result = service.close("ABCDE", agent, session.handle()).orElseThrow();
         assertTrue(result.finalized()); assertEquals("closed", result.state()); assertTrue(gateway.hangups.isEmpty());
-        assertTrue(service.status("ABCDE", agent, session.handle()).isEmpty());
+        assertEquals("closed", service.status("ABCDE", agent, session.handle()).orElseThrow().state());
         gateway.ack = false; session = start();
         UUID handle = session.handle();
         assertThrows(LiveProviderException.class, () -> service.mute("ABCDE", agent, handle, false));
@@ -74,8 +78,20 @@ class ScopedLiveSessionServiceUnitTest {
         assertEquals(64, status.recent().size()); assertEquals(16, status.dropped()); assertEquals(2, status.voicedInputSamples());
         assertFalse(status.toString().contains("private-sentinel"));
         when(clock.instant()).thenReturn(Instant.parse("2026-09-28T00:00:00Z")); service.expire();
-        assertEquals(1, gateway.hangups.size()); assertTrue(service.status("ABCDE", agent, session.handle()).isEmpty());
+        assertEquals(1, gateway.hangups.size()); assertEquals("session_expired", service.status("ABCDE", agent, session.handle()).orElseThrow().reason());
         start(); gateway.disconnected.run(); service.expire(); assertEquals(2, gateway.hangups.size());
+    }
+    @Test void absentBrowserExpiresQuietSessionAndRevocationFencesCommands() {
+        var session = start();
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:31Z")); service.expire();
+        var result = service.status("ABCDE", agent, session.handle()).orElseThrow();
+        assertEquals("client_heartbeat_expired", result.reason()); assertFalse(result.finalized());
+        assertTrue(service.status("FGHIJ", agent, session.handle()).isEmpty());
+        var next = start(); ownership.revoke(agent);
+        assertThrows(LiveProviderException.class, () -> service.mute("ABCDE", agent, next.handle(), false));
+        service.expire(); assertEquals("speech_scope_revoked", service.status("ABCDE", agent, next.handle()).orElseThrow().reason());
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:03:00Z")); service.expire();
+        assertTrue(service.status("ABCDE", agent, next.handle()).isEmpty());
     }
     static JsonObject event(String type) { JsonObject event = new JsonObject(); event.addProperty("type", type); return event; }
     static class FakeGateway implements LiveSessionGateway {

@@ -147,7 +147,10 @@ client delegation reports existing work without a second acknowledgement. Lost
 append ACKs fail visibly without blind retry. GL-06 replaces the temporary probe
 with a third cockpit tab, shared media leases, device/voice controls and receipt-
 reconciled captions/history. Conversation projection is opt-in on behaviour SSE;
-the raw contract remains available. It is separate from current
+the raw contract remains available. GL-07 fences pending input on Stop and scope
+revocation, checks browser/sideband liveness, preserves scoped close diagnostics,
+and adds content-free Live traces to the timing drawer/JSON. Reset/switch callbacks
+cannot rehydrate an obsolete session. It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend

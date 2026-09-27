@@ -216,6 +216,11 @@ public class ScopedDemoService {
         return this.agentService.getAgentLanguageCode(agentId);
     }
 
+    Optional<UUID> speechScope(String accessCodeValue, UUID agentId) {
+        AccessCode code = requireEnabledAccessCode(accessCodeValue);
+        return accessCodeAgents.existsByAccessCode_IdAndAgent_Id(code.getId(), agentId) ? Optional.of(code.getId()) : Optional.empty();
+    }
+
     private boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
         AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
         return agentId != null && this.accessCodeAgents.existsByAccessCode_IdAndAgent_Id(accessCode.getId(), agentId);

@@ -92,6 +92,12 @@ class LiveTranscriptIngressIntegrationTest {
         // Selection writes again; no round was evaluated, so the round number remains one.
         assertNotEquals(acceptedActionVersion, actionVersion());
         assertEquals(1, rounds()); verifyNoInteractions(gateway);
+        String beforeStop = actionVersion();
+        Fragment stopped = fragment("queued-before-stop", Speaker.USER, 3000, "My hand is ready again");
+        assertTrue(ingress.receipt(agentId, owner, stopped));
+        ownership.pauseInput(agentId, owner.sessionId());
+        assertEquals("input_stopped_before_admission", ingress.commit(agentId, owner, segment(stopped, Closure.COMPLETE), List.of("game")).orElseThrow().reason());
+        assertEquals(beforeStop, actionVersion());
     }
     @Test @Order(3) void failedProcessingKeepsDurableClaimAndNeverRetriesAutomatically() {
         PromptPolicy policy = new PromptPolicy("Speak", null, null); policy.setNonVerbalPlanPrompt("Use a gesture");

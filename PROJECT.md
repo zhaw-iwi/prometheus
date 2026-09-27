@@ -72,6 +72,10 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 190 (GL-07), scoped Live liveness, pending-input
+  fences, bounded cleanup and content-free timing diagnostics. Focused Java/Node,
+  disposable MySQL and browser lifecycle checks passed. GL-08 integrated acceptance
+  follows; paid Live sessions and physical acoustic trials remain NOT RUN.
 - Experimental follow-up: Milestone 189 (GL-06), third GPT-Live cockpit tab with
   explicit start/mute/stop, shared leases, voice/device settings and receipt-based
   caption reconciliation. Conversation history/SSE separates planned and spoken
@@ -151,6 +155,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 190: GPT-Live lifecycle hardening and diagnostics (GL-07)
 
 - [x] Milestone 189: Third GPT-Live cockpit tab (GL-06)
 
@@ -8428,3 +8434,17 @@ priority and action ownership.
 - Desktop/mobile light/dark screenshots inspected, including wrapped tabs and
   permission errors. Live provider/audio gates remain NOT RUN. Detailed evidence
   and the distinction from GL-08 end-to-end acceptance are in GPTLIVE_RESULTS.md.
+
+## Milestone 190: GPT-Live lifecycle hardening and diagnostics (GL-07)
+
+Implemented pending-input fences on Stop, access-code/link and epoch validation,
+browser heartbeat expiry and WebSocket ping/pong. Bounded cleanup workers preserve
+capture scheduling; short-lived scoped tombstones expose close uncertainty.
+Reset/switch invalidates browser callbacks and obsolete SSE sources. The timing
+drawer and JSON export contain bounded metadata with independently labeled clocks,
+queue coverage and dropped counts; no conversation/audio/secrets/device IDs.
+
+Verified 18 focused Java, nine Live Node and nine browser UI cases, plus six
+accumulated Live cases on disposable MySQL. Tested Stop-before-admission, provider
+silence, overflow, scope revocation and lifecycle recovery. Screenshots inspected.
+See `.agents/GPTLIVE_RESULTS.md`; live voice and physical trials remain NOT RUN.

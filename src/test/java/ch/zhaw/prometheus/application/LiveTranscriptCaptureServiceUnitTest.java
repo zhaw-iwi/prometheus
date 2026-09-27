@@ -19,6 +19,24 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @Test void mailboxOverflowFailsClosedWithBoundedContentFreeEvidence() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        var entered = new java.util.concurrent.CountDownLatch(1); var release = new java.util.concurrent.CountDownLatch(1);
+        when(ingress.receipt(any(), any(), any())).thenAnswer(call -> { entered.countDown(); assertTrue(release.await(5, TimeUnit.SECONDS)); return true; });
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class));
+        var failure = new AtomicReference<String>();
+        var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()), () -> List.of("test"), failure::set);
+        try {
+            for (int i = 0; i < 150; i++) {
+                var event = new com.google.gson.JsonObject(); event.addProperty("type", i % 2 == 0 ? "session.input_transcript.delta" : "session.output_transcript.delta");
+                event.addProperty("event_id", "receipt_" + i); event.addProperty("start_ms", i); event.addProperty("end_ms", i + 1); event.addProperty("delta", "secret");
+                capture.receive(event); if (i == 0) assertTrue(entered.await(2, TimeUnit.SECONDS));
+            }
+            assertEquals("capture_queue_full", failure.get());
+            var status = capture.status(); assertEquals(128, status.queueHighWater()); assertTrue(status.dropped() > 0);
+            assertEquals(64, status.recent().size()); assertFalse(status.toString().contains("secret"));
+        } finally { release.countDown(); capture.close().get(5, TimeUnit.SECONDS); service.shutdown(); }
+    }
     @Test void sidebandReceiptsAreOrderedOffThreadAndCommittedOnceAfterMeasuredQuiet() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class); var events = mock(ApplicationEventPublisher.class);
         var clock = mock(Clock.class); var now = new AtomicLong(1000); when(clock.millis()).thenAnswer(call -> now.get());

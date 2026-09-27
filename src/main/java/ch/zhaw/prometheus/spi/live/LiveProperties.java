@@ -14,6 +14,7 @@ public class LiveProperties {
     private int closeTimeoutMs = 3000;
     private int sessionLifetimeSeconds = 900;
     private int capacity = 16;
+    private int clientIdleSeconds = 30;
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean value) { enabled = value; }
@@ -28,6 +29,8 @@ public class LiveProperties {
     public int getSessionLifetimeSeconds() { return sessionLifetimeSeconds; }
     public void setSessionLifetimeSeconds(int value) { sessionLifetimeSeconds = bounded(value, 30, 3600); }
     public int getCapacity() { return capacity; }
+    public int getClientIdleSeconds() { return clientIdleSeconds; }
+    public void setClientIdleSeconds(int value) { clientIdleSeconds = bounded(value, 10, 120); }
     public void setCapacity(int value) { capacity = bounded(value, 1, 128); }
 
     private static int bounded(int value, int min, int max) {

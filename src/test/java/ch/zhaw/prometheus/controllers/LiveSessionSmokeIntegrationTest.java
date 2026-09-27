@@ -70,7 +70,8 @@ class LiveSessionSmokeIntegrationTest {
         mvc.perform(delete(path + "/" + handle).header(ScopedDemoController.ACCESS_CODE_HEADER, other)).andExpect(status().isNotFound());
         mvc.perform(delete(path + "/" + handle).header(ScopedDemoController.ACCESS_CODE_HEADER, code))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.finalized").value(true));
-        mvc.perform(get(path + "/" + handle).header(ScopedDemoController.ACCESS_CODE_HEADER, code)).andExpect(status().isNotFound());
+        mvc.perform(get(path + "/" + handle).header(ScopedDemoController.ACCESS_CODE_HEADER, code))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.finalized").value(true));
         verify(gateway, times(1)).create(any()); verify(gateway, never()).hangup(anyString());
         assertTrue(demo.getAgentInfo(code, agent).isPresent());
     }

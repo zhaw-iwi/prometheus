@@ -39,7 +39,8 @@ public class LiveAgentContextService {
         return turns.serialized(id, () -> {
             var result = snapshot(code, id);
             result.ifPresent(context -> {
-                ownership.acquire(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, context.epoch()));
+                ownership.acquire(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, context.epoch()),
+                        demo.speechScope(code, id).orElseThrow(DemoAccessDeniedException::new));
                 turns.discardSpeculation(id, "external_speech_started");
             });
             return result;
