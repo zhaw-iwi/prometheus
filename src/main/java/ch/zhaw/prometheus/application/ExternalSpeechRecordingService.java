@@ -24,6 +24,9 @@ public class ExternalSpeechRecordingService {
     private final AgentBehaviourBroadcaster behaviour;
     private final AgentMonitorBroadcaster monitor;
     private final TransactionTemplate transaction;
+    private org.springframework.context.ApplicationEventPublisher events;
+    @org.springframework.beans.factory.annotation.Autowired
+    void events(org.springframework.context.ApplicationEventPublisher events) { this.events = events; }
     public ExternalSpeechRecordingService(AgentApplicationService turns, AgentRepository agents,
             ExternalSpeechOwnership ownership, AgentBehaviourBroadcaster behaviour, AgentMonitorBroadcaster monitor,
             PlatformTransactionManager transactions) {
@@ -62,6 +65,7 @@ public class ExternalSpeechRecordingService {
             });
             if (created[0]) {
                 AfterCommit.run(() -> {
+                    if (events != null) events.publishEvent(new AgentCommitted(id, owner.epoch()));
                     result.ifPresent(event -> behaviour.publish(id, event));
                     agents.findById(id).ifPresent(monitor::publish);
                 });

@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.application;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.awaitility.Awaitility.await;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -14,6 +15,52 @@ class LiveContextDeliveryUnitTest {
     static final UUID AGENT = UUID.randomUUID(), EPOCH = UUID.randomUUID();
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0);
+    }
+    @Test void idleTicksReadOnlyAtSensoryExpiryCommitAndFallback() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        java.util.function.Supplier<LiveContextSnapshot> current = () -> {
+            boolean expired = now.get() >= 15000;
+            var item = new LiveContextSnapshot.Item("presence", "obs.human.presence", "developer", List.of(),
+                    Instant.EPOCH, Instant.EPOCH, Instant.ofEpochMilli(15000), expired ? "expired" : "fresh",
+                    expired ? "Current value unknown" : "One person visible");
+            return new LiveContextSnapshot(AGENT, EPOCH, expired ? "expired" : "fresh", Instant.ofEpochMilli(now.get()),
+                    List.of("state"), "Guide", List.of(item), 0);
+        };
+        when(contexts.refresh(AGENT, owner)).thenAnswer(call -> Optional.of(new LiveAgentContextService.Update(current.get(), List.of())));
+        var applied = new AtomicInteger(); var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>();
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(current.get(), owner, sent::add, value -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            for (int second = 1; second < 15; second++) { now.set(second * 1000L); bridge.refresh(); }
+            verify(contexts, times(1)).refresh(AGENT, owner);
+            now.set(15000); bridge.refresh(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            assertTrue(sent.stream().anyMatch(command -> command.content().contains("Current value unknown")));
+            for (int second = 16; second < 45; second++) { now.set(second * 1000L); bridge.refresh(); }
+            verify(contexts, times(2)).refresh(AGENT, owner);
+            now.set(45000); bridge.refresh(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 3);
+            bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 4);
+        } finally { bridge.shutdown(); }
+    }
+    @Test void pendingDelegationStillWakesAtItsFiveSecondDeadline() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var initial = snapshot("r1", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(initial, List.of())));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, sent::add, value -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            session.receive(com.google.gson.JsonParser.parseString("{\"type\":\"session.delegation.created\",\"delegation\":{\"id\":\"pending\",\"target\":\"client\"}}").getAsJsonObject());
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            assertTrue(sent.isEmpty());
+            now.set(5000); bridge.refresh();
+            await().atMost(Duration.ofSeconds(3)).until(() -> sent.stream().anyMatch(command -> "pending".equals(command.delegationId())));
+        } finally { bridge.shutdown(); }
     }
     @Test void readinessSeparatesInstructionsFactsAndAnnouncementsWithoutDialogueEcho() {
         var initial = snapshot("r1", "Guide one"); var delivery = new LiveContextDelivery(initial);

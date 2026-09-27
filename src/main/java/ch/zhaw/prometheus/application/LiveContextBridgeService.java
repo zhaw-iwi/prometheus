@@ -49,8 +49,9 @@ public class LiveContextBridgeService {
         }
         session.request();
     }
-    // Refresh also expires sensory evidence without requiring a transition or another observation.
-    @Scheduled(fixedDelay = 1000) public void refresh() { sessions.values().forEach(Session::request); }
+    // Tick in memory; read only on a commit, sensory/delegation deadline or bounded fallback.
+    // Scope revocation/liveness remain independently checked by the scoped session lease.
+    @Scheduled(fixedDelay = 1000) public void refresh() { sessions.values().forEach(Session::refreshIfDue); }
     @PreDestroy public void shutdown() { sessions.values().forEach(Session::close); workers.shutdownNow(); }
 
     public final class Session {
@@ -66,6 +67,7 @@ public class LiveContextBridgeService {
         private final ArrayDeque<Trace> traces = new ArrayDeque<>();
         private volatile boolean ready;
         private volatile String state = "starting", revision;
+        private volatile long nextRefreshAt;
         private long dropped;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
@@ -90,12 +92,26 @@ public class LiveContextBridgeService {
             try { workers.execute(this::run); }
             catch (RejectedExecutionException full) { running.set(false); fail("context_workers_full"); }
         }
+        private void refreshIfDue() {
+            if (clock.millis() >= Math.min(nextRefreshAt, delegations.nextDeadline())) request();
+        }
+        private void scheduleRefresh(LiveContextSnapshot context) {
+            long now = clock.millis(), next = now + 30000;
+            for (var item : context.items()) {
+                // Future source timestamps can become current; fresh observations can expire.
+                for (var boundary : new java.time.Instant[] {item.observedAt(), item.expiresAt()})
+                    if (boundary != null && boundary.isAfter(context.builtAt())) next = Math.min(next, boundary.toEpochMilli());
+            }
+            nextRefreshAt = next;
+        }
         private void run() {
             try {
                 dirty.set(false);
                 if (closed.get()) return;
+                nextRefreshAt = clock.millis() + 30000;
                 var fresh = contexts.refresh(agent, owner).orElseThrow(() -> new IllegalStateException("Obsolete context owner"));
                 if (closed.get()) return;
+                scheduleRefresh(fresh.context());
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
                 for (Command command : batch.commands()) transmit(command);
                 if (closed.get()) return;

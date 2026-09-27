@@ -72,6 +72,35 @@ async function screenshot(page, info, name) {
   await tabs.screenshot({ path: info.outputPath(`${name}-tabs.png`), animations: "disabled" });
 }
 
+test("stable camera readings refresh through the cockpit while Live is active", async ({ page, context }) => {
+  await setup(context);
+  const observations = [];
+  await context.route("**/demo/agents/*/acknowledge", async route => {
+    observations.push(route.request().postDataJSON());
+    await route.fulfill(json({ active: true, responseEvent: null }));
+  });
+  await open(page);
+  await page.getByTestId("gptlive-start").click();
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  const start = new Date("2026-09-28T10:00:00Z");
+  await page.clock.setFixedTime(start);
+  const sense = () => page.evaluate(async () => {
+    document.getElementById("sensor_emit_enabled").checked = true;
+    await maybeEmitEmotion({ emotion: "neutral", confidence: .99, valence: 0, arousal: .2,
+      expressions: { neutral: .99 } }, .99);
+  });
+  await sense(); expect(observations).toHaveLength(1);
+  await page.clock.setFixedTime(new Date(start.getTime() + 3000));
+  await sense(); expect(observations).toHaveLength(1);
+  await page.clock.setFixedTime(new Date(start.getTime() + 5000));
+  await sense(); expect(observations).toHaveLength(2);
+  expect(Date.parse(JSON.parse(observations[1].payload).ts) - Date.parse(JSON.parse(observations[0].payload).ts)).toBe(5000);
+  await page.getByTestId("gptlive-stop").click();
+  await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+  await page.clock.setFixedTime(new Date(start.getTime() + 30000));
+  await sense(); expect(observations).toHaveLength(2);
+});
+
 for (const width of [1440, 390]) for (const theme of ["light", "dark"]) {
   test(`third tab, settings, overlap and committed history at ${width}px ${theme}`, async ({ page, context }, info) => {
     const scenario = await setup(context);

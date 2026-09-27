@@ -87,6 +87,8 @@ public class Event {
     Long historyPosition() { return historyPosition; }
     void historyPosition(long position) { this.historyPosition = position; }
     @ElementCollection(fetch = FetchType.EAGER)
+    // Preserve eager detached history while loading paths together, not once per event.
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SUBSELECT)
     @CollectionTable(name = "event_state_path", joinColumns = @JoinColumn(name = "event_id"))
     @OrderColumn(name = "path_index")
     @Column(name = "state_name")
