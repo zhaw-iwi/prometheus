@@ -29,6 +29,20 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 
 class SseBroadcasterHardeningUnitTest {
 
+    @Test void optedInConversationStreamSeparatesIntentFromSpokenHistory() {
+        var broadcaster = new RecordingBehaviourBroadcaster();
+        UUID agent = UUID.randomUUID();
+        Event intent = eventWithId(UUID.randomUUID().toString(), "Planned words");
+        intent.speechProvenance(ch.zhaw.prometheus.model.event.SpeechProvenance.intent(
+                new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), UUID.randomUUID())));
+        broadcaster.subscribe(agent, () -> Optional.of(agentWithEvents(intent)), null, true);
+        var view = broadcaster.emitter.frames.getFirst().build().stream().map(part -> part.getData())
+                .filter(ch.zhaw.prometheus.model.event.ConversationProjection.View.class::isInstance)
+                .map(ch.zhaw.prometheus.model.event.ConversationProjection.View.class::cast).findFirst().orElseThrow();
+        assertEquals("Planned words", view.plannedSpeech()); assertEquals("{}", view.payload());
+        assertEquals(intent.getId(), view.id()); assertTrue(frameText(broadcaster.emitter.frames.getFirst()).contains("event:behaviour-replay"));
+    }
+
     @Test
     void behaviourPublishUnsubscribesFailedEmitterAndDoesNotThrow() throws Exception {
         AgentBehaviourBroadcaster broadcaster = new AgentBehaviourBroadcaster();

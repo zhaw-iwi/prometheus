@@ -202,6 +202,12 @@ public class PromptPolicy extends Policy {
                 plan ? nonVerbalPlanPrompt : gesture ? nonVerbalGesturePrompt : null, !plan && gesture);
     }
 
+    public BehaviourPlan nonSpeechResponse(EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) {
+        boolean plan = nonVerbalPlanPrompt != null && !nonVerbalPlanPrompt.isBlank();
+        return BehaviourPlanInference.nonSpeech(assembler.compose(events, resolvePrompt()),
+                plan ? nonVerbalPlanPrompt : nonVerbalGesturePrompt, !plan, gateway);
+    }
+
     @Override
     public boolean decide(EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway languageModelGateway) {
         String prompt = resolvePrompt();

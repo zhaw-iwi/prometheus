@@ -518,6 +518,10 @@ class ScopedDemoControllerIntegrationTest {
         var saved = agents.findById(agentId).orElseThrow().getEventHistory().toList().stream()
                 .filter(event -> eventId.equals(event.getId().toString())).findFirst().orElseThrow();
         assertEquals("Stored policy reply.", BehaviourPlan.fromJson(saved.getPayload()).getSpeech());
+        org.mockito.Mockito.verifyNoInteractions(behaviourBroadcaster);
+        // Publication is after commit: a surrounding test transaction must cross that boundary too.
+        org.springframework.test.context.transaction.TestTransaction.flagForCommit();
+        org.springframework.test.context.transaction.TestTransaction.end();
         verify(behaviourBroadcaster).publish(org.mockito.ArgumentMatchers.eq(agentId),
                 org.mockito.ArgumentMatchers.argThat(event -> eventId.equals(event.getId().toString())));
         byte[] audio = { 3, 2, 1 };

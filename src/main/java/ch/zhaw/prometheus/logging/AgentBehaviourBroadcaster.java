@@ -27,13 +27,19 @@ public class AgentBehaviourBroadcaster {
 
     private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emittersByAgent = new ConcurrentHashMap<>();
     private final AtomicLong sendFailureCount = new AtomicLong(0L);
+    private final java.util.Set<SseEmitter> conversational = ConcurrentHashMap.newKeySet();
 
     public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup) {
         return this.subscribe(agentId, lookup, null);
     }
 
     public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup, String lastEventId) {
+        return subscribe(agentId, lookup, lastEventId, false);
+    }
+
+    public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup, String lastEventId, boolean conversation) {
         SseEmitter emitter = this.createEmitter();
+        if (conversation) conversational.add(emitter);
         CopyOnWriteArrayList<SseEmitter> emitters = this.emittersByAgent.computeIfAbsent(agentId,
                 id -> new CopyOnWriteArrayList<>());
         emitters.add(emitter);
@@ -116,7 +122,7 @@ public class AgentBehaviourBroadcaster {
 
     private void sendInitialBehaviour(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Event event) {
         try {
-            emitter.send(behaviourEvent(event, REPLAY_EVENT_NAME));
+            emitter.send(behaviourEvent(event, REPLAY_EVENT_NAME, conversational.contains(emitter)));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -125,7 +131,7 @@ public class AgentBehaviourBroadcaster {
 
     private void sendBehaviour(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter, Event event) {
         try {
-            emitter.send(behaviourEvent(event, LIVE_EVENT_NAME));
+            emitter.send(behaviourEvent(event, LIVE_EVENT_NAME, conversational.contains(emitter)));
         } catch (Throwable failure) {
             this.recordSendFailure(agentId, failure);
             unsubscribeAndComplete(agentId, emitters, emitter);
@@ -142,6 +148,7 @@ public class AgentBehaviourBroadcaster {
     }
 
     private void unsubscribe(UUID agentId, CopyOnWriteArrayList<SseEmitter> emitters, SseEmitter emitter) {
+        conversational.remove(emitter);
         emitters.remove(emitter);
         if (emitters.isEmpty()) {
             this.emittersByAgent.remove(agentId, emitters);
@@ -159,8 +166,9 @@ public class AgentBehaviourBroadcaster {
         }
     }
 
-    private static SseEmitter.SseEventBuilder behaviourEvent(Event event, String eventName) {
-        SseEmitter.SseEventBuilder builder = SseEmitter.event().name(eventName).data(event);
+    private static SseEmitter.SseEventBuilder behaviourEvent(Event event, String eventName, boolean conversation) {
+        SseEmitter.SseEventBuilder builder = SseEmitter.event().name(eventName).data(conversation
+                ? ch.zhaw.prometheus.model.event.ConversationProjection.view(event) : event);
         String id = sseEventId(event);
         if (id != null) {
             builder.id(id);

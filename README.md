@@ -245,6 +245,7 @@ The main branch ships the Valerian baseline catalog:
 | --- | --- |
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
+| `core.live_multimodal` | GPT-Live conversation with independent full embodiment and all supported observations; requires Live for speech. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
@@ -1116,6 +1117,243 @@ with the ordinary `FULL_PLAN` output profile, persists the deterministic
 `utility.talk_to_me` agent-tag restriction while sharing provider configuration,
 voice/speed validation, and streamed HTTP audio mechanics with canonical
 behaviour speech.
+
+## Experimental GPT-Live
+
+The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
+from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
+`PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
+OpenAI API credentials and model access. Valerian exposes an experimental third
+**GPT-Live** tab beside Text and Continuous when enabled. Connect a supported
+agent, choose voice/microphone/speaker settings, then explicitly click **Start
+GPT-Live**. Tab selection, connection and reload never start capture. Use Chrome
+on HTTPS or localhost. The roadmap and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
+
+The client shares microphone and per-agent output leases with transcription/TTS.
+Mute affects input only. Stop immediately silences output and releases tracks
+before bounded backend finalization. Switching interaction tabs stops the current
+speech mode; text input resumes after cleanup. Reconnect always creates a fresh
+session. Both provisional speakers remain visible during overlap, then receipt IDs
+reconcile captions with recorded conversation. Incomplete or unapplied captures
+are labeled. Native speech preserves the current non-speech behaviour display.
+Only benign device/capture/voice preferences persist in browser storage.
+Requested/applied echo cancellation is visible; Bluetooth quality remains
+unverified. The temporary `/live/probe.html` was removed in GL-06.
+
+All REST requests below require `X-Prometheus-Access-Code` and a linked agent:
+
+Before selecting an agent, scoped `GET /demo/live/capabilities` reports whether
+the tab is enabled, its model and allowed voices; it never grants eligibility.
+
+| Method and path below `/demo/agents/{agentId}/live` | Contract |
+| --- | --- |
+| `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
+| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Unknown fields are rejected. |
+| `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
+| `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
+| `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
+
+Agent and session scope mismatches return 404; invalid access codes return 401;
+invalid settings return 400; disabled sessions return 503; an occupied agent or
+full capacity returns 409; provider failures return 502 without provider bodies.
+Known provider failures include an application-owned JSON `code`:
+`live_provider_quota_exhausted`, `live_provider_rate_limited`,
+`live_provider_authentication` or `live_provider_access_denied`. Unknown failures
+retain an empty 502 response. The cockpit displays billing, retry or access
+guidance for these codes; provider messages and credentials remain private.
+For exhausted credits/quota, check the API organization's billing balance and
+project limits before starting again. Being able to retrieve model metadata
+does not prove sufficient credits to create a voice session.
+The backend owns provider credentials and permits one session per agent per
+process. Session handles are also bound to the creating access code.
+
+Settings in `application.properties.template` bound request deadlines (15 seconds),
+graceful close (3 seconds), local session lifetime (15 minutes, checked every five
+seconds), and capacity (16). Session storage is disabled at the provider. Sideband
+audio is measured and immediately discarded; neither raw audio nor captions enter
+diagnostic history. RMS activity is a coarse diagnostic signal, not turn detection
+or evidence that audio was heard. Unexpected disconnect uses the hangup fallback;
+finalization remains unconfirmed without `session.closed`.
+
+The cockpit polls once per second. A missing browser heartbeat expires its lease
+after `prometheus.live.client-idle-seconds` (default 30, checked every five seconds).
+Sideband WebSocket ping/pong detects a silent transport independently of speech.
+Cleanup runs on bounded workers; it does not block the shared capture scheduler.
+Stop immediately fences user segments that have not entered acknowledgement;
+an already admitted action can finish. Assistant capture may drain during close.
+Access-code disable/unlink and epoch changes fence subsequent worker operations.
+Closed metadata stays scoped and readable for two minutes (maximum 128 sessions).
+
+Interaction Timing includes a Live section and bounded metadata in JSON exports:
+session/epoch, receipt/segment/source IDs, context revision, queue coverage,
+send/ACK, output counters and finalization. Browser monotonic time, server Unix time
+and provider audio offsets are separate clocks. Dropped-record counts are explicit.
+Text, audio, SDP, credentials and device identifiers are excluded. CSV still covers
+ordinary turns. Reconnect is explicit and seeds a fresh session from persisted state.
+
+See `.agents/GPTLIVE_RESULTS.md` for actual verification and separate live/audio
+gates. Provider metadata access alone does not prove a usable voice session.
+
+Offline acceptance can be repeated with
+`python tests/gptlive/run_acceptance.py --browser`; it provisions disposable local
+MySQL, runs real controller/persistence/SSE smoke, and checks feature-disabled
+text/TTS. Use `--java-tests all` for the full Java suite. Setup and isolation rules
+are in [tests/gptlive/README.md](tests/gptlive/README.md).
+
+WebRTC startup waits for ICE gathering and sends the completed local SDP, then
+waits for `session.started` before unmuting. This follows the
+[Live WebRTC connection sequence](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live).
+The browser sends no provider context/delegation commands. A documented creation
+field for restricting frontend provider permissions was not established in this
+implementation; backend scope/epoch checks remain the task-authority boundary.
+
+The initial voice context uses the active leaf state's existing history selector,
+the composed outer/inner conversational prompt, and the existing sensory text
+adapters. It never copies the structured BehaviourPlan output schema into voice
+instructions. Pilot eligibility is explicit: core profile tags for
+multimodal behaviour, role clarification, rock-scissor-paper and Live Multimodal,
+with known `PromptPolicy`/`EmbodimentPolicy`/core RPS policies only. Unknown policies
+and other agent types are rejected; existing text and transcription modes retain
+their normal support.
+
+Selected context keeps original event IDs and times. Current sensor readings are
+coalesced by type; face aggregation uses up to eight selected fresh readings.
+Provisional freshness windows are 15 seconds for face/presence/social/hand cues,
+30 seconds for situation changes, 10 minutes for current weather and six hours
+for forecasts. Source `observed_at`/`ts` takes precedence over event receipt time.
+Expired values become unknown, and missing/malformed/future timestamps are labeled
+unknown. These are pilot context limits, not changes to stored observations.
+Startup history is limited to 40 messages and 7,000 UTF-8 JSON bytes, retaining
+recent evidence; individual text is visibly truncated above 1,000 bytes.
+Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
+State changes preserve the voice conversation; a narrower selector cannot erase
+what an ongoing voice session already heard. Committed changes asynchronously
+refresh that context while speech continues; a response can use earlier guidance.
+
+The dedicated **Valerian Core - Live Multimodal** (`core.live_multimodal`) agent
+separates authored voice instructions from backend embodiment instructions using
+`EmbodimentPolicy`. Assign the new type to an access code in Valerian Access
+Management, create a fresh instance, connect and explicitly Start GPT-Live.
+Creation is quiet and makes no inference request. This agent needs an active Live
+session for spoken replies; Text/Continuous do not provide a backend speech fallback.
+Use the existing Multimodal Behaviour agent for the ordinary speech/TTS workflow.
+
+Its profile includes all nine current observation types: user utterances, facial
+emotion, human presence, social grouping, rich social context, derived social
+situation changes, hand signs, current weather and forecasts. Location is supplied
+inside weather observations; no independent location/GPS observation is implemented.
+Live receives the existing selected, bounded context with freshness labels. Raw
+sensor frames update context without a behaviour inference per frame. Admitted
+user utterances, explicit Generate requests and derived social-situation changes
+produce a current embodiment; ticks alone do not. The explicit end-interaction
+guard distinguishes ending the demo from interrupting speech or requesting silence.
+
+One backend behaviour request covers gesture, facial expression, gaze and expressive
+stillness/energy, with optional hand-sign motion and display. It contains no voice
+instructions and must omit speech; unexpected speech is rejected before publication.
+These outputs arrive independently of native speech. The existing combined
+speech/nonverbal optimization remains in use for ordinary `PromptPolicy` agents;
+there is no second backend verbal-generation request in the dedicated agent.
+Guard inference remains separate task-control work. Instance start, sensory
+self-loops and final entry also use the non-speech policy. This definition does not
+automatically announce sensor changes or generate a spoken greeting/goodbye.
+Other policies can still express explicit narration intents through the existing
+Live bridge when a task needs backend-initiated speech.
+
+Speech suppression for gesture-only requests remains prompt guidance, not an
+enforced playback guarantee. On-demand history queries and word-aligned gesture
+timing are not provided by this agent. Existing text/TTS agents are unchanged.
+The persisted policy adds nullable `voice_instructions` and
+`embodiment_instructions` TEXT columns to `policy`; local `ddl-auto=update` adds
+them. Managed deployments must apply these columns before creating/reloading this
+policy type. Existing policy rows and agent instances need no conversion.
+
+An active external speech session owns ordinary spoken replies across the
+application runtime. Backend generation can still produce configured non-speech
+behaviour, but cannot compete with native speech; speculative speech generation
+is disabled for that session. Start, state-entry/self-loop, final, sensory and
+tick-triggered plans retain their speech as **narration intent**. Guard/action
+execution and the existing `FULL_PLAN` public output profile are unchanged.
+
+The additive nullable `event.speech_provenance` TEXT column records native speech
+versus backend intent, session/epoch/segment identities, completeness and intent
+association. Hibernate `ddl-auto=update` creates it in the local prototype; managed
+deployments must add that column before starting the new writer. Existing null
+rows retain ordinary backend semantics, without backfill or database reset. Use
+one application instance for the pilot: speech ownership is in memory, as are the
+existing runtime locks and background actions. Coordinate writer upgrades.
+
+`GET /demo/agents/{agentId}/live/history` is an additive scoped projection. It
+returns event IDs, original modalities and provenance; for an intent it moves
+speech into `plannedSpeech`, leaving it out of conversational `payload`. The raw
+event-history API still exposes the original plan. Prompt assembly applies the
+same intent exclusion. Native speech is recorded by a trusted backend adapter as
+an ordinary speech BehaviourPlan, without acknowledgement, guard evaluation or
+narration recursion. There is no browser-authored assistant-recording route.
+Canonical TTS rejects intent events and resumes only actual conversational speech.
+Valerian also requests `projection=conversation` on the existing behaviour SSE
+route; clients omitting that parameter keep the original raw payload contract.
+The segment table's additive nullable `receipt_ids` TEXT column stores provider
+receipt identities for exact caption reconciliation; existing rows default to an
+empty list. Apply this column alongside the earlier ledger tables on managed deployments.
+
+Intent/transcript links are confirmed only with explicit protocol correlation.
+GPT-Live does not supply that identity, so pending source IDs are ambiguous
+candidates, even if only one exists. Native transcripts do not prove physical
+audibility. Interrupted text remains labeled incomplete.
+
+Continuous transcripts are aggregated independently per speaker. A complete
+segment requires 800 ms of observed quiet PCM, a 400 ms fragment grace period and
+recent audio coverage; a network pause alone never ends an utterance. The RMS
+threshold (500 PCM16 units) and 20 ms activity windows are provisional trial
+settings, not a guarantee against echo or background speech. Output timing gaps,
+missing timing and interrupted capture produce incomplete records. Late fragments
+are retained separately and never replay an accepted user observation.
+
+The additive `live_transcript_receipt` and `live_transcript_segment` tables retain
+text, provider receipt identity, session/epoch, segment status and event linkage.
+Their agent foreign keys cascade on deletion; reset keeps prior-epoch audit rows.
+Apply the entity-defined tables, unique receipt index and foreign keys before a
+managed deployment. Local `ddl-auto=update` creates them without a database reset.
+Each segment is durably claimed before agent processing. PENDING/FAILED claims
+survive restart and are never automatically retried: this prevents duplicate
+admission but does not promise exactly-once external action side effects.
+
+Capture limits are 8,192 receipts per session, 128 fragments/2,800 characters per
+open segment, 30 seconds open duration and 128 pending work items per session.
+Four capture workers share a 32-session scheduling queue. Overflow fails the
+session visibly; duration expiry records an incomplete segment. Assistant capture
+never acknowledges user input. Ambiguous bare answers such as yes/no during state
+changes or following uncorrelated backend questions request clarification and do
+not advance the agent; explicit, self-contained replies remain usable.
+`GET /demo/agents/{agentId}/live/transcripts?sessionId={handle}` returns the last
+100 ledger outcomes under the same access scope, including incomplete/late text.
+No raw audio is stored. Real continuous quiet-audio coverage remains a live-trial
+gate; if it is absent, capture fails conservatively rather than guessing silence.
+
+After-commit notifications refresh selected context in four bounded workers,
+with one active refresh per session and coalescing of newer invalidations. A
+one-second refresh also expires sensory facts without another event. State guidance
+uses `session.instructions.append`; observations/removals use silent
+`session.thinking.append`; backend narration intents use `session.commentary.append`.
+Updates are split at Unicode boundaries into conservative sub-500-token chunks.
+Long announcements are supplied as quiet context before one speakable request.
+Up to 128 commands form one update batch; 4,096 narration identities are retained
+for deduplication within a session. Provider waits never hold an agent turn lock.
+
+Client delegation retrieves committed context directly from PROMETHEUS. It does
+not generate a second acknowledgement or invoke another model just to retrieve
+history. Requests can precede transcripts: they wait for nearby committed input
+or report an unconfirmed outcome after five seconds. Timestamp association is
+explicitly approximate. Changed revisions use current guidance; old epochs are
+discarded. At most 32 requests wait and 1,024 delegation identities are retained
+per session. Clarification requests are separately bounded at 32.
+
+An append ACK confirms provider context injection, not playback. A rejected or
+unacknowledged update fails the session with an inspectable status; it is never
+blindly repeated. Status includes content-free revision/source IDs and send/ACK
+traces (last 64, with dropped count and separate server clock). Native assistant
+history cannot narrate itself. Existing non-speech behaviour/SSE remains available.
 
 ## Admin API
 

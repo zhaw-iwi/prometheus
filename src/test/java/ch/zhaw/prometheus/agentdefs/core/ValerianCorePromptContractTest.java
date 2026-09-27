@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 class ValerianCorePromptContractTest {
     private static final List<AgentDefinition> DEFINITIONS = List.of(
             new FacialExpressionSensitivity(),
+            new LiveMultimodal(),
             new MultimodalBehaviour(),
             new RockScissorPaper(),
             new RoleClarificationGuessingGame(),

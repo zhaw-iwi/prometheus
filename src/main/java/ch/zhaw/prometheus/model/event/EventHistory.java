@@ -38,6 +38,7 @@ public class EventHistory {
             if (selector.test(current)) {
                 Event copy = new Event(current.getType(), current.getActor(), current.getKind(), current.getPayload());
                 copy.setStatePath(current.getStatePath());
+                copy.speechProvenance(current.speechProvenance());
                 copy.setEventHistory(selected);
                 selected.eventList.add(copy);
             }
@@ -51,6 +52,7 @@ public class EventHistory {
                 .mapToLong(Long::longValue).max().orElse(-1L);
         copy.historyPosition(Math.addExact(previous, 1L));
         copy.setStatePath(event.getStatePath());
+        copy.speechProvenance(event.speechProvenance());
         copy.setEventHistory(this);
         this.eventList.add(copy);
         return copy;
@@ -109,6 +111,7 @@ public class EventHistory {
     public String toString() {
         StringBuilder result = new StringBuilder("");
         for (Event current : this.eventList) {
+            if (ConversationProjection.isIntent(current)) continue;
             String label = current.getActor() != null ? current.getActor() : current.getType();
             result.append(label + ": " + current.getPayload() + "\n");
         }

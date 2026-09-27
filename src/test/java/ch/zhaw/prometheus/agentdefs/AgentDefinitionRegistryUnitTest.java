@@ -18,6 +18,7 @@ class AgentDefinitionRegistryUnitTest {
 
     private static final List<String> EXPECTED_KEYS = List.of(
             "core.facial_expression_sensitivity",
+            "core.live_multimodal",
             "core.multimodal_behaviour",
             "core.rock_scissor_paper",
             "core.role_clarification_guessing_game",
@@ -32,6 +33,7 @@ class AgentDefinitionRegistryUnitTest {
 
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
             Map.entry("core.facial_expression_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.live_multimodal", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.rock_scissor_paper", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.role_clarification_guessing_game", AgentDefinition.LANGUAGE_ENGLISH),
@@ -92,6 +94,7 @@ class AgentDefinitionRegistryUnitTest {
     private static AgentDefinitionRegistry registryWithBuiltIns() {
         return new AgentDefinitionRegistry(List.of(
                 new ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity(),
+                new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal(),
                 new ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour(),
                 new ch.zhaw.prometheus.agentdefs.core.RockScissorPaper(),
                 new ch.zhaw.prometheus.agentdefs.core.RoleClarificationGuessingGame(),

@@ -190,6 +190,11 @@ public class ScopedDemoService {
         return this.agentService.subscribeBehaviour(agentId, lastEventId);
     }
 
+    public Optional<SseEmitter> subscribeConversationBehaviour(String code, UUID agentId, String lastEventId) {
+        if (!hasVisibleAgent(code, agentId)) return Optional.empty();
+        return agentService.subscribeConversationBehaviour(agentId, lastEventId);
+    }
+
     public Optional<SseEmitter> subscribeMonitor(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
             return Optional.empty();
@@ -209,6 +214,11 @@ public class ScopedDemoService {
             return Optional.empty();
         }
         return this.agentService.getAgentLanguageCode(agentId);
+    }
+
+    Optional<UUID> speechScope(String accessCodeValue, UUID agentId) {
+        AccessCode code = requireEnabledAccessCode(accessCodeValue);
+        return accessCodeAgents.existsByAccessCode_IdAndAgent_Id(code.getId(), agentId) ? Optional.of(code.getId()) : Optional.empty();
     }
 
     private boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
