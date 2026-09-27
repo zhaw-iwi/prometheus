@@ -59,7 +59,10 @@ not introduce ad-hoc response objects that bypass the behaviour-plan contract.
 ### Interaction profiles
 
 `AgentInteractionProfile` declares which observation event types an agent
-accepts and which behaviour modalities it can emit. Profiles are part of the
+accepts and which behaviour modalities it can emit. Its `externalRealtimeSpeech`
+boolean declares compatibility with external voice, defaults to false, and is
+explicitly supplied by each definition through `applyDefinitionMetadata`. The
+Live gateway also validates reachable state/policy implementations. Profiles are part of the
 agent/client contract and must be updated when capabilities change.
 
 ### Event families
@@ -133,7 +136,11 @@ catalog keys into new context documents.
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.
-Only explicitly documented core pilot profiles and known policy classes qualify.
+Eligibility now requires an explicit persisted external-realtime-speech capability
+and supported policies throughout the reachable graph. Main conversational
+definitions opt in individually; Talk to Me and unadapted application definitions
+remain out. Older saved profiles default to no Live support; recreate selected
+instances deliberately, without deleting existing history. See README for details.
 GL-03 adds provider-neutral speech ownership, non-speech-only ordinary backend
 generation and trusted native recording without acknowledgement. State-entry
 plans retain narration intent; additive event provenance distinguishes intent

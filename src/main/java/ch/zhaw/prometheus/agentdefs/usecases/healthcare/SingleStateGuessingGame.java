@@ -9,6 +9,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class SingleStateGuessingGame implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
 
     static final String PROMPT_STATE = """
             Task: Run a calm yes/no guessing game for gentle cognitive activation with an older adult.

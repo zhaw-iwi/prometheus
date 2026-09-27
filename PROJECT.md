@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 193 (GL-10): explicit persisted external realtime speech capability,
+  per-definition opt-in and full reachable-policy checks replace profile-tag
+  eligibility. Main conversational definitions opt in; Talk to Me stays exact-text
+  only. Older saved profiles remain opted out. Passed 428 Java, 61 Node and 44
+  browser cases on isolated fixtures; deployment persona integration remains separate.
+
 - Provider diagnosis follow-up (2026-09-27): model metadata access succeeded, but
   a synthetic Live session-creation probe was rejected with exhausted API credits.
   Known HTTP quota/rate-limit/access failures now yield safe cockpit guidance and
@@ -147,6 +153,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 193: Explicit external realtime speech capability (GL-10)
 
 - [x] Milestone 192: Dedicated Live Multimodal agent and embodiment policy (GL-09)
 
@@ -8493,3 +8501,27 @@ has no backend speech fallback or automatic sensor announcements. Prompt-level
 silence is not enforced playback suppression. Physical Live/Chrome/device trials
 remain NOT RUN. Additive nullable policy TEXT columns and local setup are documented
 in README; detailed verification and artifacts are in `.agents/GPTLIVE_RESULTS.md`.
+
+
+## Milestone 193: Explicit external realtime speech capability (GL-10)
+
+Added the default-false `externalRealtimeSpeech` interaction-profile field and a
+per-definition opt-in. All twelve main conversational definitions declare it;
+Talk to Me retains its exact-text-only contract. Shared factories and descriptive
+tags do not grant eligibility. Existing persisted JSON without the field stays
+opted out, with no schema change, history rewrite or automatic backfill.
+
+Live validates reachable and active state/policy implementations before creating
+a session. This prevents a partly supported agent from starting successfully and
+failing only on a later result state. Instructions retain bounded admission at
+16,000 UTF-8 bytes, enough for the existing therapy-reminder conversational policy.
+The cockpit explains unavailable capability and keeps Start disabled. Ordinary
+text/transcription/TTS behavior and explicit Live speech ownership are unchanged.
+
+Passed all 428 Java tests on a disposable local MySQL schema, all 61 Node tests,
+and 44 browser cases across enabled/disabled Live runs. One Live-only browser
+case was intentionally skipped with the feature disabled. Desktop/mobile
+unsupported-agent screenshots were inspected. See `.agents/GPTLIVE_RESULTS.md`.
+Robot persona
+selection exists only on the agents branch; its Live prompt adaptation remains
+part of that branch's integration before enabling Live for robot embodiments.

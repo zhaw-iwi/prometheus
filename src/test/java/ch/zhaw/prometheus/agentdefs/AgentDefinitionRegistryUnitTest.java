@@ -15,6 +15,50 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.Agent;
 
 class AgentDefinitionRegistryUnitTest {
+    @Test
+    void conversationalDefinitionsDeclareLiveAndEveryReachablePolicyIsSupported() {
+        var adapter = new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter();
+        for (AgentDefinition definition : registryWithBuiltIns().list()) {
+            var agent = definition.createAgent();
+            boolean conversational = java.util.Set.of(
+                    "core.facial_expression_sensitivity", "core.live_multimodal", "core.multimodal_behaviour",
+                    "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
+                    "usecases.healthcare.guessing_game", "usecases.healthcare.guessing_game_user_guess",
+                    "usecases.healthcare.healthcare_conversation", "usecases.healthcare.smart_goal_coaching",
+                    "usecases.healthcare.therapy_appointment_reminder", "usecases.healthcare.therapy_appointment_reminder_intro")
+                    .contains(definition.key());
+            assertEquals(conversational, definition.externalRealtimeSpeech(), definition.key());
+            assertEquals(conversational, agent.getInteractionProfile().isExternalRealtimeSpeech(), definition.key());
+            assertEquals(conversational, adapter.supports(agent), definition.key());
+            if (conversational) {
+                assertFalse(adapter.instructions(agent).isBlank(), definition.key());
+                // Retain outer context while inspecting each reachable inner state.
+                var root = agent.getCurrentState();
+                for (var state : agent.reachableStates()) {
+                    if (root instanceof ch.zhaw.prometheus.model.OuterState && !(state instanceof ch.zhaw.prometheus.model.OuterState)) {
+                        org.springframework.test.util.ReflectionTestUtils.setField(root, "innerCurrent", state);
+                    } else {
+                        org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", state);
+                    }
+                    assertTrue(adapter.supports(agent), definition.key() + ": " + state.getName());
+                    assertFalse(adapter.instructions(agent).isBlank(), definition.key() + ": " + state.getName());
+                    org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", root);
+                }
+            }
+        }
+    }
+
+    @Test
+    void anotherDefinitionReusingAnOptedInAgentStillDefaultsToNoLive() {
+        AgentDefinition deploymentDefinition = new AgentDefinition() {
+            public String key() { return "deployment.rps"; }
+            public ch.zhaw.prometheus.model.Agent createAgent() {
+                return applyDefinitionMetadata(new ch.zhaw.prometheus.agentdefs.core.RockScissorPaper().createAgent());
+            }
+        };
+        assertFalse(deploymentDefinition.createAgent().getInteractionProfile().isExternalRealtimeSpeech());
+    }
+
 
     private static final List<String> EXPECTED_KEYS = List.of(
             "core.facial_expression_sensitivity",

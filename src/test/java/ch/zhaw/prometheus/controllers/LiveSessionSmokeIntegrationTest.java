@@ -32,6 +32,35 @@ class LiveSessionSmokeIntegrationTest {
     @Autowired ch.zhaw.prometheus.application.LiveAgentContextService contexts;
     @MockitoBean LiveSessionGateway gateway;
     @MockitoBean LanguageModelGateway language;
+    @Autowired ch.zhaw.prometheus.repositories.AgentRepository agents;
+
+    @Test void persistedCapabilityIsExposedAndLegacyProfileCannotBypassLiveGate() throws Exception {
+        String code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of("core.live_multimodal"));
+        UUID id = demo.createAgent(code, "core.live_multimodal").getID();
+        String path = "/demo/agents/" + id;
+        try {
+            mvc.perform(get(path + "/info").header(ScopedDemoController.ACCESS_CODE_HEADER, code))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.interactionProfile.externalRealtimeSpeech").value(true));
+            mvc.perform(get(path + "/live/capabilities").header(ScopedDemoController.ACCESS_CODE_HEADER, code))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.eligible").value(true));
+            var agent = agents.findById(id).orElseThrow();
+            var legacy = com.google.gson.JsonParser.parseString(agent.getInteractionProfile().toJson()).getAsJsonObject();
+            legacy.remove("externalRealtimeSpeech");
+            org.springframework.test.util.ReflectionTestUtils.setField(agent, "interactionProfileJson", legacy.toString());
+            agents.saveAndFlush(agent);
+            assertFalse(agents.findById(id).orElseThrow().getInteractionProfile().isExternalRealtimeSpeech());
+            mvc.perform(get(path + "/live/capabilities").header(ScopedDemoController.ACCESS_CODE_HEADER, code))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.eligible").value(false));
+            mvc.perform(post(path + "/live/sessions").header(ScopedDemoController.ACCESS_CODE_HEADER, code)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"sdp\":\"v=0 offer\"}"))
+                    .andExpect(status().isBadRequest());
+            verifyNoInteractions(gateway, language);
+        } finally {
+            mvc.perform(delete(path).header(ScopedDemoController.ACCESS_CODE_HEADER, code)).andExpect(status().isNoContent());
+        }
+    }
 
     @Test void realDatabaseScopeCreatesAndClosesOnlyOwnedDiagnosticSession() throws Exception {
         when(language.infer(any())).thenReturn("{\"speech\":\"Ready\",\"nonVerbal\":{\"gesture\":\"NONE\"}}");

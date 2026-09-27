@@ -1210,11 +1210,27 @@ implementation; backend scope/epoch checks remain the task-authority boundary.
 The initial voice context uses the active leaf state's existing history selector,
 the composed outer/inner conversational prompt, and the existing sensory text
 adapters. It never copies the structured BehaviourPlan output schema into voice
-instructions. Pilot eligibility is explicit: core profile tags for
-multimodal behaviour, role clarification, rock-scissor-paper and Live Multimodal,
-with known `PromptPolicy`/`EmbodimentPolicy`/core RPS policies only. Unknown policies
-and other agent types are rejected; existing text and transcription modes retain
-their normal support.
+instructions. Live eligibility requires `interactionProfile.externalRealtimeSpeech=true`.
+Each definition opts in by overriding `AgentDefinition.externalRealtimeSpeech()`;
+`applyDefinitionMetadata` stores that declaration in the agent's profile. The
+interface and shared profile factories default to false. Tags, names and shared
+RPS factories never grant Live capability. All twelve main-branch conversational
+definitions opt in; **Talk to Me** stays out because it must speak submitted text
+exactly. Deployment-specific definitions, including scored RPS, stay out unless
+explicitly adapted and validated.
+
+The backend additionally checks every reachable state's policy and the active
+state chain before creating a provider session. Unknown policies/states are
+rejected even when the capability is declared. The cockpit disables Start and
+explains unavailable support. The deployment feature flag, access scope and
+manual Start remain independent requirements; capability never starts capture
+or changes ordinary text/transcription/TTS generation.
+
+Profiles are persisted as JSON in the existing column: no schema change is needed
+for this capability. Existing saved profiles without the field default to false,
+including agents created before this change. Create a new instance of an opted-in
+definition to use Live; existing histories are not rewritten or deleted, and no
+automatic profile backfill is performed.
 
 Selected context keeps original event IDs and times. Current sensor readings are
 coalesced by type; face aggregation uses up to eight selected fresh readings.
@@ -1225,7 +1241,7 @@ Expired values become unknown, and missing/malformed/future timestamps are label
 unknown. These are pilot context limits, not changes to stored observations.
 Startup history is limited to 40 messages and 7,000 UTF-8 JSON bytes, retaining
 recent evidence; individual text is visibly truncated above 1,000 bytes.
-Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
+Conversational instructions above 16,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
 what an ongoing voice session already heard. Committed changes asynchronously
 refresh that context while speech continues; a response can use earlier guidance.

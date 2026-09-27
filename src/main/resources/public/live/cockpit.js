@@ -45,7 +45,7 @@ export class LiveCockpit {
       $("gptlive_echo").checked = this.preferences.media.echoCancellation;
       $("gptlive_noise").checked = this.preferences.media.noiseSuppression;
       $("gptlive_gain").checked = this.preferences.media.autoGainControl;
-      if (scope.agentId && !capability.eligible) this.state({ state: "Idle", detail: "This agent is outside the GPT-Live pilot. Use Text or Continuous." });
+      if (scope.agentId && !capability.eligible) this.state({ state: "Idle", detail: "This agent does not support GPT-Live. Use Text or Continuous." });
       await this.devices(); this.controls();
     } catch (_) { if (version === this.version) { $("gptlive_tab_item").hidden = true; this.controls(); } }
   }

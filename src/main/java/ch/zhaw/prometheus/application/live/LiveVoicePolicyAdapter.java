@@ -5,7 +5,6 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 import ch.zhaw.prometheus.agentdefs.core.CoreRpsRevealPolicy;
 import ch.zhaw.prometheus.agentdefs.core.CoreRpsResultPolicy;
-import ch.zhaw.prometheus.agentdefs.core.LiveMultimodal;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.OuterState;
@@ -13,24 +12,21 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 
-/** Explicit pilot adapter. Unknown policy/state implementations are never inferred safe. */
+/** Declared capability plus full-graph compatibility. Unknown implementations are rejected. */
 @Component
 public class LiveVoicePolicyAdapter {
-    private static final Set<String> PILOTS = Set.of("demo.valerian.multimodal_behaviour",
-            "demo.valerian.role_clarification", "demo.valerian.rps", LiveMultimodal.PROFILE_TAG);
+    public static final int MAX_INSTRUCTION_BYTES = 16000;
     private static final Set<Class<?>> POLICIES = Set.of(PromptPolicy.class, EmbodimentPolicy.class,
             CoreRpsRevealPolicy.class, CoreRpsResultPolicy.class);
     public boolean supports(Agent agent) {
-        var profile = agent.getInteractionProfile();
-        return profile.getProfileTags().contains("demo.valerian.core")
-                && profile.getProfileTags().stream().anyMatch(PILOTS::contains)
-                && !profile.getProfileTags().contains("utility.talk_to_me")
-                && chain(agent.getCurrentState()).stream().allMatch(state ->
+        if (agent == null || !agent.getInteractionProfile().isExternalRealtimeSpeech()) return false;
+        return java.util.stream.Stream.concat(agent.reachableStates().stream(), chain(agent.getCurrentState()).stream())
+                .allMatch(state ->
                     Set.of(State.class, OuterState.class, Final.class).contains(state.getClass())
                     && state.ownPolicy() != null && POLICIES.contains(state.ownPolicy().getClass()));
     }
     public String instructions(Agent agent) {
-        if (!supports(agent)) throw new IllegalArgumentException("Agent policy is not supported by the Live pilot");
+        if (!supports(agent)) throw new IllegalArgumentException("Agent does not support external realtime speech");
         var chain = chain(agent.getCurrentState());
         var leaf = chain.getLast();
         String policy = leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy
@@ -55,8 +51,8 @@ public class LiveVoicePolicyAdapter {
                 """ + "\nLanguage: " + language + "\nCURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath())
                 + "\nCurrent conversational policy:\n" + policy;
         // UTF-8 bytes conservatively bound tokens, including multilingual prompts. Never truncate rules.
-        if (result.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 12000)
-            throw new IllegalArgumentException("Live voice instructions exceed the pilot budget");
+        if (result.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_INSTRUCTION_BYTES)
+            throw new IllegalArgumentException("Live voice instructions exceed the instruction budget");
         return result;
     }
     public static List<State> chain(State initial) {

@@ -4,6 +4,42 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-10 / project Milestone 193 ? 2026-09-27
+
+Added the explicit, default-false `externalRealtimeSpeech` profile field.
+Definitions declare compatibility individually; profile tags/shared factories
+cannot grant it. Twelve main conversational definitions opt in; the exact-text
+Talk to Me utility stays out. Full reachable state/policy validation rejects
+partly supported definitions before provider creation. Older persisted JSON
+without the field stays false, requiring deliberate new-instance creation for
+Live. The instruction budget is 16,000 UTF-8 bytes to fit existing therapy prompts;
+oversized instructions still fail without truncating task rules.
+
+Verification completed:
+
+- `python tests/gptlive/run_acceptance.py --java-tests all --browser`: 428 Java
+  tests in 104 fresh suites passed on a disposable MySQL schema; 43 enabled
+  browser cases and one disabled text/TTS case passed. One Live-only case was
+  intentionally skipped in the disabled run. Owned apps stopped and the random
+  schema/account were removed. Artifacts: `target/gptlive-acceptance-443a8eca5c/`.
+- All 61 Live/transcription/speech Node unit tests passed. Log:
+  `target/live-capability-node.log`.
+- The five catalog tests were rerun successfully after making their expected
+  opt-in list explicit, so future deployment catalog additions default to false.
+- Desktop/mobile unsupported-agent screenshots inspected: disabled Start, clear
+  explanation, existing modes available, no microphone capture or session request.
+- Persistence/API smoke verifies the exposed true capability, reload of legacy
+  JSON without the field, ineligible capabilities and direct POST rejection before
+  any provider/inference call. Unit checks reject an unsupported future result
+  state before transition and prevent a reused agent from inheriting opt-in from
+  another definition.
+
+No paid-provider or physical-device trial was run for this change. The user
+previously reported a successful local Live trial after replacing the API key;
+this is separate from the synthetic acceptance above. Gigi persona selection is
+an agents-branch feature; adapting its Live instructions belongs to that merge.
+No production schema or Heroku configuration was changed.
+
 ## Provider failure diagnosis follow-up — 2026-09-27
 
 A local user trial reported the generic provider-unavailable message and

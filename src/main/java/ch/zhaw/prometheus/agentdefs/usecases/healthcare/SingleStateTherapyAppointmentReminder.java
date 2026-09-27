@@ -13,6 +13,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class SingleStateTherapyAppointmentReminder implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
 
     static final String PROMPT_STATE = """
             Task: Gently persuade the older adult toward voluntarily going to a therapy appointment,

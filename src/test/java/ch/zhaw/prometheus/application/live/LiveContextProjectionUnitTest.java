@@ -84,7 +84,7 @@ class LiveContextProjectionUnitTest {
         assertTrue(narrowed.items().isEmpty()); assertTrue(narrowed.removedSince(first).contains(face.getId().toString()));
         assertNotEquals(expired.revision(), narrowed.revision());
     }
-    @Test void supportsOnlyExplicitPilotsAndKnownPolicies() {
+    @Test void supportsOnlyDeclaredCapabilityAndKnownPolicies() {
         var adapter = new LiveVoicePolicyAdapter();
         for (Agent agent : List.of(new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent(),
                 new RoleClarificationGuessingGame().createAgent(), new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal().createAgent())) {
@@ -95,6 +95,21 @@ class LiveContextProjectionUnitTest {
         assertFalse(adapter.supports(agent)); assertThrows(IllegalArgumentException.class, () -> projection(NOW).project(agent));
         Agent unknown = new Agent("unknown", "", new State("state", new PromptPolicy("Hello", null, null), List.of()));
         assertFalse(adapter.supports(unknown));
+    }
+
+    @Test void sharedTagsDoNotGrantLiveAndUnsupportedFuturePolicyRejectsBeforeTransition() {
+        Agent agent = new RockScissorPaper().createAgent();
+        var adapter = new LiveVoicePolicyAdapter();
+        agent.setInteractionProfile(agent.getInteractionProfile().withExternalRealtimeSpeech(false));
+        assertFalse(adapter.supports(agent));
+        assertThrows(IllegalArgumentException.class, () -> adapter.instructions(agent));
+        agent.setInteractionProfile(agent.getInteractionProfile().withExternalRealtimeSpeech(true));
+        assertTrue(adapter.supports(agent));
+        var unsupported = new State("unsupported later result", new ch.zhaw.prometheus.model.policy.NoOpPolicy(), List.of());
+        leaf(agent).addTransition(new ch.zhaw.prometheus.model.Transition(
+                new ch.zhaw.prometheus.model.commons.decisions.StaticDecision("Never execute during inspection"), unsupported));
+        assertFalse(adapter.supports(agent));
+        assertThrows(IllegalArgumentException.class, () -> adapter.instructions(agent));
     }
     @Test void boundedUnicodeContextKeepsRecentHistoryAndUsesCorrectProviderTextParts() {
         Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
@@ -111,7 +126,7 @@ class LiveContextProjectionUnitTest {
     }
     @Test void oversizedPolicyFailsInsteadOfTruncatingTaskRules() {
         Agent agent = new MultimodalBehaviour().createAgent();
-        leaf(agent).setPolicy(new PromptPolicy("x".repeat(16000), null, null));
+        leaf(agent).setPolicy(new PromptPolicy("x".repeat(LiveVoicePolicyAdapter.MAX_INSTRUCTION_BYTES), null, null));
         assertThrows(IllegalArgumentException.class, () -> projection(NOW).project(agent));
     }
 }

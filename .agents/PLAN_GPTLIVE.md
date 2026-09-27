@@ -627,3 +627,20 @@ sensor context, admitted transcript and native speech persistence; Playwright
 catalog selection and visible full embodiment alongside speech, with desktop/mobile
 screenshots. Retest ordinary policies and feature-off speech. Evidence and final
 status are recorded in `GPTLIVE_RESULTS.md`; physical acoustic checks stay separate.
+
+
+## 11. Follow-up GL-10: Explicit Live compatibility (project Milestone 193)
+
+Implement on feature/gptlive, then merge to main. The persisted interaction
+profile gets default-false `externalRealtimeSpeech`, explicitly declared per
+agent definition. Validate every reachable state/policy before admission and keep
+the scoped/global/manual-start requirements. Opt in the twelve main conversational
+definitions; Talk to Me remains exact-text only. Application-specific agents,
+including scored RPS, remain opted out until deliberately adapted. Old profiles
+without the field stay false; document new-instance setup instead of backfilling.
+
+Acceptance: JSON default/roundtrip, per-definition catalog and future-state
+rejection tests; disposable-MySQL reload/API denial before any provider call;
+Playwright disabled Start/explanation with existing modes and no microphone
+capture; existing Live and ordinary speech regression suites. Main merge does
+not deploy Heroku. Persona integration and agents publication are separate.

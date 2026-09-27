@@ -12,7 +12,7 @@ async function setup(context, scenario = {}) {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(); scenario.requests.push({ path, method });
     if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: scenario.agents || [AGENT] }));
     if (method === "DELETE" && /^\/demo\/agents\/[^/]+$/.test(path)) return route.fulfill({ status: 204 });
-    if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: true, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
+    if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: scenario.eligible !== false, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
     if (path.endsWith("/info")) return route.fulfill(json(AGENT));
     if (path.endsWith("/history") || path.endsWith("/eventhistory")) return route.fulfill(json(scenario.history));
     if (path.endsWith("/storage")) return route.fulfill(json([]));
@@ -147,6 +147,23 @@ test("exhausted API credits show billing guidance and release capture on desktop
   await screenshot(page, info, "live-quota-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await screenshot(page, info, "live-quota-mobile.png");
+});
+
+test("agent without Live capability keeps existing modes and cannot start capture", async ({ page, context }, info) => {
+  const scenario = await setup(context, { eligible: false });
+  await page.goto(`/valerian/?agentId=${ID}`);
+  await page.getByTestId("access-code-input").fill("LIVE1"); await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("send-text")).toBeEnabled();
+  await expect(page.getByTestId("continuous-speech-tab")).toBeVisible();
+  await page.getByTestId("gptlive-tab").click();
+  await expect(page.getByTestId("gptlive-start")).toBeDisabled();
+  await expect(page.getByTestId("gptlive-detail")).toHaveText("This agent does not support GPT-Live. Use Text or Continuous.");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await screenshot(page, info, `live-unsupported-${width}`);
+  }
+  expect(await page.evaluate(() => window.__live.captures)).toBe(0);
+  expect(scenario.requests.filter(value => value.path.endsWith("/live/sessions") && value.method === "POST")).toHaveLength(0);
 });
 
 test("feature disabled preserves the two existing tabs", async ({ page, context }) => {

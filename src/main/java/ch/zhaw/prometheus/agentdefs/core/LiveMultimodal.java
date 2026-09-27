@@ -18,6 +18,11 @@ import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 
 @Component
 public class LiveMultimodal implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
     public static final String KEY = "core.live_multimodal";
     public static final String PROFILE_TAG = "demo.valerian.live_multimodal";
 

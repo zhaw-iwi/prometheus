@@ -32,15 +32,22 @@ public class AgentInteractionProfile {
     private List<String> supportedObservations;
     private List<String> supportedBehaviourModalities;
     private List<String> profileTags;
+    private boolean externalRealtimeSpeech;
 
     protected AgentInteractionProfile() {
     }
 
     private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
             List<String> profileTags) {
+        this(supportedObservations, supportedBehaviourModalities, profileTags, false);
+    }
+
+    private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
+            List<String> profileTags, boolean externalRealtimeSpeech) {
         this.supportedObservations = normalize(supportedObservations);
         this.supportedBehaviourModalities = normalize(supportedBehaviourModalities);
         this.profileTags = normalize(profileTags);
+        this.externalRealtimeSpeech = externalRealtimeSpeech;
     }
 
     public static AgentInteractionProfile empty() {
@@ -64,6 +71,15 @@ public class AgentInteractionProfile {
         return normalize(this.profileTags);
     }
 
+    public boolean isExternalRealtimeSpeech() {
+        return this.externalRealtimeSpeech;
+    }
+
+    public AgentInteractionProfile withExternalRealtimeSpeech(boolean supported) {
+        return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
+                this.profileTags, supported);
+    }
+
     public boolean supportsObservation(String observation) {
         return contains(this.supportedObservations, observation);
     }
@@ -76,7 +92,7 @@ public class AgentInteractionProfile {
         return GSON.toJson(new AgentInteractionProfile(
                 this.supportedObservations,
                 this.supportedBehaviourModalities,
-                this.profileTags));
+                this.profileTags, this.externalRealtimeSpeech));
     }
 
     public static AgentInteractionProfile fromJson(String json) {
@@ -89,7 +105,7 @@ public class AgentInteractionProfile {
         }
         return new AgentInteractionProfile(profile.supportedObservations,
                 profile.supportedBehaviourModalities,
-                profile.profileTags);
+                profile.profileTags, profile.externalRealtimeSpeech);
     }
 
     private static boolean contains(List<String> values, String value) {

@@ -11,6 +11,11 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class MultimodalBehaviour implements AgentDefinition {
+    @Override
+    public boolean externalRealtimeSpeech() {
+        return true;
+    }
+
     static final String PROMPT_STATE = """
             Task: Demonstrate Valerian's multimodal behaviour at the ZHAW SIRA Lab.
 
