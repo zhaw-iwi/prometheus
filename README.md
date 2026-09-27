@@ -1292,12 +1292,26 @@ Provisional freshness windows are 15 seconds for face/presence/social/hand cues,
 for forecasts. Source `observed_at`/`ts` takes precedence over event receipt time.
 Expired values become unknown, and missing/malformed/future timestamps are labeled
 unknown. These are pilot context limits, not changes to stored observations.
+While GPT-Live is active, the cockpit refreshes unchanged face, presence, grouping
+and social-context observations every five seconds, only when the detector is
+still producing an eligible reading and sensor emission is enabled. Longer
+face/social emission intervals are capped at five seconds during Live. Stopping
+sensing lets the last observations expire; manual samples are not refreshed.
+Text/TTS modes retain change-only deduplication. Failed sends remain retryable
+after the emission cooldown and do not advance successful-observation timestamps.
 Startup history is limited to 40 messages and 7,000 UTF-8 JSON bytes, retaining
 recent evidence; individual text is visibly truncated above 1,000 bytes.
 Conversational instructions above 16,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
 what an ongoing voice session already heard. Committed changes asynchronously
 refresh that context while speech continues; a response can use earlier guidance.
+Idle context workers check deadlines in memory and reload on committed changes,
+sensory/delegation deadlines, or a 30-second fallback. Access revocation and session
+liveness checks remain independent. Transcript fragments persist using scalar
+scope/epoch checks rather than reloading history; event state paths load together
+when history is needed. These reduce database queries without changing durable
+capture or detached history. They do not guarantee a shared database plan's hourly
+allowance under every workload. Provider append/acknowledgement latency is unchanged.
 
 The dedicated **Valerian Core - Live Multimodal** (`core.live_multimodal`) agent
 separates authored voice instructions from backend embodiment instructions using

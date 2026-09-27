@@ -186,6 +186,14 @@ social changes generate embodiment. Location remains weather-provided context.
 Ordinary agents retain their combined speech/nonverbal request path. See README
 for setup, additive policy columns and limits; strict silence is not enforced.
 
+During Live, unchanged eligible face/social readings refresh every five seconds
+while detectors continue observing. Stopped sensing still expires after 15 seconds;
+manual samples and ordinary text/TTS deduplication are unchanged. Context workers
+reload on commits, freshness/delegation deadlines and a bounded fallback, rather
+than every idle second. Durable fragment admission uses scalar scope/epoch checks,
+and eager event state paths load together. See README and GPTLIVE_RESULTS for the
+query-budget regression evidence and remaining provider/production limits.
+
 On the agents branch, the twelve main conversational definitions remain opted in;
 all other registered definitions (including scored RPS and Talk to Me) stay out.
 The existing per-agent embodiment assembler resolves authored Live voice and

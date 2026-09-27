@@ -5,6 +5,71 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## Perception freshness and database query follow-up — 2026-09-28
+
+The Heroku investigation reproduced a mismatch between change-only cockpit
+emission and Live's 15-second sensory freshness window. Stable readings were
+never refreshed. Production also exhausted its 36,000-query hourly allowance;
+retained quota errors did not prove the quota was already exhausted during the
+reported conversation, and the stored trial observations could not be read.
+
+During active Live capture, eligible unchanged face/presence/grouping/social
+readings now refresh every five seconds, only when the detector observes them
+again. Slow configured face/social intervals are capped for Live. Failed sends
+retain their previous successful signatures/timestamps and retry after cooldown.
+Manual samples and text/TTS deduplication retain their existing semantics.
+
+Transcript receipts validate current scope plus persisted epoch with scalar
+queries, then persist through an agent reference. They no longer load state and
+history for every fragment. Eager event state paths use a subselect, preserving
+detached history while eliminating one SELECT per event. Context timer ticks
+only inspect deadlines in memory: reads occur on committed changes, sensory or
+delegation deadlines, and a 30-second fallback. Native speech recording also
+publishes an identity-only notification after commit. Revocation, reset, receipt
+uniqueness, segment claims and no-automatic-action-retry guarantees remain intact.
+
+Measured on disposable local MySQL with the same new regression cases before and
+after the fixes:
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Unscoped transcript receipt, 200 history events | 211 statements; 214 entities loaded | 4 statements; 0 entities loaded |
+| Scoped transcript receipt, 200 history events | Not measured | 6 statements; 0 entities loaded |
+| Context refresh, 5 history events | 13 statements | 9 statements |
+| Context refresh, 205 history events | 213 statements | 9 statements |
+
+Baseline failures: `target/gptlive-acceptance-5dbb379629/`. Initial fixed query
+checks: `target/gptlive-acceptance-81d96864b9/`; focused integration/deadline checks:
+`target/gptlive-acceptance-579ec662a3/`.
+
+The full feature-branch suite passed 434 Java cases in 105 fresh suites on an
+isolated MySQL schema. All 67 Live/transcription/speech Node cases passed,
+including six controlled-clock sensor cases. All 44 enabled browser cases and
+the disabled-mode text/TTS smoke passed; one Live-only case was intentionally
+skipped with Live disabled. The new browser case verifies real cockpit emitter
+requests refresh stable face evidence during Live and stop refreshing after Stop.
+Desktop light and mobile dark Active screenshots were inspected. Owned fixture
+apps stopped and the disposable schema/account were removed. Full-run artifacts:
+`target/gptlive-acceptance-f8d5f7a470/`.
+The local runner explicitly used the commented loopback administration settings
+in the developer's properties to provision random restricted fixtures; the active
+production datasource and its records were not used by tests.
+
+No schema migration or provider contract change. Sequential provider append/ACK
+latency remains unchanged; the previous export showed approximately five seconds
+per complete context update. Physical camera grounding and sustained production
+query consumption still require a new trial. Query reductions do not guarantee
+the shared plan's allowance under every workload. No paid voice trial was run.
+
+Deployment integration: merged `70f9a41` from main into agents, retaining the
+application catalog, capability exclusions and embodiment support. Only the
+context/results documentation required conflict resolution; both records were
+preserved. All 568 Java cases in 126 fresh suites passed against disposable
+local MySQL (`target/gptlive-acceptance-4b02bab01d/`), including the query budgets.
+The runner removed the fixture schema/account. Before deployment, an external
+health request timed out and a direct database connection failed; these checks
+do not establish current production readiness or prove a new quota reset.
+
 ## Agents deployment integration - 2026-09-27
 
 Merged main through `c699e5f` into agents at `103bab1`, retaining the application

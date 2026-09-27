@@ -108,6 +108,11 @@ const camera = {
   nextTrackId: 1,
   lastEmotionEmitAt: 0,
   lastSocialEmitAt: 0,
+  lastEmotionAttemptAt: 0,
+  lastSocialAttemptAt: 0,
+  lastPresenceEmitAt: 0,
+  lastGroupingEmitAt: 0,
+  lastSocialContextEmitAt: 0,
   lastEmotion: null,
   lastPresenceSignature: null,
   lastGroupingSignature: null,
@@ -163,6 +168,8 @@ const SPEECH_FORMAT_STORAGE_KEY = "prometheus.valerian.speechFormat";
 const CAMERA_DEVICE_STORAGE_KEY = "prometheus.valerian.cameraDevice";
 const THEME_STORAGE_KEY = "prometheus.valerian.theme";
 const CAMERA_PERIOD_MS = 350;
+// Refresh only observations actually seen again while Live owns speech. Backend TTL is 15s.
+const LIVE_SENSOR_REFRESH_MS = 5000;
 const TRACK_TTL_MS = 1500;
 const TRACK_MAX_DISTANCE_NORM = 0.14;
 const TRACK_STATIONARY_DISTANCE_NORM = 0.008;
@@ -3573,10 +3580,12 @@ async function maybeEmitEmotion(emotion, faceScore) {
   }
   if (camera.lastEmotion && camera.lastEmotion.emotion === emotion.emotion &&
     Math.abs(camera.lastEmotion.valence - emotion.valence) < 0.08 &&
-    Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08) {
+    Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08 &&
+    !liveSensorRefreshDue(camera.lastEmotionEmitAt)) {
     setEmotionEmitStatus("Stable", "idle");
     return;
   }
+  camera.lastEmotionAttemptAt = Date.now();
   const ok = await acknowledgeEvent({
     type: "obs.emotion.face",
     actor: "user",
@@ -4477,41 +4486,57 @@ async function submitSocialPayloads(social, tracked, source) {
   const presenceSignature = `${presencePayload.humanCount}|${presencePayload.trackedCount}`;
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
   const contextSignature = socialContextSignature(contextPayload);
-  const emitPresence = presenceSignature !== camera.lastPresenceSignature;
-  const emitGrouping = groupingSignature !== camera.lastGroupingSignature;
-  const emitContext = socialContextSupported && contextSignature !== camera.lastSocialContextSignature;
+  const refresh = last => source === "visual.social" && liveSensorRefreshDue(last);
+  const emitPresence = presenceSignature !== camera.lastPresenceSignature || refresh(camera.lastPresenceEmitAt);
+  const emitGrouping = groupingSignature !== camera.lastGroupingSignature || refresh(camera.lastGroupingEmitAt);
+  const emitContext = socialContextSupported &&
+    (contextSignature !== camera.lastSocialContextSignature || refresh(camera.lastSocialContextEmitAt));
   if (!emitPresence && !emitGrouping && !emitContext) {
     appendLog("social", "duplicate social sample skipped.");
     return;
   }
+  camera.lastSocialAttemptAt = Date.now();
+  let emitted = false;
   if (emitPresence) {
-    await acknowledgeEvent({
+    const ok = await acknowledgeEvent({
       type: "obs.human.presence",
       actor: "user",
       kind: "observation",
       payload: JSON.stringify(presencePayload),
     }, { renderResponse: false });
-    camera.lastPresenceSignature = presenceSignature;
+    if (ok) {
+      camera.lastPresenceSignature = presenceSignature;
+      camera.lastPresenceEmitAt = Date.parse(presencePayload.ts);
+      emitted = true;
+    }
   }
   if (emitGrouping) {
-    await acknowledgeEvent({
+    const ok = await acknowledgeEvent({
       type: "obs.social.grouping",
       actor: "user",
       kind: "observation",
       payload: JSON.stringify(groupingPayload),
     }, { renderResponse: !emitContext });
-    camera.lastGroupingSignature = groupingSignature;
+    if (ok) {
+      camera.lastGroupingSignature = groupingSignature;
+      camera.lastGroupingEmitAt = Date.parse(groupingPayload.ts);
+      emitted = true;
+    }
   }
   if (emitContext) {
-    await acknowledgeEvent({
+    const ok = await acknowledgeEvent({
       type: "obs.social.context",
       actor: "user",
       kind: "observation",
       payload: JSON.stringify(contextPayload),
     }, { renderResponse: true });
-    camera.lastSocialContextSignature = contextSignature;
+    if (ok) {
+      camera.lastSocialContextSignature = contextSignature;
+      camera.lastSocialContextEmitAt = Date.parse(contextPayload.ts);
+      emitted = true;
+    }
   }
-  markSensorEmitted("social");
+  if (emitted) markSensorEmitted("social");
 }
 
 function socialContextPayload(social, tracked, source) {
@@ -5285,11 +5310,16 @@ function clearOverlay() {
   camera.ctx.clearRect(0, 0, camera.canvas.width, camera.canvas.height);
 }
 
+function liveSensorRefreshDue(lastEmitAt) {
+  return !!liveVoice.ui?.active && Date.now() - (lastEmitAt || 0) >= LIVE_SENSOR_REFRESH_MS;
+}
+
 function passesSensorEmitInterval(mode) {
-  const minInterval = Number(document.getElementById("emit_interval_ms").value || 2500);
+  const configured = Number(document.getElementById("emit_interval_ms").value || 2500);
+  const minInterval = liveVoice.ui?.active && mode !== "hand" ? Math.min(configured, LIVE_SENSOR_REFRESH_MS) : configured;
   const lastEmitAtByMode = {
-    emotion: camera.lastEmotionEmitAt,
-    social: camera.lastSocialEmitAt,
+    emotion: Math.max(camera.lastEmotionEmitAt || 0, camera.lastEmotionAttemptAt || 0),
+    social: Math.max(camera.lastSocialEmitAt || 0, camera.lastSocialAttemptAt || 0),
     hand: camera.lastCameraEmitAt,
   };
   return Date.now() - (lastEmitAtByMode[mode] || 0) >= minInterval;
@@ -5316,6 +5346,7 @@ function resetDisabledSensorState() {
     resetEmotionReport();
     camera.lastEmotion = null;
     camera.lastEmotionEmitAt = 0;
+    camera.lastEmotionAttemptAt = 0;
   }
   if (!isSensorModeEnabled("social")) {
     renderSocialMetrics(null, []);
@@ -5324,6 +5355,10 @@ function resetDisabledSensorState() {
     camera.lastGroupingSignature = null;
     camera.lastSocialContextSignature = null;
     camera.lastSocialEmitAt = 0;
+    camera.lastSocialAttemptAt = 0;
+    camera.lastPresenceEmitAt = 0;
+    camera.lastGroupingEmitAt = 0;
+    camera.lastSocialContextEmitAt = 0;
   }
   if (!isSensorModeEnabled("hand")) {
     setText("hand_sign_value", "-");
@@ -5521,10 +5556,15 @@ function resetSensingState() {
   camera.tracks.clear();
   camera.lastEmotion = null;
   camera.lastEmotionEmitAt = 0;
+  camera.lastEmotionAttemptAt = 0;
   camera.lastPresenceSignature = null;
   camera.lastGroupingSignature = null;
   camera.lastSocialContextSignature = null;
   camera.lastSocialEmitAt = 0;
+  camera.lastSocialAttemptAt = 0;
+  camera.lastPresenceEmitAt = 0;
+  camera.lastGroupingEmitAt = 0;
+  camera.lastSocialContextEmitAt = 0;
   camera.stableGestureKey = null;
   camera.stableGestureCount = 0;
   resetCameraEmissionGate();

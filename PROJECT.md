@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Live perception/database follow-up (2026-09-28): stable face/social readings
+  refresh during Live instead of silently expiring; failed sends retry after
+  cooldown. Fragment admission no longer loads the agent graph, eager event paths
+  load together, and idle context polling follows freshness/delegation deadlines.
+  Isolated MySQL measurements reduced 200-event fragment admission from 211 to
+  4 SQL statements (6 with scope checks), and context reads from 213 to 9 with
+  205 events. All 434 Java, 67 Node and 45 browser cases passed; evidence and remaining
+  physical/provider limitations are in `.agents/GPTLIVE_RESULTS.md`.
+
 - Production configuration follow-up (2026-09-27): synchronized both production
   property files with every active template setting, retaining Heroku credential
   placeholders, Luna task routes and CORS origins. Added explicit worker, Live,
@@ -9488,3 +9497,24 @@ property comment; operators can disable Live with the environment override.
 No runtime or schema changes. The enabled path was covered by the preceding
 prod-profile smoke checks; this flag-only follow-up uses property/diff checks and
 post-deployment health verification, without a new paid voice session.
+
+## Live perception freshness and database query follow-up (2026-09-28)
+
+Fixed the mismatch between indefinitely deduplicated cockpit observations and
+Live's 15-second freshness window. During Live, still-observed eligible face and
+social readings refresh every five seconds; ordinary modes and manual samples
+remain change-driven. Failed emissions no longer advance social signatures and
+retry after cooldown. Stopping sensing still allows observations to expire.
+
+Removed full agent/history loads from durable fragment receipt admission while
+retaining scalar scope/epoch validation. Eager event state paths load together.
+Context refreshes follow commits, freshness/delegation deadlines and a bounded
+fallback; native speech commits now notify the bridge. The isolated SQL budget
+tests reduced unscoped 200-event receipt work from 211 to 4 statements and
+205-event context reads from 213 to 9. Scoped receipt admission takes 6 statements
+and still rejects revocation immediately. No schema or provider-contract changes.
+
+Full feature Java and Node checks passed; browser evidence, artifacts, production
+merge verification and limitations are maintained in `.agents/GPTLIVE_RESULTS.md`.
+Provider append/ACK delay and physical Heroku grounding require a fresh trial;
+the shared database's hourly quota is not a guaranteed capacity target.

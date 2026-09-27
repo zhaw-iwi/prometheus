@@ -113,6 +113,22 @@ class LiveContextProjectionUnitTest {
         Agent unknown = new Agent("unknown", "", new State("state", new PromptPolicy("Hello", null, null), List.of()));
         assertFalse(adapter.supports(unknown));
     }
+    @Test void repeatedStableObservationsKeepCurrentEvidenceFreshButExpireWhenSensingStops() {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal().createAgent();
+        String[] types = {Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE, Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT};
+        String[] values = {"\"emotion\":\"neutral\",\"confidence\":0.99", "\"humanCount\":1",
+                "\"humanCount\":1,\"groupCount\":0", "\"humanCount\":1,\"groupCount\":0"};
+        for (int seconds = 0; seconds <= 30; seconds += 5) {
+            Instant observed = NOW.plusSeconds(seconds);
+            for (int i = 0; i < types.length; i++) append(agent, types[i],
+                    "{" + values[i] + ",\"ts\":\"" + observed + "\"}", observed);
+            var items = projection(observed.plusSeconds(4)).project(agent).items().stream()
+                    .filter(item -> item.type().startsWith("obs.")).toList();
+            assertEquals(4, items.size()); assertTrue(items.stream().allMatch(item -> item.freshness().equals("fresh")));
+        }
+        var expired = projection(NOW.plusSeconds(46)).project(agent).items();
+        assertEquals(4, expired.size()); assertTrue(expired.stream().allMatch(item -> item.freshness().equals("expired")));
+    }
 
     @Test void sharedTagsDoNotGrantLiveAndUnsupportedFuturePolicyRejectsBeforeTransition() {
         Agent agent = new RockScissorPaper().createAgent();

@@ -42,9 +42,14 @@ public class LiveTranscriptIngressService {
     }
     public boolean receipt(UUID id, ExternalSpeech owner, Fragment fragment) {
         return turns.serialized(id, () -> Boolean.TRUE.equals(transaction.execute(status -> {
-            Agent agent = current(id, owner);
-            if (agent == null || receipts.findBySessionIdAndProviderEventId(owner.sessionId(), fragment.eventId()).isPresent()) return false;
-            receipts.saveAndFlush(new LiveTranscriptReceipt(agent, owner.sessionId(), owner.epoch(), fragment.eventId(),
+            // Every delta is durable, but it does not need the agent's state/history graph.
+            // Keep live scope and persisted epoch checks under the same reset/admission lock.
+            if (!ownership.isCurrent(id, owner)) return false;
+            if (!agents.existsByIdAndExecutionEpoch(id, owner.epoch())) {
+                ownership.release(id, owner.sessionId()); return false;
+            }
+            if (receipts.findBySessionIdAndProviderEventId(owner.sessionId(), fragment.eventId()).isPresent()) return false;
+            receipts.saveAndFlush(new LiveTranscriptReceipt(agents.getReferenceById(id), owner.sessionId(), owner.epoch(), fragment.eventId(),
                     fragment.speaker().name(), fragment.startMs(), fragment.endMs(), Instant.ofEpochMilli(fragment.receivedMs()),
                     fragment.sequence(), fragment.text()));
             return true;

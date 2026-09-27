@@ -20,6 +20,9 @@ public final class LiveDelegation {
         if (!"USER".equals(outcome.speaker())) return;
         if (committed.size() == 32) committed.removeFirst(); committed.addLast(outcome);
     }
+    public synchronized long nextDeadline() {
+        return pending.values().stream().mapToLong(Request::deadline).min().orElse(Long.MAX_VALUE);
+    }
     public synchronized List<Reply> resolve(LiveContextSnapshot context, long now) {
         List<Reply> replies = new ArrayList<>();
         var iterator = pending.values().iterator();
