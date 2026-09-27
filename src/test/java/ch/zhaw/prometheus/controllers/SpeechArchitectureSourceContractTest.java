@@ -13,6 +13,14 @@ import org.junit.jupiter.api.Test;
 
 class SpeechArchitectureSourceContractTest {
 
+    @Test void nativeLiveClientCannotWriteAgentTurnsOrRequestTts() throws IOException {
+        String live = readTree(Path.of("src/main/resources/public/live"), ".js");
+        assertFalse(live.contains("/acknowledge")); assertFalse(live.contains("/behaviour/generate"));
+        assertFalse(live.contains("/speech" + "?")); assertFalse(live.contains("response.create"));
+        assertTrue(live.contains("MicrophoneLease")); assertTrue(live.contains("OutputLease"));
+        assertFalse(Files.exists(Path.of("src/main/resources/public/live/probe.html")));
+    }
+
     @Test
     void combinedRealtimeBackendAndProfilesStayDeleted() throws IOException {
         List<String> deletedTypes = List.of(

@@ -60,6 +60,7 @@ class LiveTranscriptIngressIntegrationTest {
         assertTrue(ingress.receipt(agentId, owner, input));
         var result = ingress.commit(agentId, owner, accepted, List.of("game")).orElseThrow(); acceptedEvent = result.eventId();
         assertEquals("COMPLETE", result.status()); assertNotNull(acceptedEvent); assertEquals(1, rounds());
+        assertEquals(List.of("first"), result.receiptIds());
         acceptedActionVersion = actionVersion();
         assertEquals(acceptedEvent, ingress.commit(agentId, owner, accepted, List.of("game")).orElseThrow().eventId()); assertEquals(1, rounds());
         Fragment nativeSpeech = fragment("native", Speaker.ASSISTANT, 600, "Rock, scissor, paper");
@@ -82,6 +83,7 @@ class LiveTranscriptIngressIntegrationTest {
         ownership.acquire(agentId, owner);
         assertFalse(ingress.receipt(agentId, owner, accepted.fragments().getFirst()));
         assertEquals(acceptedEvent, ingress.commit(agentId, owner, accepted, List.of("game")).orElseThrow().eventId());
+        assertEquals(List.of("first"), ingress.commit(agentId, owner, accepted, List.of("game")).orElseThrow().receiptIds());
         assertEquals(1, rounds());
         assertEquals(acceptedActionVersion, actionVersion());
         Fragment repeatedWords = fragment("second-distinct-turn", Speaker.USER, 2200, accepted.text());

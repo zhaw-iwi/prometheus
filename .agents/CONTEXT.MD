@@ -131,7 +131,7 @@ catalog keys into new context documents.
 ## GPT-Live Experiment
 
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
-session gateway and temporary `/live/probe.html`. GL-02 seeds it from an immutable,
+session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.
 Only the three documented core pilot profiles and known policy classes qualify.
 GL-03 adds provider-neutral speech ownership, non-speech-only ordinary backend
@@ -144,7 +144,10 @@ once; ambiguous short answers, late fragments and interrupted input do not act.
 Failed/pending claims are retained without automatic replay across restarts.
 GL-05 publishes committed state/sensory updates and narration asynchronously;
 client delegation reports existing work without a second acknowledgement. Lost
-append ACKs fail visibly without blind retry. It is separate from current
+append ACKs fail visibly without blind retry. GL-06 replaces the temporary probe
+with a third cockpit tab, shared media leases, device/voice controls and receipt-
+reconciled captions/history. Conversation projection is opt-in on behaviour SSE;
+the raw contract remains available. It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend

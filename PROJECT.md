@@ -72,6 +72,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 189 (GL-06), third GPT-Live cockpit tab with
+  explicit start/mute/stop, shared leases, voice/device settings and receipt-based
+  caption reconciliation. Conversation history/SSE separates planned and spoken
+  output; native speech preserves non-speech display. Focused Java/Node, MySQL and
+  desktop/mobile browser checks passed. GL-07 hardening and GL-08 integrated
+  acceptance follow; real voice and physical audio remain NOT RUN.
 - Experimental follow-up: Milestone 188 (GL-05), after-commit asynchronous Live
   context, client delegation and proactive narration. State guidance, silent
   facts and speakable intent are routed separately; ACK uncertainty never retries
@@ -145,6 +151,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 189: Third GPT-Live cockpit tab (GL-06)
 
 - [x] Milestone 188: GPT-Live context, delegation and narration (GL-05)
 
@@ -8405,3 +8413,18 @@ priority and action ownership.
   visual narration/non-speech output and no native feedback or TTS calls.
 - Live provider and physical acoustic gates remain NOT RUN; evidence and limits
   are in .agents/GPTLIVE_RESULTS.md and README.
+
+## Milestone 189: Third GPT-Live cockpit tab (GL-06)
+
+- Added an opt-in third interaction tab, independent transport/caption modules,
+  Start/Mute/Stop, voice/device controls, shared microphone/output leases and
+  provisional-to-persisted caption reconciliation. Removed the developer probe.
+- The cockpit uses shared conversation history and opts into projected behaviour
+  SSE. Intent speech stays distinct; native speech preserves non-speech display.
+- Passed 23 focused Java cases, six disposable-MySQL cases, 56 Node cases and
+  37 distinct browser cases across Live/lifecycle/transcription/column expansion.
+  The column setup required a real isolated app; its initial static-server failure
+  was resolved by rerunning all five cases against disposable MySQL.
+- Desktop/mobile light/dark screenshots inspected, including wrapped tabs and
+  permission errors. Live provider/audio gates remain NOT RUN. Detailed evidence
+  and the distinction from GL-08 end-to-end acceptance are in GPTLIVE_RESULTS.md.

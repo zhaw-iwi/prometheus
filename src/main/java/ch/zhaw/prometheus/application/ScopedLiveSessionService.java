@@ -68,6 +68,11 @@ public class ScopedLiveSessionService {
                 contexts.supported(code, agentId)));
     }
 
+    public Capabilities capabilities(String code) {
+        demo.openSession(code);
+        return new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false, false);
+    }
+
     public Optional<SessionView> create(String code, UUID agentId, LiveSessionRequest request) {
         Optional<AgentInfoView> info = demo.getAgentInfo(code, agentId);
         if (info.isEmpty()) return Optional.empty();

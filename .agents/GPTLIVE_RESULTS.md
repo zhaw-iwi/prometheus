@@ -4,6 +4,55 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-06 / project Milestone 189 — 2026-09-28
+
+GL-05 is committed/pushed as `053b0c6`. Added the opt-in third cockpit tab and
+separate browser client/caption/UI modules. Explicit Start, input-only mute,
+immediate local Stop, voice/device/capture settings, shared media leases and
+fresh-session reconnect are available. No microphone starts on connect/reload.
+Removed the temporary probe. Browser preferences contain no transcripts or keys.
+
+The cockpit hydrates the shared conversation projection and opts into it on
+behaviour SSE; ordinary clients retain raw SSE. Native speech leaves current
+non-speech display intact. Receipt identity lists survive persistence and reconcile
+provisional captions without text-based deduplication. Ambiguous/incomplete input
+remains visibly unapplied. README records the additive receipt_ids column.
+
+Actual verification:
+
+- `npm.cmd run test:live:unit`: six cases PASS. Covers startup, mute, synchronous
+  local teardown before delayed cleanup, caption identity/repetition, late callbacks,
+  permission/routing/scope failures, late creation cleanup and cross-mode leases.
+- `npm.cmd run test:transcription:unit` and `npm.cmd run test:speech:unit`:
+  29 and 21 cases PASS, respectively. JavaScript syntax checks passed.
+- `mvnw.cmd -q "-Dtest=ScopedLiveSessionControllerWebMvcTest,SseBroadcasterHardeningUnitTest,SpeechArchitectureSourceContractTest,LiveContextDeliveryUnitTest" test`:
+  23 cases PASS, including scoped feature discovery and opt-in SSE projection.
+- The six accumulated Live integration cases passed on disposable MySQL
+  `prometheus_gptlive_b41e8c5574`; receipt IDs were checked across context reload.
+  Schema/account removed.
+- `valerian-gptlive.spec.mjs`: seven browser cases PASS, with desktop 1440x1000
+  and mobile 390x844, light/dark, idle/settings, overlapping speech, persisted
+  reconciliation, denied microphone, unsupported routing, provider/scope errors,
+  keyboard activation, Stop/tab switch, another window and disabled feature.
+  The added scope-error branch passed in a focused rerun.
+- Existing lifecycle and transcription browser suites: 25 cases PASS. The first
+  combined regression run used a static server, so the column suite's real admin
+  setup failed (one failure, four not run). Reran all five column checks plus the
+  seven new tab checks on a dedicated real application at localhost:18082 with
+  disposable MySQL `prometheus_gptlive_607346e226`: all 12 PASS. App/schema/account
+  removed. Browser API/media fakes remain in these UI suites; this is not GL-08's
+  real-controller voice end-to-end smoke.
+- Screenshots under `target/playwright-gptlive-app` and the first
+  `target/playwright-results` run were visually inspected across both sizes/themes,
+  idle/active/settings and permission-error states. Added tab-strip captures prove
+  mobile wrapping without clipping. Reduced excessive empty-history height based
+  on the first inspection; final layout inspected again.
+- `git diff --check`: PASS.
+
+Live provider, microphone/speaker quality and Bluetooth remain NOT RUN. GL-07 adds
+complete liveness/diagnostic hardening; GL-08 exercises real HTTP/SSE/persistence
+through the browser and records the separate physical handoff.
+
 ## GL-05 / project Milestone 188 — 2026-09-28
 
 GL-04 is committed/pushed as `790eb5f`. Added identity-only after-commit

@@ -368,6 +368,11 @@ public class AgentApplicationService {
         return Optional.of(emitter);
     }
 
+    public Optional<SseEmitter> subscribeConversationBehaviour(UUID id, String lastEventId) {
+        if (findAgent(id).isEmpty()) return Optional.empty();
+        return Optional.of(behaviourBroadcaster.subscribe(id, () -> findAgent(id), lastEventId, true));
+    }
+
     public Optional<AgentInfoView> createSingleStateAgent(SingleStateAgentCreateDTO data) {
         if (data == null || AgentMetaType.singleState.getValue() != data.getType()) {
             return Optional.empty();

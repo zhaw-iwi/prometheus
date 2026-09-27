@@ -2,6 +2,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:live:unit": "node --test tests/js/live/*.test.mjs",
     "test:transcription:unit": "node --test tests/js/transcription/*.test.mjs",
     "test:speech:unit": "node --test tests/js/speech/*.test.mjs",
     "test:valerian:lifecycle": "playwright test --config=playwright.config.mjs tests/playwright/valerian-lifecycle.spec.mjs",

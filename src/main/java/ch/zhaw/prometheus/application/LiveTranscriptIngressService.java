@@ -20,7 +20,12 @@ import ch.zhaw.prometheus.repositories.*;
 @Service
 public class LiveTranscriptIngressService {
     public record Outcome(UUID segmentId, String speaker, String text, String status, String reason, UUID eventId,
-            Long startMs, Long endMs) {}
+            Long startMs, Long endMs, List<String> receiptIds) {
+        public Outcome { receiptIds = List.copyOf(receiptIds); }
+        public Outcome(UUID segmentId, String speaker, String text, String status, String reason, UUID eventId, Long startMs, Long endMs) {
+            this(segmentId, speaker, text, status, reason, eventId, startMs, endMs, List.of());
+        }
+    }
     private final AgentApplicationService turns;
     private final AgentRepository agents;
     private final ExternalSpeechOwnership ownership;
@@ -67,6 +72,7 @@ public class LiveTranscriptIngressService {
             String text = segment.text().trim();
             var persisted = new LiveTranscriptSegment(segment.id(), agent, owner.sessionId(), owner.epoch(), segment.speaker().name(),
                     text, segment.startMs(), segment.endMs(), Instant.ofEpochMilli(segment.firstReceivedMs()), String.join(" / ", observedStatePath));
+            persisted.receipts(segment.fragments().stream().map(Fragment::eventId).toList());
             segments.saveAndFlush(persisted); // Claim identity before any acknowledgement/action.
             sources.forEach(receipt -> receipt.assign(segment.id())); receipts.saveAll(sources);
             claimed[0] = true;
@@ -139,6 +145,6 @@ public class LiveTranscriptIngressService {
         return segments.findTop100ByAgent_IdAndSessionIdOrderByRecordedAtDesc(agent, session).stream().map(LiveTranscriptIngressService::view).toList();
     }
     private static Outcome view(LiveTranscriptSegment value) {
-        return new Outcome(value.getId(), value.getSpeaker(), value.getTranscript(), value.getStatus(), value.getReason(), value.getEventId(), value.getStartMs(), value.getEndMs());
+        return new Outcome(value.getId(), value.getSpeaker(), value.getTranscript(), value.getStatus(), value.getReason(), value.getEventId(), value.getStartMs(), value.getEndMs(), value.receiptIds());
     }
 }

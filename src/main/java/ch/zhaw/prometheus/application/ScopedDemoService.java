@@ -190,6 +190,11 @@ public class ScopedDemoService {
         return this.agentService.subscribeBehaviour(agentId, lastEventId);
     }
 
+    public Optional<SseEmitter> subscribeConversationBehaviour(String code, UUID agentId, String lastEventId) {
+        if (!hasVisibleAgent(code, agentId)) return Optional.empty();
+        return agentService.subscribeConversationBehaviour(agentId, lastEventId);
+    }
+
     public Optional<SseEmitter> subscribeMonitor(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
             return Optional.empty();

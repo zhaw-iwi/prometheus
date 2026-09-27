@@ -1122,19 +1122,27 @@ behaviour speech.
 The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
 `PROMETHEUS_LIVE_ENABLED=true`); the default is disabled. It requires the existing
-OpenAI API credentials and model access. Current milestone: scoped transport,
-selected agent context and durable transcript ingress. The planned
-third cockpit tab and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
+OpenAI API credentials and model access. Valerian exposes an experimental third
+**GPT-Live** tab beside Text and Continuous when enabled. Connect a supported
+agent, choose voice/microphone/speaker settings, then explicitly click **Start
+GPT-Live**. Tab selection, connection and reload never start capture. Use Chrome
+on HTTPS or localhost. The roadmap and acceptance gates are in `.agents/PLAN_GPTLIVE.md`.
 
-The temporary `/live/probe.html` accepts an existing scoped agent ID and access
-code. Use Chrome on HTTPS or localhost, grant microphone permission, and explicitly
-start the probe. It shares microphone and per-agent output leases with existing
-clients. Mute affects input; Stop immediately silences local input/output and asks
-the backend to finalize. Browser captions are provisional; the backend records
-provider transcript segments independently. It requests browser echo cancellation, which does not certify room or
-Bluetooth echo performance. Default OS input/output devices are used in the probe.
+The client shares microphone and per-agent output leases with transcription/TTS.
+Mute affects input only. Stop immediately silences output and releases tracks
+before bounded backend finalization. Switching interaction tabs stops the current
+speech mode; text input resumes after cleanup. Reconnect always creates a fresh
+session. Both provisional speakers remain visible during overlap, then receipt IDs
+reconcile captions with recorded conversation. Incomplete or unapplied captures
+are labeled. Native speech preserves the current non-speech behaviour display.
+Only benign device/capture/voice preferences persist in browser storage.
+Requested/applied echo cancellation is visible; Bluetooth quality remains
+unverified. The temporary `/live/probe.html` was removed in GL-06.
 
 All REST requests below require `X-Prometheus-Access-Code` and a linked agent:
+
+Before selecting an agent, scoped `GET /demo/live/capabilities` reports whether
+the tab is enabled, its model and allowed voices; it never grants eligibility.
 
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
@@ -1206,6 +1214,11 @@ same intent exclusion. Native speech is recorded by a trusted backend adapter as
 an ordinary speech BehaviourPlan, without acknowledgement, guard evaluation or
 narration recursion. There is no browser-authored assistant-recording route.
 Canonical TTS rejects intent events and resumes only actual conversational speech.
+Valerian also requests `projection=conversation` on the existing behaviour SSE
+route; clients omitting that parameter keep the original raw payload contract.
+The segment table's additive nullable `receipt_ids` TEXT column stores provider
+receipt identities for exact caption reconciliation; existing rows default to an
+empty list. Apply this column alongside the earlier ledger tables on managed deployments.
 
 Intent/transcript links are confirmed only with explicit protocol correlation.
 GPT-Live does not supply that identity, so pending source IDs are ambiguous

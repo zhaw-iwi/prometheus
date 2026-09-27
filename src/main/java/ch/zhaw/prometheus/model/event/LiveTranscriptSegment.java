@@ -20,6 +20,7 @@ public class LiveTranscriptSegment {
     @Column(length = 120) private String reason;
     @Column(length = 3000) private String transcript;
     @Column(length = 3000) private String statePath;
+    @Column(columnDefinition = "TEXT") private String receiptIds;
     private Long startMs, endMs;
     private Instant firstReceivedAt, recordedAt;
     protected LiveTranscriptSegment() {}
@@ -43,4 +44,9 @@ public class LiveTranscriptSegment {
     public Long getEndMs() { return endMs; }
     public Instant getFirstReceivedAt() { return firstReceivedAt; }
     public Instant getRecordedAt() { return recordedAt; }
+    public void receipts(java.util.List<String> ids) { receiptIds = new com.google.gson.Gson().toJson(ids); }
+    public java.util.List<String> receiptIds() {
+        if (receiptIds == null) return java.util.List.of();
+        return com.google.gson.JsonParser.parseString(receiptIds).getAsJsonArray().asList().stream().map(com.google.gson.JsonElement::getAsString).toList();
+    }
 }

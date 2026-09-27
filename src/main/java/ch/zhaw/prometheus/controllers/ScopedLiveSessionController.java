@@ -12,7 +12,6 @@ import ch.zhaw.prometheus.controllers.dto.LiveSessionRequest;
 import ch.zhaw.prometheus.spi.live.LiveProviderException;
 
 @RestController
-@RequestMapping("/demo/agents/{agentId}/live")
 public class ScopedLiveSessionController {
     private final ScopedLiveSessionService service;
     private final ch.zhaw.prometheus.application.ScopedDemoService demo;
@@ -22,7 +21,12 @@ public class ScopedLiveSessionController {
         this.service = service; this.demo = demo; this.ingress = ingress;
     }
 
-    @GetMapping("/transcripts")
+    @GetMapping("/demo/live/capabilities")
+    public Capabilities capabilities(@RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
+        return service.capabilities(code);
+    }
+
+    @GetMapping("/demo/agents/{agentId}/live/transcripts")
     public ResponseEntity<java.util.List<ch.zhaw.prometheus.application.LiveTranscriptIngressService.Outcome>> transcripts(@PathVariable UUID agentId,
             @RequestParam UUID sessionId,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
@@ -30,37 +34,37 @@ public class ScopedLiveSessionController {
                 : ResponseEntity.ok(ingress.history(agentId, sessionId));
     }
 
-    @GetMapping("/history")
+    @GetMapping("/demo/agents/{agentId}/live/history")
     public ResponseEntity<java.util.List<ch.zhaw.prometheus.model.event.ConversationProjection.View>> history(@PathVariable UUID agentId,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(demo.getAgentEventHistory(code, agentId).map(events -> events.stream()
                 .map(ch.zhaw.prometheus.model.event.ConversationProjection::view).toList()));
     }
 
-    @GetMapping("/capabilities")
+    @GetMapping("/demo/agents/{agentId}/live/capabilities")
     public ResponseEntity<Capabilities> capabilities(@PathVariable UUID agentId,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(service.capabilities(code, agentId));
     }
-    @PostMapping("/sessions")
+    @PostMapping("/demo/agents/{agentId}/live/sessions")
     public ResponseEntity<SessionView> create(@PathVariable UUID agentId,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
             @RequestBody LiveSessionRequest request) {
         return service.create(code, agentId, request).map(value -> ResponseEntity.status(HttpStatus.CREATED).body(value))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-    @GetMapping("/sessions/{handle}")
+    @GetMapping("/demo/agents/{agentId}/live/sessions/{handle}")
     public ResponseEntity<StatusView> status(@PathVariable UUID agentId, @PathVariable UUID handle,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(service.status(code, agentId, handle));
     }
-    @PostMapping("/sessions/{handle}/input")
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/input")
     public ResponseEntity<StatusView> input(@PathVariable UUID agentId, @PathVariable UUID handle,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
             @RequestParam boolean muted) {
         return ResponseEntity.of(service.mute(code, agentId, handle, muted));
     }
-    @DeleteMapping("/sessions/{handle}")
+    @DeleteMapping("/demo/agents/{agentId}/live/sessions/{handle}")
     public ResponseEntity<StatusView> close(@PathVariable UUID agentId, @PathVariable UUID handle,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(service.close(code, agentId, handle));
