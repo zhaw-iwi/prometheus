@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Production configuration follow-up (2026-09-27): synchronized both production
+  property files with every active template setting, retaining Heroku credential
+  placeholders, Luna task routes and CORS origins. Added explicit worker, Live,
+  inference and guard limits, replaced the obsolete logger and updated the MySQL
+  dialect. Live remains disabled until an environment override enables it.
+  Verified complete key coverage without duplicates and 33 focused Java cases
+  with the prod profile, including disposable-MySQL scoped Live/legacy smoke.
+
 - Milestone 193 (GL-10): explicit persisted external realtime speech capability,
   per-definition opt-in and full reachable-policy checks replace profile-tag
   eligibility. Main conversational definitions opt in; Talk to Me stays exact-text
@@ -8525,3 +8533,32 @@ unsupported-agent screenshots were inspected. See `.agents/GPTLIVE_RESULTS.md`.
 Robot persona
 selection exists only on the agents branch; its Live prompt adaptation remains
 part of that branch's integration before enabling Live for robot embodiments.
+
+
+## Production configuration synchronization (2026-09-27)
+
+Updated application-prod.properties to expose all 30 active application-template
+settings, including background actions, speculative generation and GPT-Live
+limits. Removed the unused com.mycompany.myapp logger, aligned logging levels
+with the template and replaced deprecated MySQL8Dialect with MySQLDialect.
+Database, port and admin credentials retain Heroku placeholders; existing CORS
+origins and disabled-by-default Live behavior are preserved.
+
+Updated openai-prod.properties with explicit global effort/timeout and guard
+strategy, batching, concurrency and deadline settings. All 19 active template
+keys are present, alongside the ten existing production route entries. Luna
+purpose routes, GPT-5.2 fallback, transcription/TTS endpoints and OPENAI_KEY
+remain unchanged. Optional output caps stay commented. No local credentials or
+Heroku config-var values were copied into tracked files.
+
+Verification: programmatic key comparison found no missing or duplicate active
+keys in either pair; all value differences are deliberate production values.
+Ran SpeechArchitectureSourceContractTest, InferenceRoutingUnitTest,
+GuardInferenceExecutorUnitTest, LiveSessionGatewayUnitTest,
+LiveSessionSmokeIntegrationTest and ScopedDemoControllerIntegrationTest with
+SPRING_PROFILES_ACTIVE=prod through the isolated acceptance runner: 33 tests,
+zero failures/errors/skips. The two Spring smoke suites confirmed the prod
+profile and used disposable local MySQL plus stubbed/loopback providers.
+Artifacts: target/gptlive-acceptance-77a6d85e29/ in the feature worktree.
+The runner removed its disposable schema/account. No paid provider/audio trial
+was performed. This change requires no database migration or API/UI change.

@@ -1456,6 +1456,17 @@ The repository contains Heroku/container-oriented resources:
 Production deployments must provide database credentials and OpenAI credentials
 through environment variables or platform config vars.
 
+Both production property files list every active setting from their respective
+templates. Production retains environment-backed database credentials, port,
+admin token and OpenAI key, the existing CORS origins, and the explicit Luna task
+routes. Background-action, speculation, GPT-Live, inference-timeout and guard
+limits are explicit; environment overrides still take precedence. Logging uses
+the current template levels and Hibernate uses `MySQLDialect`.
+
+Synchronizing these files does not enable GPT-Live: its default remains `false`.
+Set `PROMETHEUS_LIVE_ENABLED=true` in Heroku config to enable it. Updating a local
+OpenAI key does not update the separate production `OPENAI_KEY` config var.
+
 Need for Speed adds nullable internal `event.history_position` to preserve new
 events' append order when database timestamps tie. With the configured Hibernate
 `ddl-auto=update`, startup adds this column. For externally managed MySQL schemas,
