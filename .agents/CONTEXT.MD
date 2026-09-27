@@ -133,7 +133,7 @@ catalog keys into new context documents.
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.
-Only the three documented core pilot profiles and known policy classes qualify.
+Only explicitly documented core pilot profiles and known policy classes qualify.
 GL-03 adds provider-neutral speech ownership, non-speech-only ordinary backend
 generation and trusted native recording without acknowledgement. State-entry
 plans retain narration intent; additive event provenance distinguishes intent
@@ -161,6 +161,15 @@ transcription/TTS. Read
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
 sideband owns provider credentials; diagnostic state is bounded and excludes
 audio/text content. See README for scoped session contracts and configuration.
+
+The dedicated Live Multimodal core definition separates external voice guidance
+from embodiment generation through persisted `EmbodimentPolicy`. It accepts all
+current observations and exposes all declared behaviour modalities. Backend plans
+omit speech even without Live ownership; this agent has no text/TTS speech fallback.
+Raw sensor frames update context; user ingress, explicit generation and derived
+social changes generate embodiment. Location remains weather-provided context.
+Ordinary agents retain their combined speech/nonverbal request path. See README
+for setup, additive policy columns and limits; strict silence is not enforced.
 
 ## Regulation: Implemented Foundation and Missing System
 

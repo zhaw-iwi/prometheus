@@ -30,6 +30,7 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 class SeedAgentInteractionProfileContractTest {
     private static final List<AgentDefinition> MAIN_AGENT_DEFINITIONS = List.of(
             new FacialExpressionSensitivity(),
+            new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal(),
             new MultimodalBehaviour(),
             new RockScissorPaper(),
             new RoleClarificationGuessingGame(),

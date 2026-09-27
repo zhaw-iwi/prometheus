@@ -4,6 +4,51 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-09 / project Milestone 192 — 2026-09-27
+
+Added the dedicated Live Multimodal agent and persisted `EmbodimentPolicy`.
+Conversation instructions feed the external voice; a separate embodiment prompt
+produces all configured non-speech channels in one request. No backend verbal
+generation occurs in this policy, with or without Live ownership. Creation is quiet;
+raw sensors only update context, while accepted utterances, explicit generation
+and derived social changes produce embodiment. The final state also uses this
+policy. Existing combined PromptPolicy generation and proactive narration remain
+available to the other agents. Location uses existing weather payloads.
+
+Verification:
+
+- Focused 29 Java cases passed, including two real scoped/controller/SQL smoke
+  cases, on disposable schema `prometheus_gptlive_8c2ad8a31e`.
+- `python tests/gptlive/run_acceptance.py --java-tests all --browser --live-only`:
+  **421 Java tests PASS**, zero failures/errors/skips across 104 fresh reports;
+  **11 Live-enabled browser cases + one feature-off text/TTS case PASS**.
+  The new Live-only case is intentionally skipped on the disabled-feature app.
+  Final disposable schema: `prometheus_gptlive_6a1e0ec408`, removed by the runner
+  together with its restricted account; owned app processes stopped.
+- The new SQL smoke creates/reloads the new policy, projects every supported
+  sensor type including weather location, admits a user transcript, verifies one
+  embodiment request and records native speech without another generation.
+- The real-app browser case selects the new catalog entry, verifies all declared
+  modalities, supplies weather context, and renders gesture/face/gaze/energy/hand
+  sign/display beside the independently recorded assistant speech without TTS.
+- Inspected `live-multimodal-desktop.png` and `live-multimodal-mobile-behaviour.png`
+  under `target/gptlive-acceptance-6a1e0ec408/browser-true/`; all channels remain
+  visible and the mobile behaviour cards fit without clipping.
+- `mvnw.cmd -q -DskipTests package`: PASS.
+
+Initial test-only failures were corrected: a mock needed the existing `decide`
+entry point and verification of inference calls rather than configuration reads;
+the UI assertion needed the displayed `Acknowledgement` label rather than the wire
+enum. No production workaround was introduced. Earlier isolated schemas/accounts
+were cleaned up as well. Node modules were unchanged and their suites were not
+rerun for GL-09. Provider/model quality, physical acoustics, strict silence and
+gesture execution/timing remain unverified; this definition does not add an
+on-demand history-query tool or automatic spoken sensor announcements.
+
+Status: automated implementation and acceptance complete; acoustic gates remain
+separate. README documents the two additive policy columns and the lack of a
+backend speech fallback for this dedicated agent.
+
 ## GL-08 / project Milestone 191 — 2026-09-28
 
 GL-07 is committed/pushed as `211f157`. All eight milestones have completed

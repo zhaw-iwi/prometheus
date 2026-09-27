@@ -74,6 +74,60 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
   expect((await request.delete(path, { headers: scoped })).status()).toBe(204);
 });
 
+test("Live Multimodal exposes sensors and keeps embodiment beside native speech", async ({ page, context, request }, info) => {
+  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Requires the isolated Live-enabled app.");
+  const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const created = await request.post("/admin/access-codes", { headers, data: { code, enabled: true } });
+  expect(created.status()).toBe(201); const access = await created.json();
+  expect((await request.put(`/admin/access-codes/${access.id}/agent-types`, { headers, data: { agentTypeKeys: ["core.live_multimodal"] } })).ok()).toBe(true);
+  const scoped = { "X-Prometheus-Access-Code": code };
+  await hardware(context);
+  await page.goto("/valerian/"); await page.getByTestId("access-code-input").fill(code); await page.getByTestId("submit-access-code").click();
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("agent-type-select").selectOption("core.live_multimodal");
+  const creation = page.waitForResponse(response => response.url().endsWith("/demo/agents") && response.request().method() === "POST");
+  await page.getByTestId("create-agent-instance").click(); const agent = await (await creation).json(); const path = `/demo/agents/${agent.id}`;
+  try {
+    expect(agent.interactionProfile.supportedObservations).toHaveLength(9);
+    expect(agent.interactionProfile.supportedBehaviourModalities).toHaveLength(7);
+    await page.getByTestId("connect-agent").click(); await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${agent.id}`);
+    await page.keyboard.press("Escape");
+    expect(await (await request.get(path + "/eventhistory", { headers: scoped })).json()).toHaveLength(0);
+    await page.getByTestId("gptlive-tab").click(); await page.getByTestId("gptlive-start").click();
+    await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    const provider = await (await request.get("/__live-fixture/latest")).json();
+    expect((await request.post(path + "/acknowledge", { headers: scoped, data: {
+      type: "obs.weather.current", actor: "sensor", kind: "observation",
+      payload: JSON.stringify({ location_label: "Winterthur", condition: "rain", temperature_c: 17, observed_at: new Date().toISOString() }),
+    } })).ok()).toBe(true);
+    await expect.poll(async () => (await (await request.get("/__live-fixture/latest")).json()).commands.join("\n")).toContain("Winterthur");
+    expect((await request.post(`/__live-fixture/speak/${provider.providerId}`, { data: {
+      speaker: "USER", text: "Show paper and a visual caption", receipt: "multimodal_browser_user",
+    } })).ok()).toBe(true);
+    await expect(page.getByTestId("gesture-value")).toHaveText("Acknowledgement");
+    await expect(page.getByTestId("face-value")).toHaveText("attentive");
+    await expect(page.getByTestId("gaze-value")).toHaveText("toward_user");
+    await expect(page.getByTestId("motion-energy-value")).toHaveText("20%");
+    await expect(page.getByTestId("display-value")).toContainText("Ready");
+    const history = await (await request.get(path + "/eventhistory", { headers: scoped })).json();
+    const plans = history.filter(event => event.type === "resp.behaviour_plan").map(event => JSON.parse(event.payload));
+    expect(plans.length).toBeGreaterThan(0); expect(plans.every(plan => !plan.speech)).toBe(true);
+    expect((await request.post(`/__live-fixture/speak/${provider.providerId}`, { data: {
+      speaker: "ASSISTANT", text: "Here is a small demonstration", receipt: "multimodal_browser_assistant",
+    } })).ok()).toBe(true);
+    await expect(page.getByTestId("gptlive-history")).toContainText("Here is a small demonstration");
+    await expect(page.getByTestId("gesture-value")).toHaveText("Acknowledgement");
+    await expect(page.getByTestId("display-value")).toContainText("Ready");
+    expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls).toBe(0);
+    await page.screenshot({ path: info.outputPath("live-multimodal-desktop.png"), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('[data-column-panel="behaviour"]').screenshot({ path: info.outputPath("live-multimodal-mobile-behaviour.png") });
+    await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
+  } finally {
+    expect((await request.delete(path, { headers: scoped })).status()).toBe(204);
+  }
+});
+
 async function hardware(context) {
   await context.addInitScript(() => {
     window.__smokeCaptures = 0;

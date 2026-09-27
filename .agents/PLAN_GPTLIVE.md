@@ -606,3 +606,24 @@ remaining compatibility limits. Update this roadmap's statuses and the results
 record, commit and push the milestone, then continue as authorized. No milestone is complete
 merely because its mock tests passed while one of its declared automated exits
 is missing. Report physical acceptance separately whenever it remains pending.
+
+## 10. Follow-up GL-09: Dedicated Live Multimodal agent (project Milestone 192)
+
+Authorized after the workflow review: create a core agent optimized for external
+speech with every currently supported observation and behaviour modality. Keep
+voice instructions separate from backend embodiment generation. Reuse the current
+Live bridge, event selectors, profiles, behaviour contract and validation.
+
+Deliverables: the `core.live_multimodal` catalog entry; a persisted, provider-neutral
+`EmbodimentPolicy`; explicit Live eligibility; quiet creation; one non-speech
+request for each requested embodiment; a final-state guard; context-only raw
+sensor updates and embodiment on discrete derived social changes. Location uses
+existing weather payloads. No new GPS contract, history-query tool, strict output
+silence, motion/speech alignment or implicit text/TTS fallback is introduced.
+
+Acceptance: focused unit tests for prompt separation, one-request generation,
+speech rejection and event routing; isolated-MySQL scoped creation/reload, all
+sensor context, admitted transcript and native speech persistence; Playwright
+catalog selection and visible full embodiment alongside speech, with desktop/mobile
+screenshots. Retest ordinary policies and feature-off speech. Evidence and final
+status are recorded in `GPTLIVE_RESULTS.md`; physical acoustic checks stay separate.

@@ -17,13 +17,19 @@ import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
 @TestConfiguration(proxyBeanMethods = false)
 public class LiveSmokeConfiguration {
     @Bean @Primary public Provider offlineLiveGateway() { return new Provider(); }
-    @Bean @Primary public LanguageModelGateway offlineLanguageGateway() {
+    @Bean @Primary public LanguageModelGateway offlineLanguageGateway(Provider provider) {
         return new LanguageModelGateway() {
             public String infer(InferenceRequest request) {
+                provider.inferences.add(request);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
+                if (prompt.contains("Produce the current embodiment")) return """
+                        {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
+                        "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},
+                        "motion":{"handSign":"paper"},"display":{"text":"Ready"}}
+                        """;
                 if (prompt.contains("The output must omit speech completely")) return "{\"nonVerbal\":{\"gesture\":\"NONE\"}}";
                 return "{\"speech\":\"Ready for the next interaction.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
             }
@@ -47,6 +53,7 @@ public class LiveSmokeConfiguration {
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
+        public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();
         private final ScheduledExecutorService audio = Executors.newSingleThreadScheduledExecutor(work -> {
             var thread = new Thread(work, "synthetic-live-audio"); thread.setDaemon(true); return thread;
         });

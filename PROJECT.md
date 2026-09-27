@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Latest follow-up: Milestone 192 (GL-09), a dedicated Live Multimodal core agent
+  with separate external voice and backend embodiment instructions. All current
+  observations and declared modalities are available; backend generation omits
+  speech in one request, including state entry, with no competing text/TTS fallback.
+  Quiet creation, discrete social reactions, final-state control, persistence and
+  native-speech coexistence are tested. All 421 Java and 12 browser cases passed;
+  desktop/mobile screenshots inspected. Physical/provider quality and enforced
+  silence remain unverified. Setup and evidence are in README/GPTLIVE_RESULTS.
 - Experimental follow-up: Milestone 191 (GL-08), offline GPT-Live acceptance and
   repeatable physical-trial handoff. The real application/SQL/SSE smoke covers
   speech ingress, task control, sensory context, visual narration and reload;
@@ -132,6 +140,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 192: Dedicated Live Multimodal agent and embodiment policy (GL-09)
 
 - [x] Milestone 191: GPT-Live offline acceptance and physical-trial handoff (GL-08)
 
@@ -8450,3 +8460,29 @@ feature experimental and disabled by default until those independent trials are
 recorded. Commands, evidence paths, resolved failures and the physical protocol
 are in `.agents/GPTLIVE_RESULTS.md`, `.agents/PLAN_GPTLIVE.md` and
 `tests/gptlive/README.md`.
+
+## Milestone 192: Dedicated Live Multimodal agent and embodiment policy (GL-09)
+
+Added `core.live_multimodal`, explicitly eligible for GPT-Live, with all nine
+current observation types and seven declared behaviour modalities. A persisted,
+provider-neutral `EmbodimentPolicy` separates voice guidance from a single backend
+non-speech generation request and rejects competing speech before publication.
+Voice guidance contains no behaviour JSON schema. Instance creation performs no
+inference/greeting; raw sensor readings refresh context without per-frame model
+calls. Admitted user turns, explicit generation and derived social changes produce
+embodiment. An explicit end-interaction guard reaches a non-speech final policy.
+Existing combined PromptPolicy speech/nonverbal generation stays unchanged.
+
+Added unit, catalog/profile and isolated-MySQL smoke coverage for separated prompts,
+one-request embodiment, speech rejection, discrete event routing, policy reload,
+all sensory context and independently recorded native speech. The real cockpit
+Playwright case verifies the new catalog entry and visible full embodiment beside
+native speech. All 421 Java and 12 browser cases passed; one Live-only case is
+intentionally skipped in the disabled-feature run. Desktop/mobile visuals and
+production packaging checked.
+
+Location uses existing weather context, with no new GPS event. The dedicated agent
+has no backend speech fallback or automatic sensor announcements. Prompt-level
+silence is not enforced playback suppression. Physical Live/Chrome/device trials
+remain NOT RUN. Additive nullable policy TEXT columns and local setup are documented
+in README; detailed verification and artifacts are in `.agents/GPTLIVE_RESULTS.md`.

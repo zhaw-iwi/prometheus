@@ -5,18 +5,21 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 import ch.zhaw.prometheus.agentdefs.core.CoreRpsRevealPolicy;
 import ch.zhaw.prometheus.agentdefs.core.CoreRpsResultPolicy;
+import ch.zhaw.prometheus.agentdefs.core.LiveMultimodal;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.Final;
 import ch.zhaw.prometheus.model.OuterState;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 
 /** Explicit pilot adapter. Unknown policy/state implementations are never inferred safe. */
 @Component
 public class LiveVoicePolicyAdapter {
     private static final Set<String> PILOTS = Set.of("demo.valerian.multimodal_behaviour",
-            "demo.valerian.role_clarification", "demo.valerian.rps");
-    private static final Set<Class<?>> POLICIES = Set.of(PromptPolicy.class, CoreRpsRevealPolicy.class, CoreRpsResultPolicy.class);
+            "demo.valerian.role_clarification", "demo.valerian.rps", LiveMultimodal.PROFILE_TAG);
+    private static final Set<Class<?>> POLICIES = Set.of(PromptPolicy.class, EmbodimentPolicy.class,
+            CoreRpsRevealPolicy.class, CoreRpsResultPolicy.class);
     public boolean supports(Agent agent) {
         var profile = agent.getInteractionProfile();
         return profile.getProfileTags().contains("demo.valerian.core")
@@ -30,7 +33,8 @@ public class LiveVoicePolicyAdapter {
         if (!supports(agent)) throw new IllegalArgumentException("Agent policy is not supported by the Live pilot");
         var chain = chain(agent.getCurrentState());
         var leaf = chain.getLast();
-        String policy = leaf.ownPolicy() instanceof PromptPolicy ? agent.getCurrentState().getTotalPolicy()
+        String policy = leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy
+                ? agent.getCurrentState().getTotalPolicy()
                 : "You are Valerian at the ZHAW SIRA Lab. This is a deterministic rock-scissor-paper task. "
                   + "Wait for the backend's chosen sign and computed result; do not choose signs, invent results or advance rounds yourself.";
         String language = agent.getLanguageCode() == null ? "en" : agent.getLanguageCode();

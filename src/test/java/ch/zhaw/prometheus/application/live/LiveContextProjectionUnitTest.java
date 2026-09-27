@@ -86,7 +86,8 @@ class LiveContextProjectionUnitTest {
     }
     @Test void supportsOnlyExplicitPilotsAndKnownPolicies() {
         var adapter = new LiveVoicePolicyAdapter();
-        for (Agent agent : List.of(new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent(), new RoleClarificationGuessingGame().createAgent())) {
+        for (Agent agent : List.of(new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent(),
+                new RoleClarificationGuessingGame().createAgent(), new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal().createAgent())) {
             assertTrue(adapter.supports(agent)); assertFalse(adapter.instructions(agent).isBlank());
         }
         Agent agent = new MultimodalBehaviour().createAgent();

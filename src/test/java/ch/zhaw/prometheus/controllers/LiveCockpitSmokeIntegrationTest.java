@@ -38,6 +38,58 @@ class LiveCockpitSmokeIntegrationTest {
         return json.readTree(mvc.perform(post(url).header(ScopedDemoController.ACCESS_CODE_HEADER, code)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsBytes(body))).andExpect(status().is2xxSuccessful()).andReturn().getResponse().getContentAsString());
     }
+    @Test void liveMultimodalPersistsSeparatePoliciesAndExposesAllSensorsAndEmbodimentWithoutBackendSpeech() throws Exception {
+        String key = ch.zhaw.prometheus.agentdefs.core.LiveMultimodal.KEY;
+        code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+        var access = admin.createAccessCode(code, true); admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
+        int beforeCreation = provider.inferences.size();
+        UUID id = UUID.fromString(postJson("/demo/agents", Map.of("agentDefinitionKey", key)).get("id").asText());
+        path = "/demo/agents/" + id;
+        assertEquals(beforeCreation, provider.inferences.size());
+        assertInstanceOf(ch.zhaw.prometheus.model.policy.EmbodimentPolicy.class, agents.findById(id).orElseThrow().getCurrentState().ownPolicy());
+        UUID handle = UUID.fromString(postJson(path + "/live/sessions", Map.of("sdp", "v=0 synthetic-offer")).get("handle").asText());
+        String providerId = provider.latest;
+        try {
+            assertTrue(provider.calls.get(providerId).request.instructions().contains("Backchannel policy"));
+            assertFalse(provider.calls.get(providerId).request.instructions().contains("canonical JSON shape"));
+            var observations = new LinkedHashMap<String, String>();
+            observations.put(Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.9}");
+            observations.put(Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":1,\"avgDetectionConfidence\":0.9}");
+            observations.put(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":1,\"groupCount\":0,\"singletonCount\":1,\"largestGroupSize\":1}");
+            observations.put(Event.TYPE_SOCIAL_CONTEXT, "{\"humanCount\":1,\"groupCount\":0,\"largestGroupSize\":1}");
+            observations.put(Event.TYPE_HAND_SIGN, "{\"sign\":\"paper\",\"confidence\":0.9}");
+            observations.put(Event.TYPE_WEATHER_CURRENT, "{\"location_label\":\"Winterthur\",\"condition\":\"rain\",\"temperature_c\":17}");
+            observations.put(Event.TYPE_WEATHER_FORECAST, "{\"location_label\":\"Winterthur\",\"days\":[{\"date\":\"2026-09-28\",\"condition\":\"sunny\"}]}");
+            for (var observation : observations.entrySet()) {
+                postJson(path + "/acknowledge", Map.of("type", observation.getKey(), "actor", "sensor", "kind", "observation", "payload", observation.getValue()));
+            }
+            var selected = contexts.snapshot(code, id).orElseThrow();
+            var types = selected.items().stream().map(item -> item.type()).toList();
+            assertTrue(types.containsAll(observations.keySet())); assertTrue(types.contains(Event.TYPE_SOCIAL_SITUATION_CHANGE));
+            assertTrue(selected.startupInput().toString().contains("Winterthur"));
+            await().atMost(Duration.ofSeconds(6)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("Winterthur")));
+            long beforeUser = provider.inferences.stream().filter(request -> request.purpose() == ch.zhaw.prometheus.spi.InferencePurpose.BEHAVIOUR).count();
+            postJson(path + "/live/sessions/" + handle + "/input?muted=false", Map.of());
+            provider.speak(providerId, "USER", "Show paper and a visual caption", "live_multimodal_user");
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+                var events = agents.findById(id).orElseThrow().getEventHistory().toList();
+                assertTrue(events.stream().anyMatch(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())));
+                var plan = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.getLast().getPayload());
+                assertNull(plan.getSpeech()); assertNotNull(plan.getNonVerbal()); assertNotNull(plan.getMotion()); assertNotNull(plan.getDisplay());
+                assertEquals(beforeUser + 1, provider.inferences.stream().filter(request -> request.purpose() == ch.zhaw.prometheus.spi.InferencePurpose.BEHAVIOUR).count());
+            });
+            assertTrue(provider.calls.get(providerId).sent.stream().noneMatch(event -> "session.commentary.append".equals(event.get("type").getAsString())));
+            int beforeNative = provider.inferences.size();
+            provider.speak(providerId, "ASSISTANT", "Here is a small demonstration", "live_multimodal_assistant");
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .anyMatch(event -> event.speechProvenance() != null && event.speechProvenance().origin() == SpeechProvenance.Origin.NATIVE)));
+            assertEquals(beforeNative, provider.inferences.size());
+        } finally {
+            mvc.perform(delete(path + "/live/sessions/" + handle).header(ScopedDemoController.ACCESS_CODE_HEADER, code)).andExpect(status().isOk());
+            mvc.perform(delete(path).header(ScopedDemoController.ACCESS_CODE_HEADER, code)).andExpect(status().isNoContent());
+        }
+    }
+
     @Test void realScopeSseCaptureTaskSensoryNarrationReloadAndFeatureOffSpeech() throws Exception {
         code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
         var access = admin.createAccessCode(code, true); admin.replaceAllowedAgentTypes(access.getId(), List.of("core.rock_scissor_paper"));

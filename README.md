@@ -245,6 +245,7 @@ The main branch ships the Valerian baseline catalog:
 | --- | --- |
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
+| `core.live_multimodal` | GPT-Live conversation with independent full embodiment and all supported observations; requires Live for speech. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
 | `core.social_context_sensitivity` | Core demo for social grouping and rich social context. |
@@ -1201,10 +1202,11 @@ implementation; backend scope/epoch checks remain the task-authority boundary.
 The initial voice context uses the active leaf state's existing history selector,
 the composed outer/inner conversational prompt, and the existing sensory text
 adapters. It never copies the structured BehaviourPlan output schema into voice
-instructions. Pilot eligibility is explicit: existing core profile tags for
-multimodal behaviour, role clarification and rock-scissor-paper, with known
-`PromptPolicy`/core RPS policies only. Unknown policies and other agent types are
-rejected; existing text and transcription modes retain their normal support.
+instructions. Pilot eligibility is explicit: core profile tags for
+multimodal behaviour, role clarification, rock-scissor-paper and Live Multimodal,
+with known `PromptPolicy`/`EmbodimentPolicy`/core RPS policies only. Unknown policies
+and other agent types are rejected; existing text and transcription modes retain
+their normal support.
 
 Selected context keeps original event IDs and times. Current sensor readings are
 coalesced by type; face aggregation uses up to eight selected fresh readings.
@@ -1219,6 +1221,44 @@ Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
 what an ongoing voice session already heard. Committed changes asynchronously
 refresh that context while speech continues; a response can use earlier guidance.
+
+The dedicated **Valerian Core - Live Multimodal** (`core.live_multimodal`) agent
+separates authored voice instructions from backend embodiment instructions using
+`EmbodimentPolicy`. Assign the new type to an access code in Valerian Access
+Management, create a fresh instance, connect and explicitly Start GPT-Live.
+Creation is quiet and makes no inference request. This agent needs an active Live
+session for spoken replies; Text/Continuous do not provide a backend speech fallback.
+Use the existing Multimodal Behaviour agent for the ordinary speech/TTS workflow.
+
+Its profile includes all nine current observation types: user utterances, facial
+emotion, human presence, social grouping, rich social context, derived social
+situation changes, hand signs, current weather and forecasts. Location is supplied
+inside weather observations; no independent location/GPS observation is implemented.
+Live receives the existing selected, bounded context with freshness labels. Raw
+sensor frames update context without a behaviour inference per frame. Admitted
+user utterances, explicit Generate requests and derived social-situation changes
+produce a current embodiment; ticks alone do not. The explicit end-interaction
+guard distinguishes ending the demo from interrupting speech or requesting silence.
+
+One backend behaviour request covers gesture, facial expression, gaze and expressive
+stillness/energy, with optional hand-sign motion and display. It contains no voice
+instructions and must omit speech; unexpected speech is rejected before publication.
+These outputs arrive independently of native speech. The existing combined
+speech/nonverbal optimization remains in use for ordinary `PromptPolicy` agents;
+there is no second backend verbal-generation request in the dedicated agent.
+Guard inference remains separate task-control work. Instance start, sensory
+self-loops and final entry also use the non-speech policy. This definition does not
+automatically announce sensor changes or generate a spoken greeting/goodbye.
+Other policies can still express explicit narration intents through the existing
+Live bridge when a task needs backend-initiated speech.
+
+Speech suppression for gesture-only requests remains prompt guidance, not an
+enforced playback guarantee. On-demand history queries and word-aligned gesture
+timing are not provided by this agent. Existing text/TTS agents are unchanged.
+The persisted policy adds nullable `voice_instructions` and
+`embodiment_instructions` TEXT columns to `policy`; local `ddl-auto=update` adds
+them. Managed deployments must apply these columns before creating/reloading this
+policy type. Existing policy rows and agent instances need no conversion.
 
 An active external speech session owns ordinary spoken replies across the
 application runtime. Backend generation can still produce configured non-speech
