@@ -45,4 +45,18 @@ public class LiveAgentContextService {
             return result;
         });
     }
+
+    public record Update(LiveContextSnapshot context, java.util.List<ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration> narrations) {}
+    public Optional<Update> refresh(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        return turns.serialized(id, () -> transaction.execute(status -> agents.findById(id)
+                .filter(agent -> owner.equals(ownership.current(agent))).map(agent -> {
+                    var narrations = agent.getEventHistory().toList().stream()
+                            .filter(ch.zhaw.prometheus.model.event.ConversationProjection::isIntent)
+                            .filter(event -> owner.sessionId().equals(event.speechProvenance().sessionId()) && owner.epoch().equals(event.speechProvenance().epoch()))
+                            .map(event -> new ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration(event.getId(),
+                                    ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech()))
+                            .filter(value -> value.sourceId() != null && value.text() != null && !value.text().isBlank()).toList();
+                    return new Update(projection.project(agent), narrations);
+                })));
+    }
 }

@@ -60,6 +60,16 @@ public class AgentApplicationService {
     private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
     private BehaviourSpeculationService speculation;
     private ExternalSpeechOwnership speechOwnership;
+    private org.springframework.context.ApplicationEventPublisher applicationEvents;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureApplicationEvents(org.springframework.context.ApplicationEventPublisher events) { this.applicationEvents = events; }
+
+    private void committed(Agent agent) {
+        if (applicationEvents == null || agent == null) return;
+        var event = new AgentCommitted(agent.getId(), agent.executionEpoch());
+        AfterCommit.run(() -> applicationEvents.publishEvent(event));
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void configureSpeechOwnership(ExternalSpeechOwnership ownership) { this.speechOwnership = ownership; }
@@ -125,7 +135,7 @@ public class AgentApplicationService {
             });
             if ("completed".equals(status)) {
                 after.forEach((key, value) -> versions.applied(action.storageId(), key, before.get(key), value));
-                repository.findById(id).ifPresent(this::safePublishMonitor);
+                repository.findById(id).ifPresent(agent -> { safePublishMonitor(agent); committed(agent); });
             }
             return status;
         });
@@ -401,6 +411,7 @@ public class AgentApplicationService {
     private Agent persistAndPublishMonitor(Agent agent) {
         Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
         LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
+        committed(saved);
         return saved;
     }
 
@@ -423,7 +434,7 @@ public class AgentApplicationService {
         }
         LatencyTrace.behaviour(eventToPublish.getId());
         Event published = eventToPublish;
-        LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; });
+        AfterCommit.run(() -> LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; }));
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {

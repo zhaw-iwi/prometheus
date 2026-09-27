@@ -38,7 +38,8 @@ public class ScopedLiveSessionService {
     }
     public record Diagnostic(String type, long sequence) {}
     public record StatusView(String state, boolean finalized, long eventCount, long inputSamples,
-            long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState) {}
+            long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState,
+            LiveContextBridgeService.Status context) {}
 
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
@@ -48,6 +49,8 @@ public class ScopedLiveSessionService {
     private final Clock clock;
     private LiveTranscriptCaptureService captures;
     @Autowired void configureCaptures(LiveTranscriptCaptureService captures) { this.captures = captures; }
+    private LiveContextBridgeService bridge;
+    @Autowired void configureBridge(LiveContextBridgeService bridge) { this.bridge = bridge; }
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
 
     @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
@@ -81,6 +84,10 @@ public class ScopedLiveSessionService {
         }
         try {
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
+            if (bridge != null) lease.bridge = bridge.open(lease.context,
+                    new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
+                    command -> lease.append(command, properties.getRequestTimeoutMs()), context -> lease.context = context,
+                    codeName -> { lease.contextProblem = codeName; lease.disconnected.set(true); });
             if (captures != null) lease.capture = captures.open(agentId,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
                     () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; lease.disconnected.set(true); });
@@ -90,6 +97,7 @@ public class ScopedLiveSessionService {
             lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> lease.disconnected.set(true));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
+            if (lease.bridge != null) lease.bridge.ready();
             return Optional.of(new SessionView(lease.handle, lease.provider.sdp(), properties.getModel(), voice, true));
         } catch (RuntimeException failure) {
             sessions.remove(lease.handle, lease);
@@ -144,6 +152,7 @@ public class ScopedLiveSessionService {
 
     private void dispose(Lease lease, boolean graceful) {
         boolean first = lease.stopped.compareAndSet(false, true);
+        if (lease.bridge != null) lease.bridge.close();
         if (first && graceful && lease.connection != null && lease.connection.isOpen()) {
             try {
                 JsonObject close = new JsonObject(); close.addProperty("type", "session.close");
@@ -183,6 +192,8 @@ public class ScopedLiveSessionService {
         volatile LiveSessionGateway.Session provider;
         volatile LiveContextSnapshot context;
         volatile LiveTranscriptCaptureService.Capture capture;
+        volatile LiveContextBridgeService.Session bridge;
+        volatile String contextProblem;
         volatile String captureProblem;
         volatile boolean captureDrained;
         volatile LiveSessionGateway.Connection connection;
@@ -196,6 +207,7 @@ public class ScopedLiveSessionService {
             if (!type.matches("[a-z_.]{1,100}")) type = "invalid";
             count++;
             if (capture != null) capture.receive(event);
+            if (bridge != null) bridge.receive(event);
             if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
                 String field = type.equals("session.input_audio.append") ? "audio" : "delta";
                 if (event.has(field)) {
@@ -223,13 +235,22 @@ public class ScopedLiveSessionService {
             if (wait != null && type.equals("error")) wait.result().completeExceptionally(new LiveProviderException("Live command rejected"));
         }
         void command(String type, String ack, int timeout) {
+            JsonObject event = new JsonObject(); event.addProperty("type", type);
+            command(event, ack, timeout);
+        }
+        void append(ch.zhaw.prometheus.application.live.LiveContextDelivery.Command command, int timeout) {
+            JsonObject event = new JsonObject(); event.addProperty("type", command.type());
+            event.addProperty("content", command.content()); event.addProperty("delegation_id", command.delegationId());
+            command(event, command.type().replace(".append", ".appended"), timeout);
+        }
+        private void command(JsonObject event, String ack, int timeout) {
             if (stopped.get() || disconnected.get()) throw new LiveProviderException("Live session disconnected");
             if (!commandSlots.tryAcquire()) throw new LiveProviderException("Live command capacity reached");
             String id = UUID.randomUUID().toString();
             CompletableFuture<Void> result = new CompletableFuture<>();
             pending.put(id, new Pending(ack, result));
             try {
-                JsonObject event = new JsonObject(); event.addProperty("type", type); event.addProperty("event_id", id);
+                event.addProperty("event_id", id);
                 connection.send(event); result.get(timeout, TimeUnit.MILLISECONDS);
             } catch (Exception failure) {
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
@@ -242,7 +263,8 @@ public class ScopedLiveSessionService {
         synchronized StatusView status() {
             String state = cleanupFailed ? "cleanup_unconfirmed" : stopped.get() ? "closed" : disconnected.get() ? "disconnected" : "attached";
             return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped,
-                    captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable");
+                    captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable",
+                    bridge == null ? null : bridge.status());
         }
     }
 }

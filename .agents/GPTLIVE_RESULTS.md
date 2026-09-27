@@ -4,6 +4,43 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## GL-05 / project Milestone 188 — 2026-09-28
+
+GL-04 is committed/pushed as `790eb5f`. Added identity-only after-commit
+notifications, asynchronous/coalesced fresh-context reads, revision/epoch checks,
+separate instruction/fact/announcement routing, delegation waiting/reporting and
+spoken clarification. Periodic refresh expires observations without a transition.
+Provider ACK waits run outside the agent lock. Source identities deduplicate
+announcements; ACK failure stops delivery without replay. Long announcements use
+quiet context chunks and one commentary request. README records queue/size bounds.
+
+Delegation metadata cannot supply a user utterance. The handler reports existing
+committed work and selected context; it never acknowledges, generates an extra
+backend model request, or creates a new action. Timing association remains
+approximate, and notification-before-transcript waits at most five seconds before
+reporting unconfirmed status. A changed revision uses current state; reset closes
+the old delivery worker. Native recordings cannot create narration feedback.
+
+Actual verification:
+
+- `mvnw.cmd -q -DskipTests compile`: PASS.
+- `mvnw.cmd -q "-Dtest=LiveContextDeliveryUnitTest,LiveDelegationUnitTest,LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,ScopedLiveSessionControllerWebMvcTest,LiveSpeechExecutionUnitTest,AgentApplicationServiceGenerateOptionsUnitTest,OutputProfileUnitTest" test`:
+  29 cases PASS. Includes readiness/routing, multilingual limits, coalescing,
+  missing ACK with no retry, reset during a blocked context read, duplicate and
+  early delegation, changed revision and bounded pending requests.
+- `LiveSessionSmokeIntegrationTest,LiveSpeechPersistenceIntegrationTest,LiveTranscriptIngressIntegrationTest,LiveMultimodalBridgeIntegrationTest`:
+  six cases PASS on disposable MySQL `prometheus_gptlive_ec57e5eada`; restricted
+  account/schema removed. The new integration uses actual persistence, actions,
+  transactions, ingress and session host with a fake sideband. It verifies one
+  accepted user/transition, weather without transition, rollback exclusion,
+  visual narration with non-speech plan, and no TTS/native-output feedback.
+- `git diff --check`: PASS.
+
+Official Live delegation/append documentation was checked again for required
+nullable delegation IDs, 500-token append limits and ACK semantics. Live provider
+injection timing, speech quality, acoustic coverage and hardware trials remain
+NOT RUN. Context acknowledgements do not establish what the user heard.
+
 ## GL-04 / project Milestone 187 — 2026-09-28
 
 GL-03 is committed/pushed as `dededed`. Added independent speaker aggregation,

@@ -1180,7 +1180,8 @@ Startup history is limited to 40 messages and 7,000 UTF-8 JSON bytes, retaining
 recent evidence; individual text is visibly truncated above 1,000 bytes.
 Conversational instructions above 12,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
-what an ongoing voice session already heard. Live updates arrive in GL-05.
+what an ongoing voice session already heard. Committed changes asynchronously
+refresh that context while speech continues; a response can use earlier guidance.
 
 An active external speech session owns ordinary spoken replies across the
 application runtime. Backend generation can still produce configured non-speech
@@ -1209,7 +1210,7 @@ Canonical TTS rejects intent events and resumes only actual conversational speec
 Intent/transcript links are confirmed only with explicit protocol correlation.
 GPT-Live does not supply that identity, so pending source IDs are ambiguous
 candidates, even if only one exists. Native transcripts do not prove physical
-audibility. Interrupted text remains labeled incomplete. Narration delivery follows in GL-05.
+audibility. Interrupted text remains labeled incomplete.
 
 Continuous transcripts are aggregated independently per speaker. A complete
 segment requires 800 ms of observed quiet PCM, a 400 ms fragment grace period and
@@ -1239,6 +1240,30 @@ not advance the agent; explicit, self-contained replies remain usable.
 100 ledger outcomes under the same access scope, including incomplete/late text.
 No raw audio is stored. Real continuous quiet-audio coverage remains a live-trial
 gate; if it is absent, capture fails conservatively rather than guessing silence.
+
+After-commit notifications refresh selected context in four bounded workers,
+with one active refresh per session and coalescing of newer invalidations. A
+one-second refresh also expires sensory facts without another event. State guidance
+uses `session.instructions.append`; observations/removals use silent
+`session.thinking.append`; backend narration intents use `session.commentary.append`.
+Updates are split at Unicode boundaries into conservative sub-500-token chunks.
+Long announcements are supplied as quiet context before one speakable request.
+Up to 128 commands form one update batch; 4,096 narration identities are retained
+for deduplication within a session. Provider waits never hold an agent turn lock.
+
+Client delegation retrieves committed context directly from PROMETHEUS. It does
+not generate a second acknowledgement or invoke another model just to retrieve
+history. Requests can precede transcripts: they wait for nearby committed input
+or report an unconfirmed outcome after five seconds. Timestamp association is
+explicitly approximate. Changed revisions use current guidance; old epochs are
+discarded. At most 32 requests wait and 1,024 delegation identities are retained
+per session. Clarification requests are separately bounded at 32.
+
+An append ACK confirms provider context injection, not playback. A rejected or
+unacknowledged update fails the session with an inspectable status; it is never
+blindly repeated. Status includes content-free revision/source IDs and send/ACK
+traces (last 64, with dropped count and separate server clock). Native assistant
+history cannot narrate itself. Existing non-speech behaviour/SSE remains available.
 
 ## Admin API
 

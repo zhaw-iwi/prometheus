@@ -72,6 +72,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Experimental follow-up: Milestone 188 (GL-05), after-commit asynchronous Live
+  context, client delegation and proactive narration. State guidance, silent
+  facts and speakable intent are routed separately; ACK uncertainty never retries
+  an announcement. A disposable-MySQL fake-sideband test covers user transition,
+  sensory updates, rollback exclusion and visual narration without TTS/feedback.
+  The cockpit tab is next; live/acoustic gates remain NOT RUN.
 - Experimental follow-up: Milestone 187 (GL-04), bounded transcript segmentation
   and durable receipt/segment admission. Restart replay cannot run the same
   blocking action twice; uncertain, late and interrupted input remains inspectable
@@ -139,6 +145,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 188: GPT-Live context, delegation and narration (GL-05)
 
 - [x] Milestone 187: Durable GPT-Live transcript ingress (GL-04)
 
@@ -8383,3 +8391,17 @@ priority and action ownership.
   application-context reload and persisted blocking-action write-version checks.
 - Audio coverage/segmentation thresholds remain provisional until live trials.
   See .agents/GPTLIVE_RESULTS.md for actual commands and remaining gates.
+
+## Milestone 188: GPT-Live context, delegation and narration (GL-05)
+
+- Added after-commit context invalidation and bounded/coalesced asynchronous
+  delivery with revision/epoch fencing. Sensory expiry refreshes without an event.
+- Instructions, quiet facts and source-deduplicated narration use distinct Live
+  append commands. Uncertain ACK delivery is inspectable and never blindly retried.
+- Delegation reports committed context/work without acknowledging again. Short
+  replies with uncertain spoken context receive a clarification request.
+- Twenty-nine focused Java cases and six disposable-MySQL cases passed. The new
+  fake-sideband integration covers a user action, weather, rollback exclusion,
+  visual narration/non-speech output and no native feedback or TTS calls.
+- Live provider and physical acoustic gates remain NOT RUN; evidence and limits
+  are in .agents/GPTLIVE_RESULTS.md and README.

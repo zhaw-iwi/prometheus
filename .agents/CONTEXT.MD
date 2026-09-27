@@ -142,7 +142,9 @@ while raw history preserves the original plan. GL-04 adds bounded per-speaker
 capture and durable receipt/segment claims. Complete user segments acknowledge
 once; ambiguous short answers, late fragments and interrupted input do not act.
 Failed/pending claims are retained without automatic replay across restarts.
-Narration delivery remains pending. It is separate from current
+GL-05 publishes committed state/sensory updates and narration asynchronously;
+client delegation reports existing work without a second acknowledgement. Lost
+append ACKs fail visibly without blind retry. It is separate from current
 transcription/TTS. Read
 `.agents/PLAN_GPTLIVE.md` for the authorized implementation roadmap and
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
