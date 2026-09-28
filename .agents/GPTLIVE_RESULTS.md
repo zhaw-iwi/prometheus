@@ -58,6 +58,25 @@ bounded content-free trace. The obsolete event-ID removal helper was removed.
 The final full Java rerun after all cleanup/concurrency checks again passed all
 438 cases in 105 suites: `target/gptlive-acceptance-d5a38162c2/`.
 
+Deployment-tree verification (local `agents` merge `0399a74`) passed all 572 Java
+cases in 126 suites and all 67 Node cases. The first Java run passed 571 cases but
+one context could not start because cached test pools exhausted local MySQL
+connections (`target/gptlive-acceptance-9f1eba1044/`). Rerunning with test-process
+`SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=4` and
+`SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=0` passed the full suite:
+`target/gptlive-acceptance-8b12e296ba/`. These are local test settings, not Heroku
+configuration or evidence of a production query-quota error.
+
+That small pool was insufficient for the browser app's concurrent SSE requests:
+42 browser cases passed but reconnect/next-fixture requests exhausted its four
+connections. The browser-only rerun used maximum pool size 10 and minimum idle 1;
+all 14 enabled Live cases and the disabled Text/TTS smoke passed, with one
+intentional Live-only skip: `target/gptlive-acceptance-4d0a6f8f1d/`. Across the
+full/focused deployment-tree runs, all 45 distinct browser cases passed. Run Java
+and browser acceptance separately when using reduced pools for cached Java test
+contexts. Owned fixture apps stopped and all disposable schemas/accounts were
+removed. Deployment-only catalog/persona code and production settings are intact.
+
 Tests use random local schemas/accounts and loopback or stubbed providers, never
 the configured production database. Physical camera grounding, paid voice quality
 and sustained production query consumption still need a new interaction trial.
