@@ -98,7 +98,7 @@ class LiveContextProjectionUnitTest {
         assertFalse(expired.startupInput().toString().contains("Nonverbal summary"));
         leaf(agent).setEventSelectorSpec(EventSelectorSpec.type(Event.TYPE_USER_UTTERANCE));
         var narrowed = projection(NOW.plusSeconds(6)).project(agent);
-        assertTrue(narrowed.items().isEmpty()); assertTrue(narrowed.removedSince(first).contains(face.getId().toString()));
+        assertTrue(narrowed.items().isEmpty());
         assertNotEquals(expired.revision(), narrowed.revision());
     }
     @Test void supportsOnlyDeclaredCapabilityAndKnownPolicies() {

@@ -49,7 +49,7 @@ public class LiveContextBridgeService {
         }
         session.request();
     }
-    // Tick in memory; read only on a commit, sensory/delegation deadline or bounded fallback.
+    // Tick in memory; coalesce commits, but honor sensory/delegation deadlines and bounded fallback.
     // Scope revocation/liveness remain independently checked by the scoped session lease.
     @Scheduled(fixedDelay = 1000) public void refresh() { sessions.values().forEach(Session::refreshIfDue); }
     @PreDestroy public void shutdown() { sessions.values().forEach(Session::close); workers.shutdownNow(); }
@@ -67,7 +67,7 @@ public class LiveContextBridgeService {
         private final ArrayDeque<Trace> traces = new ArrayDeque<>();
         private volatile boolean ready;
         private volatile String state = "starting", revision;
-        private volatile long nextRefreshAt;
+        private volatile long nextRefreshAt = Long.MAX_VALUE, nextCommitReadAt;
         private long dropped;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
@@ -88,12 +88,17 @@ public class LiveContextBridgeService {
         }
         public void request() {
             if (closed.get()) return; dirty.set(true);
-            if (!ready || !running.compareAndSet(false, true)) return;
-            try { workers.execute(this::run); }
-            catch (RejectedExecutionException full) { running.set(false); fail("context_workers_full"); }
+            refreshIfDue();
         }
         private void refreshIfDue() {
-            if (clock.millis() >= Math.min(nextRefreshAt, delegations.nextDeadline())) request();
+            // Claim before sampling deadlines: a concurrent completed read must not leave
+            // this caller scheduling from an obsolete, already-due deadline.
+            if (closed.get() || !ready || !running.compareAndSet(false, true)) return;
+            long now = clock.millis();
+            boolean deadline = now >= Math.min(nextRefreshAt, delegations.nextDeadline());
+            if (!deadline && (!dirty.get() || now < nextCommitReadAt)) { running.set(false); return; }
+            try { workers.execute(this::run); }
+            catch (RejectedExecutionException full) { running.set(false); fail("context_workers_full"); }
         }
         private void scheduleRefresh(LiveContextSnapshot context) {
             long now = clock.millis(), next = now + 30000;
@@ -108,12 +113,24 @@ public class LiveContextBridgeService {
             try {
                 dirty.set(false);
                 if (closed.get()) return;
+                // Faster append ACKs must not turn each fragment/sensor commit into a graph read.
+                // Deferred work remains dirty; no worker sleeps while waiting for this window.
+                nextCommitReadAt = clock.millis() + 5000;
                 nextRefreshAt = clock.millis() + 30000;
                 var fresh = contexts.refresh(agent, owner).orElseThrow(() -> new IllegalStateException("Obsolete context owner"));
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
-                for (Command command : batch.commands()) transmit(command);
+                var expired = new HashSet<String>();
+                for (Command command : batch.commands()) {
+                    // Earlier ACK waits can outlive a later item's TTL. Do not transmit stale
+                    // chunks as fresh; explicitly expire that type once, without another DB read.
+                    if (command.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))) {
+                        if (expired.add(command.evidenceType())) {
+                            trace("expired_before_send", command); transmit(command.expired());
+                        }
+                    } else transmit(command);
+                }
                 if (closed.get()) return;
                 delivery.acknowledged(batch); revision = fresh.context().revision(); applied.accept(fresh.context());
                 for (var reply : delegations.resolve(fresh.context(), clock.millis()))
@@ -122,7 +139,7 @@ public class LiveContextBridgeService {
                 while ((segment = clarifications.poll()) != null) transmit(LiveContextDelivery.clarification(segment, revision));
                 state = "ready";
             } catch (RuntimeException invalid) { fail("context_delivery_unconfirmed"); }
-            finally { running.set(false); if (dirty.get() && !closed.get()) request(); }
+            finally { running.set(false); refreshIfDue(); }
         }
         private void transmit(Command command) {
             if (closed.get()) throw new IllegalStateException("Context session closed");

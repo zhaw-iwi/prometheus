@@ -140,6 +140,10 @@ catalog keys into new context documents.
 
 ## GPT-Live Experiment
 
+Changes prompted by GPT-Live usage start on `feature/gptlive`, then merge into
+`main`, and only then from `main` into `agents` for the Heroku deployment. Preserve
+ordinary Text/Continuous contracts and the deployment-only catalog/persona layer.
+
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.
@@ -188,9 +192,12 @@ for setup, additive policy columns and limits; strict silence is not enforced.
 
 During Live, unchanged eligible face/social readings refresh every five seconds
 while detectors continue observing. Stopped sensing still expires after 15 seconds;
-manual samples and ordinary text/TTS deduplication are unchanged. Context workers
-reload on commits, freshness/delegation deadlines and a bounded fallback, rather
-than every idle second. Durable fragment admission uses scalar scope/epoch checks,
+manual samples and ordinary text/TTS deduplication are unchanged. Live delivery
+uses compact same-type replacements, with social facts before derived summaries;
+only truly deselected types are withdrawn. Unsent chunks are checked again for
+expiry after provider waits. Context workers coalesce commit reads over five
+seconds, with freshness/delegation deadlines and a bounded fallback; per-append
+ACK waits remain sequential. Durable fragment admission uses scalar scope/epoch checks,
 and eager event state paths load together. See README and GPTLIVE_RESULTS for the
 query-budget regression evidence and remaining provider/production limits.
 

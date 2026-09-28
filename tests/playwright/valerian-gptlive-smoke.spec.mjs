@@ -16,6 +16,8 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
   const creation = page.waitForResponse(response => response.url().endsWith("/demo/agents") && response.request().method() === "POST");
   await page.getByTestId("create-agent-instance").click(); const agent = await (await creation).json(); const path = `/demo/agents/${agent.id}`;
   await page.getByTestId("connect-agent").click(); await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${agent.id}`);
+  // The connection label precedes history hydration; wait for the real stream to open before sending input.
+  await expect(page.locator("#behaviour_status")).toHaveText("Behaviour Live");
   await page.keyboard.press("Escape");
   if (!enabled) {
     await expect(page.getByTestId("gptlive-tab")).toBeHidden(); await expect(page.getByTestId("continuous-speech-tab")).toBeVisible();

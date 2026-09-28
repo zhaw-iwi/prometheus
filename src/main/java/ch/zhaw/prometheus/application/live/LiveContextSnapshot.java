@@ -15,11 +15,6 @@ public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Ins
         public Item { sourceIds = List.copyOf(sourceIds); }
         @Override public String toString() { return "LiveContextItem[key=" + key + ",freshness=" + freshness + "]"; }
     }
-    public List<String> removedSince(LiveContextSnapshot earlier) {
-        if (earlier == null) return List.of();
-        var keys = items.stream().map(Item::key).collect(java.util.stream.Collectors.toSet());
-        return earlier.items().stream().map(Item::key).filter(key -> !keys.contains(key)).toList();
-    }
     public JsonArray startupInput() {
         JsonArray input = new JsonArray();
         for (Item item : items) {

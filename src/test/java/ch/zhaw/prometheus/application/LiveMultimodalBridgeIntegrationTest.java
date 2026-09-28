@@ -86,15 +86,16 @@ class LiveMultimodalBridgeIntegrationTest {
             var segment = new Segment(UUID.randomUUID(), Speaker.USER, List.of(input), Closure.COMPLETE, "observed_silence", input.receivedMs(), input.receivedMs());
             ingress.receipt(id, owner, input); var outcome = ingress.commit(id, owner, segment, List.of("waiting")).orElseThrow();
             bridge.captured(new LiveTranscriptCaptureService.Committed(id, owner, outcome));
-            await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertEquals(1, commentary(sent)));
+            // Allow the 5s commit window, scheduler tick and local persistence; fake-clock tests assert exact cadence.
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(1, commentary(sent)));
             assertEquals("reveal", agents.findById(id).orElseThrow().getCurrentState().getName());
             assertEquals(1, agents.findById(id).orElseThrow().getEventHistory().toList().stream().filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).count());
-            await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertTrue(sent.stream().anyMatch(event -> event.has("delegation_id") && !event.get("delegation_id").isJsonNull())));
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertTrue(sent.stream().anyMatch(event -> event.has("delegation_id") && !event.get("delegation_id").isJsonNull())));
 
             turns.acknowledge(id, new EventRequest(Event.TYPE_WEATHER_CURRENT, "sensor", Event.KIND_OBSERVATION,
                     "{\"temperature\":17,\"condition\":\"rain\",\"observed_at\":\"" + Instant.now() + "\"}"));
             String weatherRevision = contexts.snapshot(code, id).orElseThrow().revision();
-            await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertEquals(weatherRevision, live.status(code, id, session.handle()).orElseThrow().context().revision()));
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(weatherRevision, live.status(code, id, session.handle()).orElseThrow().context().revision()));
             assertTrue(sent.stream().anyMatch(event -> event.has("content") && event.get("content").getAsString().contains("obs.weather.current")));
             assertEquals("reveal", agents.findById(id).orElseThrow().getCurrentState().getName()); assertEquals(1, commentary(sent));
 
@@ -104,14 +105,14 @@ class LiveMultimodalBridgeIntegrationTest {
                 status.setRollbackOnly();
             });
             turns.acknowledge(id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION, "{\"sign\":\"rock\",\"confidence\":1}"));
-            await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertEquals(2, commentary(sent)));
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(2, commentary(sent)));
             Agent reloaded = agents.findById(id).orElseThrow(); assertEquals("result", reloaded.getCurrentState().getName());
             assertEquals(1, reloaded.getStorage().get(RpsStorageKeys.ROUNDS).getAsJsonArray().size());
             Event intent = reloaded.getEventHistory().toList().getLast(); assertTrue(ConversationProjection.isIntent(intent));
             var plan = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(intent.getPayload()); assertNotNull(plan.getNonVerbal()); assertNotNull(plan.getDisplay());
             recording.record(id, owner, "native-result", "The round is complete", List.of(intent.getId()), SpeechProvenance.Association.AMBIGUOUS, true);
             String nativeRevision = contexts.snapshot(code, id).orElseThrow().revision(); bridge.refresh();
-            await().atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertEquals(nativeRevision, live.status(code, id, session.handle()).orElseThrow().context().revision()));
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(nativeRevision, live.status(code, id, session.handle()).orElseThrow().context().revision()));
             assertEquals(2, commentary(sent)); assertTrue(sent.stream().noneMatch(event -> event.toString().contains("ROLLBACK_SENTINEL")));
             verifyNoInteractions(language, speech);
         } finally { live.close(code, id, session.handle()); }

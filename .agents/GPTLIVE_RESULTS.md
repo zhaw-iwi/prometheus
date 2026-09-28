@@ -5,6 +5,67 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## Compact context delivery and bounded refreshes - 2026-09-28
+
+The follow-up failed/successful trials both contained selected fresh social
+evidence. The failed export included two 11-command batches taking about 7.7/7.9
+seconds; its next batch withdrew older evidence before replacement social facts
+arrived. The successful run had smaller 7/8-command batches taking about 4.7/5.3
+seconds, but still lagged a changed camera count. Append ACKs establish receipt,
+not which facts the model used, and the bounded exports omit earlier traces.
+This supports fixing a delivery hazard, not claiming a proven sole root cause.
+
+Same-type replacements now arrive without a separate removal command. Rich social
+context precedes other sensor values and derived face summaries. Compact content
+keeps type, freshness, observation/expiry times and existing adapter text; immutable
+snapshots and content-free command traces retain source/revision identity. Actual
+selector removals explicitly become unknown. Native history churn alone no longer
+adds a revision marker. Long content still chunks, and instructions/narration keep
+their existing routing, bounds and no-blind-retry behavior. Before each send,
+expired remaining chunks become one unknown notice per type, without a DB read.
+
+Commit-driven graph reads coalesce over five seconds; the one-second scheduler
+wakes deferred work without occupying workers. Freshness/delegation deadlines
+bypass the interval; the idle fallback remains 30 seconds. This is deliberately
+not immediate task delivery: commits can wait for that window and any in-flight
+ACK. It bounds commit-driven reads, not all database work or provider response
+latency. Shared observation adapters, state control, BehaviourPlan and ordinary
+Text/Continuous processing are unchanged. No schema/provider contract change.
+
+Focused acceptance passed on disposable MySQL:
+`target/gptlive-acceptance-84c65fa836/`. Four new deterministic cases cover compact
+replacement ordering/true removals, native-history churn/state markers, a
+6,000-commit burst with fast ACKs (13 reads over 60 seconds including startup), and
+expiry of unsent chunks behind a delayed ACK. Existing idle expiry, delegation
+deadline, epoch/reset, lost-ACK and multilingual bounds remain covered. SQL costs
+remain 4 unscoped / 6 scoped receipt statements and 9 context statements for both
+5 and 205 history events. All 67 Live/transcription/speech Node cases passed.
+
+The feature-branch full suite passed 438 Java cases in 105 suites. All 44 enabled
+browser cases passed in `target/gptlive-acceptance-34a8721de7/`. The initial
+disabled smoke sent text while connection history was still hydrating: the
+backend acknowledged the turn successfully, but late initial rendering replaced
+the round display. The smoke now waits for the real `Behaviour Live` status
+before submitting text (no production UI change). A focused rerun passed all 14
+enabled Live browser cases plus the disabled Text/TTS smoke, with one intentional
+Live-only skip: `target/gptlive-acceptance-d5e7c33f31/`. The existing early-input
+hydration race remains outside this delivery change.
+
+Final focused Java checks also passed in `target/gptlive-acceptance-6fd5390cf9/`
+and `target/gptlive-acceptance-f554fe0c3a/`; integration timeouts now allow the
+coalescing window plus scheduler/persistence time, while controlled-clock tests
+assert the actual cadence. Expiry suppression emits `expired_before_send` in the
+bounded content-free trace. The obsolete event-ID removal helper was removed.
+The final full Java rerun after all cleanup/concurrency checks again passed all
+438 cases in 105 suites: `target/gptlive-acceptance-d5a38162c2/`.
+
+Tests use random local schemas/accounts and loopback or stubbed providers, never
+the configured production database. Physical camera grounding, paid voice quality
+and sustained production query consumption still need a new interaction trial.
+The pre-deployment Heroku log sample contained no query-quota errors but continued
+to contain R14 memory warnings; neither is an hourly usage measurement, and this
+change does not resize or tune the dyno.
+
 ## Perception freshness and database query follow-up — 2026-09-28
 
 The Heroku investigation reproduced a mismatch between change-only cockpit
