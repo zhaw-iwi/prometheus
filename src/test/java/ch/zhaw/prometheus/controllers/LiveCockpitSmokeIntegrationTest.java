@@ -67,7 +67,7 @@ class LiveCockpitSmokeIntegrationTest {
             var types = selected.items().stream().map(item -> item.type()).toList();
             assertTrue(types.containsAll(observations.keySet())); assertTrue(types.contains(Event.TYPE_SOCIAL_SITUATION_CHANGE));
             assertTrue(selected.startupInput().toString().contains("Winterthur"));
-            await().atMost(Duration.ofSeconds(6)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("Winterthur")));
+            await().atMost(Duration.ofSeconds(10)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("Winterthur")));
             long beforeUser = provider.inferences.stream().filter(request -> request.purpose() == ch.zhaw.prometheus.spi.InferencePurpose.BEHAVIOUR).count();
             postJson(path + "/live/sessions/" + handle + "/input?muted=false", Map.of());
             provider.speak(providerId, "USER", "Show paper and a visual caption", "live_multimodal_user");
@@ -109,7 +109,7 @@ class LiveCockpitSmokeIntegrationTest {
         // A duplicate provider identity cannot run the action twice.
         provider.speak(providerId, "USER", "I am ready to start a round", "unique_user");
         postJson(path + "/acknowledge", Map.of("type", "obs.weather.current", "actor", "sensor", "kind", "observation", "payload", "{\"temperature\":17,\"condition\":\"rain\"}"));
-        await().atMost(Duration.ofSeconds(6)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("obs.weather.current")));
+        await().atMost(Duration.ofSeconds(10)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("obs.weather.current")));
         postJson(path + "/acknowledge", Map.of("type", "obs.hand.sign", "actor", "sensor", "kind", "observation", "payload", "{\"sign\":\"rock\",\"confidence\":1}"));
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             var fresh = agents.findById(id).orElseThrow();

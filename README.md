@@ -1253,13 +1253,30 @@ Conversational instructions above 16,000 UTF-8 bytes are rejected in full.
 State changes preserve the voice conversation; a narrower selector cannot erase
 what an ongoing voice session already heard. Committed changes asynchronously
 refresh that context while speech continues; a response can use earlier guidance.
-Idle context workers check deadlines in memory and reload on committed changes,
-sensory/delegation deadlines, or a 30-second fallback. Access revocation and session
-liveness checks remain independent. Transcript fragments persist using scalar
+Incremental sensory updates replace the previous value of the same observation
+type without first withdrawing it. Compact appends retain observation/expiry
+times and existing adapter text; source IDs and revisions remain in snapshots and
+content-free command diagnostics. Rich social context is sent before other sensor
+updates and derived face summaries. Truly deselected types explicitly become
+unknown. Native dialogue/history churn alone needs no extra context-marker append.
+Long values still use bounded sequential chunks: this is not an atomic provider
+context swap. Before sending each chunk, the worker checks expiry again; expired
+remaining chunks become one unknown-value notice instead of stale fresh evidence.
+
+Idle context workers check deadlines in memory. Commit-driven reads coalesce over
+a five-second minimum interval, with the one-second scheduler waking deferred
+work; no worker sleeps or holds an agent lock during the wait. Sensory/delegation
+deadlines bypass this interval, and an idle 30-second fallback remains. A pending
+provider ACK still delays subsequent work; even task changes can wait for the
+coalescing window and in-flight batch. Access revocation and session liveness
+checks remain independent. Transcript fragments persist using scalar
 scope/epoch checks rather than reloading history; event state paths load together
 when history is needed. These reduce database queries without changing durable
 capture or detached history. They do not guarantee a shared database plan's hourly
-allowance under every workload. Provider append/acknowledgement latency is unchanged.
+allowance under every workload. Fewer appends reduce avoidable ACK waits, but
+per-append provider latency and physical response quality require live trials.
+These delivery changes are Live-only; shared observation adapters, Text and
+Continuous transcription/TTS contracts are unchanged.
 
 The dedicated **Valerian Core - Live Multimodal** (`core.live_multimodal`) agent
 separates authored voice instructions from backend embodiment instructions using

@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Live context delivery follow-up (2026-09-28): compact same-type sensory
+  replacements remove the invalidation-before-replacement gap, prioritize social
+  facts, and avoid revision-only appends for native history churn. Unsent chunks
+  expire after slow ACKs without extending observation lifetimes. Commit reads
+  coalesce over five seconds, with freshness/delegation deadline exceptions.
+  Shared Text/Continuous contracts are unchanged. Verification and deployment
+  evidence are maintained in `.agents/GPTLIVE_RESULTS.md`.
+
 - Live perception/database follow-up (2026-09-28): stable face/social readings
   refresh during Live instead of silently expiring; failed sends retry after
   cooldown. Fragment admission no longer loads the agent graph, eager event paths
@@ -8606,3 +8614,32 @@ Full feature Java and Node checks passed; browser evidence, artifacts, productio
 merge verification and limitations are maintained in `.agents/GPTLIVE_RESULTS.md`.
 Provider append/ACK delay and physical Heroku grounding require a fresh trial;
 the shared database's hourly quota is not a guaranteed capacity target.
+
+## Live context replacement ordering and bounded refreshes (2026-09-28)
+
+Follow-up diagnosis compared failed and successful social-grounding trials.
+Selected fresh social evidence existed in both; serialized append ACKs delayed
+replacements, and the former delivery policy withdrew old event identities before
+their replacements arrived. This explains a delivery hazard, not proven model
+reasoning or the sole cause of the failed answer.
+
+Incremental Live delivery now replaces facts by observation type, retaining
+observation/expiry times and adapter text while omitting repeated source/receipt
+metadata from provider content. Source/revision identity remains in diagnostics.
+Rich social context precedes other sensory updates and face summaries. Truly
+deselected types become unknown; dialogue churn no longer sends revision-only
+markers. State guidance, narration, Unicode chunk bounds, epoch/Stop fences and
+the no-blind-retry rule remain. Expired unsent chunks become one unknown notice
+per type after delayed ACKs; stored events and freshness windows are unchanged.
+
+Commit-driven refresh reads have a five-second minimum interval so lower append
+latency cannot create a graph read for every commit. Deadline-driven reads bypass
+that interval; deferred work stays in memory without sleeping workers. Task updates
+can also wait for this interval and any in-flight ACK. No shared assembler,
+BehaviourPlan, observation, schema, Text or Continuous contract was changed.
+
+Focused deadline, coalescing, replacement/removal, lost-ACK and isolated SQL
+checks passed. Full acceptance and branch/deployment evidence are recorded in
+`.agents/GPTLIVE_RESULTS.md`. Changes follow `feature/gptlive` to `main` to
+`agents`; live camera response quality and sustained shared-database consumption
+remain trial gates rather than guarantees from synthetic checks.
