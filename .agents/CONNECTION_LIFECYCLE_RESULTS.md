@@ -81,11 +81,21 @@ Artifacts: target/gptlive-acceptance-220d24be3a. The classroom case passed in bo
 runs. The production Heroku setting SPRING_JPA_OPEN_IN_VIEW is absent, so it does
 not override the new shared default. No production database was used for tests.
 
-The agents merge must preserve its embodiment-aware creation overload while
-removing the old transaction annotation from that overload too. A textually clean
-merge alone is insufficient: the real-HTTP provider-wait regression verifies the
-merged entry point. Normal merges preserve the subsequent feature/gptlive to main
-to agents workflow; deployment-only definitions are not merged back into main.
+The agents merge b6180e0 preserves its embodiment-aware creation overload while
+removing the old transaction annotation from that overload too. Fresh compilation
+of that merged deployment tree passed all 579 Java cases, including the six
+provider-wait/revocation/rollback cases through the actual deployment HTTP entry
+point. All 67 Node and 46 browser cases passed there too, with the same single
+intentional feature-disabled skip. The eight-context classroom flow and inspected
+desktop/mobile captures passed with deployment personas/catalog intact. Artifacts:
+target/gptlive-acceptance-4443351106.
+
+Main commits f84327b, d43e8fe and a2c8fb6 contain CL-01, CL-02 and CL-03 respectively.
+feature/gptlive fast-forwards from main; agents integrates through a normal merge.
+This evidence-only follow-up goes through both branches as well. No rebase,
+cherry-pick or reverse merge of deployment definitions is involved, preserving the
+subsequent feature/gptlive to main to agents workflow. The final evidence merge
+changes documentation only; the verified deployment implementation stays identical.
 
 Remaining trial gates: paid-provider throughput/latency, physical audio and a
 live classroom rehearsal. These checks establish connection lifecycle and client
