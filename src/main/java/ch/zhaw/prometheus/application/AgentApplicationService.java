@@ -404,7 +404,7 @@ public class AgentApplicationService {
             throw new IllegalArgumentException("agent creation result must not be null");
         }
         Agent saved = this.repository.save(creation.agent());
-        safePublishMonitor(saved);
+        AfterCommit.run(() -> safePublishMonitor(saved));
         this.publishBehaviour(saved, creation.starterEvent());
         return saved;
     }

@@ -33,3 +33,26 @@ so a checkout without its executable bit can still run acceptance.
 Full Java regression: 439 cases passed, no failures/errors/skips.
 Artifacts: target/gptlive-acceptance-e49a4f9fd3. Browser and deployment
 acceptance belong to CL-03.
+
+## CL-02 — Scoped creation commits after provider work (2026-09-29)
+
+ScopedDemoService now validates access, generates the initial response without
+opening a creation transaction, then revalidates code identity/enabled status and
+type permission inside a short TransactionTemplate. Saving the agent and its
+access association is atomic. Initial monitor publication now follows commit,
+matching existing behaviour publication. Failed commits publish neither channel.
+
+ScopedCreationConcurrencyIntegrationTest uses actual HTTP/MySQL with four pooled
+connections. Eight blocked model calls all reach the provider with no active
+transaction and no borrowed database connection; another login succeeds. Released
+calls create eight visible agents and publish each initial update once. Separate
+cases verify disabling a code, removing its type, replacing the code identity,
+provider failure and association failure; rejection/rollback leaves no orphan or
+premature publication.
+
+Verification: 25 distinct focused cases passed across scoped creation, SSE,
+scoped controllers, Live cockpit/persistence and Talk to Me. Artifacts:
+target/gptlive-acceptance-61c47206cd and target/gptlive-acceptance-81d1758ef6.
+No production operations were performed. This milestone changes scoped creation;
+Live transcript ingress retains its existing atomic receipt/task transaction.
+Provider cost already incurred before a revocation cannot be recovered.

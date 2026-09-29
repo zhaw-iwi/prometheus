@@ -376,6 +376,15 @@ repository transactions finish before SSE streams or speech playback remain open
 Behaviour and monitor streams retain their existing history, event IDs, heartbeat
 and reconnect contracts. An idle cockpit must not reserve JDBC connections.
 
+Scoped agent creation validates access before initial generation, performs provider
+work without a creation transaction, then revalidates the same access-code identity,
+enabled status and allowed type inside the short save transaction. The agent and
+its access-code link commit together; both initial behaviour and monitor publication
+follow commit. Revocation while generation is pending rejects the result. A provider
+failure or failed association leaves no newly persisted agent. This changes the
+creation boundary; existing Live transcript transaction/receipt guarantees remain
+as implemented.
+
 Use the isolated local-MySQL runner to check the real servlet/SSE lifecycle:
 
 ```sh

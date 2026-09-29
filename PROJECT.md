@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 195 (CL-02, 2026-09-29): scoped creation performs initial provider
+  work before the save transaction, rechecks access and atomically links the agent.
+  Both initial publications follow commit. Twenty-five distinct focused cases
+  passed, including eight blocked creations with a four-connection pool and
+  revocation/rollback checks; see `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 - Milestone 194 (CL-01, 2026-09-29): shared defaults disable request-scoped JPA
   persistence so idle SSE streams release database connections. A real HTTP/MySQL
   regression covers eight connected agents, login, creation, replies, speech IDs,
@@ -8663,3 +8669,14 @@ remain trial gates rather than guarantees from synthetic checks.
 - Updated setup/context documentation and made the isolated runner independent of
   the Unix Maven wrapper's executable bit. Full verification is recorded in
   `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+## Milestone 195: Bound scoped creation transactions (CL-02)
+
+- Moved initial provider generation outside the creation-owned transaction, then
+  revalidated the same access-code identity, enabled flag and allowed agent type.
+- Kept agent/link persistence atomic and deferred initial monitor publication
+  until commit, matching the existing behaviour publication boundary.
+- Six new real HTTP/MySQL cases cover concurrent blocked providers, access/type
+  revocation, replacement identity, provider failure and association rollback.
+  Twenty-five distinct focused cases passed including existing SSE, scoped,
+  Live and Talk-to-Me regressions. Evidence is in the connection lifecycle results.

@@ -9,6 +9,8 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
@@ -44,10 +46,12 @@ public class ScopedDemoService {
     private final AgentApplicationService agentService;
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
+    private final TransactionTemplate creationTransaction;
 
     public ScopedDemoService(AccessCodeRepository accessCodes, AccessCodeAgentRepository accessCodeAgents,
             AgentRepository agents, AgentDefinitionRegistry agentDefinitions, AgentApplicationService agentService,
-            PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway) {
+            PromptMessageAssembler promptMessageAssembler, LanguageModelGateway languageModelGateway,
+            PlatformTransactionManager transactions) {
         this.accessCodes = accessCodes;
         this.accessCodeAgents = accessCodeAgents;
         this.agents = agents;
@@ -55,6 +59,7 @@ public class ScopedDemoService {
         this.agentService = agentService;
         this.promptMessageAssembler = promptMessageAssembler;
         this.languageModelGateway = languageModelGateway;
+        this.creationTransaction = new TransactionTemplate(transactions);
     }
 
     public DemoSessionView openSession(String accessCodeValue) {
@@ -71,7 +76,6 @@ public class ScopedDemoService {
         return this.listLinkedAgents(this.requireEnabledAccessCode(accessCodeValue));
     }
 
-    @Transactional
     public AgentInfoView createAgent(String accessCodeValue, String agentDefinitionKey) {
         AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
         String key = this.requireAgentDefinitionKey(agentDefinitionKey);
@@ -83,9 +87,20 @@ public class ScopedDemoService {
         AgentCreationResult created = definition.createInstance(
                 new AgentCreationContext(this.promptMessageAssembler, this.languageModelGateway));
         applyDefinitionLanguage(created.agent(), definition);
-        Agent saved = this.agentService.persistCreatedAgent(created);
-        this.accessCodeAgents.save(new AccessCodeAgent(accessCode, saved));
-        return this.toAgentInfo(saved);
+        // Provider work above owns no creation transaction. Recheck scope after that
+        // potentially slow work, then commit the agent and its visibility together.
+        return this.creationTransaction.execute(status -> {
+            AccessCode current = this.requireEnabledAccessCode(accessCodeValue);
+            if (!current.getId().equals(accessCode.getId())) {
+                throw new DemoAccessDeniedException();
+            }
+            if (!this.allowedKeys(current).contains(key)) {
+                throw new DemoAgentTypeForbiddenException(key);
+            }
+            Agent saved = this.agentService.persistCreatedAgent(created);
+            this.accessCodeAgents.saveAndFlush(new AccessCodeAgent(current, saved));
+            return this.toAgentInfo(saved);
+        });
     }
 
     @Transactional
