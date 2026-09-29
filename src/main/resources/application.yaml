@@ -1,0 +1,5 @@
+# Shared defaults also apply to existing, untracked application.properties files.
+# SSE and streamed audio must outlive database work, not retain its connection.
+spring:
+  jpa:
+    open-in-view: false

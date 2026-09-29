@@ -283,6 +283,13 @@ When an observation or behaviour contract changes, update its event/profile
 definition, prompt adapter or renderer, relevant client exposure, contract
 tests, and README documentation together.
 
+The shared `application.yaml` disables Open EntityManager in View. Scoped creation generates
+before its save transaction, then revalidates access and commits the agent/link
+atomically; initial publications follow commit. HTTP streams
+must not retain persistence contexts or JDBC connections; load the required data
+within bounded database work. Preserve eager agent loading and persisted event
+identity. Classroom concurrency evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 ### Clients and auxiliary sites
 
 Valerian is a cockpit and demo client, not framework core. Keep its browser

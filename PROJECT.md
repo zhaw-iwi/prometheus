@@ -82,6 +82,25 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 196 (CL-03, 2026-09-29): classroom acceptance adds eight independent
+  browser contexts with sixteen real SSE streams, concurrent turns and scoped
+  history, reconnect, instance switching and reload. Fresh-build Java regression
+  passed 445 cases, JavaScript passed 67 and browser acceptance passed 46.
+  Branch integration
+  evidence is recorded in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+- Milestone 195 (CL-02, 2026-09-29): scoped creation performs initial provider
+  work before the save transaction, rechecks access and atomically links the agent.
+  Both initial publications follow commit. Twenty-five distinct focused cases
+  passed, including eight blocked creations with a four-connection pool and
+  revocation/rollback checks; see `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+- Milestone 194 (CL-01, 2026-09-29): shared defaults disable request-scoped JPA
+  persistence so idle SSE streams release database connections. A real HTTP/MySQL
+  regression covers eight connected agents, login, creation, replies, speech IDs,
+  reconnect replay and scope rejection with a ten-connection pool. Evidence and
+  the completed creation/browser milestones are in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 - Live context delivery follow-up (2026-09-28): compact same-type sensory
   replacements remove the invalidation-before-replacement gap, prioritize social
   facts, and avoid revision-only appends for native history churn. Unsent chunks
@@ -9555,3 +9574,44 @@ checks passed. Full acceptance and branch/deployment evidence are recorded in
 `.agents/GPTLIVE_RESULTS.md`. Changes follow `feature/gptlive` to `main` to
 `agents`; live camera response quality and sustained shared-database consumption
 remain trial gates rather than guarantees from synthetic checks.
+
+## Milestone 194: Release database connections during SSE (CL-01)
+
+- Added a shared application.yaml default disabling Open EntityManager in View,
+  including existing local property files; retained the existing eager graph,
+  HTTP/SSE contracts and event identity.
+- Added SseConnectionPoolIntegrationTest with real servlet async handling and
+  disposable MySQL. Sixteen open streams retain no connections; login, creation,
+  acknowledge/generate, exact-ID speech and reconnect replay continue working.
+- Confirmed the new regression fails before the setting change with ten checked-out
+  connections and HTTP 500. Twenty focused cases passed after the change.
+- Updated setup/context documentation and made the isolated runner independent of
+  the Unix Maven wrapper's executable bit. Full verification is recorded in
+  `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+## Milestone 195: Bound scoped creation transactions (CL-02)
+
+- Moved initial provider generation outside the creation-owned transaction, then
+  revalidated the same access-code identity, enabled flag and allowed agent type.
+- Kept agent/link persistence atomic and deferred initial monitor publication
+  until commit, matching the existing behaviour publication boundary.
+- Six new real HTTP/MySQL cases cover concurrent blocked providers, access/type
+  revocation, replacement identity, provider failure and association rollback.
+  Twenty-five distinct focused cases passed including existing SSE, scoped,
+  Live and Talk-to-Me regressions. Evidence is in the connection lifecycle results.
+
+## Milestone 196: Classroom browser acceptance and branch integration (CL-03)
+
+- Added a real-app browser smoke with eight isolated access-code contexts that
+  join sequentially, keep sixteen native streams open and send concurrent turns.
+  It verifies scoped persisted history, zero idle JDBC use/waiters, no HTTP 5xx,
+  disconnect/reconnect, instance switching, reload and desktop/mobile rendering.
+- Extended the existing synthetic acceptance fixture with test-only pool metrics
+  and fixed its browser pool at ten connections. Production routes are unchanged.
+- Documented the repeatable local-MySQL acceptance command. Fresh Java compilation
+  passed 445 cases; JavaScript passed 67 and browser acceptance passed 46.
+  Full browser and
+  deployment-branch evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+- Preserve normal main-to-feature/gptlive and main-to-agents merges. On agents,
+  the embodiment-aware creation overload also needs the bounded save transaction;
+  deployment personas and catalog additions remain outside main.

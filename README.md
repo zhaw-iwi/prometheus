@@ -403,6 +403,48 @@ speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
 
+### Database connections and streaming
+
+The shared `application.yaml` sets `spring.jpa.open-in-view=false`, including
+when using an existing local `application.properties`. Keep this setting disabled
+in deployment overrides. Database reads return the required eager agent graph;
+repository transactions finish before SSE streams or speech playback remain open.
+Behaviour and monitor streams retain their existing history, event IDs, heartbeat
+and reconnect contracts. An idle cockpit must not reserve JDBC connections.
+
+Scoped agent creation validates access before initial generation, performs provider
+work without a creation transaction, then revalidates the same access-code identity,
+enabled status and allowed type inside the short save transaction. The agent and
+its access-code link commit together; both initial behaviour and monitor publication
+follow commit. Revocation while generation is pending rejects the result. A provider
+failure or failed association leaves no newly persisted agent. This changes the
+creation boundary; existing Live transcript transaction/receipt guarantees remain
+as implemented.
+
+Use the isolated local-MySQL runner to check the real servlet/SSE lifecycle:
+
+```sh
+python tests/gptlive/run_acceptance.py --java-tests SseConnectionPoolIntegrationTest
+# Full Java regression plus real classroom/Live smoke and cockpit UI checks:
+python tests/gptlive/run_acceptance.py --java-tests all --browser
+```
+
+Set `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
+`GPTLIVE_MYSQL_ADMIN_PASSWORD` to local administrative credentials when the local
+application properties point elsewhere. The runner rejects remote hosts and
+creates a disposable schema/account. The regression opens sixteen streams for
+eight agents with a ten-connection pool, exercises login, creation, interaction,
+persisted-ID speech and reconnect replay, and checks that idle streams release
+all connections. Providers are synthetic; this is not an acoustic or production
+throughput benchmark. Evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+The browser acceptance adds eight separate access-code contexts that join in
+sequence, keep sixteen native SSE streams open, send concurrent turns, and check
+scoped persisted history, disconnect/reconnect, switching instances and reload.
+Its pool metrics endpoint exists only in the synthetic test fixture, never in
+the production application. Install the locked npm dependencies and Playwright
+Chromium first (`npm ci` and `npx playwright install chromium`).
+
 ### Combined behaviour generation
 
 Every `PromptPolicy` generation requests one JSON behaviour plan, including

@@ -848,6 +848,8 @@ async function openConnectedValerian(page) {
 }
 
 async function emitProviderEvent(page, event) {
+  // The listener's optimistic label can precede transport setup.
+  await expect.poll(() => page.evaluate(() => window.__transcriptionChannels.at(-1)?.readyState)).toBe("open");
   await page.evaluate((payload) => {
     const channel = window.__transcriptionChannels.at(-1);
     channel.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(payload) }));
