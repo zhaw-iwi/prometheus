@@ -79,8 +79,10 @@ and regulation diagnostics remain future work.
   browser contexts with sixteen real SSE streams, concurrent turns and scoped
   history, reconnect, instance switching and reload. Fresh-build Java regression
   passed 445 cases, JavaScript passed 67 and browser acceptance passed 46.
-  Branch integration
-  evidence is recorded in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+  The merged agents tree passed 579 Java, 67 JavaScript and 46 browser cases;
+  its embodiment-aware creation path shares the bounded transaction. Normal
+  main-to-feature/gptlive and main-to-agents merges preserve the return workflow.
+  Evidence is recorded in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
 
 - Milestone 195 (CL-02, 2026-09-29): scoped creation performs initial provider
   work before the save transaction, rechecks access and atomically links the agent.
@@ -8698,8 +8700,8 @@ remain trial gates rather than guarantees from synthetic checks.
   and fixed its browser pool at ten connections. Production routes are unchanged.
 - Documented the repeatable local-MySQL acceptance command. Fresh Java compilation
   passed 445 cases; JavaScript passed 67 and browser acceptance passed 46.
-  Full browser and
-  deployment-branch evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+  The merged deployment tree passed 579 Java, 67 JavaScript and 46 browser cases.
+  Evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
 - Preserve normal main-to-feature/gptlive and main-to-agents merges. On agents,
-  the embodiment-aware creation overload also needs the bounded save transaction;
+  the embodiment-aware creation overload also uses the bounded save transaction;
   deployment personas and catalog additions remain outside main.
