@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 196 (CL-03, 2026-09-29): classroom acceptance adds eight independent
+  browser contexts with sixteen real SSE streams, concurrent turns and scoped
+  history, reconnect, instance switching and reload. Fresh-build Java regression
+  passed 445 cases, JavaScript passed 67 and browser acceptance passed 46.
+  Branch integration
+  evidence is recorded in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 - Milestone 195 (CL-02, 2026-09-29): scoped creation performs initial provider
   work before the save transaction, rechecks access and atomically links the agent.
   Both initial publications follow commit. Twenty-five distinct focused cases
@@ -85,7 +92,7 @@ and regulation diagnostics remain future work.
   persistence so idle SSE streams release database connections. A real HTTP/MySQL
   regression covers eight connected agents, login, creation, replies, speech IDs,
   reconnect replay and scope rejection with a ten-connection pool. Evidence and
-  the remaining creation/browser milestones are in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+  the completed creation/browser milestones are in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
 
 - Live context delivery follow-up (2026-09-28): compact same-type sensory
   replacements remove the invalidation-before-replacement gap, prioritize social
@@ -8680,3 +8687,19 @@ remain trial gates rather than guarantees from synthetic checks.
   revocation, replacement identity, provider failure and association rollback.
   Twenty-five distinct focused cases passed including existing SSE, scoped,
   Live and Talk-to-Me regressions. Evidence is in the connection lifecycle results.
+
+## Milestone 196: Classroom browser acceptance and branch integration (CL-03)
+
+- Added a real-app browser smoke with eight isolated access-code contexts that
+  join sequentially, keep sixteen native streams open and send concurrent turns.
+  It verifies scoped persisted history, zero idle JDBC use/waiters, no HTTP 5xx,
+  disconnect/reconnect, instance switching, reload and desktop/mobile rendering.
+- Extended the existing synthetic acceptance fixture with test-only pool metrics
+  and fixed its browser pool at ten connections. Production routes are unchanged.
+- Documented the repeatable local-MySQL acceptance command. Fresh Java compilation
+  passed 445 cases; JavaScript passed 67 and browser acceptance passed 46.
+  Full browser and
+  deployment-branch evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+- Preserve normal main-to-feature/gptlive and main-to-agents merges. On agents,
+  the embodiment-aware creation overload also needs the bounded save transaction;
+  deployment personas and catalog additions remain outside main.

@@ -389,6 +389,8 @@ Use the isolated local-MySQL runner to check the real servlet/SSE lifecycle:
 
 ```sh
 python tests/gptlive/run_acceptance.py --java-tests SseConnectionPoolIntegrationTest
+# Full Java regression plus real classroom/Live smoke and cockpit UI checks:
+python tests/gptlive/run_acceptance.py --java-tests all --browser
 ```
 
 Set `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
@@ -399,6 +401,13 @@ eight agents with a ten-connection pool, exercises login, creation, interaction,
 persisted-ID speech and reconnect replay, and checks that idle streams release
 all connections. Providers are synthetic; this is not an acoustic or production
 throughput benchmark. Evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+The browser acceptance adds eight separate access-code contexts that join in
+sequence, keep sixteen native SSE streams open, send concurrent turns, and check
+scoped persisted history, disconnect/reconnect, switching instances and reload.
+Its pool metrics endpoint exists only in the synthetic test fixture, never in
+the production application. Install the locked npm dependencies and Playwright
+Chromium first (`npm ci` and `npx playwright install chromium`).
 
 ### Combined behaviour generation
 

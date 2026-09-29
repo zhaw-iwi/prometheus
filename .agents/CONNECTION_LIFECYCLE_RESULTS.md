@@ -56,3 +56,38 @@ target/gptlive-acceptance-61c47206cd and target/gptlive-acceptance-81d1758ef6.
 No production operations were performed. This milestone changes scoped creation;
 Live transcript ingress retains its existing atomic receipt/task transaction.
 Provider cost already incurred before a revocation cannot be recovered.
+
+## CL-03 — Classroom/browser acceptance and branch integration (2026-09-29)
+
+The new valerian-classroom-smoke.spec.mjs exercises eight isolated browser
+contexts joining in sequence while earlier groups remain connected. It uses real
+HTTP, MySQL and native EventSource transports, with synthetic external providers.
+All sixteen streams remain open during eight simultaneous turns. Checks cover
+scoped persisted conversation, no HTTP 5xx, zero idle pool use/waiters with a pool
+of ten, disconnect/reconnect, switching instances and reload. A metrics endpoint
+exists only in the test fixture classpath. Desktop/mobile captures were inspected.
+
+Fresh compilation of main passed all 445 Java cases without failures/errors/skips.
+All 67 Live/transcription/speech Node cases passed. Java artifacts are in
+target/gptlive-acceptance-bf986aaf11; generated classes from earlier branch work
+were moved aside before this run. That first browser run passed 44 cases and
+exposed an existing test race: the multilateral listener's optimistic Listening
+label preceded creation of its fake data channel. The event-injection helper now
+waits for an open channel. Test databases/accounts are local and disposable.
+
+Final browser rerun: all 45 Live-enabled cases passed, plus the feature-disabled
+real text/TTS smoke (one Live-only case is intentionally skipped when disabled).
+Artifacts: target/gptlive-acceptance-220d24be3a. The classroom case passed in both
+runs. The production Heroku setting SPRING_JPA_OPEN_IN_VIEW is absent, so it does
+not override the new shared default. No production database was used for tests.
+
+The agents merge must preserve its embodiment-aware creation overload while
+removing the old transaction annotation from that overload too. A textually clean
+merge alone is insufficient: the real-HTTP provider-wait regression verifies the
+merged entry point. Normal merges preserve the subsequent feature/gptlive to main
+to agents workflow; deployment-only definitions are not merged back into main.
+
+Remaining trial gates: paid-provider throughput/latency, physical audio and a
+live classroom rehearsal. These checks establish connection lifecycle and client
+contracts; they are not a production capacity benchmark. Existing Live ingress
+receipt/task transactions remain outside this scoped-creation milestone.

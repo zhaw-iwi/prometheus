@@ -108,7 +108,13 @@ public class LiveSmokeConfiguration {
     @RestController
     public static final class FixtureApi {
         private final Provider provider;
-        FixtureApi(Provider provider) { this.provider = provider; }
+        private final com.zaxxer.hikari.HikariDataSource pool;
+        FixtureApi(Provider provider, com.zaxxer.hikari.HikariDataSource pool) { this.provider = provider; this.pool = pool; }
+        @GetMapping("/__live-fixture/pool") public Map<String, Integer> pool() {
+            var metrics = pool.getHikariPoolMXBean();
+            return Map.of("active", metrics.getActiveConnections(), "waiting", metrics.getThreadsAwaitingConnection(),
+                    "maximum", pool.getMaximumPoolSize());
+        }
         public record Speech(String speaker, String text, String receipt) {}
         @PostMapping("/__live-fixture/speak/{id}") public Map<String, Boolean> speak(@PathVariable String id, @RequestBody Speech speech) {
             provider.speak(id, speech.speaker(), speech.text(), speech.receipt()); return Map.of("accepted", true);
