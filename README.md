@@ -367,6 +367,30 @@ speaker boundary with deterministic browser fakes, then checks the light
 desktop and dark mobile layouts. It uses access code `TTM31` and the same
 admin-token environment override.
 
+### Database connections and streaming
+
+The shared `application.yaml` sets `spring.jpa.open-in-view=false`, including
+when using an existing local `application.properties`. Keep this setting disabled
+in deployment overrides. Database reads return the required eager agent graph;
+repository transactions finish before SSE streams or speech playback remain open.
+Behaviour and monitor streams retain their existing history, event IDs, heartbeat
+and reconnect contracts. An idle cockpit must not reserve JDBC connections.
+
+Use the isolated local-MySQL runner to check the real servlet/SSE lifecycle:
+
+```sh
+python tests/gptlive/run_acceptance.py --java-tests SseConnectionPoolIntegrationTest
+```
+
+Set `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
+`GPTLIVE_MYSQL_ADMIN_PASSWORD` to local administrative credentials when the local
+application properties point elsewhere. The runner rejects remote hosts and
+creates a disposable schema/account. The regression opens sixteen streams for
+eight agents with a ten-connection pool, exercises login, creation, interaction,
+persisted-ID speech and reconnect replay, and checks that idle streams release
+all connections. Providers are synthetic; this is not an acoustic or production
+throughput benchmark. Evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 ### Combined behaviour generation
 
 Every `PromptPolicy` generation requests one JSON behaviour plan, including

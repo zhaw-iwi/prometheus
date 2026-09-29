@@ -54,7 +54,7 @@ def main():
         PROMETHEUS_SPEECH_URL='http://127.0.0.1:9/no-provider', PROMETHEUS_LIVE_SESSIONS_URL='http://127.0.0.1:9/no-provider',
         PROMETHEUS_RUNTIME_TICK_ENABLED='false', SERVER_SHUTDOWN='immediate', PROMETHEUS_ADMIN_TOKEN=secrets.token_hex(20),
         PROMETHEUS_SKIP_WEBSERVER='true')
-    maven = 'mvnw.cmd' if os.name == 'nt' else './mvnw'
+    maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
     def run(command, name):
@@ -85,9 +85,9 @@ def main():
         print('Disposable schema: ' + schema + '; artifacts: ' + str(artifacts), flush=True)
         if args.java_tests != 'none':
             selection = [] if args.java_tests == 'all' else ['-Dtest=' + args.java_tests]
-            run([maven, '-q', *selection, 'test'], 'java')
+            run([*maven, '-q', *selection, 'test'], 'java')
         if args.browser:
-            run([maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
+            run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             # Isolate just the explicit fixtures; unrelated test controllers never enter component scanning.
             fixtures = artifacts / 'fixture-classes' / 'fixtures' / 'gptlive'

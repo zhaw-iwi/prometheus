@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 194 (CL-01, 2026-09-29): shared defaults disable request-scoped JPA
+  persistence so idle SSE streams release database connections. A real HTTP/MySQL
+  regression covers eight connected agents, login, creation, replies, speech IDs,
+  reconnect replay and scope rejection with a ten-connection pool. Evidence and
+  the remaining creation/browser milestones are in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
 - Live context delivery follow-up (2026-09-28): compact same-type sensory
   replacements remove the invalidation-before-replacement gap, prioritize social
   facts, and avoid revision-only appends for native history churn. Unsent chunks
@@ -8643,3 +8649,17 @@ checks passed. Full acceptance and branch/deployment evidence are recorded in
 `.agents/GPTLIVE_RESULTS.md`. Changes follow `feature/gptlive` to `main` to
 `agents`; live camera response quality and sustained shared-database consumption
 remain trial gates rather than guarantees from synthetic checks.
+
+## Milestone 194: Release database connections during SSE (CL-01)
+
+- Added a shared application.yaml default disabling Open EntityManager in View,
+  including existing local property files; retained the existing eager graph,
+  HTTP/SSE contracts and event identity.
+- Added SseConnectionPoolIntegrationTest with real servlet async handling and
+  disposable MySQL. Sixteen open streams retain no connections; login, creation,
+  acknowledge/generate, exact-ID speech and reconnect replay continue working.
+- Confirmed the new regression fails before the setting change with ten checked-out
+  connections and HTTP 500. Twenty focused cases passed after the change.
+- Updated setup/context documentation and made the isolated runner independent of
+  the Unix Maven wrapper's executable bit. Full verification is recorded in
+  `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
