@@ -1,5 +1,8 @@
 # Capability awareness
 
+Status: CA-01 through CA-05 complete. Heroku v100 is deployed and healthy; see
+CAPABILITY_AWARENESS_RESULTS.md for branch integration and verification evidence.
+
 Authorized 2026-09-30: implement on main, commit and push each completed milestone,
 then merge main into feature/gptlive and main into agents for deployment. Preserve
 normal ancestry so later feature/gptlive -> main -> agents work remains possible.
