@@ -1533,8 +1533,12 @@ limits. It describes supported inputs/outputs, not active sensors, confirmed
 execution, additional tasks or permission to change settings. Live compatibility
 is independent. Talk to Me retains exact-text output without LLM generation.
 
-CA-01 supplies declaration and description; automatic ordinary and Live delivery
-follow in CA-02/03. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
+Capability context is automatically bound at `Agent.start`, `generate` and
+`acknowledge`, including state-entry, nested/final-state, speculative and
+embodiment generation. It is independent of selected history and survives reset
+through the persisted profile. Shared assemblers remain immutable; decision,
+extraction and summary requests retain their existing context. Live delivery
+follows in CA-03. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
 `.agents/CAPABILITY_AWARENESS_RESULTS.md` for rollout and evidence.
 
 ## Deployment Notes

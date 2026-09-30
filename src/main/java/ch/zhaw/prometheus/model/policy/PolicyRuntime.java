@@ -12,6 +12,11 @@ public record PolicyRuntime(
         ch.zhaw.prometheus.model.BehaviourSpeculation behaviourSpeculation,
         ExternalSpeech externalSpeech) {
 
+    public PolicyRuntime forCapabilities(ch.zhaw.prometheus.model.interaction.AgentInteractionProfile profile) {
+        return new PolicyRuntime(promptMessageAssembler.forCapabilities(profile), languageModelGateway,
+                outputProfile, guardEvaluation, actionExecution, behaviourSpeculation, externalSpeech);
+    }
+
     public PolicyRuntime(PromptMessageAssembler assembler, LanguageModelGateway gateway, OutputProfile profile,
             GuardEvaluation evaluation, ch.zhaw.prometheus.model.ActionExecution actions,
             ch.zhaw.prometheus.model.BehaviourSpeculation speculation) {

@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.interaction.AgentCapabilityDescription;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 @Component
 public class PromptMessageAssembler {
@@ -38,6 +40,52 @@ public class PromptMessageAssembler {
     }
 
     public boolean supportsSpeculativeComposition() { return getClass() == PromptMessageAssembler.class && speculativeComposition; }
+
+    public boolean supportsGuardComposition() { return getClass() == PromptMessageAssembler.class; }
+
+    /** Immutable binding; never mutate the shared Spring assembler or its extension points. */
+    public PromptMessageAssembler forCapabilities(AgentInteractionProfile profile) {
+        String context = AgentCapabilityDescription.context(profile);
+        return context.isEmpty() ? this : new CapabilityAssembler(this, context);
+    }
+
+    private static final class CapabilityAssembler extends PromptMessageAssembler {
+        private final PromptMessageAssembler delegate;
+        private final String context;
+
+        private CapabilityAssembler(PromptMessageAssembler delegate, String context) {
+            super(List.of(), List.of());
+            this.delegate = delegate;
+            this.context = context;
+        }
+
+        @Override public PromptMessageAssembler forCapabilities(AgentInteractionProfile profile) {
+            String updated = AgentCapabilityDescription.context(profile);
+            return context.equals(updated) ? this : delegate.forCapabilities(profile);
+        }
+        @Override public boolean supportsSpeculativeComposition() { return delegate.supportsSpeculativeComposition(); }
+        @Override public boolean supportsGuardComposition() { return delegate.supportsGuardComposition(); }
+        @Override public List<PromptMessage> compose(EventHistory history, String prepend) {
+            return withContext(delegate.compose(history, prepend));
+        }
+        @Override public List<PromptMessage> compose(EventHistory history, String prepend, String append) {
+            return withContext(delegate.compose(history, prepend, append));
+        }
+        // Decisions, extraction and summaries retain their existing selected-history contract.
+        @Override public List<PromptMessage> composeCondensed(EventHistory history, String prepend) {
+            return delegate.composeCondensed(history, prepend);
+        }
+        @Override public List<PromptMessage> composeCondensed(EventHistory history, String prepend, String append) {
+            return delegate.composeCondensed(history, prepend, append);
+        }
+        @Override public PromptMessage toPromptMessage(Event event) { return delegate.toPromptMessage(event); }
+        @Override public String mapRole(Event event) { return delegate.mapRole(event); }
+        private List<PromptMessage> withContext(List<PromptMessage> original) {
+            var result = new ArrayList<>(original);
+            result.add(Math.min(1, result.size()), PromptMessage.system(context));
+            return result;
+        }
+    }
 
     public List<PromptMessage> compose(EventHistory eventHistory, String systemPrepend) {
         List<PromptMessage> messages = new ArrayList<>();

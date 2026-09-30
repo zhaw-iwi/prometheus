@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 198 (CA-02, 2026-09-30): automatic capability context across ordinary
+  behaviour generation, state entry, speculation and embodiment. Forty-five
+  focused cases passed, including unchanged catalog inference counts and guard
+  batching. See `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
+
 - Milestone 197 (CA-01, 2026-09-30): persisted capability-awareness opt-in and
   bounded deterministic descriptions. Core definitions opt in; legacy instances
   and non-core definitions remain out. Nineteen focused unit cases passed.
@@ -207,6 +212,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 198: Automatic ordinary capability context (CA-02)
 
 - [x] Milestone 197: Capability-awareness declaration and description (CA-01)
 

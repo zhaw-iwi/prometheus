@@ -12,7 +12,6 @@ import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
-import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.spi.GuardInferenceOptions;
 import ch.zhaw.prometheus.spi.GuardRequests;
@@ -39,7 +38,7 @@ public final class GuardEvaluation {
         if (!hasModelChecks(root)) return null;
         var options = runtime.languageModelGateway().guardInferenceOptions();
         if (options == null || options.strategy() == GuardInferenceOptions.Strategy.ORDERED
-                || runtime.promptMessageAssembler().getClass() != PromptMessageAssembler.class) return null;
+                || !runtime.promptMessageAssembler().supportsGuardComposition()) return null;
         GuardEvaluation evaluation = new GuardEvaluation();
         evaluation.parallel = options.strategy() == GuardInferenceOptions.Strategy.PARALLEL
                 || options.strategy() == GuardInferenceOptions.Strategy.COMBINED_PARALLEL;
