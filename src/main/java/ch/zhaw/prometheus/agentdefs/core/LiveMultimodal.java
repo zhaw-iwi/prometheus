@@ -19,6 +19,11 @@ import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 @Component
 public class LiveMultimodal implements AgentDefinition {
     @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
+    @Override
     public boolean externalRealtimeSpeech() {
         return true;
     }

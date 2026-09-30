@@ -16,6 +16,11 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 @Component
 public class TalkToMe implements AgentDefinition {
+    @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
     public static final String KEY = "core.talk_to_me";
     public static final String PROFILE_TAG = "utility.talk_to_me";
 

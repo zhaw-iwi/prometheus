@@ -10,6 +10,11 @@ import ch.zhaw.prometheus.model.Agent;
 @Component
 public class RockScissorPaper implements AgentDefinition {
     @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
+    @Override
     public boolean externalRealtimeSpeech() {
         return true;
     }

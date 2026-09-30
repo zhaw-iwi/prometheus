@@ -1518,6 +1518,25 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 Prefer clear replacement over compatibility shims while the framework remains
 prototype-oriented.
 
+
+### Capability awareness
+
+Definitions opt in with `capabilityAwareness()` (default `false`). The flag is
+persisted as `interactionProfile.capabilityAwareness`; all core definitions opt in,
+while healthcare and deployment definitions remain out. Reusing a core factory
+must not grant opt-in: apply the owning definition's metadata.
+
+Legacy saved instances without the flag remain opted out. Create a new core
+instance to enable it; no existing history is deleted or migrated. The capability
+JSON is derived from the saved instance profile, with known channel meanings and
+limits. It describes supported inputs/outputs, not active sensors, confirmed
+execution, additional tasks or permission to change settings. Live compatibility
+is independent. Talk to Me retains exact-text output without LLM generation.
+
+CA-01 supplies declaration and description; automatic ordinary and Live delivery
+follow in CA-02/03. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
+`.agents/CAPABILITY_AWARENESS_RESULTS.md` for rollout and evidence.
+
 ## Deployment Notes
 
 The repository contains Heroku/container-oriented resources:

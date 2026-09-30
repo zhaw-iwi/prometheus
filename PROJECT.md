@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 197 (CA-01, 2026-09-30): persisted capability-awareness opt-in and
+  bounded deterministic descriptions. Core definitions opt in; legacy instances
+  and non-core definitions remain out. Nineteen focused unit cases passed.
+  Ordinary/Live delivery follows in CA-02/03; scope and evidence are in
+  `.agents/PLAN_CAPABILITY_AWARENESS.md` and `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
+
 - Milestone 196 (CL-03, 2026-09-29): classroom acceptance adds eight independent
   browser contexts with sixteen real SSE streams, concurrent turns and scoped
   history, reconnect, instance switching and reload. Fresh-build Java regression
@@ -201,6 +207,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 197: Capability-awareness declaration and description (CA-01)
 
 - [x] Milestone 193: Explicit external realtime speech capability (GL-10)
 

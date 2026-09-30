@@ -13,6 +13,11 @@ import ch.zhaw.prometheus.model.event.Event;
 @Component
 public class SocialContextSensitivity implements AgentDefinition {
     @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
+    @Override
     public boolean externalRealtimeSpeech() {
         return true;
     }

@@ -27,10 +27,16 @@ public interface AgentDefinition {
         return false;
     }
 
+    /** Opt in to automatic, agent-wide capability context for behaviour inference and Live. */
+    default boolean capabilityAwareness() {
+        return false;
+    }
+
     default Agent applyDefinitionMetadata(Agent agent) {
         if (agent != null) {
             agent.setInteractionProfile(agent.getInteractionProfile()
-                    .withExternalRealtimeSpeech(this.externalRealtimeSpeech()));
+                    .withExternalRealtimeSpeech(this.externalRealtimeSpeech())
+                    .withCapabilityAwareness(this.capabilityAwareness()));
         }
         if (agent != null && !isPresent(agent.getLanguageCode()) && isPresent(this.languageCode())) {
             agent.setLanguageCode(this.languageCode());

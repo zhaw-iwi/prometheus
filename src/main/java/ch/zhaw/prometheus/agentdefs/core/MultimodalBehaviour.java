@@ -12,6 +12,11 @@ import ch.zhaw.prometheus.model.Agent;
 @Component
 public class MultimodalBehaviour implements AgentDefinition {
     @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
+    @Override
     public boolean externalRealtimeSpeech() {
         return true;
     }
