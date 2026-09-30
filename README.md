@@ -1537,8 +1537,12 @@ Capability context is automatically bound at `Agent.start`, `generate` and
 `acknowledge`, including state-entry, nested/final-state, speculative and
 embodiment generation. It is independent of selected history and survives reset
 through the persisted profile. Shared assemblers remain immutable; decision,
-extraction and summary requests retain their existing context. Live delivery
-follows in CA-03. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
+extraction and summary requests retain their existing context. Eligible Live
+sessions receive the same description in stable guidance at startup and after
+state changes/reconnection. It has no sensory TTL and is not evicted with history.
+Unchanged context causes no extra append. Capability JSON is limited to 6000 UTF-8
+bytes and counts against the existing 16000-byte Live instruction budget; oversized
+context fails explicitly rather than truncating task rules or capability data. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
 `.agents/CAPABILITY_AWARENESS_RESULTS.md` for rollout and evidence.
 
 ## Deployment Notes

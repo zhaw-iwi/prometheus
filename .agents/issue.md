@@ -1,6 +1,6 @@
 # Capability-awareness handoff
 
-Status: implementation in progress; no unresolved blocker at CA-02.
+Status: implementation in progress; no unresolved blocker at CA-03.
 
 Unexpected items resolved:
 - Capability assembler wrapping initially disabled guard batching because an
@@ -10,6 +10,6 @@ Unexpected items resolved:
   test dependency and started a separate loopback MySQL fixture; no deployment
   data was changed. The normal acceptance runner provisions disposable schemas.
 
-Continue with CA-03, CA-04 and branch integration as described in
+Continue with CA-04 and branch integration as described in
 PLAN_CAPABILITY_AWARENESS.md. Actual verification is recorded in
 CAPABILITY_AWARENESS_RESULTS.md. Commits are pushed to main after each milestone.

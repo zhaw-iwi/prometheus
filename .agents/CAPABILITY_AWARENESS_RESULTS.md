@@ -34,3 +34,18 @@ loopback-only MySQL 8.0 server under target/capability-mysql on port 33316. This
 avoids the deployment database configured in ignored local properties. The
 existing acceptance runner still creates/removes a distinct schema and account
 for each run. No developer or deployment schema is used for tests.
+
+
+## CA-03 / 199
+
+The shared description is appended to LiveVoicePolicyAdapter guidance and counted
+inside the existing 16000-byte instruction budget. It is independent of sensory
+items, TTL and history eviction. Existing revisions/delivery propagate changes;
+unchanged snapshots require no additional append. New sessions project the saved
+profile again. Live eligibility remains a separate requirement.
+
+Passed 38 focused Java cases: AgentCapabilityLiveContextUnitTest,
+LiveContextProjectionUnitTest, LiveContextDeliveryUnitTest,
+ScopedLiveSessionServiceUnitTest, LiveMultimodalUnitTest and
+AgentDefinitionRegistryUnitTest. This includes all reachable core conversational
+policies and the combined instruction budget. No provider or database access.

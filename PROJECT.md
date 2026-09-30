@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 199 (CA-03, 2026-09-30): capability descriptions now accompany Live
+  guidance independently of sensory freshness and history budgets. 38 focused
+  cases passed, including full reachable core-policy eligibility, state updates,
+  reset/reconnection and budget rejection. See capability-awareness evidence.
+
 - Milestone 198 (CA-02, 2026-09-30): automatic capability context across ordinary
   behaviour generation, state entry, speculation and embodiment. Forty-five
   focused cases passed, including unchanged catalog inference counts and guard
@@ -212,6 +217,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 199: Stable Live capability context (CA-03)
 
 - [x] Milestone 198: Automatic ordinary capability context (CA-02)
 
