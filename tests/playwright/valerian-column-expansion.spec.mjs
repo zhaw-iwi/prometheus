@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/offline-ui-assets.mjs";
 
 const ACCESS_CODE = "VX102";
 const ADMIN_TOKEN = process.env.PROMETHEUS_ADMIN_TOKEN || "laure";

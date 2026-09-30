@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 // This suite must run only via tests/gptlive/run_acceptance.py. No PROMETHEUS HTTP or SSE mocks.
 const enabled = process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== "false";
@@ -15,6 +15,8 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
   await page.locator("#open_diagnostics").click(); await page.getByTestId("agent-type-select").selectOption("core.rock_scissor_paper");
   const creation = page.waitForResponse(response => response.url().endsWith("/demo/agents") && response.request().method() === "POST");
   await page.getByTestId("create-agent-instance").click(); const agent = await (await creation).json(); const path = `/demo/agents/${agent.id}`;
+  expect(agent.interactionProfile.capabilityAwareness).toBe(true);
+  expect((await (await request.get("/__live-fixture/latest")).json()).behaviourContext).toContain("AGENT CAPABILITIES");
   await page.getByTestId("connect-agent").click(); await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${agent.id}`);
   // The connection label precedes history hydration; wait for the real stream to open before sending input.
   await expect(page.locator("#behaviour_status")).toHaveText("Behaviour Live");
@@ -36,6 +38,7 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     await page.getByTestId("gptlive-start").click(); const session = await (await liveCreation).json();
     await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
     const provider = await (await request.get("/__live-fixture/latest")).json();
+    expect(provider.instructions).toContain("AGENT CAPABILITIES");
     // Observe actual SSE separately as evidence; the cockpit's own EventSource also remains real.
     await page.evaluate(({ path, code }) => {
       window.__smokeEvents = []; window.__smokeSource = new EventSource(`${path}/behaviour/stream?accessCode=${code}&projection=conversation`);
@@ -71,6 +74,7 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
     const refreshed = await (await request.get("/__live-fixture/latest")).json();
     expect(refreshed.providerId).not.toBe(provider.providerId);
+    expect(refreshed.instructions).toContain("AGENT CAPABILITIES");
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
   }
   expect((await request.delete(path, { headers: scoped })).status()).toBe(204);
@@ -90,6 +94,7 @@ test("Live Multimodal exposes sensors and keeps embodiment beside native speech"
   const creation = page.waitForResponse(response => response.url().endsWith("/demo/agents") && response.request().method() === "POST");
   await page.getByTestId("create-agent-instance").click(); const agent = await (await creation).json(); const path = `/demo/agents/${agent.id}`;
   try {
+    expect(agent.interactionProfile.capabilityAwareness).toBe(true);
     expect(agent.interactionProfile.supportedObservations).toHaveLength(9);
     expect(agent.interactionProfile.supportedBehaviourModalities).toHaveLength(7);
     await page.getByTestId("connect-agent").click(); await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${agent.id}`);
@@ -98,6 +103,7 @@ test("Live Multimodal exposes sensors and keeps embodiment beside native speech"
     await page.getByTestId("gptlive-tab").click(); await page.getByTestId("gptlive-start").click();
     await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
     const provider = await (await request.get("/__live-fixture/latest")).json();
+    expect(provider.instructions).toContain("AGENT CAPABILITIES");
     expect((await request.post(path + "/acknowledge", { headers: scoped, data: {
       type: "obs.weather.current", actor: "sensor", kind: "observation",
       payload: JSON.stringify({ location_label: "Winterthur", condition: "rain", temperature_c: 17, observed_at: new Date().toISOString() }),

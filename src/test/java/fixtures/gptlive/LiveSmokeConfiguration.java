@@ -123,6 +123,9 @@ public class LiveSmokeConfiguration {
             var call = provider.latest == null ? null : provider.calls.get(provider.latest);
             return Map.of("providerId", provider.latest == null ? "" : provider.latest, "ttsCalls", provider.tts.get(),
                 "commands", call == null ? List.of() : call.sent.stream().map(JsonObject::toString).toList(),
+                "instructions", call == null ? "" : call.request.instructions(),
+                "behaviourContext", provider.inferences.stream().filter(r -> r.purpose() == InferencePurpose.BEHAVIOUR)
+                    .reduce((a, b) -> b).map(r -> r.messages().toString()).orElse(""),
                 "input", call == null ? "" : call.request.input().toString());
         }
     }

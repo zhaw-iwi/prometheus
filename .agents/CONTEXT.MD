@@ -131,6 +131,27 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
+## Capability Awareness
+
+Definitions opt in through `AgentDefinition.capabilityAwareness()` (default false).
+Core definitions opt in explicitly; other definitions, including those reusing
+core factories, remain out. The setting persists in the instance interaction
+profile. Older saved instances default to false; enabling a definition affects
+new instances only. Never backfill or delete existing history implicitly.
+
+A bounded deterministic description of declared input/output channels and their
+limits accompanies ordinary behaviour inference and eligible Live guidance. Agent
+runtime binding covers creation, nested/state-entry/final behaviour, speculation,
+reset and embodiment generation independently of state history selectors. Live
+context has no sensory TTL; existing guidance revisions handle state updates.
+Shared assemblers stay immutable and existing guard batching remains available.
+No initialization event, additional inference, tasks, sensor control or Live
+eligibility is introduced. Talk to Me remains deterministic exact-text output.
+
+See README for developer setup and `.agents/CAPABILITY_AWARENESS_RESULTS.md` for
+verification and rollout evidence. Capability support does not establish current
+sensor input, rendered output or confirmed action completion.
+
 ## GPT-Live Experiment
 
 Changes prompted by GPT-Live usage start on `feature/gptlive`, then merge into

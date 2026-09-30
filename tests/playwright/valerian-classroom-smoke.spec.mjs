@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, installOfflineUiAssets } from "./fixtures/offline-ui-assets.mjs";
 
 // Real HTTP, MySQL and native EventSource. Run through the isolated acceptance runner.
 test("eight classroom groups retain responsive, isolated cockpits", async ({ browser, request, baseURL }, info) => {
@@ -41,6 +41,7 @@ test("eight classroom groups retain responsive, isolated cockpits", async ({ bro
         headers: admin, data: { agentTypeKeys: [key] },
       })).ok()).toBe(true);
       const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
+      await installOfflineUiAssets(context);
       const group = { context, code, agents: [], headers: { "X-Prometheus-Access-Code": code }, text: `Classroom group ${index} is ready.` };
       groups.push(group);
       // Observe native transports without replacing their network or delivery behaviour.

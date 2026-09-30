@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/offline-ui-assets.mjs";
 
 const ACCESS_CODE = "LIFE1";
 const AGENT_ID = "71717171-7171-4171-8171-717171717171";

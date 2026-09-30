@@ -75,21 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Milestone 199 (CA-03, 2026-09-30): capability descriptions now accompany Live
-  guidance independently of sensory freshness and history budgets. 38 focused
-  cases passed, including full reachable core-policy eligibility, state updates,
-  reset/reconnection and budget rejection. See capability-awareness evidence.
-
-- Milestone 198 (CA-02, 2026-09-30): automatic capability context across ordinary
-  behaviour generation, state entry, speculation and embodiment. Forty-five
-  focused cases passed, including unchanged catalog inference counts and guard
-  batching. See `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
-
-- Milestone 197 (CA-01, 2026-09-30): persisted capability-awareness opt-in and
-  bounded deterministic descriptions. Core definitions opt in; legacy instances
-  and non-core definitions remain out. Nineteen focused unit cases passed.
-  Ordinary/Live delivery follows in CA-02/03; scope and evidence are in
-  `.agents/PLAN_CAPABILITY_AWARENESS.md` and `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
+- Milestones 197-200 (CA-01 through CA-04, 2026-09-30): generic capability
+  awareness is explicitly enabled for new core instances. Persisted profile data
+  supplies ordinary behaviour inference and stable Live guidance automatically;
+  legacy and non-core instances remain off. Passed 463 Java, 67 JavaScript and
+  46 browser cases on isolated fixtures. Offline browser acceptance now serves
+  pinned Bootstrap UI assets locally after CDN failures exposed test dependence.
+  Real provider answer quality/acoustic trials remain unrun. Branch integration
+  follows CA-05; evidence is `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
 
 - Milestone 196 (CL-03, 2026-09-29): classroom acceptance adds eight independent
   browser contexts with sixteen real SSE streams, concurrent turns and scoped
@@ -217,6 +210,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 200: Integrated capability-awareness acceptance (CA-04)
 
 - [x] Milestone 199: Stable Live capability context (CA-03)
 

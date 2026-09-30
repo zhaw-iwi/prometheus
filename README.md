@@ -1521,7 +1521,16 @@ prototype-oriented.
 
 ### Capability awareness
 
-Definitions opt in with `capabilityAwareness()` (default `false`). The flag is
+Definitions opt in with one method; prompts and history selectors need no changes:
+
+```java
+@Override
+public boolean capabilityAwareness() {
+    return true;
+}
+```
+
+The default is `false`. The flag is
 persisted as `interactionProfile.capabilityAwareness`; all core definitions opt in,
 while healthcare and deployment definitions remain out. Reusing a core factory
 must not grant opt-in: apply the owning definition's metadata.
@@ -1542,7 +1551,8 @@ sessions receive the same description in stable guidance at startup and after
 state changes/reconnection. It has no sensory TTL and is not evicted with history.
 Unchanged context causes no extra append. Capability JSON is limited to 6000 UTF-8
 bytes and counts against the existing 16000-byte Live instruction budget; oversized
-context fails explicitly rather than truncating task rules or capability data. See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
+context fails explicitly rather than truncating task rules or capability data.
+See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
 `.agents/CAPABILITY_AWARENESS_RESULTS.md` for rollout and evidence.
 
 ## Deployment Notes
