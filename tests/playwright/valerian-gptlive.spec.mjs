@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const AGENT = { id: ID, name: "Valerian voice pilot", description: "Multimodal conversation", active: true, languageCode: "en",

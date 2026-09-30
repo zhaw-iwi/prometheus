@@ -1,5 +1,11 @@
 # Offline GPT-Live acceptance
 
+Run `npm ci` to install the locked test dependencies, including the exact Bootstrap
+5.3.3 and Bootstrap Icons 1.11.3 versions used by the cockpit. The acceptance
+fixtures serve those UI assets locally through Playwright routing; application
+HTTP/SSE and real Bootstrap behaviour remain unchanged. Camera/provider boundaries
+remain synthetic, and optional external fonts may use browser fallbacks.
+
 Run from a configured checkout with Java/Maven, Node/Playwright, Python and
 `pymysql` available. MySQL must be on localhost. The runner reads administrative
 credentials from ignored `src/main/resources/application.properties`, or from

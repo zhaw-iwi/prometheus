@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.interaction.AgentCapabilityDescription;
+import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 
 class PromptMessageAssemblerUnitTest {
     private final PromptMessageAssembler assembler = new PromptMessageAssembler();
@@ -103,5 +105,29 @@ class PromptMessageAssemblerUnitTest {
 
         assertEquals("You are Valerian.", messages.get(0).getContent());
         assertEquals("Introduce yourself as Valerian.", messages.get(1).getContent());
+    }
+
+    @Test
+    void capabilityAndPersonaBindingsComposeInEitherOrderWithoutChangingDialogue() {
+        var profile = AgentInteractionProfile.empty().withCapabilityAwareness(true);
+        var history = new EventHistory();
+        history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Tell Valerian hello."));
+        for (var bound : List.of(
+                assembler.forCapabilities(profile).forEmbodiment(AgentEmbodiment.ROBOT),
+                assembler.forEmbodiment(AgentEmbodiment.ROBOT).forCapabilities(profile))) {
+            var messages = bound.compose(history, "You are Valerian.", "Valerian should answer.");
+            assertEquals("You are Gigi.", messages.getFirst().getContent());
+            assertEquals("Gigi should answer.", messages.getLast().getContent());
+            assertEquals(1, messages.stream().filter(m -> m.getContent().startsWith(AgentCapabilityDescription.MARKER)).count());
+            assertTrue(messages.stream().anyMatch(m -> m.getContent().equals("Tell Valerian hello.")));
+            // Nonverbal response generation resolves instructions directly through this method.
+            assertEquals("Gigi gestures.", bound.resolveSystemPrompt("Valerian gestures."));
+            var condensed = bound.composeCondensed(history, "Valerian decides.");
+            assertEquals("Gigi decides.", condensed.getFirst().getContent());
+            assertEquals(2, condensed.size());
+            assertEquals("Valerian returns.", bound.forEmbodiment(AgentEmbodiment.COCKPIT).resolveSystemPrompt("Gigi returns."));
+            assertEquals("Gigi stays.", bound.forCapabilities(profile.withCapabilityAwareness(false)).resolveSystemPrompt("Valerian stays."));
+        }
+        assertEquals("Valerian stays.", assembler.resolveSystemPrompt("Gigi stays."));
     }
 }

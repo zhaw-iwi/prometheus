@@ -85,6 +85,11 @@ public class RockScissorPaperMatch implements AgentDefinition {
     }
 
     @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
+    @Override
     public Agent createAgent() {
         return this.applyDefinitionMetadata(createAgentDefinition());
     }

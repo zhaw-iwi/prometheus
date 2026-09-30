@@ -33,21 +33,23 @@ public class AgentInteractionProfile {
     private List<String> supportedBehaviourModalities;
     private List<String> profileTags;
     private boolean externalRealtimeSpeech;
+    private boolean capabilityAwareness;
 
     protected AgentInteractionProfile() {
     }
 
     private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
             List<String> profileTags) {
-        this(supportedObservations, supportedBehaviourModalities, profileTags, false);
+        this(supportedObservations, supportedBehaviourModalities, profileTags, false, false);
     }
 
     private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
-            List<String> profileTags, boolean externalRealtimeSpeech) {
+            List<String> profileTags, boolean externalRealtimeSpeech, boolean capabilityAwareness) {
         this.supportedObservations = normalize(supportedObservations);
         this.supportedBehaviourModalities = normalize(supportedBehaviourModalities);
         this.profileTags = normalize(profileTags);
         this.externalRealtimeSpeech = externalRealtimeSpeech;
+        this.capabilityAwareness = capabilityAwareness;
     }
 
     public static AgentInteractionProfile empty() {
@@ -77,7 +79,16 @@ public class AgentInteractionProfile {
 
     public AgentInteractionProfile withExternalRealtimeSpeech(boolean supported) {
         return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
-                this.profileTags, supported);
+                this.profileTags, supported, this.capabilityAwareness);
+    }
+
+    public boolean isCapabilityAwareness() {
+        return this.capabilityAwareness;
+    }
+
+    public AgentInteractionProfile withCapabilityAwareness(boolean enabled) {
+        return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
+                this.profileTags, this.externalRealtimeSpeech, enabled);
     }
 
     public boolean supportsObservation(String observation) {
@@ -92,7 +103,7 @@ public class AgentInteractionProfile {
         return GSON.toJson(new AgentInteractionProfile(
                 this.supportedObservations,
                 this.supportedBehaviourModalities,
-                this.profileTags, this.externalRealtimeSpeech));
+                this.profileTags, this.externalRealtimeSpeech, this.capabilityAwareness));
     }
 
     public static AgentInteractionProfile fromJson(String json) {
@@ -105,7 +116,7 @@ public class AgentInteractionProfile {
         }
         return new AgentInteractionProfile(profile.supportedObservations,
                 profile.supportedBehaviourModalities,
-                profile.profileTags, profile.externalRealtimeSpeech);
+                profile.profileTags, profile.externalRealtimeSpeech, profile.capabilityAwareness);
     }
 
     private static boolean contains(List<String> values, String value) {

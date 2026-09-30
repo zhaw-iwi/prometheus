@@ -12,6 +12,11 @@ import ch.zhaw.prometheus.model.event.Event;
 
 @Component
 public class FacialExpressionSensitivity implements AgentDefinition {
+    @Override
+    public boolean capabilityAwareness() {
+        return true;
+    }
+
     static final String PROMPT_STATE = """
             Task: Demonstrate facial expression sensing at the ZHAW SIRA Lab.
 

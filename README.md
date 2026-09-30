@@ -1570,6 +1570,43 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 Prefer clear replacement over compatibility shims while the framework remains
 prototype-oriented.
 
+
+### Capability awareness
+
+Definitions opt in with one method; prompts and history selectors need no changes:
+
+```java
+@Override
+public boolean capabilityAwareness() {
+    return true;
+}
+```
+
+The default is `false`. The flag is
+persisted as `interactionProfile.capabilityAwareness`; all core definitions opt in,
+while healthcare and deployment definitions remain out. Reusing a core factory
+must not grant opt-in: apply the owning definition's metadata.
+
+Legacy saved instances without the flag remain opted out. Create a new core
+instance to enable it; no existing history is deleted or migrated. The capability
+JSON is derived from the saved instance profile, with known channel meanings and
+limits. It describes supported inputs/outputs, not active sensors, confirmed
+execution, additional tasks or permission to change settings. Live compatibility
+is independent. Talk to Me retains exact-text output without LLM generation.
+
+Capability context is automatically bound at `Agent.start`, `generate` and
+`acknowledge`, including state-entry, nested/final-state, speculative and
+embodiment generation. It is independent of selected history and survives reset
+through the persisted profile. Shared assemblers remain immutable; decision,
+extraction and summary requests retain their existing context. Eligible Live
+sessions receive the same description in stable guidance at startup and after
+state changes/reconnection. It has no sensory TTL and is not evicted with history.
+Unchanged context causes no extra append. Capability JSON is limited to 6000 UTF-8
+bytes and counts against the existing 16000-byte Live instruction budget; oversized
+context fails explicitly rather than truncating task rules or capability data.
+See `.agents/PLAN_CAPABILITY_AWARENESS.md` and
+`.agents/CAPABILITY_AWARENESS_RESULTS.md` for rollout and evidence.
+
 ## Deployment Notes
 
 The repository contains Heroku/container-oriented resources:

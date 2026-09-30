@@ -12,6 +12,7 @@ import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
+import ch.zhaw.prometheus.model.interaction.AgentCapabilityDescription;
 
 /** Declared capability plus full-graph compatibility. Unknown implementations are rejected. */
 @Component
@@ -58,6 +59,9 @@ public class LiveVoicePolicyAdapter {
                 Produce spoken language only; backend output-format rules do not apply to your speech.
                 """ + "\nLanguage: " + language + "\nCURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath())
                 + "\nCurrent conversational policy:\n" + policy;
+        // Stable instance context lives with guidance, outside sensory TTL/selection/history eviction.
+        String capabilities = AgentCapabilityDescription.context(agent.getInteractionProfile());
+        if (!capabilities.isEmpty()) result += "\n" + capabilities;
         // UTF-8 bytes conservatively bound tokens, including multilingual prompts. Never truncate rules.
         if (result.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_INSTRUCTION_BYTES)
             throw new IllegalArgumentException("Live voice instructions exceed the instruction budget");

@@ -16,6 +16,22 @@ import ch.zhaw.prometheus.model.Agent;
 
 class AgentDefinitionRegistryUnitTest {
     @Test
+    void onlyCoreDefinitionsOptInToCapabilityAwareness() {
+        for (AgentDefinition definition : registryWithBuiltIns().list()) {
+            boolean core = definition.key().startsWith("core.");
+            assertEquals(core, definition.capabilityAwareness(), definition.key());
+            assertEquals(core, definition.createAgent().getInteractionProfile().isCapabilityAwareness(), definition.key());
+        }
+        AgentDefinition reused = new AgentDefinition() {
+            public String key() { return "deployment.reused"; }
+            public Agent createAgent() {
+                return applyDefinitionMetadata(new ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour().createAgent());
+            }
+        };
+        assertFalse(reused.createAgent().getInteractionProfile().isCapabilityAwareness());
+    }
+
+    @Test
     void conversationalDefinitionsDeclareLiveAndEveryReachablePolicyIsSupported() {
         var adapter = new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter();
         for (AgentDefinition definition : registryWithBuiltIns().list()) {

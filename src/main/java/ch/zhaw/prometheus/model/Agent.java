@@ -188,6 +188,7 @@ public class Agent {
     }
 
     public Event start(PolicyRuntime runtime) {
+        runtime = runtime.forCapabilities(this.getInteractionProfile());
         try {
             Event response = this.currentState.start(runtime);
             return this.recordEvent(response);
@@ -205,6 +206,7 @@ public class Agent {
     }
 
     public Event generate(PolicyRuntime runtime) {
+        runtime = runtime.forCapabilities(this.getInteractionProfile());
         if (this.currentState == null) {
             return null;
         }
@@ -213,6 +215,7 @@ public class Agent {
     }
 
     public Event acknowledge(Event event, PolicyRuntime runtime) {
+        runtime = runtime.forCapabilities(this.getInteractionProfile());
         Event response = this.acknowledgeWithoutRegulation(event, true, runtime);
         Event responseFromRegulation = this.applyRegulation(event, runtime);
         return responseFromRegulation != null ? responseFromRegulation : response;
