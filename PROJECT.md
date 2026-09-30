@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- CA-05 integration (2026-09-30): main merged into feature/gptlive and agents with
+  normal ancestry. The deployment catalog opts in only core definitions, including
+  scored RPS; Gigi/Valerian persona handling is preserved. The merged agents tree
+  passed 599 Java and 46 browser cases. Heroku valerian v100 deployed successfully,
+  web.1 is up, and HTTP health is 200/UP. Read-only inventory confirms all 24 saved
+  agents retain their prior opt-out state. Evidence and the home handoff are in
+  `.agents/CAPABILITY_AWARENESS_RESULTS.md` and `.agents/issue.md`.
+
 - Milestones 197-200 (CA-01 through CA-04, 2026-09-30): generic capability
   awareness is explicitly enabled for new core instances. Persisted profile data
   supplies ordinary behaviour inference and stable Live guidance automatically;
@@ -82,7 +90,7 @@ and regulation diagnostics remain future work.
   46 browser cases on isolated fixtures. Offline browser acceptance now serves
   pinned Bootstrap UI assets locally after CDN failures exposed test dependence.
   Real provider answer quality/acoustic trials remain unrun. Branch integration
-  follows CA-05; evidence is `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
+  is complete under CA-05; evidence is `.agents/CAPABILITY_AWARENESS_RESULTS.md`.
 
 - Milestone 196 (CL-03, 2026-09-29): classroom acceptance adds eight independent
   browser contexts with sixteen real SSE streams, concurrent turns and scoped

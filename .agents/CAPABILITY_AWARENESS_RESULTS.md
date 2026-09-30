@@ -85,3 +85,43 @@ web.1 up, and HTTP health 200/UP. No deployment data was modified.
 
 Synthetic providers establish transport/context correctness, not actual model
 answer quality, physical audio performance or guaranteed task completion.
+
+## CA-05 / branch integration
+
+All four implementation milestones were committed and pushed individually on
+main: `e28630a`, `78faa24`, `8460484`, and `3480ca8`. Main was fast-forwarded into
+feature/gptlive, then merged normally into agents as `f043cc2`. No history rewrite
+or cherry-picking was used; future feature/gptlive -> main -> agents merges retain
+normal ancestry.
+
+The deployment merge preserves Gigi/Valerian persona resolution in the capability
+assembler wrapper, including direct nonverbal instruction resolution and either
+binding order. It explicitly opts in the agents-only core scored RPS definition.
+A Spring registry smoke assertion checks every deployed definition: only core
+definitions opt in, including when use cases reuse core factories. The independent
+Live eligibility declarations remain unchanged.
+
+Verification on the merged agents tree:
+- Focused five-class run: 29 Java cases passed.
+- Full disposable-MySQL regression: 599 cases in 132 classes, no failures/errors/skips.
+- Real-app Playwright: 45 Live-enabled cases plus one disabled text/TTS case passed.
+  One Live-only case is intentionally skipped in the disabled run.
+- Artifact directories: `target/gptlive-acceptance-377bbf96b1` (focused) and
+  `target/gptlive-acceptance-8da4b50ea8` (full Java/browser acceptance).
+- `git diff --check` passed. Owned test applications, schemas and accounts were
+  removed; the separate loopback MySQL server was shut down after verifying its
+  port and data directory. The existing MySQL service was not altered.
+
+Deployment of `f043cc2` succeeded in [GitHub Actions run 36715150486](https://github.com/zhaw-iwi/prometheus/actions/runs/36715150486).
+Heroku app `valerian` released v100 at 2026-09-30 12:31:28 UTC. Its web.1 dyno is
+up on v100 and `/actuator/health` returned HTTP 200 / UP after restart. An initial
+health request timed out during startup; the subsequent check passed.
+
+The post-deployment read-only database inventory matches the baseline: 24 saved
+agents, zero opted in. No deployment data was modified by verification. New core
+instances opt in; existing saved instances retain their profiles and histories.
+Actual model answer quality and physical acoustic trials remain NOT RUN.
+
+Completion notes are propagated main -> feature/gptlive and main -> agents using
+normal merges. The final documentation-only merge uses `[skip ci]` to retain the
+already verified v100 runtime without triggering a redundant deployment.
