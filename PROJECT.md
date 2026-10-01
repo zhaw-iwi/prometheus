@@ -81,9 +81,11 @@ and regulation diagnostics remain future work.
   reloads. A bounded social observation batch keeps per-event commits and failures,
   and Valerian consumes ready monitor snapshots for state/storage updates. Sensor
   cadence and durable transcript semantics are preserved. Local acceptance and
-  deployment limits are recorded in `.agents/GPTLIVE_RESULTS.md`. After review,
-  main-to-feature/gptlive then main-to-agents integration and deployment were
-  authorized; rollout verification follows in the same evidence record.
+  deployment limits are recorded in `.agents/GPTLIVE_RESULTS.md`. Implementation
+  `b9e693d` is on main/feature/gptlive; agents merge `26c4572` passed 607 Java,
+  89 JavaScript and 46 browser cases. Heroku v101 is up; health, access-code login,
+  client-source checks and safe new-route probes passed. Saved-agent count remains
+  25. Sustained production load and physical speech trials remain unverified.
 
 - CA-05 integration (2026-09-30): main merged into feature/gptlive and agents with
   normal ancestry. The deployment catalog opts in only core definitions, including
@@ -8762,4 +8764,7 @@ remain trial gates rather than guarantees from synthetic checks.
   Actual measurements, verification and shared-quota limits are in
   `.agents/GPTLIVE_RESULTS.md`. Work starts on main as requested; the subsequent
   reviewed commit/push and branch integration follow main-to-feature/gptlive,
-  then main-to-agents and Heroku verification.
+  then main-to-agents and Heroku verification. Agents merge `26c4572` passed 607
+  Java, 89 JavaScript and 46 browser cases and deployed as Heroku v101. Health,
+  access-code login, deployed client sources and safe endpoint probes passed;
+  shared quota capacity remains a sustained-usage trial gate.
