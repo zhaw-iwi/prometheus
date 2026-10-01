@@ -23,8 +23,13 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
   await page.keyboard.press("Escape");
   if (!enabled) {
     await expect(page.getByTestId("gptlive-tab")).toBeHidden(); await expect(page.getByTestId("continuous-speech-tab")).toBeVisible();
+    await page.waitForFunction(() => state.monitorReady);
+    const detailReads = [];
+    page.on("request", request => { if (/\/(state|storage)$/.test(new URL(request.url()).pathname)) detailReads.push(request.url()); });
     await page.getByTestId("text-input").fill("I am ready to start a round"); await page.getByTestId("send-text").click();
     await expect(page.getByTestId("round-value")).toHaveText("1");
+    await expect(page.getByTestId("send-text")).toBeEnabled();
+    expect(detailReads).toHaveLength(0); // Real monitor SSE supplied the updated state/storage.
     const history = await (await request.get(path + "/eventhistory", { headers: scoped })).json();
     expect(history.some(event => event.type === "resp.behaviour_plan" && JSON.parse(event.payload).speech)).toBe(true);
     const speech = await (await request.get(path + "/behaviours/latest/speech", { headers: scoped })).json();

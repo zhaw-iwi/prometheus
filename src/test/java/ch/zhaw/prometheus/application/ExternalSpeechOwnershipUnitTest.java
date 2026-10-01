@@ -9,15 +9,15 @@ import ch.zhaw.prometheus.repositories.*;
 
 class ExternalSpeechOwnershipUnitTest {
     @Test void revokedScopeAndLinkFenceExistingOwnershipWithoutWaitingForBrowserPolling() {
-        var codes = mock(AccessCodeRepository.class); var links = mock(AccessCodeAgentRepository.class);
-        var service = new ExternalSpeechOwnership(); service.scopes(codes, links);
+        var links = mock(AccessCodeAgentRepository.class);
+        var service = new ExternalSpeechOwnership(); service.scopes(links);
         UUID agent = UUID.randomUUID(), scope = UUID.randomUUID(); var owner = new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID());
-        when(codes.existsByIdAndEnabledTrue(scope)).thenReturn(true); when(links.existsByAccessCode_IdAndAgent_Id(scope, agent)).thenReturn(true);
+        when(links.existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(scope, agent)).thenReturn(true);
         service.acquire(agent, owner, scope); assertTrue(service.acceptingInput(agent, owner));
         service.pauseInput(agent, owner.sessionId()); assertFalse(service.acceptingInput(agent, owner)); assertTrue(service.isCurrent(agent, owner));
-        when(codes.existsByIdAndEnabledTrue(scope)).thenReturn(false); assertFalse(service.isCurrent(agent, owner));
-        when(codes.existsByIdAndEnabledTrue(scope)).thenReturn(true); assertFalse(service.isCurrent(agent, owner));
-        service.acquire(agent, owner, scope); when(links.existsByAccessCode_IdAndAgent_Id(scope, agent)).thenReturn(false);
+        when(links.existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(scope, agent)).thenReturn(false); assertFalse(service.isCurrent(agent, owner));
+        when(links.existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(scope, agent)).thenReturn(true); assertFalse(service.isCurrent(agent, owner));
+        service.acquire(agent, owner, scope); when(links.existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(scope, agent)).thenReturn(false);
         assertFalse(service.acceptingInput(agent, owner)); assertFalse(service.isCurrent(agent, owner));
     }
 }

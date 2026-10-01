@@ -427,6 +427,8 @@ Use the isolated local-MySQL runner to check the real servlet/SSE lifecycle:
 python tests/gptlive/run_acceptance.py --java-tests SseConnectionPoolIntegrationTest
 # Full Java regression plus real classroom/Live smoke and cockpit UI checks:
 python tests/gptlive/run_acceptance.py --java-tests all --browser
+# Use a separate local database properties file (the named schema is never touched):
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests all --browser
 ```
 
 Set `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
@@ -437,6 +439,15 @@ eight agents with a ten-connection pool, exercises login, creation, interaction,
 persisted-ID speech and reconnect replay, and checks that idle streams release
 all connections. Providers are synthetic; this is not an acoustic or production
 throughput benchmark. Evidence is in `.agents/CONNECTION_LIFECYCLE_RESULTS.md`.
+
+Ordinary acknowledge/generate turns reuse a persistence context under the existing
+agent lock. A short loading transaction includes Live ownership validation; the
+JDBC connection is released before inference, and the ordinary save commits each
+event. Contexts end with the turn or bounded sensor sample. This avoids detached
+graph merge reads without caching authorization, holding transactions across
+ordinary provider waits, or changing durable Live transcript transaction owners.
+`QueryVolumeIntegrationTest` measures HTTP costs and MySQL session `Questions`
+with a one-connection pool, including transaction overhead and provider-wait checks.
 
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check
@@ -867,6 +878,19 @@ The response is:
 `responseEvent` may be `null` when the event updates context but does not trigger
 new behaviour.
 
+For one sensor sample, `POST /demo/agents/{agentId}/observations` accepts an array
+of one to four requests with the same fields and access-code header. It accepts
+face, presence, grouping, social context, hand and weather observations; utterances
+and internal events use their existing routes. Each item is acknowledged in order,
+revalidates access and commits separately, including ordinary transitions, actions,
+derived social events and SSE publication. The HTTP 200 body is an ordered array
+of `{ "status": 200, "response": { ... } }` results. Failed items return status
+401, 404 or 500 with a null response, without undoing earlier successful items;
+subsequent items still run. Invalid batches return HTTP 400 before processing;
+initial scope failure returns HTTP 401/404. There is no whole-batch automatic retry.
+Valerian uses this for presence/grouping/context from one camera sample, retaining
+existing sensing intervals, change detection and five-second Live freshness refresh.
+
 Supported observation event types in the current public contract:
 
 | Event type | Actor | Payload |
@@ -969,6 +993,9 @@ GET /demo/agents/{agentId}/monitor/stream?accessCode=VX102
 
 The monitor SSE stream emits `snapshot` events with current state, inner state
 chain, active flag, known states, and storage entries.
+After text/transcription turns, Valerian uses these snapshots while its monitor
+stream is ready. Before the first snapshot or after a stream error, it falls back
+to ordinary state/storage reads. Initial connection and reset still hydrate explicitly.
 
 ## Global Agent API
 
@@ -1261,7 +1288,17 @@ diagnostic history. RMS activity is a coarse diagnostic signal, not turn detecti
 or evidence that audio was heard. Unexpected disconnect uses the hangup fallback;
 finalization remains unconfirmed without `session.closed`.
 
-The cockpit polls once per second. A missing browser heartbeat expires its lease
+The cockpit polls once per second using
+`GET /demo/agents/{agentId}/live/sessions/{handle}/updates?transcriptRevision=-1`.
+The response contains `status`, `transcriptRevision`, and `transcripts`. Send the
+returned revision on the next poll: unchanged ledgers return null transcripts and
+need only one scalar authorization query, with no agent/history entity load.
+Durable ledger commits increment the session revision; a concurrent commit is
+visible on this or the next poll. A new session starts with revision zero; omit
+the query parameter (or send -1) for an initial ledger snapshot. Existing status
+and transcript endpoints remain available. Access disable/unlink is still checked
+on every request. Revisions share the existing single-process Live lease lifetime.
+A missing browser heartbeat expires its lease
 after `prometheus.live.client-idle-seconds` (default 30, checked every five seconds).
 Sideband WebSocket ping/pong detects a silent transport independently of speech.
 Cleanup runs on bounded workers; it does not block the shared capture scheduler.

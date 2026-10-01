@@ -11,11 +11,10 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 public class ExternalSpeechOwnership {
     private record Grant(ExternalSpeech owner, UUID scope, java.util.concurrent.atomic.AtomicBoolean input) {}
     private final ConcurrentHashMap<UUID, Grant> owners = new ConcurrentHashMap<>();
-    private ch.zhaw.prometheus.repositories.AccessCodeRepository codes;
     private ch.zhaw.prometheus.repositories.AccessCodeAgentRepository links;
     @org.springframework.beans.factory.annotation.Autowired
-    void scopes(ch.zhaw.prometheus.repositories.AccessCodeRepository codes, ch.zhaw.prometheus.repositories.AccessCodeAgentRepository links) {
-        this.codes = codes; this.links = links;
+    void scopes(ch.zhaw.prometheus.repositories.AccessCodeAgentRepository links) {
+        this.links = links;
     }
     public void acquire(UUID agentId, ExternalSpeech owner) {
         acquire(agentId, owner, null);
@@ -27,7 +26,7 @@ public class ExternalSpeechOwnership {
     public boolean isCurrent(UUID id, ExternalSpeech owner) {
         Grant grant = owners.get(id);
         if (grant == null || !grant.owner.equals(owner)) return false;
-        if (grant.scope != null && (!codes.existsByIdAndEnabledTrue(grant.scope) || !links.existsByAccessCode_IdAndAgent_Id(grant.scope, id))) {
+        if (grant.scope != null && !links.existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(grant.scope, id)) {
             owners.remove(id, grant); return false;
         }
         return true;

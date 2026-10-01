@@ -7,6 +7,7 @@ const state = {
   agentInfo: null,
   behaviourSource: null,
   monitorSource: null,
+  monitorReady: false,
   lastBehaviourEventId: null,
   seenBehaviourKeys: new Set(),
   recentBehaviourPayloads: new Map(),
@@ -1828,6 +1829,7 @@ function connectMonitorStream() {
   if (!state.agentId || state.monitorSource || state.isPageUnloading) {
     return;
   }
+  state.monitorReady = false;
   state.monitorSource = new EventSource(monitorStreamUrl());
   const source = state.monitorSource, agentId = state.agentId;
   const current = () => state.monitorSource === source && state.agentId === agentId;
@@ -1840,12 +1842,15 @@ function connectMonitorStream() {
     try {
       const data = JSON.parse(event.data);
       applyMonitorSnapshot(data);
+      state.monitorReady = true;
     } catch (_) {
+      state.monitorReady = false;
       return;
     }
   });
   state.monitorSource.onerror = () => {
     if (!current()) return;
+    state.monitorReady = false;
     if (state.monitorSource) {
       state.monitorSource.close();
       state.monitorSource = null;
@@ -2004,11 +2009,15 @@ async function sendUserUtterance(text, options = {}) {
   globalThis.PrometheusTimings?.mark(traceId, "processing_complete");
   globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_start");
   try {
-    await loadStorage();
-    await loadAgentState();
+    await refreshAgentDetailsIfNeeded();
   } finally { globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_end"); }
   globalThis.PrometheusTimings?.mark(traceId, "accepted");
   return true;
+}
+
+async function refreshAgentDetailsIfNeeded() {
+  if (state.monitorSource && state.monitorReady) return;
+  await Promise.all([loadStorage(), loadAgentState()]);
 }
 
 async function acknowledgeEvent(request, options = {}) {
@@ -2788,7 +2797,7 @@ async function handleAcceptedLiveTranscript({ itemId, text, acknowledgement }) {
   }
   renderLatestEvent({ type: "obs.user_utterance", payload: text });
   appendLog("transcription", `final transcript ${itemId} accepted.`);
-  await Promise.all([loadStorage(), loadAgentState()]);
+  await refreshAgentDetailsIfNeeded();
 }
 
 function handleTranscriptIngressStatus(status) {
@@ -4496,47 +4505,49 @@ async function submitSocialPayloads(social, tracked, source) {
     return;
   }
   camera.lastSocialAttemptAt = Date.now();
-  let emitted = false;
-  if (emitPresence) {
-    const ok = await acknowledgeEvent({
-      type: "obs.human.presence",
-      actor: "user",
-      kind: "observation",
-      payload: JSON.stringify(presencePayload),
-    }, { renderResponse: false });
-    if (ok) {
+  const sample = [];
+  if (emitPresence) sample.push({ type: "obs.human.presence", payload: presencePayload, renderResponse: false,
+    accepted: () => {
       camera.lastPresenceSignature = presenceSignature;
       camera.lastPresenceEmitAt = Date.parse(presencePayload.ts);
-      emitted = true;
-    }
-  }
-  if (emitGrouping) {
-    const ok = await acknowledgeEvent({
-      type: "obs.social.grouping",
-      actor: "user",
-      kind: "observation",
-      payload: JSON.stringify(groupingPayload),
-    }, { renderResponse: !emitContext });
-    if (ok) {
+    } });
+  if (emitGrouping) sample.push({ type: "obs.social.grouping", payload: groupingPayload, renderResponse: !emitContext,
+    accepted: () => {
       camera.lastGroupingSignature = groupingSignature;
       camera.lastGroupingEmitAt = Date.parse(groupingPayload.ts);
-      emitted = true;
-    }
-  }
-  if (emitContext) {
-    const ok = await acknowledgeEvent({
-      type: "obs.social.context",
-      actor: "user",
-      kind: "observation",
-      payload: JSON.stringify(contextPayload),
-    }, { renderResponse: true });
-    if (ok) {
+    } });
+  if (emitContext) sample.push({ type: "obs.social.context", payload: contextPayload, renderResponse: true,
+    accepted: () => {
       camera.lastSocialContextSignature = contextSignature;
       camera.lastSocialContextEmitAt = Date.parse(contextPayload.ts);
-      emitted = true;
-    }
-  }
+    } });
+  const results = await acknowledgeObservationBatch(sample.map(item => ({
+    type: item.type, actor: "user", kind: "observation", payload: JSON.stringify(item.payload),
+  })), sample.map(item => ({ renderResponse: item.renderResponse })));
+  let emitted = false;
+  results.forEach((result, index) => { if (result) { sample[index].accepted(); emitted = true; } });
   if (emitted) markSensorEmitted("social");
+}
+
+async function acknowledgeObservationBatch(requests, options) {
+  const agentId = state.agentId, code = state.accessCode, externalSpeech = liveVoice.ui?.active;
+  if (!agentId) return [];
+  try {
+    const response = await scopedFetch(demoAgentPath("/observations"), {
+      method: "POST", headers: { "Content-Type": "application/json; charset=utf-8" }, body: JSON.stringify(requests),
+    });
+    if (!response.ok) throw new Error(`observations failed: ${response.status}`);
+    const results = await response.json();
+    if (state.agentId !== agentId || state.accessCode !== code) return [];
+    return requests.map((request, index) => {
+      const result = results[index], data = result?.response;
+      if (result?.status !== 200 || !data) { appendLog("ack", `${request.type} failed: ${result?.status}`); return null; }
+      if (typeof data.active === "boolean") setActiveStatus(data.active);
+      renderLatestEvent({ type: request.type, payload: request.payload }); appendLog("ack", request.type);
+      if (options[index]?.renderResponse !== false) handleResponseEvent(data.responseEvent, { externalSpeech });
+      return data;
+    });
+  } catch (error) { appendLog("ack", error.message); return []; }
 }
 
 function socialContextPayload(social, tracked, source) {

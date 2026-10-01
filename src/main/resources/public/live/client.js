@@ -125,10 +125,13 @@ export class LiveClient {
   async poll() {
     const run = this.current; if (!run?.handle || run.polling) return; run.polling = true;
     try {
-      const status = await this.api(run, `sessions/${run.handle}`); this.check(run);
+      const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
+      const status = update.status;
       this.diagnostic(run, { phase: "status", status });
       if (status.state !== "attached") throw new Error("Backend voice connection lost. Reconnect when ready.");
-      const ledger = await this.api(run, `transcripts?sessionId=${encodeURIComponent(run.handle)}`); this.check(run);
+      run.transcriptRevision = update.transcriptRevision;
+      const ledger = update.transcripts;
+      if (!Array.isArray(ledger)) return;
       const key = ledger.map(value => `${value.segmentId}:${value.status}:${value.eventId}`).join("|");
       if (key !== run.ledgerKey) {
         for (const value of ledger) this.diagnostic(run, { phase: "segment_observed", segmentId: value.segmentId, outcome: value.status });

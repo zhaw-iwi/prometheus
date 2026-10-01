@@ -165,6 +165,23 @@ Changes prompted by GPT-Live usage start on `feature/gptlive`, then merge into
 `main`, and only then from `main` into `agents` for the Heroku deployment. Preserve
 ordinary Text/Continuous contracts and the deployment-only catalog/persona layer.
 
+The database query reduction follow-up (2026-10-01) explicitly starts on `main`
+at the user's request. Local verification uses `application-test.properties`.
+After review, the user authorized commit/push and normal main-to-feature/gptlive,
+then main-to-agents integration, followed by Heroku verification. Pushing agents
+triggers deployment. This overrides the earlier branch order for this follow-up.
+
+Live polling combines scoped status and a revision-conditional durable transcript
+ledger. Scalar authorization still checks every request; no permission cache is
+introduced. Ordinary acknowledge/generate turns retain entities only for one
+serialized turn, or up to four sensor observations with individual commits and
+failure isolation. Short loading transactions release JDBC before inference;
+existing outer transaction owners retain their semantics. Valerian batches one
+social sample and uses monitor snapshots for state/storage while the stream is
+ready, with ordinary reads as fallback. Sensor cadence, freshness, thresholds,
+event ordering and derived social changes remain unchanged. See README and the
+query-reduction evidence in `.agents/GPTLIVE_RESULTS.md`.
+
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.

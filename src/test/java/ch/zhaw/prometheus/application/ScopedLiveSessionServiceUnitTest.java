@@ -27,18 +27,40 @@ class ScopedLiveSessionServiceUnitTest {
     final LiveAgentContextService contexts = mock(LiveAgentContextService.class);
     final ExternalSpeechOwnership ownership = new ExternalSpeechOwnership();
     ScopedLiveSessionService service;
+    final LiveTranscriptIngressService ingress = mock(LiveTranscriptIngressService.class);
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
         when(demo.getAgentInfo(anyString(), eq(agent))).thenReturn(Optional.of(new AgentInfoView(agent, "Test", "", true)));
+        when(demo.hasVisibleAgent(anyString(), eq(agent))).thenReturn(true);
         when(contexts.claim(anyString(), eq(agent), any())).thenAnswer(call -> {
             var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
             return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
                 agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0));
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
+        service.configureIngress(ingress);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @Test void combinedUpdatesSkipUnchangedLedgerAndKeepConcurrentCommitsVisible() {
+        var session = start();
+        when(ingress.history(agent, session.handle())).thenReturn(List.of());
+        assertEquals(List.of(), service.updates("ABCDE", agent, session.handle(), -1).orElseThrow().transcripts());
+        assertNull(service.updates("ABCDE", agent, session.handle(), 0).orElseThrow().transcripts());
+        verify(ingress, times(1)).history(agent, session.handle());
+        service.ledgerChanged(new LiveTranscriptIngressService.LedgerChanged(UUID.randomUUID(), session.handle()));
+        assertNull(service.updates("ABCDE", agent, session.handle(), 0).orElseThrow().transcripts());
+        service.ledgerChanged(new LiveTranscriptIngressService.LedgerChanged(agent, session.handle()));
+        when(ingress.history(agent, session.handle())).thenAnswer(call -> {
+            service.ledgerChanged(new LiveTranscriptIngressService.LedgerChanged(agent, session.handle()));
+            return List.of();
+        });
+        assertEquals(1, service.updates("ABCDE", agent, session.handle(), 0).orElseThrow().transcriptRevision());
+        assertEquals(2, service.updates("ABCDE", agent, session.handle(), 1).orElseThrow().transcriptRevision());
+        when(demo.hasVisibleAgent("ABCDE", agent)).thenThrow(new DemoAccessDeniedException());
+        assertThrows(DemoAccessDeniedException.class, () -> service.updates("ABCDE", agent, session.handle(), 2));
+        assertThrows(IllegalArgumentException.class, () -> service.updates("ABCDE", agent, session.handle(), -2));
+    }
     @Test void scopeAndFeatureGateRunBeforeProviderAndOnlyOneSessionOwnsAgent() {
         properties.setEnabled(false);
         assertThrows(LiveSessionUnavailableException.class, this::start); assertEquals(0, gateway.created);

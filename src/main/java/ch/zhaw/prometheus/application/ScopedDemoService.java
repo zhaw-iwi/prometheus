@@ -48,6 +48,39 @@ public class ScopedDemoService {
     private final PromptMessageAssembler promptMessageAssembler;
     private final LanguageModelGateway languageModelGateway;
     private final TransactionTemplate creationTransaction;
+    private AgentPersistenceContext persistenceContext;
+    @org.springframework.beans.factory.annotation.Autowired
+    void persistenceContext(AgentPersistenceContext context) { this.persistenceContext = context; }
+
+    public record ObservationResult(int status, ResponseView response) {}
+    private static final Set<String> SENSOR_TYPES = Set.of(Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE,
+            Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN,
+            Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST);
+
+    public List<ObservationResult> acknowledgeObservations(String code, UUID id, List<EventRequest> requests) {
+        if (requests == null || requests.isEmpty() || requests.size() > 4 || requests.stream().anyMatch(request ->
+                request == null || request.getType() == null || !SENSOR_TYPES.contains(request.getType()) || !Event.KIND_OBSERVATION.equals(request.getKind())
+                || request.getActor() == null || request.getActor().isBlank() || request.getPayload() == null
+                || request.getPayload().isBlank())) throw new IllegalArgumentException("Invalid sensor observations");
+        // One camera sample reuses its loaded graph. Each event keeps its own ordinary commit,
+        // access revalidation, transitions, response and publication; no provider wait owns a transaction.
+        return agentService.serialized(id, () -> persistenceContext.call(() -> {
+            var results = new java.util.ArrayList<ObservationResult>();
+            for (EventRequest request : requests) {
+                try {
+                    var response = acknowledge(code, id, request, OutputProfile.FULL_PLAN);
+                    results.add(new ObservationResult(response.isPresent() ? 200 : 404, response.orElse(null)));
+                } catch (DemoAccessDeniedException denied) {
+                    persistenceContext.clear(); results.add(new ObservationResult(401, null));
+                } catch (RuntimeException failure) {
+                    // Failed turns must not leak their in-memory changes into the next event.
+                    persistenceContext.clear(); results.add(new ObservationResult(500, null));
+                    org.slf4j.LoggerFactory.getLogger(ScopedDemoService.class).warn("Sensor observation failed; agentId={}", id, failure);
+                }
+            }
+            return List.copyOf(results);
+        }));
+    }
 
     public ScopedDemoService(AccessCodeRepository accessCodes, AccessCodeAgentRepository accessCodeAgents,
             AgentRepository agents, AgentDefinitionRegistry agentDefinitions, AgentApplicationService agentService,
@@ -239,13 +272,15 @@ public class ScopedDemoService {
     }
 
     Optional<UUID> speechScope(String accessCodeValue, UUID agentId) {
-        AccessCode code = requireEnabledAccessCode(accessCodeValue);
-        return accessCodeAgents.existsByAccessCode_IdAndAgent_Id(code.getId(), agentId) ? Optional.of(code.getId()) : Optional.empty();
+        this.requireAccessCodeFormat(accessCodeValue);
+        var scope = this.accessCodes.findScope(accessCodeValue, agentId)
+                .filter(ch.zhaw.prometheus.repositories.AccessCodeRepository.Scope::getEnabled)
+                .orElseThrow(DemoAccessDeniedException::new);
+        return scope.getLinked() ? Optional.of(scope.getId()) : Optional.empty();
     }
 
-    private boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
-        AccessCode accessCode = this.requireEnabledAccessCode(accessCodeValue);
-        return agentId != null && this.accessCodeAgents.existsByAccessCode_IdAndAgent_Id(accessCode.getId(), agentId);
+    public boolean hasVisibleAgent(String accessCodeValue, UUID agentId) {
+        return this.speechScope(accessCodeValue, agentId).isPresent();
     }
 
     private AccessCode requireEnabledAccessCode(String accessCodeValue) {

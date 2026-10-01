@@ -55,6 +55,16 @@ public class ScopedDemoController {
         return new ResponseEntity<>(this.demoService.openSession(request.getAccessCode()), HttpStatus.OK);
     }
 
+    @PostMapping("/demo/agents/{agentId}/observations")
+    public ResponseEntity<List<ScopedDemoService.ObservationResult>> observations(@PathVariable UUID agentId,
+            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @RequestBody List<EventRequest> requests) {
+        String code = accessCode(headerAccessCode, queryAccessCode);
+        if (!this.demoService.hasVisibleAgent(code, agentId)) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(this.demoService.acknowledgeObservations(code, agentId, requests));
+    }
+
     @GetMapping("/demo/agent-types")
     public ResponseEntity<List<AdminAgentTypeView>> agentTypes(
             @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,

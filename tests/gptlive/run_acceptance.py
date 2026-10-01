@@ -23,11 +23,13 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
+    parser.add_argument('--database-properties', default='src/main/resources/application.properties',
+                        help='Local MySQL administration properties; only loopback hosts are accepted')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     props = {}
-    local = root / 'src/main/resources/application.properties'
+    local = root / args.database_properties
     if local.exists():
         for line in local.read_text(encoding='utf-8-sig').splitlines():
             if '=' in line and not line.lstrip().startswith('#'):
