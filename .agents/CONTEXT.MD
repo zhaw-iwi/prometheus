@@ -169,7 +169,9 @@ The database query reduction follow-up (2026-10-01) explicitly starts on `main`
 at the user's request. Local verification uses `application-test.properties`.
 After review, the user authorized commit/push and normal main-to-feature/gptlive,
 then main-to-agents integration, followed by Heroku verification. Pushing agents
-triggers deployment. This overrides the earlier branch order for this follow-up.
+triggers deployment. Integration and Heroku v101 verification are complete;
+see `.agents/GPTLIVE_RESULTS.md`. This overrides the earlier branch order for
+this follow-up.
 
 Live polling combines scoped status and a revision-conditional durable transcript
 ledger. Scalar authorization still checks every request; no permission cache is

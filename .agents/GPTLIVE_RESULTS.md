@@ -10,8 +10,8 @@ continuing automatically. A passed synthetic test is not acoustic acceptance.
 This follow-up uses the user's main-first workflow. `main` was fast-forwarded to
 `origin/main` (41d2921) before editing. After local acceptance and review, the user
 authorized commit/push, normal main-to-feature/gptlive then main-to-agents merges,
-and verification of the resulting Heroku deployment. Integration evidence is
-recorded below when complete.
+and verification of the resulting Heroku deployment. Integration is complete;
+evidence follows below.
 
 The production investigation found JawsDB rejecting queries at the shared
 36,000-questions/hour limit. Local measurements identified repeated graph reads
@@ -101,6 +101,44 @@ Final acceptance:
 - All runner-owned applications, disposable schemas and restricted users were
   removed after execution. Production configuration/data and local application
   schemas were not modified. No paid provider or physical audio trials were run.
+
+### Branch integration and Heroku verification
+
+Implementation commit `b9e693d` was pushed to main and fast-forwarded into
+feature/gptlive. Main was then merged normally into agents as `26c4572`, preserving
+the deployment catalog, Gigi/Valerian persona binding and Heroku workflow without
+conflicts. The merged tree passed **607 Java**, **89 JavaScript** and **46 browser**
+cases before the agents push; one Live-only browser case is intentionally skipped
+when Live is disabled. Fresh-build artifacts are in
+`target/gptlive-acceptance-5790ba7cf0/`; Node output is in
+`target/query-merge-node.log`. Disposable schemas/accounts and owned test apps
+were removed. Local property files were not committed.
+
+[Deployment workflow 36916316101](https://github.com/zhaw-iwi/prometheus/actions/runs/36916316101)
+succeeded for `26c4572`. Heroku app `valerian` released **v101** at
+2026-10-01 19:44:11 UTC; web.1 is up on v101. Startup completed at 19:44:39 UTC.
+The verification used the Heroku CLI and bounded HTTP/database checks:
+
+- Health returned HTTP 200 / UP and `/valerian/` returned 200.
+- Served `live/client.js` and `valerian/script.js` match the merged sources after
+  normalizing line endings, confirming the new client is deployed.
+- A real enabled access code returned HTTP 200 from `POST /demo/session`;
+  scoped Live capabilities returned 200. The code and user content were not logged
+  by the verification scripts.
+- A nonexistent handle on the new updates route returned its empty HTTP 404;
+  an empty sensor batch returned HTTP 400 before processing. These checks created
+  no sessions, events or agent mutations.
+- The read-only saved-agent inventory remained **25 before and after** rollout.
+  Login and health already returned 200 before rollout; their recovery therefore
+  is not attributed to this deployment alone.
+- Inspection of 902 retained application-log lines after 19:43 UTC found zero
+  ERROR lines and zero `max_questions` markers. This is a bounded startup/verification
+  observation, not sustained production load acceptance.
+
+Completion records are synchronized main -> feature/gptlive and main -> agents
+with normal ancestry. Their documentation-only commit/merge uses `[skip ci]` to
+retain the verified v101 runtime without a redundant deployment. Reload Valerian
+before a live trial so the browser uses the newly deployed scripts.
 
 Limits: this is a query reduction, not a guarantee that the existing shared hourly
 quota can support sustained sensing, speech and multiple clients. One idle Live
