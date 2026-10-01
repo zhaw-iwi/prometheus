@@ -14,6 +14,7 @@ public interface AccessCodeAgentRepository extends JpaRepository<AccessCodeAgent
     Optional<AccessCodeAgent> findByAccessCode_IdAndAgent_Id(UUID accessCodeId, UUID agentId);
 
     boolean existsByAccessCode_IdAndAgent_Id(UUID accessCodeId, UUID agentId);
+    boolean existsByAccessCode_IdAndAccessCode_EnabledTrueAndAgent_Id(UUID accessCodeId, UUID agentId);
 
     long countByAgent_Id(UUID agentId);
 }

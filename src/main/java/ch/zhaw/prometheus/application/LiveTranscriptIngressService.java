@@ -19,6 +19,13 @@ import ch.zhaw.prometheus.repositories.*;
 /** Durable receipt/segment admission. Only complete, unambiguous user input reaches acknowledgement. */
 @Service
 public class LiveTranscriptIngressService {
+    public record LedgerChanged(UUID agentId, UUID sessionId) {}
+    private org.springframework.context.ApplicationEventPublisher events;
+    @org.springframework.beans.factory.annotation.Autowired
+    void events(org.springframework.context.ApplicationEventPublisher events) { this.events = events; }
+    private void ledgerChanged(UUID agentId, UUID sessionId) {
+        if (events != null) AfterCommit.run(() -> events.publishEvent(new LedgerChanged(agentId, sessionId)));
+    }
     public record Outcome(UUID segmentId, String speaker, String text, String status, String reason, UUID eventId,
             Long startMs, Long endMs, List<String> receiptIds) {
         public Outcome { receiptIds = List.copyOf(receiptIds); }
@@ -80,6 +87,7 @@ public class LiveTranscriptIngressService {
             persisted.receipts(segment.fragments().stream().map(Fragment::eventId).toList());
             segments.saveAndFlush(persisted); // Claim identity before any acknowledgement/action.
             sources.forEach(receipt -> receipt.assign(segment.id())); receipts.saveAll(sources);
+            ledgerChanged(id, owner.sessionId());
             claimed[0] = true;
             return Optional.of(view(persisted));
             });
@@ -88,7 +96,10 @@ public class LiveTranscriptIngressService {
             try { return transaction.execute(status -> {
             var persisted = segments.findById(segment.id()).orElseThrow();
             Agent agent = current(id, owner);
-            if (agent == null) { persisted.finish("OBSOLETE", "speech_owner_changed", null); return Optional.of(view(segments.save(persisted))); }
+            if (agent == null) {
+                persisted.finish("OBSOLETE", "speech_owner_changed", null);
+                segments.save(persisted); ledgerChanged(id, owner.sessionId()); return Optional.of(view(persisted));
+            }
             String text = persisted.getTranscript();
             if (segment.closure() == Closure.LATE || text.isBlank()) {
                 persisted.finish("LATE", segment.reason(), null);
@@ -122,10 +133,12 @@ public class LiveTranscriptIngressService {
                     turns.generate(id, List.of(), OutputProfile.FULL_PLAN);
             }
             segments.saveAndFlush(persisted);
+            ledgerChanged(id, owner.sessionId());
             return Optional.of(view(persisted));
             }); } catch (RuntimeException failure) {
                 transaction.executeWithoutResult(status -> segments.findById(segment.id()).ifPresent(value -> {
                     value.finish("FAILED", "processing_failed_no_automatic_retry", null); segments.save(value);
+                    ledgerChanged(id, owner.sessionId());
                 }));
                 throw failure;
             }

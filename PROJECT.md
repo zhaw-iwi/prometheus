@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 201 (2026-10-01): reduce database reads in Live and ordinary sensor
+  turns on `main`. Combined revision-aware polling performs one scalar scope read
+  when transcripts are unchanged; acknowledge/generate avoid detached graph merge
+  reloads. A bounded social observation batch keeps per-event commits and failures,
+  and Valerian consumes ready monitor snapshots for state/storage updates. Sensor
+  cadence and durable transcript semantics are preserved. Local acceptance and
+  deployment limits are recorded in `.agents/GPTLIVE_RESULTS.md`. After review,
+  main-to-feature/gptlive then main-to-agents integration and deployment were
+  authorized; rollout verification follows in the same evidence record.
+
 - CA-05 integration (2026-09-30): main merged into feature/gptlive and agents with
   normal ancestry. The deployment catalog opts in only core definitions, including
   scored RPS; Gigi/Valerian persona handling is preserved. The merged agents tree
@@ -218,6 +228,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 201: Reduce Live and sensor database query volume
 
 - [x] Milestone 200: Integrated capability-awareness acceptance (CA-04)
 
@@ -8730,3 +8742,24 @@ remain trial gates rather than guarantees from synthetic checks.
 - Preserve normal main-to-feature/gptlive and main-to-agents merges. On agents,
   the embodiment-aware creation overload also uses the bounded save transaction;
   deployment personas and catalog additions remain outside main.
+
+## Milestone 201: Reduce Live and sensor database query volume
+
+- Combined one-second Live updates use scalar access checks and committed ledger
+  revisions instead of reloading agent graphs and unchanged transcripts.
+- Ordinary acknowledge/generate retain a bounded persistence context under the
+  existing agent lock, with short load/save transactions and JDBC release before
+  provider work. External speech ownership is resolved once per acknowledgement.
+- Added ordered sensor batches with individual commits, authorization, responses,
+  failure isolation and ordinary derived-event semantics. Valerian batches one
+  social sample and relies on ready monitor snapshots for post-turn state/storage.
+- Extended the local acceptance runner to select `application-test.properties`;
+  tests use disposable schemas and offline providers. Added real MySQL query,
+  persistence, failure, revision and connection-lifetime checks plus client tests.
+- Sensor timing, durable transcript claims and existing individual APIs remain.
+  Final local acceptance passed 471 Java, 89 JavaScript and 46 browser cases,
+  with one expected Live-only browser skip while the feature is disabled.
+  Actual measurements, verification and shared-quota limits are in
+  `.agents/GPTLIVE_RESULTS.md`. Work starts on main as requested; the subsequent
+  reviewed commit/push and branch integration follow main-to-feature/gptlive,
+  then main-to-agents and Heroku verification.

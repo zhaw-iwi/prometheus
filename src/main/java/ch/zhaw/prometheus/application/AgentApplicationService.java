@@ -60,6 +60,18 @@ public class AgentApplicationService {
     private org.springframework.transaction.support.TransactionTemplate backgroundTransaction;
     private BehaviourSpeculationService speculation;
     private ExternalSpeechOwnership speechOwnership;
+    private AgentPersistenceContext persistenceContext;
+    @org.springframework.beans.factory.annotation.Autowired
+    void configurePersistenceContext(AgentPersistenceContext context) { this.persistenceContext = context; }
+    private <T> T persistenceTurn(java.util.function.Supplier<T> work) {
+        return persistenceContext == null ? work.get() : persistenceContext.call(work);
+    }
+    private record LoadedTurn(Agent agent, PolicyRuntime runtime) {}
+    private Optional<LoadedTurn> loadTurn(UUID id, OutputProfile profile) {
+        java.util.function.Supplier<Optional<LoadedTurn>> load = () -> findAgent(id)
+                .map(agent -> new LoadedTurn(agent, runtimeFor(agent, profile)));
+        return persistenceContext == null ? load.get() : persistenceContext.load(load);
+    }
     private org.springframework.context.ApplicationEventPublisher applicationEvents;
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -99,11 +111,15 @@ public class AgentApplicationService {
     }
 
     private <T> T actionTurn(Agent agent, OutputProfile profile, java.util.function.Function<PolicyRuntime, T> work) {
-        if (backgroundActions == null) return work.apply(runtimeFor(agent, profile));
+        return actionTurn(agent, runtimeFor(agent, profile), work);
+    }
+
+    private <T> T actionTurn(Agent agent, PolicyRuntime runtime, java.util.function.Function<PolicyRuntime, T> work) {
+        if (backgroundActions == null) return work.apply(runtime);
         UUID id = agent.getId(), epoch = agent.executionEpoch();
         try (var turn = new BackgroundActionTurn(id, backgroundActions,
                 (action, values, versions) -> applyBackgroundAction(id, epoch, action, values, versions))) {
-            T result = work.apply(runtimeFor(agent, profile).withActionExecution(turn));
+            T result = work.apply(runtime.withActionExecution(turn));
             turn.commit();
             return result;
         }
@@ -258,14 +274,14 @@ public class AgentApplicationService {
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
-        return serialized(agentID, () -> {
-            Optional<Agent> agentMaybe = this.findAgent(agentID);
+        return serialized(agentID, () -> persistenceTurn(() -> {
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Optional<LoadedTurn> agentMaybe = this.loadTurn(agentID, resolvedProfile);
             if (agentMaybe.isEmpty()) {
                 return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
             }
-            Agent agent = agentMaybe.get();
-            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
-            PolicyRuntime generationRuntime = this.runtimeFor(agent, resolvedProfile);
+            Agent agent = agentMaybe.get().agent();
+            PolicyRuntime generationRuntime = agentMaybe.get().runtime();
             if (speculation != null && generationRuntime.externalSpeech() == null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
                     agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
             PolicyRuntime preparedRuntime = generationRuntime;
@@ -279,7 +295,7 @@ public class AgentApplicationService {
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, response);
             return BehaviourGenerationOutcome.GENERATED;
-        });
+        }));
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
@@ -287,17 +303,18 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
-        return serialized(agentID, () -> {
-            Optional<Agent> agentMaybe = this.findAgent(agentID);
+        return serialized(agentID, () -> persistenceTurn(() -> {
+            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Optional<LoadedTurn> agentMaybe = this.loadTurn(agentID, resolvedProfile);
             if (agentMaybe.isEmpty()) {
                 return Optional.empty();
             }
-            Agent agent = agentMaybe.get();
-            OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
+            Agent agent = agentMaybe.get().agent();
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-            try (var preview = speculation == null || runtimeFor(agent, resolvedProfile).externalSpeech() != null ? null : speculation.open(agentID, agent.executionEpoch(),
+            PolicyRuntime acknowledgementRuntime = agentMaybe.get().runtime();
+            try (var preview = speculation == null || acknowledgementRuntime.externalSpeech() != null ? null : speculation.open(agentID, agent.executionEpoch(),
                     agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {
-                Optional<ResponseView> result = actionTurn(agent, resolvedProfile, runtime -> {
+                Optional<ResponseView> result = actionTurn(agent, acknowledgementRuntime, runtime -> {
                     PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
                     Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
                     Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
@@ -310,7 +327,7 @@ public class AgentApplicationService {
                 if (preview != null) preview.commit();
                 return result;
             }
-        });
+        }));
     }
 
     public Optional<ResponseView> reset(UUID agentID) {

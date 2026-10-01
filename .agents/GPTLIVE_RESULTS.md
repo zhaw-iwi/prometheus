@@ -4,6 +4,112 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Implementation authorization includes committing/pushing each milestone and
 continuing automatically. A passed synthetic test is not acoustic acceptance.
 
+## Database query reduction on main - 2026-10-01
+
+This follow-up uses the user's main-first workflow. `main` was fast-forwarded to
+`origin/main` (41d2921) before editing. After local acceptance and review, the user
+authorized commit/push, normal main-to-feature/gptlive then main-to-agents merges,
+and verification of the resulting Heroku deployment. Integration evidence is
+recorded below when complete.
+
+The production investigation found JawsDB rejecting queries at the shared
+36,000-questions/hour limit. Local measurements identified repeated graph reads
+in authorization/heartbeat requests, detached save merges, individual sensor
+requests and redundant cockpit state/storage refreshes.
+
+Implemented:
+
+- Scalar access-code/link checks retain immediate disable/unlink detection and
+  existing 401/404 distinctions. An unchanged combined status/ledger heartbeat
+  performs one SQL statement and loads zero entities. After-commit ledger
+  revisions avoid polling an unchanged transcript table; reads racing a commit
+  are refreshed on the next heartbeat. Legacy status/history endpoints remain.
+- A serialized acknowledge/generate turn retains managed entities across short
+  load/save transactions. Loading includes speech ownership, and the explicit
+  Hibernate connection handling releases JDBC after each transaction. Providers
+  do not retain that connection. Existing outer Live ingress transactions retain
+  their durable claim/processing/failure semantics.
+- A camera sample can contain up to four ordinary sensor events. Valerian batches
+  presence/grouping/context; each item retains ordered processing, authorization,
+  commit, derived events and publication. Failed in-memory changes are cleared
+  before the next item. Partial results advance only successful sensor signatures.
+- Ready monitor SSE snapshots replace post-turn state/storage reads. Initial
+  hydration, reset and stream-failure fallback remain. Sensor cadence, confidence
+  thresholds, five-second Live refresh, 15-second freshness and speech contracts
+  are unchanged. No schema migration, permission cache or cross-turn entity cache.
+
+Measured HTTP boundary costs (Hibernate prepared statements):
+
+| Path | Multimodal Behaviour before / after | Live Multimodal before / after |
+| --- | --- | --- |
+| Idle Live poll cycle | 39 / 1 | 25 / 1 |
+| Ordinary face observation | 38 / 20 | 23 / 12 |
+| Live face observation | 42 / 21 | 27 / 13 |
+
+The before measurements are from the initial local investigation on agents
+6213dcb5, retained in `target/query-volume-20261001/measurements.txt`; after values
+use main plus this change. Both use real MVC, services, Hibernate and disposable
+MySQL, with providers/context/capture workers mocked and no outer test transaction.
+Statement counts are identical with 5 and 205 seeded history events; graph entity
+loads still grow with history for actual agent work. Initial combined polling
+costs two statements; unchanged polling also costs exactly one MySQL `Questions`.
+Live face processing costs 27/19 MySQL questions respectively, including transaction
+control commands, versus 21/13 Hibernate statements. Scheduled/background work is
+excluded from these per-request numbers.
+
+The social comparison uses actual presence/grouping/context and the resulting
+derived social event. It compares three already-optimized individual requests
+against one batch, so it isolates batching from the other improvements.
+Multimodal Behaviour uses 65 versus 35 Hibernate statements, or 83 versus 53 MySQL
+questions. Live Multimodal uses 42 versus 26 statements, or 60 versus 44 MySQL
+questions (including its additional embodiment event). State/storage/event
+equivalence is verified separately, including a real blocking extraction action,
+state transition, persisted event IDs and paths.
+
+Verification uses the existing isolated runner with
+`--database-properties src/main/resources/application-test.properties`. It reads
+only local administration settings, creates random restricted schema/accounts,
+overrides application datasource/provider endpoints and cleans up after execution.
+It never targets the configured application schema or production database.
+
+Final acceptance:
+
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests all --browser`:
+  **471 Java tests PASS**, zero skipped; **46 browser cases PASS**, one expected
+  Live-only skip in the feature-disabled run. Artifacts:
+  `target/gptlive-acceptance-d5730db34c/`. Generated class directories were archived
+  before regression to prevent stale tests from the deployment branch being run.
+  The final run includes real classroom/SSE concurrency, Live ingress/history,
+  Text/TTS with Live disabled, and a check that monitor-driven state/storage
+  updates require no duplicate detail requests after the turn.
+- `node --test tests/js/live/*.test.mjs tests/js/transcription/*.test.mjs tests/js/speech/*.test.mjs tests/js/performance/*.test.mjs`:
+  **89 PASS**; log `target/query-volume-node.log`. Tests include unchanged-ledger
+  polling, actual batch serialization and partial failure, late-response fencing,
+  unchanged sensor freshness and monitor failure/reconnect fallback.
+- `node --check src/main/resources/public/valerian/script.js` and
+  `git diff --check`: PASS.
+- The new six-case MySQL suite covers bounded costs, actual persisted
+  state/storage/derived events, failed-item isolation, invalid batches and access,
+  real committed transcript revisions, and blocked provider work with zero
+  checked-out connections in a one-connection pool. It caught the need for explicit
+  Hibernate release-after-transaction handling on retained persistence contexts.
+- Installed existing locked browser assets with `npm ci --ignore-scripts --no-audit
+  --no-fund` after the first browser attempt found missing Bootstrap dependencies.
+  The final run above passed after installation; manifests/lockfile are unchanged.
+  Earlier new test-fixture errors were corrected before final acceptance.
+- All runner-owned applications, disposable schemas and restricted users were
+  removed after execution. Production configuration/data and local application
+  schemas were not modified. No paid provider or physical audio trials were run.
+
+Limits: this is a query reduction, not a guarantee that the existing shared hourly
+quota can support sustained sensing, speech and multiple clients. One idle Live
+session now accounts for about 3,600 heartbeat questions/hour, but active events,
+transcript receipts and context refreshes add real work. Even one continuously
+sensing session can exceed 36,000/hour; deployment needs measured headroom or a
+larger quota. Long histories still load for runtime turns. Production load and
+real microphone/speaker/provider trials remain separate from automated deployment
+health and read-only HTTP checks.
+
 ## Compact context delivery and bounded refreshes - 2026-09-28
 
 The follow-up failed/successful trials both contained selected fresh social

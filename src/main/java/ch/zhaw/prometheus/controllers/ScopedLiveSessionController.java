@@ -30,7 +30,7 @@ public class ScopedLiveSessionController {
     public ResponseEntity<java.util.List<ch.zhaw.prometheus.application.LiveTranscriptIngressService.Outcome>> transcripts(@PathVariable UUID agentId,
             @RequestParam UUID sessionId,
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
-        return demo.getAgentInfo(code, agentId).isEmpty() ? ResponseEntity.notFound().build()
+        return !demo.hasVisibleAgent(code, agentId) ? ResponseEntity.notFound().build()
                 : ResponseEntity.ok(ingress.history(agentId, sessionId));
     }
 
@@ -63,6 +63,12 @@ public class ScopedLiveSessionController {
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
             @RequestParam boolean muted) {
         return ResponseEntity.of(service.mute(code, agentId, handle, muted));
+    }
+    @GetMapping("/demo/agents/{agentId}/live/sessions/{handle}/updates")
+    public ResponseEntity<UpdatesView> updates(@PathVariable UUID agentId, @PathVariable UUID handle,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
+            @RequestParam(defaultValue = "-1") long transcriptRevision) {
+        return ResponseEntity.of(service.updates(code, agentId, handle, transcriptRevision));
     }
     @DeleteMapping("/demo/agents/{agentId}/live/sessions/{handle}")
     public ResponseEntity<StatusView> close(@PathVariable UUID agentId, @PathVariable UUID handle,

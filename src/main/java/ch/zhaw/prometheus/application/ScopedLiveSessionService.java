@@ -41,6 +41,7 @@ public class ScopedLiveSessionService {
             long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState,
             LiveContextBridgeService.Status context, UUID handle, UUID epoch, String clock,
             LiveTranscriptCaptureService.Status capture, String reason) {}
+    public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {}
 
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
@@ -52,6 +53,13 @@ public class ScopedLiveSessionService {
     @Autowired void configureCaptures(LiveTranscriptCaptureService captures) { this.captures = captures; }
     private LiveContextBridgeService bridge;
     @Autowired void configureBridge(LiveContextBridgeService bridge) { this.bridge = bridge; }
+    private LiveTranscriptIngressService ingress;
+    @Autowired void configureIngress(LiveTranscriptIngressService ingress) { this.ingress = ingress; }
+    @org.springframework.context.event.EventListener
+    public void ledgerChanged(LiveTranscriptIngressService.LedgerChanged event) {
+        Lease lease = sessions.get(event.sessionId());
+        if (lease != null && lease.agentId.equals(event.agentId())) lease.transcriptRevision.incrementAndGet();
+    }
     private final Map<UUID, Lease> sessions = new ConcurrentHashMap<>();
     private record Closed(UUID agent, byte[] scope, Instant expires, StatusView status) {}
     private final Map<UUID, Closed> closed = new ConcurrentHashMap<>();
@@ -135,6 +143,17 @@ public class ScopedLiveSessionService {
         });
     }
 
+    public Optional<UpdatesView> updates(String code, UUID agentId, UUID handle, long transcriptRevision) {
+        if (transcriptRevision < -1) throw new IllegalArgumentException("Invalid transcript revision");
+        return owned(code, agentId, handle).map(lease -> {
+            lease.clientSeen = clock.instant();
+            // Read before the ledger: a concurrent commit causes another read next poll.
+            long revision = lease.transcriptRevision.get();
+            return new UpdatesView(lease.status(), revision,
+                    revision == transcriptRevision ? null : ingress.history(agentId, handle));
+        }).or(() -> closedStatus(code, agentId, handle).map(status -> new UpdatesView(status, -1, null)));
+    }
+
     public Optional<StatusView> close(String code, UUID agentId, UUID handle) {
         Optional<Lease> owned = owned(code, agentId, handle);
         if (owned.isEmpty()) return closedStatus(code, agentId, handle);
@@ -147,7 +166,7 @@ public class ScopedLiveSessionService {
     }
 
     private Optional<Lease> owned(String code, UUID agentId, UUID handle) {
-        if (demo.getAgentInfo(code, agentId).isEmpty()) return Optional.empty();
+        if (!demo.hasVisibleAgent(code, agentId)) return Optional.empty();
         Lease lease = sessions.get(handle);
         if (lease == null || !lease.agentId.equals(agentId) || !MessageDigest.isEqual(lease.scope, digest(code))) return Optional.empty();
         return Optional.of(lease);
@@ -176,7 +195,7 @@ public class ScopedLiveSessionService {
     }
 
     private Optional<StatusView> closedStatus(String code, UUID agentId, UUID handle) {
-        if (demo.getAgentInfo(code, agentId).isEmpty()) return Optional.empty();
+        if (!demo.hasVisibleAgent(code, agentId)) return Optional.empty();
         Closed value = closed.get(handle);
         return value != null && value.agent.equals(agentId) && clock.instant().isBefore(value.expires)
                 && MessageDigest.isEqual(value.scope, digest(code)) ? Optional.of(value.status) : Optional.empty();
@@ -231,6 +250,7 @@ public class ScopedLiveSessionService {
         final Instant expires;
         final Clock clock;
         volatile Instant clientSeen;
+        final java.util.concurrent.atomic.AtomicLong transcriptRevision = new java.util.concurrent.atomic.AtomicLong();
         volatile String reason = "operator_stop";
         volatile java.util.function.BooleanSupplier authorized = () -> true;
         volatile java.util.function.Consumer<String> failure = ignored -> {};

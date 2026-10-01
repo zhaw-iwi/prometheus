@@ -7,22 +7,31 @@ import vm from "node:vm";
 const source = fs.readFileSync(new URL("../../../src/main/resources/public/valerian/script.js", import.meta.url), "utf8");
 function fixture({ live = true, interval = 2500 } = {}) {
   let now = Date.parse("2026-09-28T00:00:00Z");
-  const events = [], failures = new Set();
+  const events = [], batches = [], failures = new Set();
   const context = vm.createContext({
     Date: class extends Date {
       constructor(...args) { super(...(args.length ? args : [now])); }
       static now() { return now; }
     },
     camera: {}, liveVoice: { ui: { active: live } }, LIVE_SENSOR_REFRESH_MS: 5000,
+    state: { agentId: "agent", accessCode: "code" },
     enabled: true,
     document: { getElementById(id) { return { checked: context.enabled,
       value: id === "face_confidence_threshold" ? "0.55" : String(interval) }; } },
     currentProfileSupportsObservation: () => true,
     setEmotionEmitStatus() {}, appendLog() {},
+    setActiveStatus() {}, renderLatestEvent() {}, handleResponseEvent() {},
+    demoAgentPath: path => path,
     async acknowledgeEvent(event) { events.push(event); return !failures.has(event.type); },
+    async scopedFetch(path, options) {
+      assert.equal(path, "/observations");
+      const batch = JSON.parse(options.body); batches.push(batch); events.push(...batch);
+      return { ok: true, async json() { return batch.map(event => failures.has(event.type)
+        ? { status: 500, response: null } : { status: 200, response: { active: true } }); } };
+    },
   });
   for (const name of ["maybeEmitEmotion", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
-    "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads",
+    "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads", "acknowledgeObservationBatch",
     "socialContextPayload", "socialContextPerson", "socialContextSignature", "normalizeAttentionSignal",
     "normalizeAttentionState", "normalizeMovementState", "asUnitNumber", "clamp", "round", "average"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
@@ -34,7 +43,7 @@ function fixture({ live = true, interval = 2500 } = {}) {
   context.social = { humanCount: 1, groupCount: 0, singletonCount: 1, largestGroupSize: 0, groups: [] };
   context.people = [{ id: 1, score: .99, movementState: "stationary", movementConfidence: .9,
     attention: { state: "attending", confidence: .9, personVisible: true, faceVisible: true } }];
-  return { context, events, failures,
+  return { context, events, batches, failures,
     advance(ms) { now += ms; },
     async sense() {
       await vm.runInContext("maybeEmitEmotion(face, 0.99)", context);
@@ -46,13 +55,25 @@ function fixture({ live = true, interval = 2500 } = {}) {
 
 test("unchanged Live readings refresh every five seconds with new observation times", async () => {
   const f = fixture(); await f.sense(); assert.equal(f.events.length, 4);
+  assert.deepEqual(f.batches[0].map(event => event.type), ["obs.human.presence", "obs.social.grouping", "obs.social.context"]);
   for (let second = 1; second <= 30; second++) { f.advance(1000); await f.sense(); }
   assert.equal(f.events.length, 28);
+  assert.equal(f.batches.length, 7);
   const byType = Map.groupBy(f.events, event => event.type);
   for (const events of byType.values()) {
     const times = events.map(event => Date.parse(JSON.parse(event.payload).ts));
     assert.deepEqual(times.slice(1).map((time, i) => time - times[i]), Array(6).fill(5000));
   }
+});
+
+test("late batch replies cannot update a different agent or advance sensor deduplication", async () => {
+  const f = fixture();
+  const fetch = f.context.scopedFetch;
+  f.context.scopedFetch = async (...args) => { const response = await fetch(...args); f.context.state.agentId = "other"; return response; };
+  await f.sense();
+  assert.equal(f.context.camera.lastPresenceSignature, undefined);
+  assert.equal(f.context.camera.lastGroupingSignature, undefined);
+  assert.equal(f.context.camera.lastSocialContextSignature, undefined);
 });
 
 test("text and TTS retain change-only deduplication, including after Live stops", async () => {
@@ -91,4 +112,36 @@ test("manual social samples do not heartbeat and slow Live interval is capped fo
   const f = fixture({ interval: 60000 }); await f.sense(); f.advance(5000); await f.sense();
   assert.equal(f.events.length, 8);
   f.advance(30000); await f.manual(); assert.equal(f.events.length, 8);
+});
+
+test("monitor snapshots replace detail reads, with fallback before readiness and after failure", async () => {
+  const reads = [];
+  class Source {
+    handlers = {};
+    addEventListener(name, listener) { this.handlers[name] = listener; }
+    close() {}
+  }
+  const context = vm.createContext({
+    state: { agentId: "agent", monitorSource: null, monitorReady: false }, EventSource: Source,
+    monitorStreamUrl: () => "/monitor", applyMonitorSnapshot() {}, scheduleMonitorReconnect() {},
+    async loadStorage() { reads.push("storage"); }, async loadAgentState() { reads.push("state"); },
+  });
+  for (const name of ["connectMonitorStream", "refreshAgentDetailsIfNeeded"]) {
+    const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
+    const rest = source.slice(match.index), end = /^}/m.exec(rest);
+    vm.runInContext(rest.slice(0, end.index + 1), context);
+  }
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 2);
+  context.connectMonitorStream(); const old = context.state.monitorSource;
+  old.handlers.snapshot({ data: "{}" });
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 2);
+  old.onerror();
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 4);
+  context.connectMonitorStream();
+  old.handlers.snapshot({ data: "{}" }); // An obsolete source cannot mark the new stream ready.
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 6);
+  context.state.monitorSource.handlers.snapshot({ data: "{}" });
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 6);
+  context.state.monitorSource.handlers.snapshot({ data: "invalid" });
+  await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 8);
 });

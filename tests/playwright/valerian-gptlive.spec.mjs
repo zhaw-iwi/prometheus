@@ -23,6 +23,10 @@ async function setup(context, scenario = {}) {
       ? { ...json(scenario.providerErrorBody || {}), status: scenario.providerError }
       : { ...json({ handle: "session1", sdp: "v=0 answer", sidebandReady: true }), status: 201 });
     if (path.endsWith("/live/transcripts")) return route.fulfill(json(scenario.ledger));
+    if (path.endsWith("/updates")) return route.fulfill(json({
+      status: { state: scenario.disconnected ? "disconnected" : "attached", captureState: "active", context: { state: "ready", revision: "r1", recent: [] } },
+      transcriptRevision: JSON.stringify(scenario.ledger).length, transcripts: scenario.ledger,
+    }));
     if (path.includes("/live/sessions/")) return route.fulfill(json(method === "DELETE" ? { state: "closed", finalized: true } : { state: scenario.disconnected ? "disconnected" : "attached", captureState: "active", inputSamples: 100, outputSamples: 100, voicedInputSamples: 20, context: { state: "ready", revision: "r1", recent: [] } }));
     if (path.endsWith("/reset")) { scenario.history = []; return route.fulfill(json({ active: true, responseEvent: null })); }
     return route.fulfill({ status: 404, body: "" });

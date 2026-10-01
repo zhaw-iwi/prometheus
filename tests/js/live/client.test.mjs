@@ -56,7 +56,8 @@ function fixture(options = {}) {
   const fetch = async (url, request = {}) => {
     requests.push({ url, request });
     if (options.respond) { const response = await options.respond(url, request); if (response) return response; }
-    const body = url.endsWith("capabilities") ? state.capability : request.method === "DELETE" ? { finalized: true }
+    const body = url.includes("/updates?") ? { status: state.status, transcriptRevision: JSON.stringify(state.ledger).length, transcripts: state.ledger }
+      : url.endsWith("capabilities") ? state.capability : request.method === "DELETE" ? { finalized: true }
       : url.endsWith("sessions") ? { handle: "session1", sdp: "v=0 answer" } : url.includes("transcripts?") ? state.ledger
       : url.endsWith("history") ? state.history : state.status;
     return { ok: true, json: async () => body };
@@ -68,6 +69,22 @@ function fixture(options = {}) {
     start: () => client.start({ agentId: "agent1", accessCode: "private", voice: "marin", mediaPreferences: {} }),
     emit: event => channel.onmessage({ data: JSON.stringify(event) }) };
 }
+
+test("one heartbeat request skips unchanged transcripts and resumes after a revision", async () => {
+  let revision = 0;
+  const f = fixture({ respond: async url => url.includes("/updates?") ? {
+    ok: true, json: async () => ({ status: { state: "attached" }, transcriptRevision: revision,
+      transcripts: url.endsWith(`=${revision}`) ? null : [] }),
+  } : null });
+  await f.start(); f.requests.length = 0;
+  await f.client.poll(); await f.client.poll();
+  assert.equal(f.requests.length, 2);
+  assert.ok(f.requests.every(value => value.url.includes("/updates?")));
+  assert.ok(f.requests[0].url.endsWith("=-1")); assert.ok(f.requests[1].url.endsWith("=0"));
+  revision = 1; await f.client.poll(); await f.client.poll();
+  assert.ok(f.requests.at(-1).url.endsWith("=1"));
+  await f.client.stop();
+});
 
 test("start waits for sideband/session readiness, input mute preserves output, Stop silences before cleanup", async () => {
   const cleanup = deferred();
