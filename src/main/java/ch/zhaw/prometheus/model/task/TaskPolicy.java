@@ -18,8 +18,10 @@ public class TaskPolicy extends Policy {
     public TaskPolicy(Storage storage, String instructions) { this.storage = storage; this.taskInstructions = instructions; }
     public Storage storage() { return storage; }
     @Override public String describe() {
-        return taskInstructions + "\n" + TaskMemory.description(storage) + "\n"
-                + "Conversational task configuration is an implemented backend operation for this agent. "
+        return voiceInstructions() + "\n" + TaskMemory.description(storage);
+    }
+    public String voiceInstructions() {
+        return taskInstructions + "\nConversational task configuration is an implemented backend operation for this agent. "
                 + "It does not change sensors, device settings or framework code. "
                 + "User requests are processed by PROMETHEUS. Briefly acknowledge if needed, then wait for its confirmed announcement. "
                 + "Do not independently perform a task step, tell an additional joke, or claim activation. "

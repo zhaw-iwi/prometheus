@@ -225,6 +225,8 @@ test("network, sideband and microphone loss require a fresh explicit connection"
   await expect(page.getByTestId("timing-turns")).toContainText("GPT-Live");
   await page.getByTestId("timing-turns").locator("summary").first().click();
   await expect(page.getByTestId("timing-turns")).toContainText("separate clocks");
+  await expect(page.getByTestId("timing-turns")).toContainText("Export records omitted");
+  await expect(page.getByTestId("timing-turns")).toContainText("Server ring evictions");
   await page.getByTestId("interaction-timing-panel").screenshot({ path: info.outputPath("live-timing-drawer.png") });
 });
 

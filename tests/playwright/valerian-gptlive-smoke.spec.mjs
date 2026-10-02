@@ -53,6 +53,10 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     await expect(page.getByTestId("round-value")).toHaveText("1");
     await expect(page.getByTestId("gptlive-history")).toContainText("I am ready to start a round");
     await expect(page.getByTestId("gptlive-history")).toContainText("The round is ready.");
+    await expect.poll(async () => page.evaluate(async () => {
+      const { liveDiagnostics } = await import("/live/diagnostics.js");
+      return liveDiagnostics.snapshot().sessions.some(session => session.media.some(value => value.concealedSamples === 960));
+    })).toBe(true);
     const acknowledge = async (type, payload) => expect((await request.post(path + "/acknowledge", { headers: scoped,
       data: { type, actor: "sensor", kind: "observation", payload: JSON.stringify(payload) } })).ok()).toBe(true);
     await acknowledge("obs.weather.current", { condition: "rain", temperature: 17 });
@@ -72,6 +76,12 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
     await expect(page.locator("#gptlive_context")).toContainText("Capture: closed");
     expect((await (await request.get(`${path}/live/sessions/${session.handle}`, { headers: scoped })).json()).finalized).toBe(true);
+    const diagnostics = await page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot());
+    const trial = diagnostics.sessions.find(value => value.handle === session.handle);
+    expect(trial.server.audio.recent.some(value => value.inputSamples > 0)).toBe(true);
+    expect(trial.media.some(value => value.outcome === "local_stop")).toBe(true);
+    expect(JSON.stringify(diagnostics)).not.toContain("I am ready to start a round");
+    expect(JSON.stringify(diagnostics)).not.toContain("private-device");
     await page.getByTestId("gptlive-panel").screenshot({ path: info.outputPath("persisted-live-conversation.png") });
     await page.goto(`/valerian/?agentId=${agent.id}`); await expect(page.getByTestId("gptlive-start")).toBeEnabled(); await page.getByTestId("gptlive-tab").click();
     await expect(page.getByTestId("gptlive-history")).toContainText("I am ready to start a round");
@@ -157,6 +167,8 @@ async function hardware(context) {
       createDataChannel() { return this.channel = { close() {} }; } addTrack() {} getSenders() { return []; }
       async createOffer() { return { type: "offer", sdp: "v=0 synthetic-offer" }; } async setLocalDescription(value) { this.localDescription = value; }
       async setRemoteDescription() { this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [{}], track: new Track() }); }
+      async getStats() { return new Map([["private-device", { type: "inbound-rtp", kind: "audio", timestamp: performance.now(),
+        packetsLost: 2, concealedSamples: 960, jitter: .01, trackIdentifier: "private-device" }]]); }
       close() {}
     };
   });

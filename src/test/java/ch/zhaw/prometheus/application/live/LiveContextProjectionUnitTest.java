@@ -29,7 +29,7 @@ class LiveContextProjectionUnitTest {
                     new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour().createAgent(),
                     new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent())) {
                 agent.setEmbodiment(embodiment);
-                String policy = adapter.instructions(agent).split("Current conversational policy:\\n", 2)[1];
+                String policy = adapter.sections(agent).get("policy");
                 assertTrue(policy.contains(embodiment.personaName()));
                 assertFalse(policy.contains(embodiment == ch.zhaw.prometheus.model.AgentEmbodiment.ROBOT ? "Valerian" : "Gigi"));
             }

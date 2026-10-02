@@ -2,14 +2,15 @@ package ch.zhaw.prometheus.application.live;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /** Immutable selected evidence. No persistence entities escape to provider workers. */
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
-        List<String> statePath, String instructions, List<Item> items, int omitted) {
-    public LiveContextSnapshot { statePath = List.copyOf(statePath); items = List.copyOf(items); }
+        List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
+    public LiveContextSnapshot { statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance); }
     public record Item(String key, String type, String role, List<UUID> sourceIds,
             Instant receivedAt, Instant observedAt, Instant expiresAt, String freshness, String text) {
         public Item { sourceIds = List.copyOf(sourceIds); }

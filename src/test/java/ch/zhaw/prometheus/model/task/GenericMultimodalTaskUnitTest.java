@@ -66,6 +66,25 @@ class GenericMultimodalTaskUnitTest {
         assertTrue(request.getValue().messages().stream().anyMatch(message ->
                 "user".equals(message.getRole()) && "I spoke to Valerian yesterday".equals(message.getContent())));
     }
+    @Test void liveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
+        var projection = new ch.zhaw.prometheus.application.live.LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
+        var initial = projection.project(agent);
+        var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
+        activate();
+        var current = projection.project(agent);
+        var narration = new ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration(UUID.randomUUID(), "First joke.");
+        var batch = delivery.plan(current, List.of(narration));
+        assertEquals(2, batch.commands().size());
+        assertEquals("session.instructions.append", batch.commands().getFirst().type());
+        String update = batch.commands().getFirst().content();
+        assertTrue(update.contains("RUNNING")); assertTrue(update.contains("Tell jokes using facial feedback"));
+        assertFalse(update.contains("AGENT CAPABILITIES")); assertFalse(update.contains("You are Valerian"));
+        assertFalse(update.contains("cooldownSeconds"));
+        assertEquals("session.commentary.append", batch.commands().getLast().type());
+        delivery.acknowledged(batch);
+        assertTrue(delivery.plan(projection.project(agent), List.of(narration)).commands().isEmpty());
+        assertTrue(current.instructions().contains("AGENT CAPABILITIES"), "Reconnect still carries full stable instructions");
+    }
     @Test void discussionProposalActivationAndSensorOnlyCompletionUseExplicitStates() {
         when(gateway.infer(any())).thenReturn(update("KEEP", "null", "What would you like to achieve?"),
                 update("PROPOSE", SPEC, "I propose one joke, then wait for your face. Shall we start?"),

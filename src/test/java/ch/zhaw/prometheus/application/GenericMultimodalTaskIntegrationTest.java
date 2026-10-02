@@ -91,6 +91,8 @@ class GenericMultimodalTaskIntegrationTest {
                     "observed_silence", now.toEpochMilli(), now.toEpochMilli());
             ingress.commit(id, owner, segment, loaded.getCurrentState().getActiveStatePath());
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertEquals(1, commentary(sent)));
+            assertTrue(live.status(code, id, session.handle()).orElseThrow().context().recent().stream()
+                    .anyMatch(trace -> trace.phase().equals("announcement_committed") && trace.sourceId() != null));
             assertEquals("RUNNING", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
             assertEquals(proposed, agents.findById(id).orElseThrow().getStorage().get(TaskMemory.SPEC));
             assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream().anyMatch(event ->

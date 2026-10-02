@@ -125,8 +125,11 @@ function mount() {
         section.append(table([["Session", session.handle], ["Epoch", session.server?.epoch || "Unknown"],
           ["Context", session.server?.context?.state || "Unknown"], ["Revision", session.server?.context?.revision || "Unknown"],
           ["Capture", session.server?.captureState || "Unknown"], ["Queue peak", session.server?.capture?.queueHighWater ?? "Unknown"],
-          ["Records omitted", session.browserDropped + (session.server?.dropped || 0) + (session.server?.capture?.dropped || 0) + (session.server?.context?.dropped || 0)]], "Live session diagnostics"));
-        section.append(element("p", "Browser monotonic time, server Unix time and provider audio offsets are separate clocks. Output activity does not prove audibility. JSON includes metadata only; CSV contains ordinary turns.", "small text-body-secondary"));
+          ["Export records omitted", session.browserDropped + (session.mediaDropped || 0) + (session.server?.retainedDropped || 0)
+            + (session.server?.capture?.retainedDropped || 0) + (session.server?.context?.retainedDropped || 0) + (session.server?.audio?.retainedDropped || 0)],
+          ["Server ring evictions", (session.server?.dropped || 0) + (session.server?.capture?.dropped || 0)
+            + (session.server?.context?.dropped || 0) + (session.server?.audio?.dropped || 0)]], "Live session diagnostics"));
+        section.append(element("p", "Browser, server, provider audio, media playback and RTC statistics use separate clocks. Server ring evictions may already be retained in the export. Output activity does not prove audibility. JSON includes metadata only; CSV contains ordinary turns.", "small text-body-secondary"));
         list.append(section);
       }
     }

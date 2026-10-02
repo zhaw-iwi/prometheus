@@ -235,9 +235,14 @@ while detectors continue observing. Stopped sensing still expires after 15 secon
 manual samples and ordinary text/TTS deduplication are unchanged. Live delivery
 uses compact same-type replacements, with social facts before derived summaries;
 only truly deselected types are withdrawn. Unsent chunks are checked again for
-expiry after provider waits. Context workers coalesce commit reads over five
-seconds, with freshness/delegation deadlines and a bounded fallback; per-append
-ACK waits remain sequential. Durable fragment admission uses scalar scope/epoch checks,
+expiry after provider waits. Context workers coalesce routine commit reads over five
+seconds, with freshness/delegation deadlines and a bounded fallback. Confirmed
+spoken intents bypass coalescing. Only changed guidance sections are sent, then
+announcements before routine evidence; compatible facts share bounded appends.
+Generic task guidance carries phase/revision/goals, leaving full rules with the
+backend. Per-append ACK waits and in-flight batches remain sequential. Content-free
+browser media/RTC and server RMS windows are retained in timing exports; they do
+not prove audibility. See the Milestone 204 evidence in GPTLIVE_RESULTS. Durable fragment admission uses scalar scope/epoch checks,
 and eager event state paths load together. See README and GPTLIVE_RESULTS for the
 query-budget regression evidence and remaining provider/production limits.
 

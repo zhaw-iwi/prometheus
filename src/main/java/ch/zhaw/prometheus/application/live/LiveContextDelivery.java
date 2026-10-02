@@ -30,8 +30,27 @@ public final class LiveContextDelivery {
         if (!delivered.epoch().equals(current.epoch())) throw new IllegalStateException("Obsolete Live context");
         List<Command> commands = new ArrayList<>();
         String revision = current.revision();
-        if (!delivered.instructions().equals(current.instructions())) {
-            add(commands, "instructions", "CURRENT STATE guidance replaces earlier guidance. Revision " + revision + ".\n" + current.instructions(), null, null, revision);
+        for (String section : List.of("voice", "policy", "state", "capabilities")) {
+            String value = current.guidance().getOrDefault(section, "");
+            if (!value.equals(delivered.guidance().getOrDefault(section, "")))
+                add(commands, "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
+                        + " replaces only the earlier " + section + " section.\n" + value, null, null, revision);
+        }
+        if (!current.statePath().equals(delivered.statePath())
+                && Objects.equals(current.guidance().get("state"), delivered.guidance().get("state"))) add(commands, "thinking",
+                "CURRENT STATE: " + String.join(" / ", current.statePath()) + ". No action is implied by this update.", null, null, revision);
+        // Results follow the guidance they depend on, ahead of routine sensory refreshes.
+        for (Narration narration : narrations) {
+            if (attemptedNarrations.contains(narration.sourceId())) continue;
+            if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
+            attemptedNarrations.add(narration.sourceId());
+            String label = "Confirmed backend announcement " + narration.sourceId() + ": ";
+            if (bytes(label + narration.text()) <= 360) add(commands, "commentary", label + narration.text(), null, narration.sourceId(), revision);
+            else {
+                add(commands, "thinking", label + narration.text(), null, narration.sourceId(), revision);
+                add(commands, "commentary", "Announce the confirmed backend announcement " + narration.sourceId()
+                        + " just supplied in full. Preserve its meaning; do not read metadata aloud.", null, narration.sourceId(), revision);
+            }
         }
         // The projection already selects one current value per sensory type. A new event ID
         // replaces that value, not the entire evidence set: never withdraw it before its replacement.
@@ -50,21 +69,6 @@ public final class LiveContextDelivery {
         });
         // Revision/source identities remain in content-free diagnostics. Native dialogue is
         // already in the voice session; history churn alone needs no extra provider append.
-        if (!current.statePath().equals(delivered.statePath())) add(commands, "thinking",
-                "CURRENT CONTEXT revision " + revision + "; state " + String.join(" / ", current.statePath())
-                + ". New selected facts supersede previous values. No action is implied by this update.", null, null, revision);
-        for (Narration narration : narrations) {
-            if (attemptedNarrations.contains(narration.sourceId())) continue;
-            if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
-            attemptedNarrations.add(narration.sourceId());
-            String label = "Confirmed backend announcement " + narration.sourceId() + ": ";
-            if (bytes(label + narration.text()) <= 360) add(commands, "commentary", label + narration.text(), null, narration.sourceId(), revision);
-            else {
-                add(commands, "thinking", label + narration.text(), null, narration.sourceId(), revision);
-                add(commands, "commentary", "Announce the confirmed backend announcement " + narration.sourceId()
-                        + " just supplied in full. Preserve its meaning; do not read metadata aloud.", null, narration.sourceId(), revision);
-            }
-        }
         if (commands.size() > 128) throw new IllegalStateException("Context batch capacity reached");
         return new Batch(current, commands);
     }

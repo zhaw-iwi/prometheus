@@ -1391,16 +1391,21 @@ times and existing adapter text; source IDs and revisions remain in snapshots an
 content-free command diagnostics. Rich social context is sent before other sensor
 updates and derived face summaries. Truly deselected types explicitly become
 unknown. Native dialogue/history churn alone needs no extra context-marker append.
-Long values still use bounded sequential chunks: this is not an atomic provider
-context swap. Before sending each chunk, the worker checks expiry again; expired
+Stable voice policy and capabilities are seeded at startup. Incremental guidance
+sends only changed sections; Generic Multimodal task updates contain the phase,
+revision and agreed/proposed goals while executable rules remain in the backend.
+Necessary guidance and confirmed announcements precede routine sensory updates.
+Compatible adjacent factual updates are packed immediately before sending, within
+a conservative 480-byte bound (below the 500-token provider limit). Long values
+still use bounded sequential chunks: this is not an atomic provider context swap. Before sending each chunk, the worker checks expiry again; expired
 remaining chunks become one unknown-value notice instead of stale fresh evidence.
 
 Idle context workers check deadlines in memory. Commit-driven reads coalesce over
 a five-second minimum interval, with the one-second scheduler waking deferred
 work; no worker sleeps or holds an agent lock during the wait. Sensory/delegation
-deadlines bypass this interval, and an idle 30-second fallback remains. A pending
-provider ACK still delays subsequent work; even task changes can wait for the
-coalescing window and in-flight batch. Access revocation and session liveness
+deadlines bypass this interval, and an idle 30-second fallback remains. A committed spoken intent bypasses the
+coalescing window; ordinary sensor/native-history commits retain it. An in-flight
+batch and pending provider ACK can still delay a newly committed announcement. Access revocation and session liveness
 checks remain independent. Transcript fragments persist using scalar
 scope/epoch checks rather than reloading history; event state paths load together
 when history is needed. These reduce database queries without changing durable
@@ -1516,7 +1521,9 @@ with one active refresh per session and coalescing of newer invalidations. A
 one-second refresh also expires sensory facts without another event. State guidance
 uses `session.instructions.append`; observations/removals use silent
 `session.thinking.append`; backend narration intents use `session.commentary.append`.
-Updates are split at Unicode boundaries into conservative sub-500-token chunks.
+Only changed guidance sections are appended. Confirmed narration precedes routine
+observations; compatible factual chunks can share one append. Updates are split
+at Unicode boundaries into conservative sub-500-token chunks.
 Long announcements are supplied as quiet context before one speakable request.
 Up to 128 commands form one update batch; 4,096 narration identities are retained
 for deduplication within a session. Provider waits never hold an agent turn lock.
@@ -1534,6 +1541,33 @@ unacknowledged update fails the session with an inspectable status; it is never
 blindly repeated. Status includes content-free revision/source IDs and send/ACK
 traces (last 64, with dropped count and separate server clock). Native assistant
 history cannot narrate itself. Existing non-speech behaviour/SSE remains available.
+
+Interaction Timing JSON also includes `live.sessions[].media`: browser playback
+and track events plus allowlisted WebRTC audio counters from the existing peer
+connection. Packet loss, concealed samples, jitter/buffer counters, audio energy
+and media state help distinguish delivery loss from generated silence. Stats are
+sampled with the existing heartbeat; unsupported counters are null. Collection
+never changes playback, opens another microphone, or stores audio, transcript
+content, device IDs, addresses or SDP. Pending stats are discarded on Stop.
+
+`server.audio.recent` contains one-second reflected input/output sample counts,
+20 ms RMS activity counts and peak RMS levels on the server clock. These are
+coarse signal measurements, not speech recognition or proof of audibility. Server
+status retains 128 closed windows plus the current window. Browser exports merge
+polled windows (600 maximum), keep 2,400 media entries separately from caption
+traces, and merge up to 1,024 entries in each provider/capture/context journal.
+`retainedDropped` counts export eviction; server `dropped` counts server-ring
+eviction and can include records already retained by the browser. Missing polls
+may still leave gaps. Context traces include sequence, byte count and all packed
+source IDs. Browser, server, provider, media-element and RTC stats clocks stay
+separate; compare counter differences and intervals within each clock.
+
+For an audible-cutoff retest, activate a facial-cue task and export timing after
+several jokes. Repeat with the Live microphone muted after activation while the
+camera remains enabled. This isolates input-driven effects; muting is a diagnostic
+trial, not a change to normal full-duplex behaviour. Native transcript completion
+and append acknowledgement never establish physical playback completion.
+
 
 ## Admin API
 
