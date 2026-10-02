@@ -40,7 +40,8 @@ public class ScopedLiveSessionService {
     public record StatusView(String state, boolean finalized, long eventCount, long inputSamples,
             long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState,
             LiveContextBridgeService.Status context, UUID handle, UUID epoch, String clock,
-            LiveTranscriptCaptureService.Status capture, String reason) {}
+            LiveTranscriptCaptureService.Status capture, String reason,
+            ch.zhaw.prometheus.application.live.LiveAudioDiagnostics.Status audio) {}
     public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {}
 
     private final ScopedDemoService demo;
@@ -270,6 +271,7 @@ public class ScopedLiveSessionService {
         volatile LiveSessionGateway.Connection connection;
         volatile boolean cleanupFailed;
         long count, dropped, inputSamples, outputSamples, voicedInputSamples;
+        final ch.zhaw.prometheus.application.live.LiveAudioDiagnostics audio = new ch.zhaw.prometheus.application.live.LiveAudioDiagnostics();
         record Pending(String type, CompletableFuture<Void> result) {}
 
         Lease(UUID agentId, byte[] scope, Instant expires, Clock clock) {
@@ -285,14 +287,11 @@ public class ScopedLiveSessionService {
                 String field = type.equals("session.input_audio.append") ? "audio" : "delta";
                 if (event.has(field)) {
                     byte[] pcm = Base64.getDecoder().decode(event.get(field).getAsString());
+                    var activity = audio.observe(field.equals("audio"), pcm, clock.millis());
                     long samples = pcm.length / 2;
                     if (field.equals("audio")) {
                         inputSamples += samples;
-                        long sum = 0;
-                        for (int i = 0; i + 1 < pcm.length; i += 2) {
-                            int sample = (short) ((pcm[i] & 255) | (pcm[i + 1] << 8)); sum += (long) sample * sample;
-                        }
-                        if (samples > 0 && Math.sqrt((double) sum / samples) > 500) voicedInputSamples += samples;
+                        voicedInputSamples += activity.voicedSamples();
                     } else outputSamples += samples;
                 }
                 return; // Audio is measured and discarded, never retained in the diagnostic log.
@@ -342,7 +341,7 @@ public class ScopedLiveSessionService {
             return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped,
                     captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable",
                     bridge == null ? null : bridge.status(), handle, context == null ? null : context.epoch(), "server_unix_ms",
-                    capture == null ? null : capture.status(), reason);
+                    capture == null ? null : capture.status(), reason, audio.status());
         }
     }
 }

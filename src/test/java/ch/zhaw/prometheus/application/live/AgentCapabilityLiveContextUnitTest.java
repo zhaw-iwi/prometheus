@@ -33,7 +33,7 @@ class AgentCapabilityLiveContextUnitTest {
         assertTrue(selected.instructions().contains("obs.emotion.face"));
     }
 
-    @Test void stateGuidanceUpdatesCarryTheSameContextAndUnchangedSnapshotsSendNothing() {
+    @Test void stateGuidanceUpdatesRetainStartupCapabilitiesWithoutResendingThem() {
         State state = new State("state", new PromptPolicy("First state guidance", null, null), List.of());
         Agent agent = new Agent("fixture", "", state);
         agent.setInteractionProfile(AgentInteractionProfiles.speechOnly()
@@ -48,7 +48,8 @@ class AgentCapabilityLiveContextUnitTest {
         assertFalse(commands.isEmpty());
         assertTrue(commands.stream().allMatch(c -> c.type().equals("session.instructions.append")));
         String joined = commands.stream().map(LiveContextDelivery.Command::content).reduce("", String::concat);
-        assertTrue(joined.contains(AgentCapabilityDescription.MARKER));
+        assertFalse(joined.contains(AgentCapabilityDescription.MARKER));
+        assertFalse(joined.contains("You are the spoken interface"));
         assertTrue(joined.contains("Changed state guidance"));
         agent.reset();
         var reconnect = snapshot(agent, NOW.plusSeconds(3));

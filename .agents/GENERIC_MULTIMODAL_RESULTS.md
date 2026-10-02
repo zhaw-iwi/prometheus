@@ -219,7 +219,9 @@ then new matching samples; completion is a backend observation, not physical
 audibility or a guaranteed whole-utterance boundary. Text/Continuous use cooldown
 and source freshness, without a playback-completion acknowledgement. Stop prevents
 new task reactions; existing provider speech/queued announcements may still finish.
-Live's existing coalescing/append acknowledgement delays remain. Speculative or
+The Milestone 204 Live follow-up prioritizes committed narration and sends compact
+state updates; in-flight append acknowledgement delays remain. See
+`GPTLIVE_RESULTS.md` for delivery and audio-diagnostic evidence. Speculative or
 duplicate voice replies remain a provider-quality trial concern despite guidance.
 
 Assign the new type to an access code, create a fresh instance, enable the desired

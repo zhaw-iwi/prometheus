@@ -14,7 +14,7 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 class LiveContextDeliveryUnitTest {
     static final UUID AGENT = UUID.randomUUID(), EPOCH = UUID.randomUUID();
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
-        return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0);
+        return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
     @Test void idleTicksReadOnlyAtSensoryExpiryCommitAndFallback() {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
@@ -26,7 +26,7 @@ class LiveContextDeliveryUnitTest {
                     Instant.EPOCH, Instant.EPOCH, Instant.ofEpochMilli(15000), expired ? "expired" : "fresh",
                     expired ? "Current value unknown" : "One person visible");
             return new LiveContextSnapshot(AGENT, EPOCH, expired ? "expired" : "fresh", Instant.ofEpochMilli(now.get()),
-                    List.of("state"), "Guide", List.of(item), 0);
+                    List.of("state"), "Guide", List.of(item), 0, java.util.Map.of("state", "Guide"));
         };
         when(contexts.refresh(AGENT, owner)).thenAnswer(call -> Optional.of(new LiveAgentContextService.Update(current.get(), List.of())));
         var applied = new AtomicInteger(); var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>();
@@ -45,6 +45,38 @@ class LiveContextDeliveryUnitTest {
             verify(contexts, times(3)).refresh(AGENT, owner);
             now.set(50000); bridge.refresh();
             await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 4);
+        } finally { bridge.shutdown(); }
+    }
+    @Test void confirmedAnnouncementBypassesCommitWindowAndPrecedesPackedSensoryUpdates() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH); var initial = snapshot("r0", "Guide");
+        var source = UUID.randomUUID(); var current = new AtomicReference<>(new LiveAgentContextService.Update(initial, List.of()));
+        when(contexts.refresh(AGENT, owner)).thenAnswer(call -> Optional.of(current.get()));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, sent::add, value -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            now.set(1000);
+            var face = evidence("obs.emotion.face", "Happy", 15000);
+            var presence = evidence("obs.human.presence", "One person", 15000);
+            current.set(new LiveAgentContextService.Update(snapshot("r1", "Completed", face, presence),
+                    List.of(new LiveContextDelivery.Narration(source, "Done"))));
+            bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            verify(contexts, times(1)).refresh(AGENT, owner);
+            bridge.changed(new AgentCommitted(AGENT, EPOCH, source));
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            assertEquals(List.of("session.instructions.append", "session.commentary.append", "session.thinking.append"),
+                    sent.stream().map(LiveContextDelivery.Command::type).toList());
+            assertTrue(sent.getLast().content().contains("Happy")); assertTrue(sent.getLast().content().contains("One person"));
+            var trace = session.status().recent().stream().filter(t -> t.phase().equals("send") && t.type().equals("session.thinking.append")).findFirst().orElseThrow();
+            assertEquals(2, trace.sourceIds().size()); assertTrue(trace.contentBytes() <= 480);
+            for (int i = 0; i < 100; i++) bridge.changed(new AgentCommitted(AGENT, EPOCH, source));
+            verify(contexts, times(2)).refresh(AGENT, owner);
+            now.set(6000); bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 3);
+            assertEquals(1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
         } finally { bridge.shutdown(); }
     }
     @Test void pendingDelegationStillWakesAtItsFiveSecondDeadline() {
@@ -87,7 +119,7 @@ class LiveContextDeliveryUnitTest {
         assertTrue(batch.commands().size() > 1);
         assertTrue(batch.commands().stream().allMatch(value -> value.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 480));
         assertEquals(1, batch.commands().stream().filter(value -> value.type().equals("session.commentary.append")).count());
-        var wrong = new LiveContextSnapshot(AGENT, UUID.randomUUID(), "r3", Instant.EPOCH, List.of("other"), "Other", List.of(), 0);
+        var wrong = new LiveContextSnapshot(AGENT, UUID.randomUUID(), "r3", Instant.EPOCH, List.of("other"), "Other", List.of(), 0, java.util.Map.of("state", "Other"));
         assertThrows(IllegalStateException.class, () -> delivery.plan(wrong, List.of()));
     }
     static LiveContextSnapshot.Item evidence(String type, String text, long expires) {
@@ -124,7 +156,7 @@ class LiveContextDeliveryUnitTest {
         var speech = new LiveContextSnapshot.Item("native", "obs.user_utterance", "user", List.of(), null, null, null, "history", "Already heard");
         var batch = delivery.plan(snapshot("r2", "Guide", speech), List.of());
         assertTrue(batch.commands().isEmpty()); delivery.acknowledged(batch);
-        var transitioned = new LiveContextSnapshot(AGENT, EPOCH, "r3", Instant.EPOCH, List.of("new state"), "Guide", List.of(), 0);
+        var transitioned = new LiveContextSnapshot(AGENT, EPOCH, "r3", Instant.EPOCH, List.of("new state"), "Guide", List.of(), 0, java.util.Map.of("state", "Guide"));
         assertTrue(delivery.plan(transitioned, List.of()).commands().getFirst().content().contains("new state"));
     }
     @Test void fastAcknowledgementsAndCommitStormsStillReadAtMostOncePerFiveSeconds() {
@@ -159,7 +191,7 @@ class LiveContextDeliveryUnitTest {
         when(contexts.refresh(AGENT, owner)).thenAnswer(call -> {
             var items = now.get() < 2000 ? List.of(social, face) : List.of(social);
             return Optional.of(new LiveAgentContextService.Update(new LiveContextSnapshot(AGENT, EPOCH, "r" + now.get(),
-                    Instant.ofEpochMilli(now.get()), List.of("state"), "Guide", items, 0), List.of()));
+                    Instant.ofEpochMilli(now.get()), List.of("state"), "Guide", items, 0, java.util.Map.of("state", "Guide")), List.of()));
         });
         var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
         CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1);

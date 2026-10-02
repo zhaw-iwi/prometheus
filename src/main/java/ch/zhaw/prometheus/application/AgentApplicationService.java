@@ -79,7 +79,11 @@ public class AgentApplicationService {
 
     private void committed(Agent agent) {
         if (applicationEvents == null || agent == null) return;
-        var event = new AgentCommitted(agent.getId(), agent.executionEpoch());
+        var history = agent.getEventHistory().toList();
+        Event latest = history.isEmpty() ? null : history.getLast();
+        UUID narration = latest != null && ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(latest)
+                && BehaviourPlan.fromJson(latest.getPayload()).getSpeech() != null ? latest.getId() : null;
+        var event = new AgentCommitted(agent.getId(), agent.executionEpoch(), narration);
         AfterCommit.run(() -> applicationEvents.publishEvent(event));
     }
 

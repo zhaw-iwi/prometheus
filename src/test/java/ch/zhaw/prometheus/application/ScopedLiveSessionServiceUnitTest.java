@@ -36,7 +36,7 @@ class ScopedLiveSessionServiceUnitTest {
         when(contexts.claim(anyString(), eq(agent), any())).thenAnswer(call -> {
             var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
             return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
-                agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0));
+                agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0, java.util.Map.of("state", "Test instructions")));
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
         service.configureIngress(ingress);

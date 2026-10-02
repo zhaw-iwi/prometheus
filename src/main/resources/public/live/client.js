@@ -2,6 +2,7 @@ import { MicrophoneLease, TranscriptionMedia } from "../transcription/media.js";
 import { OutputLease } from "../speech/playback.js";
 import { captureSummary } from "../transcription/settings.js";
 import { LiveCaptions } from "./captions.js";
+import { LiveAudioMonitor } from "./audio-diagnostics.js";
 
 export class LiveClient {
   constructor({ audio, fetch = globalThis.fetch.bind(globalThis), createPeer = () => new RTCPeerConnection(),
@@ -16,7 +17,15 @@ export class LiveClient {
   get busy() { return this.active || !!this.closing; }
   status(state, detail = "", extra = {}) { this.state = state; this.onState({ state, detail, ...extra }); }
   check(run) { if (this.current !== run) throw new DOMException("Session stopped", "AbortError"); }
-  diagnostic(run, value) { this.onDiagnostic({ ...value, agentId: run.agentId, handle: run.handle, generation: run.generation }); }
+  diagnostic(run, value) {
+    value = { ...value, browserMs: value.browserMs ?? performance.now() };
+    if (!run.handle) {
+      (run.pendingDiagnostics ||= []).push(value);
+      if (run.pendingDiagnostics.length > 16) run.pendingDiagnostics.shift();
+      return;
+    }
+    this.onDiagnostic({ ...value, browserMs: value.browserMs ?? performance.now(), agentId: run.agentId, handle: run.handle, generation: run.generation });
+  }
   invalidate(reason = "Agent connection changed.") {
     const closing = this.stop(reason); this.generation++; this.status("Idle", reason); return closing;
   }
@@ -61,6 +70,7 @@ export class LiveClient {
     if (!agentId || !accessCode) throw new Error("Connect an agent first.");
     const run = { agentId, accessCode, muted: false, generation: ++this.generation, captions: new LiveCaptions(), ledgerKey: "", stopped: false };
     this.current = run; this.status("Connecting", "Preparing microphone and speaker…"); this.onCaptions(run.captions.snapshot());
+    run.audioMonitor = new LiveAudioMonitor(this.audio, value => this.diagnostic(run, { ...value, browserMs: performance.now() }));
     try {
       const capability = await this.api(run, "capabilities"); this.check(run);
       if (!capability.enabled || !capability.eligible) throw new Error("This agent is not available for the GPT-Live pilot.");
@@ -76,10 +86,12 @@ export class LiveClient {
       if (typeof this.audio.setSinkId === "function") await this.audio.setSinkId(outputDeviceId);
       this.check(run);
       run.peer = this.createPeer(); run.media.addTracks(run.peer);
+      for (const track of run.media.stream.getAudioTracks()) run.audioMonitor.track(track, "input");
       for (const track of run.media.stream.getAudioTracks()) track.addEventListener("ended", () => { if (this.current === run) void this.stop("Microphone disconnected. Reconnect when ready.", "Disconnected"); });
       run.peer.ontrack = event => {
         if (this.current !== run) return;
         this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+        if (event.track) run.audioMonitor.track(event.track, "output");
         this.diagnostic(run, { phase: "output_track" });
         event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected"); });
         Promise.resolve(this.audio.play()).catch(() => { if (this.current === run) void this.stop("Speaker playback was blocked.", "Error"); });
@@ -108,6 +120,8 @@ export class LiveClient {
       if (!sdp) throw new Error("Voice connection did not produce an offer.");
       run.creation = this.api(run, "sessions", { method: "POST", body: JSON.stringify({ sdp, voice }) });
       const session = await run.creation; run.handle = session.handle;
+      for (const value of run.pendingDiagnostics || []) this.diagnostic(run, value);
+      run.pendingDiagnostics = [];
       if (this.current !== run) { await this.finalize(run); return; }
       await run.peer.setRemoteDescription({ type: "answer", sdp: session.sdp }); this.check(run);
       let timer;
@@ -124,6 +138,7 @@ export class LiveClient {
   }
   async poll() {
     const run = this.current; if (!run?.handle || run.polling) return; run.polling = true;
+    void run.audioMonitor.sample(run.peer);
     try {
       const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
       const status = update.status;
@@ -134,7 +149,13 @@ export class LiveClient {
       if (!Array.isArray(ledger)) return;
       const key = ledger.map(value => `${value.segmentId}:${value.status}:${value.eventId}`).join("|");
       if (key !== run.ledgerKey) {
-        for (const value of ledger) this.diagnostic(run, { phase: "segment_observed", segmentId: value.segmentId, outcome: value.status });
+        const previous = run.ledgerEntries || new Set();
+        run.ledgerEntries = new Set();
+        for (const value of ledger) {
+          const identity = `${value.segmentId}:${value.status}:${value.eventId}`;
+          run.ledgerEntries.add(identity);
+          if (!previous.has(identity)) this.diagnostic(run, { phase: "segment_observed", segmentId: value.segmentId, outcome: value.status });
+        }
         run.ledgerKey = key; run.captions.reconcile(ledger); this.onCaptions(run.captions.snapshot()); this.onLedger(ledger, run.agentId);
         const history = await this.api(run, "history"); this.check(run); this.onHistory(history, run.agentId);
       }
@@ -156,6 +177,7 @@ export class LiveClient {
     this.current = null; run.stopped = true;
     // Silence and release are synchronous, before any provider or backend response.
     this.audio.pause(); this.audio.muted = true; this.audio.srcObject = null;
+    run.audioMonitor.playback("local_stop"); run.audioMonitor.close();
     run.media?.release(); run.output?.release(); clearInterval(run.timer);
     run.channel?.close(); run.peer?.close();
     run.cancelStartup?.();

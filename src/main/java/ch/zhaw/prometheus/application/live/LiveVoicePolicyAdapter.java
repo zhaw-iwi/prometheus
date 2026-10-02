@@ -1,6 +1,8 @@
 package ch.zhaw.prometheus.application.live;
 
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 import ch.zhaw.prometheus.agentdefs.core.CoreRpsRevealPolicy;
@@ -29,10 +31,14 @@ public class LiveVoicePolicyAdapter {
                     && state.ownPolicy() != null && POLICIES.contains(state.ownPolicy().getClass()));
     }
     public String instructions(Agent agent) {
+        return String.join("\n", sections(agent).values());
+    }
+    public Map<String, String> sections(Agent agent) {
         if (!supports(agent)) throw new IllegalArgumentException("Agent does not support external realtime speech");
         var chain = chain(agent.getCurrentState());
         var leaf = chain.getLast();
-        String policy = leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy || leaf.ownPolicy() instanceof TaskPolicy
+        String policy = leaf.ownPolicy() instanceof TaskPolicy task ? task.voiceInstructions()
+                : leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy
                 ? agent.getCurrentState().getTotalPolicy()
                 : "You are Valerian at the ZHAW SIRA Lab. This is a deterministic rock-scissor-paper task. "
                   + "Wait for the backend's chosen sign and computed result; do not choose signs, invent results or advance rounds yourself.";
@@ -50,16 +56,31 @@ public class LiveVoicePolicyAdapter {
                 interpretations as uncertain; explicit user statements take precedence. Expired, removed
                 or unknown evidence does not establish the current situation. Do not read metadata aloud.
                 Backend announcements may be paraphrased, preserving the confirmed result and meaning.
+                Finish an announcement before reacting to routine observation updates. Observations alone
+                do not authorize another task action or require you to stop speaking.
                 Produce spoken language only; backend output-format rules do not apply to your speech.
-                """ + "\nLanguage: " + language + "\nCURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath())
-                + "\nCurrent conversational policy:\n" + policy;
+                """ + "\nLanguage: " + language;
+        var sections = new LinkedHashMap<String, String>();
+        sections.put("voice", result);
+        sections.put("policy", "Current conversational policy:\n" + policy);
+        String state = "CURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath());
+        if (leaf.ownPolicy() instanceof TaskPolicy task) {
+            var storage = task.storage();
+            state += "\nTask phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
+                    + "; revision: " + ch.zhaw.prometheus.model.task.TaskMemory.text(storage, "task.revision", "0") + ".";
+            // Full executable rules stay with the backend; task questions still delegate there.
+            for (String key : List.of("task.spec", "task.draft")) if (storage.containsKey(key))
+                state += "\n" + (key.equals("task.spec") ? "Agreed goal: " : "Proposed goal: ")
+                        + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
+        }
+        sections.put("state", state);
         // Stable instance context lives with guidance, outside sensory TTL/selection/history eviction.
         String capabilities = AgentCapabilityDescription.context(agent.getInteractionProfile());
-        if (!capabilities.isEmpty()) result += "\n" + capabilities;
+        sections.put("capabilities", capabilities);
         // UTF-8 bytes conservatively bound tokens, including multilingual prompts. Never truncate rules.
-        if (result.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_INSTRUCTION_BYTES)
+        if (String.join("\n", sections.values()).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_INSTRUCTION_BYTES)
             throw new IllegalArgumentException("Live voice instructions exceed the instruction budget");
-        return result;
+        return sections;
     }
     public static List<State> chain(State initial) {
         var result = new java.util.ArrayList<State>();

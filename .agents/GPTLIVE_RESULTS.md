@@ -1,8 +1,94 @@
 # GPT-Live implementation and acceptance evidence
 
 Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
-Implementation authorization includes committing/pushing each milestone and
-continuing automatically. A passed synthetic test is not acoustic acceptance.
+Each follow-up records its commit/deployment scope below. A passed synthetic
+test is not acoustic acceptance.
+
+## Live announcement latency and audio diagnostics - Milestone 204 (2026-10-02)
+
+The user authorized implementation on `feature/gptlive` after the v104 facial-joke
+trial, then reviewed the handoff and authorized commit/push, integration through
+`main` into `agents`, and Heroku deployment verification.
+
+Read-only investigation of the 20:34:23 timing export and durable conversation
+found backend-result to first native-transcript delays of 15.0 s (activation),
+5.0 s (bicycle joke), 6.3 s (computer joke), and 16.1 s (completion). Completion
+sent 17 instruction chunks sequentially, followed by evidence, before requesting
+speech. Both reported missing punchlines were present in native transcript
+receipts; physical output loss could not be located. Heroku's retained logs had
+already moved beyond the incident. These intervals are not acoustic latency.
+
+Changes:
+
+- Split voice guidance into stable voice/policy/capability sections and changing
+  state guidance. Only changed sections are appended. Generic task state supplies
+  phase/revision/goals, with validated rules and decisions retained in PROMETHEUS.
+  The existing single combined inference per task turn/reaction is unchanged.
+- Committed spoken-intent identity wakes the existing scoped context worker
+  immediately, bypassing the sensor read window. Repeated notification identities
+  are ignored. Normal sensor/native commits keep the five-second read coalescing,
+  existing deadlines, freshness, scope checks and one worker per session.
+- Necessary guidance and committed narration precede routine observations. Pack
+  adjacent compatible factual updates up to 480 UTF-8 bytes immediately before
+  transmission. Recheck expiry after each ACK; expired values never gain a new
+  lifetime. Keep uncertain ACK failures visible with no blind retry.
+- Add bounded, content-free browser playback/track events and RTC audio statistics;
+  timed reflected input/output RMS windows; and append byte counts/sequences/source
+  identities. Keep media traces separate from caption eviction, merge server
+  journals across polls, and suppress repeated unchanged ledger diagnostics.
+  No audio capture/storage, new HTTP polling, DB schema, model request, or sensor
+  cadence/threshold changes are introduced.
+
+Validation:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests all --browser
+npm.cmd run test:live:unit
+```
+
+- All **487 Java tests in 115 fresh suites** passed without failures/errors/skips.
+  Counts include only reports produced by this run, excluding stale reports from
+  previous branches. Logs/counts: `target/gptlive-acceptance-e2e248cacc/`.
+- All **24 Live JavaScript tests** passed, including media/RTC lifecycle,
+  non-overlapping stats, Stop fencing, privacy, bounded retention and ledger dedup.
+- All **45 Live-enabled browser cases** and **one Live-disabled compatibility
+  case** passed. One additional Live-only case was intentionally skipped in the
+  disabled configuration. The real-controller/MySQL/SSE browser case verifies
+  audio counters reach the export without text or device IDs; providers/media
+  are simulated. Existing Text/Continuous and classroom coverage also passed.
+- Initial focused Java acceptance passed in `target/gptlive-acceptance-7bb28ee55b/`.
+  The final targeted rerun after replacing an announcement-notification monitor
+  with atomic identity tracking passed all **15 tests in three suites**, including
+  committed task integration and query budgets. Logs:
+  `target/gptlive-acceptance-9f03e5c737/`.
+- After separating export omissions from server ring evictions in the timing
+  panel, the focused browser rerun passed **14 enabled cases and one disabled
+  compatibility case**, with the same intentional feature-off skip. The timing
+  drawer screenshot was visually inspected. Logs/artifacts:
+  `target/gptlive-acceptance-68420fbe70/`.
+
+The compact Generic activation fixture now needs one state instruction append
+and one commentary append, without repeating voice policy or capabilities. Tests
+also cover announcement priority, compatible fact packing with source identities,
+expiry after slow ACKs, duplicate/lost ACK handling, reset fences, persisted task
+activation/reaction/stop, and unchanged routine query budgets. Every test database
+is disposable and local; the runner removes its owned process/schema/account.
+No paid provider calls or production mutations were made.
+
+Limits: an already running append batch still precedes newly arriving work.
+ACKs measure context injection, transcripts measure generated text, and neither
+proves playback. RMS activity is a coarse amplitude gate, not an echo/VAD model.
+Browser counters depend on platform support. Bounded exports can still omit old
+records or intervals missed between polls. No provider or physical acoustic
+latency/cutoff improvement is claimed before retesting. Repeat the facial-joke
+trial with ordinary input and then microphone muted after activation; retain the
+camera cues and export each run. Deployment verification does not replace this
+physical trial. Preserve the deployment branch's embodiment prompt binding when
+merging the Live adapter.
+
+Provider contracts checked using the OpenAI Docs skill during investigation:
+[context injection and transcripts](https://developers.openai.com/api/docs/guides/live-conversations)
+and [append types and limits](https://developers.openai.com/api/docs/guides/live-delegation#send-the-right-kind-of-update).
 
 ## Database query reduction on main - 2026-10-01
 

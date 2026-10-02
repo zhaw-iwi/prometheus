@@ -123,6 +123,21 @@ test("poll reconciles persisted captions and late callbacks cannot restore a sto
   f.peer.ontrack({ streams: [{}] }); assert.equal(f.captions.length, count); assert.equal(f.audio.srcObject, null);
 });
 
+test("Live polling observes audio locally and reports each ledger change only once", async () => {
+  const f = fixture();
+  let stats = 0;
+  f.peer.getStats = async () => { stats++; return new Map([["output", { kind: "audio", type: "inbound-rtp", packetsLost: 0 }]]); };
+  await f.start();
+  f.state.ledger = [{ segmentId: "s1", status: "COMPLETE", eventId: "e1", receiptIds: [] }];
+  await f.client.poll();
+  f.state.ledger.push({ segmentId: "s2", status: "PENDING", receiptIds: [] });
+  await f.client.poll();
+  assert.equal(f.diagnostics.filter(value => value.phase === "segment_observed" && value.segmentId === "s1").length, 1);
+  assert.equal(stats, 2); assert.equal(f.diagnostics.filter(value => value.phase === "rtc_audio").length, 2);
+  assert.ok(f.diagnostics.some(value => value.phase === "media_track" && value.handle === "session1"));
+  await f.client.stop();
+});
+
 test("permission rejection, unsupported routing and provider scope errors release media and require explicit retry", async () => {
   const denied = fixture(); denied.media.acquire = async () => { throw new DOMException("denied", "NotAllowedError"); };
   await denied.start(); assert.equal(denied.client.state, "Error"); assert.equal(denied.output.released, true);

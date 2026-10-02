@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 204 (2026-10-02): reduce Live announcement delay with compact changed
+  guidance, committed-result priority over sensor coalescing and bounded factual
+  packing. Add content-free browser playback/RTC and reflected-audio diagnostics
+  to timing exports. Task control, sensor filtering and combined inference remain
+  unchanged. Passed 487 Java, 24 Live JavaScript and 46 browser cases, plus 15
+  tests in the final concurrency-focused rerun. Evidence/limits are maintained in
+  `.agents/GPTLIVE_RESULTS.md`. The user authorized commit/push and integration
+  through `main` into `agents` for Heroku deployment verification.
+
 - Milestone 203 (2026-10-02): fix Generic Multimodal task activation being blocked
   by an unsupported expressive gesture. A provider replay reproduced a valid task
   with `PLAYFUL_CURIOUS`; unknown string gesture labels now fall back to `NONE`.
@@ -251,6 +260,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 204: Reduce Live announcement delays and diagnose audio cutoffs
 
 - [x] Milestone 203: Preserve valid task activation with unsupported expressive gestures
 
@@ -8847,3 +8858,26 @@ remain trial gates rather than guarantees from synthetic checks.
   count remained 27, and the trial draft remains in CONFIGURATION for a retry.
   The release log sample contained no startup/schema/quota/crash/memory errors;
   physical interaction and sustained load trials remain separate acceptance.
+
+## Milestone 204: Reduce Live announcement delays and diagnose audio cutoffs
+
+- Investigated a successful Generic facial-joke task with slow response resumption
+  and reported missing audible punchlines. Native transcripts contained full jokes;
+  the retained completion trace showed 17 sequential guidance appends before
+  sensory updates and the announcement. Existing evidence cannot locate audio loss.
+- Send changed guidance sections instead of repeating stable instructions. Generic
+  task updates carry phase/revision/goals; executable rules and task mutations
+  remain backend-owned with the existing combined inference and local guards.
+- Wake the scoped context worker for committed narration, preserving coalescing
+  for routine commits. Send required guidance and results before routine sensory
+  data and pack compatible facts within conservative provider bounds. Retain
+  freshness checks, ordering, deduplication and visible uncertain-ACK failure.
+- Add bounded content-free browser media/RTC and server activity measurements to
+  the existing timing export, retain earlier polled diagnostics, and stop repeated
+  ledger entries from evicting useful evidence. No production data or schema change.
+- Passed 487 Java tests on a disposable local MySQL schema, 24 Live JavaScript
+  tests, 45 Live-enabled browser cases and one feature-disabled compatibility
+  case. Final focused reruns passed 15 Java and 15 browser cases; the timing
+  drawer screenshot was visually inspected. Physical/provider
+  limitations and logs are in `.agents/GPTLIVE_RESULTS.md`. The user subsequently
+  authorized commit/push, branch integration and Heroku deployment verification.

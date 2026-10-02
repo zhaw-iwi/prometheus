@@ -36,7 +36,8 @@ public class LiveContextProjection {
     }
     public boolean supports(Agent agent) { return policies.supports(agent); }
     public LiveContextSnapshot project(Agent agent) {
-        String instructions = policies.instructions(agent);
+        var guidance = policies.sections(agent);
+        String instructions = String.join("\n", guidance.values());
         var leaf = LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
         // selectList retains source identity/time; EventHistory.select intentionally creates working copies.
         List<Event> selected = agent.getEventHistory().selectList(leaf.getEventSelector());
@@ -80,7 +81,7 @@ public class LiveContextProjection {
                 null, aggregateTime, aggregateExpiry, "fresh", bounded(summaries.getFirst().getContent(), 1000)));
         int omitted = selected.size() - candidates.size();
         // Keep the most recent evidence and dialogue within a conservative byte budget, including JSON overhead.
-        while (!candidates.isEmpty() && (candidates.size() > 40 || snapshot(agent, "", now, instructions, candidates, 0)
+        while (!candidates.isEmpty() && (candidates.size() > 40 || snapshot(agent, "", now, instructions, candidates, 0, guidance)
                 .startupInput().toString().getBytes(StandardCharsets.UTF_8).length > 7000)) {
             candidates.removeFirst(); omitted++;
         }
@@ -88,11 +89,12 @@ public class LiveContextProjection {
                 ? leaf.getName() : leaf.getEventSelectorSpec().toJson());
         for (Item item : candidates) basis.append(item.key()).append(item.type()).append(item.role())
                 .append(item.sourceIds()).append(item.observedAt()).append(item.expiresAt()).append(item.freshness()).append(item.text());
-        return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted));
+        return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted), guidance);
     }
-    private static LiveContextSnapshot snapshot(Agent agent, String revision, Instant now, String instructions, List<Item> items, int omitted) {
+    private static LiveContextSnapshot snapshot(Agent agent, String revision, Instant now, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
         return new LiveContextSnapshot(agent.getId(), agent.executionEpoch(), revision, now,
-                agent.getCurrentState().getActiveStatePath(), instructions, items, omitted);
+                agent.getCurrentState().getActiveStatePath(), instructions, items, omitted,
+                guidance);
     }
     private static Instant observedAt(Event event) {
         if (TTL.containsKey(event.getType())) {
