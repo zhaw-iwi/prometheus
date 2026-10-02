@@ -100,8 +100,41 @@ The test schema/account were removed. Production inspection was read-only, and
 the two provider replays did not acknowledge the deployed agent or start a Live
 session. No production configuration, data or access-code assignments changed.
 No physical camera/voice retest or broader Java/browser rerun was performed for
-this focused follow-up. The user has authorized integration into `main`, then
-`agents`, with commit/push and Heroku redeployment. Rollout verification is pending.
+this focused follow-up before integration.
+
+The user-authorized rollout committed the fix as `9d6a086` on `feature/gptlive`,
+fast-forwarded it into `main`, then merged main into `agents` as `dbcadf5` without
+conflicts. The merged deployment tree passed **34 tests in five suites**, with no
+failures, errors or skips:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskUnitTest,GenericMultimodalTaskIntegrationTest,LiveSessionSmokeIntegrationTest,LiveContextProjectionUnitTest,AgentDefinitionRegistryUnitTest
+```
+
+Evidence is in `target/gptlive-acceptance-d8a9c9fb3b/java.log` and `test-counts.json`.
+These checks include deployment persona binding, catalog eligibility and the
+saved-draft activation/Live narration path. The runner removed its disposable
+local schema/account. Full Java and browser suites were not repeated for this
+focused validation change.
+
+[Deployment workflow 37058232835](https://github.com/zhaw-iwi/prometheus/actions/runs/37058232835)
+succeeded for `dbcadf5`. Heroku `valerian` released **v104** at 2026-10-02
+20:05:47 UTC; `web.1` is up and startup is confirmed. Health returned 200 / UP,
+Valerian and access-code login returned 200, and the catalog retained all 84
+definitions. The saved-agent count remained 27 before and after rollout. The
+trial instance still has its draft and CONFIGURATION phase, without an active
+specification; the user can reconnect and retry activation on that instance.
+No instance, task, access-code assignment or provider session was changed by
+verification. No schema migration or prompt replacement was needed.
+
+The 939 sampled release log lines contained no R14/R15/H10, quota, schema or
+startup-failure markers. This establishes startup health, not physical interaction
+or sustained load quality. Sanitized evidence is in
+`target/generic-rollout-activation-before.json`,
+`target/generic-rollout-activation-after.json`, `target/activation-rollout-heroku.json`,
+`target/activation-rollout-workflow.json` and `target/activation-rollout-saved-draft.json`.
+Completion records are synchronized from main into feature/gptlive and agents
+using documentation-only `[skip ci]` commits/merges, retaining the verified runtime.
 
 ### Initial implementation
 
