@@ -241,13 +241,29 @@ ACK waits remain sequential. Durable fragment admission uses scalar scope/epoch 
 and eager event state paths load together. See README and GPTLIVE_RESULTS for the
 query-budget regression evidence and remaining provider/production limits.
 
-On the agents branch, the twelve main conversational definitions remain opted in;
+On the agents branch, the main conversational definitions, including Generic
+Multimodal Behaviour, remain opted in;
 all other registered definitions (including scored RPS and Talk to Me) stay out.
 The existing per-agent embodiment assembler resolves authored Live voice and
 nonverbal prompts to Valerian/Gigi without rewriting observation/dialogue content.
 The merged runtime retains both persona selection and external speech ownership,
 including reset. The production profile now enables the separate Live flag;
 `PROMETHEUS_LIVE_ENABLED=false` can override it without changing agent capabilities.
+
+## Conversational Task Configuration
+
+`GenericMultimodalBehaviour` is a separate core definition with the existing
+Multimodal Behaviour observation/output set. Its explicit task phases, transitions
+and blocking actions negotiate and persist bounded reaction rules in ordinary
+Storage. User-turn inference produces a validated task operation plus a canonical
+behaviour plan; sensor guards run locally and call inference only for a qualifying
+reaction. Reset clears task configuration. Existing definitions retain their
+policies. Live explicitly supports the task state/policy and speaks committed
+announcements; current perception is also supplied directly to task-turn inference.
+See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
+verification and pending physical/provider trials. This work starts on
+`feature/gptlive`; the user authorized integration into `main`, then `agents`
+and Heroku redeployment. Rollout evidence is maintained in the results document.
 
 ## Regulation: Implemented Foundation and Missing System
 

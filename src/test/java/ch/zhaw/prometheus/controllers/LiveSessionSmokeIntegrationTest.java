@@ -74,8 +74,8 @@ class LiveSessionSmokeIntegrationTest {
         }
     }
 
-    @Test void deploymentCatalogAdmitsOnlyTheTwelveValidatedConversationalDefinitions() {
-        var expected = java.util.Set.of("core.facial_expression_sensitivity", "core.live_multimodal", "core.multimodal_behaviour",
+    @Test void deploymentCatalogAdmitsOnlyValidatedConversationalDefinitions() {
+        var expected = java.util.Set.of("core.facial_expression_sensitivity", "core.generic_multimodal_behaviour", "core.live_multimodal", "core.multimodal_behaviour",
                 "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
                 "usecases.healthcare.guessing_game", "usecases.healthcare.guessing_game_user_guess",
                 "usecases.healthcare.healthcare_conversation", "usecases.healthcare.smart_goal_coaching",

@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 202 (2026-10-02): add
+  `core.generic_multimodal_behaviour` on `feature/gptlive`, with persistent
+  collaborative task configuration and bounded sensor-triggered execution.
+  Full Java regression passed 482 tests; the final focused rerun passed 20.
+  Details and limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.
+  Physical camera/voice and paid provider trials remain unverified. The user
+  authorized feature-to-main, then main-to-agents integration and redeployment;
+  deployment verification is pending.
+
 - Milestone 201 (2026-10-01): reduce database reads in Live and ordinary sensor
   turns on `main`. Combined revision-aware polling performs one scalar scope read
   when transcripts are unchanged; acknowledge/generate avoid detached graph merge
@@ -261,6 +270,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 202: Conversational Generic Multimodal Behaviour
 
 - [x] Milestone 201: Reduce Live and sensor database query volume
 
@@ -9680,3 +9691,27 @@ remain trial gates rather than guarantees from synthetic checks.
   Java, 89 JavaScript and 46 browser cases and deployed as Heroku v101. Health,
   access-code login, deployed client sources and safe endpoint probes passed;
   shared quota capacity remains a sustained-usage trial gate.
+
+## Milestone 202: Conversational Generic Multimodal Behaviour
+
+- Added `core.generic_multimodal_behaviour` with the existing multimodal agent's
+  declared observation/output capabilities, shared capability awareness and Live
+  eligibility. Existing definitions and saved instances retain their behaviour.
+- Explicit states and blocking actions support capability discovery, goal
+  clarification, proposed configuration, activation, revision and cancellation.
+  Validated bounded task specifications persist in existing Storage; malformed
+  model output cannot replace an agreement or falsely announce activation.
+- Fresh sensor samples match local rules without per-frame inference or extra
+  database reads. Qualifying cues produce canonical plans through ordinary
+  behaviour delivery and Live committed narration. Confidence, sample counts,
+  cooldown, native-speech gating and finite action budgets bound execution.
+- Backend turn inference receives recent dialogue and fresh perception evidence.
+  Stop prevents future reactions, reset clears the agreement, and provider failure
+  pauses execution instead of retrying on every incoming sample.
+- Added nullable persistence fields and entity discriminators without backfill.
+  Full isolated local-MySQL Java regression passed 482 tests, followed by 20
+  focused tests after the final prompt-context adjustment. Provider responses
+  were simulated; real camera/voice quality and timing remain trial gates.
+  Evidence, deployment compatibility and execution limits are recorded in
+  `.agents/GENERIC_MULTIMODAL_RESULTS.md`. The user subsequently authorized
+  feature-to-main, then main-to-agents integration and Heroku redeployment.

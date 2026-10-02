@@ -26,6 +26,7 @@ class LiveContextProjectionUnitTest {
         var adapter = new LiveVoicePolicyAdapter();
         for (var embodiment : ch.zhaw.prometheus.model.AgentEmbodiment.values()) {
             for (Agent agent : List.of(new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal().createAgent(),
+                    new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour().createAgent(),
                     new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent())) {
                 agent.setEmbodiment(embodiment);
                 String policy = adapter.instructions(agent).split("Current conversational policy:\\n", 2)[1];

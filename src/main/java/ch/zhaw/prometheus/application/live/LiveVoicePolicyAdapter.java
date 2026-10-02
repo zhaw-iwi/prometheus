@@ -13,13 +13,15 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.interaction.AgentCapabilityDescription;
+import ch.zhaw.prometheus.model.task.TaskPolicy;
+import ch.zhaw.prometheus.model.task.TaskState;
 
 /** Declared capability plus full-graph compatibility. Unknown implementations are rejected. */
 @Component
 public class LiveVoicePolicyAdapter {
     public static final int MAX_INSTRUCTION_BYTES = 16000;
     private static final Set<Class<?>> POLICIES = Set.of(PromptPolicy.class, EmbodimentPolicy.class,
-            CoreRpsRevealPolicy.class, CoreRpsResultPolicy.class);
+            CoreRpsRevealPolicy.class, CoreRpsResultPolicy.class, TaskPolicy.class);
     private final PromptMessageAssembler assembler;
 
     public LiveVoicePolicyAdapter() { this(new PromptMessageAssembler()); }
@@ -30,14 +32,14 @@ public class LiveVoicePolicyAdapter {
         if (agent == null || !agent.getInteractionProfile().isExternalRealtimeSpeech()) return false;
         return java.util.stream.Stream.concat(agent.reachableStates().stream(), chain(agent.getCurrentState()).stream())
                 .allMatch(state ->
-                    Set.of(State.class, OuterState.class, Final.class).contains(state.getClass())
+                    Set.of(State.class, OuterState.class, Final.class, TaskState.class).contains(state.getClass())
                     && state.ownPolicy() != null && POLICIES.contains(state.ownPolicy().getClass()));
     }
     public String instructions(Agent agent) {
         if (!supports(agent)) throw new IllegalArgumentException("Agent does not support external realtime speech");
         var chain = chain(agent.getCurrentState());
         var leaf = chain.getLast();
-        String policy = leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy
+        String policy = leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy || leaf.ownPolicy() instanceof TaskPolicy
                 ? agent.getCurrentState().getTotalPolicy()
                 : "You are Valerian at the ZHAW SIRA Lab. This is a deterministic rock-scissor-paper task. "
                   + "Wait for the backend's chosen sign and computed result; do not choose signs, invent results or advance rounds yourself.";
