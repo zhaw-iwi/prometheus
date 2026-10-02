@@ -1,0 +1,107 @@
+# Generic Multimodal Behaviour
+
+## Scope and implementation
+
+Milestone 202, 2026-10-02, on `feature/gptlive`. The new
+`core.generic_multimodal_behaviour` definition has the same declared observations
+and output modalities as `core.multimodal_behaviour`. Existing definitions and
+saved instances retain their behaviour. The user authorized integration from
+`feature/gptlive` to `main`, then `main` to `agents` and Heroku redeployment.
+Deployment verification will be recorded below.
+
+The agent supports capability discovery, goal clarification, a proposed task,
+activation, cue-driven execution, revision and cancellation. Standard transitions
+and blocking actions own configuration/execution/completion; task state is visible
+in existing storage and state monitors. An internal routing state selects the
+next phase after a validated action. `TaskState` adds only task-storage reset.
+
+One bounded inference request processes a complete user utterance and returns a
+typed operation, optional task specification and canonical behaviour plan.
+PROPOSE saves a draft and pauses execution. ACTIVATE installs the complete agreed
+task (or existing draft). KEEP answers questions without replacing the task;
+STOP ends the task. Common explicit stop/cancel/pause commands work without
+provider inference. Malformed configuration does not replace the prior agreement
+or publish a model's activation claim. Provider/model quality still determines
+whether a natural-language agreement is interpreted correctly.
+
+Task rules are data: up to four allowed observation/field comparisons, bounded
+actions, confidence, distinct sample count and cooldown. Matching uses the loaded
+event history without further database queries or inference on every sample.
+Duplicate timestamps, out-of-order samples, unknown/expired observations and
+unmatched cues cannot advance the task. Terminal rules have priority. A task has
+a finite action budget, including its initial action. Generation failure pauses
+the task for explicit resumption instead of retrying on subsequent camera frames.
+
+Live uses the existing committed narration intent -> commentary path. The new
+policy is explicitly supported by the Live adapter; its voice instructions defer
+task execution and answers to confirmed backend output. Ordinary Text/Continuous
+also consume canonical behaviour plans. The current perception snapshot goes
+directly into backend user-turn inference, so questions such as whether one
+person is visible do not depend solely on the Live model using quiet updates.
+
+## Storage and schema
+
+`task.phase`, `task.spec`, `task.draft`, `task.actions`, `task.after` and
+`task.revision` use existing Storage. `task.reply` is consumed once by state entry.
+Specifications and replies are bounded to 1,800 serialized JSON characters to fit
+the existing 2,048-character storage column, including Gson escaping.
+
+JPA adds `TaskState`, `TaskPolicy`, `TaskDecision` and `TaskUpdateAction`
+discriminators, plus nullable `policy.task_instructions`,
+`decision.task_condition` and `action.task_cue` columns under the existing schema
+update configuration. No existing rows are backfilled. Coordinate deployment
+before creating these instances: older code cannot load the new discriminators.
+
+## Verification
+
+The full Java regression passed 482 tests, with no failures, errors or skips:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests all
+```
+
+Evidence is in `target/gptlive-acceptance-0419236990/java.log` and
+`target/gptlive-acceptance-0419236990/test-counts.json`. After the final adjustment
+to bind shared capability context through the existing prompt assembler, a fresh
+focused run passed all 20 tests:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskUnitTest,GenericMultimodalTaskIntegrationTest,AgentDefinitionRegistryUnitTest,ValerianCorePromptContractTest
+```
+
+The focused log is `target/gptlive-acceptance-17c4beebaa/java.log`. Ten task unit
+tests cover negotiation, activation, cue filtering, completion, current perception,
+Live speech gating, invalid specifications/output, bounded actions, failure and
+reset. One real-MySQL integration case covers scoped creation, entity reload,
+durable Live ingress, cue-triggered commentary, duplicate suppression, stop and
+reset. Nine registry/persona checks protect catalog and prompt compatibility.
+
+Both runs used disposable schemas/accounts on the configured local test database
+and offline providers; the runner removed its owned app, schema and account.
+There were no production data changes or paid provider requests. Frontend code
+did not change; JavaScript and browser suites were not rerun for this milestone.
+
+## Limits and live trial
+
+This first version configures bounded reactions, not arbitrary generated code,
+external tools, nested workflows or timers. It does not turn detectors on. All
+declared observations are available as context; trigger fields are explicitly
+listed in `TaskSpec.FIELDS`, including the first forecast day's supported fields.
+Missing confidence cannot meet a positive confidence threshold. Sensor timestamps
+allow at most two seconds of browser clock lead and retain the source TTL.
+
+Live requires a completed native speech segment after the latest spoken intent,
+then new matching samples; completion is a backend observation, not physical
+audibility or a guaranteed whole-utterance boundary. Text/Continuous use cooldown
+and source freshness, without a playback-completion acknowledgement. Stop prevents
+new task reactions; existing provider speech/queued announcements may still finish.
+Live's existing coalescing/append acknowledgement delays remain. Speculative or
+duplicate voice replies remain a provider-quality trial concern despite guidance.
+
+Assign the new type to an access code, create a fresh instance, enable the desired
+sensors and start the chosen speech mode. Ask about capabilities, propose a
+facial-feedback joke task, clarify neutral cues/limits, then activate it. Verify
+negative cues alone request another joke, positive cues complete the task, a stop
+works, and current presence questions report camera coverage accurately. Repeat
+after reconnect and with sensors stopped. Paid provider trials, physical voice
+timing and camera quality have not been run for this milestone.

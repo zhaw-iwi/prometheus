@@ -245,6 +245,7 @@ The main branch ships the Valerian baseline catalog:
 | --- | --- |
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
+| `core.generic_multimodal_behaviour` | Collaboratively configure a persistent task and react to multimodal cues. |
 | `core.live_multimodal` | GPT-Live conversation with independent full embodiment and all supported observations; requires Live for speech. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
@@ -1555,6 +1556,41 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 Prefer clear replacement over compatibility shims while the framework remains
 prototype-oriented.
 
+
+### Generic Multimodal Behaviour
+
+`core.generic_multimodal_behaviour` adds conversational task configuration to the
+core catalog. Assign this type to an access code, create a fresh instance and
+connect through the existing cockpit. It supports the same observations and
+speech/nonverbal/hand-sign outputs as `core.multimodal_behaviour`, including
+Text/Continuous and GPT-Live. Enable required sensors through the cockpit.
+Creation publishes a welcome without a provider request.
+
+Discuss the goal, clarify material choices, propose a plan and ask the agent to
+start. For example: tell one joke, wait for facial feedback, tell another after a
+stable negative cue, and finish after a positive cue. Neutral, missing or expired
+cues wait. The backend stores a draft/active task and exposes its configuration,
+execution and completion phases in the existing state/storage monitor. Spoken
+revisions can propose a replacement; explicit stop/cancel/pause commands halt the
+task. Reset clears the agreement. Ordinary questions retain the active task and
+receive a bounded snapshot of current perception, with camera coverage and
+freshness limits.
+
+The first version supports up to four typed sensor rules with `eq`, `lt` or `gt`
+comparisons, one to three distinct matching samples, confidence thresholds,
+three to sixty seconds cooldown and one to fifty actions including the initial
+action. The planner explains the agreed limits. All supported observations can
+inform answers; executable trigger fields are restricted by `TaskSpec.FIELDS`.
+No arbitrary code, external tools, automatic detector changes, timers or nested
+workflow generation is provided. Invalid plans leave the prior task unchanged;
+failed sensor-triggered generation pauses for explicit resumption.
+
+During Live, task replies use committed backend announcements. Further cues wait
+for a completed native speech segment and new sensor samples; this does not prove
+physical playback completion. Text/Continuous use cooldown rather than playback
+acknowledgements. Stopping prevents new reactions but need not interrupt speech
+already queued or playing. Provider interpretation and acoustic behaviour require
+live acceptance; see [implementation and verification](.agents/GENERIC_MULTIMODAL_RESULTS.md).
 
 ### Capability awareness
 
