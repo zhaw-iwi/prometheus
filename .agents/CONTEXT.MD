@@ -273,8 +273,10 @@ an otherwise valid activation. The follow-up on `feature/gptlive` maps unknown
 string gesture labels to `NONE`, retains strict task/motion validation and adds
 content-free rejection diagnostics plus recovery messages that preserve the draft.
 Verification and the limits of the original incident evidence are in the same
-results document. The user has authorized the main-to-agents integration and
-Heroku redeployment; rollout verification is pending.
+results document. User-authorized integration into main and agents is complete:
+the deployment tree passed 34 focused checks and Heroku v104 is up. Health/login
+checks passed and the trial instance's draft remains available for activation;
+physical interaction retesting remains open.
 
 ## Regulation: Implemented Foundation and Missing System
 

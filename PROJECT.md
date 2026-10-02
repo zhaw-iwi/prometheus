@@ -89,8 +89,9 @@ and regulation diagnostics remain future work.
   correlated reason codes. All 13 focused unit/MySQL/Live checks passed, including
   proposal persistence and activation after reload. Original invalid model output
   was not retained; evidence and limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.
-  The user authorized integration into main, then agents and Heroku redeployment;
-  rollout verification is pending.
+  Fix `9d6a086` is on main/feature/gptlive; agents merge `dbcadf5` passed 34 focused
+  checks and deployed as Heroku v104. Health/login checks passed; the saved draft
+  remains available for activation. Physical interaction retesting remains open.
 
 - Milestone 202 (2026-10-02): add
   `core.generic_multimodal_behaviour` on `feature/gptlive`, with persistent
@@ -9752,3 +9753,9 @@ remain trial gates rather than guarantees from synthetic checks.
   was performed. The user subsequently authorized main-to-agents integration,
   commit/push and Heroku redeployment.
   Evidence and remaining limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.
+  Fix `9d6a086` is on main/feature/gptlive; conflict-free agents merge `dbcadf5`
+  passed 34 focused task/persistence/Live/persona/catalog checks and deployed as
+  Heroku v104. Health, Valerian and access-code login returned 200. Saved-agent
+  count remained 27, and the trial draft remains in CONFIGURATION for a retry.
+  The release log sample contained no startup/schema/quota/crash/memory errors;
+  physical interaction and sustained load trials remain separate acceptance.
