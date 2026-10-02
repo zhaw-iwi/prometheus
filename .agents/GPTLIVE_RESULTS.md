@@ -90,6 +90,54 @@ Provider contracts checked using the OpenAI Docs skill during investigation:
 [context injection and transcripts](https://developers.openai.com/api/docs/guides/live-conversations)
 and [append types and limits](https://developers.openai.com/api/docs/guides/live-delegation#send-the-right-kind-of-update).
 
+### Milestone 204 branch integration and deployment
+
+Implementation `52cda3e` was pushed to `feature/gptlive` and fast-forwarded into
+`main`. Main was merged into `agents` as `2ef3b9d`, retaining the deployment
+catalog, workflow and Valerian/Gigi persona binding. The merge combined adjacent
+task tests and documentation changes. One deployment-only persona assertion
+previously selected all text after the policy heading; it now checks the explicit
+policy section, excluding separately named state metadata.
+
+The first merged run passed 70 of 71 focused Java tests and exposed that obsolete
+assertion. The corrected rerun passed **71 tests in 12 suites**, **14 Live-enabled
+browser cases** and **one Live-disabled compatibility case**, with one intentional
+Live-only skip when disabled. It covered task activation, context delivery,
+persona/catalog contracts, audio diagnostics, query budgets and real scoped
+HTTP/MySQL/SSE flows. Artifacts: `target/gptlive-acceptance-8591bdacc4/`; initial
+run: `target/gptlive-acceptance-160291d56a/`. Both used disposable local MySQL and
+synthetic providers and removed their owned resources.
+
+The deployment push triggered
+[workflow 37067478599](https://github.com/zhaw-iwi/prometheus/actions/runs/37067478599).
+It succeeded for `2ef3b9d`. Heroku `valerian` released **v105** at
+2026-10-02 21:34:00 UTC; `web.1` is up and startup is confirmed in the logs.
+Heroku CLI and bounded HTTP/read-only database checks verified:
+
+- Health returned HTTP 200 / UP; `/valerian/` and access-code login returned 200.
+- Served `live/client.js`, `live/audio-diagnostics.js`, `live/diagnostics.js` and
+  `performance/panel.js` exactly match the merged sources after line-ending
+  normalization. Reload the cockpit before the next physical trial.
+- The catalog retained 84 types including Generic Multimodal Behaviour. The
+  saved-agent count remained **25 before and after** deployment. Verification
+  created no agents, conversations or Live sessions and made no paid API calls.
+- The 922 sampled log lines since the release contained no ERROR, R14/R15/H10,
+  quota, schema or startup-failure markers. This is a startup sample, not sustained
+  load or physical acoustic acceptance.
+
+One initial pre-deployment database probe returned MySQL error 1226; its resource
+name was not retained. An immediate SELECT 1 and the bounded inventory/login
+recheck succeeded before deployment, as did the post-deployment checks. This
+transient observation is not attributed to or claimed fixed by v105.
+
+Sanitized evidence is in `target/live204-rollout-{workflow,heroku,assets}.json`,
+`target/generic-rollout-live204-before-recheck.json` and
+`target/generic-rollout-live204-after.json`. Credentials and `codexpython.md` were
+neither changed nor committed. Completion records follow main -> feature/gptlive
+and main -> agents with documentation-only `[skip ci]` commits/merges to retain
+the verified v105 runtime. Audible cutoff and response-delay improvement still
+require the physical trial described above.
+
 ## Database query reduction on main - 2026-10-01
 
 This follow-up uses the user's main-first workflow. `main` was fast-forwarded to
