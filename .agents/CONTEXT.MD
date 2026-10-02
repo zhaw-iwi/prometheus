@@ -251,6 +251,15 @@ Heroku v103 deployment are complete. The merged tree passed 619 Java tests;
 health/login, catalog and schema checks passed. Rollout evidence is in the results
 document; physical/provider interaction trials remain open.
 
+The first deployed configuration trial saved a valid draft but rejected activation.
+A bounded provider replay reproduced an unsupported expressive gesture blocking
+an otherwise valid activation. The follow-up on `feature/gptlive` maps unknown
+string gesture labels to `NONE`, retains strict task/motion validation and adds
+content-free rejection diagnostics plus recovery messages that preserve the draft.
+Verification and the limits of the original incident evidence are in the same
+results document. The user has authorized the main-to-agents integration and
+Heroku redeployment; rollout verification is pending.
+
 ## Regulation: Implemented Foundation and Missing System
 
 Regulation is intended to become a bounded internal motivation system alongside

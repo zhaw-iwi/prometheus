@@ -50,6 +50,17 @@ class GenericMultimodalTaskIntegrationTest {
         assertInstanceOf(TaskState.class, loaded.getCurrentState());
         assertInstanceOf(TaskPolicy.class, loaded.getCurrentState().ownPolicy());
         verifyNoInteractions(language);
+        when(language.infer(any())).thenReturn("""
+                {"operation":"PROPOSE","task":{"goal":"Greet arrivals","maxActions":3,"rules":[
+                {"eventType":"obs.human.presence","field":"humanCount","operator":"gt","value":1,
+                "action":"Welcome the visible group","complete":false,"minConfidence":0.5,"samples":1,"cooldownSeconds":3}]},
+                "reply":{"speech":"I propose greeting arrivals."}}
+                """);
+        demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
+                "Let's plan greetings for arriving groups."), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        var proposed = agents.findById(id).orElseThrow().getStorage().get(TaskMemory.DRAFT).deepCopy();
+        assertEquals("CONFIGURATION", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
+        clearInvocations(language);
         var sent = new CopyOnWriteArrayList<JsonObject>(); var receiver = new AtomicReference<Consumer<JsonObject>>();
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("live_generic_task", "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {
@@ -69,20 +80,21 @@ class GenericMultimodalTaskIntegrationTest {
         var owner = new ExternalSpeech(session.handle(), live.status(code, id, session.handle()).orElseThrow().epoch());
         try {
             when(language.infer(any())).thenReturn("""
-                    {"operation":"ACTIVATE","task":{"goal":"Greet arrivals","maxActions":3,"rules":[
-                    {"eventType":"obs.human.presence","field":"humanCount","operator":"gt","value":1,
-                    "action":"Welcome the visible group","complete":false,"minConfidence":0.5,"samples":1,"cooldownSeconds":3}]},
-                    "reply":{"speech":"I will greet arrivals."}}
+                    {"operation":"ACTIVATE","task":null,
+                    "reply":{"speech":"I will greet arrivals.","nonVerbal":{"gesture":"PLAYFUL_CURIOUS"}}}
                     """, "{\"speech\":\"Welcome, everyone.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}");
             Instant now = Instant.now();
             var fragment = new Fragment("generic-user-1", Speaker.USER, 100L, 2000L, now.toEpochMilli(), 1,
-                    "Start greeting people when more than one is visible.");
+                    "Go ahead.");
             assertTrue(ingress.receipt(id, owner, fragment));
             var segment = new Segment(UUID.randomUUID(), Speaker.USER, List.of(fragment), Closure.COMPLETE,
                     "observed_silence", now.toEpochMilli(), now.toEpochMilli());
             ingress.commit(id, owner, segment, loaded.getCurrentState().getActiveStatePath());
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertEquals(1, commentary(sent)));
             assertEquals("RUNNING", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
+            assertEquals(proposed, agents.findById(id).orElseThrow().getStorage().get(TaskMemory.SPEC));
+            assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream().anyMatch(event ->
+                    event.getPayload().contains("I will greet arrivals.") && event.getPayload().contains("\"gesture\":\"NONE\"")));
             recording.record(id, owner, "native-generic-1", "I will greet arrivals.", List.of(), SpeechProvenance.Association.NONE, true);
             new TransactionTemplate(transactions).executeWithoutResult(status -> {
                 var agent = agents.findById(id).orElseThrow();

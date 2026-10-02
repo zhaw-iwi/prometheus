@@ -56,26 +56,39 @@ public class TaskUpdateAction extends Action {
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
                 + "\nSupported trigger fields: " + TaskSpec.FIELDS;
-        String raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.EXTRACTION,
-                TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
+        var request = new InferenceRequest(InferencePurpose.EXTRACTION,
+                TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
+        String raw = runtime.languageModelGateway().infer(request);
         JsonObject update;
         TaskSpec task;
         ch.zhaw.prometheus.model.behaviour.BehaviourPlan reply;
         String operation;
+        String validationStage = "envelope";
         try {
             update = JsonParser.parseString(raw).getAsJsonObject();
             TaskSpec.exact(update, Set.of("operation", "task", "reply"));
+            validationStage = "operation";
             operation = TaskSpec.string(update, "operation", 12);
             if (!Set.of("KEEP", "PROPOSE", "ACTIVATE", "STOP").contains(operation)) throw new IllegalArgumentException();
+            validationStage = "task";
             task = update.get("task").isJsonNull() ? null : TaskSpec.parse(update.get("task"));
             if (operation.equals("ACTIVATE") && task == null && storage.containsKey(TaskMemory.DRAFT)) task = TaskSpec.parse(storage.get(TaskMemory.DRAFT));
             if ((operation.equals("PROPOSE") || operation.equals("ACTIVATE")) && task == null) throw new IllegalArgumentException();
             if ((operation.equals("KEEP") || operation.equals("STOP")) && task != null) throw new IllegalArgumentException();
+            validationStage = "reply";
             reply = TaskMemory.plan(update.get("reply"));
         } catch (RuntimeException invalid) {
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.
+            org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class).warn(
+                    "Generic task update rejected trace={} request={} stage={} reason={}",
+                    request.traceId(), request.requestId(), validationStage, validationReason(invalid));
+            String recovery = storage.containsKey(TaskMemory.DRAFT)
+                    ? "I couldn't validate my response. I've kept our proposed plan unchanged; you don't need to repeat it. Please ask me to try again."
+                    : storage.containsKey(TaskMemory.SPEC)
+                    ? "I couldn't validate that update. I've kept the existing task unchanged. Please ask me to try again."
+                    : "I couldn't validate my proposed configuration. Your request is still in our conversation; please ask me to try again.";
             storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
-                    "I couldn't validate that task configuration. Please restate the intended action and when it should happen.").toJsonObject());
+                    recovery).toJsonObject());
             return;
         }
         switch (operation) {
@@ -92,5 +105,18 @@ public class TaskUpdateAction extends Action {
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
         // Only observations captured after this response/cooldown can advance the task.
         TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
+    }
+    private static String validationReason(RuntimeException invalid) {
+        // Only fixed codes are logged: Gson/other exception messages may contain private output.
+        return switch (String.valueOf(invalid.getMessage())) {
+            case "Invalid gesture" -> "gesture_shape";
+            case "Unsupported expression" -> "expression";
+            case "Unsupported gaze" -> "gaze";
+            case "Invalid output intensity" -> "intensity";
+            case "Unsupported task motion" -> "motion";
+            case "Unsupported task output modality" -> "output_modality";
+            case "Unsupported nonverbal field" -> "nonverbal_field";
+            default -> "invalid_value";
+        };
     }
 }

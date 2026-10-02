@@ -10,6 +10,7 @@ import ch.zhaw.prometheus.model.policy.*;
 
 /** Task state is ordinary persisted Storage, visible through the existing monitor. */
 public final class TaskMemory {
+    private static final Set<String> GESTURES = Set.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper");
     public static final String PHASE = "task.phase", SPEC = "task.spec", DRAFT = "task.draft", REPLY = "task.reply",
             ACTIONS = "task.actions", AFTER = "task.after", REVISION = "task.revision";
     private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION);
@@ -30,7 +31,8 @@ public final class TaskMemory {
     }
     public static BehaviourPlan plan(JsonElement raw) {
         if (raw == null || !raw.isJsonObject() || new Gson().toJson(raw).length() > 1800) throw new IllegalArgumentException("Invalid task behaviour");
-        var object = raw.getAsJsonObject();
+        var object = raw.getAsJsonObject().deepCopy();
+        boolean normalizedGesture = false;
         if (!Set.of("speech", "nonVerbal", "motion").containsAll(object.keySet())) throw new IllegalArgumentException("Unsupported task output modality");
         if (object.has("speech") && !object.get("speech").isJsonNull()) TaskSpec.string(object, "speech", 1000);
         for (String channel : List.of("nonVerbal", "motion"))
@@ -38,8 +40,15 @@ public final class TaskMemory {
         if (object.has("nonVerbal") && !object.get("nonVerbal").isJsonNull()) {
             var nonverbal = object.getAsJsonObject("nonVerbal");
             if (!Set.of("gesture", "facialExpression", "gaze", "motion").containsAll(nonverbal.keySet())) throw new IllegalArgumentException("Unsupported nonverbal field");
-            if (nonverbal.has("gesture") && !Set.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper")
-                    .contains(nonverbal.get("gesture").getAsString())) throw new IllegalArgumentException("Unsupported gesture");
+            if (nonverbal.has("gesture")) {
+                var gesture = nonverbal.get("gesture");
+                if (!gesture.isJsonPrimitive() || !gesture.getAsJsonPrimitive().isString()) throw new IllegalArgumentException("Invalid gesture");
+                if (!GESTURES.contains(gesture.getAsString())) {
+                    // An unsupported expressive label must not prevent a valid task from starting.
+                    nonverbal.addProperty("gesture", "NONE");
+                    normalizedGesture = true;
+                }
+            }
             if (nonverbal.has("facialExpression")) {
                 var face = nonverbal.getAsJsonObject("facialExpression"); TaskSpec.exact(face, Set.of("type", "intensity"));
                 if (!Set.of("warmNeutral", "gentleSmile", "attentive", "thoughtful", "concernedCalm", "playfulCurious").contains(face.get("type").getAsString())) throw new IllegalArgumentException("Unsupported expression");
@@ -60,6 +69,8 @@ public final class TaskMemory {
             if (!motion.keySet().equals(Set.of("handSign")) || !Set.of("rock", "scissor", "paper").contains(motion.get("handSign").getAsString()))
                 throw new IllegalArgumentException("Unsupported task motion");
         }
+        if (normalizedGesture) org.slf4j.LoggerFactory.getLogger(TaskMemory.class).warn(
+                "Generic task output normalized field=nonVerbal.gesture reason=unsupported_label");
         return BehaviourPlan.fromJson(object.toString());
     }
     private static void unit(JsonElement value) {

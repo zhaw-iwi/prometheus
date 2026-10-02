@@ -95,6 +95,57 @@ class GenericMultimodalTaskUnitTest {
         assertFalse(response.getPayload().contains("Activated the unsupported"));
         assertTrue(BehaviourPlan.fromJson(response.getPayload()).getSpeech().contains("couldn't validate"));
     }
+    @Test void unsupportedExpressiveGestureDoesNotRejectAnOtherwiseValidDraftActivation() {
+        when(gateway.infer(any())).thenReturn(update("PROPOSE", SPEC, "Here is the proposed joke task."));
+        say("Let's plan the joke task.");
+        var reply = JsonParser.parseString("""
+                {"speech":"First joke. Then I will wait for your facial cue.","nonVerbal":{
+                "gesture":"PLAYFUL_CURIOUS","facialExpression":{"type":"gentleSmile","intensity":0.5},
+                "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.5,"energy":0.4}}}
+                """);
+        assertEquals("NONE", TaskMemory.plan(reply).getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        var activation = JsonParser.parseString(update("ACTIVATE", "null", "unused")).getAsJsonObject();
+        activation.add("reply", reply); when(gateway.infer(any())).thenReturn(activation.toString());
+        Event response = say("Go ahead.");
+        var plan = BehaviourPlan.fromJson(response.getPayload());
+        assertEquals("RUNNING", TaskMemory.phase(memory()));
+        assertEquals(TaskSpec.parse(JsonParser.parseString(SPEC)).json(), memory().get(TaskMemory.SPEC));
+        assertEquals("First joke. Then I will wait for your facial cue.", plan.getSpeech());
+        assertEquals("NONE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals(reply.getAsJsonObject().getAsJsonObject("nonVerbal").get("facialExpression"),
+                plan.getNonVerbal().getAsJsonObject().get("facialExpression"));
+        assertEquals("PLAYFUL_CURIOUS", reply.getAsJsonObject().getAsJsonObject("nonVerbal").get("gesture").getAsString());
+        verify(gateway, times(2)).infer(any()); // No extra inference just to repair an expressive label.
+        for (String label : List.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper")) {
+            var raw = JsonParser.parseString("{\"nonVerbal\":{\"gesture\":\"" + label + "\"}}");
+            assertEquals(label, TaskMemory.plan(raw).getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        }
+        for (String value : List.of("null", "1", "[]", "{}"))
+            assertThrows(IllegalArgumentException.class, () -> TaskMemory.plan(JsonParser.parseString("{\"nonVerbal\":{\"gesture\":" + value + "}}")));
+    }
+    @Test void invalidMotionRetainsDraftAndLogsOnlyCorrelatedValidationCodes() {
+        when(gateway.infer(any())).thenReturn(update("PROPOSE", SPEC, "Here is the plan.")); say("Plan the task.");
+        String before = memory().get(TaskMemory.DRAFT).toString();
+        var invalid = JsonParser.parseString(update("ACTIVATE", "null", "Private activation claim")).getAsJsonObject();
+        invalid.getAsJsonObject("reply").add("motion", JsonParser.parseString("{\"handSign\":\"PRIVATE_MODEL_VALUE\"}"));
+        when(gateway.infer(any())).thenReturn(invalid.toString());
+        var logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class);
+        var logs = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        logs.start(); logger.addAppender(logs);
+        try {
+            var response = say("Go ahead.");
+            assertEquals("CONFIGURATION", TaskMemory.phase(memory()));
+            assertEquals(before, memory().get(TaskMemory.DRAFT).toString());
+            assertFalse(memory().containsKey(TaskMemory.SPEC));
+            String speech = BehaviourPlan.fromJson(response.getPayload()).getSpeech();
+            assertTrue(speech.contains("kept our proposed plan")); assertFalse(speech.contains("restate"));
+            assertFalse(speech.contains("Private activation"));
+            var requests = ArgumentCaptor.forClass(InferenceRequest.class); verify(gateway, times(2)).infer(requests.capture());
+            String diagnostic = logs.list.getLast().getFormattedMessage();
+            assertTrue(diagnostic.contains("request=" + requests.getAllValues().getLast().requestId()));
+            assertTrue(diagnostic.contains("stage=reply reason=motion")); assertFalse(diagnostic.contains("PRIVATE_MODEL_VALUE"));
+        } finally { logger.detachAppender(logs); logs.stop(); }
+    }
     @Test void currentPerceptionAnswersReceiveFreshCountsAndNoExpiredFacialClaims() {
         agent.acknowledge(Event.observation(Event.TYPE_HUMAN_PRESENCE, "sensor", "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), runtime);
         face(Instant.now().minusSeconds(60), -0.9, 1, runtime);
