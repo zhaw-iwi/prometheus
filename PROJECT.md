@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 203 (2026-10-02): fix Generic Multimodal task activation being blocked
+  by an unsupported expressive gesture. A provider replay reproduced a valid task
+  with `PLAYFUL_CURIOUS`; unknown string gesture labels now fall back to `NONE`.
+  Other validation remains strict, preserves the stored plan and logs content-free
+  correlated reason codes. All 13 focused unit/MySQL/Live checks passed, including
+  proposal persistence and activation after reload. Original invalid model output
+  was not retained; evidence and limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.
+  The user authorized integration into main, then agents and Heroku redeployment;
+  rollout verification is pending.
+
 - Milestone 202 (2026-10-02): add
   `core.generic_multimodal_behaviour` on `feature/gptlive`, with persistent
   collaborative task configuration and bounded sensor-triggered execution.
@@ -271,6 +281,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 203: Preserve valid task activation with unsupported expressive gestures
 
 - [x] Milestone 202: Conversational Generic Multimodal Behaviour
 
@@ -9720,3 +9732,23 @@ remain trial gates rather than guarantees from synthetic checks.
   preserves deployment persona binding and passed 619 Java tests. Heroku v103
   is up; health/login, catalog registration and additive schema checks passed.
   Read-only saved-agent count remained 26; physical/provider trials remain open.
+
+## Milestone 203: Preserve valid task activation with unsupported expressive gestures
+
+- Investigated the October 2 configuration trial using its timing export, scoped
+  read-only database history/storage and Heroku logs. The draft persisted; both
+  activation requests succeeded at the provider but failed application validation.
+- Two isolated text-inference replays produced one valid response and one valid
+  task with an unsupported `PLAYFUL_CURIOUS` gesture. The latter reproduced the
+  rejection. Original raw responses were not retained, so their exact invalid
+  fields remain unknown.
+- Normalize unknown string expressive gesture labels to `NONE` without extra
+  inference, retaining speech and valid output. Task rules, malformed shapes,
+  intensity bounds and motion-command checks remain strict. Other rejections keep
+  the plan and provide retry guidance plus content-free correlated diagnostics.
+- All 13 focused unit and disposable-MySQL/Live checks passed, including proposal
+  persistence, reload and draft activation. The captured failing provider reply
+  also validates with the patch. No production data mutation or physical retest
+  was performed. The user subsequently authorized main-to-agents integration,
+  commit/push and Heroku redeployment.
+  Evidence and remaining limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.

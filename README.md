@@ -1634,8 +1634,13 @@ three to sixty seconds cooldown and one to fifty actions including the initial
 action. The planner explains the agreed limits. All supported observations can
 inform answers; executable trigger fields are restricted by `TaskSpec.FIELDS`.
 No arbitrary code, external tools, automatic detector changes, timers or nested
-workflow generation is provided. Invalid plans leave the prior task unchanged;
-failed sensor-triggered generation pauses for explicit resumption.
+workflow generation is provided. Unknown string-valued expressive gesture labels
+fall back to `NONE`, preserving valid speech and other output. Task rules, output
+shapes, intensity limits and motion commands remain validated. Other invalid plans
+leave the prior task unchanged and retain any proposed draft; the recovery message
+asks for a retry rather than a repeated task description. Validation diagnostics
+record a request ID and fixed reason codes, never model output. Failed
+sensor-triggered generation pauses for explicit resumption.
 
 During Live, task replies use committed backend announcements. Further cues wait
 for a completed native speech segment and new sensor samples; this does not prove

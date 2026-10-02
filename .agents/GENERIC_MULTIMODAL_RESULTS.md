@@ -54,6 +54,57 @@ before creating these instances: older code cannot load the new discriminators.
 
 ## Verification
 
+### Activation validation follow-up (Milestone 203, 2026-10-02)
+
+The user's `prometheus-interaction-timing-2026-10-02T19-41-32-490Z.json`, scoped
+read-only database inspection and Heroku CLI logs establish that the facial-joke
+draft was saved at 19:40:21 UTC. Both subsequent activation turns reached the
+backend and their extraction requests succeeded, but validation produced the
+generic rejection at 19:40:33 and 19:41:09. The phase remained CONFIGURATION,
+revision 1, with the valid draft still stored. No task activation was committed.
+The spoken summary was narration of the draft, not confirmation of activation;
+delayed Live narration also combined the summary and rejection in one response.
+
+The original invalid model JSON and validation reason were not retained. Two
+bounded text-inference replays reconstructed the first activation context using
+the deployed prompt, saved draft, recent history and configured `gpt-5.6-luna` /
+`none` route. One response validated; the second returned ACTIVATE with a valid
+task and reply speech but `nonVerbal.gesture=PLAYFUL_CURIOUS`. The validator
+rejected that unsupported gesture and therefore the entire activation. This is a
+reproduced failure mechanism, not proof of the exact original invalid field.
+
+Unknown string-valued expressive gesture labels now normalize to `NONE` on a
+copy of the reply. Valid speech, facial expression and other output are retained;
+recognized gestures, task-rule checks, non-string gesture rejection, intensity
+bounds and motion-command validation are unchanged. There is no repair inference
+or sensor retry. Other validation failures retain the draft/active task and tell
+the user it was kept, rather than asking for the full task again. Rejections log
+the correlated request ID, validation stage and fixed reason code without private
+model content. No persisted prompt or schema change is required for this fix.
+
+All **13 focused tests passed** with no failures, errors or skips:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskUnitTest,GenericMultimodalTaskIntegrationTest
+```
+
+Final evidence: `target/gptlive-acceptance-8caae7f257/java.log` and `test-counts.json`.
+The real-MySQL case now saves a proposal, reloads it, activates it through Live
+with `task=null` and the reproduced invalid gesture, then verifies narration,
+sensor-only execution, duplicate suppression, stop and reset. Unit checks protect
+known labels, source-object immutability, strict motion rejection, draft retention
+and content-free correlated diagnostics. The retained failing provider response
+also validates with the patched code: gesture NONE and identical speech.
+
+The test schema/account were removed. Production inspection was read-only, and
+the two provider replays did not acknowledge the deployed agent or start a Live
+session. No production configuration, data or access-code assignments changed.
+No physical camera/voice retest or broader Java/browser rerun was performed for
+this focused follow-up. The user has authorized integration into `main`, then
+`agents`, with commit/push and Heroku redeployment. Rollout verification is pending.
+
+### Initial implementation
+
 The full Java regression passed 482 tests, with no failures, errors or skips:
 
 ```powershell
