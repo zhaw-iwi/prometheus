@@ -80,9 +80,10 @@ and regulation diagnostics remain future work.
   collaborative task configuration and bounded sensor-triggered execution.
   Full Java regression passed 482 tests; the final focused rerun passed 20.
   Details and limits are in `.agents/GENERIC_MULTIMODAL_RESULTS.md`.
-  Physical camera/voice and paid provider trials remain unverified. The user
-  authorized feature-to-main, then main-to-agents integration and redeployment;
-  deployment verification is pending.
+  Implementation `7457d1a` is on main/feature/gptlive; agents merge `42a29a1`
+  passed 619 Java tests and deployed as Heroku v103. Health, access-code login,
+  catalog registration and additive schema checks passed; saved-agent count
+  remained 26. Physical camera/voice and paid provider trials remain unverified.
 
 - Milestone 201 (2026-10-01): reduce database reads in Live and ordinary sensor
   turns on `main`. Combined revision-aware polling performs one scalar scope read
@@ -8803,3 +8804,7 @@ remain trial gates rather than guarantees from synthetic checks.
   Evidence, deployment compatibility and execution limits are recorded in
   `.agents/GENERIC_MULTIMODAL_RESULTS.md`. The user subsequently authorized
   feature-to-main, then main-to-agents integration and Heroku redeployment.
+  Implementation `7457d1a` is on main/feature/gptlive; agents merge `42a29a1`
+  preserves deployment persona binding and passed 619 Java tests. Heroku v103
+  is up; health/login, catalog registration and additive schema checks passed.
+  Read-only saved-agent count remained 26; physical/provider trials remain open.

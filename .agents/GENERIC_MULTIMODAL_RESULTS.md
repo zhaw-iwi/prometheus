@@ -7,7 +7,7 @@ Milestone 202, 2026-10-02, on `feature/gptlive`. The new
 and output modalities as `core.multimodal_behaviour`. Existing definitions and
 saved instances retain their behaviour. The user authorized integration from
 `feature/gptlive` to `main`, then `main` to `agents` and Heroku redeployment.
-Deployment verification will be recorded below.
+Branch integration and deployment verification are recorded below.
 
 The agent supports capability discovery, goal clarification, a proposed task,
 activation, cue-driven execution, revision and cancellation. Standard transitions
@@ -80,6 +80,46 @@ Both runs used disposable schemas/accounts on the configured local test database
 and offline providers; the runner removed its owned app, schema and account.
 There were no production data changes or paid provider requests. Frontend code
 did not change; JavaScript and browser suites were not rerun for this milestone.
+
+## Branch integration and deployment
+
+Implementation commit `7457d1a` was pushed to `feature/gptlive` and fast-forwarded
+into `main`. Main was merged into `agents` as `42a29a1`. The merge retained the
+deployment catalog and per-agent persona binding in the Live adapter. The new
+agent's deterministic welcome also uses the selected Valerian/Gigi persona on
+the deployment branch. Persona tests cover its welcome, task inference and Live
+instructions while retaining user dialogue verbatim.
+
+The first merged run passed 618 of 619 Java tests; its one failure was the
+deployment-only Live catalog expectation omitting the new definition. After
+updating that expectation, the fresh full rerun passed **619 tests in 135 suites**,
+with no failures, errors or skips. Evidence is in
+`target/gptlive-acceptance-9ba0abf3fa/java.log` and `test-counts.json`; the first
+run is `target/gptlive-acceptance-e79d270dfd/`. Both used disposable local MySQL
+schemas/accounts and simulated providers, and removed their owned resources.
+JavaScript/browser suites were not rerun because frontend sources did not change.
+
+The `agents` push triggered [deployment workflow 37031277038](https://github.com/zhaw-iwi/prometheus/actions/runs/37031277038),
+which succeeded for `42a29a1`. Heroku app `valerian` released **v103** at
+2026-10-02 16:04:36 UTC; `web.1` is up and startup is confirmed in the release logs.
+Heroku CLI and bounded HTTP/read-only database checks verified:
+
+- Health returned HTTP 200 / UP; `/valerian/` and access-code login returned 200.
+- The authorized admin catalog contains the new definition (84 types versus 83
+  before deployment). No access-code assignments were changed.
+- The three nullable task columns are present. The saved-agent count remained 26
+  before and after deployment; verification created no agent or interaction data.
+- The 916 sampled log lines since the release contained no R14/R15/H10, query
+  quota, schema or startup-failure markers. This is a startup sample, not sustained
+  load or physical speech acceptance.
+
+Sanitized evidence is in `target/generic-rollout-before.json`,
+`target/generic-rollout-after.json`, `target/generic-rollout-heroku.json` and
+`target/generic-rollout-workflow.json`. Before rollout, v102 health/login already
+passed; no outage recovery is attributed to this change. Credentials, local
+properties and `codexpython.md` were not committed or changed. Completion records
+are synchronized main -> feature/gptlive and main -> agents using documentation-only
+`[skip ci]` commits/merges to retain the verified v103 runtime.
 
 ## Limits and live trial
 

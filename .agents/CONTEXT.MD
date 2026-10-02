@@ -246,8 +246,10 @@ policies. Live explicitly supports the task state/policy and speaks committed
 announcements; current perception is also supplied directly to task-turn inference.
 See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
 verification and pending physical/provider trials. This work starts on
-`feature/gptlive`; the user authorized integration into `main`, then `agents`
-and Heroku redeployment. Rollout evidence is maintained in the results document.
+`feature/gptlive`; user-authorized integration into `main`, then `agents` and
+Heroku v103 deployment are complete. The merged tree passed 619 Java tests;
+health/login, catalog and schema checks passed. Rollout evidence is in the results
+document; physical/provider interaction trials remain open.
 
 ## Regulation: Implemented Foundation and Missing System
 
