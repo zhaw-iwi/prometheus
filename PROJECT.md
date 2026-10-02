@@ -88,8 +88,10 @@ and regulation diagnostics remain future work.
   to timing exports. Task control, sensor filtering and combined inference remain
   unchanged. Passed 487 Java, 24 Live JavaScript and 46 browser cases, plus 15
   tests in the final concurrency-focused rerun. Evidence/limits are maintained in
-  `.agents/GPTLIVE_RESULTS.md`. The user authorized commit/push and integration
-  through `main` into `agents` for Heroku deployment verification.
+  `.agents/GPTLIVE_RESULTS.md`. Implementation `52cda3e` is on main/feature/gptlive;
+  agents merge `2ef3b9d` passed 71 focused Java and 15 browser cases and deployed
+  as Heroku v105. Health/login and served-client checks passed; saved-agent count
+  remained 25. Physical response-delay and audible-cutoff trials remain open.
 
 - Milestone 203 (2026-10-02): fix Generic Multimodal task activation being blocked
   by an unsupported expressive gesture. A provider replay reproduced a valid task
@@ -9791,5 +9793,8 @@ remain trial gates rather than guarantees from synthetic checks.
   tests, 45 Live-enabled browser cases and one feature-disabled compatibility
   case. Final focused reruns passed 15 Java and 15 browser cases; the timing
   drawer screenshot was visually inspected. Physical/provider
-  limitations and logs are in `.agents/GPTLIVE_RESULTS.md`. The user subsequently
-  authorized commit/push, branch integration and Heroku deployment verification.
+  limitations and logs are in `.agents/GPTLIVE_RESULTS.md`. User-authorized
+  integration pushed implementation `52cda3e` to main/feature/gptlive and agents
+  merge `2ef3b9d` after 71 focused Java and 15 browser cases passed. Heroku v105
+  is up; health/login and served-client checks passed. Saved-agent count remained
+  25; physical speech quality and latency remain unverified.
