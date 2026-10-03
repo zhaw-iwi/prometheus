@@ -130,7 +130,7 @@ function mount() {
           ["Server ring evictions / export omissions", `${journal.dropped ?? "Unknown"} / ${journal.retainedDropped}`],
           ["Operations omitted", journal.omittedOperations ?? "Unknown"]], "Latest backend state"));
         const outcomes = journal.recent.filter(value => value.stage === "operation" || value.stage === "inference").slice(-8);
-        section.append(table(outcomes.map(value => [value.stage === "inference" ? `Model / ${value.details.purpose || "unknown"}` : `${value.details.kind || "operation"} / ${value.outcome}`,
+        section.append(table(outcomes.map(value => [value.stage === "inference" ? `Model / ${value.details.purpose || "unknown"} / ${value.outcome}` : `${value.details.kind || "operation"} / ${value.outcome}`,
           value.stage === "inference" ? `${value.details.model || "Unknown"} / ${value.details.inputTokens ?? "?"} input / ${value.details.outputTokens ?? "?"} output tokens` : ms(value.durationMs)]), "Recent operations"));
       }
       if (activity.markers.length) section.append(table(activity.markers.slice(-10).map(value => [value.category.replaceAll("_", " "), new Date(value.wallMs).toLocaleTimeString()]), "Operator issue markers (approximate association)"));

@@ -49,7 +49,7 @@ export class LiveDiagnostics {
       entry.provider = { ...pick(provider, ["closeReason"], ["usageSeconds", "contextUsageRatio"]),
         problems: (provider.problems || []).slice(-16).map(value => pick(value, ["code", "type", "clientEventId"], ["serverMs"])),
         configuration: { ...Object.fromEntries(["model", "voice", "build"].map(key => [key, name(provider.configuration?.[key])])),
-          ...pick(provider.configuration, [], ["requestTimeoutMs", "telemetryVersion"]) } };
+          ...pick(provider.configuration, [], ["requestTimeoutMs", "telemetryVersion", "silenceMs", "latenessMs", "maxOpenMs", "maxAudioGapMs"]) } };
       entry.server = { ...pick(status, ["state", "epoch", "reason", "captureState"], ["eventCount", "inputSamples", "outputSamples", "voicedInputSamples", "dropped"]),
         finalized: status.finalized === true, ...retain(previous, (status.recent || []).slice(-64).map(trace), 1024),
         capture: { ...pick(capture, ["state"], ["queued", "queueHighWater", "receipts", "dropped"]),

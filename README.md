@@ -628,7 +628,9 @@ The footer flag marks speech cutoffs, long pauses, unexpected responses or misse
 cues. Markers contain timestamps and active operation identities, never free text;
 their association to audio is approximate. JSON now includes `activity` journals,
 coverage and markers, and Live requested/applied capture settings, cumulative
-provider usage, context utilisation and safe error codes. Missing evidence remains
+provider usage, context utilisation and safe error codes. Live configuration includes
+the existing silence/lateness/open-segment/audio-gap limits, request deadline and
+Heroku build identity when the platform supplies it. Missing evidence remains
 unknown. Existing turn fields and ordinary-turn CSV remain compatible; filenames
 now begin `prometheus-telemetry-`. Browser activity retention is 16 recordings,
 1,024 entries per recording and 64 markers, with explicit omission counters.

@@ -98,7 +98,9 @@ PROMETHEUS currently provides:
   explicit stale progress; Telemetry JSON includes bounded issue markers;
 - bounded content-free in-flight operation telemetry over the scoped monitor SSE,
   with correlated model/stage outcomes, aggregate cue waiting reasons and safe Live
-  usage/error metadata; no extra database polling or model calls;
+  usage/error metadata, independent inference outcomes and capture/build settings;
+  telemetry reuses resolved runtime ownership and adds no database polling or
+  model calls; acceptance and rollout evidence: `.agents/TELEMETRY_RESULTS.md`;
 - behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
   resilience; behaviour delivery explicitly distinguishes live publication
   from initial/history/reconnect replay without changing persisted payloads;

@@ -141,7 +141,7 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
             throw new IllegalStateException("Inference provider transport failed");
         } finally {
             ch.zhaw.prometheus.logging.ActivityTrace.inference(inference.requestId(), inference.purpose().name(),
-                    route.model(), route.effort(), promptTokens, completionTokens, requests);
+                    route.model(), route.effort(), promptTokens, completionTokens, requests, success);
             LatencyTrace.record("inference", (System.nanoTime() - start) / 1_000_000.0, success,
                     inference.requestId(), inference.purpose().name(), route.model(),
                     route.effort() == null ? "default" : route.effort(), promptTokens, completionTokens, requests);

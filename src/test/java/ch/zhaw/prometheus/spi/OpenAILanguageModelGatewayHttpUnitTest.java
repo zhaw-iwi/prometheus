@@ -1,6 +1,8 @@
 package ch.zhaw.prometheus.spi;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -102,7 +104,8 @@ class OpenAILanguageModelGatewayHttpUnitTest {
         JsonObject withUsage = JsonParser.parseString(envelope("true")).getAsJsonObject();
         withUsage.add("usage", JsonParser.parseString("{\"prompt_tokens\":12,\"completion_tokens\":2}"));
         response.set(withUsage.toString());
-        try (var trace = new ch.zhaw.prometheus.logging.LatencyTrace(null, ignored -> {})) {
+        var activitySink = mock(ch.zhaw.prometheus.logging.ActivityTrace.Sink.class);
+        try (var activityScope = ch.zhaw.prometheus.logging.ActivityTrace.attach(activitySink); var trace = new ch.zhaw.prometheus.logging.LatencyTrace(null, ignored -> {})) {
             assertTrue(gateway().decide(messages()));
             status.set(429); response.set("private provider content");
             assertThrows(IllegalStateException.class, () -> gateway().decide(messages()));
@@ -117,6 +120,8 @@ class OpenAILanguageModelGatewayHttpUnitTest {
             assertFalse(spans.get(1).getAsJsonObject().has("promptTokens"));
             assertFalse(exported.contains("private")); assertFalse(exported.contains("Synthetic"));
             assertFalse(exported.contains("test-key"));
+            verify(activitySink).inference(anyString(), eq("DECISION"), eq("gpt-5.6-luna"), eq("none"), eq(12), eq(2), eq(1), eq(true));
+            verify(activitySink).inference(anyString(), eq("DECISION"), eq("gpt-5.6-luna"), eq("none"), isNull(), isNull(), eq(1), eq(false));
         }
     }
 

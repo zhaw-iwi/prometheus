@@ -130,7 +130,7 @@ public class AgentActivityService {
             if (!current()) return; this.event = event;
             if (visible) record(null, "behaviour", "prepared", null, Map.of());
         } }
-        @Override public void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests) {
+        @Override public void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests, boolean success) {
             synchronized (AgentActivityService.this) {
                 if (!current()) return;
                 var details = new LinkedHashMap<String,Object>();
@@ -139,7 +139,7 @@ public class AgentActivityService {
                 if (input != null && input >= 0) details.put("inputTokens", input);
                 if (output != null && output >= 0) details.put("outputTokens", output);
                 details.put("providerRequests", Math.max(0, requests));
-                record(null, "inference", "measured", null, details);
+                record(null, "inference", success ? "complete" : "failed", null, details);
             }
         }
         @Override public void failed(String reason) { synchronized (AgentActivityService.this) {

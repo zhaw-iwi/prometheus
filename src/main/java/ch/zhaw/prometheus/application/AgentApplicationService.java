@@ -70,9 +70,10 @@ public class AgentApplicationService {
     private Optional<LoadedTurn> loadTurn(UUID id, OutputProfile profile) {
         java.util.function.Supplier<Optional<LoadedTurn>> load = () -> findAgent(id)
                 .map(agent -> {
-                    var owner = speechOwnership == null ? null : speechOwnership.current(agent);
+                    var runtime = runtimeFor(agent, profile);
+                    var owner = runtime.externalSpeech();
                     ch.zhaw.prometheus.logging.ActivityTrace.bind(agent.executionEpoch(), owner == null ? null : owner.sessionId(), null);
-                    return new LoadedTurn(agent, runtimeFor(agent, profile));
+                    return new LoadedTurn(agent, runtime);
                 });
         return persistenceContext == null ? load.get() : persistenceContext.load(load);
     }

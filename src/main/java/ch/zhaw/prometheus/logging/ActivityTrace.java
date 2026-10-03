@@ -10,7 +10,7 @@ public final class ActivityTrace {
         AutoCloseable stage(String name);
         void bind(UUID epoch, UUID session, UUID source);
         void cue(String reason, UUID source);
-        void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests);
+        void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests, boolean success);
         void event(UUID id);
         void failed(String reason);
     }
@@ -38,6 +38,9 @@ public final class ActivityTrace {
     public static void failed(String reason) { if (CURRENT.get() != null) CURRENT.get().failed(reason); }
     public static void event(UUID id) { if (CURRENT.get() != null) CURRENT.get().event(id); }
     public static void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests) {
-        if (CURRENT.get() != null) CURRENT.get().inference(request, purpose, model, effort, input, output, requests);
+        inference(request, purpose, model, effort, input, output, requests, true);
+    }
+    public static void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests, boolean success) {
+        if (CURRENT.get() != null) CURRENT.get().inference(request, purpose, model, effort, input, output, requests, success);
     }
 }

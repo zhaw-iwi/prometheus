@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 207 (2026-10-03): integrated Generic activation/progress acceptance,
+  including delayed inference, overlapping work, cue waiting, safe provider usage,
+  failure and reset. Full feature regression passed 491 Java tests; all 52 browser
+  cases have passing evidence across the broad run and focused fixture correction.
+  Query budgets retain their prior limits by reusing resolved speech ownership.
+  Final focused checks and branch/deployment evidence: `.agents/TELEMETRY_RESULTS.md`.
+
 - Milestone 206 (2026-10-03): one activity footer across Text/Continuous/GPT-Live
   and renamed Telemetry tab. Added bounded backend journals, issue markers,
   capture configuration, provider usage and collection coverage to JSON; retained
@@ -276,6 +283,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 207: Integrated activity/Telemetry acceptance and deployment
 
 - [x] Milestone 206: Unified interaction activity footer and Telemetry
 
@@ -8929,3 +8938,18 @@ issue markers. Existing turn fields and CSV remain compatible. JavaScript unit,
 local MySQL browser, lifecycle, desktop/mobile and light/dark visual evidence is
 recorded in `.agents/TELEMETRY_RESULTS.md`. Synthetic playback is not physical
 acoustic verification. Final integrated acceptance and rollout follow in 207.
+
+## Milestone 207: Integrated activity/Telemetry acceptance and deployment
+
+2026-10-03. Added an actual scoped HTTP/MySQL/SSE/browser Generic activation trial
+with synthetic inference/media: held model work, overlapping serialized requests,
+cumulative usage, cue waiting, failed inference and execution-epoch reset. Retained
+coverage for ordinary and feature-disabled speech, pooled streams and visuals.
+Full Java acceptance exposed a duplicate Live ownership read introduced by activity
+binding; the final implementation reuses runtime ownership and preserves all prior
+query ceilings. Updated contracts for one footer and additive named stream events.
+Exports retain independent inference outcomes even when application work recovers,
+and existing capture limits plus optional platform build metadata. Detailed counts,
+failed-run corrections, branch integration and release checks are maintained in
+`.agents/TELEMETRY_RESULTS.md`. No physical acoustic or paid-provider quality claim
+follows from these synthetic trials.

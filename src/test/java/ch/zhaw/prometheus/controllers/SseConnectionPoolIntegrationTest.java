@@ -161,7 +161,12 @@ class SseConnectionPoolIntegrationTest {
             });
         }
         Frame next(String name) throws InterruptedException {
-            Frame frame = frames.poll(10, TimeUnit.SECONDS);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            Frame frame;
+            do {
+                frame = frames.poll(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                // Monitor consumers dispatch named events; activity and heartbeats are additive.
+            } while (frame != null && (frame.name().equals("activity") || frame.name().equals("heartbeat")));
             assertNotNull(frame, "missing SSE " + name);
             assertEquals(name, frame.name());
             return frame;
