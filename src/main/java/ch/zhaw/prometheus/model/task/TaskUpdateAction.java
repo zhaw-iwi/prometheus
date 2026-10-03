@@ -91,6 +91,7 @@ public class TaskUpdateAction extends Action {
                     recovery).toJsonObject());
             return;
         }
+        try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("updating_task")) {
         switch (operation) {
             case "PROPOSE" -> { storage.put(TaskMemory.DRAFT, task.json()); TaskMemory.put(storage, TaskMemory.PHASE, "CONFIGURATION"); TaskMemory.revise(storage); }
             case "ACTIVATE" -> {
@@ -101,6 +102,9 @@ public class TaskUpdateAction extends Action {
             }
             case "STOP" -> { TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage); }
             default -> { /* Conversation/perception questions retain the existing task. */ }
+        }
+        ch.zhaw.prometheus.logging.ActivityTrace.cue(operation.equals("ACTIVATE") ? "waiting_for_cue" :
+                TaskMemory.phase(storage).equals("COMPLETED") ? "task_completed" : "task_configuration", null);
         }
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
         // Only observations captured after this response/cooldown can advance the task.

@@ -20,7 +20,14 @@ public class LiveSmokeConfiguration {
     @Bean @Primary public LanguageModelGateway offlineLanguageGateway(Provider provider) {
         return new LanguageModelGateway() {
             public String infer(InferenceRequest request) {
+                try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("thinking")) {
                 provider.inferences.add(request);
+                var gate = provider.inferenceGate;
+                if (gate != null) {
+                    try { gate.get(25, TimeUnit.SECONDS); }
+                    catch (Exception failure) { throw new IllegalStateException("Synthetic inference failure"); }
+                }
+                ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
@@ -32,6 +39,7 @@ public class LiveSmokeConfiguration {
                         """;
                 if (prompt.contains("The output must omit speech completely")) return "{\"nonVerbal\":{\"gesture\":\"NONE\"}}";
                 return "{\"speech\":\"Ready for the next interaction.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
+            }
             }
             public String complete(List<PromptMessage> messages) { return "Ready for the next interaction."; }
             public boolean decide(List<PromptMessage> messages) {
@@ -51,6 +59,7 @@ public class LiveSmokeConfiguration {
         };
     }
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
+        public volatile CompletableFuture<Void> inferenceGate;
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
         public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();

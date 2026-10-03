@@ -63,6 +63,8 @@ public class LiveTranscriptIngressService {
         })));
     }
     public Optional<Outcome> commit(UUID id, ExternalSpeech owner, Segment segment, List<String> observedStatePath) {
+        return turns.activity(id, "live_segment", segment.speaker() == Speaker.USER, () -> {
+            ch.zhaw.prometheus.logging.ActivityTrace.bind(owner.epoch(), owner.sessionId(), segment.id());
         return turns.serialized(id, () -> {
             boolean[] claimed = {false};
             Optional<Outcome> previous = transaction.execute(status -> {
@@ -142,6 +144,7 @@ public class LiveTranscriptIngressService {
                 }));
                 throw failure;
             }
+        });
         });
     }
     private Agent current(UUID id, ExternalSpeech owner) {

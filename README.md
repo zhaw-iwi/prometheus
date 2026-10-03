@@ -604,6 +604,17 @@ trace ID. A request that publishes behaviour also returns
 These headers do not grant access or change event payloads. Configured CORS
 origins can send/read them.
 
+The existing scoped monitor stream also publishes `activity` snapshots (version 1):
+bounded, transient operation IDs, execution epoch, stage starts/finishes, outcomes,
+server durations, safe inference metadata and aggregated task cue waiting reasons.
+Concurrent operations remain distinct. This collection adds no database polling or
+model calls; retention is 128 agents, 32 concurrent operations and 128 entries per
+agent, with idle expiry after 30 minutes and explicit omission counters. Server
+restart loses this transient history. Cue diagnostics observe existing decisions;
+they never activate tasks. Live status also retains cumulative provider usage,
+context utilisation and safe error/close codes, excluding provider error messages.
+See `.agents/PLAN_TELEMETRY.md` and `.agents/TELEMETRY_RESULTS.md` for rollout evidence.
+
 In Valerian, open **Agent & Diagnostics → Interaction Timing**. Recording is
 automatic for submitted speech/text turns; expand a turn to inspect milliseconds
 from estimated speech end through commit, final transcription, backend processing,

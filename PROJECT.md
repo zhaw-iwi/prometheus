@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 205 (2026-10-03): shared bounded in-memory activity reporting on the
+  existing scoped monitor stream, model/queue/persistence/context stages, aggregated
+  cue reasons, and safe cumulative Live usage/error metadata. Passed 37 focused
+  Java tests including real local MySQL HTTP/SSE, overlap/privacy/bounds, task
+  semantics and query budgets. Milestones 206/207 continue automatically under
+  user authorization; evidence is `.agents/TELEMETRY_RESULTS.md`.
+
 - Milestone 204 (2026-10-02): reduce Live announcement delay with compact changed
   guidance, committed-result priority over sensor coalescing and bounded factual
   packing. Add content-free browser playback/RTC and reflected-audio diagnostics
@@ -262,6 +269,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 205: Shared activity reporting and safe Live metadata
 
 - [x] Milestone 204: Reduce Live announcement delays and diagnose audio cutoffs
 
@@ -8886,3 +8895,15 @@ remain trial gates rather than guarantees from synthetic checks.
   merge `2ef3b9d` after 71 focused Java and 15 browser cases passed. Heroku v105
   is up; health/login and served-client checks passed. Saved-agent count remained
   25; physical speech quality and latency remain unverified.
+
+## Milestone 205: Shared activity reporting and safe Live metadata
+
+2026-10-03. Added bounded transient operation/stage telemetry on the scoped monitor
+SSE, including concurrent operation identity, execution-epoch fencing, monotonic
+durations, outcomes, model metadata and aggregated task waiting reasons. Existing
+inference, task decisions, context coalescing and database paths are preserved.
+Live status retains cumulative usage, context utilisation and safe error/close
+codes; no raw audio, transcript, prompts or provider messages enter new records.
+Passed 37 focused Java checks against disposable local MySQL, including an actual
+in-flight SSE event before HTTP completion and unchanged query budgets. Evidence,
+plan and remaining browser/acoustic limits: `.agents/TELEMETRY_RESULTS.md`.

@@ -133,9 +133,13 @@ public class LiveTranscriptCaptureService {
                 segment.fragments().forEach(fragment -> fragmentStates.remove(fragment.eventId()));
                 trace("segment_queued", null, segment.id(), segment.closure().name(), segment.startMs(), segment.endMs());
                 enqueue(() -> {
+                    trace("agent_started", null, segment.id(), segment.speaker().name(), segment.startMs(), segment.endMs());
                     var result = ingress.commit(agent, owner, segment, observedState);
                     trace("agent_completed", null, segment.id(), result.map(LiveTranscriptIngressService.Outcome::status).orElse("OBSOLETE"), segment.startMs(), segment.endMs());
-                    result.ifPresent(outcome -> events.publishEvent(new Committed(agent, owner, outcome)));
+                    result.ifPresent(outcome -> {
+                        trace("segment_outcome", null, segment.id(), outcome.reason(), segment.startMs(), segment.endMs());
+                        events.publishEvent(new Committed(agent, owner, outcome));
+                    });
                 });
             }
         }

@@ -93,6 +93,9 @@ PROMETHEUS currently provides:
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;
+- bounded content-free in-flight operation telemetry over the scoped monitor SSE,
+  with correlated model/stage outcomes, aggregate cue waiting reasons and safe Live
+  usage/error metadata; no extra database polling or model calls;
 - behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
   resilience; behaviour delivery explicitly distinguishes live publication
   from initial/history/reconnect replay without changing persisted payloads;

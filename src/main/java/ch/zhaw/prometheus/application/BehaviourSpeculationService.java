@@ -110,7 +110,7 @@ public final class BehaviourSpeculationService implements AutoCloseable {
             task = new Task(() -> {
                 try (var trace = marker.get()) { stage("speculation_started", this, "dispatch"); }
                 // Separate clock: this request may outlive its originating HTTP response.
-                try (var trace = new LatencyTrace(request.traceId(), ignored -> {})) {
+                try (var activityTrace = marker.get(); var trace = new LatencyTrace(request.traceId(), ignored -> {})) {
                     try { return gateway.infer(request); }
                     finally { evidence = LatencyTrace.captureInference(); }
                 }

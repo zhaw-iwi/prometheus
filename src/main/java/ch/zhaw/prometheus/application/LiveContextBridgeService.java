@@ -24,6 +24,8 @@ public class LiveContextBridgeService {
     public record Status(String state, String revision, List<Trace> recent, long dropped, int pendingClarifications) {}
     private final LiveAgentContextService contexts;
     private final Clock clock;
+    private AgentActivityService activities;
+    @Autowired void configureActivities(AgentActivityService value) { activities = value; }
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
     private final ThreadPoolExecutor workers = new ThreadPoolExecutor(4, 4, 30, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), work -> { var thread = new Thread(work, "live-context"); thread.setDaemon(true); return thread; },
@@ -120,6 +122,13 @@ public class LiveContextBridgeService {
             nextRefreshAt = next;
         }
         private void run() {
+            if (activities == null) runContext();
+            else activities.call(agent, "live_context", urgent.get(), () -> {
+                ch.zhaw.prometheus.logging.ActivityTrace.bind(owner.epoch(), owner.sessionId(), lastAnnouncement.get());
+                runContext(); return null;
+            });
+        }
+        private void runContext() {
             try {
                 dirty.set(false);
                 urgent.set(false);
@@ -140,7 +149,10 @@ public class LiveContextBridgeService {
                 UUID segment;
                 while ((segment = clarifications.poll()) != null) transmit(LiveContextDelivery.clarification(segment, revision));
                 state = "ready";
-            } catch (RuntimeException invalid) { fail("context_delivery_unconfirmed"); }
+            } catch (RuntimeException invalid) {
+                ch.zhaw.prometheus.logging.ActivityTrace.failed("context_delivery_unconfirmed");
+                fail("context_delivery_unconfirmed");
+            }
             finally { running.set(false); refreshIfDue(); }
         }
         private void transmit(Command command) {
@@ -174,7 +186,9 @@ public class LiveContextBridgeService {
         private void transmit(Command command, List<UUID> sources) {
             if (closed.get()) throw new IllegalStateException("Context session closed");
             state = "awaiting_ack"; trace("send", command, sources);
-            send.accept(command); // Scoped lease checks stopped/disconnected; bounded ACK wait, never an agent lock.
+            ch.zhaw.prometheus.logging.ActivityTrace.measure("preparing_speech", () -> {
+                send.accept(command); return null;
+            }); // ACK is context delivery, never proof of playback.
             if (!closed.get()) trace("ack", command, sources);
         }
         private synchronized void trace(String phase, Command command) {

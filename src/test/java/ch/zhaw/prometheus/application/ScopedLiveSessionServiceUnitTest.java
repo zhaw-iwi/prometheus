@@ -42,6 +42,18 @@ class ScopedLiveSessionServiceUnitTest {
         service.configureIngress(ingress);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @Test void providerUsageAndSafeFailuresAreRetainedWithoutMessagesOrSummingUpdates() {
+        var session = start();
+        gateway.receiver.accept(com.google.gson.JsonParser.parseString("{\"type\":\"session.usage.updated\",\"usage\":{\"seconds\":12},\"context_window\":{\"usage_ratio\":0.4}}").getAsJsonObject());
+        gateway.receiver.accept(com.google.gson.JsonParser.parseString("{\"type\":\"session.usage.updated\",\"usage\":{\"seconds\":15}}").getAsJsonObject());
+        var view = service.status("ABCDE", agent, session.handle()).orElseThrow();
+        assertEquals(15d, view.providerTelemetry().usageSeconds()); assertEquals(.4, view.providerTelemetry().contextUsageRatio());
+        gateway.receiver.accept(com.google.gson.JsonParser.parseString("{\"type\":\"error\",\"error\":{\"code\":\"invalid_request\",\"type\":\"invalid_request_error\",\"client_event_id\":\"command1\",\"message\":\"private secret text\"}}").getAsJsonObject());
+        view = service.status("ABCDE", agent, session.handle()).orElseThrow();
+        assertEquals("invalid_request", view.providerTelemetry().problems().getFirst().code());
+        assertEquals("command1", view.providerTelemetry().problems().getFirst().clientEventId());
+        assertFalse(new com.google.gson.Gson().toJson(view).contains("private"));
+    }
     @Test void combinedUpdatesSkipUnchangedLedgerAndKeepConcurrentCommitsVisible() {
         var session = start();
         when(ingress.history(agent, session.handle())).thenReturn(List.of());

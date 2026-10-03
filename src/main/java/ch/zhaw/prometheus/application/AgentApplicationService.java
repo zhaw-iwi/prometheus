@@ -69,10 +69,20 @@ public class AgentApplicationService {
     private record LoadedTurn(Agent agent, PolicyRuntime runtime) {}
     private Optional<LoadedTurn> loadTurn(UUID id, OutputProfile profile) {
         java.util.function.Supplier<Optional<LoadedTurn>> load = () -> findAgent(id)
-                .map(agent -> new LoadedTurn(agent, runtimeFor(agent, profile)));
+                .map(agent -> {
+                    var owner = speechOwnership == null ? null : speechOwnership.current(agent);
+                    ch.zhaw.prometheus.logging.ActivityTrace.bind(agent.executionEpoch(), owner == null ? null : owner.sessionId(), null);
+                    return new LoadedTurn(agent, runtimeFor(agent, profile));
+                });
         return persistenceContext == null ? load.get() : persistenceContext.load(load);
     }
     private org.springframework.context.ApplicationEventPublisher applicationEvents;
+    private AgentActivityService activities;
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureActivities(AgentActivityService activities) { this.activities = activities; }
+    <T> T activity(UUID id, String kind, boolean foreground, java.util.function.Supplier<T> work) {
+        return activities == null ? work.get() : activities.call(id, kind, foreground, work);
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     void configureApplicationEvents(org.springframework.context.ApplicationEventPublisher events) { this.applicationEvents = events; }
@@ -164,6 +174,7 @@ public class AgentApplicationService {
     <T> T serialized(UUID agentId, java.util.function.Supplier<T> work) { return turns.call(agentId, work); }
 
     public boolean tick(UUID agentId) {
+        return activity(agentId, "tick", false, () -> {
         return serialized(agentId, () -> {
             discardSpeculation(agentId, "tick");
             Agent agent = findAgent(agentId).orElse(null);
@@ -174,6 +185,7 @@ public class AgentApplicationService {
                 publishBehaviour(saved, response);
                 return true;
             });
+        });
         });
     }
 
@@ -278,6 +290,7 @@ public class AgentApplicationService {
     }
 
     public BehaviourGenerationOutcome generate(UUID agentID, List<String> omitModalities, OutputProfile outputProfile) {
+        return activity(agentID, "generate", true, () -> {
         return serialized(agentID, () -> persistenceTurn(() -> {
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
             Optional<LoadedTurn> agentMaybe = this.loadTurn(agentID, resolvedProfile);
@@ -300,6 +313,7 @@ public class AgentApplicationService {
             this.publishBehaviour(saved, response);
             return BehaviourGenerationOutcome.GENERATED;
         }));
+        });
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request) {
@@ -307,6 +321,7 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
+        return activity(agentID, "acknowledge", Event.TYPE_USER_UTTERANCE.equals(request.getType()), () -> {
         return serialized(agentID, () -> persistenceTurn(() -> {
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
             Optional<LoadedTurn> agentMaybe = this.loadTurn(agentID, resolvedProfile);
@@ -321,6 +336,7 @@ public class AgentApplicationService {
                 Optional<ResponseView> result = actionTurn(agent, acknowledgementRuntime, runtime -> {
                     PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
                     Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
+                    ch.zhaw.prometheus.logging.ActivityTrace.bind(null, null, event.getId());
                     Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
                     Event responseToReturn = computedResponse == null ? response : computedResponse;
                     Agent saved = this.persistAndPublishMonitor(agent);
@@ -332,9 +348,11 @@ public class AgentApplicationService {
                 return result;
             }
         }));
+        });
     }
 
     public Optional<ResponseView> reset(UUID agentID) {
+        return activity(agentID, "reset", true, () -> {
         return serialized(agentID, () -> {
             discardSpeculation(agentID, "reset");
             Optional<Agent> agentMaybe = this.findAgent(agentID);
@@ -343,11 +361,13 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get();
             agent.reset();
+            ch.zhaw.prometheus.logging.ActivityTrace.bind(agent.executionEpoch(), null, null);
             if (speechOwnership != null) speechOwnership.revoke(agentID);
             Event response = agent.start(this.runtime());
             Agent saved = this.persistAndPublishMonitor(agent);
             this.publishBehaviour(saved, response);
             return Optional.of(new ResponseView(response, agent.isActive()));
+        });
         });
     }
 
