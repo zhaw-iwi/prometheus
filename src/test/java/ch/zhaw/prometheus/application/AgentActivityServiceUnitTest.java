@@ -10,6 +10,24 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.logging.*;
 
 class AgentActivityServiceUnitTest {
+    @Test void taskRevisionsAndCueSourcesRemainContentFreeAndCaughtFailuresAreStillFailures() {
+        var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class)); UUID id = UUID.randomUUID(), sample = UUID.randomUUID();
+        try {
+            service.call(id, "sensor", false, () -> {
+                ActivityTrace.task("RUNNING", 3); ActivityTrace.task("RUNNING", 3);
+                ActivityTrace.cue("cue_matched", sample, "obs.emotion.face");
+                ActivityTrace.task("PAUSED", 4); ActivityTrace.failed("task_behaviour_invalid");
+                return null;
+            });
+            var entries = service.snapshot(id).recent();
+            assertEquals(2, entries.stream().filter(e -> e.stage().equals("task")).count());
+            var cue = entries.stream().filter(e -> e.stage().equals("cue")).findFirst().orElseThrow();
+            assertEquals(sample, cue.sourceId()); assertEquals(3, cue.details().get("taskRevision"));
+            assertEquals("RUNNING", cue.details().get("phase"));
+            assertEquals("failed", entries.getLast().outcome());
+            assertEquals("task_behaviour_invalid", entries.getLast().details().get("reason"));
+        } finally { service.close(); }
+    }
     @Test void overlappingOperationsRetainIdentityAndFailureWithoutContent() throws Exception {
         var now = new AtomicLong();
         var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class), Clock.systemUTC(), now::get);

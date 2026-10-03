@@ -39,6 +39,11 @@ public class ExternalSpeechOwnership {
         Grant grant = owners.get(id);
         return grant != null && grant.input.get() && isCurrent(id, owner);
     }
+    /** In-flight cancellation fence. Authorization was checked when loading the turn; no extra query. */
+    public boolean taskWorkAllowed(UUID id, ExternalSpeech owner) {
+        Grant grant = owners.get(id);
+        return grant != null && grant.input.get() && grant.owner.equals(owner);
+    }
     public ExternalSpeech current(Agent agent) {
         Grant grant = owners.get(agent.getId());
         if (grant == null) return null;
@@ -49,4 +54,5 @@ public class ExternalSpeechOwnership {
         owners.computeIfPresent(agentId, (id, grant) -> grant.owner.sessionId().equals(sessionId) ? null : grant);
     }
     public void revoke(UUID agentId) { owners.remove(agentId); }
+    public boolean hasOwner(UUID agentId) { return owners.containsKey(agentId); }
 }

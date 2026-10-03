@@ -184,7 +184,7 @@ test("Generic activation telemetry follows real pending work, cue waiting, failu
     await page.getByTestId("interaction-activity").screenshot({ path: info.outputPath("real-held-activation.png") });
     await page.evaluate(() => window.PrometheusActivity.mark("long_pause"));
     await control("release"); expect([200, 409]).toContain((await overlap).status()); await control("clear");
-    await expect(page.getByTestId("gptlive-history")).toContainText("The round is ready.");
+    await expect(page.getByTestId("gptlive-history")).toContainText("First fixture observation.");
     await expect.poll(async () => (await (await request.get(path + "/storage", { headers: scoped })).json()).find(value => value.key === "task.phase")?.value).toBe('"RUNNING"');
     await expect.poll(async () => (await snapshot()).journals.at(-1).active.length).toBe(0);
     await expect.poll(async () => (await (await request.get(path + "/live/transcripts?sessionId=" + liveSession.handle, { headers: scoped })).json()).some(value => value.speaker === "ASSISTANT" && value.status === "COMPLETE")).toBe(true);
@@ -204,16 +204,17 @@ test("Generic activation telemetry follows real pending work, cue waiting, failu
     expect(recording.journals.at(-1).recent.some(value => value.stage === "inference" && value.details.purpose === "EXTRACTION")).toBe(true);
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
     await control("hold");
+    await expect.poll(async () => (await (await request.get(path + "/storage", { headers: scoped })).json()).find(value => value.key === "task.phase")?.value).toBe('"PAUSED"');
     const failure = request.post(path + "/acknowledge", { headers: scoped, data: { type: "obs.user_utterance", actor: "user", kind: "observation", payload: "Change the private fixture task" } });
     await expect(page.getByTestId("activity-label")).toHaveText("Thinking");
-    await control("fail"); expect((await failure).status()).toBe(500); await control("clear");
+    await control("fail"); expect((await failure).status()).toBe(200); await control("clear");
     await expect(page.getByTestId("activity-label")).toHaveText("Processing failed");
     expect((await snapshot()).journals.at(-1).active).toHaveLength(0);
     const oldEpoch = (await snapshot()).journals.at(-1).epoch;
     await page.locator("#open_diagnostics").click();
     page.once("dialog", dialog => dialog.accept()); await page.getByTestId("reset-agent").click();
     await expect.poll(async () => (await snapshot()).journals.at(-1).epoch).not.toBe(oldEpoch);
-    await expect(page.getByTestId("activity-label")).toHaveText("Ready");
+    await expect(page.getByTestId("activity-label")).toHaveText("Ready to configure");
   } finally {
     await control("clear"); await request.delete(path, { headers: scoped });
   }

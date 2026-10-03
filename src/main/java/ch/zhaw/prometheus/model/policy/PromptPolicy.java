@@ -187,6 +187,8 @@ public class PromptPolicy extends Policy {
     public String describe() {
         return resolvePrompt();
     }
+    public String promptTemplate() { return promptTemplate; }
+    public void setPromptTemplate(String template) { this.promptTemplate = template; }
 
     private BehaviourPlan producePlan(List<PromptMessage> messages, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {

@@ -28,6 +28,7 @@ class ScopedLiveSessionServiceUnitTest {
     final ExternalSpeechOwnership ownership = new ExternalSpeechOwnership();
     ScopedLiveSessionService service;
     final LiveTranscriptIngressService ingress = mock(LiveTranscriptIngressService.class);
+    final GenericTaskSessionLifecycleService taskLifecycle = mock(GenericTaskSessionLifecycleService.class);
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
@@ -40,6 +41,7 @@ class ScopedLiveSessionServiceUnitTest {
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
         service.configureIngress(ingress);
+        service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
     @Test void providerUsageAndSafeFailuresAreRetainedWithoutMessagesOrSummingUpdates() {
@@ -93,6 +95,8 @@ class ScopedLiveSessionServiceUnitTest {
         service.mute("ABCDE", agent, session.handle(), true);
         assertEquals("session.input_audio.mute", gateway.sent.getFirst().get("type").getAsString());
         var result = service.close("ABCDE", agent, session.handle()).orElseThrow();
+        assertEquals("local_stop", result.reason());
+        verify(taskLifecycle).closed(eq(agent), any(), eq(session.handle()));
         assertTrue(result.finalized()); assertEquals("closed", result.state()); assertTrue(gateway.hangups.isEmpty());
         assertEquals("closed", service.status("ABCDE", agent, session.handle()).orElseThrow().state());
         gateway.ack = false; session = start();

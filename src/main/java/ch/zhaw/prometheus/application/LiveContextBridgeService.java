@@ -141,15 +141,18 @@ public class LiveContextBridgeService {
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
-                transmitAll(batch.commands());
+                var deferred = transmitAll(batch.commands());
                 if (closed.get()) return;
-                delivery.acknowledged(batch); revision = fresh.context().revision(); applied.accept(fresh.context());
+                var acknowledged = delivery.acknowledged(batch, deferred);
+                revision = acknowledged.revision(); applied.accept(acknowledged);
+                if (!deferred.isEmpty()) return; // Refresh immediately for the urgent result before resolving routine work.
                 for (var reply : delegations.resolve(fresh.context(), clock.millis()))
                     for (Command command : LiveContextDelivery.contextReply(reply.text(), reply.id(), revision)) transmit(command);
                 UUID segment;
                 while ((segment = clarifications.poll()) != null) transmit(LiveContextDelivery.clarification(segment, revision));
                 state = "ready";
             } catch (RuntimeException invalid) {
+                if (closed.get()) { trace("session_closed_during_delivery", null); return; }
                 ch.zhaw.prometheus.logging.ActivityTrace.failed("context_delivery_unconfirmed");
                 fail("context_delivery_unconfirmed");
             }
@@ -158,10 +161,22 @@ public class LiveContextBridgeService {
         private void transmit(Command command) {
             transmit(command, command.sourceId() == null ? List.of() : List.of(command.sourceId()));
         }
-        private void transmitAll(List<Command> commands) {
+        private Set<String> transmitAll(List<Command> commands) {
             var queue = new ArrayDeque<>(commands); var expired = new HashSet<String>();
+            String previousEvidence = null;
             while (!queue.isEmpty()) {
+                // Finish the current multi-part observation, then allow a committed result
+                // to supersede unsent routine evidence. Never abandon guidance or a narration.
+                if (urgent.get() && queue.getFirst().evidenceType() != null
+                        && !Objects.equals(previousEvidence, queue.getFirst().evidenceType())
+                        && queue.stream().allMatch(command -> command.evidenceType() != null)) {
+                    var deferred = new HashSet<String>(); var sources = new LinkedHashSet<UUID>();
+                    for (var command : queue) { deferred.add(command.evidenceType()); if (command.sourceId() != null) sources.add(command.sourceId()); }
+                    trace("sensory_superseded", null, List.copyOf(sources));
+                    return deferred;
+                }
                 Command command = queue.removeFirst();
+                previousEvidence = command.evidenceType();
                 if (command.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))) {
                     if (!expired.add(command.evidenceType())) continue;
                     trace("expired_before_send", command); command = command.expired();
@@ -176,12 +191,13 @@ public class LiveContextBridgeService {
                     if (!next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
                             || !next.revision().equals(command.revision()) || next.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
                             || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 480) break;
-                    queue.removeFirst(); if (next.sourceId() != null) sources.add(next.sourceId());
+                    queue.removeFirst(); previousEvidence = next.evidenceType(); if (next.sourceId() != null) sources.add(next.sourceId());
                     command = new Command(command.type(), content, command.delegationId(),
                             sources.size() == 1 ? sources.iterator().next() : null, command.revision());
                 }
                 transmit(command, List.copyOf(sources));
             }
+            return Set.of();
         }
         private void transmit(Command command, List<UUID> sources) {
             if (closed.get()) throw new IllegalStateException("Context session closed");

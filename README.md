@@ -1682,12 +1682,24 @@ Text/Continuous and GPT-Live. Enable required sensors through the cockpit.
 Creation publishes a welcome without a provider request.
 
 Discuss the goal, clarify material choices, propose a plan and ask the agent to
-start. For example: tell one joke, wait for facial feedback, tell another after a
-stable negative cue, and finish after a positive cue. Neutral, missing or expired
-cues wait. The backend stores a draft/active task and exposes its configuration,
+start. Built-in guidance describes the rule schema without prescribing a task.
+Lightweight interactions default to one matching observation; additional samples
+should be an explicit stability choice. Missing, expired or unmatched cues wait.
+The existing interaction footer distinguishes awaiting acceptance, temporary
+waiting, pause and completion. Accepted facial cues remain visible briefly so
+the expression need not be held while a response is prepared. The scoped monitor
+snapshot adds a content-free `task` readiness hint; the browser may send one
+qualifying facial observation sooner per response window. Backend guards still
+decide acceptance, and ordinary sensor cadence and social batching are unchanged.
+Telemetry exports include bounded task readiness changes and content-free
+phase/revision/cue-source correlation. Distinct fixed failure categories separate
+provider failures from invalid task/configuration output. Captions that do not
+establish the response boundary remain visibly unconfirmed in the same footer.
+The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
-revisions can propose a replacement; explicit stop/cancel/pause commands halt the
-task. Reset clears the agreement. Ordinary questions retain the active task and
+revisions can propose a replacement. Stop/cancel ends the task; pause preserves
+the agreement and action budget for explicit resume. Reset clears the agreement.
+Ordinary questions retain the active task and
 receive a bounded snapshot of current perception, with camera coverage and
 freshness limits.
 
@@ -1696,6 +1708,13 @@ comparisons, one to three distinct matching samples, confidence thresholds,
 three to sixty seconds cooldown and one to fifty actions including the initial
 action. The planner explains the agreed limits. All supported observations can
 inform answers; executable trigger fields are restricted by `TaskSpec.FIELDS`.
+Rules use `effect: ACT|WAIT|COMPLETE`: ACT performs a step, WAIT silently waits
+for another matching action condition, and COMPLETE ends the task permanently.
+An observed empty scene uses confidence zero because average detected-person
+confidence is undefined without detections; missing or stale sensing remains
+unknown. New agreements reject conflicting identical conditions and impossible
+absence confidence thresholds. Legacy `complete` booleans remain readable with
+their original meaning and are not silently reinterpreted as resumable waits.
 No arbitrary code, external tools, automatic detector changes, timers or nested
 workflow generation is provided. Unknown string-valued expressive gesture labels
 fall back to `NONE`, preserving valid speech and other output. Task rules, output
@@ -1706,11 +1725,39 @@ record a request ID and fixed reason codes, never model output. Failed
 sensor-triggered generation pauses for explicit resumption.
 
 During Live, task replies use committed backend announcements. Further cues wait
-for a completed native speech segment and new sensor samples; this does not prove
-physical playback completion. Text/Continuous use cooldown rather than playback
+for completed native segments associated with the spoken response, followed by
+new sensor samples. Brief acknowledgments, unrelated captions and incomplete
+segments do not release this boundary. Matching accepts the full wording or a
+complete substantive two-sentence opening when Live shortens trailing guidance;
+function-word ASR variation is tolerated. This conservative lexical association
+can still leave capture unconfirmed after substantial paraphrases or ASR errors.
+This does not prove physical playback completion. Text/Continuous use cooldown rather than playback
 acknowledgements. Stopping prevents new reactions but need not interrupt speech
 already queued or playing. Provider interpretation and acoustic behaviour require
 live acceptance; see [implementation and verification](.agents/GENERIC_MULTIMODAL_RESULTS.md).
+
+Task configurations default to `sessionBound: true`. An associated Live stop or
+disconnect pauses the task, preserves the agreement/action count, and discards
+late activation/action results. Reconnecting alone does not resume it. Explicit
+resume can bind the saved task to the new session. Only an explicitly requested
+autonomous task uses `sessionBound: false`; this preserves backend continuation,
+without promising speech delivery after the voice connection ends.
+Committed announcements can supersede queued routine observations after the
+current observation is delivered completely. Unsent values remain unacknowledged
+and are replaced with fresh evidence; the normal read-coalescing window remains.
+
+Saved instances retain their persisted prompts until explicitly upgraded. With
+`X-Prometheus-Admin-Token`, GET `/admin/agents/{id}/generic-policy-upgrade` previews
+recognized old built-ins, already-current policies, custom policies and agreements
+needing rule review. It returns hashes and classifications, without prompt text.
+POST the same path with `{"fingerprint":"<preview fingerprint>"}` to apply exactly
+that preview. A changed agreement/policy or open Live session returns 409; close
+Live and preview again. Repeating an already applied upgrade changes nothing.
+Custom instructions, saved task/draft JSON and conversation history are preserved.
+Incompatible active agreements are paused for explicit rule clarification; their
+meaning is never silently converted. Activating an incompatible saved draft asks
+for a rule correction without requesting the whole task again. There is no
+automatic startup migration.
 
 ### Capability awareness
 

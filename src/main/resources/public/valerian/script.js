@@ -28,6 +28,7 @@ const state = {
   storage: [],
   openStorageKeys: new Set(),
   storageSnapshot: null,
+  taskStatus: null,
   seenConversationEvents: new Set(),
 };
 
@@ -1551,6 +1552,8 @@ function applyMonitorSnapshot(data) {
   if (Array.isArray(data.storage)) {
     setStorageEntries(data.storage);
   }
+  state.taskStatus = data.task ? { ...data.task, receivedAt: Date.now() } : null;
+  globalThis.PrometheusActivity?.taskStatus(data.task);
 }
 
 function applyStateSnapshot(data) {
@@ -1632,6 +1635,8 @@ function setStorageEntries(entries) {
 
 function resetStorageList() {
   state.storage = [];
+  state.taskStatus = null;
+  globalThis.PrometheusActivity?.taskStatus(null);
   state.openStorageKeys = new Set();
   state.storageSnapshot = null;
   renderStorageList();
@@ -3586,31 +3591,58 @@ async function maybeEmitEmotion(emotion, faceScore) {
     setEmotionEmitStatus("Below threshold", "idle");
     return;
   }
-  if (!passesSensorEmitInterval("emotion")) {
+  const fastCue = armedFaceCue(emotion);
+  if (!fastCue && !passesSensorEmitInterval("emotion")) {
     setEmotionEmitStatus("Cooldown", "idle");
     return;
   }
   if (camera.lastEmotion && camera.lastEmotion.emotion === emotion.emotion &&
     Math.abs(camera.lastEmotion.valence - emotion.valence) < 0.08 &&
     Math.abs(camera.lastEmotion.arousal - emotion.arousal) < 0.08 &&
-    !liveSensorRefreshDue(camera.lastEmotionEmitAt)) {
+    !liveSensorRefreshDue(camera.lastEmotionEmitAt) && !fastCue) {
     setEmotionEmitStatus("Stable", "idle");
     return;
   }
   camera.lastEmotionAttemptAt = Date.now();
+  const agentId = state.agentId;
   const ok = await acknowledgeEvent({
     type: "obs.emotion.face",
     actor: "user",
     kind: "observation",
     payload: JSON.stringify(emotionPayload(emotion, "visual.facial", faceScore)),
   }, { renderResponse: true });
-  if (ok) {
+  if (ok && state.agentId === agentId) {
     markSensorEmitted("emotion");
     camera.lastEmotion = emotion;
+    if (fastCue) camera.lastFastFaceCue = fastCue;
     setEmotionEmitStatus(`Emitted ${new Date().toLocaleTimeString()}`, "live");
   } else {
     setEmotionEmitStatus("Emit failed", "error");
   }
+}
+
+function armedFaceCue(emotion) {
+  // This only chooses whether to send a fresh sample sooner. Backend rules remain authoritative.
+  const task = state.taskStatus;
+  if (!state.monitorReady || !task || !["RUNNING", "WAITING"].includes(task.phase) || !task.responseCaptured ||
+      Date.now() - task.receivedAt > 10000 || Date.now() - task.receivedAt < task.nextCueInMs ||
+      Date.now() - (camera.lastEmotionAttemptAt || 0) < 500) return null;
+  const window = `${state.agentId}/${task.epoch}/${task.window}`;
+  if (camera.lastFastFaceCue === window) return null;
+  try {
+    const entry = (state.storage || []).find(entry => entry.key === "task.spec");
+    const spec = JSON.parse(entry?.value || "null");
+    const matched = (spec?.rules || []).slice(0, 4).some(rule => {
+      if (rule.eventType !== "obs.emotion.face" || rule.samples !== 1 ||
+          !["emotion", "valence", "arousal", "facePresent"].includes(rule.field) ||
+          emotion.confidence < rule.minConfidence || (rule.effect === "WAIT" && task.phase === "WAITING")) return false;
+      if (emotion.facePresent === false && rule.field !== "facePresent") return false;
+      const value = emotion[rule.field];
+      return rule.operator === "eq" ? value === rule.value : typeof value === "number" &&
+        (rule.operator === "lt" ? value < rule.value : rule.operator === "gt" && value > rule.value);
+    });
+    return matched ? window : null;
+  } catch (_) { return null; }
 }
 
 async function submitEmotionSample(label) {

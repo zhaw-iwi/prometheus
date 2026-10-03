@@ -82,6 +82,48 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
+  fingerprinted and idempotent, preserving custom prompts, agreements and history.
+  Incompatible saved rules receive focused clarification. Replay refined caption
+  association to tolerate shortened trailing guidance. Full Java, 101 Node,
+  Playwright visual/real-app and four provider configuration checks passed;
+  acoustic completion remains unverified. Integration/deployment follows this
+  implementation commit. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+
+- Milestone 212 (2026-10-03): bounded telemetry includes task readiness changes,
+  phase/revision/cue identity and distinct caught-failure outcomes. Urgent results
+  overtake unsent sensory work at complete-observation boundaries. Passed 42
+  Java cases including query budgets and 51 Node cases. Controlled delivery order
+  is verified; production latency gains remain unmeasured. Evidence:
+  `.agents/GENERIC_REFINEMENT_RESULTS.md`; saved-instance rollout follows in 213.
+
+- Milestone 211 (2026-10-03): Live session loss/stop pauses associated interactive
+  tasks and fences late work; explicit resume preserves agreements and budgets.
+  Captured response content, rather than any acknowledgment, gates later cues.
+  Intentional close is distinguished from failure. Passed 30 focused unit and
+  three MySQL cases; ASR fidelity and physical playback remain live-trial limits.
+  Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`; milestone 212 follows.
+
+- Milestone 210 (2026-10-03): one qualifying facial cue can bypass the ordinary
+  emission interval once per response window using existing monitor readiness.
+  The unified footer shows awaiting acceptance, cue acceptance and task lifecycle.
+  Passed 25 Java, 50 Node, four visual browser cases and the enabled smoke;
+  the disabled run skipped the selected enabled-only test.
+  query budgets remain intact. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+
+- Milestone 209 (2026-10-03): Generic rules distinguish acting, temporary waiting
+  and terminal completion; explicit pause/resume preserves the action budget.
+  New agreements reject impossible absence-confidence thresholds and conflicting
+  identical conditions. Passed 18 unit and 2 MySQL cases, including reload.
+  Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`; milestone 210 follows.
+
+- Milestone 208 (2026-10-03): Generic configuration now uses neutral schema
+  descriptions without a preset demo task, defaults lightweight plans to one
+  matching observation and explicitly distinguishes awaiting acceptance. Passed
+  15 focused Java/MySQL checks. Saved-policy migration remains in milestone 213;
+  the authorized six-stage plan continues on feature/gptlive. Evidence:
+  `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+
 - Milestone 207 (2026-10-03): integrated Generic activation/progress acceptance,
   including delayed inference, overlapping work, cue waiting, safe provider usage,
   failure and reset. Full feature regression passed 491 Java tests; all 52 browser

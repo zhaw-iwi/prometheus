@@ -12,10 +12,30 @@ import ch.zhaw.prometheus.model.policy.*;
 public final class TaskMemory {
     private static final Set<String> GESTURES = Set.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper");
     public static final String PHASE = "task.phase", SPEC = "task.spec", DRAFT = "task.draft", REPLY = "task.reply",
-            ACTIONS = "task.actions", AFTER = "task.after", REVISION = "task.revision";
-    private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION);
+            ACTIONS = "task.actions", AFTER = "task.after", REVISION = "task.revision", SESSION = "task.session", PAUSE_REASON = "task.pauseReason";
+    private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION, SESSION, PAUSE_REASON);
     private TaskMemory() {}
     public static String phase(Storage storage) { return text(storage, PHASE, "CONFIGURATION"); }
+    public static boolean active(Storage storage) { return Set.of("RUNNING", "WAITING").contains(phase(storage)); }
+    static void trace(Storage storage) {
+        ch.zhaw.prometheus.logging.ActivityTrace.task(phase(storage), Integer.parseInt(text(storage, REVISION, "0")));
+    }
+    public static boolean sessionBound(Storage storage) {
+        return !storage.containsKey(SPEC) || TaskSpec.parse(storage.get(SPEC)).sessionBound();
+    }
+    public static boolean pauseForSession(Storage storage, String reason) {
+        if (!active(storage) || !sessionBound(storage)) return false;
+        put(storage, PHASE, "PAUSED"); put(storage, PAUSE_REASON, reason); revise(storage);
+        if (storage.containsKey(REPLY)) storage.remove(REPLY);
+        return true;
+    }
+    public static void requireRuleReview(Storage storage) {
+        if (active(storage)) { put(storage, PHASE, "PAUSED"); put(storage, PAUSE_REASON, "requires_rule_review"); revise(storage); }
+    }
+    static void bindSession(Storage storage, ExternalSpeech owner) {
+        put(storage, SESSION, owner == null ? "" : owner.sessionId().toString());
+        if (storage.containsKey(PAUSE_REASON)) storage.remove(PAUSE_REASON);
+    }
     public static String text(Storage storage, String key, String fallback) {
         return storage.containsKey(key) ? storage.get(key).getAsString() : fallback;
     }

@@ -30,7 +30,7 @@ function fixture({ live = true, interval = 2500 } = {}) {
         ? { status: 500, response: null } : { status: 200, response: { active: true } }); } };
     },
   });
-  for (const name of ["maybeEmitEmotion", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
+  for (const name of ["maybeEmitEmotion", "armedFaceCue", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
     "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads", "acknowledgeObservationBatch",
     "socialContextPayload", "socialContextPerson", "socialContextSignature", "normalizeAttentionSignal",
     "normalizeAttentionState", "normalizeMovementState", "asUnitNumber", "clamp", "round", "average"]) {
@@ -64,6 +64,36 @@ test("unchanged Live readings refresh every five seconds with new observation ti
     const times = events.map(event => Date.parse(JSON.parse(event.payload).ts));
     assert.deepEqual(times.slice(1).map((time, i) => time - times[i]), Array(6).fill(5000));
   }
+});
+
+test("one armed matching face bypasses the ordinary interval without sending each frame", async () => {
+  const f = fixture(); await f.sense();
+  const rule = { eventType: "obs.emotion.face", field: "valence", operator: "lt", value: -.25, samples: 1, minConfidence: .7, effect: "ACT" };
+  f.context.state.storage = [{ key: "task.spec", value: JSON.stringify({ rules: [rule] }) }];
+  f.context.state.monitorReady = true;
+  f.context.state.taskStatus = { epoch: "epoch", phase: "RUNNING", responseCaptured: true, nextCueInMs: 0, window: "one", receivedAt: f.context.Date.now() };
+  f.advance(700); f.context.face = { ...f.context.face, emotion: "sad", valence: -.9 };
+  await f.sense(); assert.equal(f.events.filter(e => e.type === "obs.emotion.face").length, 2);
+  for (let i = 0; i < 5; i++) { f.advance(350); await f.sense(); }
+  assert.equal(f.events.filter(e => e.type === "obs.emotion.face").length, 2);
+  f.context.state.taskStatus.window = "two"; f.context.state.taskStatus.responseCaptured = false;
+  await f.sense(); assert.equal(f.events.filter(e => e.type === "obs.emotion.face").length, 2);
+  f.context.state.taskStatus.responseCaptured = true;
+  await f.sense(); assert.equal(f.events.filter(e => e.type === "obs.emotion.face").length, 3);
+  assert.equal(f.batches.length, 1, "The cue optimization does not accelerate social sensing");
+});
+
+test("unmatched, low-confidence, stale and disconnected readiness never bypass normal cadence", async () => {
+  const f = fixture(); await f.sense(); f.advance(700);
+  f.context.state.storage = [{ key: "task.spec", value: JSON.stringify({ rules: [{ eventType: "obs.emotion.face", field: "valence", operator: "lt", value: -.25, samples: 1, minConfidence: .9 }] }) }];
+  f.context.state.monitorReady = true;
+  f.context.state.taskStatus = { phase: "RUNNING", responseCaptured: true, nextCueInMs: 0, window: "one", receivedAt: f.context.Date.now() };
+  await f.sense(); assert.equal(f.events.length, 4);
+  f.context.face = { ...f.context.face, valence: -.9, confidence: .8 }; await f.sense(); assert.equal(f.events.length, 4);
+  f.context.face.confidence = .99; f.context.state.taskStatus.receivedAt -= 11000;
+  await f.sense(); assert.equal(f.events.length, 4);
+  f.context.state.taskStatus.receivedAt = f.context.Date.now(); f.context.state.monitorReady = false;
+  await f.sense(); assert.equal(f.events.length, 4);
 });
 
 test("late batch replies cannot update a different agent or advance sensor deduplication", async () => {
