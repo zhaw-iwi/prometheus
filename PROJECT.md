@@ -80,7 +80,11 @@ and regulation diagnostics remain future work.
   failure and reset. Full feature regression passed 491 Java tests; all 52 browser
   cases have passing evidence across the broad run and focused fixture correction.
   Query budgets retain their prior limits by reusing resolved speech ownership.
-  Final focused checks and branch/deployment evidence: `.agents/TELEMETRY_RESULTS.md`.
+  Implementation `87c253b` is on main/feature/gptlive. Agents merge `c1de3a0`
+  passed 628 Java and 21 browser cases and deployed as Heroku v106. Health/login,
+  all changed client assets and the production scoped activity stream passed;
+  saved agents remain 25. Physical acoustic trials remain open. Full evidence:
+  `.agents/TELEMETRY_RESULTS.md`.
 
 - Milestone 206 (2026-10-03): one activity footer across Text/Continuous/GPT-Live
   and renamed Telemetry tab. Added bounded backend journals, issue markers,
