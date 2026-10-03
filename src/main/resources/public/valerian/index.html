@@ -2089,7 +2089,7 @@
                   </div>
                   <div id="gptlive_detail" class="small mt-2" role="status" data-testid="gptlive-detail">Start when you are ready to speak.</div>
                   <div class="d-flex flex-wrap gap-2 mt-2 small text-muted">
-                    <span id="gptlive_input_activity">Microphone idle</span><span aria-hidden="true">·</span><span id="gptlive_output_activity">Speaker idle</span>
+                    <span id="gptlive_input_activity">Microphone idle</span>
                   </div>
                   <audio id="gptlive_audio" hidden></audio>
                   <div class="surface-panel mt-3" data-testid="gptlive-captions">
@@ -2117,7 +2117,6 @@
                   </details>
                   <div class="metric-label mt-3 mb-2">Recorded conversation</div>
                   <div id="gptlive_history" class="message-list" style="height: auto; max-height: 22rem; min-height: 5rem" data-testid="gptlive-history"><p class="text-muted small m-0">Recorded conversation will appear here.</p></div>
-                  <div id="gptlive_context" class="small text-muted mt-2" data-testid="gptlive-context">Context: idle</div>
                 </div>
                 <div id="continuous_speech_panel" class="tab-pane fade" role="tabpanel"
                   aria-labelledby="continuous_speech_tab" tabindex="0">
@@ -2157,8 +2156,6 @@
                   <audio id="assistant_audio" class="mt-3 w-100" controls autoplay
                     data-testid="assistant-audio"></audio>
                   <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
-                    <span id="speech_playback_status" class="status-pill is-idle"
-                      data-testid="speech-playback-status">Playback Ready</span>
                     <button id="stop_speech_playback" class="btn btn-outline-ink btn-sm" type="button" disabled
                       data-testid="stop-speech-playback">
                       <i class="bi bi-stop-fill me-1"></i>Stop Playback
@@ -2254,14 +2251,27 @@
                       <span class="metric-label">User Speech</span>
                       <div id="continuous_speech_sensing_value" data-testid="continuous-speech-sensing-value">-</div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                      <span class="metric-label">Agent Input</span>
-                      <span id="transcription_ingress_status" class="status-pill is-idle"
-                        data-testid="transcription-ingress-status">Transcript Ready</span>
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+            <div id="interaction_activity" class="card-footer interaction-activity" data-testid="interaction-activity" data-busy="false" data-tone="idle">
+              <span class="activity-indicator" aria-hidden="true"></span>
+              <div class="activity-copy">
+                <span data-activity-label data-testid="activity-label" role="status" aria-live="polite" aria-atomic="true">Connect an agent to begin</span>
+                <span data-activity-detail class="small text-body-secondary" hidden></span>
+              </div>
+              <span data-activity-elapsed class="small text-body-secondary" aria-hidden="true"></span>
+              <div class="dropdown">
+                <button type="button" class="btn btn-sm btn-outline-ink" data-bs-toggle="dropdown" data-issue-open aria-label="Mark an interaction issue" title="Mark an issue in Telemetry" disabled><i class="bi bi-flag" aria-hidden="true"></i></button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><button class="dropdown-item" type="button" data-issue-marker="speech_cut_off">Speech cut off</button></li>
+                  <li><button class="dropdown-item" type="button" data-issue-marker="long_pause">Long pause</button></li>
+                  <li><button class="dropdown-item" type="button" data-issue-marker="unexpected_response">Unexpected response</button></li>
+                  <li><button class="dropdown-item" type="button" data-issue-marker="missed_cue">Missed cue</button></li>
+                </ul>
+              </div>
+              <span class="visually-hidden" data-issue-feedback role="status"></span>
             </div>
           </div>
           <div class="column-expanded-placeholder surface-panel d-none" data-column-placeholder="interaction"
@@ -2502,7 +2512,7 @@
         <li class="nav-item" role="presentation">
           <button id="interaction_timing_tab" class="nav-link" type="button" role="tab" data-bs-toggle="tab"
             data-bs-target="#interaction_timing_panel" aria-controls="interaction_timing_panel"
-            aria-selected="false" data-testid="interaction-timing-tab">Interaction Timing</button>
+            aria-selected="false" data-testid="interaction-timing-tab">Telemetry</button>
         </li>
       </ul>
       <div class="tab-content">
@@ -2572,7 +2582,7 @@
         </div>
         <div id="interaction_timing_panel" class="tab-pane fade" role="tabpanel"
           aria-labelledby="interaction_timing_tab" tabindex="0" data-testid="interaction-timing-panel">
-          <p class="small">Timings are recorded automatically for submitted turns. The latest 128 stay in this page,
+          <p class="small">Telemetry is recorded automatically. The latest 128 ordinary turns stay in this page,
             including across agent resets. Clear or reload to start a new recording.</p>
           <div class="d-flex flex-wrap gap-2 mb-3">
             <button id="timing_export_json" class="btn btn-outline-ink btn-sm" type="button" data-timing-export="json"
@@ -2582,10 +2592,11 @@
             <button id="timing_clear" class="btn btn-outline-ink btn-sm" type="button" data-timing-clear
               data-testid="timing-clear">Clear</button>
           </div>
-          <p class="small text-body-secondary">JSON includes browser stages, settings and available server timings.
+          <p class="small text-body-secondary">JSON includes backend activity, Live diagnostics, issue markers, settings and available timings.
             Exports exclude conversation text and credentials. Speech end is estimated; playback means the browser
             started playing. Missing stages show Unknown. Overlapping durations must not be added.</p>
           <p class="small" data-timing-count role="status" data-testid="timing-count"></p>
+          <div data-activity-telemetry></div>
           <div data-timing-turns data-testid="timing-turns"></div>
         </div>
         <div id="diagnostics_drawer_panel" class="tab-pane fade" role="tabpanel"
@@ -2640,6 +2651,7 @@
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script type="module" src="/transcription/browser-global.js"></script>
   <script type="module" src="/speech/browser-global.js"></script>
+  <link rel="stylesheet" href="/performance/activity.css">
   <script type="module" src="/performance/panel.js"></script>
   <script src="script.js"></script>
 </body>

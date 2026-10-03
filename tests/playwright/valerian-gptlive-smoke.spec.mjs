@@ -74,7 +74,7 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     expect(JSON.parse(storage.find(value => value.key === "rps_rounds").value)).toHaveLength(1);
     expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls).toBe(0);
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
-    await expect(page.locator("#gptlive_context")).toContainText("Capture: closed");
+    await expect.poll(() => page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot().sessions.at(-1)?.server?.captureState)).toBe("closed");
     expect((await (await request.get(`${path}/live/sessions/${session.handle}`, { headers: scoped })).json()).finalized).toBe(true);
     const diagnostics = await page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot());
     const trial = diagnostics.sessions.find(value => value.handle === session.handle);

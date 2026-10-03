@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 206 (2026-10-03): one activity footer across Text/Continuous/GPT-Live
+  and renamed Telemetry tab. Added bounded backend journals, issue markers,
+  capture configuration, provider usage and collection coverage to JSON; retained
+  ordinary turn/CSV compatibility. Client/visual acceptance evidence and remaining
+  integrated checks are in `.agents/TELEMETRY_RESULTS.md`. Milestone 207 follows
+  automatically under user authorization.
+
 - Milestone 205 (2026-10-03): shared bounded in-memory activity reporting on the
   existing scoped monitor stream, model/queue/persistence/context stages, aggregated
   cue reasons, and safe cumulative Live usage/error metadata. Passed 37 focused
@@ -269,6 +276,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 206: Unified interaction activity footer and Telemetry
 
 - [x] Milestone 205: Shared activity reporting and safe Live metadata
 
@@ -8907,3 +8916,16 @@ codes; no raw audio, transcript, prompts or provider messages enter new records.
 Passed 37 focused Java checks against disposable local MySQL, including an actual
 in-flight SSE event before HTTP completion and unchanged query budgets. Evidence,
 plan and remaining browser/acoustic limits: `.agents/TELEMETRY_RESULTS.md`.
+
+## Milestone 206: Unified interaction activity footer and Telemetry
+
+2026-10-03. Consolidated backend processing, Continuous ingress/playback and Live
+output observations in a shared footer. Active work has elapsed time and a
+reduced-motion-aware spinner; cue waiting is static and stale progress is explicit.
+Removed the separate ingress, playback and Live context summaries while retaining
+connection/device controls. Renamed Interaction Timing to Telemetry. Metadata-only
+JSON exports add bounded backend operations, configuration/coverage and fixed-category
+issue markers. Existing turn fields and CSV remain compatible. JavaScript unit,
+local MySQL browser, lifecycle, desktop/mobile and light/dark visual evidence is
+recorded in `.agents/TELEMETRY_RESULTS.md`. Synthetic playback is not physical
+acoustic verification. Final integrated acceptance and rollout follow in 207.

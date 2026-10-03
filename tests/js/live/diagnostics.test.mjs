@@ -2,6 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveDiagnostics } from "../../../src/main/resources/public/live/diagnostics.js";
 
+test("Live usage remains cumulative and export retains safe capture/configuration/error coverage", () => {
+  const diagnostics = new LiveDiagnostics();
+  diagnostics.record({ handle: "s", phase: "capture", capture: { requested: { echoCancellation: true, deviceId: "private" }, applied: { echoCancellation: false } } });
+  for (const usageSeconds of [12, 15]) diagnostics.record({ handle: "s", phase: "status", status: { providerTelemetry: {
+    usageSeconds, contextUsageRatio: .4, closeReason: "ended", configuration: { model: "gpt-live-1", voice: "marin", requestTimeoutMs: 1000, key: "private" },
+    problems: [{ code: "invalid_request", type: "error", clientEventId: "event1", message: "private" }] } } });
+  const session = diagnostics.snapshot().sessions[0];
+  assert.equal(session.provider.usageSeconds, 15); assert.equal(session.provider.contextUsageRatio, .4);
+  assert.equal(session.captureConfiguration.applied.echoCancellation, false);
+  assert.equal(session.provider.problems[0].code, "invalid_request");
+  assert.equal(session.coverage.usage, "cumulative_latest"); assert.equal(JSON.stringify(session).includes("private"), false);
+});
+
 test("Live exports retain bounded correlations, separate clocks and uncertain finalization without content", () => {
   const diagnostics = new LiveDiagnostics({ now: () => 10, traceLimit: 2, limit: 1 });
   const privateFields = { text: "private", audio: "private", sdp: "private", accessCode: "private", deviceId: "private" };

@@ -1,0 +1,11 @@
+.interaction-activity { display: flex; align-items: center; gap: .65rem; min-height: 3.5rem; padding: .65rem 1rem; font-size: .875rem; }
+.activity-copy { flex: 1; min-width: 0; }
+.activity-copy > span { display: block; overflow-wrap: anywhere; }
+.activity-copy > [hidden] { display: none; }
+.activity-indicator { width: .85rem; height: .85rem; border: 2px solid currentColor; border-radius: 50%; opacity: .5; flex: 0 0 auto; }
+[data-busy="true"] > .activity-indicator { border-right-color: transparent; opacity: 1; animation: activity-spin 1s linear infinite; }
+[data-tone="error"] > .activity-indicator { color: var(--bs-danger); }
+[data-tone="warning"] > .activity-indicator { color: var(--bs-warning-text-emphasis); }
+[data-tone="live"] > .activity-indicator { color: var(--bs-success); background: currentColor; }
+@keyframes activity-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { [data-busy="true"] > .activity-indicator { animation: none; } }

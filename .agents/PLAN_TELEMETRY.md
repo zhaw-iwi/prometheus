@@ -55,4 +55,4 @@ actions. No deployment until all three milestones pass.
 OpenAI Live contracts were checked during design using official documentation:
 https://developers.openai.com/api/docs/guides/live-conversations
 
-Status: 205 complete; 206 in progress; 207 pending. Results: TELEMETRY_RESULTS.md.
+Status: 205 and 206 complete; 207 in progress. Results: TELEMETRY_RESULTS.md.

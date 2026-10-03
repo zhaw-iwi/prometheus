@@ -1,3 +1,4 @@
+import { interactionActivity, mountActivity } from "./activity.js";
 import { turnTimings } from "./timings.js";
 import { liveDiagnostics } from "../live/diagnostics.js";
 import { METRICS, STAGE_LABELS, SERVER_LABELS, difference, measurements, outcome, timingExport, timingCsv } from "./report.js";
@@ -104,6 +105,8 @@ function details(turn) {
 function mount() {
   const root = document.getElementById("interaction_timing_panel");
   if (!root) return;
+  mountActivity();
+  const activityRoot = root.querySelector("[data-activity-telemetry]");
   const list = root.querySelector("[data-timing-turns]");
   const count = root.querySelector("[data-timing-count]");
   const buttons = [...root.querySelectorAll("[data-timing-export]")];
@@ -112,8 +115,30 @@ function mount() {
     scheduled = false;
     const turns = turnTimings.snapshot();
     const live = liveDiagnostics.snapshot();
-    count.textContent = turns.length ? `${turns.length} turn${turns.length === 1 ? "" : "s"} retained · latest 20 shown` : "No turns recorded yet. Start transcription and speak to collect timings.";
-    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv" || !live.sessions.length); });
+    const activity = interactionActivity.snapshot();
+    const activityOpen = activityRoot.querySelector("details")?.open ?? true;
+    activityRoot.replaceChildren();
+    if (activity.journals.length || activity.markers.length) {
+      const section = element("details", undefined, "surface-panel timing-turn mb-2");
+      section.open = activityOpen;
+      section.append(element("summary", `Backend activity / ${activity.journals.length} recordings / ${activity.markers.length} issue markers`));
+      section.append(table([["Progress stream", activity.coverage.backend], ["Recordings / markers omitted", `${activity.droppedJournals} / ${activity.droppedMarkers}`]], "Collection coverage"));
+      for (const journal of activity.journals.slice(-3).reverse()) {
+        section.append(table([["Agent / epoch", `${journal.agentId} / ${journal.epoch || "Unknown"}`],
+          ["In progress", journal.active.map(value => value.stage).join(", ") || "None at last update"],
+          ["Cue waiting reason / evaluations", journal.cue ? `${journal.cue.reason} / ${journal.cue.occurrences}` : "None recorded"],
+          ["Server ring evictions / export omissions", `${journal.dropped ?? "Unknown"} / ${journal.retainedDropped}`],
+          ["Operations omitted", journal.omittedOperations ?? "Unknown"]], "Latest backend state"));
+        const outcomes = journal.recent.filter(value => value.stage === "operation" || value.stage === "inference").slice(-8);
+        section.append(table(outcomes.map(value => [value.stage === "inference" ? `Model / ${value.details.purpose || "unknown"}` : `${value.details.kind || "operation"} / ${value.outcome}`,
+          value.stage === "inference" ? `${value.details.model || "Unknown"} / ${value.details.inputTokens ?? "?"} input / ${value.details.outputTokens ?? "?"} output tokens` : ms(value.durationMs)]), "Recent operations"));
+      }
+      if (activity.markers.length) section.append(table(activity.markers.slice(-10).map(value => [value.category.replaceAll("_", " "), new Date(value.wallMs).toLocaleTimeString()]), "Operator issue markers (approximate association)"));
+      section.append(element("p", "Progress stages describe observed work, not private model reasoning. Server and browser clocks are separate. Full bounded correlations are included in JSON.", "small text-body-secondary"));
+      activityRoot.append(section);
+    }
+    count.textContent = turns.length ? `${turns.length} turn${turns.length === 1 ? "" : "s"} retained · latest 20 shown` : "No ordinary turns recorded yet. Backend and Live records appear below when available.";
+    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv" || !live.sessions.length && !activity.journals.length && !activity.markers.length); });
     const open = new Set([...list.querySelectorAll("details[open]")].map(node => node.dataset.traceId));
     list.replaceChildren();
     if (live.sessions.length) {
@@ -124,7 +149,10 @@ function mount() {
         section.append(element("summary", `GPT-Live · ${session.server?.state || "connecting"} · finalization ${session.finalization}`));
         section.append(table([["Session", session.handle], ["Epoch", session.server?.epoch || "Unknown"],
           ["Context", session.server?.context?.state || "Unknown"], ["Revision", session.server?.context?.revision || "Unknown"],
-          ["Capture", session.server?.captureState || "Unknown"], ["Queue peak", session.server?.capture?.queueHighWater ?? "Unknown"],
+          ["Capture", session.server?.captureState || "Unknown"],
+          ["Provider usage (cumulative)", Number.isFinite(session.provider?.usageSeconds) ? `${session.provider.usageSeconds} seconds` : "Not reported"],
+          ["Context utilisation", Number.isFinite(session.provider?.contextUsageRatio) ? `${(session.provider.contextUsageRatio * 100).toFixed(1)}%` : "Not reported"],
+          ["Provider close / latest error", `${session.provider?.closeReason || "None"} / ${session.provider?.problems.at(-1)?.code || "None"}`], ["Queue peak", session.server?.capture?.queueHighWater ?? "Unknown"],
           ["Export records omitted", session.browserDropped + (session.mediaDropped || 0) + (session.server?.retainedDropped || 0)
             + (session.server?.capture?.retainedDropped || 0) + (session.server?.context?.retainedDropped || 0) + (session.server?.audio?.retainedDropped || 0)],
           ["Server ring evictions", (session.server?.dropped || 0) + (session.server?.capture?.dropped || 0)
@@ -152,17 +180,18 @@ function mount() {
   document.getElementById("interaction_timing_tab").addEventListener("shown.bs.tab", schedule);
   turnTimings.subscribe(schedule);
   liveDiagnostics.subscribe(schedule);
-  root.querySelector("[data-timing-clear]").addEventListener("click", () => { turnTimings.clear(); liveDiagnostics.clear(); });
+  interactionActivity.subscribe(schedule);
+  root.querySelector("[data-timing-clear]").addEventListener("click", () => { turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear(); });
   buttons.forEach(button => button.addEventListener("click", () => {
     const turns = turnTimings.snapshot();
     const csv = button.dataset.timingExport === "csv";
     const content = csv ? timingCsv(turns) : JSON.stringify({ ...timingExport(turns, {
       userAgent: navigator.userAgent, timeOrigin: performance.timeOrigin,
-    }), live: liveDiagnostics.snapshot() }, null, 2);
+    }), live: liveDiagnostics.snapshot(), activity: interactionActivity.snapshot() }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: csv ? "text/csv;charset=utf-8" : "application/json" }));
     const link = element("a");
     link.href = url;
-    link.download = `prometheus-interaction-timing-${new Date().toISOString().replaceAll(/[:.]/g, "-")}.${csv ? "csv" : "json"}`;
+    link.download = `prometheus-telemetry-${new Date().toISOString().replaceAll(/[:.]/g, "-")}.${csv ? "csv" : "json"}`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }));

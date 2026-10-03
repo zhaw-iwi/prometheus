@@ -95,9 +95,9 @@ for (const width of [1440, 390]) {
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
     await emitProviderEvent(page, { type: "input_audio_buffer.committed", item_id: "pcm-turn" });
     await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed", item_id: "pcm-turn", transcript: "Fixture turn" });
-    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot().some(turn => Number.isFinite(turn.stages.accepted)))).toBe(true);
     await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     await expect(page.locator("#assistant_audio")).toBeHidden();
     await expect(page.locator("#listen_status")).toHaveText("Input Paused");
     await expect(format).toBeDisabled();
@@ -109,7 +109,7 @@ for (const width of [1440, 390]) {
     });
     expect(timingRequests).toBe(0);
     await page.evaluate(() => window.__finishPcm());
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
     await expect(page.locator("#listen_status")).toHaveText("Listening");
     await expect(format).toBeEnabled();
     await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot()[0].speechDelivery.retrieval)).toBe("received");
@@ -147,11 +147,11 @@ for (const width of [1440, 390]) {
     await page.getByTestId("toggle-transcription").click();
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
     await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent());
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     expect(requests).toHaveLength(2);
     expect(requests[1].searchParams.get("format")).toBe("mp3");
     await page.getByTestId("stop-speech-playback").click();
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+    await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   });
 }
 
@@ -185,7 +185,7 @@ test("starting transcription speaks the latest persisted assistant utterance bef
   await page.getByTestId("continuous-speech-tab").click();
   await page.getByTestId("toggle-transcription").click();
 
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   expect(speechRequests).toHaveLength(1);
   expect(new URL(speechRequests[0].url()).pathname)
     .toBe(`/demo/agents/${AGENT_ID}/behaviours/${REPLAY_BEHAVIOUR_ID}/speech`);
@@ -200,7 +200,7 @@ test("starting transcription speaks the latest persisted assistant utterance bef
   await page.getByTestId("toggle-transcription").click();
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
   await page.getByTestId("toggle-transcription").click();
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   expect(speechRequests).toHaveLength(2);
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
@@ -242,7 +242,7 @@ for (const delivery of ["before", "after"]) {
     await page.locator("#diagnostics_drawer .btn-close").click();
     await page.getByTestId("continuous-speech-tab").click();
     await page.getByTestId("toggle-transcription").click();
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     expect(speechRequests).toHaveLength(1);
     expect(new URL(speechRequests[0].url()).pathname).toContain(REPLAY_BEHAVIOUR_ID);
     expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(0);
@@ -250,7 +250,7 @@ for (const delivery of ["before", "after"]) {
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
     await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("An active speech reply."));
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     expect(speechRequests).toHaveLength(2);
     for (const request of speechRequests) {
       expect(new URL(request.url()).searchParams.get("voice")).toBe("cedar");
@@ -268,7 +268,7 @@ for (const delivery of ["before", "after"]) {
 
     latestId = SECOND_BEHAVIOUR_ID;
     await page.getByTestId("toggle-transcription").click();
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     expect(speechRequests).toHaveLength(3);
     expect(new URL(speechRequests[2].url()).pathname).toContain(SECOND_BEHAVIOUR_ID);
   });
@@ -318,7 +318,7 @@ test("Stop Speech during the starter still opens transcription input", async ({ 
   await openConnectedValerian(page);
   await page.getByTestId("continuous-speech-tab").click();
   await page.getByTestId("toggle-transcription").click();
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   await page.getByTestId("stop-speech-playback").click();
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
   expect(await page.evaluate(() => window.__transcriptionSessionRequests)).toBe(1);
@@ -358,7 +358,7 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   await expect(page.getByTestId("message-list").locator(".demo-message.user")).toHaveCount(1);
   await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(0);
   await expect(page.getByTestId("message-list")).toContainText("Guten Morgen, PROMETHEUS.");
-  await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+  await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot().some(turn => Number.isFinite(turn.stages.accepted)))).toBe(true);
   expect(acknowledgeRequests).toHaveLength(1);
   expect(new URL(acknowledgeRequests[0].url()).searchParams.get("profile")).toBe("full_plan");
   expect(acknowledgeRequests[0].headers()["x-prometheus-access-code"]).toBe(ACCESS_CODE);
@@ -371,7 +371,7 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   await expect(page.getByTestId("message-list").locator(".demo-message.assistant")).toHaveCount(1);
   await expect(page.getByTestId("message-list")).toContainText("Guten Morgen. I heard you clearly.");
   await expect(page.getByTestId("behaviour-channel-strip")).toContainText("Speech");
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   expect(speechRequests).toHaveLength(1);
   expect(new URL(speechRequests[0].url()).pathname)
     .toBe(`/demo/agents/${AGENT_ID}/behaviours/${LIVE_BEHAVIOUR_ID}/speech`);
@@ -391,7 +391,7 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
   expect(JSON.stringify(timings)).not.toContain("Guten Morgen");
 
   await page.evaluate(() => window.__finishSpeechPlayback());
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
 
   await emitBehaviourSse(page, "behaviour-replay", REPLAY_BEHAVIOUR_ID,
@@ -403,7 +403,7 @@ test("mocked WebRTC emits partial UI and one ordered finalized turn", async ({ p
     item_id: "item-failed" });
   await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.failed",
     event_id: "failed-1", item_id: "item-failed", error: { code: "audio_unintelligible" } });
-  await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Provider Error");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speech service error");
   expect(acknowledgeRequests).toHaveLength(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests)).toHaveLength(1);
   expect(await page.evaluate(() => window.__transcriptionMedia.requests[0].audio)).toMatchObject({
@@ -440,7 +440,7 @@ for (const width of [1440, 390]) {
     await openConnectedValerian(page);
     await page.locator("#open_diagnostics").click();
     await page.getByTestId("interaction-timing-tab").click();
-    await expect(page.getByTestId("timing-count")).toContainText("No turns recorded");
+    await expect(page.getByTestId("timing-count")).toContainText("No ordinary turns recorded");
     await expect(page.getByTestId("timing-export-json")).toBeDisabled();
     await page.locator("#diagnostics_drawer .btn-close").click();
     await page.getByTestId("continuous-speech-tab").click();
@@ -462,14 +462,14 @@ for (const width of [1440, 390]) {
       event_id: "timing-d2", item_id: "timing", delta: " final words" });
     await emitProviderEvent(page, { type: "conversation.item.input_audio_transcription.completed",
       event_id: "timing-f", item_id: "timing", transcript: "Private spoken words for export exclusion." });
-    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Processing turn");
+    await expect(page.getByTestId("activity-label")).toHaveText("Processing");
     // Exercise audio delivery before acknowledgement correlates the event.
     await emitBehaviourSse(page, "behaviour-live", LIVE_BEHAVIOUR_ID, behaviourEvent("Private assistant reply."));
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     release();
-    await expect(page.getByTestId("transcription-ingress-status")).toHaveText("Transcript Accepted");
+    await expect.poll(() => page.evaluate(() => window.PrometheusTimings.snapshot().some(turn => Number.isFinite(turn.stages.accepted)))).toBe(true);
     await page.evaluate(() => window.__finishSpeechPlayback());
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+    await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
     await page.locator("#open_diagnostics").click();
     await page.getByTestId("interaction-timing-tab").click();
     const turns = page.getByTestId("timing-turns");
@@ -522,7 +522,7 @@ for (const width of [1440, 390]) {
     await page.route(`**/demo/agents/${AGENT_ID}/behaviours/latest/speech`, route =>
       route.fulfill(json({ eventId: LIVE_BEHAVIOUR_ID })));
     await page.getByTestId("toggle-transcription").click();
-    await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+    await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
     await page.evaluate(() => window.__finishSpeechPlayback());
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
     expect(await page.evaluate(() => window.PrometheusTimings.snapshot())).toEqual(originalTiming);
@@ -688,15 +688,15 @@ test("only the Valerian page with started transcription speaks a shared live beh
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   await emitBehaviourSse(other, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("One owner."));
   await expect(other.getByTestId("message-list")).toContainText("One owner.");
-  await expect(other.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  await expect(other.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   expect(await other.evaluate(() => window.__audioPlayback.plays)).toBe(0);
   expect(requests).toHaveLength(1);
 
   await page.evaluate(() => window.__finishSpeechPlayback());
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Ready");
+  await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   await other.close();
 });
 
@@ -707,14 +707,14 @@ test("Stop and synthesis failure both reopen live transcription input", async ({
   await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Connected");
 
   await emitBehaviourSse(page, "behaviour-live", SECOND_BEHAVIOUR_ID, behaviourEvent("Stop this output."));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(false);
   await page.getByTestId("stop-speech-playback").click();
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
 
   await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Provider failure."));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Synthesis Error");
+  await expect(page.getByTestId("activity-label")).toHaveText("Processing failed");
   expect(await page.evaluate(() => window.__transcriptionMedia.tracks.at(-1).enabled)).toBe(true);
 });
 
@@ -792,16 +792,16 @@ test("transcription settings states produce deterministic desktop and narrow vis
   await attach(page, testInfo, "transcription-listening-desktop", page.locator("[data-column-panel=interaction]"));
 
   await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speech Loading");
+  await expect(page.getByTestId("activity-label")).toHaveText("Preparing speech");
   await attach(page, testInfo, "speech-loading-desktop", page.locator("[data-column-panel=interaction]"));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Speaking");
+  await expect(page.getByTestId("activity-label")).toHaveText("Speaking");
   await attach(page, testInfo, "speech-speaking-desktop", page.locator("[data-column-panel=interaction]"));
   await page.getByTestId("stop-speech-playback").click();
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Playback Stopped");
+  await expect(page.getByTestId("activity-label")).toHaveText(/Ready|Listening/);
   await attach(page, testInfo, "speech-stopped-desktop", page.locator("[data-column-panel=interaction]"));
 
   await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Visual provider failure."));
-  await expect(page.getByTestId("speech-playback-status")).toHaveText("Synthesis Error");
+  await expect(page.getByTestId("activity-label")).toHaveText("Processing failed");
   await attach(page, testInfo, "speech-error-desktop", page.locator("[data-column-panel=interaction]"));
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -822,18 +822,18 @@ for (const width of [1440, 390]) {
     await page.getByTestId("continuous-speech-tab").click();
     await page.getByTestId("toggle-transcription").click();
     await emitBehaviourSse(page, "behaviour-live", SLOW_BEHAVIOUR_ID, behaviourEvent("Visual speech state."));
-    const status = page.getByTestId("speech-playback-status"), stop = page.getByTestId("stop-speech-playback");
+    const status = page.getByTestId("activity-label"), stop = page.getByTestId("stop-speech-playback");
     const row = status.locator("..");
     try {
-      await expect(status).toHaveText("Speech Loading"); await expect(stop).toBeEnabled();
+      await expect(status).toHaveText("Preparing speech"); await expect(stop).toBeEnabled();
       await attach(page, testInfo, `speech-loading-${width}`, row);
     } finally { release(); }
     await expect(status).toHaveText("Speaking");
     await attach(page, testInfo, `speech-speaking-${width}`, row);
-    await stop.click(); await expect(status).toHaveText("Playback Stopped"); await expect(stop).toBeDisabled();
+    await stop.click(); await expect(status).toHaveText(/Ready|Listening/); await expect(stop).toBeDisabled();
     await attach(page, testInfo, `speech-stopped-${width}`, row);
     await emitBehaviourSse(page, "behaviour-live", ERROR_BEHAVIOUR_ID, behaviourEvent("Visual provider failure."));
-    await expect(status).toHaveText("Synthesis Error");
+    await expect(status).toHaveText("Processing failed");
     await attach(page, testInfo, `speech-failed-${width}`, row);
   });
 }

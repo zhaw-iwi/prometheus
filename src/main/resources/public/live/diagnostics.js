@@ -1,5 +1,6 @@
 // Bounded metadata only. Never derive latency by subtracting different clocks.
 const id = value => typeof value === "string" && /^[\w-]{1,128}$/.test(value) ? value : null;
+const name = value => typeof value === "string" && /^[\w.:/-]{1,128}$/.test(value) ? value : null;
 const number = value => Number.isFinite(value) ? value : null;
 const pick = (value = {}, strings = [], numbers = []) => Object.fromEntries([
   ...strings.map(key => [key, id(value[key])]), ...numbers.map(key => [key, number(value[key])]),
@@ -37,10 +38,18 @@ export class LiveDiagnostics {
       entry.browser.push({ browserMs: number(value.browserMs) ?? this.now(), ...pick(value, ["phase", "receiptId", "segmentId", "outcome"], ["providerStartMs", "providerEndMs"]) });
       if (entry.browser.length > this.traceLimit) { entry.browser.shift(); entry.browserDropped++; }
     }
+    if (value.phase === "capture") entry.captureConfiguration = Object.fromEntries(["requested", "applied"].map(group => [group,
+      Object.fromEntries(["echoCancellation", "noiseSuppression", "autoGainControl", "voiceIsolation"].map(key => [key,
+        typeof value.capture?.[group]?.[key] === "boolean" ? value.capture[group][key] : null]))]));
     if (value.phase === "stopped") entry.finalization = value.finalized === true ? "confirmed" : "unconfirmed";
     if (value.status) {
       const status = value.status, capture = status.capture || {}, context = status.context || {};
       const previous = entry.server;
+      const provider = status.providerTelemetry || {};
+      entry.provider = { ...pick(provider, ["closeReason"], ["usageSeconds", "contextUsageRatio"]),
+        problems: (provider.problems || []).slice(-16).map(value => pick(value, ["code", "type", "clientEventId"], ["serverMs"])),
+        configuration: { ...Object.fromEntries(["model", "voice", "build"].map(key => [key, name(provider.configuration?.[key])])),
+          ...pick(provider.configuration, [], ["requestTimeoutMs", "telemetryVersion"]) } };
       entry.server = { ...pick(status, ["state", "epoch", "reason", "captureState"], ["eventCount", "inputSamples", "outputSamples", "voicedInputSamples", "dropped"]),
         finalized: status.finalized === true, ...retain(previous, (status.recent || []).slice(-64).map(trace), 1024),
         capture: { ...pick(capture, ["state"], ["queued", "queueHighWater", "receipts", "dropped"]),
@@ -50,6 +59,9 @@ export class LiveDiagnostics {
         audio: { ...pick(status.audio, [], ["dropped"]),
           ...retain(previous?.audio, (status.audio?.recent || []).slice(-129).map(audioWindow), 600, value => value.serverMs) } };
     }
+    entry.coverage = { audioContent: "not_collected", physicalAudibility: "not_measured", providerTurnEnd: "not_available",
+      usage: entry.provider?.usageSeconds === null || !entry.provider ? "not_reported" : "cumulative_latest",
+      media: entry.media.length ? "observed" : "not_observed", captureSettings: entry.captureConfiguration ? "observed" : "not_observed" };
     while (this.sessions.size > this.limit) { this.sessions.delete(this.sessions.keys().next().value); this.dropped++; }
     for (const listener of this.listeners) listener();
   }

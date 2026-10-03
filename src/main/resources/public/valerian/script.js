@@ -1083,6 +1083,7 @@ async function connectToAgent(agentId) {
   cleanupStreams();
   resetCockpitColumns();
   state.agentId = selectedAgentId;
+  globalThis.PrometheusActivity?.scope(selectedAgentId);
   document.getElementById("agent_id_input").value = selectedAgentId;
   document.getElementById("agent_select").value = selectedAgentId;
   updateSelectedAgentStatus();
@@ -1146,6 +1147,7 @@ async function disconnectAgent(options = {}) {
   }
   cleanupStreams();
   state.agentId = null;
+  globalThis.PrometheusActivity?.scope(null);
   state.agentInfo = null;
   void configureGptLive();
   state.lastBehaviourEventId = null;
@@ -1793,6 +1795,11 @@ function connectMonitorStream() {
   state.monitorSource.addEventListener("open", () => {
     if (!current()) return;
     state.monitorReconnectAttempt = 0;
+    globalThis.PrometheusActivity?.transport(true);
+  });
+  state.monitorSource.addEventListener("activity", event => {
+    if (!current()) return;
+    try { globalThis.PrometheusActivity?.accept(JSON.parse(event.data)); } catch (_) { /* Malformed diagnostic data is ignored. */ }
   });
   state.monitorSource.addEventListener("snapshot", (event) => {
     if (!current()) return;
@@ -1807,6 +1814,7 @@ function connectMonitorStream() {
   });
   state.monitorSource.onerror = () => {
     if (!current()) return;
+    globalThis.PrometheusActivity?.transport(false);
     state.monitorReady = false;
     if (state.monitorSource) {
       state.monitorSource.close();
@@ -1898,6 +1906,7 @@ async function resetAgent() {
     if (state.cameraRunning) {
       stopCamera({ silent: true });
     }
+    globalThis.PrometheusActivity?.scope(state.agentId);
     const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
@@ -1947,29 +1956,35 @@ async function sendUserUtterance(text, options = {}) {
   if (options.renderUser) {
     appendMessage("user", text);
   }
-  const traceId = globalThis.PrometheusTimings?.begin(state.agentId);
-  globalThis.PrometheusTimings?.mark(traceId, "acknowledging");
-  const data = await acknowledgeEvent({
-    type: "obs.user_utterance",
-    actor: "user",
-    kind: "observation",
-    payload: text,
-  }, { renderResponse: true, traceId });
-  if (!data) {
-    globalThis.PrometheusTimings?.mark(traceId, "rejected");
-    return false;
-  }
-  globalThis.PrometheusTimings?.mark(traceId, "acknowledged");
-  if (!data.responseEvent) {
-    await generateBehaviour("full_plan", traceId);
-  }
-  globalThis.PrometheusTimings?.mark(traceId, "processing_complete");
-  globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_start");
+  const activity = globalThis.PrometheusActivity, generation = activity?.generation;
+  const operation = `text_${crypto.randomUUID()}`;
+  activity?.set(operation, "processing");
   try {
-    await refreshAgentDetailsIfNeeded();
-  } finally { globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_end"); }
-  globalThis.PrometheusTimings?.mark(traceId, "accepted");
-  return true;
+    const traceId = globalThis.PrometheusTimings?.begin(state.agentId);
+    globalThis.PrometheusTimings?.mark(traceId, "acknowledging");
+    const data = await acknowledgeEvent({
+      type: "obs.user_utterance",
+      actor: "user",
+      kind: "observation",
+      payload: text,
+    }, { renderResponse: true, traceId });
+    if (!data) {
+      globalThis.PrometheusTimings?.mark(traceId, "rejected");
+      activity?.set("text_error", "rejected", { generation, ttl: 10000 });
+      return false;
+    }
+    globalThis.PrometheusTimings?.mark(traceId, "acknowledged");
+    if (!data.responseEvent) {
+      if (!await generateBehaviour("full_plan", traceId)) activity?.set("text_error", "failed", { generation, ttl: 10000 });
+    }
+    globalThis.PrometheusTimings?.mark(traceId, "processing_complete");
+    globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_start");
+    try {
+      await refreshAgentDetailsIfNeeded();
+    } finally { globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_end"); }
+    globalThis.PrometheusTimings?.mark(traceId, "accepted");
+    return true;
+  } finally { activity?.set(operation, null, { generation }); }
 }
 
 async function refreshAgentDetailsIfNeeded() {
@@ -2022,7 +2037,7 @@ async function generateBehaviour(outputProfile, traceId) {
       return false;
     }
     appendLog("policy", response.status === 409 ? "no behaviour generated." : "behaviour generated.");
-    return response.ok;
+    return response.ok || response.status === 409;
   } catch (error) {
     appendLog("policy", "generate failed: " + error.message);
     return false;
@@ -2372,11 +2387,8 @@ function handleSpeechPlaybackStatus(status) {
 }
 
 function setSpeechPlaybackStatus(label, mode, stoppable) {
-  const status = document.getElementById("speech_playback_status");
-  if (status) {
-    status.textContent = label;
-    status.className = `status-pill is-${mode}`;
-  }
+  const stage = { "Speech Loading": "loading", "Speaking": "speaking", "Synthesis Error": "failed" }[label];
+  globalThis.PrometheusActivity?.set("playback", stage || null, { ttl: stage === "failed" ? 10000 : null });
   const stop = document.getElementById("stop_speech_playback");
   if (stop) stop.disabled = !stoppable;
 }
@@ -2753,19 +2765,10 @@ async function handleAcceptedLiveTranscript({ itemId, text, acknowledgement }) {
 }
 
 function handleTranscriptIngressStatus(status) {
-  const mapping = {
-    queued: ["Transcript Queued", "idle"],
-    acknowledging: ["Processing turn", "idle"],
-    accepted: ["Transcript Accepted", "live"],
-    rejected: ["Transcript Rejected", "error"],
-    "provider-error": ["Provider Error", "error"],
-  };
-  const [label, mode] = mapping[status.state] || ["Transcript Ready", "idle"];
-  const element = document.getElementById("transcription_ingress_status");
-  if (element) {
-    element.textContent = label;
-    element.className = `status-pill is-${mode}`;
-  }
+  const activity = globalThis.PrometheusActivity;
+  const key = `ingress_${status.itemId || "current"}`;
+  const stage = { queued: "queued", acknowledging: "processing", rejected: "rejected", "provider-error": "provider-error" }[status.state];
+  activity?.set(key, stage || null, { ttl: ["rejected", "provider-error"].includes(stage) ? 10000 : null });
   appendLog("transcription-ingress", JSON.stringify(status));
 }
 
@@ -5494,11 +5497,6 @@ function resetCockpitColumns() {
     textInput.value = "";
   }
   resetSpeechSensingPanel();
-  const ingressStatus = document.getElementById("transcription_ingress_status");
-  if (ingressStatus) {
-    ingressStatus.textContent = "Transcript Ready";
-    ingressStatus.className = "status-pill is-idle";
-  }
   transcription.transcriptIngress?.setAccepting(false);
   transcription.manualTurnActive = false;
   transcription.inputGated = false;
@@ -5654,6 +5652,7 @@ function isCurrentTranscriptionSession(agentId, generation) {
 }
 
 function setTranscriptionState(isListening) {
+  if (globalThis.PrometheusActivity) globalThis.PrometheusActivity.listening = isListening;
   if (state.transcriptionListening !== isListening) transcription.sessionGeneration += 1;
   state.transcriptionListening = isListening;
   const transcriptionButton = document.getElementById("toggle_transcription");
