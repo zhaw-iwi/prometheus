@@ -71,7 +71,13 @@ def main():
     def stop():
         nonlocal app
         if app and app.poll() is None:
-            app.terminate()
+            if os.name == 'nt':
+                # Some Windows Java launchers spawn a child JVM; terminate the owned tree
+                # before the launcher exits, otherwise that child can outlive schema cleanup.
+                subprocess.run(['taskkill', '/PID', str(app.pid), '/T', '/F'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                app.terminate()
             try:
                 app.wait(timeout=15)
             except subprocess.TimeoutExpired:

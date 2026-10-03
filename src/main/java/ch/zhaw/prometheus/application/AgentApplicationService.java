@@ -102,7 +102,13 @@ public class AgentApplicationService {
     void configureSpeechOwnership(ExternalSpeechOwnership ownership) { this.speechOwnership = ownership; }
 
     private PolicyRuntime runtimeFor(Agent agent, OutputProfile profile) {
-        return runtime(profile).withExternalSpeech(speechOwnership == null ? null : speechOwnership.current(agent));
+        var owner = speechOwnership == null ? null : speechOwnership.current(agent);
+        if (owner == null && agent.getCurrentState() != null
+                && agent.getCurrentState().ownPolicy() instanceof ch.zhaw.prometheus.model.task.TaskPolicy task
+                && !ch.zhaw.prometheus.model.task.TaskMemory.text(task.storage(), ch.zhaw.prometheus.model.task.TaskMemory.SESSION, "").isEmpty())
+            ch.zhaw.prometheus.model.task.TaskMemory.pauseForSession(task.storage(), "live_session_ended");
+        var runtime = runtime(profile).withExternalSpeech(owner);
+        return owner == null ? runtime : runtime.withTaskContinuation(() -> speechOwnership.taskWorkAllowed(agent.getId(), owner));
     }
 
     @org.springframework.beans.factory.annotation.Autowired

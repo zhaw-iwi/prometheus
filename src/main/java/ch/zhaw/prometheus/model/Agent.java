@@ -302,6 +302,10 @@ public class Agent {
     }
 
     /** Read-only graph inspection, including inactive states; no transitions or policies execute. */
+    public List<Action> reachableActions() {
+        return reachableStates().stream().flatMap(state -> state.getTransitions().stream())
+                .flatMap(transition -> transition.getActions().stream()).distinct().toList();
+    }
     public List<State> reachableStates() {
         Set<State> visited = new HashSet<>();
         List<State> states = new ArrayList<>();

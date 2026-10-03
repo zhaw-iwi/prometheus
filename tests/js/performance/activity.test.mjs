@@ -2,6 +2,23 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { InteractionActivity } from "../../../src/main/resources/public/performance/activity.js";
 
+test("draft acceptance, brief cue acknowledgement and paused tasks share the footer", () => {
+  let now = 0; const a = new InteractionActivity({ now: () => now }); a.scope("agent");
+  a.taskStatus({ epoch: "epoch", phase: "CONFIGURATION", draft: true });
+  assert.equal(a.view().label, "Awaiting your acceptance"); assert.equal(a.view().busy, false);
+  a.taskStatus({ epoch: "epoch", phase: "RUNNING" });
+  a.accept({ version: 1, agentId: "agent", epoch: "epoch", revision: 1, serverMs: 1000,
+    active: [{ operationId: "one", stage: "thinking" }],
+    recent: [{ sequence: 1, serverMs: 990, stage: "cue", outcome: "cue_matched", sourceId: "sample", details: { kind: "obs.emotion.face" } }] });
+  assert.equal(a.view().label, "Thinking"); assert.match(a.view().detail, /relax your expression/);
+  a.accept({ version: 1, agentId: "agent", epoch: "epoch", revision: 2, serverMs: 1100, active: [], recent: [] });
+  assert.equal(a.view().label, "Cue accepted");
+  now = 4100; a.taskStatus({ epoch: "epoch", phase: "WAITING" }); assert.equal(a.view().label, "Waiting for the condition to change");
+  a.taskStatus({ phase: "PAUSED" }); assert.equal(a.view().label, "Task paused");
+  a.taskStatus({ phase: "COMPLETED" }); assert.equal(a.view().label, "Task completed");
+  a.scope("other"); assert.equal(a.view().label, "Ready");
+});
+
 test("overlap, stale progress, quiet cues and playback use one model with lifecycle fences", () => {
   let now = 0; const activity = new InteractionActivity({ now: () => now });
   const generation = activity.scope("agent1");
@@ -46,4 +63,19 @@ test("failed outcomes and slow unconfirmed local work never claim healthy proces
   activity.accept({ version: 1, agentId: "a", epoch: "e", revision: 1, serverMs: 500,
     recent: [{ sequence: 1, serverMs: 490, stage: "operation", outcome: "failed" }] });
   assert.equal(activity.view().tone, "error"); now += 11000; assert.equal(activity.view().label, "Ready");
+});
+
+test("task capture transitions are bounded, deduplicated and exported without agreement content", () => {
+  const a = new InteractionActivity({ now: () => 10, wall: () => 20 }); a.scope("agent");
+  for (let revision = 0; revision < 270; revision++) {
+    const value = { epoch: "epoch", phase: "RUNNING", revision, window: `${revision}.100.4`, responseCaptured: false, goal: "private" };
+    a.taskStatus(value); a.taskStatus({ ...value, nextCueInMs: 2 });
+  }
+  assert.equal(a.view().label, "Waiting for response capture"); assert.equal(a.view().busy, false);
+  let exported = a.snapshot(); assert.equal(exported.taskStates.length, 256); assert.equal(exported.droppedTaskStates, 14);
+  assert.equal(JSON.stringify(exported).includes("private"), false);
+  a.taskStatus({ epoch: "epoch", phase: "RUNNING", revision: 269, window: "269.100.4", responseCaptured: true });
+  assert.notEqual(a.view().label, "Waiting for response capture");
+  assert.equal(a.snapshot().taskStates.at(-1).responseCaptured, true);
+  a.clear(); assert.equal(a.snapshot().taskStates.length, 0);
 });

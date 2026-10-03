@@ -13,6 +13,9 @@ public class AgentMonitorSnapshotView {
     private List<String> innerNames;
     private List<String> states;
     private List<StorageEntryView> storage;
+    private ch.zhaw.prometheus.model.task.TaskCueStatus task;
+    public ch.zhaw.prometheus.model.task.TaskCueStatus getTask() { return task; }
+    public AgentMonitorSnapshotView withTask(ch.zhaw.prometheus.model.task.TaskCueStatus task) { this.task = task; return this; }
 
     public AgentMonitorSnapshotView(UUID agentId, String name, String description, boolean active,
             String stateName, String innerName, List<String> innerNames, List<String> states, List<StorageEntryView> storage) {

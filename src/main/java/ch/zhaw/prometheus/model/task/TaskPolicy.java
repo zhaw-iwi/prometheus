@@ -17,6 +17,8 @@ public class TaskPolicy extends Policy {
     protected TaskPolicy() {}
     public TaskPolicy(Storage storage, String instructions) { this.storage = storage; this.taskInstructions = instructions; }
     public Storage storage() { return storage; }
+    public String configuredInstructions() { return taskInstructions; }
+    public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }
     @Override public String describe() {
         return voiceInstructions() + "\n" + TaskMemory.description(storage);
     }
@@ -24,7 +26,7 @@ public class TaskPolicy extends Policy {
         return taskInstructions + "\nConversational task configuration is an implemented backend operation for this agent. "
                 + "It does not change sensors, device settings or framework code. "
                 + "User requests are processed by PROMETHEUS. Briefly acknowledge if needed, then wait for its confirmed announcement. "
-                + "Do not independently perform a task step, tell an additional joke, or claim activation. "
+                + "Do not independently perform a task step or claim activation. "
                 + "Use the latest task phase; COMPLETED means the task stopped, not the entire conversation. "
                 + "Missing sensor evidence means unknown; one visible person only describes the camera view.";
     }
