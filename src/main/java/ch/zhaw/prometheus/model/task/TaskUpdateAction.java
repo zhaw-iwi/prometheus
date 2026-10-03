@@ -20,7 +20,7 @@ public class TaskUpdateAction extends Action {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
         if (!taskCue && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
-                "(?i)(please )?(stop|cancel|pause)( (the |this |my )?(task|jokes|game|interaction|conversation)| telling jokes)?[.!]?")) {
+                "(?i)(please )?(stop|cancel|pause)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
             TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage);
             storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly("The task is stopped.").toJsonObject());
             return;

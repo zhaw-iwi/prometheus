@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 208 (2026-10-03): Generic configuration now uses neutral schema
+  descriptions without a preset demo task, defaults lightweight plans to one
+  matching observation and explicitly distinguishes awaiting acceptance. Passed
+  15 focused Java/MySQL checks. Saved-policy migration remains in milestone 213;
+  the authorized six-stage plan continues on feature/gptlive. Evidence:
+  `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+
 - Milestone 207 (2026-10-03): integrated Generic activation/progress acceptance,
   including delayed inference, overlapping work, cue waiting, safe provider usage,
   failure and reset. Full feature regression passed 491 Java tests; all 52 browser

@@ -52,6 +52,20 @@ class GenericMultimodalTaskUnitTest {
         assertTrue(new LiveVoicePolicyAdapter().instructions(created.agent()).contains("Conversational task configuration"));
         assertNotNull(created.starterEvent()); verifyNoInteractions(gateway);
     }
+    @Test void builtInGuidanceHasNoPresetTaskAndExplainsAuthorizationAndSchema() {
+        when(gateway.infer(any())).thenReturn(update("KEEP", "null", "What outcome do you want?"));
+        say("What can we configure?");
+        var captured = ArgumentCaptor.forClass(InferenceRequest.class);
+        verify(gateway).infer(captured.capture());
+        String instructions = captured.getValue().messages().getFirst().getContent();
+        assertFalse(instructions.toLowerCase().contains("joke"));
+        assertTrue(instructions.contains("Let the user choose the goal"));
+        assertTrue(instructions.contains("Never output schema placeholders"));
+        assertTrue(instructions.contains("Default lightweight interactions to one matching sample"));
+        assertTrue(instructions.contains("Do not ask for another confirmation when already authorized"));
+        assertTrue(instructions.contains("not active and awaits acceptance"));
+        assertFalse(new LiveVoicePolicyAdapter().instructions(agent).toLowerCase().contains("joke"));
+    }
     @Test void liveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
         var projection = new ch.zhaw.prometheus.application.live.LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
         var initial = projection.project(agent);
@@ -101,7 +115,7 @@ class GenericMultimodalTaskUnitTest {
         assertNull(agent.tick(runtime)); verifyNoInteractions(gateway);
     }
     @Test void explicitStopNeedsNoProviderAndResetCannotResumeOldTask() {
-        activate(); clearInvocations(gateway); say("Stop telling jokes.");
+        activate(); clearInvocations(gateway); say("Stop the task.");
         assertEquals("COMPLETED", TaskMemory.phase(memory())); verifyNoInteractions(gateway);
         agent.reset(); assertEquals("CONFIGURATION", TaskMemory.phase(memory())); assertFalse(memory().containsKey(TaskMemory.SPEC));
         assertNull(agent.tick(runtime));

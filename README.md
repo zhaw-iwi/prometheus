@@ -1630,9 +1630,10 @@ Text/Continuous and GPT-Live. Enable required sensors through the cockpit.
 Creation publishes a welcome without a provider request.
 
 Discuss the goal, clarify material choices, propose a plan and ask the agent to
-start. For example: tell one joke, wait for facial feedback, tell another after a
-stable negative cue, and finish after a positive cue. Neutral, missing or expired
-cues wait. The backend stores a draft/active task and exposes its configuration,
+start. Built-in guidance describes the rule schema without prescribing a task.
+Lightweight interactions default to one matching observation; additional samples
+should be an explicit stability choice. Missing, expired or unmatched cues wait.
+The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
 revisions can propose a replacement; explicit stop/cancel/pause commands halt the
 task. Reset clears the agreement. Ordinary questions retain the active task and
