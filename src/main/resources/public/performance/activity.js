@@ -17,7 +17,7 @@ export const ISSUE_CATEGORIES = ["speech_cut_off", "long_pause", "unexpected_res
 export class InteractionActivity {
   constructor({ now = () => performance.now(), wall = () => Date.now() } = {}) {
     this.now = now; this.wall = wall; this.listeners = new Set(); this.journals = new Map(); this.markers = [];
-    this.droppedJournals = 0; this.droppedMarkers = 0; this.scope(null);
+    this.droppedJournals = 0; this.droppedMarkers = 0; this.taskStates = []; this.droppedTaskStates = 0; this.scope(null);
   }
   scope(agentId) {
     this.agentId = token(agentId); this.epoch = null; this.backend = null; this.received = null;
@@ -27,8 +27,13 @@ export class InteractionActivity {
   }
   transport(connected) { this.connected = connected; this.notify(); }
   taskStatus(value) {
+    const previous = this.task;
     this.task = value ? { ...fields(value, ["epoch", "phase", "window"], ["revision", "nextCueInMs"]),
       draft: value.draft === true, responseCaptured: value.responseCaptured === true } : null;
+    if (this.agentId && this.task && ["epoch", "phase", "window", "revision", "draft", "responseCaptured"].some(key => previous?.[key] !== this.task[key])) {
+      this.taskStates.push({ agentId: this.agentId, ...this.task, browserMs: this.now(), wallMs: this.wall() });
+      if (this.taskStates.length > 256) { this.taskStates.shift(); this.droppedTaskStates++; }
+    }
     this.notify();
   }
   accept(value) {
@@ -47,7 +52,7 @@ export class InteractionActivity {
     for (const entry of (value.recent || []).slice(-128)) {
       if (number(entry.sequence) === null) continue;
       entries.set(entry.sequence, { ...fields(entry, ["operationId", "traceId", "sessionId", "sourceId", "eventId", "spanId", "stage", "outcome"],
-        ["sequence", "serverMs", "durationMs"]), details: fields(entry.details || {}, ["requestId", "purpose", "model", "effort", "kind", "reason"], ["inputTokens", "outputTokens", "providerRequests"]) });
+        ["sequence", "serverMs", "durationMs"]), details: fields(entry.details || {}, ["requestId", "purpose", "model", "effort", "kind", "reason", "phase"], ["inputTokens", "outputTokens", "providerRequests", "taskRevision"]) });
     }
     journal.retainedDropped += Math.max(0, entries.size - 1024); journal.recent = [...entries.values()].slice(-1024);
     Object.assign(journal, fields(value, [], ["revision", "serverMs", "dropped", "omittedOperations"]));
@@ -102,6 +107,8 @@ export class InteractionActivity {
       : this.task?.phase === "PAUSED" ? "Task paused" : this.task?.phase === "COMPLETED" ? "Task completed"
       : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null;
     if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
+    if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
+      return { label: "Waiting for response capture", detail: "The complete spoken response has not been confirmed in captions.", busy: false, tone: "idle", elapsed: null };
     const cue = cues[this.backend?.cue?.reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };
     if (!this.connected && this.received !== null) return { label: "Reconnecting progress", busy: false, tone: "warning", elapsed: null };
@@ -114,10 +121,11 @@ export class InteractionActivity {
     if (this.markers.length > 64) { this.markers.shift(); this.droppedMarkers++; } this.notify();
   }
   snapshot() { return structuredClone({ version: 1, journals: [...this.journals.values()], droppedJournals: this.droppedJournals,
-    markers: this.markers, droppedMarkers: this.droppedMarkers, coverage: { backend: this.received === null ? "not_observed" : this.connected ? "connected" : "disconnected",
+    markers: this.markers, droppedMarkers: this.droppedMarkers, taskStates: this.taskStates, droppedTaskStates: this.droppedTaskStates,
+    coverage: { backend: this.received === null ? "not_observed" : this.connected ? "connected" : "disconnected",
       clocks: { browser: "performance_now_ms", server: "unix_ms", duration: "server_monotonic_ms" },
-      retention: { journals: 16, entriesPerJournal: 1024, issueMarkers: 64 }, physicalAudibility: "not_measured", providerCompletion: "not_available" } }); }
-  clear() { this.journals.clear(); this.markers = []; this.droppedJournals = this.droppedMarkers = 0; this.notify(); }
+      retention: { journals: 16, entriesPerJournal: 1024, issueMarkers: 64, taskStates: 256 }, physicalAudibility: "not_measured", providerCompletion: "not_available" } }); }
+  clear() { this.journals.clear(); this.markers = []; this.taskStates = []; this.droppedJournals = this.droppedMarkers = this.droppedTaskStates = 0; this.notify(); }
   subscribe(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   notify() { for (const fn of this.listeners) fn(); }
 }

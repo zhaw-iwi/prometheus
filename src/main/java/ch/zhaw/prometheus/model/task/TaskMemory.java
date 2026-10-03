@@ -17,6 +17,9 @@ public final class TaskMemory {
     private TaskMemory() {}
     public static String phase(Storage storage) { return text(storage, PHASE, "CONFIGURATION"); }
     public static boolean active(Storage storage) { return Set.of("RUNNING", "WAITING").contains(phase(storage)); }
+    static void trace(Storage storage) {
+        ch.zhaw.prometheus.logging.ActivityTrace.task(phase(storage), Integer.parseInt(text(storage, REVISION, "0")));
+    }
     public static boolean sessionBound(Storage storage) {
         return !storage.containsKey(SPEC) || TaskSpec.parse(storage.get(SPEC)).sessionBound();
     }

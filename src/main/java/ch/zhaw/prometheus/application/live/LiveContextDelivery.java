@@ -72,7 +72,19 @@ public final class LiveContextDelivery {
         if (commands.size() > 128) throw new IllegalStateException("Context batch capacity reached");
         return new Batch(current, commands);
     }
-    public void acknowledged(Batch batch) { delivered = batch.context(); }
+    public void acknowledged(Batch batch) { acknowledged(batch, Set.of()); }
+    /** Guidance/results were delivered; retain old evidence for types deliberately deferred. */
+    public LiveContextSnapshot acknowledged(Batch batch, Set<String> deferred) {
+        var current = batch.context();
+        if (deferred.isEmpty()) delivered = current;
+        else {
+            var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
+            items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
+            delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance());
+        }
+        return delivered;
+    }
     public String revision() { return delivered.revision(); }
 
     private static Map<String, LiveContextSnapshot.Item> evidenceByType(LiveContextSnapshot context) {

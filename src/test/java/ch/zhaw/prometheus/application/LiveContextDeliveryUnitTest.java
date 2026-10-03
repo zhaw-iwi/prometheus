@@ -127,6 +127,50 @@ class LiveContextDeliveryUnitTest {
         return new LiveContextSnapshot.Item(id.toString(), type, "developer", List.of(id), Instant.EPOCH,
                 Instant.EPOCH, Instant.ofEpochMilli(expires), "fresh", text);
     }
+    @Test void committedResultOvertakesUnsentSensoryBacklogWithoutDuplicateNarration() throws Exception {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH); var initial = snapshot("r0", "Guide");
+        var social = evidence("obs.social.context", "A visible person", 15000);
+        var oldFace = evidence("summary.face", "Superseded facial history. ".repeat(60), 15000);
+        var current = new AtomicReference<>(new LiveAgentContextService.Update(snapshot("r1", "Guide", social, oldFace), List.of()));
+        when(contexts.refresh(AGENT, owner)).thenAnswer(call -> Optional.of(current.get()));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1);
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, command -> {
+            sent.add(command);
+            if (sent.size() == 1) {
+                entered.countDown();
+                try { assertTrue(release.await(3, TimeUnit.SECONDS)); }
+                catch (InterruptedException failure) { throw new IllegalStateException(failure); }
+            }
+        }, value -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); assertTrue(entered.await(3, TimeUnit.SECONDS));
+            UUID result = UUID.randomUUID(); now.set(100);
+            current.set(new LiveAgentContextService.Update(snapshot("r2", "Guide", social,
+                    evidence("summary.face", "Latest face evidence", 15000)), List.of(new LiveContextDelivery.Narration(result, "Confirmed result."))));
+            bridge.changed(new AgentCommitted(AGENT, EPOCH, result)); release.countDown();
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            assertEquals("session.commentary.append", sent.get(1).type());
+            assertTrue(sent.getLast().content().contains("Latest face evidence"));
+            assertFalse(sent.stream().anyMatch(c -> c.content().contains("Superseded facial history")));
+            assertEquals(1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
+            assertTrue(session.status().recent().stream().anyMatch(t -> t.phase().equals("sensory_superseded")));
+            verify(contexts, times(2)).refresh(AGENT, owner);
+        } finally { release.countDown(); bridge.shutdown(); }
+    }
+    @Test void partialAcknowledgmentRetainsOldEvidenceUntilItsReplacementIsActuallySent() {
+        var old = evidence("summary.face", "Previous", 15000);
+        var next = evidence("summary.face", "Replacement", 15000);
+        var delivery = new LiveContextDelivery(snapshot("r0", "Guide", old)); delivery.ready();
+        var batch = delivery.plan(snapshot("r1", "New state", next), List.of());
+        var applied = delivery.acknowledged(batch, Set.of("summary.face"));
+        assertEquals(List.of(old), applied.items()); assertEquals("New state", applied.instructions());
+        var removal = delivery.plan(snapshot("r2", "New state"), List.of());
+        assertTrue(removal.commands().getFirst().content().contains("removed from selected context"));
+    }
     @Test void replacementsDeliverSocialFactsFirstWithoutWithdrawingUsableEvidence() {
         var prior = evidence("obs.social.context", "Social context: 1 people visible", 15000);
         var delivery = new LiveContextDelivery(snapshot("r1", "Guide", prior)); delivery.ready();

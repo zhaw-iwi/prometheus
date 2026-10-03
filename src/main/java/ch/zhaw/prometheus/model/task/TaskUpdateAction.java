@@ -18,6 +18,11 @@ public class TaskUpdateAction extends Action {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.SPEC); taskCue = cue; blocking();
     }
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
+        TaskMemory.trace(getStorage());
+        try { update(events, runtime); }
+        finally { TaskMemory.trace(getStorage()); }
+    }
+    private void update(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
         if (cancelled(storage, runtime)) return;
         if (!taskCue && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
@@ -65,13 +70,16 @@ public class TaskUpdateAction extends Action {
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
                     + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields.";
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
+            boolean generated = false;
             try {
                 var raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,
                         TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
                 if (cancelled(storage, runtime)) return;
+                generated = true;
                 plan = TaskMemory.plan(JsonParser.parseString(raw));
             } catch (RuntimeException failure) {
                 if (cancelled(storage, runtime)) return;
+                ch.zhaw.prometheus.logging.ActivityTrace.failed(generated ? "task_behaviour_invalid" : "task_provider_failed");
                 // Another camera sample must not turn a provider failure into an unbounded retry loop.
                 TaskMemory.put(storage, TaskMemory.PHASE, "PAUSED"); TaskMemory.revise(storage);
                 storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
@@ -90,7 +98,15 @@ public class TaskUpdateAction extends Action {
                 + "\nSupported trigger fields: " + TaskSpec.FIELDS;
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
-        String raw = runtime.languageModelGateway().infer(request);
+        String raw;
+        try { raw = runtime.languageModelGateway().infer(request); }
+        catch (RuntimeException failure) {
+            if (cancelled(storage, runtime)) return;
+            ch.zhaw.prometheus.logging.ActivityTrace.failed("task_provider_failed");
+            storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
+                    "I couldn't process that update. I've kept the existing agreement and proposal; please ask me to try again.").toJsonObject());
+            return;
+        }
         if (cancelled(storage, runtime)) return;
         JsonObject update;
         TaskSpec task;
@@ -116,6 +132,7 @@ public class TaskUpdateAction extends Action {
             validationStage = "reply";
             reply = TaskMemory.plan(update.get("reply"));
         } catch (RuntimeException invalid) {
+            ch.zhaw.prometheus.logging.ActivityTrace.failed("task_configuration_invalid");
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.
             org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class).warn(
                     "Generic task update rejected trace={} request={} stage={} reason={}",

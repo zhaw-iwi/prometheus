@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 212 (2026-10-03): bounded telemetry includes task readiness changes,
+  phase/revision/cue identity and distinct caught-failure outcomes. Urgent results
+  overtake unsent sensory work at complete-observation boundaries. Passed 42
+  Java cases including query budgets and 51 Node cases. Controlled delivery order
+  is verified; production latency gains remain unmeasured. Evidence:
+  `.agents/GENERIC_REFINEMENT_RESULTS.md`; saved-instance rollout follows in 213.
+
 - Milestone 211 (2026-10-03): Live session loss/stop pauses associated interactive
   tasks and fences late work; explicit resume preserves agreements and budgets.
   Captured response content, rather than any acknowledgment, gates later cues.

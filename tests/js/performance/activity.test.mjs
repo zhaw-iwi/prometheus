@@ -64,3 +64,18 @@ test("failed outcomes and slow unconfirmed local work never claim healthy proces
     recent: [{ sequence: 1, serverMs: 490, stage: "operation", outcome: "failed" }] });
   assert.equal(activity.view().tone, "error"); now += 11000; assert.equal(activity.view().label, "Ready");
 });
+
+test("task capture transitions are bounded, deduplicated and exported without agreement content", () => {
+  const a = new InteractionActivity({ now: () => 10, wall: () => 20 }); a.scope("agent");
+  for (let revision = 0; revision < 270; revision++) {
+    const value = { epoch: "epoch", phase: "RUNNING", revision, window: `${revision}.100.4`, responseCaptured: false, goal: "private" };
+    a.taskStatus(value); a.taskStatus({ ...value, nextCueInMs: 2 });
+  }
+  assert.equal(a.view().label, "Waiting for response capture"); assert.equal(a.view().busy, false);
+  let exported = a.snapshot(); assert.equal(exported.taskStates.length, 256); assert.equal(exported.droppedTaskStates, 14);
+  assert.equal(JSON.stringify(exported).includes("private"), false);
+  a.taskStatus({ epoch: "epoch", phase: "RUNNING", revision: 269, window: "269.100.4", responseCaptured: true });
+  assert.notEqual(a.view().label, "Waiting for response capture");
+  assert.equal(a.snapshot().taskStates.at(-1).responseCaptured, true);
+  a.clear(); assert.equal(a.snapshot().taskStates.length, 0);
+});

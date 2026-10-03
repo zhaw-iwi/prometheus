@@ -1639,6 +1639,10 @@ the expression need not be held while a response is prepared. The scoped monitor
 snapshot adds a content-free `task` readiness hint; the browser may send one
 qualifying facial observation sooner per response window. Backend guards still
 decide acceptance, and ordinary sensor cadence and social batching are unchanged.
+Telemetry exports include bounded task readiness changes and content-free
+phase/revision/cue-source correlation. Distinct fixed failure categories separate
+provider failures from invalid task/configuration output. Captions that do not
+establish the response boundary remain visibly unconfirmed in the same footer.
 The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
 revisions can propose a replacement. Stop/cancel ends the task; pause preserves
@@ -1684,6 +1688,9 @@ late activation/action results. Reconnecting alone does not resume it. Explicit
 resume can bind the saved task to the new session. Only an explicitly requested
 autonomous task uses `sessionBound: false`; this preserves backend continuation,
 without promising speech delivery after the voice connection ends.
+Committed announcements can supersede queued routine observations after the
+current observation is delivered completely. Unsent values remain unacknowledged
+and are replaced with fresh evidence; the normal read-coalescing window remains.
 
 ### Capability awareness
 

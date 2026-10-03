@@ -128,4 +128,16 @@ class TaskLifecycleUnitTest {
         assertFalse(TaskMemory.pauseForSession(storage(), "live_session_ended"));
         assertEquals("RUNNING", TaskMemory.phase(storage()));
     }
+    @Test void caughtProviderFailureKeepsTheDraftAndHasAnExplicitContentFreeFailureOutcome() {
+        var proposed = TaskSpec.parse(JsonParser.parseString(SPEC)).json(); storage().put(TaskMemory.DRAFT, proposed);
+        when(gateway.infer(any())).thenThrow(new IllegalStateException("private transport message"));
+        var activity = new ch.zhaw.prometheus.application.AgentActivityService(mock(ch.zhaw.prometheus.logging.AgentMonitorBroadcaster.class));
+        try {
+            assertNotNull(activity.call(agent.getId(), "acknowledge", true, () -> say("Activate")));
+            assertEquals(proposed, storage().get(TaskMemory.DRAFT)); assertFalse(storage().containsKey(TaskMemory.SPEC));
+            var outcome = activity.snapshot(agent.getId()).recent().getLast();
+            assertEquals("failed", outcome.outcome()); assertEquals("task_provider_failed", outcome.details().get("reason"));
+            assertFalse(new Gson().toJson(activity.snapshot(agent.getId())).contains("private"));
+        } finally { activity.close(); }
+    }
 }

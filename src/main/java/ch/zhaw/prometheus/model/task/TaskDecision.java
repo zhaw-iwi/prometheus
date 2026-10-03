@@ -22,6 +22,7 @@ public class TaskDecision extends Decision {
                 : "RUNNING".equals(taskCondition) ? TaskMemory.active(storage) : taskCondition.equals(TaskMemory.phase(storage));
     }
     static Optional<TaskSpec.Rule> matching(Storage storage, EventHistory history, PolicyRuntime runtime, Instant now) {
+        TaskMemory.trace(storage);
         if (!TaskMemory.active(storage) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
         var events = history.toList(); var latest = events.getLast();
         if (!Event.KIND_OBSERVATION.equals(latest.getKind()) || !TaskMemory.fresh(latest, now)) return waitFor("stale_or_missing_observation", latest.getId());

@@ -63,3 +63,25 @@ Verification: 30 focused unit tests passed in
 initially failed because its manually created execution epoch was not persisted;
 fixed to match real session claiming. All three MySQL cases passed in
 `target/gptlive-acceptance-a00011a486/java.log`; disposable schema/account removed.
+
+## Milestone 212
+
+Completed content-free task phase/revision and cue-source correlation in the
+existing activity journal. Browser exports retain at most 256 task readiness
+changes, with separate browser/server clocks and dropped counts. The footer
+explains unconfirmed response capture. Caught provider, configuration-validation
+and behaviour-validation failures have distinct fixed outcome codes. Expected
+delivery cancellation during local close does not become a processing failure.
+
+Urgent announcements can supersede unsent sensory work after the current complete
+observation. Partial acknowledgments retain undelivered old evidence until an
+actual replacement/removal. Narration identity, freshness checks and normal
+five-second read coalescing remain intact. The controlled test sends the result
+as the second append, discards the obsolete backlog, then sends fresh evidence;
+this demonstrates ordering, not a measured production latency improvement.
+
+Passed 42 distinct Java cases including three query-budget integrations:
+`target/gptlive-acceptance-35b281d486/java.log` (41) and the expanded nine-case
+task lifecycle suite in `target/gptlive-acceptance-f721f4b7ea/java.log`.
+Passed 51 Node performance/Live cases. Both disposable database runs cleaned up.
+Integrated visual/browser regression and live rollout remain milestone 213.

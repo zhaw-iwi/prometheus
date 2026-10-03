@@ -40,6 +40,8 @@ public class AgentActivityService {
         long sequence, dropped, omitted, lastSent, touched = clock.millis();
         boolean dirty, sending;
         Cue cue;
+        String taskPhase;
+        int taskRevision = -1;
         Journal(UUID agent) { this.agent = agent; }
     }
     private synchronized Journal journal(UUID agent) {
@@ -109,6 +111,7 @@ public class AgentActivityService {
                 if (!current()) return;
                 if (epoch != null && journal.epoch != null && !epoch.equals(journal.epoch)) {
                     journal.operations.clear(); journal.operations.put(id, this); journal.entries.clear(); journal.cue = null;
+                    journal.taskPhase = null; journal.taskRevision = -1;
                 }
                 if (epoch != null) journal.epoch = epoch;
                 this.epoch = journal.epoch;
@@ -128,8 +131,19 @@ public class AgentActivityService {
                 journal.cue = new Cue(reason, same ? before.occurrences() + 1 : 1, clock.millis(), source);
                 if (!same) {
                     UUID beforeSource = this.source; this.source = source;
-                    record(null, "cue", reason, null, safe(kind) == null ? Map.of() : Map.of("kind", safe(kind))); this.source = beforeSource;
+                    var details = new LinkedHashMap<String,Object>();
+                    if (safe(kind) != null) details.put("kind", safe(kind));
+                    if (journal.taskPhase != null) { details.put("phase", journal.taskPhase); details.put("taskRevision", journal.taskRevision); }
+                    record(null, "cue", reason, null, details); this.source = beforeSource;
                 }
+            }
+        }
+        @Override public void task(String phase, int revision) {
+            synchronized (AgentActivityService.this) {
+                if (!current() || !Set.of("CONFIGURATION", "RUNNING", "WAITING", "PAUSED", "COMPLETED").contains(phase) || revision < 0) return;
+                if (phase.equals(journal.taskPhase) && revision == journal.taskRevision) return;
+                journal.taskPhase = phase; journal.taskRevision = revision;
+                record(null, "task", "observed", null, Map.of("phase", phase, "taskRevision", revision));
             }
         }
         @Override public void event(UUID event) { synchronized (AgentActivityService.this) {
@@ -153,7 +167,7 @@ public class AgentActivityService {
         } }
         void finish(String outcome) { synchronized (AgentActivityService.this) {
             if (!current()) return;
-            if (visible || outcome.equals("failed")) record(null, "operation", failure == null ? outcome : "failed", elapsed(started),
+            if (visible || failure != null || outcome.equals("failed")) record(null, "operation", failure == null ? outcome : "failed", elapsed(started),
                     failure == null ? Map.of("kind", kind == null ? "unknown" : kind) : Map.of("kind", kind == null ? "unknown" : kind, "reason", failure));
             journal.operations.remove(id); finished = true; journal.touched = clock.millis();
         } }
