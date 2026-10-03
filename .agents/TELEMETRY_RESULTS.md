@@ -46,7 +46,7 @@ has readable contrast. Screenshots and final logs are under
 
 ## Milestone 207
 
-Integrated verification complete; branch integration and rollout pending. Added a real scoped Generic activation
+Integrated verification, branch integration and rollout complete. Added a real scoped Generic activation
 scenario with a held synthetic inference, overlapping serialized work, cue waiting,
 provider usage, failure and reset. Test-only controls remain under the isolated
 fixture classpath; no provider calls or fixture endpoints are introduced in production.
@@ -73,3 +73,46 @@ Final feature check after adding independent inference outcomes: 15 Java tests
 2 enabled browser smokes and 1 disabled smoke passed. Evidence:
 `target/gptlive-acceptance-53abbb754f/`; all exits 0, isolated cleanup confirmed.
 No database schema or inference/task behavior changes are required by Telemetry.
+
+## Branch integration and production verification
+
+Each milestone was committed and pushed on feature/gptlive: `f5e0e70` (205),
+`8e84317` (206), `87c253b` (207). Main fast-forwarded to `87c253b`; the conflict-free
+agents merge `c1de3a0` preserves deployment personas, embodiment-aware runtime
+resolution and the existing Heroku workflow.
+
+Merged agents passed **628 Java tests and 21 browser cases** with disposable
+local MySQL and synthetic providers/media. Evidence:
+`target/gptlive-acceptance-deb90959aa/`. The first merged full run exhausted the
+local MySQL connection limit because many cached Spring test contexts each retained
+a pool (34 context-load errors, no assertion failures). The passing rerun used
+`JAVA_TOOL_OPTIONS=-Dspring.test.context.cache.maxSize=4` only in the acceptance
+process; it restored the previous environment afterwards. Application pool settings,
+query ceilings and production configuration were unchanged. All owned schemas,
+accounts and applications were removed/stopped by the acceptance runner.
+
+[Deployment workflow](https://github.com/zhaw-iwi/prometheus/actions/runs/37109995197)
+completed successfully for `c1de3a0`. Heroku **v106** was released at
+2026-10-03T08:32:40Z; web.1 is up. Verification:
+
+- Health 200/UP, Valerian 200, access-code login 200 and catalog 84.
+- Saved-agent count is still 25; no schema or agent data mutations were used for
+  rollout checks.
+- All seven changed HTML/JavaScript/CSS resources match the deployed agents tree.
+- A real, authorized production monitor connection delivered the version-1
+  activity contract with the correct scope. No inference or voice session was
+  started for production verification.
+- The 921-line release log sample confirms startup and contains no ERROR, R14,
+  R15, H10, database-quota, schema or startup-failure markers. This is a bounded
+  observation, not a sustained-load guarantee.
+
+Sanitized local evidence: `target/telemetry207-rollout-heroku.json`,
+`target/generic-rollout-telemetry207-deployed.json`, `target/telemetry207-assets.json`
+and `target/telemetry207-stream.json`. No credentials were printed or committed.
+
+Remaining limits: physical microphone/speaker audibility and real-provider response
+quality were not retested. Provider transcript intervals, context ACKs and output
+activity do not establish physical playback completion. Journals are bounded and
+transient; server windows may include work predating the page or a local Clear.
+Capture settings/build/usage remain explicitly unknown where not reported. The
+unrelated untracked `codexpython.md` was preserved.
