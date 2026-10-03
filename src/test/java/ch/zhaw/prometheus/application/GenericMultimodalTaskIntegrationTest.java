@@ -40,6 +40,43 @@ class GenericMultimodalTaskIntegrationTest {
     @MockitoBean LanguageModelGateway language;
     @MockitoBean SpeechSynthesisGateway speech;
 
+    @Test void waitingAndExplicitPauseSurviveReloadAndPreserveTheActionBudget() {
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GenericMultimodalBehaviour.KEY));
+        UUID id = demo.createAgent(code, GenericMultimodalBehaviour.KEY).getID();
+        when(language.infer(any())).thenReturn("""
+                {"operation":"ACTIVATE","task":{"goal":"Offer observations while someone is present","maxActions":4,"rules":[
+                {"eventType":"obs.human.presence","field":"humanCount","operator":"gt","value":0,"action":"Offer an observation",
+                 "effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3},
+                {"eventType":"obs.human.presence","field":"humanCount","operator":"eq","value":0,"action":"Wait for presence",
+                 "effect":"WAIT","minConfidence":0,"samples":1,"cooldownSeconds":3}]},"reply":{"speech":"Here is the first observation."}}
+                """);
+        demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Start now."),
+                ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            var agent = agents.findById(id).orElseThrow();
+            ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage().put(TaskMemory.AFTER, new JsonPrimitive(Instant.EPOCH.toString()));
+            agents.saveAndFlush(agent);
+        });
+        clearInvocations(language);
+        demo.acknowledge(code, id, new EventRequest(Event.TYPE_HUMAN_PRESENCE, "sensor", Event.KIND_OBSERVATION,
+                "{\"humanCount\":0,\"avgDetectionConfidence\":0,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        assertEquals("WAITING", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
+        verifyNoInteractions(language);
+        when(language.infer(any())).thenReturn("{\"speech\":\"Here is another observation.\"}");
+        demo.acknowledge(code, id, new EventRequest(Event.TYPE_HUMAN_PRESENCE, "sensor", Event.KIND_OBSERVATION,
+                "{\"humanCount\":1,\"avgDetectionConfidence\":0.95,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        assertEquals(2, agents.findById(id).orElseThrow().getStorage().get(TaskMemory.ACTIONS).getAsInt());
+        clearInvocations(language);
+        for (String command : List.of("Pause", "Resume")) {
+            demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, command), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+            assertEquals(command.equals("Pause") ? "PAUSED" : "RUNNING", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
+        }
+        assertEquals(2, agents.findById(id).orElseThrow().getStorage().get(TaskMemory.ACTIONS).getAsInt());
+        verifyNoInteractions(language);
+    }
+
     @Test void scopedCreationReloadLiveTranscriptSensorNarrationAndStopShareOneDurableTask() {
         String code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
         var access = admin.createAccessCode(code, true);

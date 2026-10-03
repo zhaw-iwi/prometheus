@@ -20,15 +20,42 @@ public class TaskUpdateAction extends Action {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
         if (!taskCue && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
-                "(?i)(please )?(stop|cancel|pause)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
-            TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage);
-            storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly("The task is stopped.").toJsonObject());
+                "(?i)(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
+            String command = events.toList().getLast().getPayload().trim().toLowerCase(java.util.Locale.ROOT).replaceFirst("^please ", "");
+            String reply;
+            if (command.startsWith("resume")) {
+                if (!"PAUSED".equals(TaskMemory.phase(storage)) || !storage.containsKey(TaskMemory.SPEC)) {
+                    reply = "There is no paused task to resume. We can configure a new agreement.";
+                } else {
+                    try {
+                        TaskSpec.parse(storage.get(TaskMemory.SPEC)).executable();
+                        TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage);
+                        TaskMemory.put(storage, TaskMemory.AFTER, now.toString());
+                        reply = "The task is resumed. I am waiting for a fresh matching cue.";
+                    } catch (IllegalArgumentException invalid) {
+                        reply = "The saved agreement needs a rule correction before resuming. Its description is preserved; please ask me to revise it.";
+                    }
+                }
+            } else {
+                boolean pause = command.startsWith("pause");
+                if (pause && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) reply = "There is no active task to pause.";
+                else {
+                    TaskMemory.put(storage, TaskMemory.PHASE, pause ? "PAUSED" : "COMPLETED"); TaskMemory.revise(storage);
+                    reply = pause ? "The task is paused. Ask me to resume when you are ready." : "The task is stopped.";
+                }
+            }
+            storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(reply).toJsonObject());
             return;
         }
         if (taskCue) {
             var rule = TaskDecision.matching(storage, events, runtime, now).orElse(null);
             if (rule == null) return;
             var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
+            if (rule.effect() == TaskSpec.Effect.WAIT) {
+                TaskMemory.put(storage, TaskMemory.PHASE, "WAITING"); TaskMemory.revise(storage);
+                ch.zhaw.prometheus.logging.ActivityTrace.cue("task_waiting", events.toList().getLast().getId());
+                return; // A temporary condition never spends an action or calls a model.
+            }
             int count = Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
             boolean completed = rule.complete() || count >= spec.maxActions();
             String instruction = completed ? "The task is now complete. Briefly acknowledge completion; do not perform another task step."
@@ -42,13 +69,14 @@ public class TaskUpdateAction extends Action {
                 plan = TaskMemory.plan(JsonParser.parseString(raw));
             } catch (RuntimeException failure) {
                 // Another camera sample must not turn a provider failure into an unbounded retry loop.
-                storage.put(TaskMemory.DRAFT, spec.json()); TaskMemory.put(storage, TaskMemory.PHASE, "CONFIGURATION"); TaskMemory.revise(storage);
+                TaskMemory.put(storage, TaskMemory.PHASE, "PAUSED"); TaskMemory.revise(storage);
                 storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
                         "I've paused the task because I couldn't generate its next response. Ask me to resume when you're ready.").toJsonObject());
                 org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class).warn("Generic task paused after behaviour generation failed");
                 return;
             }
             storage.put(TaskMemory.REPLY, plan.toJsonObject());
+            if ("WAITING".equals(TaskMemory.phase(storage))) { TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage); }
             storage.put(TaskMemory.ACTIONS, new JsonPrimitive(count + (completed ? 0 : 1)));
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(rule.cooldownSeconds()).toString());
             if (completed) { TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage); }
@@ -69,12 +97,17 @@ public class TaskUpdateAction extends Action {
             TaskSpec.exact(update, Set.of("operation", "task", "reply"));
             validationStage = "operation";
             operation = TaskSpec.string(update, "operation", 12);
-            if (!Set.of("KEEP", "PROPOSE", "ACTIVATE", "STOP").contains(operation)) throw new IllegalArgumentException();
+            if (!Set.of("KEEP", "PROPOSE", "ACTIVATE", "STOP", "PAUSE", "RESUME").contains(operation)) throw new IllegalArgumentException();
             validationStage = "task";
-            task = update.get("task").isJsonNull() ? null : TaskSpec.parse(update.get("task"));
-            if (operation.equals("ACTIVATE") && task == null && storage.containsKey(TaskMemory.DRAFT)) task = TaskSpec.parse(storage.get(TaskMemory.DRAFT));
+            task = update.get("task").isJsonNull() ? null : TaskSpec.parse(update.get("task")).executable();
+            if (operation.equals("ACTIVATE") && task == null && storage.containsKey(TaskMemory.DRAFT)) task = TaskSpec.parse(storage.get(TaskMemory.DRAFT)).executable();
             if ((operation.equals("PROPOSE") || operation.equals("ACTIVATE")) && task == null) throw new IllegalArgumentException();
-            if ((operation.equals("KEEP") || operation.equals("STOP")) && task != null) throw new IllegalArgumentException();
+            if (Set.of("KEEP", "STOP", "PAUSE", "RESUME").contains(operation) && task != null) throw new IllegalArgumentException();
+            if (operation.equals("PAUSE") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException();
+            if (operation.equals("RESUME")) {
+                if (!"PAUSED".equals(TaskMemory.phase(storage)) || !storage.containsKey(TaskMemory.SPEC)) throw new IllegalArgumentException();
+                TaskSpec.parse(storage.get(TaskMemory.SPEC)).executable();
+            }
             validationStage = "reply";
             reply = TaskMemory.plan(update.get("reply"));
         } catch (RuntimeException invalid) {
@@ -101,6 +134,8 @@ public class TaskUpdateAction extends Action {
                 TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage);
             }
             case "STOP" -> { TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage); }
+            case "PAUSE" -> { TaskMemory.put(storage, TaskMemory.PHASE, "PAUSED"); TaskMemory.revise(storage); }
+            case "RESUME" -> { TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage); }
             default -> { /* Conversation/perception questions retain the existing task. */ }
         }
         ch.zhaw.prometheus.logging.ActivityTrace.cue(operation.equals("ACTIVATE") ? "waiting_for_cue" :
@@ -108,7 +143,8 @@ public class TaskUpdateAction extends Action {
         }
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
         // Only observations captured after this response/cooldown can advance the task.
-        TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
+        if (operation.equals("ACTIVATE") || operation.equals("RESUME"))
+            TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
     }
     private static String validationReason(RuntimeException invalid) {
         // Only fixed codes are logged: Gson/other exception messages may contain private output.

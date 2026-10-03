@@ -19,10 +19,10 @@ public class TaskDecision extends Decision {
     @Override public boolean decide(EventHistory events, PolicyRuntime runtime) {
         Storage storage = ((TaskPolicy) getPolicy()).storage();
         return "CUE".equals(taskCondition) ? matching(storage, events, runtime, Instant.now()).isPresent()
-                : taskCondition.equals(TaskMemory.phase(storage));
+                : "RUNNING".equals(taskCondition) ? TaskMemory.active(storage) : taskCondition.equals(TaskMemory.phase(storage));
     }
     static Optional<TaskSpec.Rule> matching(Storage storage, EventHistory history, PolicyRuntime runtime, Instant now) {
-        if (!"RUNNING".equals(TaskMemory.phase(storage)) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
+        if (!TaskMemory.active(storage) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
         var events = history.toList(); var latest = events.getLast();
         if (!Event.KIND_OBSERVATION.equals(latest.getKind()) || !TaskMemory.fresh(latest, now)) return waitFor("stale_or_missing_observation", latest.getId());
         var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
@@ -46,7 +46,8 @@ public class TaskDecision extends Decision {
         }
         final int from = firstSample;
         var reason = new String[]{"waiting_for_cue"};
-        var result = spec.rules().stream().sorted(Comparator.comparing(TaskSpec.Rule::complete).reversed())
+        var result = spec.rules().stream().sorted(Comparator.comparing(TaskSpec.Rule::effect).reversed())
+                .filter(rule -> rule.effect() != TaskSpec.Effect.WAIT || !"WAITING".equals(TaskMemory.phase(storage)))
                 .filter(rule -> rule.eventType().equals(latest.getType()))
                 .filter(rule -> stable(rule, events.subList(from, events.size()), after, now, reason)).findFirst();
         ch.zhaw.prometheus.logging.ActivityTrace.cue(result.isPresent() ? "cue_matched" : reason[0], latest.getId());

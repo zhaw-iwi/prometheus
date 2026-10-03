@@ -1635,8 +1635,9 @@ Lightweight interactions default to one matching observation; additional samples
 should be an explicit stability choice. Missing, expired or unmatched cues wait.
 The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
-revisions can propose a replacement; explicit stop/cancel/pause commands halt the
-task. Reset clears the agreement. Ordinary questions retain the active task and
+revisions can propose a replacement. Stop/cancel ends the task; pause preserves
+the agreement and action budget for explicit resume. Reset clears the agreement.
+Ordinary questions retain the active task and
 receive a bounded snapshot of current perception, with camera coverage and
 freshness limits.
 
@@ -1645,6 +1646,13 @@ comparisons, one to three distinct matching samples, confidence thresholds,
 three to sixty seconds cooldown and one to fifty actions including the initial
 action. The planner explains the agreed limits. All supported observations can
 inform answers; executable trigger fields are restricted by `TaskSpec.FIELDS`.
+Rules use `effect: ACT|WAIT|COMPLETE`: ACT performs a step, WAIT silently waits
+for another matching action condition, and COMPLETE ends the task permanently.
+An observed empty scene uses confidence zero because average detected-person
+confidence is undefined without detections; missing or stale sensing remains
+unknown. New agreements reject conflicting identical conditions and impossible
+absence confidence thresholds. Legacy `complete` booleans remain readable with
+their original meaning and are not silently reinterpreted as resumable waits.
 No arbitrary code, external tools, automatic detector changes, timers or nested
 workflow generation is provided. Unknown string-valued expressive gesture labels
 fall back to `NONE`, preserving valid speech and other output. Task rules, output

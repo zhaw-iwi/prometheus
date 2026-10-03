@@ -220,7 +220,7 @@ class GenericMultimodalTaskUnitTest {
         when(gateway.infer(any())).thenThrow(new IllegalStateException("private provider message")); clearInvocations(gateway);
         face(base.plusMillis(100), -0.9, 1, runtime);
         Event failed = face(base.plusMillis(200), -0.9, 1, runtime);
-        assertEquals("CONFIGURATION", TaskMemory.phase(memory())); assertFalse(failed.getPayload().contains("private provider"));
+        assertEquals("PAUSED", TaskMemory.phase(memory())); assertFalse(failed.getPayload().contains("private provider"));
         face(Instant.now(), -0.9, 1, runtime); verify(gateway, times(1)).infer(any());
     }
     @Test void forecastRulesUseActualNestedPayloadAndOutputValidationBoundsPersistedJson() {

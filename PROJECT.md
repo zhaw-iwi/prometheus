@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 209 (2026-10-03): Generic rules distinguish acting, temporary waiting
+  and terminal completion; explicit pause/resume preserves the action budget.
+  New agreements reject impossible absence-confidence thresholds and conflicting
+  identical conditions. Passed 18 unit and 2 MySQL cases, including reload.
+  Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`; milestone 210 follows.
+
 - Milestone 208 (2026-10-03): Generic configuration now uses neutral schema
   descriptions without a preset demo task, defaults lightweight plans to one
   matching observation and explicitly distinguishes awaiting acceptance. Passed

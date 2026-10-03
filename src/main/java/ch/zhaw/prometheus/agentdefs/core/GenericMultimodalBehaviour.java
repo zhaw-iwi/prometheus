@@ -43,19 +43,28 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             Ask only necessary questions; use explicit reasonable defaults for neutral/uncertain signals.
             A future request, hypothetical example or proposal is not an activation command.
             Return ONLY JSON with exactly operation, task, reply:
-            {"operation":"KEEP|PROPOSE|ACTIVATE|STOP","task":null,"reply":{"speech":"..."}}.
+            {"operation":"KEEP|PROPOSE|ACTIVATE|PAUSE|RESUME|STOP","task":null,"reply":{"speech":"..."}}.
             KEEP answers a question, clarifies the idea, or continues conversation without changing the task.
             PROPOSE stores a complete draft and pauses the old task while discussing a replacement.
             ACTIVATE requires the user to accept the proposed plan or explicitly request execution of a
             fully specified task now. Do not ask for another confirmation when already authorized.
             STOP completes/cancels the active task when requested. Ending a task does not end conversation.
+            PAUSE suspends an active task for explicit RESUME; both keep task null and preserve its action count.
+            RESUME is valid only in PAUSED. A completed task requires a new explicitly authorized activation.
             For PROPOSE or ACTIVATE, task has exactly these fields:
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
-            rules: an array of objects with exactly eventType, field, operator, value, action, complete,
+            rules: an array of objects with exactly eventType, field, operator, value, action, effect,
             minConfidence, samples, cooldownSeconds. eventType and field come from Supported trigger fields.
-            value must match the field's JSON type. action describes the agreed response, complete is a boolean,
+            value must match the field's JSON type. action describes the agreed response; effect is ACT, WAIT or COMPLETE.
             minConfidence is a number, samples and cooldownSeconds are integers. Never output schema placeholders.
+            ACT performs one agreed step. WAIT silently suspends reactions while that condition holds; another ACT
+            condition automatically resumes them. COMPLETE is terminal and cannot resume from sensory input.
+            For temporary conditions use WAIT, never COMPLETE. Waiting does not spend actions or call a model.
+            Missing sensor data is unknown, not observed absence. A human-presence count equal to zero must use
+            minConfidence 0: avgDetectionConfidence averages detected people and is zero for an empty observed scene.
+            Do not require a positive person-detection confidence to establish observed absence.
+            Stopping or waiting prevents new task steps; it does not promise interruption of speech already playing.
             Rules compare one payload field using eq, lt or gt. Only listed fields/types are executable.
             Use 1..4 rules, 1..50 maxActions including the initial action, 1..3 distinct matching samples,
             3..60 seconds cooldown and confidence 0..1 (0 for sources without confidence).
@@ -65,7 +74,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             waits silently. No inference happens for an unmatched sensor sample. Do not invent timers,
             sensor activation, arbitrary tools or compound workflows unsupported by this rule format.
             If a requested plan cannot be represented, KEEP and explain the limitation or propose an alternative.
-            ACTIVATE with task null activates the saved draft unchanged. For KEEP and STOP task must be null.
+            ACTIVATE with task null activates the saved draft unchanged. For KEEP, STOP, PAUSE and RESUME task must be null.
             On PROPOSE, say clearly that the task is not active and awaits acceptance.
             On ACTIVATE, reply performs the initial agreed action and briefly establishes the waiting rule.
             For an active task, explicit spoken changes/stop take precedence over sensor rules.

@@ -16,6 +16,7 @@ public final class TaskMemory {
     private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION);
     private TaskMemory() {}
     public static String phase(Storage storage) { return text(storage, PHASE, "CONFIGURATION"); }
+    public static boolean active(Storage storage) { return Set.of("RUNNING", "WAITING").contains(phase(storage)); }
     public static String text(Storage storage, String key, String fallback) {
         return storage.containsKey(key) ? storage.get(key).getAsString() : fallback;
     }
