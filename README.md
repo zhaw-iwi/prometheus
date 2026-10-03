@@ -490,7 +490,7 @@ Timing exports distinguish `behaviour_decode_compact` from
 `behaviour_decode_canonical`; neither includes response content. Malformed compact
 tuples, unknown short keys and overlapping short-key/`x` definitions fail without
 a repair request or partial speech. Compare actual completion tokens and latency
-in the Interaction Timing export; a shorter JSON representation alone does not
+in the Telemetry export; a shorter JSON representation alone does not
 establish a deployment speedup.
 
 Deterministic RPS output and Talk to Me still construct plans without model calls.
@@ -640,12 +640,41 @@ trace ID. A request that publishes behaviour also returns
 These headers do not grant access or change event payloads. Configured CORS
 origins can send/read them.
 
-In Valerian, open **Agent & Diagnostics → Interaction Timing**. Recording is
-automatic for submitted speech/text turns; expand a turn to inspect milliseconds
+The existing scoped monitor stream also publishes `activity` snapshots (version 1):
+bounded, transient operation IDs, execution epoch, stage starts/finishes, outcomes,
+server durations, safe inference metadata and aggregated task cue waiting reasons.
+Concurrent operations remain distinct. This collection adds no database polling or
+model calls; retention is 128 agents, 32 concurrent operations and 128 entries per
+agent, with idle expiry after 30 minutes and explicit omission counters. Server
+restart loses this transient history. Cue diagnostics observe existing decisions;
+they never activate tasks. Live status also retains cumulative provider usage,
+context utilisation and safe error/close codes, excluding provider error messages.
+See `.agents/PLAN_TELEMETRY.md` and `.agents/TELEMETRY_RESULTS.md` for rollout evidence.
+
+In Valerian, open **Agent & Diagnostics → Telemetry**.
+The interaction card has one shared status footer across Text, Continuous and
+GPT-Live. It combines in-flight backend stages with existing transcript ingress
+and playback observations. Thinking means an observed model request; this is a
+progress label, not model reasoning. Intentional cue waiting is static. A stale
+active stream becomes Progress unavailable instead of claiming continued success.
+Elapsed times use the clock which measured the work. Browser speech/output
+activity is not proof of physical audibility.
+
+The footer flag marks speech cutoffs, long pauses, unexpected responses or missed
+cues. Markers contain timestamps and active operation identities, never free text;
+their association to audio is approximate. JSON now includes `activity` journals,
+coverage and markers, and Live requested/applied capture settings, cumulative
+provider usage, context utilisation and safe error codes. Live configuration includes
+the existing silence/lateness/open-segment/audio-gap limits, request deadline and
+Heroku build identity when the platform supplies it. Missing evidence remains
+unknown. Existing turn fields and ordinary-turn CSV remain compatible; filenames
+now begin `prometheus-telemetry-`. Browser activity retention is 16 recordings,
+1,024 entries per recording and 64 markers, with explicit omission counters.
+
+Recording is automatic for submitted speech/text turns; expand a turn to inspect milliseconds
 from estimated speech end through commit, final transcription, backend processing,
-cockpit refresh and playback. **Processing turn** replaces the misleading
-**Transcript Sending** badge: acknowledgement can include model work, behaviour
-generation and persistence, followed by cockpit refresh before acceptance.
+cockpit refresh and playback. The shared footer includes acknowledgement, model
+work, behaviour generation, persistence and playback activity.
 
 **Export JSON** includes detailed browser stages, each acknowledgement/fallback/
 Speech HTTP request, available server spans, actual text-model routes/effort and
@@ -1308,7 +1337,7 @@ an already admitted action can finish. Assistant capture may drain during close.
 Access-code disable/unlink and epoch changes fence subsequent worker operations.
 Closed metadata stays scoped and readable for two minutes (maximum 128 sessions).
 
-Interaction Timing includes a Live section and bounded metadata in JSON exports:
+Telemetry includes a Live section and bounded metadata in JSON exports:
 session/epoch, receipt/segment/source IDs, context revision, queue coverage,
 send/ACK, output counters and finalization. Browser monotonic time, server Unix time
 and provider audio offsets are separate clocks. Dropped-record counts are explicit.
@@ -1542,7 +1571,7 @@ blindly repeated. Status includes content-free revision/source IDs and send/ACK
 traces (last 64, with dropped count and separate server clock). Native assistant
 history cannot narrate itself. Existing non-speech behaviour/SSE remains available.
 
-Interaction Timing JSON also includes `live.sessions[].media`: browser playback
+Telemetry JSON also includes `live.sessions[].media`: browser playback
 and track events plus allowlisted WebRTC audio counters from the existing peer
 connection. Packet loss, concealed samples, jitter/buffer counters, audio energy
 and media state help distinguish delivery loss from generated silence. Stats are
@@ -1868,7 +1897,7 @@ Neither measures physical audibility, and the two marker mechanisms can differ.
 Compare end-to-end timing as well as preparation, first-byte and playback stages,
 and listen for missing or clipped speech. Test startup separately from later turns.
 
-PCM interruption detail is collected automatically in the same Interaction Timing
+PCM interruption detail is collected automatically in the same Telemetry
 JSON export (`turn.pcm`, detail version 1). It records response-body read sizes and
 waits, numbered blocks posted to/received by the renderer, producer backpressure,
 and renderer start, buffer-empty, resume and finish positions. Preparation includes

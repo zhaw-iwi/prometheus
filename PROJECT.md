@@ -82,6 +82,27 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 207 (2026-10-03): integrated Generic activation/progress acceptance,
+  including delayed inference, overlapping work, cue waiting, safe provider usage,
+  failure and reset. Full feature regression passed 491 Java tests; all 52 browser
+  cases have passing evidence across the broad run and focused fixture correction.
+  Query budgets retain their prior limits by reusing resolved speech ownership.
+  Final focused checks and branch/deployment evidence: `.agents/TELEMETRY_RESULTS.md`.
+
+- Milestone 206 (2026-10-03): one activity footer across Text/Continuous/GPT-Live
+  and renamed Telemetry tab. Added bounded backend journals, issue markers,
+  capture configuration, provider usage and collection coverage to JSON; retained
+  ordinary turn/CSV compatibility. Client/visual acceptance evidence and remaining
+  integrated checks are in `.agents/TELEMETRY_RESULTS.md`. Milestone 207 follows
+  automatically under user authorization.
+
+- Milestone 205 (2026-10-03): shared bounded in-memory activity reporting on the
+  existing scoped monitor stream, model/queue/persistence/context stages, aggregated
+  cue reasons, and safe cumulative Live usage/error metadata. Passed 37 focused
+  Java tests including real local MySQL HTTP/SSE, overlap/privacy/bounds, task
+  semantics and query budgets. Milestones 206/207 continue automatically under
+  user authorization; evidence is `.agents/TELEMETRY_RESULTS.md`.
+
 - Milestone 204 (2026-10-02): reduce Live announcement delay with compact changed
   guidance, committed-result priority over sensor coalescing and bounded factual
   packing. Add content-free browser playback/RTC and reflected-audio diagnostics
@@ -293,6 +314,12 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 207: Integrated activity/Telemetry acceptance and deployment
+
+- [x] Milestone 206: Unified interaction activity footer and Telemetry
+
+- [x] Milestone 205: Shared activity reporting and safe Live metadata
 
 - [x] Milestone 204: Reduce Live announcement delays and diagnose audio cutoffs
 
@@ -9798,3 +9825,43 @@ remain trial gates rather than guarantees from synthetic checks.
   merge `2ef3b9d` after 71 focused Java and 15 browser cases passed. Heroku v105
   is up; health/login and served-client checks passed. Saved-agent count remained
   25; physical speech quality and latency remain unverified.
+
+## Milestone 205: Shared activity reporting and safe Live metadata
+
+2026-10-03. Added bounded transient operation/stage telemetry on the scoped monitor
+SSE, including concurrent operation identity, execution-epoch fencing, monotonic
+durations, outcomes, model metadata and aggregated task waiting reasons. Existing
+inference, task decisions, context coalescing and database paths are preserved.
+Live status retains cumulative usage, context utilisation and safe error/close
+codes; no raw audio, transcript, prompts or provider messages enter new records.
+Passed 37 focused Java checks against disposable local MySQL, including an actual
+in-flight SSE event before HTTP completion and unchanged query budgets. Evidence,
+plan and remaining browser/acoustic limits: `.agents/TELEMETRY_RESULTS.md`.
+
+## Milestone 206: Unified interaction activity footer and Telemetry
+
+2026-10-03. Consolidated backend processing, Continuous ingress/playback and Live
+output observations in a shared footer. Active work has elapsed time and a
+reduced-motion-aware spinner; cue waiting is static and stale progress is explicit.
+Removed the separate ingress, playback and Live context summaries while retaining
+connection/device controls. Renamed Interaction Timing to Telemetry. Metadata-only
+JSON exports add bounded backend operations, configuration/coverage and fixed-category
+issue markers. Existing turn fields and CSV remain compatible. JavaScript unit,
+local MySQL browser, lifecycle, desktop/mobile and light/dark visual evidence is
+recorded in `.agents/TELEMETRY_RESULTS.md`. Synthetic playback is not physical
+acoustic verification. Final integrated acceptance and rollout follow in 207.
+
+## Milestone 207: Integrated activity/Telemetry acceptance and deployment
+
+2026-10-03. Added an actual scoped HTTP/MySQL/SSE/browser Generic activation trial
+with synthetic inference/media: held model work, overlapping serialized requests,
+cumulative usage, cue waiting, failed inference and execution-epoch reset. Retained
+coverage for ordinary and feature-disabled speech, pooled streams and visuals.
+Full Java acceptance exposed a duplicate Live ownership read introduced by activity
+binding; the final implementation reuses runtime ownership and preserves all prior
+query ceilings. Updated contracts for one footer and additive named stream events.
+Exports retain independent inference outcomes even when application work recovers,
+and existing capture limits plus optional platform build metadata. Detailed counts,
+failed-run corrections, branch integration and release checks are maintained in
+`.agents/TELEMETRY_RESULTS.md`. No physical acoustic or paid-provider quality claim
+follows from these synthetic trials.

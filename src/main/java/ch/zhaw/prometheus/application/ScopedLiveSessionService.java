@@ -41,7 +41,10 @@ public class ScopedLiveSessionService {
             long outputSamples, long voicedInputSamples, List<Diagnostic> recent, long dropped, String captureState,
             LiveContextBridgeService.Status context, UUID handle, UUID epoch, String clock,
             LiveTranscriptCaptureService.Status capture, String reason,
-            ch.zhaw.prometheus.application.live.LiveAudioDiagnostics.Status audio) {}
+            ch.zhaw.prometheus.application.live.LiveAudioDiagnostics.Status audio, ProviderTelemetry providerTelemetry) {}
+    public record ProviderProblem(long serverMs, String code, String type, String clientEventId) {}
+    public record ProviderTelemetry(Double usageSeconds, Double contextUsageRatio, String closeReason,
+            List<ProviderProblem> problems, Map<String,Object> configuration) {}
     public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {}
 
     private final ScopedDemoService demo;
@@ -104,6 +107,14 @@ public class ScopedLiveSessionService {
             sessions.put(lease.handle, lease);
         }
         try {
+            String build = System.getenv("HEROKU_SLUG_COMMIT");
+            lease.configuration = Map.of("model", properties.getModel(), "voice", voice,
+                    "requestTimeoutMs", properties.getRequestTimeoutMs(), "telemetryVersion", 1,
+                    "build", build != null && build.matches("[a-fA-F0-9]{40,64}") ? build : "unknown",
+                    "silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS,
+                    "latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS,
+                    "maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS,
+                    "maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS);
             lease.failure = reason -> failed(lease, reason);
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             lease.authorized = () -> ownership.isCurrent(agentId, new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()));
@@ -273,6 +284,10 @@ public class ScopedLiveSessionService {
         long count, dropped, inputSamples, outputSamples, voicedInputSamples;
         final ch.zhaw.prometheus.application.live.LiveAudioDiagnostics audio = new ch.zhaw.prometheus.application.live.LiveAudioDiagnostics();
         record Pending(String type, CompletableFuture<Void> result) {}
+        String providerCloseReason;
+        Map<String,Object> configuration = Map.of("telemetryVersion", 1);
+        Double usageSeconds, contextUsageRatio;
+        final ArrayDeque<ProviderProblem> providerProblems = new ArrayDeque<>();
 
         Lease(UUID agentId, byte[] scope, Instant expires, Clock clock) {
             this.agentId = agentId; this.scope = scope; this.expires = expires; this.clock = clock; this.clientSeen = clock.instant();
@@ -281,6 +296,21 @@ public class ScopedLiveSessionService {
             String type = event.has("type") ? event.get("type").getAsString() : "invalid";
             if (!type.matches("[a-z_.]{1,100}")) type = "invalid";
             count++;
+            if (event.has("usage") && event.get("usage").isJsonObject()) {
+                Double seconds = numeric(event.getAsJsonObject("usage"), "seconds");
+                if (seconds != null && seconds >= 0) usageSeconds = seconds;
+            }
+            if (event.has("context_window") && event.get("context_window").isJsonObject()) {
+                Double ratio = numeric(event.getAsJsonObject("context_window"), "usage_ratio");
+                if (ratio != null && ratio >= 0 && ratio <= 1) contextUsageRatio = ratio;
+            }
+            if (type.equals("session.closed")) providerCloseReason = safeId(string(event, "reason"));
+            if (type.equals("error") && event.has("error") && event.get("error").isJsonObject()) {
+                var error = event.getAsJsonObject("error");
+                if (providerProblems.size() == 16) providerProblems.removeFirst();
+                providerProblems.addLast(new ProviderProblem(clock.millis(), safeId(string(error, "code")),
+                        safeId(string(error, "type")), safeId(string(error, "client_event_id"))));
+            }
             if (capture != null) capture.receive(event);
             if (bridge != null) bridge.receive(event);
             if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
@@ -335,13 +365,18 @@ public class ScopedLiveSessionService {
         private static String string(JsonObject event, String name) {
             return event.has(name) && event.get(name).isJsonPrimitive() ? event.get(name).getAsString() : null;
         }
+        private static Double numeric(JsonObject object, String key) {
+            try { double value = object.get(key).getAsDouble(); return Double.isFinite(value) ? value : null; }
+            catch (RuntimeException invalid) { return null; }
+        }
         private static String safeId(String value) { return value != null && value.matches("[A-Za-z0-9_-]{1,128}") ? value : null; }
         synchronized StatusView status() {
             String state = cleanupFailed ? "cleanup_unconfirmed" : stopped.get() ? "closed" : disconnected.get() ? "disconnected" : "attached";
             return new StatusView(state, finalized.isDone(), count, inputSamples, outputSamples, voicedInputSamples, List.copyOf(recent), dropped,
                     captureProblem != null ? captureProblem : captureDrained ? "closed" : capture != null ? "active" : "unavailable",
                     bridge == null ? null : bridge.status(), handle, context == null ? null : context.epoch(), "server_unix_ms",
-                    capture == null ? null : capture.status(), reason, audio.status());
+                    capture == null ? null : capture.status(), reason, audio.status(), new ProviderTelemetry(usageSeconds, contextUsageRatio, providerCloseReason,
+                            List.copyOf(providerProblems), configuration));
         }
     }
 }

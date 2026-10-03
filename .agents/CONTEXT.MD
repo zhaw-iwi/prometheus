@@ -88,11 +88,19 @@ PROMETHEUS currently provides:
 - multimodal behaviour generation and behaviour persistence;
 - typed inference requests with configurable task-purpose model/effort routes,
   finite provider deadlines, strict structured-result validation and content-free
-  correlated latency diagnostics, including a Valerian Interaction Timing drawer
+  correlated latency diagnostics, including a Valerian Telemetry drawer
   with browser/server JSON and comparison CSV exports (details in README/results);
 - agent interaction profiles and Spring-discovered `AgentDefinition` beans;
 - scoped access-code APIs and trusted global APIs, including streamed Speech
   synthesis from exact persisted behaviour-event identity;
+- one interaction-card activity footer across Text/Continuous/GPT-Live, combining
+  existing ingress/playback evidence with backend stages, static cue waiting and
+  explicit stale progress; Telemetry JSON includes bounded issue markers;
+- bounded content-free in-flight operation telemetry over the scoped monitor SSE,
+  with correlated model/stage outcomes, aggregate cue waiting reasons and safe Live
+  usage/error metadata, independent inference outcomes and capture/build settings;
+  telemetry reuses resolved runtime ownership and adds no database polling or
+  model calls; acceptance and rollout evidence: `.agents/TELEMETRY_RESULTS.md`;
 - behaviour and monitor SSE streams with heartbeat, cursor, and disconnect
   resilience; behaviour delivery explicitly distinguishes live publication
   from initial/history/reconnect replay without changing persisted payloads;

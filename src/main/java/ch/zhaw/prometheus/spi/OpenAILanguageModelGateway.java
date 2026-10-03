@@ -104,7 +104,7 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         boolean success = false;
         int requests = 0;
         Integer promptTokens = null, completionTokens = null;
-        try {
+        try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("thinking")) {
             JsonObject payload = payload(inference, route);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(route.url()))
@@ -140,6 +140,8 @@ public class OpenAILanguageModelGateway implements LanguageModelGateway {
         } catch (java.io.IOException transport) {
             throw new IllegalStateException("Inference provider transport failed");
         } finally {
+            ch.zhaw.prometheus.logging.ActivityTrace.inference(inference.requestId(), inference.purpose().name(),
+                    route.model(), route.effort(), promptTokens, completionTokens, requests, success);
             LatencyTrace.record("inference", (System.nanoTime() - start) / 1_000_000.0, success,
                     inference.requestId(), inference.purpose().name(), route.model(),
                     route.effort() == null ? "default" : route.effort(), promptTokens, completionTokens, requests);

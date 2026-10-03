@@ -6,6 +6,54 @@ const AGENT = { id: ID, name: "Valerian voice pilot", description: "Multimodal c
 const json = body => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const event = (id, speech, provenance = null) => ({ id, type: "resp.behaviour_plan", actor: "assistant", kind: "response", payload: JSON.stringify({ speech }), provenance, createdDate: "2026-09-28T10:00:00Z" });
 
+test("text fallback with no generated behaviour returns to Ready", async ({ page, context }) => {
+  await setup(context); await open(page); await page.getByTestId("text-interaction-tab").click();
+  await page.route("**/acknowledge", route => route.fulfill(json({ active: true, responseEvent: null })));
+  await page.route("**/behaviour/generate", route => route.fulfill({ status: 409 }));
+  await page.getByTestId("text-input").fill("Nothing to add"); await page.getByTestId("send-text").click();
+  await expect(page.getByTestId("send-text")).toBeEnabled();
+  await expect(page.getByTestId("activity-label")).toHaveText("Ready");
+});
+
+for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
+  test(`unified activity footer and Telemetry ${theme} ${mobile ? "mobile" : "desktop"}`, async ({ page, context }, info) => {
+    await setup(context); await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
+    await open(page); await page.evaluate(theme => setTheme(theme), theme);
+    const publish = value => page.evaluate(value => {
+      const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
+      source.dispatchEvent(new MessageEvent("activity", { data: JSON.stringify(value) }));
+    }, { version: 1, agentId: ID, epoch: "epoch1", revision: 1, recent: [], ...value });
+    await publish({ active: [{ operationId: "one", stage: "thinking", elapsedMs: 3400 }, { operationId: "two", stage: "persist", elapsedMs: 20 }] });
+    await expect(page.getByTestId("activity-label")).toHaveText("Thinking");
+    const footer = page.getByTestId("interaction-activity");
+    await expect(footer).toHaveAttribute("data-busy", "true"); await expect(footer).toContainText("2 operations in progress");
+    await page.getByTestId("continuous-speech-tab").click(); await expect(footer).toBeVisible();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    expect(await footer.locator(".activity-indicator").evaluate(node => getComputedStyle(node).animationName)).toBe("none");
+    await footer.screenshot({ path: info.outputPath(`thinking-${theme}-${mobile}.png`) });
+    await footer.getByRole("button", { name: "Mark an interaction issue" }).click();
+    await footer.getByRole("button", { name: "Long pause", exact: true }).click();
+    await publish({ revision: 2, active: [], cue: { reason: "insufficient_samples", occurrences: 4 } });
+    await expect(page.getByTestId("activity-label")).toHaveText("Waiting for a stable cue");
+    await expect(footer).toHaveAttribute("data-busy", "false");
+    expect(await page.locator("#speech_playback_status, #transcription_ingress_status, #gptlive_context").count()).toBe(0);
+    expect(await footer.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await page.locator("#open_diagnostics").click(); await page.getByRole("tab", { name: "Telemetry", exact: true }).click();
+    await expect(page.locator("[data-activity-telemetry]")).toContainText("long pause");
+    await expect(page.getByTestId("timing-export-json")).toBeEnabled();
+    const download = page.waitForEvent("download"); await page.getByTestId("timing-export-json").click();
+    const exported = await download; expect(exported.suggestedFilename()).toMatch(/^prometheus-telemetry-/);
+    await page.screenshot({ path: info.outputPath(`telemetry-${theme}-${mobile}.png`) });
+    await page.keyboard.press("Escape");
+    await publish({ revision: 3, active: [{ operationId: "one", stage: "thinking", elapsedMs: 500 }] });
+    await page.evaluate(() => { window.PrometheusActivity.received -= 7000; });
+    await expect(page.getByTestId("activity-label")).toHaveText("Progress unavailable");
+    await page.evaluate(() => window.PrometheusActivity.scope(null));
+    await publish({ revision: 4, active: [{ stage: "thinking" }] });
+    await expect(page.getByTestId("activity-label")).toHaveText("Connect an agent to begin");
+  });
+}
+
 async function setup(context, scenario = {}) {
   Object.assign(scenario, { requests: [], history: [], ledger: [], ...scenario });
   await context.route("**/demo/**", async route => {
@@ -227,7 +275,7 @@ test("network, sideband and microphone loss require a fresh explicit connection"
   await expect(page.getByTestId("timing-turns")).toContainText("separate clocks");
   await expect(page.getByTestId("timing-turns")).toContainText("Export records omitted");
   await expect(page.getByTestId("timing-turns")).toContainText("Server ring evictions");
-  await page.getByTestId("interaction-timing-panel").screenshot({ path: info.outputPath("live-timing-drawer.png") });
+  await page.screenshot({ path: info.outputPath("live-timing-drawer.png") });
 });
 
 test("reload, reset, switch, delete and logout cannot restore old captions or tracks", async ({ page, context }) => {

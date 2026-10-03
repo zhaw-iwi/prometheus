@@ -20,6 +20,7 @@ public final class LatencyTrace implements AutoCloseable {
     private static final com.google.gson.Gson GSON = new com.google.gson.Gson();
     private static final ThreadLocal<LatencyTrace> CURRENT = new ThreadLocal<>();
     private final LatencyTrace previous;
+    private ActivityTrace.Scope activityScope;
     private final String id;
     private final LongSupplier clock;
     private final Consumer<String> behaviourHeader;
@@ -54,7 +55,12 @@ public final class LatencyTrace implements AutoCloseable {
         LatencyTrace parent = CURRENT.get();
         Measurements shared = parent != null && parent.id.equals(id) ? parent.measurements : null;
         LongSupplier clock = parent == null ? System::nanoTime : parent.clock;
-        return () -> new LatencyTrace(id, ignored -> {}, clock, shared);
+        var activity = ActivityTrace.current();
+        return () -> {
+            var result = new LatencyTrace(id, ignored -> {}, clock, shared);
+            result.activityScope = ActivityTrace.attach(activity);
+            return result;
+        };
     }
 
     public static void record(String stage, double durationMs, boolean success) {
@@ -142,7 +148,7 @@ public final class LatencyTrace implements AutoCloseable {
         long start = now();
         boolean success = false;
         try {
-            T value = work.get();
+            T value = ActivityTrace.measure(stage, work);
             success = true;
             return value;
         } finally {
@@ -153,6 +159,7 @@ public final class LatencyTrace implements AutoCloseable {
     }
 
     public static void behaviour(UUID eventId) {
+        ActivityTrace.event(eventId);
         LatencyTrace trace = CURRENT.get();
         if (trace != null && eventId != null) {
             trace.behaviourHeader.accept(eventId.toString());
@@ -161,6 +168,7 @@ public final class LatencyTrace implements AutoCloseable {
     }
 
     @Override public void close() {
+        if (activityScope != null) activityScope.close();
         if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
     }
 }

@@ -1,3 +1,4 @@
+import { interactionActivity } from "../performance/activity.js";
 import { LiveClient } from "./client.js";
 import { liveDiagnostics } from "./diagnostics.js";
 import { sanitizeMediaPreferences, captureSummary } from "../transcription/settings.js";
@@ -69,8 +70,12 @@ export class LiveCockpit {
     this.muted = value.muted ?? this.muted;
     $("gptlive_mute").textContent = this.muted ? "Unmute microphone" : "Mute microphone";
     $("gptlive_mute").setAttribute("aria-pressed", String(!!this.muted));
-    if (value.state !== "Active") { $("gptlive_input_activity").textContent = "Microphone idle"; $("gptlive_output_activity").textContent = "Speaker idle"; }
+    if (value.state !== "Active") { $("gptlive_input_activity").textContent = "Microphone idle"; }
     else $("gptlive_input_activity").textContent = this.muted ? "Microphone muted" : "Microphone on";
+    interactionActivity.listening = value.state === "Active" && !this.muted;
+    interactionActivity.set("live_connection", ({ Starting: "connecting", Connecting: "connecting", Stopping: "stopping", Error: "failed", Disconnected: "failed" })[value.state] || null,
+      { ttl: ["Error", "Disconnected"].includes(value.state) ? 10000 : null });
+    if (value.state && value.state !== "Active") interactionActivity.set("live_output", null);
     this.controls(); this.onLifecycle(value);
   }
   controls() {
@@ -121,9 +126,8 @@ export class LiveCockpit {
     if (value.status && (value.phase === "status" || value.phase === "stopped")) {
       const before = this.activity || {}; const current = value.status;
       $("gptlive_input_activity").textContent = this.muted ? "Microphone muted" : current.voicedInputSamples > (before.voicedInputSamples || 0) ? "Input activity" : "Microphone on";
-      $("gptlive_output_activity").textContent = current.outputSamples > (before.outputSamples || 0) ? "Output activity" : "Speaker ready";
+      if (this.active && current.outputSamples > (before.outputSamples || 0)) interactionActivity.set("live_output", "output", { ttl: 1500 });
       this.activity = current;
-      $("gptlive_context").textContent = `Context: ${current.context?.state || "unknown"} · Capture: ${current.captureState || "unknown"}`;
     }
   }
   async devices() {

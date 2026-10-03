@@ -126,7 +126,7 @@ class SpeechArchitectureBrowserClientContractTest {
         String playback = Files.readString(SPEECH_PLAYBACK);
 
         assertContains(index, "/speech/browser-global.js");
-        assertContains(index, "data-testid=\"speech-playback-status\"");
+        assertContains(index, "data-testid=\"interaction-activity\"");
         assertContains(index, "data-testid=\"stop-speech-playback\"");
         assertContains(script, "[\"behaviour-live\", \"behaviour-replay\"]");
         assertContains(script, "delivery: eventName === \"behaviour-live\" ? \"live\" : \"replay\"");

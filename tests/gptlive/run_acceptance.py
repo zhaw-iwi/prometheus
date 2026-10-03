@@ -22,6 +22,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
+    parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--database-properties', default='src/main/resources/application.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
@@ -126,7 +127,8 @@ def main():
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',
                                 'tests/playwright/valerian-column-expansion.spec.mjs', 'tests/playwright/valerian-classroom-smoke.spec.mjs']
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
-                        '--output=' + str(artifacts / ('browser-' + enabled))], 'browser-' + enabled)
+                        '--output=' + str(artifacts / ('browser-' + enabled)),
+                        *(['--grep', args.browser_grep] if args.browser_grep else [])], 'browser-' + enabled)
                     stop()
     finally:
         stop()

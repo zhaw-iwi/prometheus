@@ -85,8 +85,8 @@ class QueryVolumeIntegrationTest {
         if (label.contains("idle-transcripts")) { assertEquals(2, stats.getPrepareStatementCount(), label); assertEquals(0, stats.getEntityLoadCount(), label); }
         if (label.contains("-face")) {
             int limit = label.startsWith("core.multimodal_behaviour") ? 21 : 13;
-            assertTrue(stats.getPrepareStatementCount() <= limit, label);
-            assertTrue(databaseQuestions <= limit + 6, label);
+            assertTrue(stats.getPrepareStatementCount() <= limit, label + " statements=" + stats.getPrepareStatementCount());
+            assertTrue(databaseQuestions <= limit + 6, label + " databaseQuestions=" + databaseQuestions);
         }
         System.out.printf("QUERY_VOLUME %s statements=%d databaseQuestions=%d entities=%d inserts=%d updates=%d collectionUpdates=%d%n",
                 label, stats.getPrepareStatementCount(), databaseQuestions, stats.getEntityLoadCount(), stats.getEntityInsertCount(),

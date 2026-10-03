@@ -20,8 +20,23 @@ public class LiveSmokeConfiguration {
     @Bean @Primary public LanguageModelGateway offlineLanguageGateway(Provider provider) {
         return new LanguageModelGateway() {
             public String infer(InferenceRequest request) {
+                try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("thinking")) {
                 provider.inferences.add(request);
+                var gate = provider.inferenceGate;
+                if (gate != null) {
+                    try { gate.get(25, TimeUnit.SECONDS); }
+                    catch (Exception failure) { throw new IllegalStateException("Synthetic inference failure"); }
+                }
+                ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields:")) return """
+                        {"operation":"ACTIVATE","task":{"goal":"Tell jokes using facial feedback","maxActions":5,"rules":[
+                         {"eventType":"obs.emotion.face","field":"valence","operator":"lt","value":-0.25,
+                          "action":"Tell one short joke","complete":false,"minConfidence":0.6,"samples":2,"cooldownSeconds":3},
+                         {"eventType":"obs.emotion.face","field":"valence","operator":"gt","value":0.25,
+                          "action":"Finish the joke task","complete":true,"minConfidence":0.6,"samples":2,"cooldownSeconds":3}]},
+                         "reply":{"speech":"First fixture joke."}}
+                        """;
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
@@ -32,6 +47,7 @@ public class LiveSmokeConfiguration {
                         """;
                 if (prompt.contains("The output must omit speech completely")) return "{\"nonVerbal\":{\"gesture\":\"NONE\"}}";
                 return "{\"speech\":\"Ready for the next interaction.\",\"nonVerbal\":{\"gesture\":\"NONE\"}}";
+            }
             }
             public String complete(List<PromptMessage> messages) { return "Ready for the next interaction."; }
             public boolean decide(List<PromptMessage> messages) {
@@ -51,6 +67,7 @@ public class LiveSmokeConfiguration {
         };
     }
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
+        public volatile CompletableFuture<Void> inferenceGate;
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
         public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();
@@ -110,6 +127,22 @@ public class LiveSmokeConfiguration {
         private final Provider provider;
         private final com.zaxxer.hikari.HikariDataSource pool;
         FixtureApi(Provider provider, com.zaxxer.hikari.HikariDataSource pool) { this.provider = provider; this.pool = pool; }
+        @PostMapping("/__live-fixture/inference/{action}") public Map<String, Boolean> inference(@PathVariable String action) {
+            switch (action) {
+                case "hold" -> provider.inferenceGate = new CompletableFuture<>();
+                case "release" -> provider.inferenceGate.complete(null);
+                case "fail" -> provider.inferenceGate.completeExceptionally(new IllegalStateException("Synthetic failure"));
+                case "clear" -> { if (provider.inferenceGate != null) provider.inferenceGate.complete(null); provider.inferenceGate = null; }
+                default -> throw new IllegalArgumentException("Unknown fixture control");
+            }
+            return Map.of("accepted", true);
+        }
+        @PostMapping("/__live-fixture/usage/{id}") public Map<String, Boolean> usage(@PathVariable String id) {
+            var event = new JsonObject(); event.addProperty("type", "session.usage.updated");
+            var usage = new JsonObject(); usage.addProperty("seconds", 12.5); event.add("usage", usage);
+            var context = new JsonObject(); context.addProperty("usage_ratio", .4); event.add("context_window", context);
+            provider.calls.get(id).receive.accept(event); return Map.of("accepted", true);
+        }
         @GetMapping("/__live-fixture/pool") public Map<String, Integer> pool() {
             var metrics = pool.getHikariPoolMXBean();
             return Map.of("active", metrics.getActiveConnections(), "waiting", metrics.getThreadsAwaitingConnection(),

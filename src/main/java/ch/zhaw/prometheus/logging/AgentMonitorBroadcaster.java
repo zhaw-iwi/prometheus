@@ -28,6 +28,17 @@ public class AgentMonitorBroadcaster {
     private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emittersByAgent = new ConcurrentHashMap<>();
     private final AtomicLong sendFailureCount = new AtomicLong(0L);
 
+    private java.util.function.Function<UUID,Object> activity = id -> null;
+    public void activitySource(java.util.function.Function<UUID,Object> source) { this.activity = source; }
+    public void publishActivity(UUID id, Object value) {
+        var subscribers = emittersByAgent.get(id);
+        if (subscribers == null) return;
+        for (var emitter : subscribers) {
+            try { emitter.send(SseEmitter.event().name("activity").data(value)); }
+            catch (Throwable failure) { unsubscribeAndComplete(id, subscribers, emitter); }
+        }
+    }
+
     public SseEmitter subscribe(UUID agentId, Supplier<Optional<Agent>> lookup) {
         SseEmitter emitter = this.createEmitter();
         CopyOnWriteArrayList<SseEmitter> emitters = this.emittersByAgent.computeIfAbsent(agentId,
@@ -41,6 +52,11 @@ public class AgentMonitorBroadcaster {
         Optional<Agent> initial = lookup.get();
         if (initial.isPresent()) {
             sendInitialSnapshot(agentId, emitters, emitter, initial.get());
+            Object currentActivity = activity.apply(agentId);
+            if (currentActivity != null) {
+                try { emitter.send(SseEmitter.event().name("activity").data(currentActivity)); }
+                catch (Throwable failure) { unsubscribeAndComplete(agentId, emitters, emitter); }
+            }
         }
         return emitter;
     }

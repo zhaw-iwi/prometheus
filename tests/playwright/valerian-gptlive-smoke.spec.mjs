@@ -74,7 +74,7 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     expect(JSON.parse(storage.find(value => value.key === "rps_rounds").value)).toHaveLength(1);
     expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls).toBe(0);
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
-    await expect(page.locator("#gptlive_context")).toContainText("Capture: closed");
+    await expect.poll(() => page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot().sessions.at(-1)?.server?.captureState)).toBe("closed");
     expect((await (await request.get(`${path}/live/sessions/${session.handle}`, { headers: scoped })).json()).finalized).toBe(true);
     const diagnostics = await page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot());
     const trial = diagnostics.sessions.find(value => value.handle === session.handle);
@@ -148,6 +148,74 @@ test("Live Multimodal exposes sensors and keeps embodiment beside native speech"
     await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
   } finally {
     expect((await request.delete(path, { headers: scoped })).status()).toBe(204);
+  }
+});
+
+test("Generic activation telemetry follows real pending work, cue waiting, failure and reset", async ({ page, context, request }, info) => {
+  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Requires the isolated Live-enabled app.");
+  const admin = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post("/admin/access-codes", { headers: admin, data: { code, enabled: true } })).json();
+  expect((await request.put(`/admin/access-codes/${access.id}/agent-types`, { headers: admin, data: { agentTypeKeys: ["core.generic_multimodal_behaviour"] } })).ok()).toBe(true);
+  const scoped = { "X-Prometheus-Access-Code": code };
+  const agent = await (await request.post("/demo/agents", { headers: scoped, data: { agentDefinitionKey: "core.generic_multimodal_behaviour" } })).json();
+  const path = `/demo/agents/${agent.id}`;
+  const control = action => request.post(`/__live-fixture/inference/${action}`);
+  const snapshot = () => page.evaluate(() => window.PrometheusActivity.snapshot());
+  await hardware(context);
+  try {
+    await page.goto(`/valerian/?agentId=${agent.id}`);
+    await page.getByTestId("access-code-input").fill(code); await page.getByTestId("submit-access-code").click();
+    await expect(page.getByTestId("gptlive-start")).toBeEnabled();
+    await page.getByTestId("gptlive-tab").click();
+    const liveCreation = page.waitForResponse(response => response.url().endsWith("/live/sessions") && response.status() === 201);
+    await page.getByTestId("gptlive-start").click(); const liveSession = await (await liveCreation).json();
+    await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    const provider = await (await request.get("/__live-fixture/latest")).json();
+    await control("hold");
+    expect((await request.post(`/__live-fixture/speak/${provider.providerId}`, { data: { speaker: "USER", text: "Activate the private fixture task", receipt: "activation_receipt" } })).ok()).toBe(true);
+    await expect(page.getByTestId("activity-label")).toHaveText("Thinking");
+    const inFlight = (await snapshot()).journals.at(-1);
+    expect(inFlight.active.some(value => value.stage === "thinking")).toBe(true);
+    expect(inFlight.recent.some(value => value.sourceId && value.sessionId)).toBe(true);
+    const overlap = request.post(path + "/behaviour/generate", { headers: scoped });
+    await expect.poll(async () => (await snapshot()).journals.at(-1).active.length).toBeGreaterThanOrEqual(2);
+    await expect(page.getByTestId("activity-label")).toHaveText("Thinking");
+    await page.getByTestId("interaction-activity").screenshot({ path: info.outputPath("real-held-activation.png") });
+    await page.evaluate(() => window.PrometheusActivity.mark("long_pause"));
+    await control("release"); expect([200, 409]).toContain((await overlap).status()); await control("clear");
+    await expect(page.getByTestId("gptlive-history")).toContainText("The round is ready.");
+    await expect.poll(async () => (await (await request.get(path + "/storage", { headers: scoped })).json()).find(value => value.key === "task.phase")?.value).toBe('"RUNNING"');
+    await expect.poll(async () => (await snapshot()).journals.at(-1).active.length).toBe(0);
+    await expect.poll(async () => (await (await request.get(path + "/live/transcripts?sessionId=" + liveSession.handle, { headers: scoped })).json()).some(value => value.speaker === "ASSISTANT" && value.status === "COMPLETE")).toBe(true);
+    const observe = () => request.post(path + "/acknowledge", { headers: scoped, data: {
+      type: "obs.emotion.face", actor: "sensor", kind: "observation", payload: JSON.stringify({ valence: -.8, confidence: .1, facePresent: true, ts: new Date().toISOString() }),
+    } });
+    // Exercise existing cooldown before fresh weak evidence; this does not bypass task guards.
+    await expect.poll(async () => { await observe(); return (await snapshot()).journals.at(-1).cue?.reason; }).toBe("low_confidence");
+    await expect(page.getByTestId("activity-label")).toHaveText("Waiting for a clearer cue");
+    await expect(page.getByTestId("interaction-activity")).toHaveAttribute("data-busy", "false");
+    await request.post(`/__live-fixture/usage/${provider.providerId}`);
+    await expect.poll(() => page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot().sessions.at(-1).provider?.usageSeconds)).toBe(12.5);
+    expect(await page.evaluate(async () => (await import("/live/diagnostics.js")).liveDiagnostics.snapshot().sessions.at(-1).provider.configuration.silenceMs)).toBe(800);
+    const recording = await snapshot();
+    expect(recording.markers[0].operationIds.length).toBeGreaterThan(0);
+    expect(JSON.stringify(recording)).not.toContain("private fixture task");
+    expect(recording.journals.at(-1).recent.some(value => value.stage === "inference" && value.details.purpose === "EXTRACTION")).toBe(true);
+    await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
+    await control("hold");
+    const failure = request.post(path + "/acknowledge", { headers: scoped, data: { type: "obs.user_utterance", actor: "user", kind: "observation", payload: "Change the private fixture task" } });
+    await expect(page.getByTestId("activity-label")).toHaveText("Thinking");
+    await control("fail"); expect((await failure).status()).toBe(500); await control("clear");
+    await expect(page.getByTestId("activity-label")).toHaveText("Processing failed");
+    expect((await snapshot()).journals.at(-1).active).toHaveLength(0);
+    const oldEpoch = (await snapshot()).journals.at(-1).epoch;
+    await page.locator("#open_diagnostics").click();
+    page.once("dialog", dialog => dialog.accept()); await page.getByTestId("reset-agent").click();
+    await expect.poll(async () => (await snapshot()).journals.at(-1).epoch).not.toBe(oldEpoch);
+    await expect(page.getByTestId("activity-label")).toHaveText("Ready");
+  } finally {
+    await control("clear"); await request.delete(path, { headers: scoped });
   }
 });
 

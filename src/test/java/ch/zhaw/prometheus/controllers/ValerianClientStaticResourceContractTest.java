@@ -246,7 +246,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"speech-output-device\""));
         assertTrue(index.contains("data-testid=\"refresh-audio-devices\""));
         assertTrue(index.contains("data-testid=\"assistant-audio\""));
-        assertTrue(index.contains("data-testid=\"speech-playback-status\""));
+        assertTrue(index.contains("data-testid=\"interaction-activity\""));
         assertTrue(index.contains("data-testid=\"stop-speech-playback\""));
         assertTrue(index.contains("/transcription/browser-global.js"));
         assertTrue(index.contains("/speech/browser-global.js"));
