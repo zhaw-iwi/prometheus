@@ -87,8 +87,11 @@ and regulation diagnostics remain future work.
   Incompatible saved rules receive focused clarification. Replay refined caption
   association to tolerate shortened trailing guidance. Full Java, 101 Node,
   Playwright visual/real-app and four provider configuration checks passed;
-  acoustic completion remains unverified. Integration/deployment follows this
-  implementation commit. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+  acoustic completion remains unverified. Integrated main -> agents and deployed
+  as Heroku v107 from agents `949c9d8`; merged checkout passed 646 Java and 52
+  browser cases. Eight saved policies upgraded, with unchanged agreement/draft,
+  action count and all 518 history events. The saved agreement is flagged for
+  rule review. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
 
 - Milestone 212 (2026-10-03): bounded telemetry includes task readiness changes,
   phase/revision/cue identity and distinct caught-failure outcomes. Urgent results
