@@ -130,3 +130,38 @@ from this task were stopped and the final run leaves no owned fixture JVM.
 The original production agreement/history fingerprint is recorded privately in
 `target/generic213-rollout/before-deploy.json`. Branch integration, Heroku release
 checks and the scoped saved-instance upgrade follow this implementation commit.
+
+### Integrated rollout
+
+Completed 2026-10-03. Feature implementation `880971b` merged to main `3feccc9`,
+then to agents `949c9d8`. Two merge conflicts retained the agents deployment
+persona runtime and its regression test alongside the new functionality; the
+deployment workflow, Dockerfile and production configuration were preserved.
+
+The merged agents checkout passed all 646 Java tests (140 suites), 51 enabled
+browser cases and the real disabled-backend smoke. Two Live-only cases correctly
+skip with the feature disabled. Evidence:
+`target/gptlive-acceptance-78d9dce8da/`, including `java-summary.json`. Disposable
+database/account cleanup and absence of an owned child JVM were verified.
+The earlier 101 Node checks and four real-provider text trials also passed.
+
+[Deployment workflow 37152169555](https://github.com/zhaw-iwi/prometheus/actions/runs/37152169555)
+succeeded and produced Heroku v107, released 2026-10-03 20:38:09 UTC. `web.1` is
+up; the cockpit and modified scripts return 200 and match the deployment checkout.
+The 919-line release log sample confirms startup with no application, schema,
+quota or crash errors. The existing Generic instance's scoped Live capability
+request returns 200, enabled and eligible, using gpt-live-1.
+
+The live preview recognized eight old built-in policy rows and no custom rows.
+All eight were upgraded; a second application updated zero rows. Local-properties
+database checks confirmed identical saved task/draft hashes, action count (2),
+history hash and all 518 events. The instance remains in CONFIGURATION. Its old
+agreement is flagged for rule review; preserving user-authored meaning means it
+was not silently corrected. Ask the agent to revise that saved rule or propose a
+new agreement before activation. Evidence is private/ignored under
+`target/generic213-rollout/`.
+
+Physical expression effort, acoustic cutoffs and real-world latency improvement
+remain unverified by this rollout. Captured-response association is conservative
+and can remain unconfirmed after substantial paraphrases/ASR errors. No claim of
+physical playback completion follows from captions or provider append ACKs.

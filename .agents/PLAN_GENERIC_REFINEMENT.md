@@ -64,5 +64,7 @@ No extra model calls or database polling for telemetry. No inferred playback
 completion from captions or append acknowledgements. Historical audit and real
 user agreements retain their original content.
 
-Evidence: GENERIC_REFINEMENT_RESULTS.md. Stages 208-212 complete; 213 implementation
-verified. Final branch integration, deployment and saved-instance upgrade follow.
+Evidence: GENERIC_REFINEMENT_RESULTS.md. All six stages (208-213) complete,
+integrated through main/agents and deployed as Heroku v107. Eight saved built-in
+policies upgraded with agreement/history preservation and idempotence verified.
+Physical camera/audio acceptance remains an explicitly unverified user trial.
