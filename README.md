@@ -1669,11 +1669,21 @@ record a request ID and fixed reason codes, never model output. Failed
 sensor-triggered generation pauses for explicit resumption.
 
 During Live, task replies use committed backend announcements. Further cues wait
-for a completed native speech segment and new sensor samples; this does not prove
-physical playback completion. Text/Continuous use cooldown rather than playback
+for completed native segments containing the spoken response in order, followed
+by new sensor samples. Brief acknowledgments, unrelated captions and incomplete
+segments do not release this boundary. Live is instructed to retain the response
+wording; substantial ASR errors or paraphrases can leave capture unconfirmed.
+This does not prove physical playback completion. Text/Continuous use cooldown rather than playback
 acknowledgements. Stopping prevents new reactions but need not interrupt speech
 already queued or playing. Provider interpretation and acoustic behaviour require
 live acceptance; see [implementation and verification](.agents/GENERIC_MULTIMODAL_RESULTS.md).
+
+Task configurations default to `sessionBound: true`. An associated Live stop or
+disconnect pauses the task, preserves the agreement/action count, and discards
+late activation/action results. Reconnecting alone does not resume it. Explicit
+resume can bind the saved task to the new session. Only an explicitly requested
+autonomous task uses `sessionBound: false`; this preserves backend continuation,
+without promising speech delivery after the voice connection ends.
 
 ### Capability awareness
 

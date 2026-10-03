@@ -5,7 +5,8 @@ import com.google.gson.*;
 import ch.zhaw.prometheus.model.event.Event;
 
 /** A bounded executable configuration, never Java code or a replacement system prompt. */
-public record TaskSpec(String goal, int maxActions, List<Rule> rules) {
+public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound) {
+    public TaskSpec(String goal, int maxActions, List<Rule> rules) { this(goal, maxActions, rules, true); }
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
             String action, Effect effect, double minConfidence, int samples, int cooldownSeconds) {
@@ -26,7 +27,10 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules) {
         try {
             if (raw == null || !raw.isJsonObject() || JSON.toJson(raw).length() > 1800) throw new IllegalArgumentException();
             var object = raw.getAsJsonObject();
-            exact(object, Set.of("goal", "maxActions", "rules"));
+            exact(object, object.has("sessionBound") ? Set.of("goal", "maxActions", "rules", "sessionBound") : Set.of("goal", "maxActions", "rules"));
+            if (object.has("sessionBound") && (!object.get("sessionBound").isJsonPrimitive()
+                    || !object.get("sessionBound").getAsJsonPrimitive().isBoolean())) throw new IllegalArgumentException();
+            boolean sessionBound = !object.has("sessionBound") || object.get("sessionBound").getAsBoolean();
             String goal = string(object, "goal", 400);
             int max = integer(object, "maxActions", 1, 50);
             var array = object.getAsJsonArray("rules");
@@ -53,7 +57,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules) {
                 rules.add(new Rule(type, field, op, value.deepCopy(), string(rule, "action", 300), effect,
                         confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60)));
             }
-            return new TaskSpec(goal, max, List.copyOf(rules));
+            return new TaskSpec(goal, max, List.copyOf(rules), sessionBound);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }
     }
     public JsonObject json() { return JSON.toJsonTree(this).getAsJsonObject(); }

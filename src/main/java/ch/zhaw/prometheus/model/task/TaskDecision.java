@@ -40,22 +40,38 @@ public class TaskDecision extends Decision {
         return result;
     }
     static int firstSample(List<Event> events, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
-        // A native completed segment after the most recent spoken intent is a conservative
-        // backend completion signal, not proof of physical audibility. Incomplete segments do not arm a cue.
+        // Captured content is not physical playback completion. A short acknowledgment or an
+        // unrelated completed segment must not release the response boundary.
         if (owner != null) {
-            int intent = -1, completed = -1;
+            int intent = -1, boundary = -1;
+            String expected = ""; var captured = new StringBuilder();
             for (int i = 0; i < events.size(); i++) {
                 var provenance = events.get(i).speechProvenance();
                 if (provenance == null || !provenance.sessionId().equals(owner.sessionId())
                         || !provenance.epoch().equals(owner.epoch())) continue;
-                if (provenance.origin() == SpeechProvenance.Origin.BACKEND_INTENT
-                        && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.get(i).getPayload()).getSpeech() != null) intent = i;
-                if (provenance.origin() == SpeechProvenance.Origin.NATIVE && provenance.complete()) completed = i;
+                String speech = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.get(i).getPayload()).getSpeech();
+                if (provenance.origin() == SpeechProvenance.Origin.BACKEND_INTENT && speech != null && !speech.isBlank()) {
+                    intent = i; expected = normalize(speech); captured.setLength(0); boundary = -1;
+                }
+                if (intent >= 0 && boundary < 0 && provenance.origin() == SpeechProvenance.Origin.NATIVE && provenance.complete() && speech != null) {
+                    captured.append(' ').append(normalize(speech));
+                    // Preserve order and the full content across ASR segments, allowing inserted acknowledgments.
+                    if (containsResponse(expected, captured.toString())) boundary = i + 1;
+                }
             }
-            if (intent >= 0 && completed <= intent) return -1;
-            if (intent >= 0) return completed + 1;
+            if (intent >= 0) return boundary;
         }
         return 0;
+    }
+    private static String normalize(String text) {
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFKC).toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
+    }
+    private static boolean containsResponse(String expected, String captured) {
+        if (expected.isEmpty()) return false;
+        String[] words = expected.split(" +"); int next = 0;
+        for (String word : captured.trim().split(" +")) if (word.equals(words[next]) && ++next == words.length) return true;
+        return false;
     }
     private static Optional<TaskSpec.Rule> waitFor(String reason, UUID source) {
         ch.zhaw.prometheus.logging.ActivityTrace.cue(reason, source); return Optional.empty();

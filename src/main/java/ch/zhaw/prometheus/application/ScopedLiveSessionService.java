@@ -59,6 +59,8 @@ public class ScopedLiveSessionService {
     @Autowired void configureBridge(LiveContextBridgeService bridge) { this.bridge = bridge; }
     private LiveTranscriptIngressService ingress;
     @Autowired void configureIngress(LiveTranscriptIngressService ingress) { this.ingress = ingress; }
+    private GenericTaskSessionLifecycleService taskLifecycle;
+    @Autowired void configureTaskLifecycle(GenericTaskSessionLifecycleService lifecycle) { this.taskLifecycle = lifecycle; }
     @org.springframework.context.event.EventListener
     public void ledgerChanged(LiveTranscriptIngressService.LedgerChanged event) {
         Lease lease = sessions.get(event.sessionId());
@@ -170,6 +172,7 @@ public class ScopedLiveSessionService {
         Optional<Lease> owned = owned(code, agentId, handle);
         if (owned.isEmpty()) return closedStatus(code, agentId, handle);
         Lease lease = owned.get();
+        if (!lease.disconnected.get()) lease.reason = "local_stop";
         // Retain the reservation until transport cleanup finishes.
         dispose(lease, true);
         sessions.remove(handle, lease);
@@ -218,6 +221,7 @@ public class ScopedLiveSessionService {
         closed.put(lease.handle, new Closed(lease.agentId, lease.scope, clock.instant().plusSeconds(120), lease.status()));
     }
     private void failed(Lease lease, String reason) {
+        if (lease.stopped.get()) return; // Expected pending-append/transport failures during local cleanup.
         lease.reason = reason; lease.disconnected.set(true);
         ownership.pauseInput(lease.agentId, lease.handle);
         lease.pending.values().forEach(value -> value.result.completeExceptionally(new LiveProviderException("Live session disconnected")));
@@ -246,6 +250,13 @@ public class ScopedLiveSessionService {
             try { lease.capture.close().get(properties.getCloseTimeoutMs(), TimeUnit.MILLISECONDS); lease.captureDrained = true; }
             catch (Exception failure) { lease.captureProblem = "capture_finalization_unconfirmed";
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt(); }
+        }
+        if (first && taskLifecycle != null && lease.context != null) {
+            try { taskLifecycle.closed(lease.agentId, lease.context.epoch(), lease.handle); }
+            catch (RuntimeException failure) {
+                lease.cleanupFailed = true;
+                org.slf4j.LoggerFactory.getLogger(ScopedLiveSessionService.class).warn("Generic task session pause failed; subsequent turns remain fenced");
+            }
         }
         ownership.release(lease.agentId, lease.handle);
     }

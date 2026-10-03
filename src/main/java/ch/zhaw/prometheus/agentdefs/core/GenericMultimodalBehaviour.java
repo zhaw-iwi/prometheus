@@ -54,6 +54,9 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             For PROPOSE or ACTIVATE, task has exactly these fields:
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
+            sessionBound: true by default; use false only if the user explicitly requests autonomous
+            continuation after the Live session ends. Interactive tasks pause on session loss or Stop Live
+            and require explicit resumption. Explain this lifecycle when proposing the agreement;
             rules: an array of objects with exactly eventType, field, operator, value, action, effect,
             minConfidence, samples, cooldownSeconds. eventType and field come from Supported trigger fields.
             value must match the field's JSON type. action describes the agreed response; effect is ACT, WAIT or COMPLETE.

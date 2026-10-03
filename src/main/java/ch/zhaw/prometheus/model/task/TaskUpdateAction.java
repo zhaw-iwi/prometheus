@@ -19,6 +19,7 @@ public class TaskUpdateAction extends Action {
     }
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
+        if (cancelled(storage, runtime)) return;
         if (!taskCue && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
                 "(?i)(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
             String command = events.toList().getLast().getPayload().trim().toLowerCase(java.util.Locale.ROOT).replaceFirst("^please ", "");
@@ -31,6 +32,7 @@ public class TaskUpdateAction extends Action {
                         TaskSpec.parse(storage.get(TaskMemory.SPEC)).executable();
                         TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage);
                         TaskMemory.put(storage, TaskMemory.AFTER, now.toString());
+                        TaskMemory.bindSession(storage, runtime.externalSpeech());
                         reply = "The task is resumed. I am waiting for a fresh matching cue.";
                     } catch (IllegalArgumentException invalid) {
                         reply = "The saved agreement needs a rule correction before resuming. Its description is preserved; please ask me to revise it.";
@@ -66,8 +68,10 @@ public class TaskUpdateAction extends Action {
             try {
                 var raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,
                         TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
+                if (cancelled(storage, runtime)) return;
                 plan = TaskMemory.plan(JsonParser.parseString(raw));
             } catch (RuntimeException failure) {
+                if (cancelled(storage, runtime)) return;
                 // Another camera sample must not turn a provider failure into an unbounded retry loop.
                 TaskMemory.put(storage, TaskMemory.PHASE, "PAUSED"); TaskMemory.revise(storage);
                 storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
@@ -87,6 +91,7 @@ public class TaskUpdateAction extends Action {
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
         String raw = runtime.languageModelGateway().infer(request);
+        if (cancelled(storage, runtime)) return;
         JsonObject update;
         TaskSpec task;
         ch.zhaw.prometheus.model.behaviour.BehaviourPlan reply;
@@ -142,9 +147,17 @@ public class TaskUpdateAction extends Action {
                 TaskMemory.phase(storage).equals("COMPLETED") ? "task_completed" : "task_configuration", null);
         }
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
+        TaskMemory.bindSession(storage, runtime.externalSpeech());
         // Only observations captured after this response/cooldown can advance the task.
         if (operation.equals("ACTIVATE") || operation.equals("RESUME"))
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
+    }
+    private boolean cancelled(Storage storage, PolicyRuntime runtime) {
+        if (runtime.taskContinuation().getAsBoolean() || (taskCue && !TaskMemory.sessionBound(storage))) return false;
+        TaskMemory.pauseForSession(storage, "live_session_ended");
+        if (storage.containsKey(TaskMemory.REPLY)) storage.remove(TaskMemory.REPLY);
+        ch.zhaw.prometheus.logging.ActivityTrace.cue("session_work_discarded", null);
+        return true;
     }
     private static String validationReason(RuntimeException invalid) {
         // Only fixed codes are logged: Gson/other exception messages may contain private output.

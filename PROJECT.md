@@ -75,10 +75,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 211 (2026-10-03): Live session loss/stop pauses associated interactive
+  tasks and fences late work; explicit resume preserves agreements and budgets.
+  Captured response content, rather than any acknowledgment, gates later cues.
+  Intentional close is distinguished from failure. Passed 30 focused unit and
+  three MySQL cases; ASR fidelity and physical playback remain live-trial limits.
+  Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`; milestone 212 follows.
+
 - Milestone 210 (2026-10-03): one qualifying facial cue can bypass the ordinary
   emission interval once per response window using existing monitor readiness.
   The unified footer shows awaiting acceptance, cue acceptance and task lifecycle.
-  Passed 25 Java, 50 Node, four visual browser cases and enabled/disabled smokes;
+  Passed 25 Java, 50 Node, four visual browser cases and the enabled smoke;
+  the disabled run skipped the selected enabled-only test.
   query budgets remain intact. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
 
 - Milestone 209 (2026-10-03): Generic rules distinguish acting, temporary waiting

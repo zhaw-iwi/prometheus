@@ -37,7 +37,29 @@ Passed 25 Java cases including query budgets and real HTTP/SSE, and 50 Node
 performance/Live cases. Four Playwright light/dark desktop/mobile cases passed;
 mobile acceptance screenshots were visually inspected without overflow. The
 integrated Generic smoke initially retained the old Ready label after reset;
-corrected to Ready to configure. Final enabled and disabled browser smokes passed
+corrected to Ready to configure. The final enabled smoke passed; the disabled
+run selected this same enabled-only test and skipped it, so it is not disabled-path evidence
 in `target/gptlive-acceptance-391b43bc7a/`. Java and visual evidence:
 `target/gptlive-acceptance-c326b495db/`. Both disposable runs cleaned up.
 Physical expression effort and audibility remain unverified.
+
+## Milestone 211
+
+Live-owned interactive tasks pause durably on shutdown, retain their agreement
+and budget, and require explicit resumption. In-flight activation/action results
+are fenced using existing in-memory ownership; no authorization polling was added.
+Explicit autonomous agreements can opt out. Old-session cleanup cannot pause a
+resumed new session. Local stop is distinct from provider disconnect/failure.
+
+The captured-response boundary now requires the response content across completed
+native segments. Acknowledgments, unrelated speech and incomplete segments do not
+arm cues. Guidance requests faithful wording; ASR errors/substantial paraphrases
+may leave this conservative boundary unconfirmed. Neither captions nor append ACKs
+prove audible playback completion, consistent with the
+[OpenAI Live contract](https://developers.openai.com/api/docs/guides/live-conversations).
+
+Verification: 30 focused unit tests passed in
+`target/gptlive-acceptance-31e1f384a4/java.log`. The new MySQL lifecycle fixture
+initially failed because its manually created execution epoch was not persisted;
+fixed to match real session claiming. All three MySQL cases passed in
+`target/gptlive-acceptance-a00011a486/java.log`; disposable schema/account removed.

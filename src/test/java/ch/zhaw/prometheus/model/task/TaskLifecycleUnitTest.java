@@ -87,4 +87,45 @@ class TaskLifecycleUnitTest {
         String encoded = new Gson().toJson(TaskCueStatus.of(agent, Instant.now()));
         assertFalse(encoded.contains("confirmed response")); assertFalse(encoded.contains("Offer an agreed"));
     }
+    @Test void acknowledgmentsIncompleteAndUnrelatedCaptionsDoNotReleaseTheResponseBoundary() {
+        var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
+        when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", SPEC, "The first observation is now ready for you."));
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Activate"), runtime.withExternalSpeech(owner));
+        java.util.function.BiConsumer<String, Boolean> capture = (text, complete) -> agent.recordExternalSpeech(text,
+                new ch.zhaw.prometheus.model.event.SpeechProvenance(ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE,
+                        owner.sessionId(), owner.epoch(), java.util.UUID.randomUUID().toString(),
+                        ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, java.util.List.of(), complete));
+        capture.accept("Okay, activating.", true); capture.accept("We can discuss something else.", true);
+        capture.accept("The first observation is now ready for you.", false);
+        assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        capture.accept("The first observation", true);
+        assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        capture.accept("is now ready for you.", true);
+        assertTrue(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+    }
+    @Test void lateActivationAndLateActionAreDiscardedWhenLiveEnds() {
+        var allowed = new java.util.concurrent.atomic.AtomicBoolean(true);
+        var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
+        var live = runtime.withExternalSpeech(owner).withTaskContinuation(allowed::get);
+        storage().put(TaskMemory.DRAFT, TaskSpec.parse(JsonParser.parseString(SPEC)).json());
+        when(gateway.infer(any())).thenAnswer(call -> {
+            allowed.set(false); return GenericMultimodalTaskUnitTest.update("ACTIVATE", "null", "Started.");
+        });
+        assertNull(agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Activate"), live));
+        assertEquals("CONFIGURATION", TaskMemory.phase(storage())); assertTrue(storage().containsKey(TaskMemory.DRAFT));
+        assertFalse(storage().containsKey(TaskMemory.SPEC));
+        activate(); allowed.set(true);
+        when(gateway.infer(any())).thenAnswer(call -> { allowed.set(false); return "{\"speech\":\"A late action.\"}"; });
+        assertNull(agent.acknowledge(Event.observation(Event.TYPE_HUMAN_PRESENCE, "sensor",
+                "{\"humanCount\":1,\"avgDetectionConfidence\":0.95,\"ts\":\"" + Instant.now() + "\"}"), live));
+        assertEquals("PAUSED", TaskMemory.phase(storage())); assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertTrue(storage().containsKey(TaskMemory.SPEC));
+    }
+    @Test void autonomousContinuationRequiresExplicitOptOutAndSurvivesSessionPause() {
+        activate(); assertTrue(TaskSpec.parse(storage().get(TaskMemory.SPEC)).sessionBound());
+        var independent = storage().get(TaskMemory.SPEC).deepCopy().getAsJsonObject(); independent.addProperty("sessionBound", false);
+        storage().put(TaskMemory.SPEC, independent);
+        assertFalse(TaskMemory.pauseForSession(storage(), "live_session_ended"));
+        assertEquals("RUNNING", TaskMemory.phase(storage()));
+    }
 }

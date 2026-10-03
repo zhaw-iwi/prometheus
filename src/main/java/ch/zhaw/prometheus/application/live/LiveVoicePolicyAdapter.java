@@ -65,6 +65,10 @@ public class LiveVoicePolicyAdapter {
         sections.put("policy", "Current conversational policy:\n" + policy);
         String state = "CURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath());
         if (leaf.ownPolicy() instanceof TaskPolicy task) {
+            sections.put("taskVoice", "For this configurable agent, deliver the backend's spoken response faithfully. "
+                    + "Do not replace it with a short acknowledgment or add independent task actions. "
+                    + "While work is pending you may say you are checking, but never say activating, pausing or stopping "
+                    + "until the backend confirms that change. A proposed goal is not an active task.");
             var storage = task.storage();
             state += "\nTask phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                     + "; revision: " + ch.zhaw.prometheus.model.task.TaskMemory.text(storage, "task.revision", "0") + ".";

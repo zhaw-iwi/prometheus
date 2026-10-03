@@ -15,7 +15,8 @@ public record TaskCueStatus(UUID epoch, String phase, int revision, boolean draf
         ExternalSpeech owner = null; int intent = -1;
         for (int i = 0; i < events.size(); i++) {
             var source = events.get(i).speechProvenance();
-            if (source != null && source.origin() == SpeechProvenance.Origin.BACKEND_INTENT && source.epoch().equals(agent.executionEpoch())) {
+            if (source != null && source.origin() == SpeechProvenance.Origin.BACKEND_INTENT && source.epoch().equals(agent.executionEpoch())
+                    && (!storage.containsKey(TaskMemory.SESSION) || source.sessionId().toString().equals(TaskMemory.text(storage, TaskMemory.SESSION, "")))) {
                 owner = new ExternalSpeech(source.sessionId(), source.epoch()); intent = i;
             }
         }
