@@ -26,7 +26,7 @@ for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
     await expect(page.getByTestId("activity-label")).toHaveText("Awaiting your acceptance");
     await page.evaluate(() => {
       const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
-      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "RUNNING", draft: false } }) }));
+      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "RUNNING", draft: false, responseCaptured: true } }) }));
     });
     const publish = value => page.evaluate(value => {
       const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));

@@ -52,11 +52,14 @@ public class TaskDecision extends Decision {
                         || !provenance.epoch().equals(owner.epoch())) continue;
                 String speech = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.get(i).getPayload()).getSpeech();
                 if (provenance.origin() == SpeechProvenance.Origin.BACKEND_INTENT && speech != null && !speech.isBlank()) {
-                    intent = i; expected = normalize(speech); captured.setLength(0); boundary = -1;
+                    intent = i; expected = speech; captured.setLength(0); boundary = -1;
                 }
                 if (intent >= 0 && boundary < 0 && provenance.origin() == SpeechProvenance.Origin.NATIVE && provenance.complete() && speech != null) {
+                    // Selector projections intentionally have no persistence IDs; content/session association still applies.
+                    var intentId = events.get(intent).getId();
+                    if (intentId != null && !provenance.intentIds().isEmpty() && !provenance.intentIds().contains(intentId)) continue;
                     captured.append(' ').append(normalize(speech));
-                    // Preserve order and the full content across ASR segments, allowing inserted acknowledgments.
+                    // Associate ordered response content across ASR segments, allowing inserted acknowledgments.
                     if (containsResponse(expected, captured.toString())) boundary = i + 1;
                 }
             }
@@ -69,6 +72,24 @@ public class TaskDecision extends Decision {
                 .replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
     }
     private static boolean containsResponse(String expected, String captured) {
+        if (ordered(normalize(expected), captured)) return true;
+        // Live may shorten trailing explanations of waiting rules. Match a complete substantive
+        // opening (two sentences, never a question alone), tolerating function-word ASR variation.
+        // This is content association, not a semantic proof or a provider playback-complete event.
+        var sentences = java.text.BreakIterator.getSentenceInstance(Locale.ENGLISH);
+        sentences.setText(expected); sentences.first(); sentences.next(); int end = sentences.next();
+        if (end == java.text.BreakIterator.DONE || end >= expected.length()) return false;
+        String opening = expected.substring(0, end).trim();
+        if (opening.endsWith("?")) return false;
+        String anchor = contentWords(normalize(opening));
+        return anchor.split(" +").length >= 5 && ordered(anchor, contentWords(captured));
+    }
+    private static String contentWords(String text) {
+        var functionWords = Set.of("a", "an", "the", "i", "ll", "will", "he", "she", "it", "his", "her", "its",
+                "is", "was", "are", "were", "be", "been", "in", "on", "at", "to", "for", "of", "and", "or", "why", "did", "because");
+        return String.join(" ", Arrays.stream(text.trim().split(" +")).filter(word -> !functionWords.contains(word)).toList());
+    }
+    private static boolean ordered(String expected, String captured) {
         if (expected.isEmpty()) return false;
         String[] words = expected.split(" +"); int next = 0;
         for (String word : captured.trim().split(" +")) if (word.equals(words[next]) && ++next == words.length) return true;

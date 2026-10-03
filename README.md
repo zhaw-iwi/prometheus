@@ -1673,10 +1673,12 @@ record a request ID and fixed reason codes, never model output. Failed
 sensor-triggered generation pauses for explicit resumption.
 
 During Live, task replies use committed backend announcements. Further cues wait
-for completed native segments containing the spoken response in order, followed
-by new sensor samples. Brief acknowledgments, unrelated captions and incomplete
-segments do not release this boundary. Live is instructed to retain the response
-wording; substantial ASR errors or paraphrases can leave capture unconfirmed.
+for completed native segments associated with the spoken response, followed by
+new sensor samples. Brief acknowledgments, unrelated captions and incomplete
+segments do not release this boundary. Matching accepts the full wording or a
+complete substantive two-sentence opening when Live shortens trailing guidance;
+function-word ASR variation is tolerated. This conservative lexical association
+can still leave capture unconfirmed after substantial paraphrases or ASR errors.
 This does not prove physical playback completion. Text/Continuous use cooldown rather than playback
 acknowledgements. Stopping prevents new reactions but need not interrupt speech
 already queued or playing. Provider interpretation and acoustic behaviour require
@@ -1691,6 +1693,19 @@ without promising speech delivery after the voice connection ends.
 Committed announcements can supersede queued routine observations after the
 current observation is delivered completely. Unsent values remain unacknowledged
 and are replaced with fresh evidence; the normal read-coalescing window remains.
+
+Saved instances retain their persisted prompts until explicitly upgraded. With
+`X-Prometheus-Admin-Token`, GET `/admin/agents/{id}/generic-policy-upgrade` previews
+recognized old built-ins, already-current policies, custom policies and agreements
+needing rule review. It returns hashes and classifications, without prompt text.
+POST the same path with `{"fingerprint":"<preview fingerprint>"}` to apply exactly
+that preview. A changed agreement/policy or open Live session returns 409; close
+Live and preview again. Repeating an already applied upgrade changes nothing.
+Custom instructions, saved task/draft JSON and conversation history are preserved.
+Incompatible active agreements are paused for explicit rule clarification; their
+meaning is never silently converted. Activating an incompatible saved draft asks
+for a rule correction without requesting the whole task again. There is no
+automatic startup migration.
 
 ### Capability awareness
 

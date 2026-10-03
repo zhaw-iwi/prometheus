@@ -62,6 +62,11 @@ class TaskLifecycleUnitTest {
         when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", impossible, "Started."));
         say("Start."); assertEquals("CONFIGURATION", TaskMemory.phase(storage()));
         assertFalse(storage().containsKey(TaskMemory.SPEC));
+        storage().put(TaskMemory.DRAFT, JsonParser.parseString(impossible));
+        when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", "null", "Started."));
+        var response = say("Activate the saved proposal.");
+        assertTrue(ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(response.getPayload()).getSpeech().contains("rule correction"));
+        assertEquals(JsonParser.parseString(impossible), storage().get(TaskMemory.DRAFT));
     }
     @Test void legacyCompletionRetainsMeaningAndQuestionsDoNotRearmCooldown() {
         var legacy = TaskSpec.parse(JsonParser.parseString(GenericMultimodalTaskUnitTest.SPEC));
@@ -139,5 +144,19 @@ class TaskLifecycleUnitTest {
             assertEquals("failed", outcome.outcome()); assertEquals("task_provider_failed", outcome.details().get("reason"));
             assertFalse(new Gson().toJson(activity.snapshot(agent.getId())).contains("private"));
         } finally { activity.close(); }
+    }
+    @Test void aCapturedSubstantiveOpeningCanReleaseTheBoundaryWhenLiveShortensTrailingGuidance() {
+        var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
+        when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", SPEC,
+                "What keeps the mural bright? Fresh pigments reflect the light. I will wait for the next agreed cue before continuing."));
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Activate"), runtime.withExternalSpeech(owner));
+        java.util.function.Consumer<String> capture = text -> agent.recordExternalSpeech(text,
+                new ch.zhaw.prometheus.model.event.SpeechProvenance(ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE,
+                        owner.sessionId(), owner.epoch(), java.util.UUID.randomUUID().toString(),
+                        ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, java.util.List.of(), true));
+        capture.accept("What keeps a mural bright?");
+        assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        capture.accept("Fresh pigments reflect light. I'll wait.");
+        assertTrue(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
     }
 }

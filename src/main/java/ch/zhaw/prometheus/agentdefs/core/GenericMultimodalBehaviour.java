@@ -85,6 +85,9 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             """;
 
     @Override public String key() { return KEY; }
+    public static java.util.Map<String, String> builtInPrompts() {
+        return java.util.Map.of("voice", VOICE, "configure", CONFIGURE, "cue", VOICE + OUTPUT);
+    }
     @Override public String languageCode() { return LANGUAGE_ENGLISH; }
     @Override public boolean capabilityAwareness() { return true; }
     @Override public boolean externalRealtimeSpeech() { return true; }

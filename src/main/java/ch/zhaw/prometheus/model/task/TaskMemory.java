@@ -29,6 +29,9 @@ public final class TaskMemory {
         if (storage.containsKey(REPLY)) storage.remove(REPLY);
         return true;
     }
+    public static void requireRuleReview(Storage storage) {
+        if (active(storage)) { put(storage, PHASE, "PAUSED"); put(storage, PAUSE_REASON, "requires_rule_review"); revise(storage); }
+    }
     static void bindSession(Storage storage, ExternalSpeech owner) {
         put(storage, SESSION, owner == null ? "" : owner.sessionId().toString());
         if (storage.containsKey(PAUSE_REASON)) storage.remove(PAUSE_REASON);

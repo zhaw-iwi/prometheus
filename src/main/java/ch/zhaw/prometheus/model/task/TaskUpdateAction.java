@@ -14,6 +14,7 @@ import jakarta.persistence.Entity;
 public class TaskUpdateAction extends Action {
     private boolean taskCue;
     protected TaskUpdateAction() {}
+    public boolean isTaskCue() { return taskCue; }
     public TaskUpdateAction(Storage storage, String instructions, boolean cue) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.SPEC); taskCue = cue; blocking();
     }
@@ -121,7 +122,10 @@ public class TaskUpdateAction extends Action {
             if (!Set.of("KEEP", "PROPOSE", "ACTIVATE", "STOP", "PAUSE", "RESUME").contains(operation)) throw new IllegalArgumentException();
             validationStage = "task";
             task = update.get("task").isJsonNull() ? null : TaskSpec.parse(update.get("task")).executable();
-            if (operation.equals("ACTIVATE") && task == null && storage.containsKey(TaskMemory.DRAFT)) task = TaskSpec.parse(storage.get(TaskMemory.DRAFT)).executable();
+            if (operation.equals("ACTIVATE") && task == null && storage.containsKey(TaskMemory.DRAFT)) {
+                validationStage = "saved_agreement";
+                task = TaskSpec.parse(storage.get(TaskMemory.DRAFT)).executable();
+            }
             if ((operation.equals("PROPOSE") || operation.equals("ACTIVATE")) && task == null) throw new IllegalArgumentException();
             if (Set.of("KEEP", "STOP", "PAUSE", "RESUME").contains(operation) && task != null) throw new IllegalArgumentException();
             if (operation.equals("PAUSE") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException();
@@ -137,7 +141,9 @@ public class TaskUpdateAction extends Action {
             org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class).warn(
                     "Generic task update rejected trace={} request={} stage={} reason={}",
                     request.traceId(), request.requestId(), validationStage, validationReason(invalid));
-            String recovery = storage.containsKey(TaskMemory.DRAFT)
+            String recovery = validationStage.equals("saved_agreement")
+                    ? "The saved proposal needs a rule correction before it can run. I've preserved it; please ask me to revise the rule, rather than repeat the task."
+                    : storage.containsKey(TaskMemory.DRAFT)
                     ? "I couldn't validate my response. I've kept our proposed plan unchanged; you don't need to repeat it. Please ask me to try again."
                     : storage.containsKey(TaskMemory.SPEC)
                     ? "I couldn't validate that update. I've kept the existing task unchanged. Please ask me to try again."

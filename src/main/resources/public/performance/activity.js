@@ -108,7 +108,7 @@ export class InteractionActivity {
       : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null;
     if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
     if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
-      return { label: "Waiting for response capture", detail: "The complete spoken response has not been confirmed in captions.", busy: false, tone: "idle", elapsed: null };
+      return { label: "Waiting for response capture", detail: "Captions have not yet confirmed the response content.", busy: false, tone: "idle", elapsed: null };
     const cue = cues[this.backend?.cue?.reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };
     if (!this.connected && this.received !== null) return { label: "Reconnecting progress", busy: false, tone: "warning", elapsed: null };

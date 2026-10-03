@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
+  fingerprinted and idempotent, preserving custom prompts, agreements and history.
+  Incompatible saved rules receive focused clarification. Replay refined caption
+  association to tolerate shortened trailing guidance. Full Java, 101 Node,
+  Playwright visual/real-app and four provider configuration checks passed;
+  acoustic completion remains unverified. Integration/deployment follows this
+  implementation commit. Evidence: `.agents/GENERIC_REFINEMENT_RESULTS.md`.
+
 - Milestone 212 (2026-10-03): bounded telemetry includes task readiness changes,
   phase/revision/cue identity and distinct caught-failure outcomes. Urgent results
   overtake unsent sensory work at complete-observation boundaries. Passed 42

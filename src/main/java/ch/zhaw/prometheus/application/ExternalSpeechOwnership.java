@@ -54,4 +54,5 @@ public class ExternalSpeechOwnership {
         owners.computeIfPresent(agentId, (id, grant) -> grant.owner.sessionId().equals(sessionId) ? null : grant);
     }
     public void revoke(UUID agentId) { owners.remove(agentId); }
+    public boolean hasOwner(UUID agentId) { return owners.containsKey(agentId); }
 }

@@ -64,4 +64,5 @@ No extra model calls or database polling for telemetry. No inferred playback
 completion from captions or append acknowledgements. Historical audit and real
 user agreements retain their original content.
 
-Evidence: GENERIC_REFINEMENT_RESULTS.md. Stages 208-212 complete; 213 follows.
+Evidence: GENERIC_REFINEMENT_RESULTS.md. Stages 208-212 complete; 213 implementation
+verified. Final branch integration, deployment and saved-instance upgrade follow.

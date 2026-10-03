@@ -30,12 +30,12 @@ public class LiveSmokeConfiguration {
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields:")) return """
-                        {"operation":"ACTIVATE","task":{"goal":"Tell jokes using facial feedback","maxActions":5,"rules":[
+                        {"operation":"ACTIVATE","task":{"goal":"React to agreed facial feedback","maxActions":5,"rules":[
                          {"eventType":"obs.emotion.face","field":"valence","operator":"lt","value":-0.25,
-                          "action":"Tell one short joke","complete":false,"minConfidence":0.6,"samples":2,"cooldownSeconds":3},
+                          "action":"Offer another brief observation","effect":"ACT","minConfidence":0.6,"samples":1,"cooldownSeconds":3},
                          {"eventType":"obs.emotion.face","field":"valence","operator":"gt","value":0.25,
-                          "action":"Finish the joke task","complete":true,"minConfidence":0.6,"samples":2,"cooldownSeconds":3}]},
-                         "reply":{"speech":"First fixture joke."}}
+                          "action":"Finish the agreed task","effect":"COMPLETE","minConfidence":0.6,"samples":1,"cooldownSeconds":3}]},
+                         "reply":{"speech":"First fixture observation."}}
                         """;
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
@@ -89,7 +89,11 @@ public class LiveSmokeConfiguration {
                     var ack = new JsonObject(); ack.addProperty("type", type.equals("session.close") ? "session.closed"
                         : type.endsWith(".append") ? type + "ed" : type + "d");
                     if (event.has("event_id")) ack.add("client_event_id", event.get("event_id")); receive.accept(ack);
-                    if (type.equals("session.commentary.append")) audio.schedule(() -> speak(id, "ASSISTANT", "The round is ready.", null), 50, TimeUnit.MILLISECONDS);
+                    if (type.equals("session.commentary.append")) {
+                        String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
+                                ? "First fixture observation." : "The round is ready.";
+                        audio.schedule(() -> speak(id, "ASSISTANT", spoken, null), 50, TimeUnit.MILLISECONDS);
+                    }
                 }
             };
         }

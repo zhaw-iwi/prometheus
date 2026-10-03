@@ -85,3 +85,48 @@ Passed 42 distinct Java cases including three query-budget integrations:
 task lifecycle suite in `target/gptlive-acceptance-f721f4b7ea/java.log`.
 Passed 51 Node performance/Live cases. Both disposable database runs cleaned up.
 Integrated visual/browser regression and live rollout remain milestone 213.
+
+## Milestone 213
+
+Implemented an authenticated per-instance preview/apply upgrade for exact known
+built-in prompt hashes. Application uses the existing turn serialization and a
+transaction, rejects changed previews/open Live sessions, and is idempotent.
+Custom policy text, task/draft JSON, action counts and history remain intact.
+Incompatible active rules are paused; incompatible saved drafts receive a focused
+rule-correction response. Two MySQL migration tests passed in
+`target/gptlive-acceptance-a1b05ee4ec/java.log` after correcting a fixture method name.
+
+Integrated replay revealed that the milestone-211 full-word boundary would reject
+valid captured actions when Live shortened trailing waiting instructions. It now
+also accepts a complete substantive two-sentence opening, tolerates function-word
+ASR variation, and still rejects acknowledgments, incomplete captures and a
+question alone. The two task-start action captures in the supplied October-3
+history now associate successfully. This remains conservative lexical association,
+not semantic or acoustic completion proof; substantial paraphrases may remain
+unconfirmed. The real browser path caught a null persistence-ID edge in selector
+projections, which is fixed. Cue/source IDs remain optional when unavailable.
+
+Verification before rollout:
+- Full Java suite passed in `target/gptlive-acceptance-3bfa6ba0cd/java.log`.
+  Affected task suites were rerun after the replay corrections (27 cases) in
+  `target/gptlive-acceptance-818328d78b/java.log`.
+- 101 Node tests passed. The broad browser run passed 46 cases; four updated
+  light/dark desktop/mobile footer cases passed in
+  `target/gptlive-acceptance-3a3a7d8984/` (mobile image visually inspected).
+- Final focused browser run `target/gptlive-acceptance-9885ecb071/` passed three
+  enabled cases and the actual disabled-backend smoke; the enabled-only Generic
+  case correctly skips in disabled mode. The Generic fixture now supplies its
+  actual spoken response rather than an unrelated caption. It verifies durable
+  pause after Stop Live and a handled provider failure with failed telemetry.
+- Four synthetic real-provider configuration trials using the configured
+  gpt-5.6-luna/none route passed: neutral capability discussion, presence waiting,
+  a hand-sign task and facial reflection feedback. All outputs also passed the
+  production task/reply validators. Evidence: `target/generic213-provider-trial.json`.
+  These are text interpretation checks, not a microphone/speaker acceptance trial.
+
+Windows acceptance cleanup exposed a launcher-child JVM leak. The runner now
+stops its owned process tree before dropping the disposable schema; stale JVMs
+from this task were stopped and the final run leaves no owned fixture JVM.
+The original production agreement/history fingerprint is recorded privately in
+`target/generic213-rollout/before-deploy.json`. Branch integration, Heroku release
+checks and the scoped saved-instance upgrade follow this implementation commit.
