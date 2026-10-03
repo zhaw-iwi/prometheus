@@ -10,6 +10,7 @@ public final class ActivityTrace {
         AutoCloseable stage(String name);
         void bind(UUID epoch, UUID session, UUID source);
         void cue(String reason, UUID source);
+        default void cue(String reason, UUID source, String kind) { cue(reason, source); }
         void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests, boolean success);
         void event(UUID id);
         void failed(String reason);
@@ -35,6 +36,7 @@ public final class ActivityTrace {
     }
     public static void bind(UUID epoch, UUID session, UUID source) { if (CURRENT.get() != null) CURRENT.get().bind(epoch, session, source); }
     public static void cue(String reason, UUID source) { if (CURRENT.get() != null) CURRENT.get().cue(reason, source); }
+    public static void cue(String reason, UUID source, String kind) { if (CURRENT.get() != null) CURRENT.get().cue(reason, source, kind); }
     public static void failed(String reason) { if (CURRENT.get() != null) CURRENT.get().failed(reason); }
     public static void event(UUID id) { if (CURRENT.get() != null) CURRENT.get().event(id); }
     public static void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests) {

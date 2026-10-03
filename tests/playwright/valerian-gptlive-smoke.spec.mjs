@@ -213,7 +213,7 @@ test("Generic activation telemetry follows real pending work, cue waiting, failu
     await page.locator("#open_diagnostics").click();
     page.once("dialog", dialog => dialog.accept()); await page.getByTestId("reset-agent").click();
     await expect.poll(async () => (await snapshot()).journals.at(-1).epoch).not.toBe(oldEpoch);
-    await expect(page.getByTestId("activity-label")).toHaveText("Ready");
+    await expect(page.getByTestId("activity-label")).toHaveText("Ready to configure");
   } finally {
     await control("clear"); await request.delete(path, { headers: scoped });
   }

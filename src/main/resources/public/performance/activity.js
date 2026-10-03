@@ -11,7 +11,8 @@ const labels = { thinking: "Thinking", preparing_speech: "Preparing response", u
 const cues = { waiting_for_cue: "Waiting for a cue", cooldown: "Waiting for the next cue",
   awaiting_response_capture: "Waiting for response capture", stale_or_missing_observation: "Waiting for a fresh cue",
   insufficient_samples: "Waiting for a stable cue", low_confidence: "Waiting for a clearer cue", face_missing: "Waiting for a face cue",
-  missing_field: "Waiting for a usable cue", invalid_observation: "Waiting for a usable cue", condition_not_met: "Waiting for a matching cue" };
+  missing_field: "Waiting for a usable cue", invalid_observation: "Waiting for a usable cue", condition_not_met: "Waiting for a matching cue",
+  task_waiting: "Waiting for the condition to change", task_paused: "Task paused", task_completed: "Task completed" };
 export const ISSUE_CATEGORIES = ["speech_cut_off", "long_pause", "unexpected_response", "missed_cue"];
 export class InteractionActivity {
   constructor({ now = () => performance.now(), wall = () => Date.now() } = {}) {
@@ -21,15 +22,21 @@ export class InteractionActivity {
   scope(agentId) {
     this.agentId = token(agentId); this.epoch = null; this.backend = null; this.received = null;
     this.connected = false; this.local = new Map(); this.listening = false; this.generation = (this.generation || 0) + 1;
+    this.task = null; this.acceptedUntil = 0; this.acceptedKind = null;
     this.notify(); return this.generation;
   }
   transport(connected) { this.connected = connected; this.notify(); }
+  taskStatus(value) {
+    this.task = value ? { ...fields(value, ["epoch", "phase", "window"], ["revision", "nextCueInMs"]),
+      draft: value.draft === true, responseCaptured: value.responseCaptured === true } : null;
+    this.notify();
+  }
   accept(value) {
     if (!this.agentId || value?.version !== 1 || value.agentId !== this.agentId) return;
     if (this.backend && number(value.revision) < this.backend.revision) return;
     const epoch = token(value.epoch);
     // Epoch changes arrive on the already fenced monitor connection in server order.
-    if (this.epoch && epoch !== this.epoch) this.local.clear();
+    if (this.epoch && epoch !== this.epoch) { this.local.clear(); this.acceptedUntil = 0; }
     this.epoch = epoch;
     const key = `${this.agentId}/${epoch || "unknown"}`;
     let journal = this.journals.get(key);
@@ -46,6 +53,9 @@ export class InteractionActivity {
     Object.assign(journal, fields(value, [], ["revision", "serverMs", "dropped", "omittedOperations"]));
     journal.active = (value.active || []).slice(0, 32).map(entry => fields(entry, ["operationId", "stage"], ["startedAt", "elapsedMs"]));
     journal.cue = value.cue ? fields(value.cue, ["reason", "sourceId"], ["occurrences", "serverMs"]) : null;
+    const acceptedCue = journal.recent.findLast(entry => entry.sequence > previousRevision && entry.stage === "cue" &&
+      entry.outcome === "cue_matched" && value.serverMs - entry.serverMs < 5000);
+    if (acceptedCue) { this.acceptedUntil = this.now() + 4000; this.acceptedKind = acceptedCue.details.kind; }
     const terminal = journal.recent.filter(entry => entry.stage === "operation").at(-1);
     if (terminal?.outcome === "failed" && terminal.sequence > previousRevision && value.serverMs - terminal.serverMs < 10000)
       this.set("backend_error", "failed", { ttl: 10000 });
@@ -67,17 +77,19 @@ export class InteractionActivity {
   view() {
     if (!this.agentId) return { label: "Connect an agent to begin", busy: false, elapsed: null, tone: "idle" };
     const now = this.now();
+    const accepted = now < this.acceptedUntil ? (this.acceptedKind === "obs.emotion.face"
+      ? "Cue accepted. You can relax your expression." : "Your cue was received.") : "";
     const local = [...this.local.values()].filter(entry => entry.until === null || entry.until > now);
     const failed = local.find(entry => ["failed", "rejected", "provider-error"].includes(entry.stage));
     const active = this.backend?.active || [];
     const stale = active.length && (!this.connected || now - this.received > 6000);
     if (failed) return { label: labels[failed.stage], busy: false, tone: "error", elapsed: null };
     const speaking = local.find(entry => ["speaking", "output"].includes(entry.stage));
-    if (speaking) return { label: labels[speaking.stage], busy: false, tone: "live", elapsed: null };
+    if (speaking) return { label: labels[speaking.stage], detail: accepted, busy: false, tone: "live", elapsed: null };
     if (stale) return { label: "Progress unavailable", detail: "The last update is out of date. The outcome is unknown.", busy: false, tone: "warning", elapsed: null };
     if (active.length) {
       const entry = active.find(entry => entry.stage === "thinking") || active[0];
-      return { label: labels[entry.stage] || "Processing", detail: active.length > 1 ? `${active.length} operations in progress` : "",
+      return { label: labels[entry.stage] || "Processing", detail: accepted || (active.length > 1 ? `${active.length} operations in progress` : ""),
         busy: true, tone: "active", elapsed: (entry.elapsedMs || 0) + now - this.received };
     }
     if (local.length) {
@@ -85,6 +97,11 @@ export class InteractionActivity {
       return elapsed > 30000 ? { label: "Waiting for confirmation", busy: false, tone: "warning", elapsed }
         : { label: labels[entry.stage], busy: true, tone: "active", elapsed };
     }
+    if (accepted) return { label: "Cue accepted", detail: accepted, busy: false, tone: "live", elapsed: null };
+    const taskLabel = this.task?.phase === "CONFIGURATION" ? (this.task.draft ? "Awaiting your acceptance" : "Ready to configure")
+      : this.task?.phase === "PAUSED" ? "Task paused" : this.task?.phase === "COMPLETED" ? "Task completed"
+      : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null;
+    if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
     const cue = cues[this.backend?.cue?.reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };
     if (!this.connected && this.received !== null) return { label: "Reconnecting progress", busy: false, tone: "warning", elapsed: null };

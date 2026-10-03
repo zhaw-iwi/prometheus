@@ -72,4 +72,19 @@ class TaskLifecycleUnitTest {
         when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("KEEP", "null", "I can receive supported cues."));
         say("What can you observe?"); assertEquals(after, storage().get(TaskMemory.AFTER).getAsString());
     }
+    @Test void monitorReadinessUsesTheSameResponseBoundaryAndHasNoTaskContent() {
+        activate(); var status = TaskCueStatus.of(agent, Instant.now());
+        assertTrue(status.responseCaptured()); assertEquals(0, status.nextCueInMs());
+        assertEquals("RUNNING", status.phase());
+        var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
+        when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("KEEP", "null", "A confirmed response."));
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Explain the agreement."), runtime.withExternalSpeech(owner));
+        assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        agent.recordExternalSpeech("A confirmed response.", new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(), "segment",
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, java.util.List.of(), true));
+        assertTrue(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        String encoded = new Gson().toJson(TaskCueStatus.of(agent, Instant.now()));
+        assertFalse(encoded.contains("confirmed response")); assertFalse(encoded.contains("Offer an agreed"));
+    }
 }

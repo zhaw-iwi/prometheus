@@ -172,6 +172,6 @@ public class AgentMonitorBroadcaster {
                 innerName,
                 innerNames,
                 agent.listStates(),
-                storageEntries);
+                storageEntries).withTask(ch.zhaw.prometheus.model.task.TaskCueStatus.of(agent, java.time.Instant.now()));
     }
 }

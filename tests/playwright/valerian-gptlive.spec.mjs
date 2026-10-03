@@ -19,6 +19,15 @@ for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
   test(`unified activity footer and Telemetry ${theme} ${mobile ? "mobile" : "desktop"}`, async ({ page, context }, info) => {
     await setup(context); await page.setViewportSize(mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 });
     await open(page); await page.evaluate(theme => setTheme(theme), theme);
+    await page.evaluate(() => {
+      const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
+      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "CONFIGURATION", draft: true } }) }));
+    });
+    await expect(page.getByTestId("activity-label")).toHaveText("Awaiting your acceptance");
+    await page.evaluate(() => {
+      const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
+      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "RUNNING", draft: false } }) }));
+    });
     const publish = value => page.evaluate(value => {
       const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
       source.dispatchEvent(new MessageEvent("activity", { data: JSON.stringify(value) }));
@@ -31,6 +40,11 @@ for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     expect(await footer.locator(".activity-indicator").evaluate(node => getComputedStyle(node).animationName)).toBe("none");
     await footer.screenshot({ path: info.outputPath(`thinking-${theme}-${mobile}.png`) });
+    await publish({ revision: 2, serverMs: 1000, active: [{ operationId: "one", stage: "thinking", elapsedMs: 400 }],
+      recent: [{ sequence: 2, serverMs: 990, stage: "cue", outcome: "cue_matched", details: { kind: "obs.emotion.face" } }] });
+    await expect(footer).toContainText("You can relax your expression");
+    await footer.screenshot({ path: info.outputPath(`cue-accepted-${theme}-${mobile}.png`) });
+    await page.evaluate(() => { globalThis.PrometheusActivity.acceptedUntil = 0; });
     await footer.getByRole("button", { name: "Mark an interaction issue" }).click();
     await footer.getByRole("button", { name: "Long pause", exact: true }).click();
     await publish({ revision: 2, active: [], cue: { reason: "insufficient_samples", occurrences: 4 } });

@@ -28,30 +28,34 @@ public class TaskDecision extends Decision {
         var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
         Instant after = Instant.parse(TaskMemory.text(storage, TaskMemory.AFTER, Instant.EPOCH.toString()));
         if (now.isBefore(after) || !TaskMemory.observed(latest).isAfter(after)) return waitFor("cooldown", latest.getId());
-        int firstSample = 0;
-        // A native completed segment after the most recent spoken intent is a conservative
-        // backend completion signal, not proof of physical audibility. Incomplete segments do not arm a cue.
-        if (runtime.externalSpeech() != null) {
-            int intent = -1, completed = -1;
-            for (int i = 0; i < events.size(); i++) {
-                var provenance = events.get(i).speechProvenance();
-                if (provenance == null || !provenance.sessionId().equals(runtime.externalSpeech().sessionId())
-                        || !provenance.epoch().equals(runtime.externalSpeech().epoch())) continue;
-                if (provenance.origin() == SpeechProvenance.Origin.BACKEND_INTENT
-                        && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.get(i).getPayload()).getSpeech() != null) intent = i;
-                if (provenance.origin() == SpeechProvenance.Origin.NATIVE && provenance.complete()) completed = i;
-            }
-            if (intent >= 0 && completed <= intent) return waitFor("awaiting_response_capture", latest.getId());
-            if (intent >= 0) firstSample = completed + 1;
-        }
+        int firstSample = firstSample(events, runtime.externalSpeech());
+        if (firstSample < 0) return waitFor("awaiting_response_capture", latest.getId());
         final int from = firstSample;
         var reason = new String[]{"waiting_for_cue"};
         var result = spec.rules().stream().sorted(Comparator.comparing(TaskSpec.Rule::effect).reversed())
                 .filter(rule -> rule.effect() != TaskSpec.Effect.WAIT || !"WAITING".equals(TaskMemory.phase(storage)))
                 .filter(rule -> rule.eventType().equals(latest.getType()))
                 .filter(rule -> stable(rule, events.subList(from, events.size()), after, now, reason)).findFirst();
-        ch.zhaw.prometheus.logging.ActivityTrace.cue(result.isPresent() ? "cue_matched" : reason[0], latest.getId());
+        ch.zhaw.prometheus.logging.ActivityTrace.cue(result.isPresent() ? "cue_matched" : reason[0], latest.getId(), latest.getType());
         return result;
+    }
+    static int firstSample(List<Event> events, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        // A native completed segment after the most recent spoken intent is a conservative
+        // backend completion signal, not proof of physical audibility. Incomplete segments do not arm a cue.
+        if (owner != null) {
+            int intent = -1, completed = -1;
+            for (int i = 0; i < events.size(); i++) {
+                var provenance = events.get(i).speechProvenance();
+                if (provenance == null || !provenance.sessionId().equals(owner.sessionId())
+                        || !provenance.epoch().equals(owner.epoch())) continue;
+                if (provenance.origin() == SpeechProvenance.Origin.BACKEND_INTENT
+                        && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(events.get(i).getPayload()).getSpeech() != null) intent = i;
+                if (provenance.origin() == SpeechProvenance.Origin.NATIVE && provenance.complete()) completed = i;
+            }
+            if (intent >= 0 && completed <= intent) return -1;
+            if (intent >= 0) return completed + 1;
+        }
+        return 0;
     }
     private static Optional<TaskSpec.Rule> waitFor(String reason, UUID source) {
         ch.zhaw.prometheus.logging.ActivityTrace.cue(reason, source); return Optional.empty();

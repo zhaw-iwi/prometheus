@@ -25,3 +25,19 @@ Passed 18 unit and 2 MySQL integration cases. The first runs caught test-fixture
 storage access and access-code length mistakes, both corrected. Unit evidence:
 `target/gptlive-acceptance-1d0a55b682/java.log`; final two integration cases:
 `target/gptlive-acceptance-8736f579fe/java.log`, exit 0, cleanup confirmed.
+
+## Milestone 210
+
+Completed advisory task readiness on the existing monitor, one fast qualifying
+facial sample per response window, and acceptance/lifecycle states in the existing
+footer. Unmatched/weak/stale evidence does not bypass cadence. Social emission
+and backend cue authority remain unchanged; no database polling was added.
+
+Passed 25 Java cases including query budgets and real HTTP/SSE, and 50 Node
+performance/Live cases. Four Playwright light/dark desktop/mobile cases passed;
+mobile acceptance screenshots were visually inspected without overflow. The
+integrated Generic smoke initially retained the old Ready label after reset;
+corrected to Ready to configure. Final enabled and disabled browser smokes passed
+in `target/gptlive-acceptance-391b43bc7a/`. Java and visual evidence:
+`target/gptlive-acceptance-c326b495db/`. Both disposable runs cleaned up.
+Physical expression effort and audibility remain unverified.

@@ -1633,6 +1633,12 @@ Discuss the goal, clarify material choices, propose a plan and ask the agent to
 start. Built-in guidance describes the rule schema without prescribing a task.
 Lightweight interactions default to one matching observation; additional samples
 should be an explicit stability choice. Missing, expired or unmatched cues wait.
+The existing interaction footer distinguishes awaiting acceptance, temporary
+waiting, pause and completion. Accepted facial cues remain visible briefly so
+the expression need not be held while a response is prepared. The scoped monitor
+snapshot adds a content-free `task` readiness hint; the browser may send one
+qualifying facial observation sooner per response window. Backend guards still
+decide acceptance, and ordinary sensor cadence and social batching are unchanged.
 The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
 revisions can propose a replacement. Stop/cancel ends the task; pause preserves

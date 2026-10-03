@@ -118,12 +118,18 @@ public class AgentActivityService {
             }
         }
         @Override public void cue(String reason, UUID source) {
+            cue(reason, source, null);
+        }
+        @Override public void cue(String reason, UUID source, String kind) {
             synchronized (AgentActivityService.this) {
                 if (!current() || safe(reason) == null) return;
                 Cue before = journal.cue;
                 boolean same = before != null && before.reason().equals(reason);
                 journal.cue = new Cue(reason, same ? before.occurrences() + 1 : 1, clock.millis(), source);
-                if (!same) record(null, "cue", reason, null, Map.of());
+                if (!same) {
+                    UUID beforeSource = this.source; this.source = source;
+                    record(null, "cue", reason, null, safe(kind) == null ? Map.of() : Map.of("kind", safe(kind))); this.source = beforeSource;
+                }
             }
         }
         @Override public void event(UUID event) { synchronized (AgentActivityService.this) {
