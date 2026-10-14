@@ -330,7 +330,7 @@ public class ScopedDemoService {
 
     private AgentInfoView toAgentInfo(Agent agent) {
         return new AgentInfoView(agent.getId(), agent.getName(), agent.getDescription(), agent.isActive(),
-                agent.getInteractionProfile(), agent.getLanguageCode(), agent.getEmbodiment());
+                agent.getInteractionProfile(), agent.getLanguageCode(), agent.getEmbodiment(), agent.getPersonaName());
     }
 
     private static void applyDefinitionLanguage(Agent agent, AgentDefinition definition) {

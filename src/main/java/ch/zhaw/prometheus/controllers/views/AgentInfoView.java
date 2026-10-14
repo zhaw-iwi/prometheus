@@ -31,6 +31,11 @@ public class AgentInfoView {
 
     public AgentInfoView(UUID id, String name, String descripion, boolean isActive,
             AgentInteractionProfile interactionProfile, String languageCode, AgentEmbodiment embodiment) {
+        this(id, name, descripion, isActive, interactionProfile, languageCode, embodiment, null);
+    }
+
+    public AgentInfoView(UUID id, String name, String descripion, boolean isActive,
+            AgentInteractionProfile interactionProfile, String languageCode, AgentEmbodiment embodiment, String personaName) {
         this.id = id;
         this.name = name;
         this.description = descripion;
@@ -39,7 +44,7 @@ public class AgentInfoView {
         this.languageCode = normalizeLanguageCode(languageCode);
         AgentEmbodiment resolved = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
         this.embodiment = resolved.name();
-        this.personaName = resolved.personaName();
+        this.personaName = personaName == null ? resolved.personaName() : personaName;
     }
 
     public UUID getID() {

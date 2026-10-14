@@ -86,6 +86,8 @@ public class Agent {
     @Enumerated(EnumType.STRING)
     @Column(length = 16)
     private AgentEmbodiment embodiment;
+    @Column(length = 80)
+    private String personaName;
 
     @Transient
     private RegulationSystem regulationSystem;
@@ -137,7 +139,14 @@ public class Agent {
     }
 
     public String getPersonaName() {
-        return this.getEmbodiment().personaName();
+        return this.personaName == null ? this.getEmbodiment().personaName() : this.personaName;
+    }
+
+    /** Optional definition-owned identity; legacy instances continue using their embodiment's name. */
+    public void setPersonaName(String personaName) {
+        String normalized = personaName == null || personaName.isBlank() ? null : personaName.trim();
+        if (normalized != null && normalized.length() > 80) throw new IllegalArgumentException("Persona name exceeds 80 characters");
+        this.personaName = normalized;
     }
 
     public AgentInteractionProfile getInteractionProfile() {
@@ -188,7 +197,7 @@ public class Agent {
     }
 
     public Event start(PolicyRuntime runtime) {
-        runtime = runtime.forCapabilities(this.getInteractionProfile());
+        runtime = runtime.forAgent(this);
         try {
             Event response = this.currentState.start(runtime);
             return this.recordEvent(response);
@@ -206,7 +215,7 @@ public class Agent {
     }
 
     public Event generate(PolicyRuntime runtime) {
-        runtime = runtime.forCapabilities(this.getInteractionProfile());
+        runtime = runtime.forAgent(this);
         if (this.currentState == null) {
             return null;
         }
@@ -215,7 +224,7 @@ public class Agent {
     }
 
     public Event acknowledge(Event event, PolicyRuntime runtime) {
-        runtime = runtime.forCapabilities(this.getInteractionProfile());
+        runtime = runtime.forAgent(this);
         Event response = this.acknowledgeWithoutRegulation(event, true, runtime);
         Event responseFromRegulation = this.applyRegulation(event, runtime);
         return responseFromRegulation != null ? responseFromRegulation : response;
@@ -310,7 +319,11 @@ public class Agent {
     }
 
     public PolicyResult getTotalPolicy(PromptMessageAssembler promptMessageAssembler, OutputProfile outputProfile) {
-        return this.currentState.getPolicyBundle(null, promptMessageAssembler, outputProfile);
+        var assembler = promptMessageAssembler == null
+                ? new PromptMessageAssembler().forEmbodiment(this.getEmbodiment()) : promptMessageAssembler;
+        // Preserve caller-selected preview identities unless the definition owns a fixed name.
+        if (this.personaName != null) assembler = assembler.forPersonaName(this.personaName);
+        return this.currentState.getPolicyBundle(null, assembler, outputProfile);
     }
 
     public List<String> listStates() {

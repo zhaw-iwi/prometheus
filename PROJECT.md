@@ -60,9 +60,9 @@ code.
   sensing, interaction, and behaviour state outside an active connection and
   hydrates persisted conversation, sensing, and behaviour history on connect.
 - Persisted creation-time embodiments with a cockpit selector: `COCKPIT` uses
-  the Valerian persona and `ROBOT` uses Gigi. Agent metadata exposes both the
-  embodiment and derived persona, and prompt assembly resolves identity
-  references consistently for the selected embodiment.
+  the Valerian persona and `ROBOT` uses Gigi by default. A nullable definition-owned
+  name keeps the Social Space variant Valerian in both embodiments. Agent metadata
+  exposes the embodiment and effective persona; prompt assembly uses that identity.
 - Explicit access-code-scoped Talk to Me instances for deterministic exact-text
   output-only Speech synthesis with user-managed create/select/delete lifecycle.
 - Browser sensing for facial emotion, social context, and hand signs, plus
@@ -81,6 +81,18 @@ behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
 and regulation diagnostics remain future work.
 
 ### Current milestone state
+
+- Milestone 214 (2026-10-14): core Social Space Generic variant on `agents`, reusing
+  Generic task configuration/execution with concise English social conversation,
+  explicit capability/Live opt-ins and a fixed Valerian identity. Local count-change
+  guards keep stable visibility and regrouping quiet; ambient replies preserve
+  task agreements and yield to active/paused tasks. Release acceptance passed
+  656 Java, 101 Node and 52 browser cases plus JAR packaging; two Live-only cases
+  intentionally skip in the disabled run. Full regression also corrected legacy
+  prompt-preview identity binding and two asynchronous replay assertions.
+  The nullable persona-name column and fresh-instance setup are documented in
+  README. Physical sensing, provider style and acoustic behaviour remain unverified.
+  Commit/push is authorized; release verification details are recorded below.
 
 - Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
   fingerprinted and idempotent, preserving custom prompts, agreements and history.
@@ -9914,3 +9926,109 @@ and existing capture limits plus optional platform build metadata. Detailed coun
 failed-run corrections, branch integration and release checks are maintained in
 `.agents/TELEMETRY_RESULTS.md`. No physical acoustic or paid-provider quality claim
 follows from these synthetic trials.
+
+## Milestone 214: Generic Multimodal Behaviour at Social Space
+
+2026-10-14, `agents`. Added the separately registered core definition
+`core.generic_multimodal_behaviour_at_social_space`, displayed as
+**Generic Multimodal Behaviour at Social Space**. It shares the original Generic
+task graph, configuration/output contracts, validation and lifecycle. The core
+built-in prompt text is unchanged. English social-space guidance adds name
+addressing, short replies, warm microhumor, respect for boundaries and offers to
+help people discover capabilities, propose a task and explicitly activate it.
+
+Ambient replies compare valid grouping samples by visible human count before
+requesting inference. Initial occupied views and count changes qualify;
+unchanged visibility, regrouping, empty initial views, invalid/stale/out-of-order
+frames, ticks and derived social-change events do not. Delayed older samples
+cannot replace the newest known count and cause a repeated greeting. One
+validated canonical plan is published through TaskPolicy, including backend
+intent provenance under Live. Failure or session cancellation stays silent.
+Drafts, task specifications and action budgets are preserved; running/waiting/
+paused tasks keep their existing agreed sensor semantics.
+
+A nullable persisted `agent.persona_name` override keeps this definition named
+Valerian for both embodiments, consistently across metadata, prompt inspection,
+ordinary inference and Live guidance. Legacy null values retain their original
+embodiment naming. README documents the additive schema change, access-code
+assignment, fresh creation, sensor setup and physical sensing limits. No existing
+instances, production configuration or history were changed.
+
+Verification:
+
+- The initial focused run passed 55 of 56 tests; the one failure was an overly
+  strict whitespace assertion, corrected before acceptance. A subsequent build
+  encountered changing/missing files in the shared IDE compilation directory;
+  acceptance used a separate Maven build directory.
+- A 21-class selection passed 128 tests with no failures, errors or skips,
+  covering the new variant, core Generic tasks/lifecycle/upgrades, prompt/persona
+  and capability binding, catalog inference counts, social derivation, scoped
+  controller/API compatibility, persistence and Live query budgets.
+- Final review added the delayed-frame recovery regression. The final command
+  `python target/verify_social_space.py SocialSpaceAgentUnitTest,SocialSpaceAgentIntegrationTest`
+  passed all 10 selected tests. There are 129 distinct passing tests across the
+  two acceptance runs. `git diff --check` also passed.
+- The temporary verification wrapper used the existing
+  `tests/gptlive/run_acceptance.py`, a separate loopback-only MySQL process,
+  random schemas/restricted accounts, simulated providers and an isolated Maven
+  output directory. Both owned servers stopped and test schemas/accounts were
+  removed; the configured remote database was never used. Local evidence is in
+  `target/social-space-verification-6d51fc4e02/build/surefire-reports` and
+  `target/social-space-verification-833bf11392/build/surefire-reports`.
+- Automatic approval review blocked recursive cleanup of the two owned MySQL
+  data directories with "blocked by policy". Their stopped server files remain
+  under the ignored verification directories in `target/`.
+
+No browser UI changes required a browser run. Physical camera/microphone tests,
+provider style and acoustic quality remain unverified. Count-based sensing
+cannot identify people or detect a same-count replacement, and occlusion can
+look like an arrival/departure. No commit, push, migration or deployment was run;
+the changes are ready for review.
+
+Core catalog follow-up (2026-10-14): moved the Social Space definition, presence
+decision and response action into `agentdefs/core`, and moved its unit tests to
+the matching test package. The definition now uses `@Component`, core profile
+tagging and `core.generic_multimodal_behaviour_at_social_space`; the temporary
+deployment-only bean was removed. Its display name, fixed Valerian identity and
+task/social behaviour remain unchanged. Core catalog and prompt contracts now
+include it, permitting discussion of robots while retaining its digital-agent
+identity. README and current context reflect the new package and key.
+
+Ran `python target/verify_social_space.py 'SocialSpaceAgentUnitTest,SocialSpaceAgentIntegrationTest,AgentDefinitionRegistryUnitTest,ValerianCorePromptContractTest,GenericMultimodalTaskUnitTest'`:
+34 tests passed, with no failures, errors or skips, using a fresh isolated build
+and local MySQL. Reports are under
+`target/social-space-verification-7bb0a8f1df/build/surefire-reports`.
+The owned test server stopped and its temporary POM/schema/account were removed.
+`git diff --check` passed; no commit or deployment was performed.
+
+Release verification follow-up (2026-10-14), authorized by the request to commit
+and push if the current application works:
+
+- Full regression exposed three Gigi prompt-preview failures: `getTotalPolicy`
+  rebound an explicitly supplied Robot assembler to the default embodiment.
+  Policy previews now preserve caller-selected identities unless a definition
+  owns a fixed name. The Social Space creation test also verifies that an
+  explicitly Robot-bound preview retains Valerian.
+- The first full run also exhausted the temporary MySQL server's 80 connections.
+  Its test-only limit was raised to 400 for the suite's cached Spring contexts;
+  no application or production connection settings changed.
+- The next full run reached all 656 tests without context errors. It exposed an
+  omitted Social Space entry in the deployment Live catalog expectation and two
+  existing replay races: outcome storage was checked before background extraction
+  committed (the logged jobs completed about 70 ms later). The catalog assertion
+  now includes the new definition. Both replay checks use the existing Awaitility
+  dependency to wait at most three seconds for the same required storage content.
+- Final `python target/verify_social_space.py all --browser` passed 656 Java tests
+  in 142 suites (zero failures/errors/skips), 51 browser cases with Live enabled
+  and one with Live disabled. Two Live-only cases intentionally skipped in the
+  disabled run. The wrapper then ran `mvnw.cmd -q -DskipTests package` successfully.
+  It used an isolated Maven directory, local MySQL and the repository acceptance
+  runner with only its build/fixture paths redirected. Owned app/server processes,
+  random schema/account and the temporary POM were cleaned up.
+- `node --test tests/js/live/*.test.mjs tests/js/transcription/*.test.mjs tests/js/speech/*.test.mjs tests/js/performance/*.test.mjs`
+  passed all 101 cases. `git diff --check` passed.
+- Evidence: `target/social-space-verification-158fee3e71/build/surefire-reports`,
+  `target/social-space-verification-158fee3e71/package.log`,
+  `target/gptlive-acceptance-2c0a8f5855` and `target/social-space-javascript.log`.
+  Verification used simulated providers; physical sensing and paid-provider
+  speaking/acoustic quality remain unverified.

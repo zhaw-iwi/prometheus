@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.agentdefs.core;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -16,6 +17,7 @@ class ValerianCorePromptContractTest {
     private static final List<AgentDefinition> DEFINITIONS = List.of(
             new FacialExpressionSensitivity(),
             new GenericMultimodalBehaviour(),
+            new GenericMultimodalBehaviourAtSocialSpace(),
             new LiveMultimodal(),
             new MultimodalBehaviour(),
             new RockScissorPaper(),
@@ -54,7 +56,11 @@ class ValerianCorePromptContractTest {
     void coreDefinitionsUseCoreNamespaceEnglishAndDisplayName() {
         for (AgentDefinition definition : DEFINITIONS) {
             assertTrue(definition.key().startsWith("core."), definition.key());
-            assertTrue(definition.displayName().startsWith("Valerian Core"), definition.key());
+            if (definition instanceof GenericMultimodalBehaviourAtSocialSpace) {
+                assertEquals("Generic Multimodal Behaviour at Social Space", definition.displayName());
+            } else {
+                assertTrue(definition.displayName().startsWith("Valerian Core"), definition.key());
+            }
             assertTrue(definition.description().toLowerCase().startsWith("english core"), definition.key());
             assertTrue(AgentDefinition.LANGUAGE_ENGLISH.equals(definition.languageCode()), definition.key());
         }
@@ -67,6 +73,12 @@ class ValerianCorePromptContractTest {
                 .toList()) {
             String text = Files.readString(source);
             for (String staleTerm : STALE_PERSONA_TERMS) {
+                // This agent discusses robots as a topic while retaining the digital-agent identity.
+                if (staleTerm.equals("robot") && source.getFileName().toString()
+                        .equals("GenericMultimodalBehaviourAtSocialSpace.java")) {
+                    assertTrue(GenericMultimodalBehaviourAtSocialSpace.VOICE.contains("You are Valerian, a digital agent"));
+                    continue;
+                }
                 assertFalse(text.contains(staleTerm), () -> "stale term " + staleTerm + " in " + source);
             }
         }

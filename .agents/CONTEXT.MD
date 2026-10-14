@@ -130,7 +130,8 @@ PROMETHEUS currently provides:
 - persisted creation-time agent embodiments, with `COCKPIT` selecting the
   Valerian persona and `ROBOT` selecting Gigi; the selected persona is exposed
   in agent metadata and consistently resolves legacy identity references in
-  system prompts;
+  system prompts. A nullable definition-owned persona name overrides these
+  defaults; the Social Space Generic variant remains Valerian in both embodiments;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;
@@ -255,15 +256,24 @@ and eager event state paths load together. See README and GPTLIVE_RESULTS for th
 query-budget regression evidence and remaining provider/production limits.
 
 On the agents branch, the main conversational definitions, including Generic
-Multimodal Behaviour, remain opted in;
+Multimodal Behaviour and its core Social Space variant, are opted in;
 all other registered definitions (including scored RPS and Talk to Me) stay out.
 The existing per-agent embodiment assembler resolves authored Live voice and
-nonverbal prompts to Valerian/Gigi without rewriting observation/dialogue content.
+nonverbal prompts to the effective persona (including a persisted fixed-name
+override) without rewriting observation/dialogue content.
 The merged runtime retains both persona selection and external speech ownership,
 including reset. The production profile now enables the separate Live flag;
 `PROMETHEUS_LIVE_ENABLED=false` can override it without changing agent capabilities.
 
 ## Conversational Task Configuration
+
+The core Social Space variant reuses the Generic task graph and full
+task contract with brief English conversation and a fixed Valerian identity.
+Outside active/waiting/paused tasks, a local guard compares consecutive fresh
+grouping human counts before requesting one validated ambient reply. Stable
+visibility, movement/regrouping and derived-event duplicates stay silent. Task
+agreements retain their original sensor semantics. Catalog key, setup, nullable
+persona-name schema addition and sensing limits are documented in README.
 
 `GenericMultimodalBehaviour` is a separate core definition with the existing
 Multimodal Behaviour observation/output set. Its explicit task phases, transitions

@@ -229,7 +229,7 @@ public class AgentApplicationService {
     public Optional<AgentInfoView> getAgentInfo(UUID agentID) {
         return this.findAgent(agentID).map(agent -> new AgentInfoView(agent.getId(), agent.getName(),
                 agent.getDescription(), agent.isActive(), agent.getInteractionProfile(), agent.getLanguageCode(),
-                agent.getEmbodiment()));
+                agent.getEmbodiment(), agent.getPersonaName()));
     }
 
     public Optional<String> getAgentLanguageCode(UUID agentID) {
@@ -447,7 +447,7 @@ public class AgentApplicationService {
         LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         this.publishBehaviour(saved, starter);
         return Optional.of(new AgentInfoView(saved.getId(), saved.getName(), saved.getDescription(), saved.isActive(),
-                saved.getInteractionProfile(), saved.getLanguageCode(), saved.getEmbodiment()));
+                saved.getInteractionProfile(), saved.getLanguageCode(), saved.getEmbodiment(), saved.getPersonaName()));
     }
 
     public Agent persistCreatedAgent(AgentCreationResult creation) {

@@ -74,6 +74,8 @@ When creating an instance, select its embodiment: **Cockpit — Valerian** or
 metadata, and used to resolve Valerian/Gigi identity references in system
 prompts. Existing agents and API requests that omit the embodiment retain the
 cockpit default and therefore use the Valerian persona.
+Definitions may persist a fixed persona name: the Social Space agent remains
+Valerian for both embodiments. Use the returned `personaName` as its identity.
 
 The cockpit is organised into three columns: sensing, verbal interaction by
 text or speech, and behaviour. Each column can be maximised or opened in a
@@ -252,6 +254,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
 | `core.generic_multimodal_behaviour` | Collaboratively configure a persistent task and react to multimodal cues. |
+| `core.generic_multimodal_behaviour_at_social_space` | Concise English Valerian conversation, arrival/departure reactions and the shared Generic task lifecycle. |
 | `core.live_multimodal` | GPT-Live conversation with independent full embodiment and all supported observations; requires Live for speech. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.rock_scissor_paper_match` | Core scored rock-scissor-paper match with a configurable target-win count. |
@@ -818,6 +821,9 @@ Content-Type: application/json
 `embodiment` accepts `COCKPIT` (persona `Valerian`) or `ROBOT` (persona
 `Gigi`). It is persisted for the lifetime of the agent. Omitting it defaults to
 `COCKPIT`; unsupported values are rejected with `400 Bad Request`.
+These are the default persona names. A definition-owned fixed name takes
+precedence, so the Social Space variant returns `personaName: "Valerian"` with
+either embodiment. The embodiment itself remains the selected value.
 
 Read the agent metadata before enabling perception or rendering controls:
 
@@ -1372,9 +1378,10 @@ definitions opt in; **Talk to Me** stays out because it must speak submitted tex
 exactly. Deployment-specific definitions, including scored RPS, stay out unless
 explicitly adapted and validated.
 
-On the `agents` deployment branch, only those twelve definitions declare Live
-capability. Scored RPS, Talk to Me and all other registered deployment definitions
-remain opted out. The selected COCKPIT/ROBOT embodiment resolves Valerian/Gigi in
+On the `agents` deployment branch, the main conversational definitions, including
+the core Social Space Generic variant, declare Live capability. Scored RPS, Talk to Me and
+other registered deployment definitions remain opted out. The selected
+COCKPIT/ROBOT embodiment, or a definition's fixed persona name, resolves identity in
 authored Live voice and nonverbal instructions; quoted conversation history keeps
 its original wording. Ordinary generation and reset use the same persona choice.
 The production profile enables the tab; `PROMETHEUS_LIVE_ENABLED=false` on Heroku
@@ -1759,6 +1766,55 @@ meaning is never silently converted. Activating an incompatible saved draft asks
 for a rule correction without requesting the whole task again. There is no
 automatic startup migration.
 
+### Generic Multimodal Behaviour at Social Space
+
+Assign `core.generic_multimodal_behaviour_at_social_space` to an access code,
+create a fresh instance and enable Social Context Sensitivity in the cockpit.
+The catalog name is **Generic Multimodal Behaviour at Social Space**. Valerian
+speaks English by default, responds when addressed by name, offers to be useful,
+and uses brief, attentive conversation with friendly microhumor. Serious or
+personal topics call for care without humor. Capability questions and task
+agreements may need more detail than the usual one short sentence.
+
+Ask what he can do, describe a goal and desired cue/response, review the proposed
+plan, then ask him to start. The shared Generic task graph, supported modalities,
+validation, action limits, pause/resume/stop, reset and Live session lifecycle
+remain the same. Capability awareness and GPT-Live are explicitly enabled for
+this definition. Creation emits a short welcome without calling a provider.
+
+Outside a running, waiting or paused task, fresh `obs.social.grouping` samples
+are compared locally by visible human count. An initially occupied view or a
+count increase/decrease can produce one brief ambient reply. An initial empty
+view, continued visibility, movement/regrouping at the same count, repeated or
+out-of-order samples, and other raw sensor frames do not request a response.
+The subsequent derived social-change event does not trigger a second reply.
+Invalid/stale samples are ignored. Generation failure stays silent and does not
+retry on unchanged visibility; the model can also intentionally remain silent.
+Ambient replies preserve task drafts, agreements and action counts.
+
+While a task is running, waiting or paused, its explicit agreement owns sensor
+reactions. A user can still configure a task that reacts repeatedly to a stable
+condition, as in the original Generic agent. Counts describe only the camera
+view: replacing one person with another at the same count is not detected, and
+camera occlusion or detection noise can appear as a count change. Physical
+camera/voice behaviour and model speaking style require a live trial.
+
+This definition fixes the name Valerian for both `COCKPIT` and `ROBOT`. Its
+persisted `agent.persona_name` override is used by metadata, prompt inspection,
+ordinary inference and Live guidance, and survives reset. Existing instances
+with a null override retain their embodiment-based names. For managed MySQL
+schemas, add the nullable column before running the updated application:
+
+```sql
+ALTER TABLE `agent` ADD COLUMN `persona_name` VARCHAR(80) NULL;
+```
+
+The current local and production profiles use `ddl-auto=update` and add it
+automatically. No history or existing identities are backfilled. The new social
+decision/action use the existing entity tables;
+all application instances reading these newly created agents need the updated
+classes. No saved Generic instance is converted automatically.
+
 ### Capability awareness
 
 Definitions opt in with one method; prompts and history selectors need no changes:
@@ -1771,8 +1827,9 @@ public boolean capabilityAwareness() {
 ```
 
 The default is `false`. The flag is
-persisted as `interactionProfile.capabilityAwareness`; all core definitions opt in,
-while healthcare and deployment definitions remain out. Reusing a core factory
+persisted as `interactionProfile.capabilityAwareness`; all core definitions
+opt in, while healthcare and deployment
+definitions remain out. Reusing a core factory
 must not grant opt-in: apply the owning definition's metadata.
 
 Legacy saved instances without the flag remain opted out. Create a new core

@@ -1,5 +1,6 @@
 package ch.zhaw.prometheus.integration;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,7 +115,9 @@ class GigiTdsrSocialContextSensitivityReplayIntegrationTest {
                 connection.disconnect();
             }
             case "assertstate" -> assertState(agentId, step.getExpectedState(), step.getId());
-            case "assertstorage" -> assertStorage(agentId, step.getExpectedStorage(), step.getId());
+            // Outcome extraction commits asynchronously after the final-state response.
+            case "assertstorage" -> await().atMost(Duration.ofSeconds(3))
+                    .untilAsserted(() -> assertStorage(agentId, step.getExpectedStorage(), step.getId()));
             default -> throw new IllegalArgumentException("unsupported action in script: " + step.getAction());
         }
     }

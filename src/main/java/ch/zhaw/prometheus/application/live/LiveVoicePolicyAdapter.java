@@ -49,7 +49,7 @@ public class LiveVoicePolicyAdapter {
                 ? agent.getCurrentState().getTotalPolicy()
                 : "You are Valerian at the ZHAW SIRA Lab. This is a deterministic rock-scissor-paper task. "
                   + "Wait for the backend's chosen sign and computed result; do not choose signs, invent results or advance rounds yourself.";
-        policy = assembler.forEmbodiment(agent.getEmbodiment()).resolveSystemPrompt(policy);
+        policy = assembler.forAgent(agent).resolveSystemPrompt(policy);
         String language = agent.getLanguageCode() == null ? "en" : agent.getLanguageCode();
         String result = """
                 You are the spoken interface of a PROMETHEUS agent. Speak naturally and briefly.

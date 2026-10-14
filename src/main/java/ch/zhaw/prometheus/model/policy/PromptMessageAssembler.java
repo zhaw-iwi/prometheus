@@ -21,7 +21,7 @@ public class PromptMessageAssembler {
     private final List<PromptEventContentAdapter> eventContentAdapters;
     private final List<PromptContextAugmenter> contextAugmenters;
     private final boolean speculativeComposition;
-    private final AgentEmbodiment embodiment;
+    private final String personaName;
 
     public PromptMessageAssembler() {
         this(List.of(
@@ -31,35 +31,44 @@ public class PromptMessageAssembler {
                 new SocialContextPromptEventContentAdapter(),
                 new WeatherPromptEventContentAdapter(),
                 new DefaultPayloadPromptEventContentAdapter()),
-                List.of(new NonverbalSummaryPromptContextAugmenter()), true, AgentEmbodiment.COCKPIT);
+                List.of(new NonverbalSummaryPromptContextAugmenter()), true, AgentEmbodiment.COCKPIT.personaName());
     }
 
     public PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
             List<PromptContextAugmenter> contextAugmenters) {
-        this(eventContentAdapters, contextAugmenters, false, AgentEmbodiment.COCKPIT);
+        this(eventContentAdapters, contextAugmenters, false, AgentEmbodiment.COCKPIT.personaName());
     }
 
     private PromptMessageAssembler(List<PromptEventContentAdapter> eventContentAdapters,
             List<PromptContextAugmenter> contextAugmenters, boolean speculativeComposition,
-            AgentEmbodiment embodiment) {
+            String personaName) {
         this.eventContentAdapters = eventContentAdapters == null ? List.of() : List.copyOf(eventContentAdapters);
         this.contextAugmenters = contextAugmenters == null ? List.of() : List.copyOf(contextAugmenters);
         this.speculativeComposition = speculativeComposition;
-        this.embodiment = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
+        this.personaName = personaName;
     }
 
     public boolean supportsSpeculativeComposition() { return getClass() == PromptMessageAssembler.class && speculativeComposition; }
 
     public PromptMessageAssembler forEmbodiment(AgentEmbodiment embodiment) {
         AgentEmbodiment resolved = embodiment == null ? AgentEmbodiment.COCKPIT : embodiment;
-        if (resolved == this.embodiment) {
+        return forPersonaName(resolved.personaName());
+    }
+
+    public PromptMessageAssembler forAgent(ch.zhaw.prometheus.model.Agent agent) {
+        return forEmbodiment(agent.getEmbodiment()).forPersonaName(agent.getPersonaName());
+    }
+
+    public PromptMessageAssembler forPersonaName(String personaName) {
+        if (personaName == null || personaName.isBlank()) throw new IllegalArgumentException("Persona name is required");
+        if (personaName.equals(this.personaName)) {
             return this;
         }
         return new PromptMessageAssembler(
                 this.eventContentAdapters,
                 this.contextAugmenters,
                 this.speculativeComposition,
-                resolved);
+                personaName);
     }
 
     public boolean supportsGuardComposition() { return getClass() == PromptMessageAssembler.class; }
@@ -86,6 +95,10 @@ public class PromptMessageAssembler {
         }
         @Override public PromptMessageAssembler forEmbodiment(AgentEmbodiment embodiment) {
             PromptMessageAssembler updated = delegate.forEmbodiment(embodiment);
+            return updated == delegate ? this : new CapabilityAssembler(updated, context);
+        }
+        @Override public PromptMessageAssembler forPersonaName(String personaName) {
+            PromptMessageAssembler updated = delegate.forPersonaName(personaName);
             return updated == delegate ? this : new CapabilityAssembler(updated, context);
         }
         @Override public String resolveSystemPrompt(String prompt) { return delegate.resolveSystemPrompt(prompt); }
@@ -205,6 +218,6 @@ public class PromptMessageAssembler {
             return prompt;
         }
         return LEGACY_PERSONA_NAME.matcher(prompt)
-                .replaceAll(Matcher.quoteReplacement(this.embodiment.personaName()));
+                .replaceAll(Matcher.quoteReplacement(this.personaName));
     }
 }
