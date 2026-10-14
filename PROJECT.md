@@ -92,7 +92,9 @@ and regulation diagnostics remain future work.
   prompt-preview identity binding and two asynchronous replay assertions.
   The nullable persona-name column and fresh-instance setup are documented in
   README. Physical sensing, provider style and acoustic behaviour remain unverified.
-  Commit/push is authorized; release verification details are recorded below.
+  Pushed as `a3d60ed` and deployed as Heroku v108; the web dyno and health check
+  are up, the cockpit responds, and the production core catalog includes the new
+  definition. Release verification details are recorded below.
 
 - Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
   fingerprinted and idempotent, preserving custom prompts, agreements and history.
@@ -10032,3 +10034,14 @@ and push if the current application works:
   `target/gptlive-acceptance-2c0a8f5855` and `target/social-space-javascript.log`.
   Verification used simulated providers; physical sensing and paid-provider
   speaking/acoustic quality remain unverified.
+
+Rollout: committed and pushed implementation `a3d60edebbfc5c53ba789186c5cb75c552c5e2b3`
+to `origin/agents`. The existing
+[deployment workflow](https://github.com/zhaw-iwi/prometheus/actions/runs/38588687609)
+succeeded for that exact commit. Heroku release **v108** succeeded on 2026-10-14
+at 15:23:29 UTC. Post-deployment verification confirmed `web.1` up,
+`/actuator/health` returning `UP`, `/valerian/` returning HTTP 200, and the
+authenticated production catalog containing the expected key, display name and
+`["core"]` package path. Administrative credentials were not printed or stored
+in verification artifacts. This rollout record is a documentation-only follow-up
+commit with `[skip ci]`; the deployed implementation is unchanged.
