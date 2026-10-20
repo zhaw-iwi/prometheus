@@ -1,5 +1,98 @@
 # Need for speed: evidence record
 
+## Gala speech and task-contract follow-up (Milestone 221, 2026-10-20)
+
+Follow-up to the qualitative failures below, on `agents`. Spoken guidance keeps
+djee-djee, removes IPA notation and limits introductions to the opening/name
+questions. Gala selects an application configuration contract in the existing
+Generic prompt builder instead of appending contradictory lifecycle overrides.
+The default Generic configuration prompt remains byte-identical (SHA-256
+regression); no saved policies are migrated.
+
+Gala task guidance distinguishes a question about stopping from a stop request,
+preserves requested speech/face/hand outputs explicitly in each rule's action
+text, and requires the initial action immediately on activation. Hand-sign
+output belongs to `motion.handSign`, not speech or expressive gestures.
+One action finishes immediately; three actions allow one initial action and
+at most two later cues.
+
+Provider trials showed that prompt guidance alone still produced misleading
+proposal counts. Gala now constructs proposal speech from the validated goal
+and action limit: awaiting acceptance, immediate first action, remaining cues
+and encounter termination. It replaces provider proposal speech and removes
+premature hand motion. A one-action proposal explicitly explains the immediate-only
+alternative and that a later sensor reaction needs at least two total actions.
+The shared optional reply-preparation hook defaults to identity, and validates
+the complete replacement before any task mutation. Goal/action interpretation
+remains model-generated and is presented for visitor review.
+
+### Verification
+
+- **93 distinct focused Java cases / 11 classes passed**, including all three
+  canonical/compact Live journeys, Generic saved-policy upgrades, task encoding,
+  Gala lifecycle, maximum-length proposal summaries and the unchanged Generic
+  prompt fingerprint. Disposable local MySQL; no configured application database
+  used. Command:
+  `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinner*UnitTest,GalaDinnerReceptionIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest,GenericMultimodalTaskUnitTest,GenericPolicyUpgradeIntegrationTest,SocialSpaceAgentUnitTest,TaskBehaviourEncodingUnitTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest`.
+  Evidence: `target/gptlive-acceptance-cd2d9eaf6e/java.log` and `test-counts.json`.
+- After the final proposal-channel wording refinement, all **39 Gala unit/journey
+  cases passed** (`GalaDinner*UnitTest,GalaDinnerReceptionJourneySmokeIntegrationTest`);
+  evidence: `target/gptlive-acceptance-a9115496e0/`.
+  After the final punctuation correction, **21 task/journey cases passed** in
+  `GalaDinnerTaskUnitTest` and `GalaDinnerReceptionJourneySmokeIntegrationTest`; evidence:
+  `target/gptlive-acceptance-d7a21bc143/`.
+- The two-visitor journey verifies the immediate paper hand sign and action count
+  before any sensor cue, deterministic proposal terms, a lifecycle question that
+  leaves the agreement/count intact, subsequent cues, departure and visitor
+  isolation. Both canonical and compact responses are exercised.
+- Every reachable state and both embodiments remain within the 16,000-byte Live
+  limit, including two maximum-length task goals and the maximum revision.
+  Maximum: **15,931 bytes**.
+- Production packaging: `.\mvnw.cmd -q -DskipTests package`; evidence:
+  `target/gala-followup-package.log`. JAR classes match the compiled Gala actions
+  and guidance, and fixtures are excluded. `git diff --check` passes.
+
+### Provider checks and their limits
+
+Used actual action requests with synthetic observations and the configured
+production `gpt-5.6-luna` / `none` routes. Each call had a 30-second deadline and
+1,500-output-token cap, with no automatic retries. No deployed instance,
+database or Live voice session was changed.
+
+Three bounded iterations of six cases repeated three times covered three-action
+proposals, activation/cues, one-action proposals/activation and lifecycle questions.
+Earlier iterations exposed name-prefix repetition, questions incorrectly choosing
+STOP, single-action waiting promises, inaccurate proposal counts and omitted hand
+actions in free-text proposals. These drove the contract clarification and
+deterministic proposal rendering, followed by explicit preservation of requested
+channels in rule actions.
+
+The last 18 outputs passed production action replay and targeted checks:
+proposal terms match validated counts, no premature proposal motion, all nine
+activation/cue plans carry the agreed paper hand sign, single-action tasks end,
+and lifecycle questions use KEEP without changing the draft. These outputs were
+generated before the final rule-action wording refinement. After that refinement,
+two fresh **provider-generated proposal -> activation chains passed 4/4** checks:
+each generated agreement explicitly retains the requested hand sign, is supplied
+unchanged to activation, and produces `motion.handSign: paper`. Spoken output was
+manually reviewed; no phonetic notation or repeated name prefix appeared.
+
+Raw evidence: `target/gala-followup-provider-trial.json`,
+`target/gala-followup-provider-chains.json`; replay evidence uses their
+`-validated.json` siblings and `target/gala-followup-validation.log` /
+`target/gala-followup-chain-validation.log`. Earlier trials/captures are retained
+with `-initial`, `-prompt-only` and `-backend-rendered` suffixes. Local helpers:
+`target/GalaBehaviourTrial.java`, `target/gala_followup_trial.py` and
+`target/gala_chain_trial.py`. Replay-harness corrections allowed intentionally
+empty provider proposal speech and repaired an encoding-corrupted assertion;
+they required no additional provider calls.
+
+These small synthetic trials do not guarantee arbitrary free-text agreement
+fidelity, real pronunciation, acoustic timing, sensing or physical hand rendering.
+Browser/media trials were not rerun. No commit, push or deployment was performed.
+After deploying, create a fresh Gala instance so persisted action/voice prompts
+receive the revised guidance; existing history is not rewritten.
+
 ## Compact task behaviour and paired Live journeys (Milestone 220, 2026-10-20)
 
 Scope: representation-only extension of the existing compact behaviour codec to

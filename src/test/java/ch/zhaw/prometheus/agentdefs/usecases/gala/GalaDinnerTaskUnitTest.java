@@ -27,6 +27,7 @@ import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.spi.InferenceRequest;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import fixtures.behaviour.TaskReplyFixture;
 
 class GalaDinnerTaskUnitTest {
     private static final String SPEC = """
@@ -57,6 +58,7 @@ class GalaDinnerTaskUnitTest {
         assertTrue(instructions.contains("deliver the backend's spoken response faithfully"));
         activate();
         assertEquals("RUNNING", TaskMemory.phase(memory));
+        assertEquals(1, memory.get(TaskMemory.ACTIONS).getAsInt());
         assertEquals(owner.sessionId().toString(), TaskMemory.text(memory, TaskMemory.SESSION, ""));
         clearInvocations(gateway);
         assertNull(hand("paper", .99, Instant.now()));
@@ -95,6 +97,46 @@ class GalaDinnerTaskUnitTest {
         assertFalse(speech(say("Ja")).contains("UNAUTHORIZED"));
         assertEquals(draft, memory.get(TaskMemory.DRAFT));
         assertFalse(memory.containsKey(TaskMemory.SPEC));
+    }
+
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void oneActionAgreementEmitsItsInitialHandSignAndFinishesWithoutAnotherCue(boolean compact) {
+        propose(SPEC.replace("\"maxActions\":2", "\"maxActions\":1")
+                .replace("Sage einen kurzen Roboterwitz", "Sage Papier und zeige Papier"));
+        clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn(TaskReplyFixture.update("ACTIVATE", "null", "Papier!", compact));
+        var result = BehaviourPlan.fromJson(say("Ja, jetzt aktivieren.").getPayload());
+        assertEquals("paper", result.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertEquals("Papier! Damit ist unsere Aufgabe abgeschlossen.", result.getSpeech());
+        assertHome();
+        assertNull(hand("paper", .99, Instant.now()));
+        verify(gateway, times(1)).infer(any());
+    }
+
+    @ParameterizedTest @ValueSource(ints = {1, 3, 5})
+    void proposalSpeechStatesValidatedCountsAndTerminationEvenWhenTheModelGetsThemWrong(int actions) {
+        String spec = SPEC.replace("\"maxActions\":2", "\"maxActions\":" + actions)
+                .replace("Eine kurze Reaktion auf Papier zeigen", actions == 3 ? "界".repeat(399) + "." : "界".repeat(400));
+        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
+                TaskReplyFixture.update("PROPOSE", spec, "UNTRUSTED: Drei spätere Reaktionen, dann pausiert es.", true));
+        var proposal = BehaviourPlan.fromJson(say("Bitte einen Vorschlag.").getPayload());
+        String text = proposal.getSpeech();
+        assertFalse(text.contains("UNTRUSTED"));
+        assertFalse(text.contains(".."));
+        assertTrue(text.contains("noch nicht aktiv"));
+        assertTrue(text.contains("Nach Ihrer Zustimmung eine Aktion sofort"));
+        assertTrue(text.contains("beenden die Aufgabe und verwerfen den Plan"));
+        assertTrue(text.contains(actions == 1 ? "danach ist die Aufgabe beendet"
+                : "dann höchstens " + (actions - 1) + " Reaktionen"));
+        assertNull(proposal.getMotion());
+        assertTrue(text.length() <= 1000);
+        assertDoesNotThrow(() -> TaskMemory.plan(proposal.toJsonObject()));
+        assertEquals(JsonParser.parseString(spec), memory.get(TaskMemory.DRAFT));
+        assertFalse(memory.containsKey(TaskMemory.SPEC));
+        clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn(update("KEEP", "null", "Eine Antwort auf Ihre Frage."));
+        assertEquals("Eine Antwort auf Ihre Frage.", speech(say("Was bedeutet das?")));
+        verify(gateway, times(1)).infer(any());
     }
 
     @ParameterizedTest
@@ -200,6 +242,15 @@ class GalaDinnerTaskUnitTest {
         assertFalse(configuration.messages().stream().anyMatch(message -> message.getContent().contains("Besucher-Geheimnis")));
         assertTrue(configuration.messages().getFirst().getContent().contains("You are djee-djee"));
         assertFalse(configuration.messages().getFirst().getContent().contains("You are Valerian"));
+        String instructions = configuration.messages().getFirst().getContent();
+        for (String obsolete : List.of("IPA", "dʒ", "PAUSE|RESUME", "Interactive tasks pause",
+                "require explicit resumption", "1..50 maxActions", "fully specified task now"))
+            assertFalse(instructions.contains(obsolete), obsolete);
+        for (String contract : List.of("KEEP|PROPOSE|ACTIVATE|STOP", "1..5 maxActions", "sessionBound: always true",
+                "discards its plan", "one now and at most two later", "reply.motion.handSign", "NOW",
+                "WOULD do are KEEP, not STOP", "no waiting rule or later cue",
+                "On PROPOSE, use reply {}"))
+            assertTrue(instructions.contains(contract), contract);
     }
 
     private void propose(String spec) {

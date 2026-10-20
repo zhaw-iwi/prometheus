@@ -138,6 +138,7 @@ public class TaskUpdateAction extends Action {
             reply = TaskMemory.plan(update.get("reply"));
             validationStage = "application_constraints";
             validateTaskUpdate(operation, task);
+            reply = TaskMemory.plan(prepareTaskReply(operation, task, reply).toJsonObject());
         } catch (RuntimeException invalid) {
             ch.zhaw.prometheus.logging.ActivityTrace.failed("task_configuration_invalid");
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.
@@ -180,6 +181,10 @@ public class TaskUpdateAction extends Action {
     }
     /** Additional application constraints, checked before storage or output is changed. */
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
+
+    /** Applications may render agreement terms; the replacement is validated before any mutation. */
+    protected ch.zhaw.prometheus.model.behaviour.BehaviourPlan prepareTaskReply(String operation, TaskSpec task,
+            ch.zhaw.prometheus.model.behaviour.BehaviourPlan reply) { return reply; }
 
     /** Applications may localize recovery before it becomes a captured speech intent. */
     protected String failureMessage(String fallback) { return fallback; }

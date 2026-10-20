@@ -19,7 +19,7 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
     protected GalaDinnerTaskAction() {}
     public GalaDinnerTaskAction(Storage storage, boolean cue) {
         super(storage, (cue ? GenericMultimodalBehaviour.behaviourInstructions(GalaDinnerPrompts.VOICE)
-                : GenericMultimodalBehaviour.configurationInstructions(GalaDinnerPrompts.VOICE))
+                : GenericMultimodalBehaviour.configurationInstructions(GalaDinnerPrompts.VOICE, GalaDinnerPrompts.TASK_CONTRACT))
                 + GalaDinnerPrompts.TASK_CONFIGURATION, cue);
     }
 
@@ -73,6 +73,24 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
         if ("ACTIVATE".equals(operation) && (!getStorage().containsKey(TaskMemory.DRAFT)
                 || !TaskSpec.parse(getStorage().get(TaskMemory.DRAFT)).json().equals(task.json())))
             throw new IllegalArgumentException("Gala activation requires the unchanged proposed agreement");
+    }
+
+    @Override protected BehaviourPlan prepareTaskReply(String operation, TaskSpec task, BehaviourPlan response) {
+        if (!"PROPOSE".equals(operation)) return response;
+        String count = task.maxActions() == 1
+                ? "Nach Ihrer Zustimmung eine Aktion sofort; danach ist die Aufgabe beendet. "
+                    + "Für eine spätere Sensorreaktion brauchen wir mindestens zwei Aktionen insgesamt. "
+                : "Nach Ihrer Zustimmung eine Aktion sofort, dann höchstens " + (task.maxActions() - 1)
+                    + " Reaktionen auf passende Signale (" + task.maxActions() + " Aktionen insgesamt). ";
+        var plan = response.toJsonObject();
+        String goal = task.goal().stripTrailing().replaceFirst("[.!?]+$", "");
+        plan.addProperty("speech", "Vorschlag (noch nicht aktiv): " + goal + ". " + count
+                + "Stopp/Pause, ein leeres Kamerabild, Ende der Sprachverbindung oder 90 Sekunden ohne Ihre Sprache "
+                + "beenden die Aufgabe und verwerfen den Plan. Ein Neustart braucht eine neue Vereinbarung. "
+                + "Möchten Sie diesen Vorschlag aktivieren?");
+        // A proposal never executes its hand action before acceptance.
+        plan.remove("motion");
+        return BehaviourPlan.fromJson(plan.toString());
     }
 
     @Override protected String failureMessage(String fallback) {

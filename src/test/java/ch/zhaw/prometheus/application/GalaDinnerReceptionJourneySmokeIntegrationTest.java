@@ -149,14 +149,28 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("user", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
             hearAnnouncement(first); assertReception();
 
-            String firstSpec = spec(FIRST_GOAL, "rock", 3, FIRST_REACTION);
+            String firstSpec = spec(FIRST_GOAL, "rock", 3, "Sage " + FIRST_REACTION + " und zeige Papier.");
             say(first, "Gestalten wir meine persönliche Reaktion auf Stein.", control("START_TASK"),
                     update("PROPOSE", firstSpec, "Vorschlag " + FIRST_GOAL + ": Auf Stein folgt " + FIRST_REACTION + ". Aktivieren?"));
+            assertTrue(lastPlan().getSpeech().contains("eine Aktion sofort, dann höchstens 2 Reaktionen"));
+            assertTrue(lastPlan().getSpeech().contains("beenden die Aufgabe und verwerfen den Plan"));
+            assertNull(lastPlan().getMotion());
             hearAnnouncement(first);
             assertFalse(loaded().getStorage().containsKey(TaskMemory.SPEC));
-            say(first, "Ja, aktiviere meinen Vorschlag.", update("ACTIVATE", "null", "Aktiviert: " + FIRST_GOAL + ". Ich warte auf Stein."));
+            String initial = FIRST_REACTION + ". Noch höchstens zwei Reaktionen auf Stein.";
+            say(first, "Ja, aktiviere meinen Vorschlag.", update("ACTIVATE", "null", initial));
+            assertEquals(TaskReplyFixture.plan(initial, false), lastPlan().toJsonObject());
+            assertEquals("paper", lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
+            assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             hearAnnouncement(first);
             assertEquals(FIRST_GOAL, loaded().getStorage().get(TaskMemory.SPEC).getAsJsonObject().get("goal").getAsString());
+            var accepted = loaded().getStorage().get(TaskMemory.SPEC).deepCopy();
+            say(first, "Was passiert, wenn ich Pause sage oder weggehe?",
+                    update("KEEP", "null", "Dann endet die Aufgabe. Ein Neustart braucht einen neuen Vorschlag."));
+            hearAnnouncement(first);
+            assertEquals(accepted, loaded().getStorage().get(TaskMemory.SPEC));
+            assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
+            assertEquals("RUNNING", loaded().getStorage().get(TaskMemory.PHASE).getAsString());
             waitForCue();
             scripted.add(TaskReplyFixture.plan(FIRST_REACTION, compact).toString());
             hand("rock", Instant.now());

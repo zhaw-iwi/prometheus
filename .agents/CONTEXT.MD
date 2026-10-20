@@ -293,6 +293,14 @@ departure, voice close or idle timeout clears the agreement and returns to recep
 ambient facial reactions yield to the task. New instances receive this graph.
 The shared configuration prompt builder and pre-mutation validation hook contain
 no Gala assumptions. Practical setup and rule semantics are in README.
+Gala selects an explicit application configuration contract instead of appending
+contradictory lifecycle overrides. Generic's default prompt remains byte-identical.
+Speech uses djee-djee without phonetic notation or repeated introductions.
+Activation guidance requests all agreed channels immediately and distinguishes
+the initial action from later cues; a single-action agreement ends immediately.
+Proposal speech states validated counts and termination terms deterministically,
+removing premature hand motion and validating the replacement before mutation.
+Saved action prompts are not rewritten: use a new Gala instance for these changes.
 
 The core Social Space variant reuses the Generic task graph and full
 task contract with brief English conversation and a fixed Valerian identity.

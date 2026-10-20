@@ -353,6 +353,10 @@ The complete instructions are tested in every reachable Gala state and both
 embodiments, including simultaneous maximum-length task/proposal goals, against
 the existing 16,000-byte limit.
 
+Spoken identity uses `djee-djee` for the opening or when asked for the name.
+Model guidance contains no IPA notation and forbids reciting pronunciation
+directions or repeating introductions during task replies.
+
 The gala is on **24 October 2026**, at **Casinotheater Winterthur,
 Stadthausstrasse 119**. The latest organiser briefing specifies **17:30 opening/
 networking and 18:30 seating/welcome**, correcting the earlier seating time.
@@ -400,6 +404,22 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Stop/pause, unrelated topics, departure, voice closure, reset and the existing
   idle timeout discard both draft and active agreement. No task carries into the
   next encounter; pause/resume and autonomous continuation are not offered here.
+  Gala's task prompt selects its own operation/lifecycle contract in the shared
+  configuration builder, so it does not inherit Generic's pause/resume promises.
+  Asking what cancellation would do is a question, not a cancellation request.
+  Proposal speech is rendered by Gala from the validated goal and action limit:
+  pending acceptance, immediate first action, remaining cue count and termination
+  terms. It replaces provider proposal speech and removes proposal hand motion;
+  the complete replacement is validated before saving the draft. A one-action
+  proposal explicitly offers immediate-only execution and explains that a later
+  sensor reaction requires at least two actions including activation.
+  Activation requests the initial agreed action immediately, including
+  `motion.handSign` when agreed. A three-action plan permits one initial action
+  and at most two later reactions; a one-action plan finishes immediately.
+  A request for exactly one future sensor reaction needs clarification because
+  activation also consumes an action. Provider output checks assess this wording
+  and channel selection; free-text agreements do not provide a deterministic
+  guarantee that every generated plan includes every requested modality.
 - Stop, silence and topic changes return to reception. Ordinary game questions
   stay in the game. Explicit stop/silence commands need no inference. A 90-second
   input timeout returns home on ticks or the next utterance/task cue; enable

@@ -65,6 +65,8 @@ class GalaDinnerReferenceUnitTest {
                 assertEquals(1, occurrences(instructions, "GALA REFERENZ (Stand"));
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
+                assertFalse(instructions.contains("IPA"));
+                assertFalse(instructions.contains("dʒ"));
                 assertFalse(instructions.contains("GIGI"));
                 assertFalse(instructions.contains("https://"));
                 assertFalse(instructions.contains("http://"));

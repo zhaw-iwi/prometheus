@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 221 (2026-10-20): Gala speech/task guidance removes IPA notation,
+  selects one encounter-owned lifecycle contract and makes immediate activation
+  output and action counts explicit. Gala renders proposal counts/termination
+  from validated task data before saving; one-action proposals explain the
+  immediate-only alternative. Questions about cancellation retain the agreement.
+  Generic's existing prompt fingerprint is unchanged. Passed 93 focused Java
+  cases, the final Gala reruns and packaging; provider checks cover 18 outputs
+  and two generated-proposal/activation chains. Evidence and physical limits:
+  `.agents/NEEDFORSPEED_RESULTS.md`.
+
 - Milestone 220 (2026-10-20): Generic task replies/cues, Social Space ambient
   replies and Gala tasks reuse compact provider behaviour encoding, followed by
   unchanged canonical validation and publication. No state/lifecycle/routing
@@ -460,6 +470,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 221: Gala speech, lifecycle and initial-action guidance follow-up
 - [x] Milestone 220: Compact task behaviour and paired Live smoke journeys
 - [x] Milestone 219: Shared Gala institutional/event reference and spoken-name guidance
 - [x] Milestone 218: Two-visitor Gala journey and encounter-isolation smoke
@@ -10498,3 +10509,32 @@ saved-agent update or production database change was made.
 Commands, artifacts, trial measurements and specific wording limitations are in
 `.agents/NEEDFORSPEED_RESULTS.md` (Milestone 220); repeatable journey instructions
 are in README and `tests/gptlive/README.md`.
+
+## Milestone 221
+
+Date: 2026-10-20. Gala speech, lifecycle and initial-action follow-up on `agents`.
+
+Removed pronunciation notation and repeated-introduction guidance from spoken
+context. The shared prompt builder accepts an authored configuration contract;
+Gala receives its actual encounter-owned termination rules, while Generic's
+existing prompt fingerprint remains unchanged. A shared reply-preparation hook
+validates application-rendered output before mutation. Gala uses it to state
+proposal action counts and lifecycle terms from validated task data and prevent
+proposal hand motion before acceptance.
+
+Activation guidance requests every agreed channel immediately. Proposal rules
+retain explicit hand-sign actions; one-action alternatives explain immediate
+completion, and lifecycle questions retain the agreement. The two-visitor Gala
+journey now checks initial hand output/counts, proposal terms and a lifecycle
+question in both canonical and compact variants.
+
+Passed 93 focused Java cases, subsequent focused Gala reruns and production
+packaging. Maximum complete Live context remains 15,931 of 16,000 bytes.
+Provider replay covers 18 outputs; two fresh generated-proposal/activation chains
+cover the final channel-preservation guidance. Iteration findings, exact commands,
+artifacts and qualitative limits are in `.agents/NEEDFORSPEED_RESULTS.md`.
+
+No state graph, schema, routes, task limits or saved prompts were migrated.
+Changes are uncommitted and undeployed. Use a fresh Gala instance after deployment.
+Physical voice/sensing/robot behaviour and arbitrary free-text agreement fidelity
+remain live-trial considerations.
