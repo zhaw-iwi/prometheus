@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala release integration (2026-10-20): committed Milestones 215–218 and merged
+  the reusable Live/task extensions through `feature/gptlive` and `main` into
+  `agents`, retaining the newer hand-observation diagnostics. The combined tree
+  passed 113 focused Java cases on disposable MySQL, including the two-visitor
+  journey and deployment catalog, 39 Live JavaScript cases and production
+  packaging. The shared framework also passed 39 Java cases independently.
+  Browser/media, real-provider and physical G1 checks were not rerun for this
+  integration; deployment completion remains to be verified after the push.
+
 - Milestone 218 (2026-10-20): added a two-visitor Gala smoke journey through scoped
   GPT-Live sessions, transcript admission, games, co-created tasks and encounter
   isolation. Scripted providers allow inspection of actual outbound context.
@@ -93,14 +102,14 @@ and regulation diagnostics remain future work.
   Generic/Social Space engine. Five-action and encounter-lifetime limits are
   enforced; completion and interruptions clear the agreement and return home.
   Passed 67 focused Java cases and production packaging. Provider/G1 trials
-  remain unverified; changes are uncommitted for review. See the milestone audit.
+  remain unverified. See the milestone audit.
 
 - Milestone 216 (2026-10-20): Gala is adapted to GPT-Live with operator-armed
   presence control, one opening per encounter, local departure silence, fresh
   sessions without prior guest dialogue, backend-owned games and facial-change
   embodiment. Shared Live support uses an explicit application-policy contract.
   Verification and physical-trial limits are recorded in the milestone audit;
-  setup is in README. No commit or deployment was performed.
+  setup is in README.
 
 - Milestone 215 (2026-10-20): initial `GalaDinnerReception` under
   `agentdefs/usecases`, registered on `agents`. German GIGI reception combines
