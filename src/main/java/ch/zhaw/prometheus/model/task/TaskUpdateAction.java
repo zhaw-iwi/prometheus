@@ -84,7 +84,7 @@ public class TaskUpdateAction extends Action {
                 // Another camera sample must not turn a provider failure into an unbounded retry loop.
                 TaskMemory.put(storage, TaskMemory.PHASE, "PAUSED"); TaskMemory.revise(storage);
                 storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
-                        "I've paused the task because I couldn't generate its next response. Ask me to resume when you're ready.").toJsonObject());
+                        failureMessage("I've paused the task because I couldn't generate its next response. Ask me to resume when you're ready.")).toJsonObject());
                 org.slf4j.LoggerFactory.getLogger(TaskUpdateAction.class).warn("Generic task paused after behaviour generation failed");
                 return;
             }
@@ -105,7 +105,7 @@ public class TaskUpdateAction extends Action {
             if (cancelled(storage, runtime)) return;
             ch.zhaw.prometheus.logging.ActivityTrace.failed("task_provider_failed");
             storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
-                    "I couldn't process that update. I've kept the existing agreement and proposal; please ask me to try again.").toJsonObject());
+                    failureMessage("I couldn't process that update. I've kept the existing agreement and proposal; please ask me to try again.")).toJsonObject());
             return;
         }
         if (cancelled(storage, runtime)) return;
@@ -135,6 +135,8 @@ public class TaskUpdateAction extends Action {
             }
             validationStage = "reply";
             reply = TaskMemory.plan(update.get("reply"));
+            validationStage = "application_constraints";
+            validateTaskUpdate(operation, task);
         } catch (RuntimeException invalid) {
             ch.zhaw.prometheus.logging.ActivityTrace.failed("task_configuration_invalid");
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.
@@ -149,7 +151,7 @@ public class TaskUpdateAction extends Action {
                     ? "I couldn't validate that update. I've kept the existing task unchanged. Please ask me to try again."
                     : "I couldn't validate my proposed configuration. Your request is still in our conversation; please ask me to try again.";
             storage.put(TaskMemory.REPLY, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
-                    recovery).toJsonObject());
+                    failureMessage(recovery)).toJsonObject());
             return;
         }
         try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("updating_task")) {
@@ -175,6 +177,12 @@ public class TaskUpdateAction extends Action {
         if (operation.equals("ACTIVATE") || operation.equals("RESUME"))
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
     }
+    /** Additional application constraints, checked before storage or output is changed. */
+    protected void validateTaskUpdate(String operation, TaskSpec task) {}
+
+    /** Applications may localize recovery before it becomes a captured speech intent. */
+    protected String failureMessage(String fallback) { return fallback; }
+
     private boolean cancelled(Storage storage, PolicyRuntime runtime) {
         if (runtime.taskContinuation().getAsBoolean() || (taskCue && !TaskMemory.sessionBound(storage))) return false;
         TaskMemory.pauseForSession(storage, "live_session_ended");

@@ -41,6 +41,12 @@ public class LiveContextProjection {
         var leaf = LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
         // selectList retains source identity/time; EventHistory.select intentionally creates working copies.
         List<Event> selected = agent.getEventHistory().selectList(leaf.getEventSelector());
+        if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) {
+            var all = agent.getEventHistory().toList();
+            int start = Math.max(0, Math.min(all.size(), external.liveHistoryStartIndex()));
+            var encounter = new java.util.HashSet<>(all.subList(start, all.size()));
+            selected = selected.stream().filter(encounter::contains).toList();
+        }
         List<Item> candidates = new ArrayList<>();
         List<Event> aggregateEvents = new ArrayList<>();
         List<UUID> aggregateSources = new ArrayList<>();

@@ -66,6 +66,29 @@ test("unchanged Live readings refresh every five seconds with new observation ti
   }
 });
 
+test("reception sees departure while the previous sensor acknowledgement is blocked", async () => {
+  const f = fixture({ interval: 60000 });
+  const observed = [], committed = [];
+  let release;
+  f.context.liveVoice.ui.presenceArmed = true;
+  f.context.liveVoice.ui.presenceRevision = 1;
+  f.context.liveVoice.ui.observePresence = count => { observed.push(count); return true; };
+  f.context.liveVoice.ui.commitPresence = (count, revision) => committed.push([count, revision]);
+  f.context.scopedFetch = async () => new Promise(resolve => {
+    release = () => resolve({ ok: true, json: async () => Array(3).fill({ status: 200, response: { active: true } }) });
+  });
+  await f.sense();
+  f.context.social = { humanCount: 0, groupCount: 0, singletonCount: 0, largestGroupSize: 0, groups: [] };
+  f.context.people = [];
+  f.context.liveVoice.ui.presenceRevision = 2;
+  await f.sense();
+  assert.deepEqual(observed, [1, 0]); // camera loop did not await the first HTTP request
+  assert.deepEqual(committed, []);
+  release(); await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(committed, [[1, 1]]); // controller can reject the obsolete encounter revision
+  assert.equal(f.context.camera.receptionSocialPending, false);
+});
+
 test("one armed matching face bypasses the ordinary interval without sending each frame", async () => {
   const f = fixture(); await f.sense();
   const rule = { eventType: "obs.emotion.face", field: "valence", operator: "lt", value: -.25, samples: 1, minConfidence: .7, effect: "ACT" };

@@ -37,13 +37,39 @@ public class LiveAgentContextService {
 
     public Optional<LiveContextSnapshot> claim(String code, UUID id, UUID session) {
         return turns.serialized(id, () -> {
-            var result = snapshot(code, id);
+            if (ownership.hasOwner(id)) throw new LiveSessionUnavailableException(true);
+            var result = transaction.execute(status -> {
+                if (demo.getAgentInfo(code, id).isEmpty()) return Optional.<LiveContextSnapshot>empty();
+                return agents.findById(id).map(agent -> {
+                    if (!projection.supports(agent)) throw new IllegalArgumentException("Unsupported Live policy");
+                    var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+                    if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) {
+                        external.beginLiveConversation(agent.getEventHistory());
+                        agents.save(agent);
+                    }
+                    return projection.project(agent);
+                });
+            });
             result.ifPresent(context -> {
                 ownership.acquire(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, context.epoch()),
                         demo.speechScope(code, id).orElseThrow(DemoAccessDeniedException::new));
                 turns.discardSpeculation(id, "external_speech_started");
             });
             return result;
+        });
+    }
+
+    public void closed(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        turns.serialized(id, () -> {
+            String eventType = transaction.execute(status -> agents.findById(id)
+                    .filter(agent -> owner.equals(ownership.current(agent)))
+                    .map(agent -> agent.getCurrentState().ownPolicy())
+                    .filter(ch.zhaw.prometheus.model.policy.ExternalVoicePolicy.class::isInstance)
+                    .map(ch.zhaw.prometheus.model.policy.ExternalVoicePolicy.class::cast)
+                    .map(ch.zhaw.prometheus.model.policy.ExternalVoicePolicy::liveSessionEndEventType).orElse(null));
+            if (eventType != null) turns.acknowledge(id, new ch.zhaw.prometheus.controllers.views.EventRequest(
+                    eventType, "system", ch.zhaw.prometheus.model.event.Event.KIND_SYSTEM, "live_session_ended"));
+            return null;
         });
     }
 

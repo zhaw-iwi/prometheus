@@ -13,6 +13,7 @@ import ch.zhaw.prometheus.model.OuterState;
 import ch.zhaw.prometheus.model.State;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.EmbodimentPolicy;
+import ch.zhaw.prometheus.model.policy.ExternalVoicePolicy;
 import ch.zhaw.prometheus.model.interaction.AgentCapabilityDescription;
 import ch.zhaw.prometheus.model.task.TaskPolicy;
 import ch.zhaw.prometheus.model.task.TaskState;
@@ -27,8 +28,9 @@ public class LiveVoicePolicyAdapter {
         if (agent == null || !agent.getInteractionProfile().isExternalRealtimeSpeech()) return false;
         return java.util.stream.Stream.concat(agent.reachableStates().stream(), chain(agent.getCurrentState()).stream())
                 .allMatch(state ->
-                    Set.of(State.class, OuterState.class, Final.class, TaskState.class).contains(state.getClass())
-                    && state.ownPolicy() != null && POLICIES.contains(state.ownPolicy().getClass()));
+                    state.ownPolicy() instanceof ExternalVoicePolicy external ? external.supportsLiveState(state)
+                    : Set.of(State.class, OuterState.class, Final.class, TaskState.class).contains(state.getClass())
+                      && state.ownPolicy() != null && POLICIES.contains(state.ownPolicy().getClass()));
     }
     public String instructions(Agent agent) {
         return String.join("\n", sections(agent).values());
@@ -37,7 +39,8 @@ public class LiveVoicePolicyAdapter {
         if (!supports(agent)) throw new IllegalArgumentException("Agent does not support external realtime speech");
         var chain = chain(agent.getCurrentState());
         var leaf = chain.getLast();
-        String policy = leaf.ownPolicy() instanceof TaskPolicy task ? task.voiceInstructions()
+        String policy = leaf.ownPolicy() instanceof ExternalVoicePolicy external ? external.voiceInstructions()
+                : leaf.ownPolicy() instanceof TaskPolicy task ? task.voiceInstructions()
                 : leaf.ownPolicy() instanceof PromptPolicy || leaf.ownPolicy() instanceof EmbodimentPolicy
                 ? agent.getCurrentState().getTotalPolicy()
                 : "You are Valerian at the ZHAW SIRA Lab. This is a deterministic rock-scissor-paper task. "
@@ -78,6 +81,8 @@ public class LiveVoicePolicyAdapter {
                         + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
         }
         sections.put("state", state);
+        if (leaf.ownPolicy() instanceof ExternalVoicePolicy external && !external.liveOpeningInstructions().isBlank())
+            sections.put("opening", external.liveOpeningInstructions());
         // Stable instance context lives with guidance, outside sensory TTL/selection/history eviction.
         String capabilities = AgentCapabilityDescription.context(agent.getInteractionProfile());
         sections.put("capabilities", capabilities);

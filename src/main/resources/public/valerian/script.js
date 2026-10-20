@@ -38,6 +38,10 @@ async function initGptLive() {
   const { LiveCockpit } = await import("../live/cockpit.js");
   liveVoice.ui = new LiveCockpit({
     beforeStart: async () => {
+      if (state.agentInfo?.interactionProfile?.presenceControlledLive &&
+          (!state.cameraRunning || !camera.socialDetectorReady || !isSensorModeEnabled("social") ||
+           !document.getElementById("sensor_emit_enabled").checked))
+        throw new Error("Start the camera with social sensing and sensor emission enabled before starting reception.");
       await stopTranscription();
       await stopSpeechPlayback("gptlive_start", { reset: true, silent: true });
       if (!claimControlOwnership("microphone")) throw new Error("Another Valerian window owns the microphone.");
@@ -52,6 +56,7 @@ async function initGptLive() {
 
 function configureGptLive() {
   return liveVoice.ui?.configure({ agentId: state.agentId, accessCode: state.accessCode,
+    interactionProfile: state.agentInfo?.interactionProfile,
     language: state.agentInfo?.languageCode, mediaPreferences: transcription.transcriptionSettingsPanel?.mediaValues(),
     outputDeviceId: selectedSpeechOutputDeviceId() });
 }
@@ -207,6 +212,9 @@ const GESTURE_UI = {
   UNCERTAIN: { icon: "bi-question-circle", label: "Uncertainty", hint: "Low certainty" },
   ACKNOWLEDGE: { icon: "bi-check2-circle", label: "Acknowledgement", hint: "Closing acknowledgement" },
   POLITE: { icon: "bi-heart", label: "Polite", hint: "Softening social tone" },
+  ROCK: { icon: "bi-circle-fill", label: "Rock", hint: "Playing rock" },
+  SCISSOR: { icon: "bi-scissors", label: "Scissor", hint: "Playing scissor" },
+  PAPER: { icon: "bi-file-earmark", label: "Paper", hint: "Playing paper" },
   NONE: { icon: "bi-dash-lg", label: "NONE", hint: "No gesture" },
 };
 
@@ -305,6 +313,7 @@ function wireUi() {
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
   document.getElementById("agent_type_select").addEventListener("change", updateAgentTypeControls);
+  document.getElementById("agent_embodiment_select").addEventListener("change", handleAgentEmbodimentChange);
   document.getElementById("create_agent_instance").addEventListener("click", createAgentInstance);
   document.getElementById("delete_agent").addEventListener("click", deleteSelectedAgent);
   document.getElementById("connect_agent").addEventListener("click", async () => {
@@ -959,8 +968,8 @@ function renderAgentTypes() {
     }
     const option = document.createElement("option");
     option.value = type.key;
-    option.textContent = prometheusFacingText(type.displayName || type.key);
-    option.title = prometheusFacingText(type.description || type.key);
+    option.textContent = prometheusFacingText(type.displayName || type.key, selectedPersonaName());
+    option.title = prometheusFacingText(type.description || type.key, selectedPersonaName());
     select.appendChild(option);
   }
   updateAgentTypeControls();
@@ -977,7 +986,7 @@ function renderAgents() {
     }
     const option = document.createElement("option");
     option.value = id;
-    option.textContent = prometheusFacingText(agent.name || id);
+    option.textContent = prometheusFacingText(agent.name || id, agentPersonaName(agent));
     select.appendChild(option);
   }
   if (state.selectedAgentId) {
@@ -988,7 +997,8 @@ function renderAgents() {
 
 async function createAgentInstance() {
   const agentDefinitionKey = document.getElementById("agent_type_select").value;
-  if (!state.accessCode || !agentDefinitionKey) {
+  const embodiment = document.getElementById("agent_embodiment_select").value;
+  if (!state.accessCode || !agentDefinitionKey || !embodiment) {
     setAgentTypeStatus("Select an agent type first.", "error");
     return;
   }
@@ -999,7 +1009,7 @@ async function createAgentInstance() {
     const response = await scopedFetch("/demo/agents", {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ agentDefinitionKey }),
+      body: JSON.stringify({ agentDefinitionKey, embodiment }),
     });
     if (!response.ok) {
       setAgentTypeStatus(`Create failed: ${response.status}`, "error");
@@ -1014,7 +1024,10 @@ async function createAgentInstance() {
       await selectAgent(createdId, { updateInput: true, updateSelect: true });
     }
     setAgentTypeStatus("Instance created.", "success");
-    appendLog("app", `created ${prometheusFacingText(agent.name || createdId || "agent instance")}.`);
+    appendLog("app", `created ${prometheusFacingText(
+      agent.name || createdId || "agent instance",
+      agentPersonaName(agent),
+    )}.`);
   } catch (error) {
     setAgentTypeStatus("Create failed.", "error");
     appendLog("app", "create agent failed: " + error.message);
@@ -1123,9 +1136,14 @@ async function loadAgentInfo() {
     }
     const data = await response.json();
     state.agentInfo = data;
-    document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name) || "-";
-    document.getElementById("agent_info_description").textContent = prometheusFacingText(data.description) || "-";
+    document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name, data.personaName) || "-";
+    document.getElementById("agent_info_description").textContent = prometheusFacingText(
+      data.description,
+      data.personaName,
+    ) || "-";
     document.getElementById("agent_info_language").textContent = agentLanguageLabel(data.languageCode);
+    document.getElementById("agent_info_embodiment").textContent = agentEmbodimentLabel(data.embodiment);
+    document.getElementById("agent_info_persona").textContent = asText(data.personaName);
     renderAgentInteractionProfile(data.interactionProfile);
     setActiveStatus(data.active);
     applyInteractionProfile(data.interactionProfile);
@@ -1181,6 +1199,8 @@ function resetAgentInfo() {
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
   document.getElementById("agent_info_language").textContent = "-";
+  document.getElementById("agent_info_embodiment").textContent = "-";
+  document.getElementById("agent_info_persona").textContent = "-";
   renderAgentInteractionProfile(null);
   setActiveStatus(null);
   applyInteractionProfile(null);
@@ -1194,6 +1214,34 @@ function renderAgentInteractionProfile(profile) {
 
 function agentLanguageLabel(languageCode) {
   return typeof languageCode === "string" && languageCode.trim() ? languageCode.trim() : "-";
+}
+
+function agentEmbodimentLabel(embodiment) {
+  const normalized = typeof embodiment === "string" ? embodiment.trim().toUpperCase() : "";
+  if (normalized === "ROBOT") {
+    return "Robot";
+  }
+  if (normalized === "COCKPIT") {
+    return "Cockpit";
+  }
+  return "-";
+}
+
+function selectedPersonaName() {
+  const selector = document.getElementById("agent_embodiment_select");
+  return selector && selector.value === "ROBOT" ? "Gigi" : "Valerian";
+}
+
+function agentPersonaName(agent) {
+  if (agent && typeof agent.personaName === "string" && agent.personaName.trim()) {
+    return agent.personaName.trim();
+  }
+  return agent && agent.embodiment === "ROBOT" ? "Gigi" : "Valerian";
+}
+
+function handleAgentEmbodimentChange() {
+  renderAgentTypes();
+  updateAgentTypeControls();
 }
 
 function renderProfileTokenList(id, values) {
@@ -2556,6 +2604,11 @@ function renderDisplay(display) {
   if (!display || typeof display !== "object") {
     return;
   }
+  if (display.awaitingUserSign === true) {
+    camera.stableGestureKey = null;
+    camera.stableGestureCount = 0;
+    resetCameraEmissionGate();
+  }
   setBehaviourChannelActive("display", true);
   setText("display_value", JSON.stringify(display, null, 2));
   if (display.agentSign) {
@@ -3280,6 +3333,7 @@ async function startCamera() {
 }
 
 function stopCamera(options = {}) {
+  if (liveVoice.ui?.presenceArmed) void liveVoice.ui.stop("Camera stopped.");
   if (camera.loopTimer) {
     clearTimeout(camera.loopTimer);
     camera.loopTimer = null;
@@ -3429,7 +3483,7 @@ async function runCameraLoop() {
       drawFaceStatus(statusText, camera.faceModelsError ? "error" : "idle");
     }
     if (isSensorModeEnabled("hand") && camera.handDetectorReady) {
-      await detectHandSign();
+      await emitCameraObservation("hand", () => detectHandSign());
     }
   } catch (error) {
     appendLog("camera", "detection failed: " + error.message);
@@ -3458,7 +3512,7 @@ async function detectEmotion() {
   const faceScore = detection.detection.score;
   drawFaceBox(detection.detection.box, emotion, faceScore);
   renderEmotionMetrics(emotion, faceScore);
-  await maybeEmitEmotion(emotion, faceScore);
+  await emitCameraObservation("emotion", () => maybeEmitEmotion(emotion, faceScore));
 }
 
 async function detectSocial() {
@@ -4443,10 +4497,26 @@ function socialEmptyState(text, testId) {
 }
 
 async function maybeEmitSocial(social, tracked) {
-  if (!document.getElementById("sensor_emit_enabled").checked || !social || !passesSensorEmitInterval("social")) {
+  if (!document.getElementById("sensor_emit_enabled").checked || !social) return;
+  const urgent = liveVoice.ui?.observePresence?.(social.humanCount) || false;
+  if (!urgent && !passesSensorEmitInterval("social")) {
     return;
   }
-  await submitSocialPayloads(social, tracked, "visual.social");
+  if (liveVoice.ui?.presenceArmed) {
+    if (camera.receptionSocialPending) return;
+    camera.receptionSocialPending = true;
+    void submitSocialPayloads(social, tracked, "visual.social", urgent)
+      .finally(() => { camera.receptionSocialPending = false; });
+  } else await submitSocialPayloads(social, tracked, "visual.social");
+}
+
+async function emitCameraObservation(kind, operation) {
+  if (!liveVoice.ui?.presenceArmed) return operation();
+  camera.pendingEmissions ||= new Set();
+  if (camera.pendingEmissions.has(kind)) return;
+  camera.pendingEmissions.add(kind);
+  void Promise.resolve().then(operation).catch(error => appendLog(kind, error.message))
+    .finally(() => camera.pendingEmissions.delete(kind));
 }
 
 async function submitSocialSample(kind) {
@@ -4456,7 +4526,8 @@ async function submitSocialSample(kind) {
   await submitManualSocialDetails();
 }
 
-async function submitSocialPayloads(social, tracked, source) {
+async function submitSocialPayloads(social, tracked, source, urgent = false) {
+  const presenceRevision = liveVoice.ui?.presenceRevision;
   const people = Array.isArray(tracked) ? tracked : [];
   const groups = Array.isArray(social.groups) ? social.groups : [];
   const presencePayload = {
@@ -4483,8 +4554,8 @@ async function submitSocialPayloads(social, tracked, source) {
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
   const contextSignature = socialContextSignature(contextPayload);
   const refresh = last => source === "visual.social" && liveSensorRefreshDue(last);
-  const emitPresence = presenceSignature !== camera.lastPresenceSignature || refresh(camera.lastPresenceEmitAt);
-  const emitGrouping = groupingSignature !== camera.lastGroupingSignature || refresh(camera.lastGroupingEmitAt);
+  const emitPresence = urgent || presenceSignature !== camera.lastPresenceSignature || refresh(camera.lastPresenceEmitAt);
+  const emitGrouping = urgent || groupingSignature !== camera.lastGroupingSignature || refresh(camera.lastGroupingEmitAt);
   const emitContext = socialContextSupported &&
     (contextSignature !== camera.lastSocialContextSignature || refresh(camera.lastSocialContextEmitAt));
   if (!emitPresence && !emitGrouping && !emitContext) {
@@ -4513,6 +4584,8 @@ async function submitSocialPayloads(social, tracked, source) {
   })), sample.map(item => ({ renderResponse: item.renderResponse })));
   let emitted = false;
   results.forEach((result, index) => { if (result) { sample[index].accepted(); emitted = true; } });
+  if (source === "visual.social" && sample.some((item, index) => item.type === "obs.social.grouping" && results[index]))
+    liveVoice.ui?.commitPresence?.(social.humanCount, presenceRevision);
   if (emitted) markSensorEmitted("social");
 }
 
@@ -5632,6 +5705,7 @@ function setControlsEnabled(enabled) {
     "submit_access_code",
     "clear_access_code",
     "agent_type_select",
+    "agent_embodiment_select",
     "create_agent_instance",
     "agent_id_input",
     "agent_select",
@@ -5839,11 +5913,12 @@ function demoAgentPath(path) {
 
 function updateAgentTypeControls() {
   const select = document.getElementById("agent_type_select");
+  const embodiment = document.getElementById("agent_embodiment_select");
   const button = document.getElementById("create_agent_instance");
-  if (!select || !button) {
+  if (!select || !embodiment || !button) {
     return;
   }
-  button.disabled = !state.accessCode || !select.value;
+  button.disabled = !state.accessCode || !select.value || !embodiment.value;
 }
 
 function updateAgentSelectionControls() {
@@ -5894,15 +5969,16 @@ function agentTypeSortKey(agentType) {
   return agentType && (agentType.displayName || agentType.key) ? (agentType.displayName || agentType.key) : "";
 }
 
-function prometheusFacingText(value) {
+function prometheusFacingText(value, personaName = selectedPersonaName()) {
   if (typeof value !== "string") {
     return value || "";
   }
   const legacyAgentName = String.fromCharCode(103, 105, 103, 105);
   const legacyDomainName = String.fromCharCode(116, 100, 115, 114);
+  const resolvedPersonaName = typeof personaName === "string" && personaName.trim()
+    ? personaName.trim() : "Valerian";
   return value
-    .replace(new RegExp(`\\b${legacyAgentName} on Prometheus\\b`, "gi"), "Prometheus")
-    .replace(new RegExp(`\\b${legacyAgentName}\\b`, "gi"), "Prometheus")
+    .replace(new RegExp(`\\b(?:${legacyAgentName}|Valerian)\\b`, "gi"), resolvedPersonaName)
     .replace(new RegExp(`\\b${legacyDomainName}\\b`, "gi"), "")
     .replace(/\s{2,}/g, " ")
     .trim();

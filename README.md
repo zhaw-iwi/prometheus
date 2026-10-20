@@ -1347,6 +1347,20 @@ explains unavailable support. The deployment feature flag, access scope and
 manual Start remain independent requirements; capability never starts capture
 or changes ordinary text/transcription/TTS generation.
 
+Application-owned policies can implement `ExternalVoicePolicy` to declare their
+supported states, voice guidance, encounter-history boundary, startup instructions
+and optional session-close transition. Profiles can opt into
+`presenceControlledLive` (default false): the operator arms reception, fresh
+acknowledged occupancy starts a session, and an empty camera view detaches local
+audio before closing it. Re-entry gets a new session; camera loss or voice failure
+disarms reception. This is an encounter boundary, not person recognition.
+
+Configurable-task applications can reuse
+`GenericMultimodalBehaviour.configurationInstructions(voice)` and specialize
+`TaskUpdateAction.validateTaskUpdate` / `failureMessage` to enforce extra constraints
+and localize recovery before it becomes a captured speech intent. Generic defaults
+remain unchanged.
+
 Profiles are persisted as JSON in the existing column: no schema change is needed
 for this capability. Existing saved profiles without the field default to false,
 including agents created before this change. Create a new instance of an opted-in

@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Reusable Live reception/task extensions (2026-10-20): explicit application-policy
+  support, encounter-scoped context, optional session-close transitions and
+  operator-armed presence control. Generic task configuration exposes persona-aware
+  instructions, pre-mutation validation and recovery localization. Application
+  definitions remain on `agents`; branch integration preserves the newer
+  hand-observation status refinement.
+
 - Hand observation diagnostic follow-up (2026-10-20): the camera hand report now
   exposes disabled emission, missing connection, confidence and stability gates,
   and retains successful acknowledgement time during cooldown. Previously all
