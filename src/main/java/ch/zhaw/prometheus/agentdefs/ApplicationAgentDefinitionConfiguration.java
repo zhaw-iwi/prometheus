@@ -6,6 +6,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ApplicationAgentDefinitionConfiguration {
     @Bean
+    AgentDefinition galaDinnerReception() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception();
+    }
+
+    @Bean
     AgentDefinition tdsrAishaInvestQatarQa() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha();
     }

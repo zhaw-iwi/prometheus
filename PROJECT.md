@@ -82,6 +82,38 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 218 (2026-10-20): added a two-visitor Gala smoke journey through scoped
+  GPT-Live sessions, transcript admission, games, co-created tasks and encounter
+  isolation. Scripted providers allow inspection of actual outbound context.
+  The journey and production packaging passed on disposable MySQL. Real provider,
+  browser/media and G1 trials remain outside this smoke; see the milestone audit.
+
+- Milestone 217 (2026-10-20): Gala gains a third activity for collaboratively
+  designing, confirming and running a short multimodal task using the existing
+  Generic/Social Space engine. Five-action and encounter-lifetime limits are
+  enforced; completion and interruptions clear the agreement and return home.
+  Passed 67 focused Java cases and production packaging. Provider/G1 trials
+  remain unverified; changes are uncommitted for review. See the milestone audit.
+
+- Milestone 216 (2026-10-20): Gala is adapted to GPT-Live with operator-armed
+  presence control, one opening per encounter, local departure silence, fresh
+  sessions without prior guest dialogue, backend-owned games and facial-change
+  embodiment. Shared Live support uses an explicit application-policy contract.
+  Verification and physical-trial limits are recorded in the milestone audit;
+  setup is in README. No commit or deployment was performed.
+
+- Milestone 215 (2026-10-20): initial `GalaDinnerReception` under
+  `agentdefs/usecases`, registered on `agents`. German GIGI reception combines
+  the supplied gala programme and institutional reference with one-round RPS
+  and a persisted person-guessing target. Completion, stop/topic changes,
+  provider failure and idle/departure return to reception; silence stays quiet.
+  The initial version used canonical speech; Milestone 216 replaces this with
+  presence-controlled GPT-Live.
+  Passed 42 focused Java cases, including disposable-MySQL scoped creation,
+  both games across reloads and reset; JAR packaging passed. README documents
+  setup, two additive nullable columns and sensor/voice limitations.
+  Physical G1, paid-provider and acoustic trials remain unverified.
+
 - Milestone 214 (2026-10-14): core Social Space Generic variant on `agents`, reusing
   Generic task configuration/execution with concise English social conversation,
   explicit capability/Live opt-ins and a fixed Valerian identity. Local count-change
@@ -377,6 +409,12 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 218: Two-visitor Gala journey and encounter-isolation smoke
+- [x] Milestone 217: Gala co-created multimodal task activity
+- [x] Milestone 216: Presence-controlled GPT-Live Gala reception
+
+- [x] Milestone 215: GIGI Gala Dinner Reception with bounded games and return to reception
 
 - [x] Milestone 207: Integrated activity/Telemetry acceptance and deployment
 
@@ -10045,3 +10083,255 @@ authenticated production catalog containing the expected key, display name and
 `["core"]` package path. Administrative credentials were not printed or stored
 in verification artifacts. This rollout record is a documentation-only follow-up
 commit with `[skip ci]`; the deployed implementation is unchanged.
+## Milestone 215: GIGI Gala Dinner Reception
+
+### Date
+2026-10-20
+
+### What changed
+
+- Added `agentdefs/usecases/GalaDinnerReception` with the catalog key
+  `usecases.gala_dinner_reception`, registered through the deployment branch's
+  `ApplicationAgentDefinitionConfiguration`. GIGI is the fixed persona in both
+  embodiments, German is the language default, and capability awareness is
+  explicitly enabled. External realtime speech remains disabled.
+- Kept explicit reception, RPS, guessing and routing states. One blocking action
+  validates a bounded model response before routing; the pending canonical
+  behaviour plan publishes once. RPS sign selection and outcome calculation use
+  the existing deterministic domain rules. A stored person from four factual
+  cards stays fixed until completion, cancellation or reset. Binary replies are
+  rendered as exactly `Ja.` or `Nein.`; direct name guesses complete locally.
+- Added constrained semantic gestures, facial expression, gaze and low-energy
+  expressive motion, plus canonical RPS hand signs and display capture metadata.
+  No locomotion is authored. Fresh grouping arrivals can greet once; stable
+  readings and derived duplicates stay quiet. Stop, topic change, invalid/provider
+  responses, 90-second inactivity and sustained fresh absence return home.
+  Silence requests suppress ambient greetings until a new user utterance.
+- Bounded conversational context excludes prior dialogue after explicit local
+  stop, timeout or departure, without deleting persisted history. Reset clears
+  only `gala.*` storage. The secret target is not included in policy previews,
+  but remains inspectable through authorised storage access.
+- Added the organiser's supplied 24 October gala programme, venue, travel,
+  dress code and photo guidance, plus sourced IWI/SIRA/organiser facts.
+  The guest email's 23:30 end time takes precedence over the website's 21:30.
+  README and project context document setup, limits and the additive nullable
+  `action.gala_operation` and `decision.gala_condition` columns.
+
+### Verification
+
+- `mvnw.cmd -q -DskipTests compile` passed.
+- Focused local unit execution passed. The first isolated database run passed
+  41 checks but caught a reserved MySQL keyword in the new decision field;
+  renamed it to `galaCondition` before the final run.
+- `python target/verify_gala.py GalaDinnerReceptionUnitTest,GalaDinnerReceptionIntegrationTest,AgentDefinitionRegistryUnitTest,SeedAgentInteractionProfileContractTest,DavosCarePromptContractTest,RpsRulesUnitTest,RpsMatchMechanicsUnitTest,RpsRevealPolicyContractTest`
+  passed **42 tests in eight suites**, zero failures/errors/skips. This reused
+  the existing isolated verification wrapper and repository acceptance runner,
+  with an owned loopback MySQL process, random disposable schema/account and
+  isolated Maven build. No developer or deployed database was used.
+- New coverage: 11 unit cases and one scoped persistence case covering catalogue
+  discovery, German identity, creation, RPS hidden commitment/result, invalid
+  sensor input, stable guessing target, strict yes/no output, topic interruption,
+  stop/silence, provider rejection/failure, arrival suppression, timeout/absence,
+  context boundaries, reload and reset. Neighbouring contracts remained green.
+- `mvnw.cmd -q -DskipTests package` passed through the same isolated wrapper.
+  The owned MySQL process stopped and the temporary POM was removed.
+- Evidence: `target/gala-verification-44759afb0f/build/surefire-reports`,
+  `target/gala-verification-44759afb0f/package.log`, and
+  `target/gptlive-acceptance-155166a9b4/java.log`. `git diff --check` passed.
+
+### Limits and review handoff
+
+No paid provider, browser acceptance or physical G1 trial was run. Voice
+pronunciation, noise tolerance, actual gesture execution and factual question
+interpretation need event-setup trials. Unknown guessing facts request another
+question; the catalog is intentionally small. Game/recovery speech stays German
+when conversational replies switch language. GPT-Live adaptation is outside this
+initial version. Existing agent definitions/history remain unchanged; no commit,
+push, deployment or saved-agent migration was performed.
+
+
+## Milestone 216
+
+### Date
+2026-10-20
+
+### Goal
+Operate Gala Dinner Reception exclusively through GPT-Live, with encounter-based
+greeting, immediate departure silence, facial context and controlled games.
+
+### What changed
+
+- Added `ExternalVoicePolicy` for explicit state support, voice guidance, startup
+  instructions and bounded encounter history. New-session preparation uses the
+  existing serialized transaction; persisted history is retained.
+- Added the default-false persisted `presenceControlledLive` profile declaration.
+  The operator arms reception after enabling camera/social sensing/emission.
+  Fresh acknowledged arrival starts a session; unchanged visibility stays quiet.
+- Departure synchronously detaches local audio and microphone before network
+  acknowledgement/close. Re-entry awaits close and current encounter evidence.
+  Late acknowledgements cannot reopen the previous encounter. Camera loss, Stop,
+  tab/scope changes and connection failures disarm; there is no blind retry.
+- Kept camera observation independent of slow HTTP acknowledgement during armed
+  reception. Ordinary sensor cadence and Live five-second refresh remain.
+- Gala is quiet on creation. Live owns conversation/reference answers; one backend
+  task/embodiment inference handles admitted utterances without generating another
+  ordinary answer. Game facts/results remain backend-owned. Departure returns
+  directly to reception; cancelled inference cannot start games or publish output.
+- Fresh confident facial-label changes produce restrained nonverbal output with
+  a cooldown, while Live reuses temporal summaries. Stable readings stay quiet.
+- Voice-session close delivers an optional policy-owned internal event through
+  ordinary transitions. Gala returns home on operator Stop/camera shutdown or
+  connection loss; a stale session cannot end a newer encounter.
+- Shared changes started in an isolated checkout of `feature/gptlive`, then were
+  integrated uncommitted for testing on `agents`, preserving deployment identity.
+  Commits and normal main/agents branch integration remain for user review.
+
+### Verification
+
+- Passed 68 focused Java cases covering Gala, Live eligibility/context/narration,
+  persisted profiles, scoped creation, games, encounter boundaries and reset.
+  After adding session-close transitions, reran the 23 affected Gala/session/bridge
+  cases successfully, including stale-close rejection and return to reception.
+- Passed all 34 Live JavaScript module tests, including delayed acknowledgements,
+  departure during startup, stale encounter replies, re-entry and sensor loss.
+- Passed 52 browser cases with Live enabled, including the new reception lifecycle
+  and existing desktop/mobile voice, camera, telemetry and transcription cases.
+  The feature-disabled legacy speech smoke passed; two Live-only cases skipped
+  intentionally. Inspected the reception cockpit screenshot.
+- Production JAR packaging passed after the final source changes. Verification
+  used owned loopback MySQL processes, random disposable schemas/accounts, fake
+  providers and separate build directories; all were stopped/cleaned afterwards.
+- Evidence: `target/gala-verification-72ecab85ff/build/surefire-reports`,
+  `target/gala-verification-0b6f21a7ba/build/surefire-reports`,
+  `target/gala-verification-0b6f21a7ba/package.log`,
+  `target/gptlive-acceptance-3099339e0c/browser-true.log`, `browser-false.log`,
+  and `target/gala-live-js.log`. Reusable framework changes are also saved in
+  `target/gala-live-framework.patch` against `feature/gptlive` for review/integration.
+  The temporary linked checkout was removed; the combined changes remain on
+  `agents` uncommitted. `git diff --check` passed.
+
+### Limits and review handoff
+
+No paid GPT-Live or physical G1 trial is available in this workspace. Actual
+German wording/pronunciation, exact yes/no speech, startup latency, camera noise
+and actuator execution require an event-setup trial. A fresh session is created
+only after the visible area empties; counts do not identify individual guests.
+Existing saved agents are not migrated. No commit, push or deployment was made.
+
+## Milestone 217
+
+### Date
+2026-10-20
+
+### Goal
+Add a third Gala activity that explains capabilities, helps visitors co-create a
+short multimodal task, and runs their confirmed agreement using the Generic/Social
+Space task engine within the existing GPT-Live reception lifecycle.
+
+### What changed
+
+- Added an explicit co-created-task state with a `TaskPolicy` specialization for
+  existing Live task guidance, readiness, narration capture and encounter history.
+  Capability questions remain in reception; explicit task-design requests enter
+  the activity and process that same request with the Generic configuration action.
+- Reused `TaskUpdateAction`, `TaskSpec`, `TaskDecision` and task storage. Added a
+  persona-aware public configuration prompt builder, a pre-mutation validation
+  hook and a recovery-message hook; reusable code contains no Gala assumptions.
+  These changes originated
+  in a detached `main` checkout and were applied uncommitted on `agents`.
+- Enforced proposal-before-activation, unchanged saved-plan acceptance, at most
+  five actions including activation, and session-bound execution. Prompt guidance
+  supports purposeful co-creation without implying arbitrary programming, tools,
+  locomotion or automatic sensor enablement.
+- Matching task cues retain freshness, confidence, stability, cooldown and spoken
+  response-capture checks. Unmatched cues and WAIT rules remain local and silent.
+  Gala's ambient facial response yields to task rules while this activity is active.
+  Recovery messages are localized in the backend so German speech can release
+  the same response-capture boundary without depending on translation matching.
+- Completion/action-budget exhaustion returns immediately to reception. Stop/pause,
+  topic changes, idle expiry, reset, fresh zero-person presence/grouping and Live
+  closure clear draft and active task memory. Zero-person input takes precedence
+  over task rules; cancelled inference cannot publish a late activation or action.
+- Updated README operation examples, inference boundaries, reset ownership and
+  instance-recreation guidance, plus the architectural context.
+
+### Verification
+
+- Passed 67 focused Java cases on the final implementation: Gala reception/task unit tests, scoped Gala
+  persistence/Live-close integration, Generic task unit/lifecycle/integration
+  regressions and the Social Space variant's unit tests. Production packaging passed.
+- Included human-presence-before-grouping departure precedence and German recovery
+  speech capture after a provider failure. Earlier targeted Gala checks also passed.
+- Verification uses the existing isolated acceptance harness: owned loopback MySQL,
+  disposable accounts/schemas, fake providers and build directories independent of
+  IDE compilation. Initial test-fixture compilation errors were corrected before
+  the successful run.
+- Final-run evidence: `target/gala-verification-d794b1e762/build/surefire-reports`
+  and `target/gala-verification-d794b1e762/package.log`. The shared changes are saved
+  in `target/gala-task-framework.patch` against `main`; its temporary checkout was
+  removed, with combined source changes retained uncommitted on `agents`.
+  `git diff --check` passed. No browser changes or new browser run were needed for
+  this backend activity extension.
+
+### Limits and review handoff
+
+No paid GPT-Live, noisy-room or physical G1 trial was run. Natural-language
+classification, German task narration/capture and actuator execution need that
+trial. Rules use the Generic engine's existing comparisons, not arbitrary code or
+new capabilities. Stable matching values may repeat after cooldown within the
+agreed budget; a social-change trigger is appropriate for an arrival-change task.
+Create a new Gala instance; existing stored graphs are not migrated.
+No commit, push or deployment was performed.
+
+## Milestone 218
+
+### Date
+2026-10-20
+
+### Goal
+Add a repeatable smoke journey in which two successive visitors explore Gala's
+activities, share at least one activity, and remain isolated across encounters.
+
+### What changed
+
+- Added `GalaDinnerReceptionJourneySmokeIntegrationTest` on `agents`, using the
+  real scoped session lifecycle, transcript receipts/segment admission, persistence,
+  task guards, speech recording and provider-bound context delivery.
+- Visitor A introduces a distinctive name and conversational preference, asks
+  about the programme, receives facial feedback, plays RPS and activates/tries a
+  custom task. A departs with the task unfinished.
+- After an empty-view boundary, visitor B gets a new provider session, asks about
+  GIGI/SIRA, plays RPS and person guessing, and completes a different custom task.
+  Both visitors try RPS and custom tasks.
+- Assertions cover actual startup/updated Live context and every B-side inference
+  request, rather than relying on scripted answers to demonstrate isolation.
+  A's name, preference, task goal and reaction must not leak. Stored history is
+  retained, task memory clears, B starts with a fresh budget, and A's trigger
+  cannot execute B's different agreement.
+- The journey also rejects a delayed old transcript segment, new receipt from the
+  old session, late old assistant speech, an old-session close and a hand frame
+  captured before B's round. Stable presence/activity changes create no new session.
+- README documents the journey, repeatable acceptance command and evidence limits.
+  Production behavior was not changed; prior work remains intact and uncommitted.
+
+### Verification
+
+- The integrated journey passed against owned disposable MySQL, followed by
+  successful production packaging. The final focused rerun also passed, including
+  the assertion that A's full audit history still exists after B completes.
+- Command: `python target/verify_gala.py GalaDinnerReceptionJourneySmokeIntegrationTest`
+  (local isolated-build/MySQL wrapper around the documented acceptance harness).
+  One integrated test ran with no failures/errors/skips; fake providers made no
+  paid calls. Its owned MySQL stopped and temporary build POM was removed.
+- Final evidence: `target/gala-verification-1c01c38422/build/surefire-reports` and
+  `target/gala-verification-1c01c38422/package.log`. `git diff --check` passed.
+  No broader runtime regression was needed because production code was unchanged.
+
+### Limits and review handoff
+
+Inference and voice responses are scripted; this tests real runtime/session/context
+boundaries without paid provider access. It does not measure model interpretation,
+factual answer quality, actual ASR, browser media, physical sensing or G1 actions.
+The journey explicitly uses an empty camera view between visitors. Overlapping
+visitors share an encounter because individual identities are not tracked.
+No commit, push or deployment was performed.

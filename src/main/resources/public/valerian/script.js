@@ -38,6 +38,10 @@ async function initGptLive() {
   const { LiveCockpit } = await import("../live/cockpit.js");
   liveVoice.ui = new LiveCockpit({
     beforeStart: async () => {
+      if (state.agentInfo?.interactionProfile?.presenceControlledLive &&
+          (!state.cameraRunning || !camera.socialDetectorReady || !isSensorModeEnabled("social") ||
+           !document.getElementById("sensor_emit_enabled").checked))
+        throw new Error("Start the camera with social sensing and sensor emission enabled before starting reception.");
       await stopTranscription();
       await stopSpeechPlayback("gptlive_start", { reset: true, silent: true });
       if (!claimControlOwnership("microphone")) throw new Error("Another Valerian window owns the microphone.");
@@ -52,6 +56,7 @@ async function initGptLive() {
 
 function configureGptLive() {
   return liveVoice.ui?.configure({ agentId: state.agentId, accessCode: state.accessCode,
+    interactionProfile: state.agentInfo?.interactionProfile,
     language: state.agentInfo?.languageCode, mediaPreferences: transcription.transcriptionSettingsPanel?.mediaValues(),
     outputDeviceId: selectedSpeechOutputDeviceId() });
 }
@@ -3328,6 +3333,7 @@ async function startCamera() {
 }
 
 function stopCamera(options = {}) {
+  if (liveVoice.ui?.presenceArmed) void liveVoice.ui.stop("Camera stopped.");
   if (camera.loopTimer) {
     clearTimeout(camera.loopTimer);
     camera.loopTimer = null;
@@ -3477,7 +3483,7 @@ async function runCameraLoop() {
       drawFaceStatus(statusText, camera.faceModelsError ? "error" : "idle");
     }
     if (isSensorModeEnabled("hand") && camera.handDetectorReady) {
-      await detectHandSign();
+      await emitCameraObservation("hand", () => detectHandSign());
     }
   } catch (error) {
     appendLog("camera", "detection failed: " + error.message);
@@ -3506,7 +3512,7 @@ async function detectEmotion() {
   const faceScore = detection.detection.score;
   drawFaceBox(detection.detection.box, emotion, faceScore);
   renderEmotionMetrics(emotion, faceScore);
-  await maybeEmitEmotion(emotion, faceScore);
+  await emitCameraObservation("emotion", () => maybeEmitEmotion(emotion, faceScore));
 }
 
 async function detectSocial() {
@@ -4491,10 +4497,26 @@ function socialEmptyState(text, testId) {
 }
 
 async function maybeEmitSocial(social, tracked) {
-  if (!document.getElementById("sensor_emit_enabled").checked || !social || !passesSensorEmitInterval("social")) {
+  if (!document.getElementById("sensor_emit_enabled").checked || !social) return;
+  const urgent = liveVoice.ui?.observePresence?.(social.humanCount) || false;
+  if (!urgent && !passesSensorEmitInterval("social")) {
     return;
   }
-  await submitSocialPayloads(social, tracked, "visual.social");
+  if (liveVoice.ui?.presenceArmed) {
+    if (camera.receptionSocialPending) return;
+    camera.receptionSocialPending = true;
+    void submitSocialPayloads(social, tracked, "visual.social", urgent)
+      .finally(() => { camera.receptionSocialPending = false; });
+  } else await submitSocialPayloads(social, tracked, "visual.social");
+}
+
+async function emitCameraObservation(kind, operation) {
+  if (!liveVoice.ui?.presenceArmed) return operation();
+  camera.pendingEmissions ||= new Set();
+  if (camera.pendingEmissions.has(kind)) return;
+  camera.pendingEmissions.add(kind);
+  void Promise.resolve().then(operation).catch(error => appendLog(kind, error.message))
+    .finally(() => camera.pendingEmissions.delete(kind));
 }
 
 async function submitSocialSample(kind) {
@@ -4504,7 +4526,8 @@ async function submitSocialSample(kind) {
   await submitManualSocialDetails();
 }
 
-async function submitSocialPayloads(social, tracked, source) {
+async function submitSocialPayloads(social, tracked, source, urgent = false) {
+  const presenceRevision = liveVoice.ui?.presenceRevision;
   const people = Array.isArray(tracked) ? tracked : [];
   const groups = Array.isArray(social.groups) ? social.groups : [];
   const presencePayload = {
@@ -4531,8 +4554,8 @@ async function submitSocialPayloads(social, tracked, source) {
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
   const contextSignature = socialContextSignature(contextPayload);
   const refresh = last => source === "visual.social" && liveSensorRefreshDue(last);
-  const emitPresence = presenceSignature !== camera.lastPresenceSignature || refresh(camera.lastPresenceEmitAt);
-  const emitGrouping = groupingSignature !== camera.lastGroupingSignature || refresh(camera.lastGroupingEmitAt);
+  const emitPresence = urgent || presenceSignature !== camera.lastPresenceSignature || refresh(camera.lastPresenceEmitAt);
+  const emitGrouping = urgent || groupingSignature !== camera.lastGroupingSignature || refresh(camera.lastGroupingEmitAt);
   const emitContext = socialContextSupported &&
     (contextSignature !== camera.lastSocialContextSignature || refresh(camera.lastSocialContextEmitAt));
   if (!emitPresence && !emitGrouping && !emitContext) {
@@ -4561,6 +4584,8 @@ async function submitSocialPayloads(social, tracked, source) {
   })), sample.map(item => ({ renderResponse: item.renderResponse })));
   let emitted = false;
   results.forEach((result, index) => { if (result) { sample[index].accepted(); emitted = true; } });
+  if (source === "visual.social" && sample.some((item, index) => item.type === "obs.social.grouping" && results[index]))
+    liveVoice.ui?.commitPresence?.(social.humanCount, presenceRevision);
   if (emitted) markSensorEmitted("social");
 }
 

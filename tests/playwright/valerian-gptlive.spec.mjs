@@ -6,6 +6,47 @@ const AGENT = { id: ID, name: "Valerian voice pilot", description: "Multimodal c
 const json = body => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const event = (id, speech, provenance = null) => ({ id, type: "resp.behaviour_plan", actor: "assistant", kind: "response", payload: JSON.stringify({ speech }), provenance, createdDate: "2026-09-28T10:00:00Z" });
 
+test("presence reception is quiet until arrival, silences on departure and starts a fresh encounter", async ({ page, context }, info) => {
+  const agent = { ...AGENT, name: "GIGI", interactionProfile: { ...AGENT.interactionProfile,
+    presenceControlledLive: true, externalRealtimeSpeech: true,
+    supportedObservations: ["obs.user_utterance", "obs.human.presence", "obs.social.grouping", "obs.social.context"] } };
+  const scenario = await setup(context, { agent, agents: [agent] });
+  await open(page); await page.getByTestId("gptlive-tab").click();
+  await expect(page.getByTestId("gptlive-start")).toHaveText("Start reception");
+  await page.getByTestId("gptlive-start").click();
+  await expect(page.getByTestId("gptlive-detail")).toContainText("Start the camera");
+  await page.evaluate(() => {
+    state.cameraRunning = true; camera.socialDetectorReady = true;
+    document.getElementById("sensor_social_enabled").checked = true;
+    document.getElementById("sensor_emit_enabled").checked = true;
+    window.__sampleVisitors = count => maybeEmitSocial({
+      humanCount: count, groupCount: 0, singletonCount: count, largestGroupSize: 0, groups: [],
+    }, Array.from({ length: count }, (_, i) => ({ id: i + 1, score: 0.99 })));
+  });
+  await page.getByTestId("gptlive-start").click();
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Waiting");
+  expect(scenario.requests.filter(r => r.method === "POST" && r.path.endsWith("/live/sessions"))).toHaveLength(0);
+  await page.evaluate(() => window.__sampleVisitors(1));
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  await page.evaluate(async () => { await window.__sampleVisitors(1); await window.__sampleVisitors(2); });
+  expect(scenario.requests.filter(r => r.method === "POST" && r.path.endsWith("/live/sessions"))).toHaveLength(1);
+  const silenced = await page.evaluate(() => {
+    void window.__sampleVisitors(0);
+    return document.getElementById("gptlive_audio").srcObject === null && window.__live.tracks.every(track => track.stopped);
+  });
+  expect(silenced).toBe(true);
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Waiting");
+  await expect.poll(() => page.evaluate(() => !!camera.receptionSocialPending)).toBe(false);
+  await page.evaluate(() => window.__sampleVisitors(1));
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  expect(scenario.requests.filter(r => r.method === "POST" && r.path.endsWith("/live/sessions"))).toHaveLength(2);
+  await page.getByTestId("gptlive-stop").click();
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
+  await page.evaluate(() => window.__sampleVisitors(1));
+  expect(scenario.requests.filter(r => r.method === "POST" && r.path.endsWith("/live/sessions"))).toHaveLength(2);
+  await page.getByTestId("gptlive-panel").screenshot({ path: info.outputPath("gala-reception-stopped.png") });
+});
+
 test("text fallback with no generated behaviour returns to Ready", async ({ page, context }) => {
   await setup(context); await open(page); await page.getByTestId("text-interaction-tab").click();
   await page.route("**/acknowledge", route => route.fulfill(json({ active: true, responseEvent: null })));
@@ -75,7 +116,9 @@ async function setup(context, scenario = {}) {
     if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: scenario.agents || [AGENT] }));
     if (method === "DELETE" && /^\/demo\/agents\/[^/]+$/.test(path)) return route.fulfill({ status: 204 });
     if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: scenario.eligible !== false, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
-    if (path.endsWith("/info")) return route.fulfill(json(AGENT));
+    if (path.endsWith("/info")) return route.fulfill(json(scenario.agent || AGENT));
+    if (path.endsWith("/observations")) return route.fulfill(json(request.postDataJSON()
+      .map(() => ({ status: 200, response: { active: true, responseEvent: null } }))));
     if (path.endsWith("/history") || path.endsWith("/eventhistory")) return route.fulfill(json(scenario.history));
     if (path.endsWith("/storage")) return route.fulfill(json([]));
     if (path.endsWith("/states")) return route.fulfill(json(["Listening"]));

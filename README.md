@@ -274,6 +274,7 @@ experiment-specific application definitions as Spring beans via
 
 | Package/key prefix | Purpose |
 | --- | --- |
+| `usecases.gala_dinner_reception` | German GIGI reception for the Home of Innovation gala, with RPS, person guessing and co-created multimodal tasks over GPT-Live. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -284,6 +285,137 @@ experiment-specific application definitions as Spring beans via
 
 These branch-specific definitions stay outside the generic main baseline
 catalog so `main` can remain the reusable PROMETHEUS framework line.
+
+### Gala Dinner Reception
+
+`usecases.gala_dinner_reception` is the event-specific `GalaDinnerReception`
+definition under `agentdefs/usecases`, registered on `agents`. Its fixed persona
+is **GIGI** (pronounced "djeedjee"), with German conversation by default.
+It uses **GPT-Live only** for spoken interaction. Ordinary Text/Continuous input
+does not generate Gala replies. Live speaks small talk and approved event answers;
+PROMETHEUS owns task decisions, game results and canonical nonverbal behaviour.
+
+To operate the entrance demonstration:
+
+1. Allow this definition for the access code and create a **new instance** with
+   the `ROBOT` embodiment. Existing saved profiles are not automatically updated.
+2. Enable GPT-Live in the deployment and use a provider account with Live access.
+   Connect the instance, start the camera, enable **Social context** and sensor
+   emission. Enable facial sensing for expression cues and hand sensing for RPS.
+3. In the GPT-Live tab select the microphone, speaker and voice, then press
+   **Start reception**. Creation and an empty camera view remain silent.
+4. A fresh occupied sample acknowledged by the backend starts one voice session
+   and supplies one German opening greeting. Stable visibility, camera refreshes
+   and additional people joining do not start another session or greeting.
+5. A zero-person camera sample immediately detaches local Live audio/microphone,
+   then closes that voice session. The backend returns to reception on the fresh
+   zero-person grouping observation without a timer. Re-entry starts a fresh
+   session after close and a successful observation acknowledgement; prior
+   visitors' dialogue is excluded from its context, while persisted history remains.
+6. **Stop** disarms automatic encounters. Stopping the camera also stops reception.
+   Voice-session close returns an interrupted activity to reception through a backend
+   transition; no further camera observation is required.
+   Missing camera observations for 15 seconds or a voice connection error disarms
+   reception and requires explicit Start after recovery. The detector's sampling
+   latency and possible missed detections remain physical-trial considerations.
+
+Reception answers questions about the gala, Home of Innovation, ZHAW IWI, SIRA
+Lab and GIGI. The reference in `gala/GalaDinnerPrompts.java` uses the supplied
+organiser email plus [Home of Innovation](https://homeofinnovation.ch/),
+[IWI](https://www.zhaw.ch/de/sml/institute-zentren/iwi) and
+[SIRA](https://siralab.ch/), checked on 20 October 2026. The gala is on
+**24 October 2026**, at **Casinotheater Winterthur, Stadthausstrasse 119**.
+The supplied 17:30-23:30 programme takes precedence over the website's 21:30 end.
+Times are scheduled, not live progress; seating, menus and changes need the team.
+
+The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
+
+- RPS commits a hidden sign before inviting a fresh camera hand sign, calculates
+  the result locally, emits `motion.handSign` and returns to reception. Accepted
+  signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after round
+  entry; optional numeric confidence must be between 0.7 and 1. Spoken signs do
+  not finish the round. Live must wait for the backend result.
+- Guessing persists a person from four maintained fact cards. The backend confirms
+  `Ja.` / `Nein.`, clarification or a correct name guess. Private facts do not enter
+  Live guidance. Live is instructed to speak binary answers without additions;
+  actual wording fidelity needs a provider trial. Correct guesses return home.
+- **Co-create a task**: ask “Was kannst du damit machen?” to explore capabilities,
+  then “Lass uns eine eigene Aufgabe gestalten” to enter task design. GIGI helps
+  choose a supported sensor trigger and a response, proposes a bounded agreement
+  and activates that saved proposal only after acceptance. For example, agree on
+  one robot joke after a `paper` hand sign. The activation response counts as the
+  first action; a two-action agreement permits that response and one later joke.
+  New/revised plans must be proposed before activation. Ordinary capability
+  questions and hypothetical examples in reception do not start this activity.
+  The Generic/Social Space task engine validates the agreement and waits for fresh
+  matching evidence, confidence/stability thresholds, cooldown and capture of the
+  previous spoken response. Unmatched samples and WAIT rules use no inference.
+  Rules retain the generic field-comparison semantics: a stable matching value
+  may trigger again after cooldown if agreed; use a social-change event for an
+  arrival-change trigger. Ambient Gala facial reactions yield to the agreed task.
+  Only existing observations, speech, nonverbal output and RPS hand signs are
+  executable; sensor support does not mean sensing is enabled. Enable the relevant
+  sensor before a demonstration. No code, arbitrary tools or locomotion is generated.
+  Gala limits tasks to five actions including activation, requires session-bound
+  execution and returns home immediately after the last action or COMPLETE rule.
+  Stop/pause, unrelated topics, departure, voice closure, reset and the existing
+  idle timeout discard both draft and active agreement. No task carries into the
+  next encounter; pause/resume and autonomous continuation are not offered here.
+- Stop, silence and topic changes return to reception. Ordinary game questions
+  stay in the game. Explicit stop/silence commands need no inference. A 90-second
+  input timeout returns home on ticks or the next utterance/task cue; enable
+  `prometheus.runtime.tick.enabled=true` for unattended idle recovery.
+- Live already refreshes unchanged eligible observations every five seconds and
+  supplies fresh facial summaries. Gala also emits a small nonverbal reaction to
+  a changed facial label at confidence >= 0.75, with a five-second cooldown.
+  Stable expressions do not repeatedly react. These estimates do not identify a
+  speaker or prove feelings; group counts do not identify returning individuals.
+
+Reception/game turns use one bounded classification/embodiment inference without
+generating a second ordinary spoken answer. Entering task design also invokes the
+Generic configuration action on that same request; later task turns need only that
+action. Matching task ACT/COMPLETE cues can generate one response; ordinary Gala
+sensors and RPS mechanics make no model calls. Live speaks the confirmed task
+response; Gala localizes backend recovery messages before speech capture. Late inference
+results after Live Stop are discarded. Task readiness remains visible through the
+existing monitor/Live contract.
+Reset clears owned `gala.*` and the Generic engine's task keys, preserving other
+storage. Task policy/action subclasses reuse existing JPA fields. The existing
+Gala inheritance adds nullable
+`action.gala_operation` and `decision.gala_condition` columns; the interaction
+profile adds a default-false `presenceControlledLive` flag without a new column.
+Physical G1 mapping, noisy-room sensing, pronunciation, startup latency and strict
+spoken yes/no behaviour and task-announcement capture still require the event setup
+trial. Create a new Gala instance to obtain the third activity; saved graphs are
+not migrated automatically.
+
+The repeatable two-visitor smoke journey is
+`GalaDinnerReceptionJourneySmokeIntegrationTest`. It uses real scoped Live sessions,
+transcript admission, persistence, task execution and provider-bound context with
+scripted model/voice responses:
+
+- Visitor A introduces a distinctive name/preference, asks about the event, receives
+  facial feedback, plays RPS, then activates and tries a custom task.
+- An empty camera view ends that encounter with the task unfinished. Visitor B gets
+  a new provider session, asks about GIGI/SIRA, plays RPS and person guessing, and
+  proposes, activates and completes a different custom task.
+- Both visitors try RPS and custom tasks. Assertions check fresh task budgets,
+  old-trigger rejection, stale transcript/speech/frame/close rejection, preserved
+  audit history, and exclusion of A's conversation/task details from B's prompts
+  and provider-bound context.
+
+Run it with the existing offline acceptance harness and a configured **loopback
+MySQL administration connection** (Python `pymysql` required):
+
+```bash
+python tests/gptlive/run_acceptance.py --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest
+```
+
+The harness creates and removes a disposable schema/account and writes logs under
+`target/gptlive-acceptance-*`. This smoke verifies runtime/context isolation, not
+real model interpretation, camera detection, browser audio or physical actions.
+It requires the empty-view boundary: a second person joining while somebody remains
+visible shares the current encounter; person identity is not tracked.
 
 ### Aisha Invest Qatar Q&A
 
@@ -1379,14 +1511,21 @@ exactly. Deployment-specific definitions, including scored RPS, stay out unless
 explicitly adapted and validated.
 
 On the `agents` deployment branch, the main conversational definitions, including
-the core Social Space Generic variant, declare Live capability. Scored RPS, Talk to Me and
-other registered deployment definitions remain opted out. The selected
+the core Social Space Generic variant, declare Live capability. Gala Dinner Reception
+also opts in with presence-controlled sessions. Scored RPS, Talk to Me and unadapted
+deployment definitions remain opted out. The selected
 COCKPIT/ROBOT embodiment, or a definition's fixed persona name, resolves identity in
 authored Live voice and nonverbal instructions; quoted conversation history keeps
 its original wording. Ordinary generation and reset use the same persona choice.
 The production profile enables the tab; `PROMETHEUS_LIVE_ENABLED=false` on Heroku
 can disable it. Its `OPENAI_KEY` still needs provider access and credit. Local
 properties do not update Heroku configuration.
+
+Application policies can implement `ExternalVoicePolicy` to explicitly validate
+supported state classes, provide voice-only guidance, bound encounter history and
+prepare a new conversation under the existing agent turn lock. Private task facts
+stay in backend storage. Presence-controlled reception is separately declared by
+`interactionProfile.presenceControlledLive`; capability alone never arms it.
 
 The backend additionally checks every reachable state's policy and the active
 state chain before creating a provider session. Unknown policies/states are

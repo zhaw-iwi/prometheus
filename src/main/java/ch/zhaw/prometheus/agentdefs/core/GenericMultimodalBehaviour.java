@@ -83,7 +83,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             For an active task, explicit spoken changes/stop take precedence over sensor rules.
             Keep task JSON below 1800 characters, goal below 400, each action below 300.
             """;
-    static final String CONFIGURE = VOICE + OUTPUT + CONFIGURATION;
+    static final String CONFIGURE = configurationInstructions(VOICE);
 
     @Override public String key() { return KEY; }
     public static java.util.Map<String, String> builtInPrompts() {
@@ -110,7 +110,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
         dispatch.addTransition(new Transition(configuration));
         for (var state : List.of(configuration, running, completed)) {
             state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                    new TaskUpdateAction(storage, voice + OUTPUT + CONFIGURATION, false), dispatch));
+                    new TaskUpdateAction(storage, configurationInstructions(voice), false), dispatch));
         }
         running.addTransition(new Transition(new TaskDecision(storage, "CUE"),
                 new TaskUpdateAction(storage, behaviourInstructions(voice), true), dispatch));
@@ -121,6 +121,8 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
         return agent;
     }
     public static String behaviourInstructions(String voice) { return voice + OUTPUT; }
+    /** Reuse the validated configuration contract with an application's own persona. */
+    public static String configurationInstructions(String voice) { return voice + OUTPUT + CONFIGURATION; }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {
         var agent = createAgent();
         agent.setEmbodiment(context.embodiment());

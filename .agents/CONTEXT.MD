@@ -138,6 +138,12 @@ PROMETHEUS currently provides:
 - on the `agents` branch, an Arabic-only Aisha vertical slice that bounds one
   structured model call with deterministic catalog candidates and emits
   approved-answer Speech plus semantic gestures;
+- on `agents`, a German GIGI gala reception under `agentdefs/usecases`, with
+  event/institutional information, deterministic one-round RPS, persisted person
+  guessing and return-to-reception on completion, interruption or idle/departure;
+  it uses GPT-Live only, with quiet creation, one greeting per visible encounter,
+  immediate local audio stop on camera departure, fresh sessions on re-entry and
+  restrained facial-change embodiment; setup and physical limits are in README;
 - a regulation foundation with persisted specifications, snapshot context,
   modulation values, internal events, reset behavior, and tests;
 - Valerian Cockpit, Valerian Access Management, the public Talk to Me exact-text
@@ -150,8 +156,9 @@ catalog keys into new context documents.
 ## Capability Awareness
 
 Definitions opt in through `AgentDefinition.capabilityAwareness()` (default false).
-Core definitions opt in explicitly; other definitions, including those reusing
-core factories, remain out. The setting persists in the instance interaction
+Core definitions and the event-specific Gala Dinner Reception opt in explicitly;
+other definitions, including those reusing core factories, remain out.
+The setting persists in the instance interaction
 profile. Older saved instances default to false; enabling a definition affects
 new instances only. Never backfill or delete existing history implicitly.
 
@@ -230,6 +237,13 @@ transcription/TTS. Read
 sideband owns provider credentials; diagnostic state is bounded and excludes
 audio/text content. See README for scoped session contracts and configuration.
 
+Application-owned Live policies can implement `ExternalVoicePolicy` to validate
+state compatibility, provide voice guidance and bound history for a new encounter.
+The default-false `presenceControlledLive` profile field arms the cockpit's
+presence lifecycle only after operator Start. Shared voice contracts retain their
+ordinary manual lifecycle. Departure audio control is local, independent of model
+prompts and routine context-update cadence.
+
 The dedicated Live Multimodal core definition separates external voice guidance
 from embodiment generation through persisted `EmbodimentPolicy`. It accepts all
 current observations and exposes all declared behaviour modalities. Backend plans
@@ -256,8 +270,9 @@ and eager event state paths load together. See README and GPTLIVE_RESULTS for th
 query-budget regression evidence and remaining provider/production limits.
 
 On the agents branch, the main conversational definitions, including Generic
-Multimodal Behaviour and its core Social Space variant, are opted in;
-all other registered definitions (including scored RPS and Talk to Me) stay out.
+Multimodal Behaviour and its core Social Space variant, are opted in. Gala Dinner
+Reception also opts in; unadapted definitions (including scored RPS and Talk to Me)
+stay out.
 The existing per-agent embodiment assembler resolves authored Live voice and
 nonverbal prompts to the effective persona (including a persisted fixed-name
 override) without rewriting observation/dialogue content.
@@ -266,6 +281,15 @@ including reset. The production profile now enables the separate Live flag;
 `PROMETHEUS_LIVE_ENABLED=false` can override it without changing agent capabilities.
 
 ## Conversational Task Configuration
+
+Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
+activity. It requires a saved proposal before activation, limits execution to five
+actions including activation, and enforces session-bound tasks. Existing Live task
+readiness and announcement capture apply. Completion, stop/pause, topic change,
+departure, voice close or idle timeout clears the agreement and returns to reception;
+ambient facial reactions yield to the task. New instances receive this graph.
+The shared configuration prompt builder and pre-mutation validation hook contain
+no Gala assumptions. Practical setup and rule semantics are in README.
 
 The core Social Space variant reuses the Generic task graph and full
 task contract with brief English conversation and a fixed Valerian identity.

@@ -1,5 +1,6 @@
 import { interactionActivity } from "../performance/activity.js";
 import { LiveClient } from "./client.js";
+import { PresenceReception } from "./reception.js";
 import { liveDiagnostics } from "./diagnostics.js";
 import { sanitizeMediaPreferences, captureSummary } from "../transcription/settings.js";
 
@@ -14,20 +15,35 @@ export class LiveCockpit {
     this.client = new LiveClient({ audio: $("gptlive_audio"), onState: value => this.state(value),
       onCaptions: value => this.captions(value), onHistory: (history, agentId) => { if (agentId === this.scope.agentId) { this.setHistory(history); onHistory(history); } },
       onLedger: (ledger, agentId) => { if (agentId === this.scope.agentId) { this.ledger = ledger; this.renderHistory(); } }, onDiagnostic: value => this.diagnostic(value) });
+    this.reception = new PresenceReception({
+      start: async () => {
+        this.ledger = []; this.captions({}); this.renderHistory();
+        await this.client.start({ ...this.scope, voice: this.preferences.voice,
+          mediaPreferences: this.preferences.media, outputDeviceId: this.preferences.outputDeviceId });
+      },
+      stop: reason => this.client.stop(reason),
+      waiting: () => this.state({ state: "Waiting", detail: "Reception armed. Waiting for visitors in the camera view." }),
+      failed: error => this.state({ state: "Error", detail: error.message }),
+    });
+    this.receptionTimer = setInterval(() => this.reception.checkFreshness(), 1000);
     $("gptlive_start").addEventListener("click", () => void this.start());
-    $("gptlive_stop").addEventListener("click", () => void this.client.stop());
+    $("gptlive_stop").addEventListener("click", () => void this.stop());
     $("gptlive_mute").addEventListener("click", () => void this.client.mute());
     $("gptlive_refresh").addEventListener("click", () => void this.devices());
     for (const id of ["voice", "input", "output", "echo", "noise", "gain"]) $("gptlive_" + id).addEventListener("change", () => this.save());
     this.controls();
   }
   get active() { return this.client.active; }
-  get busy() { return this.client.busy; }
-  stop(reason) { return this.client.stop(reason); }
-  invalidate(reason) { return this.client.invalidate(reason); }
+  get busy() { return this.reception.armed || this.client.busy; }
+  get presenceArmed() { return this.reception.armed; }
+  get presenceRevision() { return this.reception.version; }
+  observePresence(count) { return this.reception.observe(count); }
+  commitPresence(count, version) { void this.reception.committed(count, version); }
+  stop(reason) { return this.reception.disarm(reason); }
+  invalidate(reason) { this.reception.disarm(reason); return this.client.invalidate(reason); }
   async configure(scope) {
     const version = ++this.version;
-    void this.client.invalidate();
+    void this.invalidate();
     if (this.scope.agentId !== scope.agentId || this.scope.accessCode !== scope.accessCode) {
       void this.stop("Agent connection changed."); this.history = []; this.ledger = []; this.captions({}); this.renderHistory();
     }
@@ -56,11 +72,18 @@ export class LiveCockpit {
     try {
       await this.beforeStart(); if (version !== this.version) return;
       this.save(); this.ledger = []; this.renderHistory();
+      if (scope.interactionProfile?.presenceControlledLive) {
+        this.reception.arm();
+        return;
+      }
       await this.client.start({ ...scope, voice: this.preferences.voice, mediaPreferences: this.preferences.media, outputDeviceId: this.preferences.outputDeviceId });
     } catch (error) { if (version === this.version) this.state({ state: "Error", detail: error.message }); }
     finally { this.starting = false; this.controls(); }
   }
   state(value) {
+    if (["Error", "Disconnected"].includes(value.state) && this.reception?.armed) {
+      this.reception.armed = false; this.reception.version++; this.reception.running = false;
+    }
     if (value.state) {
       this.client.state = value.state;
       $("gptlive_status").textContent = value.state;
@@ -81,8 +104,9 @@ export class LiveCockpit {
   controls() {
     const busy = this.busy || this.starting;
     $("gptlive_start").disabled = busy || !this.scope.agentId || !this.capability.enabled || !this.capability.eligible;
-    $("gptlive_start").textContent = ["Error", "Disconnected"].includes(this.client?.state) ? "Reconnect GPT-Live" : "Start GPT-Live";
-    $("gptlive_stop").disabled = !this.active;
+    $("gptlive_start").textContent = this.scope.interactionProfile?.presenceControlledLive ? "Start reception"
+      : ["Error", "Disconnected"].includes(this.client?.state) ? "Reconnect GPT-Live" : "Start GPT-Live";
+    $("gptlive_stop").disabled = !this.busy;
     $("gptlive_mute").disabled = this.client?.state !== "Active";
     for (const id of ["voice", "input", "output", "echo", "noise", "gain", "refresh"]) $("gptlive_" + id).disabled = busy;
     $("gptlive_output").disabled = busy || typeof $("gptlive_audio").setSinkId !== "function";

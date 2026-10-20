@@ -18,6 +18,12 @@ public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Ins
     }
     public JsonArray startupInput() {
         JsonArray input = new JsonArray();
+        String opening = guidance.get("opening");
+        if (opening != null && !opening.isBlank()) {
+            JsonObject message = new JsonObject(); message.addProperty("type", "message"); message.addProperty("role", "developer");
+            JsonObject part = new JsonObject(); part.addProperty("type", "input_text"); part.addProperty("text", opening);
+            JsonArray content = new JsonArray(); content.add(part); message.add("content", content); input.add(message);
+        }
         for (Item item : items) {
             JsonObject message = new JsonObject(); message.addProperty("type", "message"); message.addProperty("role", item.role());
             JsonObject part = new JsonObject(); part.addProperty("type", item.role().equals("assistant") ? "output_text" : "input_text");

@@ -34,22 +34,24 @@ public class AgentInteractionProfile {
     private List<String> profileTags;
     private boolean externalRealtimeSpeech;
     private boolean capabilityAwareness;
+    private boolean presenceControlledLive;
 
     protected AgentInteractionProfile() {
     }
 
     private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
             List<String> profileTags) {
-        this(supportedObservations, supportedBehaviourModalities, profileTags, false, false);
+        this(supportedObservations, supportedBehaviourModalities, profileTags, false, false, false);
     }
 
     private AgentInteractionProfile(List<String> supportedObservations, List<String> supportedBehaviourModalities,
-            List<String> profileTags, boolean externalRealtimeSpeech, boolean capabilityAwareness) {
+            List<String> profileTags, boolean externalRealtimeSpeech, boolean capabilityAwareness, boolean presenceControlledLive) {
         this.supportedObservations = normalize(supportedObservations);
         this.supportedBehaviourModalities = normalize(supportedBehaviourModalities);
         this.profileTags = normalize(profileTags);
         this.externalRealtimeSpeech = externalRealtimeSpeech;
         this.capabilityAwareness = capabilityAwareness;
+        this.presenceControlledLive = presenceControlledLive;
     }
 
     public static AgentInteractionProfile empty() {
@@ -79,7 +81,7 @@ public class AgentInteractionProfile {
 
     public AgentInteractionProfile withExternalRealtimeSpeech(boolean supported) {
         return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
-                this.profileTags, supported, this.capabilityAwareness);
+                this.profileTags, supported, this.capabilityAwareness, this.presenceControlledLive);
     }
 
     public boolean isCapabilityAwareness() {
@@ -88,7 +90,14 @@ public class AgentInteractionProfile {
 
     public AgentInteractionProfile withCapabilityAwareness(boolean enabled) {
         return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
-                this.profileTags, this.externalRealtimeSpeech, enabled);
+                this.profileTags, this.externalRealtimeSpeech, enabled, this.presenceControlledLive);
+    }
+
+    public boolean isPresenceControlledLive() { return this.presenceControlledLive; }
+
+    public AgentInteractionProfile withPresenceControlledLive(boolean enabled) {
+        return new AgentInteractionProfile(this.supportedObservations, this.supportedBehaviourModalities,
+                this.profileTags, this.externalRealtimeSpeech, this.capabilityAwareness, enabled);
     }
 
     public boolean supportsObservation(String observation) {
@@ -103,7 +112,7 @@ public class AgentInteractionProfile {
         return GSON.toJson(new AgentInteractionProfile(
                 this.supportedObservations,
                 this.supportedBehaviourModalities,
-                this.profileTags, this.externalRealtimeSpeech, this.capabilityAwareness));
+                this.profileTags, this.externalRealtimeSpeech, this.capabilityAwareness, this.presenceControlledLive));
     }
 
     public static AgentInteractionProfile fromJson(String json) {
@@ -116,7 +125,7 @@ public class AgentInteractionProfile {
         }
         return new AgentInteractionProfile(profile.supportedObservations,
                 profile.supportedBehaviourModalities,
-                profile.profileTags, profile.externalRealtimeSpeech, profile.capabilityAwareness);
+                profile.profileTags, profile.externalRealtimeSpeech, profile.capabilityAwareness, profile.presenceControlledLive);
     }
 
     private static boolean contains(List<String> values, String value) {

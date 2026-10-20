@@ -258,6 +258,14 @@ public class ScopedLiveSessionService {
                 org.slf4j.LoggerFactory.getLogger(ScopedLiveSessionService.class).warn("Generic task session pause failed; subsequent turns remain fenced");
             }
         }
+        if (first && lease.context != null) {
+            try { contexts.closed(lease.agentId,
+                    new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch())); }
+            catch (RuntimeException failure) {
+                lease.cleanupFailed = true;
+                org.slf4j.LoggerFactory.getLogger(ScopedLiveSessionService.class).warn("Live policy close transition failed");
+            }
+        }
         ownership.release(lease.agentId, lease.handle);
     }
 
