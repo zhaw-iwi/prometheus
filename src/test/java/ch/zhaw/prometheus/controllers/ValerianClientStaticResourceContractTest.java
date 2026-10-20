@@ -583,7 +583,9 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("passesSensorEmitInterval(\"emotion\")"));
         assertTrue(script.contains("passesSensorEmitInterval(\"social\")"));
         assertTrue(script.contains("markSensorEmitted(\"hand\")"));
-        assertTrue(script.contains("!candidate || !document.getElementById(\"sensor_emit_enabled\").checked"));
+        assertTrue(script.contains("!document.getElementById(\"sensor_emit_enabled\").checked"));
+        assertTrue(script.contains("Not sent: enable Emit camera observations"));
+        assertTrue(script.contains("Not sent: below hand confidence threshold"));
         assertTrue(script.contains("setCameraStatus(state.cameraRunning ? \"Camera Live\" : \"Camera Idle\""));
 
         assertFalse(script.contains("lastEmitAt: 0"));

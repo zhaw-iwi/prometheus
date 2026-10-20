@@ -128,6 +128,25 @@ and regulation diagnostics remain future work.
   are up, the cockpit responds, and the production core catalog includes the new
   definition. Release verification details are recorded below.
 
+- Reusable Live reception/task extensions (2026-10-20): explicit application-policy
+  support, encounter-scoped context, optional session-close transitions and
+  operator-armed presence control. Generic task configuration exposes persona-aware
+  instructions, pre-mutation validation and recovery localization. Application
+  definitions remain on `agents`; branch integration preserves the newer
+  hand-observation status refinement.
+
+- Hand observation diagnostic follow-up (2026-10-20): the camera hand report now
+  exposes disabled emission, missing connection, confidence and stability gates,
+  and retains successful acknowledgement time during cooldown. Previously all
+  these cases reverted to `Live`. Valid camera signs reach scoped HTTP requests,
+  Generic task inference and Live context in automated tests (32 Live JavaScript
+  and 38 focused Java cases passed). A browser regression was added and syntax
+  checked; execution was not run because local-server permission was declined.
+  The user subsequently confirmed sensing works in the current session. The
+  supplied telemetry omits sensor payloads, so the original incident's cause and
+  recovery remain unconfirmed. No sending thresholds or backend observation
+  contracts changed.
+
 - Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
   fingerprinted and idempotent, preserving custom prompts, agreements and history.
   Incompatible saved rules receive focused clarification. Replay refined caption

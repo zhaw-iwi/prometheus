@@ -106,6 +106,50 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.locator("#activity_log")).toHaveText("");
 });
 
+test("camera hand report separates visible detection from acknowledged framework delivery", async ({ page, context }) => {
+  const scenario = { created: true, history: [] };
+  await installLifecycleApiMocks(context, scenario);
+  const observations = [];
+  await context.route(`**/demo/agents/${AGENT_ID}/acknowledge`, route => {
+    observations.push(route.request().postDataJSON());
+    return route.fulfill(json({ active: true, responseEvent: null }));
+  });
+  await page.goto("/valerian/");
+  await enterAccessCode(page);
+  await page.locator("#open_diagnostics").click();
+  await page.locator("#agent_select").selectOption(AGENT_ID);
+  await page.getByTestId("connect-agent").click();
+  await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${AGENT_ID}`);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("sensor-emit-enabled").check();
+
+  // Feed the real detector callback while keeping media/model downloads offline.
+  const frames = (confidence, count) => page.evaluate(async ({ confidence, count }) => {
+    camera.video = { readyState: HTMLMediaElement.HAVE_CURRENT_DATA, currentTime: camera.video.currentTime };
+    camera.handRecognizer = { recognizeForVideo: () => ({
+      gestures: [[{ categoryName: "Open_Palm", score: confidence }]],
+      landmarks: [Array.from({ length: 21 }, (_, i) => ({ x: .4 + i / 100, y: .5 }))],
+    }) };
+    for (let i = 0; i < count; i++) { camera.video.currentTime += .35; await detectHandSign(); }
+  }, { confidence, count });
+  await frames(.4, 3);
+  await expect(page.getByTestId("hand-sign-value")).toContainText("Papier 0.40");
+  await expect(page.getByTestId("hand-sign-status")).toHaveText("Not sent: below hand confidence threshold");
+  expect(observations).toHaveLength(0);
+  await frames(.9, 1);
+  expect(observations).toHaveLength(1);
+  expect(observations[0].type).toBe("obs.hand.sign");
+  expect(JSON.parse(observations[0].payload)).toMatchObject({ sign: "paper", confidence: .9, source: "valerian.hand.camera" });
+  await expect(page.getByTestId("hand-sign-status")).toContainText("Emitted");
+  await frames(.9, 1);
+  expect(observations).toHaveLength(1);
+  await expect(page.getByTestId("hand-sign-status")).toContainText("Emitted");
+  await page.getByTestId("sensor-emit-enabled").uncheck();
+  await frames(.9, 1);
+  await expect(page.getByTestId("hand-sign-status")).toHaveText("Not sent: enable Emit camera observations");
+  expect(observations).toHaveLength(1);
+});
+
 async function enterAccessCode(page) {
   await page.getByTestId("access-code-input").fill(ACCESS_CODE);
   await page.getByTestId("submit-access-code").click();

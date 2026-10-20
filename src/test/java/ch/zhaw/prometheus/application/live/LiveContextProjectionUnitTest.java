@@ -102,6 +102,24 @@ class LiveContextProjectionUnitTest {
         assertTrue(narrowed.items().isEmpty());
         assertNotEquals(expired.revision(), narrowed.revision());
     }
+    @Test void cameraHandSignsReachGenericLiveContextAndExpireWhenNoLongerObserved() {
+        Agent agent = new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour().createAgent();
+        var delivery = new LiveContextDelivery(projection(NOW).project(agent)); delivery.ready();
+        Event hand = append(agent, Event.TYPE_HAND_SIGN,
+                "{\"source\":\"valerian.hand.camera\",\"sign\":\"paper\",\"confidence\":0.9,"
+                + "\"detectionMode\":\"client_camera\",\"stabilityFrames\":3,\"ts\":\"" + NOW + "\"}", NOW);
+        var current = projection(NOW.plusSeconds(1)).project(agent);
+        var item = current.items().stream().filter(i -> Event.TYPE_HAND_SIGN.equals(i.type())).findFirst().orElseThrow();
+        assertEquals("fresh", item.freshness()); assertEquals(List.of(hand.getId()), item.sourceIds());
+        var batch = delivery.plan(current, List.of());
+        String content = batch.commands().stream().map(LiveContextDelivery.Command::content).reduce("", String::concat);
+        assertTrue(content.contains("obs.hand.sign")); assertTrue(content.contains("\"sign\":\"paper\""));
+        assertTrue(content.contains("\"confidence\":0.9"));
+        delivery.acknowledged(batch);
+        String expired = delivery.plan(projection(NOW.plusSeconds(15)).project(agent), List.of()).commands().stream()
+                .map(LiveContextDelivery.Command::content).reduce("", String::concat);
+        assertTrue(expired.contains("expired")); assertFalse(expired.contains("\"sign\":\"paper\""));
+    }
     @Test void supportsOnlyDeclaredCapabilityAndKnownPolicies() {
         var adapter = new LiveVoicePolicyAdapter();
         for (Agent agent : List.of(new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent(),
