@@ -188,6 +188,17 @@ class GenericMultimodalTaskUnitTest {
         assertTrue(prompt.contains("humanCount")); assertTrue(prompt.contains("obs.emotion.face: unknown"));
         assertFalse(prompt.contains("\"valence\":-0.9"));
     }
+    @Test void cameraHandSignIsAvailableToPerceptionAnswersWithoutTriggeringAnUnconfiguredTask() {
+        assertNull(agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "user",
+                "{\"source\":\"valerian.hand.camera\",\"sign\":\"paper\",\"confidence\":0.9,"
+                + "\"detectionMode\":\"client_camera\",\"ts\":\"" + Instant.now() + "\"}"), runtime));
+        verifyNoInteractions(gateway);
+        when(gateway.infer(any())).thenReturn(update("KEEP", "null", "The camera reports paper."));
+        say("What hand sign do you see?");
+        var request = ArgumentCaptor.forClass(InferenceRequest.class); verify(gateway).infer(request.capture());
+        String prompt = request.getValue().messages().stream().map(PromptMessage::getContent).reduce("", String::concat);
+        assertTrue(prompt.contains("obs.hand.sign: observed=")); assertTrue(prompt.contains("\"sign\":\"paper\""));
+    }
     @Test void liveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
         var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()); var live = runtime.withExternalSpeech(owner);
         when(gateway.infer(any())).thenReturn(update("ACTIVATE", SPEC, "First joke."));

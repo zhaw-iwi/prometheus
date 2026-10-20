@@ -122,6 +122,17 @@ far-field speech; use longer custom timing or manual turns where needed. Run
 `node tests/needforspeed/replay-vad.mjs` for the offline segmentation comparison.
 It does not measure ASR accuracy or provider latency.
 
+Camera hand sensing publishes classified rock, scissor or paper signs through
+`obs.hand.sign`; the blue landmark overlay only confirms local detection.
+Sending requires a connected agent, **Emit camera observations**, the configured
+hand confidence threshold (default 0.65) and three consecutive detections of the
+same sign. The Hand Sign Report shows the blocking reason, **Stabilizing**, or
+**Emitted** with the last successful acknowledgement time; **Emit failed** means
+the request did not succeed. A held eligible sign is sent again after 2.5 seconds.
+Live and Generic task perception expire hand readings after 15 seconds without
+a fresh observation. The telemetry export omits sensor payloads; check the
+diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
+
 #### Cockpit lifecycle contract
 
 The sensing, interaction, and behaviour columns represent the currently

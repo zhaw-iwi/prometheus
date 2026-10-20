@@ -3502,8 +3502,8 @@ async function detectHandSign() {
       confidence: candidate.confidence,
       cannedGesture: candidate.cannedGesture,
       stabilityFrames: camera.stableGestureCount,
-      statusText: "Live",
-      statusMode: "live",
+      statusText: "Detected",
+      statusMode: "idle",
     });
   } else {
     setText("hand_sign_value", "-");
@@ -4642,17 +4642,28 @@ function updateCameraStability(candidate) {
 }
 
 async function maybeEmitCameraSign(candidate) {
-  if (!candidate || !document.getElementById("sensor_emit_enabled").checked) {
+  if (!candidate) {
+    return;
+  }
+  if (!state.agentId) {
+    setHandSignStatus("Not sent: connect an agent", "idle");
+    return;
+  }
+  if (!document.getElementById("sensor_emit_enabled").checked) {
+    setHandSignStatus("Not sent: enable Emit camera observations", "idle");
     return;
   }
   if (candidate.confidence < Number(document.getElementById("hand_confidence_threshold").value || 0.65)) {
+    setHandSignStatus("Not sent: below hand confidence threshold", "idle");
     return;
   }
   if (camera.stableGestureCount < REQUIRED_STABLE_GESTURE_FRAMES) {
+    setHandSignStatus(`Stabilizing ${camera.stableGestureCount}/${REQUIRED_STABLE_GESTURE_FRAMES}`, "idle");
     return;
   }
   const emitKey = `${candidate.sign}|${candidate.cannedGesture}`;
   if (emitKey === camera.lastCameraEmitKey && Date.now() - camera.lastCameraEmitAt < 2500) {
+    setHandSignStatus(`Emitted ${new Date(camera.lastCameraEmitAt).toLocaleTimeString()}`, "live");
     return;
   }
   const ok = await submitHandSign(candidate.sign, {

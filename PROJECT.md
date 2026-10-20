@@ -75,6 +75,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Hand observation diagnostic follow-up (2026-10-20): the camera hand report now
+  exposes disabled emission, missing connection, confidence and stability gates,
+  and retains successful acknowledgement time during cooldown. Previously all
+  these cases reverted to `Live`. Valid camera signs reach scoped HTTP requests,
+  Generic task inference and Live context in automated tests (32 Live JavaScript
+  and 38 focused Java cases passed). A browser regression was added and syntax
+  checked; execution was not run because local-server permission was declined.
+  The user subsequently confirmed sensing works in the current session. The
+  supplied telemetry omits sensor payloads, so the original incident's cause and
+  recovery remain unconfirmed. No sending thresholds or backend observation
+  contracts changed.
+
 - Milestone 213 (2026-10-03): saved Generic policy upgrades are explicit,
   fingerprinted and idempotent, preserving custom prompts, agreements and history.
   Incompatible saved rules receive focused clarification. Replay refined caption
