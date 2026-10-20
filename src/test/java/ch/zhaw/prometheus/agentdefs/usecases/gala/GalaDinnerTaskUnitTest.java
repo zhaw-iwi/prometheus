@@ -198,7 +198,7 @@ class GalaDinnerTaskUnitTest {
         verify(gateway, times(2)).infer(requests.capture());
         var configuration = requests.getAllValues().getLast();
         assertFalse(configuration.messages().stream().anyMatch(message -> message.getContent().contains("Besucher-Geheimnis")));
-        assertTrue(configuration.messages().getFirst().getContent().contains("You are GIGI"));
+        assertTrue(configuration.messages().getFirst().getContent().contains("You are djee-djee"));
         assertFalse(configuration.messages().getFirst().getContent().contains("You are Valerian"));
     }
 

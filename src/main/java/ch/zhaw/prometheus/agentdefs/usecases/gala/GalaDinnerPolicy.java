@@ -35,7 +35,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String liveOpeningInstructions() {
         return "At the beginning of this new voice session only, greet the visible visitors once in German: "
-                + "\"Grüezi, ich bin GIGI vom SIRA Lab der ZHAW. Willkommen zum Gala Dinner!\" "
+                + "\"Grüezi, ich bin djee-djee vom SIRA Lab der ZHAW. Willkommen zum Gala Dinner!\" "
                 + "Then listen. Do not repeat this greeting on state changes or refreshed observations.";
     }
     @Override public String voiceInstructions() {
@@ -51,7 +51,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return null; }
     @Override public String describe() {
-        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerPrompts.KNOWLEDGE
+        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerReference.context()
                 + "\nCurrent mode: " + GalaDinnerMemory.mode(storage);
     }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,

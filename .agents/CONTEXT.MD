@@ -143,7 +143,10 @@ PROMETHEUS currently provides:
   guessing and return-to-reception on completion, interruption or idle/departure;
   it uses GPT-Live only, with quiet creation, one greeting per visible encounter,
   immediate local audio stop on camera departure, fresh sessions on re-entry and
-  restrained facial-change embodiment; setup and physical limits are in README;
+  restrained facial-change embodiment. One packaged, sourced reference supplies
+  institutional/event facts across Gala policies; audit URLs stay outside model
+  context. Spoken guidance uses djee-djee while the stored name stays GIGI.
+  Setup, instruction-budget verification and physical limits are in README;
 - a regulation foundation with persisted specifications, snapshot context,
   modulation values, internal events, reset behavior, and tests;
 - Valerian Cockpit, Valerian Access Management, the public Talk to Me exact-text
@@ -304,8 +307,13 @@ Multimodal Behaviour observation/output set. Its explicit task phases, transitio
 and blocking actions negotiate and persist bounded reaction rules in ordinary
 Storage. User-turn inference produces a validated task operation plus a canonical
 behaviour plan; sensor guards run locally and call inference only for a qualifying
-reaction. Reset clears task configuration. Existing definitions retain their
-policies. Live explicitly supports the task state/policy and speaks committed
+reaction. Reset clears task configuration. Task and ambient model replies use the
+shared compact behaviour codec,
+expanded before the existing task validation; canonical replies remain accepted.
+Encoding guidance is appended at inference time, preserving saved prompts,
+task rules, state control and the published plan contract. Paired canonical/compact
+Live journeys for Generic, Social Space and Gala are documented in README.
+Live explicitly supports the task state/policy and speaks committed
 announcements; current perception is also supplied directly to task-turn inference.
 See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
 verification and pending physical/provider trials. This work starts on

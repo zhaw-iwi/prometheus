@@ -1,0 +1,108 @@
+{
+  "recordedOn": "2026-10-20",
+  "sources": [
+    {
+      "id": "sml-briefing",
+      "description": "SML profile supplied by the project owner on 2026-10-20, including leadership, approximate counts and accreditation years. Not independently reverified.",
+      "urls": ["https://www.zhaw.ch/en/about-us/person/stno/"]
+    },
+    {
+      "id": "iwi-briefing",
+      "description": "IWI profile supplied by the project owner on 2026-10-20, including institute leadership. Repeated knowledge-transfer wording consolidated.",
+      "urls": ["https://www.zhaw.ch/de/ueber-uns/person/shhd"]
+    },
+    {
+      "id": "sira-briefing",
+      "description": "SIRA Lab description supplied by the project owner on 2026-10-20. The repeated interaction-axes paragraph is included once.",
+      "urls": []
+    },
+    {
+      "id": "gigi-definition",
+      "description": "Existing Gala definition and project owner's pronunciation correction: written name GIGI; spoken name djee-djee. Supported behaviour plans do not establish physical execution.",
+      "urls": []
+    },
+    {
+      "id": "organiser-update",
+      "description": "Organiser's Gala Dinner and Home of Innovation briefing supplied by the project owner on 2026-10-20. It supersedes the earlier seating time: seating is at 18:30. Availability is a briefing snapshot; Community Plus offer applies to joining August through December 2026.",
+      "urls": []
+    },
+    {
+      "id": "earlier-gala-reference",
+      "description": "Reference inherited from Milestones 215-218: earlier guest email programme and public institutional/event pages, recorded as checked on 2026-10-20. Later course/programme times, address and practical details are retained from that earlier reference, not newly confirmed by the organiser update. The guest programme's 23:30 end took precedence over the public listing's 21:30.",
+      "urls": [
+        "https://homeofinnovation.ch/",
+        "https://www.zhaw.ch/de/sml/institute-zentren/iwi",
+        "https://siralab.ch/",
+        "https://www.zhaw.ch/de/sml/institute-zentren/iwi/ueber-uns/sira-lab"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "sml",
+      "title": "ZHAW School of Management and Law (SML)",
+      "sourceIds": ["sml-briefing"],
+      "facts": [
+        "Eine der grössten Schweizer Wirtschaftshochschulen; rund 9'000 Studierende in Studium/Weiterbildung. Teil der ZHAW; fachübergreifende Zusammenarbeit.",
+        "Triple Crown: AACSB seit 2015, EQUIS seit 2023, AMBA seit 2025. Regelmässig in Financial-Times-Rankings; keine konkrete Rangposition angegeben.",
+        "BSc, MSc, kooperative PhD und Weiterbildung: wissenschaftlich, interdisziplinär, praxisnah, inhaltlich/didaktisch innovativ. Forschungsstärke, nationale Verankerung, internationale Ausrichtung; Lösungen für Wirtschaft und Gesellschaft.",
+        "Leitmotiv: Building Competence. Crossing Borders. Über 190 Partnerhochschulen weltweit. Dekan und Geschäftsleiter: Prof. Dr. Reto Steiner."
+      ]
+    },
+    {
+      "id": "iwi",
+      "title": "Institut für Wirtschaftsinformatik / Institute of Information Systems (IWI)",
+      "sourceIds": ["iwi-briefing"],
+      "facts": [
+        "Institut der SML; verbindet Betriebswirtschaft/Informatik für verantwortliche KI- und Technologieintegration mit Mehrwert in Organisationen.",
+        "Themen: Data Science, datenbasierte Geschäftsmodelle, Process Science, Automatisierung, Informationssystemgestaltung/-entwicklung, menschenzentrierte Cybersicherheit, IT-Management, digitale Strategien, Virtual Reality, soziale Robotik.",
+        "Angewandte Forschung, breite Weiterbildung und Wissenstransfer mit Wirtschafts-/Wissenschaftspartnern. Eigenes SIRA Lab für soziale KI-Intelligenz. Leitung: Prof. Dr. Theresa Schmiedel."
+      ]
+    },
+    {
+      "id": "sira",
+      "title": "Socially Intelligent and Responsible Agents (SIRA) Lab",
+      "sourceIds": ["sira-briefing"],
+      "facts": [
+        "Teil des IWI, damit der SML/ZHAW. Digitale Agenten sollen soziale Signale wahrnehmen, Verhalten transparent strukturieren und verantwortlichen Nutzen für Einzelne/Gruppen schaffen.",
+        "Achsen: Verkörperung, Wahrnehmung/Verhalten, soziale Topologie, zeitliche Struktur, beteiligte Akteure, Tiefe sozialer Modellierung. Anwendungen sind Kombinationen in diesem Raum; soziale Anpassung, Verantwortung und Nutzen werden systematisch experimentell untersucht."
+      ]
+    },
+    {
+      "id": "gigi",
+      "title": "djee-djee und diese Demonstration",
+      "sourceIds": ["gigi-definition", "earlier-gala-reference"],
+      "facts": [
+        "SIRA-Roboterpersona am Gala-Empfang: Hardware Unitree G1 von Unitree; soziale Interaktion von SIRA mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne).",
+        "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
+      ]
+    },
+    {
+      "id": "event",
+      "title": "Gala Dinner",
+      "sourceIds": ["organiser-update", "earlier-gala-reference"],
+      "facts": [
+        "Samstag, 24. Oktober 2026; Festsaal Casinotheater Winterthur, Stadthausstrasse 119, 8400 Winterthur; rund 90 Gäste.",
+        "Jährlicher Anlass von Home of Innovation, Verein Digital Winterthur und Entrepreneur Club Winterthur (ECW); vernetzt Unternehmer:innen, Startups, Partner, Politik und Bildung für das regionale Innovationsökosystem.",
+        "Aktuelle Organisatorangaben: 17:30 Door Opening und Networking; 18:30 Seating und Welcome Words, Moderation Lukas Wachter; 18:40 Begrüssung durch Stadtpräsident Stefan Fritschi.",
+        "Spätere Zeiten aus dem früheren Gästeprogramm: 19:00 Vorspeise; 19:30 Fachimpuls Digital Winterthur/digitalswitzerland zu Digitalisierung, Innovation und KI; 19:50 Suppe; 20:20 ECW-Überraschungsgast vor dem Hauptgang (Worte stehen im Mittelpunkt, unterhaltsam; Identität unbekannt); 20:50 Hauptgang; 21:40 Preisverleihung; 22:20 Dessert; 23:30 Ende. Alles laut Programm, kein Live-Fortschritt.",
+        "Höhepunkt: Winterthurer Jugend-Innovationspreis (Home of Innovation), Abschlussarbeiten zu Innovation/Unternehmertum von 14- bis 23-Jährigen. CHF 1'000 plus Unternehmer-/Innovationsnetzwerk. Jury: Unternehmer:innen, Winterthurer Berufsschulvertretungen, regionale Persönlichkeiten. Bekanntgabe am Abend; Name nicht bekannt.",
+        "Frühere Angaben: festlich/elegant; ca. fünf Gehminuten vom Bahnhof; Parkhaus Manor nahebei, Verfügbarkeit unbekannt. Eventfotos/-videos für Kommunikation; Einwände ans Team. Absagen: info@homeofinnovation.ch.",
+        "Keine Angaben zu Sitzplatzzuweisungen, Menü/Allergenen, Live-Verzögerungen, Tickets oder Wegen im Gebäude; hierfür das Eventteam fragen."
+      ]
+    },
+    {
+      "id": "home_of_innovation",
+      "title": "Home of Innovation",
+      "sourceIds": ["organiser-update"],
+      "facts": [
+        "Seit 2019 Winterthurer Innovationsökosystem für Startups, Gründer:innen, Selbständige, KMU. Community, Austausch, Vernetzung, gemeinsames Wachstum. CEO: Pascale Hohl.",
+        "Standorte: Bahnhof (Stadthausstrasse 14), Wintower (Neuwiesenstrasse 15), Töss (Klosterstrasse 34). Briefing 20.10.2026: Coworking überall, einige Büros in Töss frei; aktuelle Verfügbarkeit beim Team erfragen. Sitzungszimmer online buchbar.",
+        "Community Plus ohne Raummiete: kostenlose Expert Hours, Lunch & Learns, Community-Events; Zugang zu ECW-/WinLink-Events; 25 % Rabatt auf Sitzungszimmer/Coworking. Abschluss August–Dezember 2026: CHF 250 im ersten Jahr; Folgejahrespreis unbekannt.",
+        "Gala-Team: Pascale Hohl, Noemi Ott, Selina Sen, Alicia De Oliveira, Stefanie Langhart; aktueller Aufenthaltsort unbekannt.",
+        "Marke Launch Control: Idee bis Skalierung; Inkubator Bring Your Idea to Life, Accelerator Boost Your Business; Workshops, Unternehmer-Coachings, Netzwerk.",
+        "Marke Winti Ventures: regionaler Investor Club; zwei- bis viermal jährlich Startup-Pitches vor Business Angels/Investor:innen. Weitere Angebote: Community-Events, Workshops, Winterthurer Jugend-Innovationspreis."
+      ]
+    }
+  ]
+}

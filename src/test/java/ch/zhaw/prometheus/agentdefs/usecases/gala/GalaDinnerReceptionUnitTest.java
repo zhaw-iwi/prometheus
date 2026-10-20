@@ -71,8 +71,8 @@ class GalaDinnerReceptionUnitTest {
         verify(gateway).infer(capture.capture());
         String instructions = new LiveVoicePolicyAdapter().instructions(agent);
         assertFalse(capture.getValue().messages().getFirst().getContent().contains("22:20"));
-        for (String required : List.of("djeedjee", "Unitree G1", "23:30", "19:30", "24 October 2026",
-                "Stadthausstrasse 119", "German by default", "Respect the first refusal", "No seating assignments"))
+        for (String required : List.of("djee-djee", "Unitree G1", "23:30", "19:30", "24. Oktober 2026",
+                "Stadthausstrasse 119", "German by default", "Respect the first refusal", "Keine Angaben zu Sitzplatzzuweisungen"))
             assertTrue(instructions.contains(required), required);
     }
 

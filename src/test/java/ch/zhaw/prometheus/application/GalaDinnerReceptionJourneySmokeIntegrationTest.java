@@ -13,7 +13,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import com.google.gson.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -29,6 +30,7 @@ import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.*;
 import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
+import fixtures.behaviour.TaskReplyFixture;
 
 /**
  * Real scoped sessions, transcript admission, persistence and provider-bound context.
@@ -63,6 +65,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private int receiptSequence;
     private Set<UUID> firstEventIds = Set.of();
     private boolean secondVisitor;
+    private boolean compact;
 
     private static final class Peer {
         final String providerId = "gala_journey_" + UUID.randomUUID();
@@ -107,7 +110,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         });
     }
 
-    @Test void twoVisitorsExploreGamesAndTasksWithoutInheritingConversationOrAnUnfinishedAgreement() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void twoVisitorsExploreGamesAndTasksWithoutInheritingConversationOrAnUnfinishedAgreement(boolean compact) {
+        this.compact = compact;
         code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
@@ -118,8 +124,13 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         try {
             // Visitor A: information, expressive feedback, RPS and an activated custom task.
             first = arrive();
-            assertTrue(first.peer().startup.instructions().contains("20:50 main course"));
-            nativeSpeech(first, "Grüezi, ich bin GIGI vom SIRA Lab der ZHAW. Willkommen zum Gala Dinner!");
+            String suppliedReference = first.peer().startup.instructions();
+            for (String fact : List.of("20:50 Hauptgang", "18:30 Seating", "Triple Crown",
+                    "Theresa Schmiedel", "Socially Intelligent and Responsible Agents",
+                    "CHF 250 im ersten Jahr", "ich bin djee-djee"))
+                assertTrue(suppliedReference.contains(fact), fact);
+            assertFalse(suppliedReference.contains("https://"));
+            nativeSpeech(first, "Grüezi, ich bin djee-djee vom SIRA Lab der ZHAW. Willkommen zum Gala Dinner!");
             say(first, "Ich heisse " + FIRST_NAME + ". Meine Bitte: " + FIRST_PREFERENCE + ".", control("CHAT"));
             nativeSpeech(first, "Grüezi " + FIRST_NAME + ", schön sind Sie da.");
             say(first, "Wann gibt es den Hauptgang?", control("CHAT"));
@@ -147,8 +158,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             hearAnnouncement(first);
             assertEquals(FIRST_GOAL, loaded().getStorage().get(TaskMemory.SPEC).getAsJsonObject().get("goal").getAsString());
             waitForCue();
-            scripted.add(BehaviourPlan.speechOnly(FIRST_REACTION).toJson());
-            hand("rock", Instant.now()); hearAnnouncement(first);
+            scripted.add(TaskReplyFixture.plan(FIRST_REACTION, compact).toString());
+            hand("rock", Instant.now());
+            assertEquals(TaskReplyFixture.plan(FIRST_REACTION, false), lastPlan().toJsonObject());
+            hearAnnouncement(first);
             assertEquals(2, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             assertEquals("Gala co-created task", loaded().getCurrentState().getName());
 
@@ -171,7 +184,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertNoFirstVisitor(second.peer().startup.instructions() + second.peer().startup.input());
             assertCurrentContextIsolated();
             assertTrue(ingress.history(id, second.owner().sessionId()).isEmpty());
-            nativeSpeech(second, "Grüezi, ich bin GIGI. Willkommen zum Gala Dinner!");
+            nativeSpeech(second, "Grüezi, ich bin djee-djee. Willkommen zum Gala Dinner!");
             say(second, "Ich heisse " + SECOND_NAME + ". Was weisst du über mich?", control("CHAT"));
             nativeSpeech(second, "Sie haben mir gerade Ihren Namen genannt, " + SECOND_NAME + ".");
             say(second, "Was macht das SIRA Lab?", control("CHAT"));
@@ -221,7 +234,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             hand("rock", Instant.now());
             assertEquals(calls, requests.size(), "A's trigger must not activate B's agreement");
             assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
-            scripted.add(BehaviourPlan.speechOnly("Ein neuer Witz für " + SECOND_NAME).toJson());
+            scripted.add(TaskReplyFixture.plan("Ein neuer Witz für " + SECOND_NAME, compact).toString());
             hand("paper", Instant.now());
             assertTrue(hearAnnouncement(second).endsWith("Aufgabe abgeschlossen."));
             assertReception(); assertTaskCleared(); assertCurrentContextIsolated();
@@ -235,6 +248,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     "Isolation must not be achieved by deleting the previous visitor's audit history");
             assertEquals(2, peers.size(), "Stable presence and activity changes do not create new encounters");
             assertTrue(scripted.isEmpty());
+            assertFalse(history().stream().filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                    .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
+            assertTrue(requests.stream().filter(request -> request.purpose() == InferencePurpose.EXTRACTION)
+                    .allMatch(request -> request.messages().getFirst().getContent().contains("only inside reply")));
             verifyNoInteractions(speech);
         } finally {
             if (second != null) live.close(code, id, second.owner().sessionId());
@@ -326,8 +343,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private static String control(String operation) {
         return "{\"operation\":\"" + operation + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}";
     }
-    private static String update(String operation, String spec, String speech) {
-        return "{\"operation\":\"" + operation + "\",\"task\":" + spec + ",\"reply\":" + BehaviourPlan.speechOnly(speech).toJson() + "}";
+    private String update(String operation, String spec, String speech) {
+        return TaskReplyFixture.update(operation, spec, speech, compact);
     }
     private static String spec(String goal, String sign, int actions, String response) {
         return new TaskSpec(goal, actions, List.of(new TaskSpec.Rule(Event.TYPE_HAND_SIGN, "sign", "eq",

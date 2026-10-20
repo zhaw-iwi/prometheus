@@ -301,7 +301,9 @@ catalog so `main` can remain the reusable PROMETHEUS framework line.
 
 `usecases.gala_dinner_reception` is the event-specific `GalaDinnerReception`
 definition under `agentdefs/usecases`, registered on `agents`. Its fixed persona
-is **GIGI** (pronounced "djeedjee"), with German conversation by default.
+is **GIGI**, with German conversation by default. Voice instructions and the
+opening greeting use **djee-djee** (IPA `/dʒiː dʒiː/`); the displayed/stored name
+remains GIGI. Pronunciation still needs listening verification with the chosen voice.
 It uses **GPT-Live only** for spoken interaction. Ordinary Text/Continuous input
 does not generate Gala replies. Live speaks small talk and approved event answers;
 PROMETHEUS owns task decisions, game results and canonical nonverbal behaviour.
@@ -330,14 +332,40 @@ To operate the entrance demonstration:
    reception and requires explicit Start after recovery. The detector's sampling
    latency and possible missed detections remain physical-trial considerations.
 
-Reception answers questions about the gala, Home of Innovation, ZHAW IWI, SIRA
-Lab and GIGI. The reference in `gala/GalaDinnerPrompts.java` uses the supplied
-organiser email plus [Home of Innovation](https://homeofinnovation.ch/),
-[IWI](https://www.zhaw.ch/de/sml/institute-zentren/iwi) and
-[SIRA](https://siralab.ch/), checked on 20 October 2026. The gala is on
-**24 October 2026**, at **Casinotheater Winterthur, Stadthausstrasse 119**.
-The supplied 17:30-23:30 programme takes precedence over the website's 21:30 end.
-Times are scheduled, not live progress; seating, menus and changes need the team.
+Reception answers questions about SML, IWI, SIRA Lab, GIGI, the gala and Home of
+Innovation. The single maintained reference is
+[`reference.json`](src/main/resources/ch/zhaw/prometheus/agentdefs/usecases/gala/reference.json).
+It records the institutional profiles and organiser briefing supplied on
+20 October 2026, together with provenance for the inherited programme/logistics.
+Its compact German facts include institutional relationships, leadership,
+accreditations and research focus, the youth prize, Home of Innovation services,
+contacts and the dated Community Plus offer. Source URLs and audit descriptions
+remain in the resource and are excluded from model instructions; there is no
+web lookup. Supplied institutional claims have not been independently reverified.
+
+`GalaDinnerReference` renders those facts once per assembled Live prompt.
+Reception, both games and the task policy reuse that same reference through
+`GalaDinnerPolicy`; behavioural rules remain in `GalaDinnerPrompts`.
+An `OuterState` is not needed for this sharing: the Live adapter uses the active
+`ExternalVoicePolicy`, rather than automatically inheriting an outer prompt.
+The state graph, saved history and task-control boundaries are unchanged.
+The complete instructions are tested in every reachable Gala state and both
+embodiments, including simultaneous maximum-length task/proposal goals, against
+the existing 16,000-byte limit.
+
+The gala is on **24 October 2026**, at **Casinotheater Winterthur,
+Stadthausstrasse 119**. The latest organiser briefing specifies **17:30 opening/
+networking and 18:30 seating/welcome**, correcting the earlier seating time.
+Later course/programme times, including the 23:30 end, are retained explicitly
+as the earlier guest programme; the new briefing does not reconfirm those times.
+Scheduled times do not establish live progress. Availability is a briefing
+snapshot; the team confirms current availability, seating assignments, menus
+and changes. The prize winner and surprise guest identity are not supplied.
+
+The packaged reference and opening guidance apply to loaded Gala policies after
+an application update and a fresh Live session. Previously persisted task-action
+prompts are not rewritten; create a new instance for the revised task speech
+guidance. No saved graph or history is migrated automatically.
 
 The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
 
@@ -638,6 +666,20 @@ tuples, unknown short keys and overlapping short-key/`x` definitions fail withou
 a repair request or partial speech. Compare actual completion tokens and latency
 in the Telemetry export; a shorter JSON representation alone does not
 establish a deployment speedup.
+
+Generic task actions, Social Space ambient replies and Gala's co-created tasks
+also request this representation. Configuration results retain exactly
+`operation`, `task`, `reply`; compact behaviour belongs **inside `reply`**, while
+task rules keep their canonical fields. Cue/ambient results contain the plan
+directly. The shared codec expands the result before task validation, including
+the 1800-character canonical-plan limit and existing channel/value restrictions.
+Speech-only output and intentional silence `{}` remain valid. Canonical answers
+remain accepted, and persisted prompts receive encoding guidance at inference
+time without rewriting saved policies. State transitions, model routes, call
+counts, lifecycle rules and Live voice instructions are unchanged.
+
+The decode timing labels above belong to ordinary `PromptPolicy` generation;
+task actions retain their existing inference/activity telemetry.
 
 Deterministic RPS output and Talk to Me still construct plans without model calls.
 Speech-only policies use the same typed `BEHAVIOUR` / `JSON_OBJECT` inference path
@@ -1929,6 +1971,25 @@ Incompatible active agreements are paused for explicit rule clarification; their
 meaning is never silently converted. Activating an incompatible saved draft asks
 for a rule correction without requesting the whole task again. There is no
 automatic startup migration.
+
+The representative Live journeys run with both canonical and compact scripted
+model responses, through scoped sessions, persisted tasks, transcript admission
+and provider-bound announcements:
+
+| Agent | Journey |
+| --- | --- |
+| Generic | Proposal, Live activation, captured announcement, fresh cue, duplicate suppression, stop and reset (`GenericMultimodalTaskIntegrationTest`). |
+| Social Space | Arrival, name address, proposal/acceptance, cue response, task priority over ambient sensing, stop and departure (`SocialSpaceLiveJourneySmokeIntegrationTest`). |
+| Gala | Two visitors, information, games, proposal/acceptance, task cues/completion and encounter isolation (`GalaDinnerReceptionJourneySmokeIntegrationTest`). |
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest
+```
+
+The runner provisions and removes a disposable local MySQL schema/account.
+These tests control model and voice responses; they do not establish acoustic
+quality. Milestone 220 in `.agents/NEEDFORSPEED_RESULTS.md` records the separate
+real text-provider comparison, browser check and remaining wording limitations.
 
 ### Generic Multimodal Behaviour at Social Space
 

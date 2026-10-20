@@ -46,3 +46,24 @@ quality, acoustic latency, echo cancellation or Bluetooth support. Follow the
 physical contract in [PLAN_GPTLIVE.md](../../.agents/PLAN_GPTLIVE.md) and record
 each OS/device/noise result separately in the results record. Do not mark unrun
 trials as passing.
+
+## Representative task-agent journeys
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest
+```
+
+Each agent's happy path runs once with canonical provider output and once with
+compact output. Both must publish canonical plans and preserve task agreements,
+action counts, speech capture and duplicate suppression. Generic covers proposal,
+activation, a fresh cue and stop/reset. Social Space adds arrival/departure,
+name address and task priority over ambient reactions. Gala covers two separate
+visitors, games and co-created tasks with no inherited conversation/agreement.
+The full runtime and MySQL persistence are real; provider voice/model responses
+are scripted. The tests never contact a paid provider.
+
+The existing browser smoke `Generic activation telemetry` additionally checks
+the real cockpit's pending work, cue waiting, failure and reset. It is skipped
+when Live is disabled. A separate bounded text-provider comparison is recorded
+in [NEEDFORSPEED_RESULTS.md](../../.agents/NEEDFORSPEED_RESULTS.md); that comparison
+is not an acoustic GPT-Live trial.

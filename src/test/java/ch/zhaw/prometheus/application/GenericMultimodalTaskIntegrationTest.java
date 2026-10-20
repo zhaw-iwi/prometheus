@@ -10,6 +10,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,6 +28,7 @@ import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.*;
 import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
+import fixtures.behaviour.TaskReplyFixture;
 
 @SpringBootTest(properties = {"prometheus.live.enabled=true", "prometheus.runtime.tick.enabled=false"})
 class GenericMultimodalTaskIntegrationTest {
@@ -116,7 +119,9 @@ class GenericMultimodalTaskIntegrationTest {
         verifyNoInteractions(language);
     }
 
-    @Test void scopedCreationReloadLiveTranscriptSensorNarrationAndStopShareOneDurableTask() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void scopedCreationReloadLiveTranscriptSensorNarrationAndStopShareOneDurableTask(boolean compact) {
         String code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(GenericMultimodalBehaviour.KEY));
@@ -126,12 +131,14 @@ class GenericMultimodalTaskIntegrationTest {
         assertInstanceOf(TaskState.class, loaded.getCurrentState());
         assertInstanceOf(TaskPolicy.class, loaded.getCurrentState().ownPolicy());
         verifyNoInteractions(language);
-        when(language.infer(any())).thenReturn("""
+        var proposal = JsonParser.parseString("""
                 {"operation":"PROPOSE","task":{"goal":"Greet arrivals","maxActions":3,"rules":[
                 {"eventType":"obs.human.presence","field":"humanCount","operator":"gt","value":1,
                 "action":"Welcome the visible group","complete":false,"minConfidence":0.5,"samples":1,"cooldownSeconds":3}]},
                 "reply":{"speech":"I propose greeting arrivals."}}
-                """);
+                """).getAsJsonObject();
+        proposal.add("reply", TaskReplyFixture.plan("I propose greeting arrivals.", compact));
+        when(language.infer(any())).thenReturn(proposal.toString());
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
                 "Let's plan greetings for arriving groups."), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
         var proposed = agents.findById(id).orElseThrow().getStorage().get(TaskMemory.DRAFT).deepCopy();
@@ -155,10 +162,9 @@ class GenericMultimodalTaskIntegrationTest {
         var session = live.create(code, id, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow();
         var owner = new ExternalSpeech(session.handle(), live.status(code, id, session.handle()).orElseThrow().epoch());
         try {
-            when(language.infer(any())).thenReturn("""
-                    {"operation":"ACTIVATE","task":null,
-                    "reply":{"speech":"I will greet arrivals.","nonVerbal":{"gesture":"PLAYFUL_CURIOUS"}}}
-                    """, "{\"speech\":\"Welcome, everyone.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}");
+            when(language.infer(any())).thenReturn(
+                    TaskReplyFixture.update("ACTIVATE", "null", "I will greet arrivals.", compact).replace("ACKNOWLEDGE", "PLAYFUL_CURIOUS"),
+                    TaskReplyFixture.plan("Welcome, everyone.", compact).toString());
             Instant now = Instant.now();
             var fragment = new Fragment("generic-user-1", Speaker.USER, 100L, 2000L, now.toEpochMilli(), 1,
                     "Go ahead.");
@@ -171,7 +177,8 @@ class GenericMultimodalTaskIntegrationTest {
                     .anyMatch(trace -> trace.phase().equals("announcement_committed") && trace.sourceId() != null));
             assertEquals("RUNNING", agents.findById(id).orElseThrow().getStorage().get(TaskMemory.PHASE).getAsString());
             assertEquals(proposed, agents.findById(id).orElseThrow().getStorage().get(TaskMemory.SPEC));
-            assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream().anyMatch(event ->
+            assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).anyMatch(event ->
                     event.getPayload().contains("I will greet arrivals.") && event.getPayload().contains("\"gesture\":\"NONE\"")));
             recording.record(id, owner, "native-generic-1", "I will greet arrivals.", List.of(), SpeechProvenance.Association.NONE, true);
             new TransactionTemplate(transactions).executeWithoutResult(status -> {
@@ -183,6 +190,12 @@ class GenericMultimodalTaskIntegrationTest {
             demo.acknowledge(code, id, new EventRequest(Event.TYPE_HUMAN_PRESENCE, "sensor", Event.KIND_OBSERVATION, payload), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
             await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertEquals(2, commentary(sent)));
             assertTrue(sent.stream().anyMatch(event -> event.toString().contains("Welcome, everyone.")));
+            assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).anyMatch(event ->
+                    JsonParser.parseString(event.getPayload()).equals(TaskReplyFixture.plan("Welcome, everyone.", false))));
+            assertFalse(agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                    .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
             // The same sample cannot advance the task again, even across a database reload.
             demo.acknowledge(code, id, new EventRequest(Event.TYPE_HUMAN_PRESENCE, "sensor", Event.KIND_OBSERVATION, payload), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
             verify(language, times(2)).infer(any());

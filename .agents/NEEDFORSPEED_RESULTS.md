@@ -1,5 +1,104 @@
 # Need for speed: evidence record
 
+## Compact task behaviour and paired Live journeys (Milestone 220, 2026-10-20)
+
+Scope: representation-only extension of the existing compact behaviour codec to
+Generic task configuration replies/cues, Social Space ambient replies and Gala's
+co-created tasks. `operation`/`task` and executable rules remain canonical;
+only the behaviour plan, including the nested `reply`, uses `nv`. Expansion
+precedes existing task validation and the canonical 1800-character bound.
+Silence, optional speech, exact strings, expressive values and hand signs retain
+their contracts. Saved/custom canonical output remains accepted; runtime encoding
+guidance does not rewrite persisted policies. No state/guard/action ordering,
+model routing, task lifecycle, request count or Live voice-context change.
+
+The existing Generic and Gala Live journeys now run with canonical and compact
+scripted responses. Added the missing Social Space Live journey: arrival and
+name address, proposal/acceptance, captured response, a hand cue, duplicate
+suppression, task priority over ambient sensing, local stop and departure.
+All three exercise real scoped services, transcript ingress, JPA persistence,
+reloads and provider-bound announcements with controlled model/voice boundaries.
+Assertions compare expanded behaviour and task outcomes, not only speech.
+Focused units also protect expanded size limits, strict task modalities,
+unchanged agreement on malformed output, silence and no repair inference.
+
+Final verification:
+
+- **150 Java tests / 17 classes**, zero failures/errors/skips, on disposable
+  loopback MySQL with mocked/loopback providers. Command:
+  `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests TaskBehaviourEncodingUnitTest,CompactBehaviourPlanUnitTest,PromptPolicy*UnitTest,GenericMultimodalTaskUnitTest,TaskLifecycleUnitTest,SocialSpaceAgentUnitTest,GalaDinner*UnitTest,GenericMultimodalTaskIntegrationTest,SocialSpaceAgentIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest,GenericPolicyUpgradeIntegrationTest,LiveDelegationUnitTest`.
+  Evidence: `target/gptlive-acceptance-bd8a13bd6f/java.log` and `test-counts.json`.
+  This includes six paired representative journey cases, two per agent.
+- **One real-app Playwright case passed**: `Generic activation telemetry`, using
+  the acceptance runner with `--java-tests none --browser --live-only
+  --browser-grep "Generic activation telemetry"`. The Live-disabled execution
+  correctly skipped this enabled-only case; it is not a second pass.
+  Evidence: `target/gptlive-acceptance-8b0e68ad48/browser-true.log`,
+  `browser-false.log`, and the inspected pending-activation screenshot.
+- `.\mvnw.cmd -q -DskipTests package` passed. The production JAR contains the
+  shared codec and excludes test fixtures. Log: `target/task-compact-package.log`.
+  All owned test applications, schemas and restricted users were removed.
+- Initial verification corrected test assumptions about null-channel
+  normalization, the expanded-size fixture, selecting backend intent rather
+  than subsequent native speech, and filtering non-behaviour history before JSON
+  assertions. These did not require production behaviour changes.
+
+### Real text-provider comparison
+
+Captured actual action requests with synthetic data for six cases: Generic
+proposal/cue, Social Space arrival/cue, and Gala proposal/activation. Compared
+the original canonical instruction with the appended compact instruction on
+`gpt-5.6-luna`, `none` effort, using the checked-in production purpose routes.
+Each case ran twice per encoding, reversing order on the second repetition;
+30-second deadlines, 1500 output-token caps, no retries/fallbacks. No deployed
+agent, task, access code, database or GPT-Live voice session was changed.
+
+The first 24-call trial exposed one compact Gala proposal with `nv`/`motion`
+incorrectly beside `reply`. The existing strict envelope validator rejected it.
+Clarified the nested encoding instruction: exactly `operation`, `task`, `reply`
+at the root, all plan channels inside `reply`, and `task:null` retained when
+required. Added that observed malformed shape to the regression test.
+
+The final 24-call comparison passed **24/24** production task/behaviour validators
+and action replay checks, including expected PROPOSE/ACTIVATE operations, the
+requested trigger/action limits, unchanged draft activation and cue counts.
+These are structural/task-control checks, not a claim of perfect spoken wording.
+The generic/social cue outputs preserve identical speech and all expressive
+values across formats. Results:
+
+| Scope | Canonical | Compact |
+| --- | ---: | ---: |
+| Mean cue output tokens (four calls per format) | 76 | 57 |
+| Mean cue request latency | 1.502 s | 1.236 s |
+| Mean output tokens, all six cases | 119.2 | 114.8 |
+| Mean input tokens, all six cases | 1979 | 2364.5 |
+| Mean request latency, all six cases | 1.975 s | 1.892 s |
+
+This is a small trial, not a reliable end-to-end latency estimate. Configuration
+and ambient response wording/modality choices vary; configuration output does
+not consistently become shorter, and encoding instructions increase input.
+Do not claim a general response-speed improvement from these averages.
+
+Manual inspection also found existing Gala wording issues in both formats:
+some replies recite the pronunciation hint, describe a pause instead of the
+enforced encounter-end behaviour, or describe an initial hand action without
+consistently emitting that channel. These need a separate behaviour/prompt
+follow-up; the present change does not alter the validated state/lifecycle rules.
+Physical GPT-Live audio, pronunciation, camera/robot rendering and acoustic
+latency remain unverified. No deployment or commit was made.
+
+Final evidence: `target/task-encoding-trial-cases.json`,
+`target/task-encoding-provider-trial.json` (raw synthetic responses/usage),
+`target/task-encoding-provider-trial-validated.json`,
+`target/task-encoding-trial-validation.log`. Local capture/replay helpers:
+`target/TaskEncodingTrial.java`, `target/task_encoding_trial.py`.
+Initial evidence is retained in `target/task-encoding-provider-trial-initial.json`
+and `target/task-encoding-trial-validation-initial.log`; the initial validation
+report omitted JSON-null fields when writing, corrected for final evidence.
+
+Method references: [OpenAI latency optimization](https://developers.openai.com/api/docs/guides/latency-optimization)
+and [evaluation best practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices).
+
 ## Agents integration for Heroku testing (2026-09-17)
 
 Integrated features/needforspeed through f9fcffe into agents from d0d3618 using

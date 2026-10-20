@@ -82,6 +82,28 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 220 (2026-10-20): Generic task replies/cues, Social Space ambient
+  replies and Gala tasks reuse compact provider behaviour encoding, followed by
+  unchanged canonical validation and publication. No state/lifecycle/routing
+  change or saved-prompt migration. All three representative Live journeys now
+  run with canonical and compact responses; the missing Social Space Live
+  journey was added. Passed 150 Java checks, one real-app browser case and
+  packaging. A real-provider trial exposed and fixed ambiguous nested encoding;
+  the final 24 outputs passed structural/task-control validation. Cue output
+  tokens fell 76 -> 57; general latency improvement is not established. Existing
+  Gala wording issues and physical voice/robot limits remain; evidence:
+  `.agents/NEEDFORSPEED_RESULTS.md`.
+
+- Milestone 219 (2026-10-20): Gala uses one packaged, sourced reference for SML,
+  IWI, SIRA, GIGI, the event and Home of Innovation. Compact German facts omit
+  provenance URLs; the latest seating time and dated offers/availability are
+  explicit. Spoken guidance/opening use djee-djee; stored identity remains GIGI.
+  Existing policies share the reference without changing the state graph.
+  Passed 32 unit and three disposable-MySQL cases plus production packaging.
+  Every reachable state fits the 16,000-byte Live budget; the tested maximum
+  with two largest permitted multilingual goals is 15,776 bytes. Real-provider
+  factual quality and pronunciation remain unverified; see the milestone audit.
+
 - Gala release integration (2026-10-20): committed Milestones 215–218 and merged
   the reusable Live/task extensions through `feature/gptlive` and `main` into
   `agents`, retaining the newer hand-observation diagnostics. The combined tree
@@ -438,6 +460,8 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 220: Compact task behaviour and paired Live smoke journeys
+- [x] Milestone 219: Shared Gala institutional/event reference and spoken-name guidance
 - [x] Milestone 218: Two-visitor Gala journey and encounter-isolation smoke
 - [x] Milestone 217: Gala co-created multimodal task activity
 - [x] Milestone 216: Presence-controlled GPT-Live Gala reception
@@ -10363,3 +10387,114 @@ factual answer quality, actual ASR, browser media, physical sensing or G1 action
 The journey explicitly uses an empty camera view between visitors. Overlapping
 visitors share an encounter because individual identities are not tracked.
 No commit, push or deployment was performed.
+
+## Milestone 219
+
+### Date
+2026-10-20
+
+### Goal
+Give Gala a single maintained institutional/event reference, render concise facts
+into Live guidance without source URLs, and check the complete instruction budget.
+
+### What changed
+
+- Added `agentdefs/usecases/gala/reference.json` under classpath resources, with
+  six sections: SML, IWI, SIRA, GIGI, Gala Dinner and Home of Innovation. Facts are
+  curated from the user's institutional profiles, organiser update and inherited
+  event reference. Repeated source prose is consolidated; source descriptions,
+  links and recorded date remain available for maintenance.
+- `GalaDinnerReference` validates source associations and deterministically renders
+  only the compact German facts plus their date. No model call, URL fetch or
+  duplicate hand-maintained prompt summary is introduced.
+- Reception/game policies and `GalaDinnerTaskPolicy` reuse the existing common
+  `GalaDinnerPolicy` path. An outer state would not supply inherited guidance to
+  this active `ExternalVoicePolicy` path; no state graph or persistence schema
+  change was needed to share the reference.
+- Latest organiser information corrects seating to 18:30 after 17:30 opening/
+  networking. Later times retain explicit earlier-programme provenance. The youth
+  prize, named contacts, locations, services, brands and dated Community Plus
+  offer are included. Availability is qualified as a briefing snapshot; unknown
+  winners, surprise guest identity and practical details remain unknown.
+- Replaced the Live-facing name and opening greeting with djee-djee and an IPA
+  cue, retaining GIGI in instance/catalog metadata. Task configuration receives
+  that speech guidance on new instances. Saved task-action prompts are not
+  rewritten; history and saved graphs remain intact.
+- Compacted repeated behavioural guidance to retain the current Live instruction
+  limit. Reference, persona, capabilities, greeting, task instructions, phase,
+  revision and both active/proposed goals are counted together.
+- README and project context explain maintenance, sharing, rollout and limits.
+
+### Verification
+
+- Passed 32 unit cases:
+  `.\mvnw.cmd -q -Dtest=GalaDinnerReferenceUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerTaskUnitTest test`.
+  Evidence: `target/gala-reference-unit.log` and matching Surefire reports.
+- Reference checks cover supplied facts, updated seating, dated qualifications,
+  exclusion of source URLs/audit metadata, rejection of an unsourced section,
+  one reference per prompt, unchanged displayed identity and the phonetic opening.
+  All five reachable Gala states and both embodiments are checked across five task
+  phases. With simultaneous 400-character three-byte UTF-8 goals and the largest
+  integer revision, the maximum is 15,776 bytes against the 16,000-byte limit.
+  An earlier test run exposed the overflow; wording was compacted before passing.
+- Passed two persistence/scoped integration cases using:
+  `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest`.
+  The first journey failed on its obsolete English programme assertion, while the
+  two persistence cases passed. Evidence: `target/gptlive-acceptance-6adca89405/java.log`.
+- Updated the journey to assert the German reference and new institutional facts
+  in the actual provider request, check URL exclusion, and use phonetic scripted
+  greetings. Its focused rerun passed:
+  `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest`.
+  Evidence: `target/gptlive-acceptance-c8e1b45d5e/java.log`. Both runs removed their
+  owned disposable schemas/accounts; no developer database was used for fixtures.
+- `.\mvnw.cmd -q -DskipTests package` passed; a ZIP inspection verified that the
+  production JAR contains the byte-identical reference resource.
+  Evidence: `target/gala-reference-package.log`. `git diff --check` passed.
+
+### Limits and review handoff
+
+The institutional/organiser claims are supplied reference material, not newly
+independently verified facts. Exact later programme times retain their earlier
+source qualification. Real-provider factual fidelity, pronunciation, actual audio,
+browser/media and physical G1 behaviour were not tested; the integration journey
+uses scripted providers. The broad Java/browser suites were not rerun for this
+application-specific guidance change. No commits, push or deployment performed.
+
+## Milestone 220
+
+Date: 2026-10-20. Compact task behaviour and paired Live smoke journeys, on
+`agents`, preserving the pending Gala reference changes.
+
+### Goal and changes
+
+Extend the existing provider-only behaviour encoding to Generic task actions,
+Social Space ambient replies and Gala tasks, preserving canonical storage/output
+and all task/state/lifecycle rules. Configuration envelopes keep operation/task
+unchanged and encode only their nested reply. Expansion is followed by the
+existing task value/channel and expanded-size checks. Canonical replies and
+saved prompts remain supported without migration or additional inference.
+
+Added the missing Social Space Live happy path and parameterized the existing
+Generic/Gala journeys over canonical and compact model responses. The shared
+unit coverage checks equivalent plans/state changes, silence, strict validation
+and failure without agreement mutation or repair calls.
+
+### Verification and limits
+
+Passed 150 Java tests across 17 classes using disposable MySQL, including six
+representative journey cases. The existing real-app Generic browser smoke passed;
+its Live-disabled run correctly skipped it. Production packaging passed and
+excludes test fixtures. The real-provider comparison exposed one misplaced
+compact envelope; clarified nesting and retained the malformed shape as a test.
+The final 24 synthetic provider outputs passed production action replay and
+structural/task-control checks.
+
+Identical Generic/Social cue plans used 76 -> 57 completion tokens. Overall
+latency improvement remains unestablished by the small trial. Existing Gala
+speech wording issues appeared in both formats; physical Live audio, camera and
+robot behaviour remain outside automated acceptance. No commit, push, deployment,
+saved-agent update or production database change was made.
+
+Commands, artifacts, trial measurements and specific wording limitations are in
+`.agents/NEEDFORSPEED_RESULTS.md` (Milestone 220); repeatable journey instructions
+are in README and `tests/gptlive/README.md`.
