@@ -1,5 +1,58 @@
 # Need for speed: evidence record
 
+## Core-agent integration into main (2026-10-20)
+
+At the user's request, the reusable Social Space agent from `agents` commit
+`a3d60ed` and compact task/ambient encoding from `674763b` are selectively ported
+onto main `27ee349`. A whole-branch merge would also import deployment-only
+catalogs, persona selection and Gala content; those remain on `agents`.
+
+The port includes the shared Generic task factory, Social Space definition,
+local count-change guard and validated ambient action, the existing compact
+codec at the task boundary, registry coverage and both core Live journeys in
+canonical/compact form. Main uses its existing two-argument creation context and
+Valerian identity. The deployment-only embodiment assertions are adapted to
+main's creation and Live guidance contracts; no new persona columns are needed.
+State transitions, task rules, canonical storage/publication, existing prompt
+fingerprints, model routes and request counts retain their contracts.
+
+The original `agents` verification and provider trial remain recorded in that
+branch's Milestone 220 evidence. Its final 24 provider outputs passed validation;
+identical cue output used 57 rather than 76 completion tokens. This is not a
+general latency claim: instruction inputs grew and configuration outputs did
+not consistently shrink. The main integration reruns deterministic tests only;
+it does not claim new paid-provider, acoustic or physical robot evidence.
+
+Verification ran in the isolated
+`prometheus-core-agents-main-20261020` worktree:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties C:/Data/VSCodeWorkSpace/prometheus/src/main/resources/application-test.properties --java-tests TaskBehaviourEncodingUnitTest,CompactBehaviourPlanUnitTest,PromptPolicy*UnitTest,GenericMultimodalTaskUnitTest,TaskLifecycleUnitTest,SocialSpaceAgentUnitTest,GenericMultimodalTaskIntegrationTest,SocialSpaceAgentIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,GenericPolicyUpgradeIntegrationTest,LiveDelegationUnitTest,AgentDefinitionRegistryUnitTest,AccessCodeAdminServiceIntegrationTest,LiveSessionSmokeIntegrationTest,ValerianCorePromptContractTest
+.\mvnw.cmd -q -Dtest=ValerianCorePromptContractTest package
+```
+
+The first run passed 130 of 131 tests. Its one failure was main's legacy
+source-text ban on the word `robot`, including Social Space's intended discussion
+topic. The existing `a3d60ed` correction was ported: allow that topic only in
+Social Space while asserting its Valerian digital-agent identity, and include
+its explicit catalog display name. The three-case prompt-contract rerun and
+production packaging passed. All 131 cases across 16 classes now have passing
+evidence, with no errors or skips. The disposable local MySQL schema/account
+were removed; no configured application database was used.
+
+Both core Live journeys exercise canonical and compact outputs through real
+scoped services, persistence, transcript ingress and announcement capture with
+controlled providers. Tests also cover count-change silence, active-task
+priority, lifecycle, invalid output, unchanged saved agreements and existing
+Generic prompt upgrades. Browser/media and paid-provider trials were not rerun.
+
+The production JAR contains the new core definition/guard/action and codec, and
+excludes deployment agent packages and fixtures. The codec, task validator,
+task action and Social Space guard/action sources match `674763b` exactly.
+`git diff --check` passed. Local evidence:
+`target/gptlive-acceptance-4c5d4e3ffd/java.log`,
+`target/core-main-package.log`, and `target/core-main-verification.json`.
+
 ## Server speech delivery timing (Milestone 183, 2026-09-18)
 
 The user's 13:56 trial for fe3cd0bb-66de-4497-b215-34c909477f41 recorded 14

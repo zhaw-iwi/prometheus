@@ -6,15 +6,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /** Provider-only encoding. Canonical plans remain the persistence and client contract. */
-final class CompactBehaviourPlan {
+public final class CompactBehaviourPlan {
     private CompactBehaviourPlan() {}
 
-    static final String INSTRUCTIONS = """
-
-            For the final response, use this compact JSON encoding instead of the full field
-            names/layout above. This changes representation only, never speech or behaviour choices.
-            Return {"speech":"exact spoken response","nv":{...}} with no formatting whitespace.
-            Preserve whitespace and punctuation inside all strings, including speech.
+    private static final String FIELDS = """
             Within nv, encode the requested nonVerbal fields as follows:
             - g: gesture string, keeping the same semantic label.
             - f: [type,intensity] for facialExpression with exactly these two fields.
@@ -33,7 +28,35 @@ final class CompactBehaviourPlan {
             alongside nv. Return one complete JSON object, no Markdown or explanations.
             """;
 
-    static JsonObject expand(JsonObject object) {
+    static final String INSTRUCTIONS = """
+
+            For the final response, use this compact JSON encoding instead of the full field
+            names/layout above. This changes representation only, never speech or behaviour choices.
+            Return {"speech":"exact spoken response","nv":{...}} with no formatting whitespace.
+            Preserve whitespace and punctuation inside all strings, including speech.
+            """ + FIELDS;
+
+    /** Representation guidance for optional-channel plans, including a plan inside an action envelope. */
+    public static String instructions(boolean nestedReply) {
+        return "\nFinal output encoding (representation only; all authored behaviour rules still apply):\n"
+                + (nestedReply ? """
+                    Apply this encoding only inside reply. Keep operation and task unchanged.
+                    The response root still has exactly operation, task, reply. Include task:null when required.
+                    All behaviour fields (speech, nv, motion) belong inside reply, never beside operation/task.
+                    """
+                    : "Apply this encoding to the returned BehaviourPlan.\n")
+                + """
+                Replace nonVerbal with nv using the mapping below. Use minified JSON.
+                Speech remains optional; preserve its exact text, whitespace and punctuation.
+                {} remains intentional silence. Do not add speech or any unrequested channel.
+                The existing size limits apply to the expanded canonical plan.
+                """ + (nestedReply ? FIELDS.replace("top-level motion/display", "reply.motion/reply.display")
+                        .replace("nv.m is not top-level motion", "reply.nv.m is not reply.motion") : FIELDS)
+                + "This encoding does not authorize extra modalities; the authored channel restrictions still apply.\n";
+    }
+
+    /** Expand only the provider representation; callers must still apply their own plan validation. */
+    public static JsonObject expand(JsonObject object) {
         // Authored/persisted prompts and custom gateways may still return the canonical shape.
         if (!object.has("nv")) return object;
         if (!Set.of("speech", "nv", "motion", "display").containsAll(object.keySet())) throw invalid();

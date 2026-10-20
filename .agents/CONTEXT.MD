@@ -249,13 +249,23 @@ query-budget regression evidence and remaining provider/production limits.
 
 ## Conversational Task Configuration
 
+The core Social Space variant reuses the Generic task graph with brief English
+Valerian conversation. Outside active/waiting/paused tasks, a local guard admits
+one ambient reply for a fresh visible-human-count change. Stable visibility,
+regrouping and derived-event duplicates stay quiet; task agreements retain their
+sensor semantics. The main-branch port uses the existing creation API without
+the deployment-only embodiment/persona layer. Setup and limits are in README.
+
 `GenericMultimodalBehaviour` is a separate core definition with the existing
 Multimodal Behaviour observation/output set. Its explicit task phases, transitions
 and blocking actions negotiate and persist bounded reaction rules in ordinary
 Storage. User-turn inference produces a validated task operation plus a canonical
 behaviour plan; sensor guards run locally and call inference only for a qualifying
-reaction. Reset clears task configuration. Existing definitions retain their
-policies. Live explicitly supports the task state/policy and speaks committed
+reaction. Reset clears task configuration. Task and ambient replies accept compact
+provider JSON and expand it before unchanged canonical task validation. Encoding
+guidance is appended at inference time, preserving saved prompts and state control.
+Canonical/compact Live journeys cover both core variants; integration evidence is
+in `.agents/NEEDFORSPEED_RESULTS.md`. Live explicitly supports the task state/policy and speaks committed
 announcements; current perception is also supplied directly to task-turn inference.
 See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
 verification and pending physical/provider trials. This work starts on

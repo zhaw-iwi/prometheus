@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent integration into main (2026-10-20): selectively brings the Social
+  Space Generic definition from `agents` (`a3d60ed`) and compact task/ambient
+  encoding plus canonical/compact Live journeys (`674763b`). The shared Generic
+  graph and core creation API retain Valerian identity; deployment-only
+  embodiment/persona selection, Gala content and deployment configuration stay
+  on `agents`. No schema migration or saved-prompt rewrite is introduced.
+  All 131 focused Java cases have passing evidence after adapting the existing
+  prompt contract; production packaging passed. Both core Live journeys cover
+  canonical/compact output. Browser/provider/physical trials were not rerun.
+  Integration verification is recorded in `.agents/NEEDFORSPEED_RESULTS.md`.
+
 - Reusable Live reception/task extensions (2026-10-20): explicit application-policy
   support, encounter-scoped context, optional session-close transitions and
   operator-armed presence control. Generic task configuration exposes persona-aware

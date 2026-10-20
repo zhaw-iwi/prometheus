@@ -51,7 +51,8 @@ public final class TaskMemory {
     }
     public static BehaviourPlan plan(JsonElement raw) {
         if (raw == null || !raw.isJsonObject() || new Gson().toJson(raw).length() > 1800) throw new IllegalArgumentException("Invalid task behaviour");
-        var object = raw.getAsJsonObject().deepCopy();
+        var object = CompactBehaviourPlan.expand(raw.getAsJsonObject()).deepCopy();
+        if (new Gson().toJson(object).length() > 1800) throw new IllegalArgumentException("Invalid task behaviour");
         boolean normalizedGesture = false;
         if (!Set.of("speech", "nonVerbal", "motion").containsAll(object.keySet())) throw new IllegalArgumentException("Unsupported task output modality");
         if (object.has("speech") && !object.get("speech").isJsonNull()) TaskSpec.string(object, "speech", 1000);

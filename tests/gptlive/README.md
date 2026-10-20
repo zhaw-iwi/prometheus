@@ -46,3 +46,21 @@ quality, acoustic latency, echo cancellation or Bluetooth support. Follow the
 physical contract in [PLAN_GPTLIVE.md](../../.agents/PLAN_GPTLIVE.md) and record
 each OS/device/noise result separately in the results record. Do not mark unrun
 trials as passing.
+
+## Core task journeys with canonical and compact responses
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceAgentIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest
+```
+
+Generic covers proposal, persisted activation, a matching sensor cue, Live
+announcement capture and stop. Social Space adds arrival, name address, ambient
+silence during an active task and departure. Both Live journeys run once per
+encoding and assert canonical persisted behaviour and unchanged agreements and
+action counts. They use real scoped services, JPA and Live ingress/delivery,
+with controlled provider responses. They do not establish physical audibility
+or robot execution.
+
+The lower-level boundary checks are `TaskBehaviourEncodingUnitTest`,
+`CompactBehaviourPlanUnitTest`, `GenericMultimodalTaskUnitTest`,
+`TaskLifecycleUnitTest` and `SocialSpaceAgentUnitTest`.

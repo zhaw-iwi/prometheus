@@ -69,7 +69,8 @@ public class TaskUpdateAction extends Action {
             String instruction = completed ? "The task is now complete. Briefly acknowledge completion; do not perform another task step."
                     : "Perform exactly this agreed action now: " + rule.action();
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
-                    + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields.";
+                    + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields."
+                    + CompactBehaviourPlan.instructions(false);
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
             boolean generated = false;
             try {
@@ -96,7 +97,7 @@ public class TaskUpdateAction extends Action {
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
-                + "\nSupported trigger fields: " + TaskSpec.FIELDS;
+                + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true);
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
         String raw;

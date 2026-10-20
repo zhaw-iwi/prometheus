@@ -37,7 +37,8 @@ class AgentDefinitionRegistryUnitTest {
         for (AgentDefinition definition : registryWithBuiltIns().list()) {
             var agent = definition.createAgent();
             boolean conversational = java.util.Set.of(
-                    "core.facial_expression_sensitivity", "core.generic_multimodal_behaviour", "core.live_multimodal", "core.multimodal_behaviour",
+                    "core.facial_expression_sensitivity", "core.generic_multimodal_behaviour",
+                    "core.generic_multimodal_behaviour_at_social_space", "core.live_multimodal", "core.multimodal_behaviour",
                     "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
                     "usecases.healthcare.guessing_game", "usecases.healthcare.guessing_game_user_guess",
                     "usecases.healthcare.healthcare_conversation", "usecases.healthcare.smart_goal_coaching",
@@ -79,6 +80,7 @@ class AgentDefinitionRegistryUnitTest {
     private static final List<String> EXPECTED_KEYS = List.of(
             "core.facial_expression_sensitivity",
             "core.generic_multimodal_behaviour",
+            "core.generic_multimodal_behaviour_at_social_space",
             "core.live_multimodal",
             "core.multimodal_behaviour",
             "core.rock_scissor_paper",
@@ -95,6 +97,7 @@ class AgentDefinitionRegistryUnitTest {
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
             Map.entry("core.facial_expression_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.generic_multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
+            Map.entry("core.generic_multimodal_behaviour_at_social_space", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.live_multimodal", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.rock_scissor_paper", AgentDefinition.LANGUAGE_ENGLISH),
@@ -157,6 +160,7 @@ class AgentDefinitionRegistryUnitTest {
         return new AgentDefinitionRegistry(List.of(
                 new ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity(),
                 new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour(),
+                new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviourAtSocialSpace(),
                 new ch.zhaw.prometheus.agentdefs.core.LiveMultimodal(),
                 new ch.zhaw.prometheus.agentdefs.core.MultimodalBehaviour(),
                 new ch.zhaw.prometheus.agentdefs.core.RockScissorPaper(),

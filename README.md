@@ -257,6 +257,7 @@ The main branch ships the Valerian baseline catalog:
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
 | `core.generic_multimodal_behaviour` | Collaboratively configure a persistent task and react to multimodal cues. |
+| `core.generic_multimodal_behaviour_at_social_space` | Concise English Valerian conversation, arrival/departure reactions and the shared Generic task lifecycle. |
 | `core.live_multimodal` | GPT-Live conversation with independent full embodiment and all supported observations; requires Live for speech. |
 | `core.rock_scissor_paper` | Core hand-sign rock-scissor-paper demo. |
 | `core.role_clarification_guessing_game` | Core guessing game focused on agent/user role clarity. |
@@ -467,6 +468,16 @@ tuples, unknown short keys and overlapping short-key/`x` definitions fail withou
 a repair request or partial speech. Compare actual completion tokens and latency
 in the Telemetry export; a shorter JSON representation alone does not
 establish a deployment speedup.
+
+Generic task replies/cues and Social Space ambient replies also use this codec.
+Configuration keeps the exact `operation`, `task`, `reply` envelope; compact
+behaviour belongs inside `reply`, including `reply.motion` for hand signs.
+`task: null`, optional speech and `{}` silence retain their meanings. Expansion
+precedes task-specific validation, including the canonical 1,800-character limit
+and channel restrictions. Canonical replies remain accepted. Encoding guidance
+is appended at inference time without changing saved prompts, task rules,
+model routes, call counts or state control. See `.agents/NEEDFORSPEED_RESULTS.md`
+for evidence and limits.
 
 Deterministic RPS output and Talk to Me still construct plans without model calls.
 Speech-only policies use the same typed `BEHAVIOUR` / `JSON_OBJECT` inference path
@@ -1335,7 +1346,7 @@ instructions. Live eligibility requires `interactionProfile.externalRealtimeSpee
 Each definition opts in by overriding `AgentDefinition.externalRealtimeSpeech()`;
 `applyDefinitionMetadata` stores that declaration in the agent's profile. The
 interface and shared profile factories default to false. Tags, names and shared
-RPS factories never grant Live capability. All twelve main-branch conversational
+RPS factories never grant Live capability. Main-branch conversational
 definitions opt in; **Talk to Me** stays out because it must speak submitted text
 exactly. Deployment-specific definitions, including scored RPS, stay out unless
 explicitly adapted and validated.
@@ -1731,6 +1742,42 @@ Incompatible active agreements are paused for explicit rule clarification; their
 meaning is never silently converted. Activating an incompatible saved draft asks
 for a rule correction without requesting the whole task again. There is no
 automatic startup migration.
+
+The representative Generic and Social Space Live journeys run with both
+canonical and compact scripted responses. They cover real scoped creation,
+persistence, Live transcript admission, activation, sensor cues, canonical
+announcement delivery and stop. Social Space also covers arrival, name address,
+task priority over ambient sensing and departure. Provider voice/model responses
+are controlled; physical audio, robot output and model quality need separate
+trials. Reproduction commands are in `tests/gptlive/README.md`.
+
+### Generic Multimodal Behaviour at Social Space
+
+Assign `core.generic_multimodal_behaviour_at_social_space` to an access code
+and create a new instance. The catalog name is **Generic Multimodal Behaviour
+at Social Space**. Valerian speaks English by default, usually in one brief
+sentence, with occasional warm microhumor. Addressing him by name uses ordinary
+conversation; a wake word is not required.
+
+The definition reuses Generic's task graph, supported modalities, validation,
+action limits, pause/resume/stop, reset and Live session lifecycle. Users can
+describe a goal and cue/response, review a proposal, then ask to start it.
+Capability awareness and GPT-Live are explicitly enabled. Creation emits a
+short welcome without calling a provider.
+
+Outside a running, waiting or paused task, a local guard compares fresh
+`obs.social.grouping` human counts. An initially occupied view or count change
+can produce one ambient reply. Empty initial views, unchanged counts,
+movement/regrouping, repeated or out-of-order samples, stale/invalid samples,
+other sensor frames and derived social-change events stay quiet. Generation
+failure stays silent without retrying on unchanged visibility; the model may
+also choose silence. Ambient remarks preserve drafts, agreements and budgets.
+
+An active or paused task owns sensor reactions through its existing agreement.
+Counts describe the camera view only: replacing one person with another at the
+same count is not detected, and occlusion/noise can appear as a count change.
+This main-branch definition uses the existing Valerian creation API and requires
+no embodiment selector or persona schema migration.
 
 ### Capability awareness
 
