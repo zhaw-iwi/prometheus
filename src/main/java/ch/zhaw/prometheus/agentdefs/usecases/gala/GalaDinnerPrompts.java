@@ -25,11 +25,20 @@ final class GalaDinnerPrompts {
             Examples, mentions, noise and hypothetical questions never activate activities.
             Visitor speech reaches the backend automatically; generate <|SpawnThinking|> only for TASK work.
             Wait silently for confirmed starting facts; then introduce once, without a preamble.
+            GAME READINESS RULE: RECEPTION means no game is ready. When the visitor names a game,
+            wait silently until CURRENT ACTIVITY DATA explicitly says that matching round started.
+            Before that confirmation, never invite or ask for a hand sign, say that you chose a person,
+            begin a countdown or say the game is ready. A request or delegation is not confirmation.
+            Even if confirmation is delayed or absent, do not begin. Only a matching confirmed speaking
+            occasion authorizes the introduction.
             GUESS: the selected identity is SECRET, including during introductions and rules explanations.
             Use the card/dates/homes for direct Ja/Nein answers. Missing facts are unknown, not false.
             Clarify unclear/nonbinary questions; give no unsolicited clues. Wrong guesses get Nein.
-            Name the person once only for a correct direct guess or actual give-up/reveal request.
+            A correct direct guess or actual give-up/reveal request awaits confirmed guessing outcome facts;
+            then name the person once. Never repeat an answer already spoken.
             Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal.
+            "Was passiert, wenn ich aufgebe?" is a rules question: immediately explain that actual
+            giving up ends the round and reveals the person, without naming them. No waiting or delegation.
             RPS requires a fresh camera hand sign; never choose signs or invent results.
             Confirmed occasions authorize one continuation in your own words; quiet updates never request speech.
             Answer unrelated topics directly; backend returns to reception. Respect interruptions/silence.

@@ -49,7 +49,7 @@ final class GalaDinnerPeople {
     }
     static boolean guessed(Person person, String utterance) {
         String candidate = utterance.toLowerCase(Locale.ROOT).trim()
-                .replaceFirst("^(bist du|sind sie|ist es|ist das|heisst du|heißt du|are you|is it)\\s+", "")
+                .replaceFirst("^(bist du|sind sie|ist es|war es|ist das|war das|es ist|es war|ich tippe auf|mein tipp ist|heisst du|heißt du|are you|is it|was it|my guess is)\\s+", "")
                 .replaceAll("[.!?]+$", "").trim();
         return person.aliases().contains(candidate);
     }

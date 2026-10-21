@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 and GI-02 implemented and automated checks passed; GI-03 next. Later milestones are not started.
+Status: GI-01 through GI-03 implemented and verified; GI-04 next. Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
 children's interactions, including the subsequent gesture review. The user authorized consecutive implementation on 2026-10-21: finish each
@@ -190,6 +190,8 @@ the paused-question and rapid-follow-up physical scripts; unit success cannot
 establish recognition quality for children's voices or recover omitted audio.
 
 ### GI-03 - Confirmed games and non-destructive recovery
+
+Status: IMPLEMENTED; 57 unit cases, 12 isolated integration cases, focused reruns, provider trials and packaging passed. Physical acceptance remains at GI-12.
 
 **Outcome:** a game invitation refers to a committed current game, results/reveals
 survive terminal cleanup, and optional expressive failures do not destroy control.

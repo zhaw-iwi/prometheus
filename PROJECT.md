@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 229 / GI-03 (2026-10-21): explicit unconfirmed game readiness,
+  post-inference hand-sign eligibility, broader bounded direct-name guesses,
+  validated give-up and quiet retained outcome facts. Recoverable inference or
+  decorative failures preserve valid activities. Passed 57 focused unit and 12
+  isolated integration cases, targeted reruns, real Live game/reveal trials and
+  packaging. Speech remains model-owned; no enforced playback barrier is claimed.
+  Evidence and remaining physical gates: `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - Milestone 228 / GI-02 (2026-10-21): capture preserves measured quiet before
   new chunks reset it. Current-session completed speech can supersede old intents
   for short replies; legacy conservatism remains. Passed 32 unit and 28 isolated
@@ -10743,3 +10751,14 @@ unit checks pass (32 cases); full evidence and limits are recorded in
 `.agents/GALAIMPROVEMENT_RESULTS.md`. Agents acceptance adds 18 isolated cases
 (all three journeys, durable short-reply admission and query load); all pass, as
 does packaging. GI-02 is complete; final physical recognition checks remain.
+
+## Milestone 229 - Gala confirmed games and recovery (2026-10-21)
+
+GI-03 adds explicit readiness guidance, eligible post-confirmation signs, bounded
+direct-name and actual give-up recognition, quiet expiring reveal facts after
+cleanup, optional-label normalization and non-destructive inference recovery.
+Passed 57 focused units, 12 isolated integration cases plus focused reruns, actual
+Live readiness/question/reveal/RPS trials, and packaging. A provider-discovered
+hypothetical-rules regression was corrected and its affected sequence passed.
+Details and artifact paths: `.agents/GALAIMPROVEMENT_RESULTS.md`. Model speech
+compliance is not enforced by a playback gate; physical acceptance stays pending.

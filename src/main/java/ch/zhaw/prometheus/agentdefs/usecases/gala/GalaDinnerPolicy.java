@@ -62,7 +62,12 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 facts += "\n" + (key.equals("task.spec") ? "Agreed goal: " : "Proposed goal: ")
                         + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
         }
-        else facts += "No active guessing target or pending RPS round.";
+        else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
+        if (storage.containsKey(GalaDinnerMemory.OUTCOME)
+                && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.OUTCOME_EXPIRES)))
+            facts += "\nConfirmed guessing outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
+                    + ": " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME, "")
+                    + " Answer the pending visitor request once; do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         LiveActivityContext.Continuation continuation = null;
         if (storage.containsKey(GalaDinnerMemory.CONTINUATION_ID))

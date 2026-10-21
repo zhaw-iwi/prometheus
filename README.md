@@ -430,12 +430,18 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Dates/geography allow simple deductions; unlisted facts are not automatically false.
   Source URLs remain in code comments. The backend classifier only controls activity
   and embodiment; it receives no private fact card and cannot emit yes/no answers.
-  Correct direct name guesses and give-up/reveal end the round in the backend while
-  Live answers from the selected card once. The resulting quiet update adds no reveal
-  announcement. Stop, silence, departure, timeout and unrelated topics do not reveal.
+  Correct direct name guesses (including "War es ...?") and actual give-up/reveal
+  requests end the round. Confirmed outcome facts survive cleanup for 30 seconds
+  so Live can finish the pending answer once; no extra reveal commentary is sent.
+  Stop, silence, departure, timeout and unrelated topics do not reveal.
   Hypothetical/negated give-up preserves the round. This trades the former model-side
   secrecy boundary for responsive conversation: premature disclosure is now a model
   instruction risk, covered by provider trials and the manual script.
+- Reception reports unconfirmed game readiness; Live must await a matching start
+  before inviting signs or guessing questions. This is model guidance, not an
+  enforced playback barrier. Unsupported optional expression labels use defaults;
+  invalid control/inference preserves the prior valid activity and reports failure.
+  Explicit stop, departure and expiry still end it; failed turns are not replayed.
 - **Co-create a task**: ask “Was kannst du damit machen?” to explore capabilities,
   then “Lass uns eine eigene Aufgabe gestalten” to enter task design. GIGI helps
   choose a supported sensor trigger and a response, proposes a bounded agreement

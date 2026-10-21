@@ -106,15 +106,17 @@ public class GalaDinnerAction extends Action {
         }
         if ("GUESS".equals(mode)) {
             if (command.matches("ich gebe auf|ich geb auf|i give up")) {
-                reply(storage, finishGuess(storage));
+                reply(storage, finishGuess(storage, "give_up"));
                 return;
             }
             if (GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
-                reply(storage, finishGuess(storage));
+                reply(storage, finishGuess(storage, "correct_guess"));
                 return;
             }
         }
         String failureStage = "inference";
+        var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
+        storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
             String prompt = GalaDinnerPrompts.TURN
                     + "\nBackend current mode: " + mode;
@@ -131,8 +133,10 @@ public class GalaDinnerAction extends Action {
             String gesture = string(result, "gesture", 20), expression = string(result, "expression", 20),
                     gaze = string(result, "gaze", 20);
             failureStage = "nonverbal_labels";
-            if (!GESTURES.contains(gesture) || !EXPRESSIONS.contains(expression) || !GAZES.contains(gaze))
-                throw new IllegalArgumentException("Invalid nonverbal label");
+            // Optional decoration must not invalidate otherwise valid task control.
+            if (!GESTURES.contains(gesture)) gesture = "NONE";
+            if (!EXPRESSIONS.contains(expression)) expression = "attentive";
+            if (!GAZES.contains(gaze)) gaze = "toward_user";
             Set<String> allowed = switch (mode) {
                 case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
                 case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET");
@@ -158,7 +162,7 @@ public class GalaDinnerAction extends Action {
                     put(storage, ROUND, Integer.toString(round + 1));
                     put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
                     put(storage, MODE, "RPS");
-                    put(storage, STARTED, now.toString());
+                    put(storage, STARTED, Instant.now().toString());
                     continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now.");
                     response = plan(null,
                             "NONE", "attentive", "toward_user");
@@ -170,12 +174,12 @@ public class GalaDinnerAction extends Action {
                     put(storage, ROUND, Integer.toString(round + 1));
                     put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
                     put(storage, MODE, "GUESS");
-                    put(storage, STARTED, now.toString());
+                    put(storage, STARTED, Instant.now().toString());
                     continueRequest(storage, "Guessing round started. Invite the first yes/no question without revealing the selected person.");
                     response = plan(null,
                             "OPEN_QUESTION", "gentleSmile", "toward_user");
                 }
-                case "GIVE_UP" -> response = finishGuess(storage);
+                case "GIVE_UP" -> response = GalaDinnerInput.revealRequest(utterance) ? finishGuess(storage, "give_up") : null;
                 case "RETURN" -> reception(storage);
                 case "QUIET" -> { leave(storage, events, true); response = null; }
                 default -> { }
@@ -185,10 +189,12 @@ public class GalaDinnerAction extends Action {
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             ActivityTrace.failed("gala_response_failed");
             org.slf4j.LoggerFactory.getLogger(GalaDinnerAction.class).warn(
-                    "Gala response failed stage={} mode={} error={}; returning to reception",
+                    "Gala response failed stage={} mode={} error={}; preserving prior activity",
                     failureStage, mode, failure.getClass().getSimpleName());
-            reception(storage);
-            continueRequest(storage, "Requested activity control failed. Returned to reception; no requested action was completed.");
+            for (String key : storage.toMap().keySet()) if (!before.containsKey(key)) remove(storage, key);
+            before.forEach((key, value) -> { if (!storage.containsKey(key) || !value.equals(storage.get(key))) storage.put(key, value); });
+            continueRequest(storage, "Requested activity control failed. Prior activity remains " + mode(storage)
+                    + "; no new action was completed. Briefly acknowledge the problem without claiming a result.");
             reply(storage, plan(null,
                     "UNCERTAIN", "thoughtful", "toward_user"));
         }
@@ -198,11 +204,15 @@ public class GalaDinnerAction extends Action {
         return GalaDinnerDecision.expired(storage, now);
     }
 
-    private static BehaviourPlan finishGuess(Storage storage) {
-        // Live already has the selected card and answers the visitor directly. Ending the round
-        // updates facts quietly; it must not create a second reveal or another spoken answer.
+    private static BehaviourPlan finishGuess(Storage storage, String reason) {
+        String person = text(storage, PERSON, "");
         var response = plan(null, "ACKNOWLEDGE", "gentleSmile", "toward_user");
         reception(storage);
+        // Keep one bounded confirmed outcome through cleanup. Quiet facts let Live finish its
+        // pending response without an additional commentary that could repeat an existing reveal.
+        put(storage, OUTCOME_ID, java.util.UUID.randomUUID().toString());
+        put(storage, OUTCOME, reason + "; round ended; permitted reveal: " + person + ".");
+        put(storage, OUTCOME_EXPIRES, Instant.now().plusSeconds(30).toString());
         return response;
     }
 

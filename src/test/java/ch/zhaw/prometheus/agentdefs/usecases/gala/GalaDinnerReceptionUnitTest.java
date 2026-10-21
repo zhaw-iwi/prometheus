@@ -123,7 +123,7 @@ class GalaDinnerReceptionUnitTest {
         assertNull(speech(say("Bist du Albert Einstein?")));
         assertEquals("RECEPTION", mode(memory));
         assertNull(projection.project(agent).activity().continuation());
-        assertFalse(projection.project(agent).activity().facts().contains("Einstein"));
+        assertTrue(projection.project(agent).activity().facts().contains("correct_guess; round ended; permitted reveal: Albert Einstein"));
         assertFalse(GalaDinnerPeople.guessed(GalaDinnerPeople.PEOPLE.getFirst(), "Du bist nicht Albert Einstein"));
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
         say("Noch ein Ratespiel");
@@ -149,6 +149,7 @@ class GalaDinnerReceptionUnitTest {
         assertEquals("RECEPTION", mode(memory));
         for (String key : List.of(PERSON, STARTED, REPLY)) assertFalse(memory.containsKey(key), key);
         assertNull(agent.generate(runtime));
+        assertTrue(text(memory, OUTCOME, "").contains("Albert Einstein"));
         verifyNoInteractions(gateway);
     }
 
@@ -291,8 +292,8 @@ class GalaDinnerReceptionUnitTest {
         verifyNoInteractions(gateway);
     }
 
-    @Test void invalidProviderOutputOrFailureCannotStartGamesOrKeepAnActivityStuck() {
-        for (String invalid : List.of("not json", answer("YES", "Ja"), answer("START_RPS", "").replace("NONE", "dance"),
+    @Test void invalidProviderControlCannotStartGamesAndInferenceFailurePreservesTheValidRound() {
+        for (String invalid : List.of("not json", answer("YES", "Ja"),
                 answer("START_GUESS", "").replace("\"operation\":\"START_GUESS\"", "\"operation\":42"))) {
             when(gateway.infer(any())).thenReturn(invalid);
             assertNull(speech(say("Hallo")));
@@ -305,8 +306,64 @@ class GalaDinnerReceptionUnitTest {
         say("Raten");
         when(gateway.infer(any())).thenThrow(new IllegalStateException("provider unavailable"));
         assertNotNull(say("Bist du ein Mann?"));
-        assertEquals("Gala reception", agent.getCurrentState().getName());
+        assertEquals("Gala guess the person", agent.getCurrentState().getName());
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Prior activity remains GUESS"));
+        assertNull(agent.generate(runtime));
+        say("Stop");
+        assertEquals("RECEPTION", mode(memory));
         assertFalse(memory.containsKey(PERSON));
+    }
+
+    @Test void unsupportedDecorationDoesNotDestroyControlAndSignsBeforeConfirmationCannotResolveRps() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
+        say("Personenraten bitte");
+        when(gateway.infer(any())).thenReturn(answer("WAIT", "").replace("NONE", "dance").replace("attentive", "puzzled"));
+        assertNull(say("Bist du ein Mann?"));
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        say("Stop");
+        var signDuringInference = new java.util.concurrent.atomic.AtomicReference<Instant>();
+        when(gateway.infer(any())).thenAnswer(call -> {
+            signDuringInference.set(Instant.now().minusMillis(1));
+            return answer("START_RPS", "").replace("NONE", "dance").replace("toward_user", "ceiling");
+        });
+        var plan = BehaviourPlan.fromJson(say("Schere Stein Papier bitte").getPayload());
+        assertEquals("NONE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("toward_user", plan.getNonVerbal().getAsJsonObject().getAsJsonObject("gaze").get("direction").getAsString());
+        assertEquals("RPS", mode(memory));
+        assertNull(hand("paper", signDuringInference.get(), .99));
+        assertEquals("RPS", mode(memory));
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"Ist es Albert Einstein?", "War es Albert Einstein?", "Ich tippe auf Einstein.", "Mein Tipp ist Albert Einstein", "Was it Einstein?"})
+    void directNameGuessEndsOnceWithQuietBoundedOutcome(String guess) {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
+        say("Personenraten bitte"); clearInvocations(gateway);
+        assertNull(speech(say(guess))); assertEquals("RECEPTION", mode(memory));
+        assertTrue(text(memory, OUTCOME, "").contains("correct_guess"));
+        String identity = text(memory, OUTCOME_ID, ""); assertFalse(identity.isBlank());
+        assertNull(agent.generate(runtime)); assertEquals(identity, text(memory, OUTCOME_ID, ""));
+        var projection = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
+        assertTrue(projection.project(agent).activity().facts().contains("Albert Einstein"));
+        put(memory, OUTCOME_EXPIRES, Instant.now().minusSeconds(1).toString());
+        assertFalse(projection.project(agent).activity().facts().contains("Einstein"));
+        verifyNoInteractions(gateway);
+    }
+
+    @Test void quotesNegationHypotheticalsAndWrongNamesCannotEndGuessingOrExposeAnOutcome() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
+        say("Personenraten bitte");
+        when(gateway.infer(any())).thenReturn(answer("GIVE_UP", ""));
+        for (String speech : List.of("War es Marie Curie?", "Es ist nicht Albert Einstein", "Du sagtest: Albert Einstein",
+                "Was passiert, wenn ich aufgebe?", "Ich gebe auf keinen Fall auf", "Ich gebe auf, wenn du willst",
+                "Ich gebe auf, aber nenne nicht den Namen", "\"Ich gebe auf\"")) {
+            assertFalse(GalaDinnerPeople.guessed(GalaDinnerPeople.PEOPLE.getFirst(), speech));
+            assertNull(say(speech)); assertEquals("GUESS", mode(memory)); assertFalse(memory.containsKey(OUTCOME));
+        }
+        assertTrue(GalaDinnerInput.revealRequest("Verrate mir bitte die Person."));
+        assertTrue(GalaDinnerInput.revealRequest("Ich gebe auf, sag mir die Person."));
+        assertTrue(GalaDinnerInput.revealRequest("Ich gebe auf, ich weiss es nicht."));
+        assertFalse(GalaDinnerInput.revealRequest("Ich gebe auf. Nein, doch nicht."));
     }
 
     @Test void presenceIsSilentAndDepartureEndsTheGameImmediatelyWithoutTicks() {

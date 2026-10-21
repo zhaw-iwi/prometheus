@@ -168,6 +168,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             var giveUp = say(first, "Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast", control("GIVE_UP"));
             assertEquals(intentsBefore, speechIntents());
             assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
+            assertTrue(contexts.snapshot(code, id).orElseThrow().activity().facts()
+                    .contains("give_up; round ended; permitted reveal: Albert Einstein"));
+            var outcomeIdentity = loaded().getStorage().get("gala.outcome_id").getAsString();
             nativeSpeech(first, "Es war Albert Einstein.");
             assertReception();
             assertFalse(loaded().getStorage().containsKey("gala.person"));
@@ -177,8 +180,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     loaded().getCurrentState().getActiveStatePath()).orElseThrow().status());
             assertEquals(afterReveal, history().size(), "Duplicate give-up must not create a second reveal");
             assertEquals(afterRevealCalls, requests.size());
+            assertEquals(outcomeIdentity, loaded().getStorage().get("gala.outcome_id").getAsString());
 
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
+            assertFalse(loaded().getStorage().containsKey("gala.outcome"));
             hearAnnouncement(first);
             assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();

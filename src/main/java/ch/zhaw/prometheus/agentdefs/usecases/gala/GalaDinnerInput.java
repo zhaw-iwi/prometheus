@@ -29,6 +29,22 @@ final class GalaDinnerInput {
 
     static boolean unspecifiedGame(String speech) { return PLAY.matcher(normalize(speech)).matches(); }
 
+    static boolean revealRequest(String speech) {
+        // A model-selected operation is not enough to reveal on quotes, negation or hypotheticals.
+        String value = speech.toLowerCase(Locale.ROOT).trim();
+        if (value.matches(".*[\"“”„«»].*")) return false;
+        if (value.matches("(?:ich gebe auf|ich geb auf|i give up)[, ]+(?:wenn|falls|if)\\b.*")) return false;
+        if (value.matches("(?:ich gebe auf|ich geb auf|i give up)(?:[,.!?].*)?"))
+            return !value.matches(".*\\b(?:nicht|niemals|never|not)\\b.*(?:nam|person|nenn|verrat|sag|reveal|tell).*" )
+                    && !value.matches(".*(?:nenn|verrat|sag|reveal|tell).*\\b(?:nicht|niemals|never|not)\\b.*")
+                    && !value.matches(".*(?:doch nicht|lieber nicht|ohne.*(?:nam|person|nenn|verrat)|don't reveal|do not reveal).*" );
+        if (value.matches(".*\\b(nicht|kein|keine|keinen|niemals|not|never)\\b.*")) return false;
+        if (value.matches(".*\\b(wenn|falls|if)\\b.*")) return false;
+        return value.matches("(?:bitte )?(?:verrat|verrate|sag|sage|nenn|nenne)(?: mir| uns)?(?: bitte)?[, ]+"
+                        + "(?:die person|den namen|wer (?:es|das) (?:ist|war)|an wen du denkst).*")
+                || value.matches("(?:please )?(?:tell me|reveal) (?:the person|the name|who it (?:is|was))[.!?]*");
+    }
+
     private static String normalize(String speech) {
         return speech.toLowerCase(Locale.ROOT).replaceAll("[\\p{P}\\p{S}]+", " ")
                 .replaceAll("\\s+", " ").trim();
