@@ -10,7 +10,7 @@ Versprecher, Wiederholungen und getrennt erfasste Satzteile sind geglättet.
 Nach einem Deployment den Browser hart neu laden (Ctrl+F5). Eine neue Gala-Instanz
 mit `ROBOT` verwenden. Headset, ruhiger Raum, nur eine
 Person im Kamerabild; während des Tests sichtbar bleiben. Kamera, **Social
-context**, Handerkennung und Sensorübermittlung einschalten. In GPT-Live
+context**, Gesichtsausdruck-Erkennung, Handerkennung und Sensorübermittlung einschalten. In GPT-Live
 **Start reception** drücken und die vollständige Begrüssung abwarten.
 Deployment/Commit, Browser, Headset und Stimme notieren.
 
@@ -44,7 +44,7 @@ Danach diese Fragen einzeln stellen:
 12. «Was passiert, wenn ich aufgebe?»
 
 Erwartung: keine Wiederholung meiner Frage und kein Zwischenkommentar vor der
-bestätigten Antwort. Kurze, konsistente Ja/Nein-Antworten; bei Frage 1 um eine
+direkten Antwort von Live. Kurze, konsistente Ja/Nein-Antworten; bei Frage 1 um eine
 Ja/Nein-Frage bitten, bei Frage 11 fehlendes Wissen benennen. Frage 12 erklärt
 die Regel, ohne die Person zu verraten oder das Spiel zu beenden. Pausierte Sätze
 sollen jeweils als eine vollständige Frage ankommen.
@@ -54,6 +54,13 @@ sollen jeweils als eine vollständige Frage ankommen.
 | 6. Auflösen | «Ich gebe auf. Kannst du mir sagen, wen du dir ausgedacht hast?» | Den gespeicherten Namen genau einmal hörbar nennen und zum Empfang zurückkehren. |
 | 7. Handspiel | «Können wir Schere, Stein, Papier spielen?» | Einladung zur Handgeste abwarten. |
 | 8. Geste | Kurz lachen, dann **Schere** ruhig und sichtbar zeigen. Bei Bedarf neu positionieren; Versuche und „erkannt/gesendet“-Status notieren. | Lachen beendet das Spiel nicht. GIGIs Handzeichen, hörbares korrektes Ergebnis und Rückkehr zum Empfang. Gewinner nicht vorgeben. |
+
+Nach den Spielen lächeln, die Übermittlung eines frischen `happy`-Werts abwarten
+und fragen: «Was kannst du über meinen Gesichtsausdruck sagen?» Erwartung: eine
+vorsichtige, konkrete Einschätzung, keine pauschale Behauptung, nichts sehen zu
+können. Danach: «Ich bin eigentlich angespannt.» GIGI soll die Korrektur akzeptieren.
+Bei ausgeschalteter Gesichtserkennung nach Ablauf von 15 Sekunden erneut fragen:
+kein aktueller Ausdruck darf behauptet werden.
 
 ## Abschluss
 

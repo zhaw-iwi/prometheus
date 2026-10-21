@@ -301,6 +301,14 @@ and fact changes use quiet context, while a user-request continuation or authori
 proactive comment receives one commentary append after its facts. Default core
 policies retain existing behavior. Context data is model-visible, not a secrecy boundary.
 
+Gala opts into this contract: Live receives the selected guessing card and answers
+ordinary game, reference and facial questions. The backend still classifies activity
+control/embodiment but no longer generates yes/no, rules or choice utterances.
+Give-up and direct correct guesses clear state quietly after Live's answer. Delayed
+game starts and RPS results use one identified continuation. Fresh facial estimates
+support tentative expression/apparent-mood comments and visitor corrections.
+The configurable task engine retains its existing confirmed-speech/action contract.
+
 ## Conversational Task Configuration
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned

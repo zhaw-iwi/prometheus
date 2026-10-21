@@ -12,6 +12,7 @@ final class GalaDinnerMemory {
     static final String MODE = PREFIX + "mode", REPLY = PREFIX + "reply", PERSON = PREFIX + "person",
             SIGN = PREFIX + "sign", ROUND = PREFIX + "round", LAST_INPUT = PREFIX + "last_input",
             STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at",
+            CONTINUATION_ID = PREFIX + "continuation_id", CONTINUATION_FACTS = PREFIX + "continuation_facts",
             COUNT = PREFIX + "count", QUIET = PREFIX + "quiet", SESSION = PREFIX + "session_from",
             FACE = PREFIX + "face", FACE_AT = PREFIX + "face_at", FACE_REACTED = PREFIX + "face_reacted";
     private GalaDinnerMemory() {}
@@ -32,7 +33,11 @@ final class GalaDinnerMemory {
     static void reception(Storage storage) {
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
-        for (String key : List.of(PERSON, SIGN, STARTED)) remove(storage, key);
+        for (String key : List.of(PERSON, SIGN, STARTED, CONTINUATION_ID, CONTINUATION_FACTS)) remove(storage, key);
+    }
+    static void continueRequest(Storage storage, String facts) {
+        put(storage, CONTINUATION_ID, java.util.UUID.randomUUID().toString());
+        put(storage, CONTINUATION_FACTS, facts);
     }
     static void clear(Storage storage) {
         TaskMemory.clear(storage);

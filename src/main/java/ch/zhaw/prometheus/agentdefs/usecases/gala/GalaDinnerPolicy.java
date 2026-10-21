@@ -6,6 +6,7 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.Policy;
 import ch.zhaw.prometheus.model.policy.ExternalVoicePolicy;
+import ch.zhaw.prometheus.model.policy.LiveActivityContext;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import jakarta.persistence.CascadeType;
@@ -45,6 +46,22 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public boolean livePendingAcknowledgements() { return false; }
+    @Override public LiveActivityContext liveActivityContext() {
+        String mode = GalaDinnerMemory.mode(storage);
+        String facts = "Gala activity: " + mode + ". ";
+        if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
+            var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
+            facts += "Selected person: " + person.name() + ". Fact card: " + person.facts();
+        } else if ("RPS".equals(mode)) facts += "One round started; awaiting a fresh camera hand sign. Result not yet computed.";
+        else facts += "No active guessing target or pending RPS round.";
+        LiveActivityContext.Continuation continuation = null;
+        if (storage.containsKey(GalaDinnerMemory.CONTINUATION_ID))
+            continuation = new LiveActivityContext.Continuation(
+                    java.util.UUID.fromString(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_ID, "")),
+                    LiveActivityContext.Occasion.USER_REQUEST,
+                    GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""));
+        return new LiveActivityContext(facts, continuation);
+    }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {
         if (!storage.containsKey(GalaDinnerMemory.REPLY)) return null;

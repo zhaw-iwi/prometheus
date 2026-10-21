@@ -16,7 +16,7 @@ import ch.zhaw.prometheus.application.live.*;
 import ch.zhaw.prometheus.model.policy.*;
 
 class GalaDinnerLiveDeliveryUnitTest {
-    @Test void activityChangesDeliverAnnouncementsAfterOneSmallStateUpdateWithSlowAcknowledgements() {
+    @Test void activityChangesStayQuietAndDeliverOneContinuationBeforeSensorsWithSlowAcknowledgements() {
         var agent = new GalaDinnerReception().createAgent();
         ReflectionTestUtils.setField(agent, "id", UUID.randomUUID());
         var now = new AtomicLong();
@@ -41,26 +41,30 @@ class GalaDinnerLiveDeliveryUnitTest {
             session.ready();
             await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
             var states = agent.reachableStates();
+            var storage = (ch.zhaw.prometheus.model.Storage) ReflectionTestUtils.getField(agent, "storage");
             String[][] journey = {{"GUESS", "Gala guess the person"}, {"RECEPTION", "Gala reception"},
                     {"RPS", "Gala rock-scissor-paper"}, {"RECEPTION", "Gala reception"},
                     {"TASK", "Gala co-created task"}, {"RECEPTION", "Gala reception"}};
             for (var step : journey) {
                 ReflectionTestUtils.setField(agent, "currentState", states.stream()
                         .filter(state -> state.getName().equals(step[1])).findFirst().orElseThrow());
-                agent.getStorage().put("gala.mode", new JsonPrimitive(step[0]));
+                storage.put("gala.mode", new JsonPrimitive(step[0]));
                 UUID source = UUID.randomUUID();
+                storage.put("gala.continuation_id", new JsonPrimitive(source.toString()));
+                storage.put("gala.continuation_facts", new JsonPrimitive("Requested activity change completed."));
                 current.set(new LiveAgentContextService.Update(projection.project(agent),
-                        List.of(new LiveContextDelivery.Narration(source, "Bestätigtes Ergebnis."))));
+                        List.of()));
                 int before = sent.size(), expected = applied.get() + 1;
                 long committedAt = now.get();
                 bridge.changed(new AgentCommitted(agent.getId(), owner.epoch(), source));
                 await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == expected);
                 var batch = sent.subList(before, sent.size());
-                assertEquals(List.of("session.instructions.append", "session.commentary.append"),
-                        batch.stream().map(LiveContextDelivery.Command::type).toList(), step[1]);
+                assertEquals("session.commentary.append", batch.getLast().type());
+                assertTrue(batch.subList(0, batch.size() - 1).stream().allMatch(c -> c.type().equals("session.thinking.append")));
+                assertEquals(1, batch.stream().filter(c -> c.type().equals("session.commentary.append")).count());
                 assertTrue(batch.getFirst().content().contains(step[1]));
                 assertTrue(batch.stream().noneMatch(command -> command.content().contains("GALA REFERENZ")));
-                assertEquals(1400, now.get() - committedAt, "State and result ACKs must not wait behind the reference");
+                assertTrue(now.get() - committedAt <= 2100, "State/facts/continuation must not wait behind the reference");
                 assertEquals(source, batch.getLast().sourceId());
             }
             assertNull(failure.get());

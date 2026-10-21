@@ -148,24 +148,27 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(first, "Die Können wir etwas spielen");
             assertEquals(calls, requests.size());
             assertReception(); assertTaskCleared();
-            assertEquals("Personenraten oder Schere, Stein, Papier?", hearAnnouncement(first));
+            nativeSpeech(first, "Personenraten oder Schere, Stein, Papier?");
             say(first, "Wie wäre es mit einem Ratespiel?", control("START_GUESS"));
             hearAnnouncement(first);
             assertEquals("Gala guess the person", loaded().getCurrentState().getName());
             assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Albert Einstein"));
-            say(first, "Lebt die Person noch?", control("NO"));
-            assertEquals("Nein.", hearAnnouncement(first));
-            say(first, "Hat die Person etwas erfunden?", control("YES"));
-            assertEquals("Ja.", hearAnnouncement(first));
-            say(first, "Hatte die Person Schuhgrösse 42?", control("UNKNOWN"));
-            assertTrue(hearAnnouncement(first).startsWith("Dazu habe ich keine gesicherte Information."));
-            say(first, "Lebt die", control("CLARIFY"));
-            assertTrue(hearAnnouncement(first).contains("noch einmal vollständig"));
-            say(first, "Was passiert, wenn ich aufgebe?", control("RULES"));
-            assertFalse(hearAnnouncement(first).contains("Einstein"));
+            var guessing = contexts.snapshot(code, id).orElseThrow().activity();
+            assertTrue(guessing.facts().contains("Albert Einstein"));
+            assertTrue(guessing.facts().contains("not alive"));
+            long intentsBefore = speechIntents();
+            for (String question : List.of("Lebt die Person noch?", "Hat die Person etwas erfunden?",
+                    "Hatte die Person Schuhgrösse 42?", "Lebt die", "Was passiert, wenn ich aufgebe?")) {
+                say(first, question, control("WAIT"));
+                assertEquals(intentsBefore, speechIntents(), "Live questions must not create competing backend speech");
+                assertEquals(guessing.continuation().id(), contexts.snapshot(code, id).orElseThrow().activity().continuation().id());
+            }
+            nativeSpeech(first, "Wenn Sie aufgeben, verrate ich die gesuchte Person.");
             assertEquals("Albert Einstein", loaded().getStorage().get("gala.person").getAsString());
             var giveUp = say(first, "Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast", control("GIVE_UP"));
-            assertEquals("Es war Albert Einstein. Die Runde ist beendet; ich bin wieder für Ihre Fragen da.", hearAnnouncement(first));
+            assertEquals(intentsBefore, speechIntents());
+            assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
+            nativeSpeech(first, "Es war Albert Einstein.");
             assertReception();
             assertFalse(loaded().getStorage().containsKey("gala.person"));
             assertFalse(loaded().getStorage().containsKey("gala.started"));
@@ -187,7 +190,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             hand("paper", Instant.now());
             assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
-            assertEquals("Ich habe Schere, Sie haben Papier. Diese Runde geht an mich!", hearAnnouncement(first));
+            assertTrue(hearAnnouncement(first).contains("winner: agent"));
             assertReception();
             long results = history().stream().filter(event -> event.getPayload().contains("\"phase\":\"round_result\"")).count();
             hand("paper", Instant.now());
@@ -271,10 +274,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             hearAnnouncement(second);
             assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
             assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Ada Lovelace"));
-            say(second, "Bist du eine Mathematikerin?", control("YES"));
-            assertEquals("Ja.", hearAnnouncement(second));
+            say(second, "Bist du eine Mathematikerin?", control("WAIT"));
+            nativeSpeech(second, "Ja.");
             say(second, "Bist du Ada Lovelace?");
-            assertTrue(hearAnnouncement(second).startsWith("Ja, genau: Ada Lovelace!"));
+            assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
+            nativeSpeech(second, "Ja, genau: Ada Lovelace!");
             assertReception();
 
             String secondSpec = spec("BETA-PAPER-AGREEMENT", "paper", 2, "Ein neuer Witz für " + SECOND_NAME);
@@ -353,6 +357,22 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                 Instant.now().toEpochMilli(), sequence, text);
     }
     private String hearAnnouncement(Encounter encounter) {
+        var activity = contexts.snapshot(code, id).orElseThrow().activity();
+        if (activity != null && activity.continuation() != null) {
+            var occasion = activity.continuation();
+            await().atMost(Duration.ofSeconds(12)).until(() -> encounter.peer().sent.stream().anyMatch(event ->
+                    "session.commentary.append".equals(event.get("type").getAsString()) && event.toString().contains(occasion.id().toString())));
+            assertEquals(1, encounter.peer().sent.stream().filter(event ->
+                    "session.commentary.append".equals(event.get("type").getAsString()) && event.toString().contains(occasion.id().toString())).count());
+            assertTrue(encounter.peer().sent.stream().noneMatch(event -> "session.instructions.append".equals(event.get("type").getAsString())),
+                    "Gala activity changes must be quiet context");
+            // Scripted voice is only a persistence fixture; real wording is tested in the provider probe.
+            nativeSpeech(encounter, occasion.facts().contains("Guessing round started")
+                    ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
+                    : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
+            return occasion.facts();
+        }
+
         Event intent = history().stream().filter(ConversationProjection::isIntent)
                 .filter(event -> encounter.owner().sessionId().equals(event.speechProvenance().sessionId()))
                 .filter(event -> BehaviourPlan.fromJson(event.getPayload()).getSpeech() != null)
@@ -371,6 +391,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,
                 List.of(intent.getId()), SpeechProvenance.Association.CONFIRMED, true).isPresent());
         return text;
+    }
+    private long speechIntents() {
+        return history().stream().filter(ConversationProjection::isIntent)
+                .filter(e -> BehaviourPlan.fromJson(e.getPayload()).getSpeech() != null).count();
     }
     private void nativeSpeech(Encounter encounter, String text) {
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,

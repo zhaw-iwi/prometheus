@@ -24,6 +24,7 @@ public class GalaDinnerTaskPolicy extends TaskPolicy implements ExternalVoicePol
     @Override public String voiceInstructions() { return reception().voiceInstructions(); }
     @Override public long liveUserSilenceMs() { return reception().liveUserSilenceMs(); }
     @Override public boolean livePendingAcknowledgements() { return reception().livePendingAcknowledgements(); }
+    @Override public ch.zhaw.prometheus.model.policy.LiveActivityContext liveActivityContext() { return reception().liveActivityContext(); }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return reception().onStart(state, events, assembler, gateway); }
 }

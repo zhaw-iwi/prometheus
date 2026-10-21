@@ -241,7 +241,7 @@ class QueryVolumeIntegrationTest {
         var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
         var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
         var control = new java.util.concurrent.atomic.AtomicInteger();
-        doAnswer(call -> "{\"operation\":\"" + (control.getAndIncrement() == 0 ? "START_GUESS" : "YES")
+        doAnswer(call -> "{\"operation\":\"" + (control.getAndIncrement() == 0 ? "START_GUESS" : "WAIT")
                 + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}")
                 .when(language).infer(any());
         var stats = emf.unwrap(SessionFactory.class).getStatistics();

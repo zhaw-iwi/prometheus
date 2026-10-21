@@ -94,7 +94,7 @@ class GalaDinnerReceptionIntegrationTest {
         var reloaded = agents.findById(id).orElseThrow();
         assertEquals("Gala guess the person", reloaded.getCurrentState().getName());
         assertEquals("Albert Einstein", reloaded.getStorage().get("gala.person").getAsString());
-        when(language.infer(any())).thenReturn(answer("YES", "Unwanted extra hint"));
+        when(language.infer(any())).thenReturn(answer("WAIT", ""));
         say(code, id, "Bist du Physiker?");
         assertEquals("Albert Einstein", agents.findById(id).orElseThrow().getStorage().get("gala.person").getAsString());
         say(code, id, "Albert Einstein");

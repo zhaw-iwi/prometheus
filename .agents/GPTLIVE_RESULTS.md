@@ -5,6 +5,99 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Gala conversation ownership — Milestone 226 (2026-10-21)
+
+The user authorized the first top-down slice and commit/push. Live now answers
+ordinary Gala/event, game-choice/rules, guessing and facial questions from current
+facts. The application still classifies activity control/embodiment, chooses the
+person, validates hand observations, computes RPS results and controls tasks.
+There is no backend YES/NO/UNKNOWN/RULES speech operation. A guessing question can
+still incur a background control classification; Live's answer does not wait for it.
+
+`ExternalVoicePolicy.liveActivityContext()` carries bounded model-visible facts
+separately from behavioural instructions. Opt-in state/fact refreshes use quiet
+thinking updates. An optional persisted speaking occasion distinguishes user-request
+continuations from proactive comments; facts precede one commentary append. Gala
+uses this for game starts, delayed RPS results and control recovery, not ordinary
+answers. Correct name guesses and give-up clear state without another reveal.
+Cancellation/departure/reset clear pending occasions. Existing core policies and
+the configurable task engine keep their previous contracts. No schema migration,
+production database write or saved-instance rewrite is part of this work.
+
+The selected guessing card is now available to Live. Premature name disclosure is
+therefore a prompting risk, not prevented by keeping the name outside the model.
+Facial guidance permits tentative expression/apparent-mood comments from fresh
+camera estimates, accepts corrections and distinguishes estimates from raw video.
+This change does not gate audio, prove final-word playback, or fix the derived
+face-summary expiry/transport issues observed in the physical trial.
+
+Verification:
+
+- 76 focused unit cases passed: Gala reception/reference/task/delivery plus shared
+  activity-context, projection/delivery and voice-default checks. Maximum complete
+  instructions: **15,854 bytes**, both embodiments, all states and maximum task goals.
+- 17 integration cases passed: Gala persistence and canonical/compact journeys,
+  both core-agent representative journeys, Live query/claim contracts. The first
+  18-case run had one outdated delivery fixture failure; its storage-copy mistake
+  was corrected, and the real storage/quiet continuation test passed in the unit run.
+- Seven query-volume cases passed. Mixed Gala minute: **1,996 database questions**
+  (budget 2,100); this remains above the plan's hourly capacity if sustained.
+- Final 22-case acceptance passed after the repeated-occasion refresh correction,
+  including Gala journeys, instruction budget and shared delivery/context checks.
+- Main passed 32 focused shared/core cases on disposable MySQL; feature passed 26
+  foundational unit cases and a subsequent 13-case delivery regression rerun.
+- All 27 real `gpt-5.6-luna` control classifications passed replay through the actual
+  Gala action. Ordinary guessing questions select WAIT; reveal/negation/lifecycle
+  cases preserve the intended distinction. This tests control, not Live answer quality.
+- The final start/reveal prompt refinement passed 32 additional focused unit cases;
+  shared voice/default checks passed four cases on feature.
+- Packaging and diff checks passed. No frontend change or robot/headset test.
+
+Commands used: `mvnw -q -Dtest=... test`; `python tests/gptlive/run_acceptance.py
+--database-properties src/main/resources/application-test.properties --java-tests ...`;
+`mvnw -q -DskipTests package`. Disposable schemas/accounts were removed. Ignored
+artifacts: `target/m226-unit-final.log`, `gptlive-acceptance-870a449062` (initial),
+`gptlive-acceptance-715248faf4` (query volume), `gptlive-acceptance-5418a9476e` (final),
+`gala-226-control-backend-validated.json`; main `gptlive-acceptance-7f294a4539`.
+
+Provider speech acceptance uses the actual assembled Gala instructions and commands
+exported by `target/GalaConversationTrial.java`, synthetic German input through a
+real WebRTC `gpt-live-1` session with Marin, and a recording of the received audio.
+The application state changes are controlled fixtures, not a deployed full-stack
+trial. Two synthetic-input preparation requests timed out before creating a Live
+session; resuming only missing clips completed preparation. The first 11-turn
+probe had no question echoes, correct Einstein answers (male/alive/Swiss residence),
+unknown shoe size, no reveal for hypothetical give-up, one actual reveal, appropriate
+happy-face feedback, accepted correction and a correct scissor-versus-paper verdict.
+Independent file transcription of received audio confirmed those words. It also
+exposed premature starting acknowledgments and a delegated delay before the reveal.
+The final prompt explains automatic transcript control, removes game/reveal lookup
+and explicitly suppresses starting preambles. Controlled state/quiet delivery tests
+remain the authority for mutations; provider style remains probabilistic.
+
+The final 11-turn repeat passed the ordinary-question/no-echo, consistent-card,
+unknown-fact, hypothetical-give-up, immediate single reveal, facial-estimate and
+visitor-correction cases. Both RPS signs and the winner were spoken correctly.
+Recorded-audio transcription independently recovered these answers, including the
+final verdict. Neither session reported a provider error; both finalized and were
+hung up. Artifacts: `gala-226-v2-webrtc-results.json`, `gala-226-v2-voice-assessment.json`,
+`gala-226-v2-audio.webm` and its independent transcription JSON (ignored target files).
+The probe used controlled context updates rather than actual camera measurements.
+
+**Remaining voice limitation:** both runs still produced a pre-confirmation game-start
+acknowledgment followed by the confirmed introduction. The final RPS run also offered
+another game after its correct verdict. One-response-per-question passed for ordinary
+questions; strict silence/one utterance during game starts did not. Prompt guidance
+cannot guarantee that behavior, and no audio gate was introduced. The user should
+use the updated manual script to test actual headset cutoffs and noisy gala sensing.
+The old derived face-summary expiry behavior is unchanged. Do not treat these trials
+as proof that every final word will be audible on the physical setup.
+
+Shared commits: `7e29479`, `3ce2a6f`, `f930506` on feature/gptlive, integrated through
+main (`9a686b8`) into agents. Existing persona and user-capture hooks are preserved.
+Publication is authorized; the agents push triggers the existing Heroku workflow.
+Deployment completion is checked after publication, separately from this source record.
+
 ## Milestones 224–225 release integration (2026-10-21)
 
 The user authorized commit and push after implementation review. Shared database

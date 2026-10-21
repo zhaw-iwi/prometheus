@@ -82,11 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Milestone 226 shared foundation (2026-10-21): opt-in Live activity facts,
-  quiet state delivery and identified user-request/proactive continuations;
-  existing policies retain their contracts. Passed 26 focused unit tests. Application rollout and provider
-  speech acceptance are recorded on `agents`.
-
+- Milestone 226 (2026-10-21): Live owns Gala conversation, ordinary guessing
+  answers and facial comments. PROMETHEUS supplies quiet activity facts, retains
+  control/actions, and identifies delayed starts/results as one speaking occasion.
+  Guessing cards are now visible to Live; give-up/correct guesses no longer create
+  a second backend speech intent. Task execution retains its confirmed-response
+  contract. Passed 100 focused Java cases across units, all three agent journeys,
+  persistence and database-budget checks; packaging passed. Full instructions fit
+  at 15,854/16,000 bytes. Shared foundation is integrated feature → main → agents;
+  real voice confirms direct answers/reveal/facial feedback; start preambles and
+  physical audio limits remain. Evidence: `.agents/GPTLIVE_RESULTS.md`.
 
 - Milestone 225 (2026-10-21): Gala suppresses interim echoes, expands private
   sourced guessing cards, distinguishes missing facts from incomplete questions,

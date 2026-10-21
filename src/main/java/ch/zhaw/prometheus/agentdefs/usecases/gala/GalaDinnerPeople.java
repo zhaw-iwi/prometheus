@@ -3,7 +3,7 @@ package ch.zhaw.prometheus.agentdefs.usecases.gala;
 import java.util.List;
 import java.util.Locale;
 
-/** Fixed private cards; source audit (checked 2026-10-21) stays out of model context. */
+/** Fixed game cards shared with Live; source audit (checked 2026-10-21) stays out of model context. */
 final class GalaDinnerPeople {
     record Person(String name, List<String> aliases, String facts) {}
     static final List<Person> PEOPLE = List.of(

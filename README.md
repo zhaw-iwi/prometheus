@@ -305,8 +305,11 @@ is **GIGI**, with German conversation by default. Voice instructions and the
 opening greeting use **djee-djee** (IPA `/dʒiː dʒiː/`); the displayed/stored name
 remains GIGI. Pronunciation still needs listening verification with the chosen voice.
 It uses **GPT-Live only** for spoken interaction. Ordinary Text/Continuous input
-does not generate Gala replies. Live speaks small talk and approved event answers;
-PROMETHEUS owns task decisions, game results and canonical nonverbal behaviour.
+does not generate Gala replies. Live answers conversation, event, facial and
+ordinary guessing questions directly;
+PROMETHEUS owns activity transitions, selected game facts, computed RPS results
+and canonical nonverbal behaviour. The task engine retains its existing confirmed
+response/action contract in this first conversation redesign.
 
 To operate the entrance demonstration:
 
@@ -372,8 +375,12 @@ prompts are not rewritten; create a new instance for the revised task speech
 guidance. No saved graph or history is migrated automatically.
 
 Gala's reference and voice policy stay identical across reception, games and task
-co-creation. Activity changes use the small Live state section; they do not resend
-the reference before announcing a result. Ordinary reference answers need no
+co-creation. Activity changes use quiet state/fact updates, not instruction appends;
+they avoid instruction-induced interruptions and do not request another answer. A selected guessing card
+is model-visible activity data, separate from behavioural instructions. Game starts
+and computed RPS results carry one persisted user-request continuation: facts first,
+then an invitation for Live to express the result. Routine sensing does not speak.
+Ordinary reference answers need no
 lookup or delegation. The complete instructions, including two maximum task
 goals, remain within the shared 16,000-byte budget.
 
@@ -398,6 +405,12 @@ including stop requests, are still processed. `WAIT` lets harmless reactions sta
 in reception or either game without producing another response. Interpretation
 of other free-form language remains model-dependent.
 
+Real provider trials confirm direct guessing answers, a single reveal and facial
+feedback without question echoes. Game-start preambles still occurred before backend
+confirmation, followed by the introduction. This is a remaining voice-policy limitation;
+the state machine, not spoken claims, controls the actual game. Details are in
+`.agents/GPTLIVE_RESULTS.md`.
+
 The physical repeat script is [tests/gptlive/GALA.md](tests/gptlive/GALA.md).
 Hard-refresh the cockpit after deployment and start a fresh Live session. Check
 that laughter preserves the game and that the following hand sign produces a
@@ -411,20 +424,18 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after round
   entry; optional numeric confidence must be between 0.7 and 1. Spoken signs do
   not finish the round. Live must wait for the backend result.
-- Guessing persists a person from four maintained fact cards. The backend confirms
-  `Ja.` / `Nein.`, distinguishes an unknown fact from an incomplete/nonbinary
-  question, and explains the rules on request. The private cards cover dates,
-  occupations, known residences and achievements; dated source links remain in
-  code comments, outside prompts. Direct date/geography deductions are allowed;
-  an unlisted fact is never automatically false. Missing transcript words must
-  not be reconstructed from Live's own echoes.
-  A correct name guess or explicit give-up/reveal creates one confirmed spoken
-  answer containing the stored name, then clears the round and returns home.
-  Stop, silence, departure, timeout and unrelated topics do not reveal the name.
-  Hypothetical give-up questions explain the rules without ending the round.
-  Private cards do not enter Live guidance. Gala disables interim acknowledgments
-  and question echoes, including the duplicate game-choice invitation; Live waits
-  for confirmed game answers. These are model instructions, not an audio gate.
+- Guessing persists a person from four maintained fact cards and supplies the selected
+  name/card to Live as quiet activity data. Live answers yes/no questions, distinguishes
+  missing facts from incomplete/nonbinary questions, and explains rules directly.
+  Dates/geography allow simple deductions; unlisted facts are not automatically false.
+  Source URLs remain in code comments. The backend classifier only controls activity
+  and embodiment; it receives no private fact card and cannot emit yes/no answers.
+  Correct direct name guesses and give-up/reveal end the round in the backend while
+  Live answers from the selected card once. The resulting quiet update adds no reveal
+  announcement. Stop, silence, departure, timeout and unrelated topics do not reveal.
+  Hypothetical/negated give-up preserves the round. This trades the former model-side
+  secrecy boundary for responsive conversation: premature disclosure is now a model
+  instruction risk, covered by provider trials and the manual script.
 - **Co-create a task**: ask “Was kannst du damit machen?” to explore capabilities,
   then “Lass uns eine eigene Aufgabe gestalten” to enter task design. GIGI helps
   choose a supported sensor trigger and a response, proposes a bounded agreement
@@ -468,7 +479,9 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   input timeout returns home on ticks or the next utterance/task cue; enable
   `prometheus.runtime.tick.enabled=true` for unattended idle recovery.
 - Live already refreshes unchanged eligible observations every five seconds and
-  supplies fresh facial summaries. Gala also emits a small nonverbal reaction to
+  supplies facial estimates/summaries. Gala comments on the visible expression or
+  apparent mood when asked, qualifies estimates and accepts corrections; missing or
+  stale estimates must be acknowledged. Gala also emits a small nonverbal reaction to
   a changed facial label at confidence >= 0.75, with a five-second cooldown.
   Stable expressions do not repeatedly react. These estimates do not identify a
   speaker or prove feelings; group counts do not identify returning individuals.
@@ -524,8 +537,9 @@ visible shares the current encounter; person identity is not tracked.
 
 `GalaDinnerLiveDeliveryUnitTest` additionally exercises real Gala context projection
 and delivery with a controlled 700 ms cost per provider acknowledgement. Short
-activity changes require one state append and one announcement, instead of the
-23 instruction appends observed in the first physical trial. This bounds synthetic
+activity changes deliver quiet state/facts before one continuation; the stable
+reference is not resent. Current short fixtures use at most three ACKs. This bounds
+synthetic
 delivery work; it does not measure real provider or audible response latency.
 
 For the next physical trial, use a fresh Live session and export telemetry after
@@ -713,7 +727,7 @@ Live transcript claims use scalar scope/epoch checks and bounded bulk receipt
 reads/assignment, with a separately committed claim before processing. Every
 fragment remains durable; revocation, original receipt ordering and no automatic
 replay of uncertain actions are preserved. No schema migration is needed.
-The deployment branch also tests a mixed Gala speech/sensing minute: 2,031 MySQL
+The deployment branch also tests a mixed Gala speech/sensing minute: 1,996 MySQL
 questions versus 4,731 before these changes. Sustained load at that rate exceeds
 the documented 36,000/hour plan; this regression test is not a capacity guarantee.
 See `.agents/GPTLIVE_RESULTS.md` for workload, verification and deployment limits.

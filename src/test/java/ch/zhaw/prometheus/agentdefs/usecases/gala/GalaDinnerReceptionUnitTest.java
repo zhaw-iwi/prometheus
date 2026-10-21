@@ -92,7 +92,8 @@ class GalaDinnerReceptionUnitTest {
         assertNull(agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor", "{}"), runtime));
         assertEquals("RPS", mode(memory));
         var result = BehaviourPlan.fromJson(hand("paper", Instant.now(), 0.95).getPayload());
-        assertTrue(result.getSpeech().contains("Sie gewinnen"));
+        assertNull(result.getSpeech());
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("winner: user"));
         assertEquals("rock", result.getMotion().getAsJsonObject().get("handSign").getAsString());
         assertEquals("Gala reception", agent.getCurrentState().getName());
         assertFalse(memory.containsKey(SIGN));
@@ -101,21 +102,28 @@ class GalaDinnerReceptionUnitTest {
         verify(gateway, times(1)).infer(any());
     }
 
-    @Test void guessingKeepsTargetAnswersOnlyYesNoAndCompletesOnDirectName() {
-        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""),
-                answer("YES", "Ja, und hier ist ein unerlaubter Hinweis."),
-                answer("NO", "Nein, ich bin Albert Einstein."),
-                answer("CLARIFY", "Albert Einstein."));
-        assertFalse(speech(say("Ich möchte eine Person erraten")).contains("Einstein"));
-        assertEquals("Albert Einstein", text(memory, PERSON, ""));
-        assertEquals("Ja.", speech(say("Bist du Physiker?")));
-        assertEquals("Nein.", speech(say("Bist du Musiker?")));
-        assertFalse(speech(say("Welche Schuhgrösse hast du?")).contains("Einstein"));
-        assertEquals("Albert Einstein", text(memory, PERSON, ""));
-        assertTrue(speech(say("Bist du Albert Einstein?")).startsWith("Ja, genau: Albert Einstein!"));
-        assertEquals("Gala reception", agent.getCurrentState().getName());
-        assertFalse(memory.containsKey(PERSON));
-        verify(gateway, times(4)).infer(any());
+    @Test void guessingPublishesTheCardForLiveAndBackendOnlyControlsTheRound() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("WAIT", ""));
+        assertNull(speech(say("Ich möchte eine Person erraten")));
+        var projection = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
+        var context = projection.project(agent);
+        assertTrue(context.activity().facts().contains("Albert Einstein"));
+        assertTrue(context.activity().facts().contains("not alive"));
+        assertTrue(context.startupInput().toString().contains("co-invented a refrigerator"));
+        assertFalse(context.instructions().contains("Albert Einstein"));
+        var occasion = context.activity().continuation().id();
+        for (String question : List.of("Bist du Physiker?", "Bist du Musiker?", "Welche Schuhgrösse hast du?")) {
+            assertNull(say(question));
+            assertEquals("Albert Einstein", text(memory, PERSON, ""));
+            assertEquals(occasion, projection.project(agent).activity().continuation().id());
+        }
+        var requests = ArgumentCaptor.forClass(InferenceRequest.class);
+        verify(gateway, times(4)).infer(requests.capture());
+        assertTrue(requests.getAllValues().stream().noneMatch(r -> r.messages().getFirst().getContent().contains("Fact card:")));
+        assertNull(speech(say("Bist du Albert Einstein?")));
+        assertEquals("RECEPTION", mode(memory));
+        assertNull(projection.project(agent).activity().continuation());
+        assertFalse(projection.project(agent).activity().facts().contains("Einstein"));
         assertFalse(GalaDinnerPeople.guessed(GalaDinnerPeople.PEOPLE.getFirst(), "Du bist nicht Albert Einstein"));
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
         say("Noch ein Ratespiel");
@@ -132,46 +140,46 @@ class GalaDinnerReceptionUnitTest {
     }
 
     @ParameterizedTest @ValueSource(strings = {"Ich gebe auf.", "I give up!"})
-    void explicitGiveUpRevealsStoredPersonOnceWithoutInference(String utterance) {
+    void explicitGiveUpClearsTheRoundWithoutDuplicatingLivesReveal(String utterance) {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
         say("Personenraten bitte");
         clearInvocations(gateway);
-        assertEquals("Es war Albert Einstein. Die Runde ist beendet; ich bin wieder für Ihre Fragen da.", speech(say(utterance)));
+        assertNull(speech(say(utterance)));
+        assertFalse(memory.containsKey(CONTINUATION_ID));
         assertEquals("RECEPTION", mode(memory));
         for (String key : List.of(PERSON, STARTED, REPLY)) assertFalse(memory.containsKey(key), key);
         assertNull(agent.generate(runtime));
         verifyNoInteractions(gateway);
     }
 
-    @Test void inferredRevealUsesBackendTargetAndRequiresAnActiveGuessingRound() {
+    @Test void inferredGiveUpEndsOnlyAnActiveGuessingRound() {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("GIVE_UP", ""));
         say("Personenraten bitte");
-        assertTrue(speech(say("Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast")).startsWith("Es war Albert Einstein."));
+        assertNull(speech(say("Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast")));
         assertEquals("RECEPTION", mode(memory));
         assertFalse(memory.containsKey(PERSON));
         assertNull(agent.generate(runtime));
         when(gateway.infer(any())).thenReturn(answer("GIVE_UP", ""));
-        assertTrue(speech(say("Verrate die Person")).contains("nicht geklappt"));
+        assertNull(speech(say("Verrate die Person")));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"));
         assertFalse(memory.containsKey(PERSON));
     }
 
-    @Test void unknownFactsAndIncompleteQuestionsDifferWithoutLeakingOrChangingTheTarget() {
-        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("UNKNOWN", ""),
-                answer("CLARIFY", ""), answer("RULES", ""));
+    @Test void uncertainQuestionsAndRulesRemainLiveOwnedWithoutChangingOrRepeatingTheRound() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("WAIT", ""));
         say("Personenraten bitte");
-        assertTrue(speech(say("Hatte die Person Schuhgrösse 42?")).startsWith("Dazu habe ich keine gesicherte Information."));
-        assertTrue(speech(say("Lebt die")).contains("noch einmal vollständig"));
-        assertTrue(speech(say("Was passiert, wenn ich aufgebe?")).contains("Wenn Sie aufgeben"));
-        assertEquals("GUESS", mode(memory));
-        assertEquals("Albert Einstein", text(memory, PERSON, ""));
-        assertFalse(new LiveVoicePolicyAdapter().instructions(agent).contains("Albert Einstein"));
-        var capture = ArgumentCaptor.forClass(InferenceRequest.class);
-        verify(gateway, times(4)).infer(capture.capture());
-        String privatePrompt = capture.getAllValues().get(1).messages().getFirst().getContent();
-        for (String fact : List.of("not alive", "Switzerland", "co-invented a refrigerator"))
-            assertTrue(privatePrompt.contains(fact), fact);
-        assertTrue(privatePrompt.contains("Use UNKNOWN"));
-        assertFalse(privatePrompt.contains("https://"));
+        String start = text(memory, CONTINUATION_ID, "");
+        for (String question : List.of("Hatte die Person Schuhgrösse 42?", "Lebt die", "Was passiert, wenn ich aufgebe?")) {
+            assertNull(say(question));
+            assertEquals("GUESS", mode(memory));
+            assertEquals("Albert Einstein", text(memory, PERSON, ""));
+            assertEquals(start, text(memory, CONTINUATION_ID, ""));
+        }
+        var instructions = new LiveVoicePolicyAdapter().instructions(agent);
+        assertTrue(instructions.contains("An unlisted fact is unknown, not false"));
+        assertTrue(instructions.contains("hypothetical or negated give-up never reveals"));
+        assertTrue(instructions.contains("fresh facial estimates"));
+        assertFalse(instructions.contains("emotion diagnosis"));
     }
 
     @Test void negatedGiveUpDoesNotUseLocalRevealAndQuietNeverDisclosesTheName() {
@@ -208,7 +216,7 @@ class GalaDinnerReceptionUnitTest {
 
     @Test void incompleteReceptionRequestCanClarifyWithoutStartingAnActivityOrReportingFailure() {
         when(gateway.infer(any())).thenReturn(answer("CLARIFY", ""));
-        assertEquals("Was möchten Sie gern tun?", speech(say("Können wir")));
+        assertNull(say("Können wir"));
         assertEquals("RECEPTION", mode(memory));
         assertFalse(memory.containsKey(PERSON)); assertFalse(memory.containsKey(SIGN));
         assertNull(agent.generate(runtime));
@@ -222,7 +230,7 @@ class GalaDinnerReceptionUnitTest {
         for (String request : List.of("Können wir etwas spielen?", "Die Können wir etwas spielen",
                 "Okay. Können wir etwas [laugh] spielen?", "Lass uns ein Spiel spielen!",
                 "Spielen wir?", "Was können wir spielen?", "Can we play something?")) {
-            assertEquals("Personenraten oder Schere, Stein, Papier?", speech(say(request)), request);
+            assertNull(say(request), request);
             assertEquals("RECEPTION", mode(memory));
             assertFalse(memory.containsKey(SIGN)); assertFalse(memory.containsKey(PERSON));
             assertFalse(memory.containsKey(ROUND)); assertFalse(memory.containsKey(STARTED));
@@ -230,9 +238,10 @@ class GalaDinnerReceptionUnitTest {
         verifyNoInteractions(gateway);
         // Other phrasings can use the same choice operation through normal language interpretation.
         when(gateway.infer(any())).thenReturn(answer("CHOOSE_GAME", ""));
-        assertEquals("Personenraten oder Schere, Stein, Papier?", speech(say("Ich hätte Lust auf ein Spiel.")));
+        assertNull(say("Ich hätte Lust auf ein Spiel."));
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
-        assertTrue(speech(say("Wie wäre es mit einem Ratespiel?")).contains("Ja-Nein-Fragen"));
+        assertNull(speech(say("Wie wäre es mit einem Ratespiel?")));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Guessing round started"));
         assertEquals("GUESS", mode(memory));
         assertEquals("Albert Einstein", text(memory, PERSON, ""));
     }
@@ -274,7 +283,8 @@ class GalaDinnerReceptionUnitTest {
         assertNull(say("[laugh]"));
         var result = BehaviourPlan.fromJson(hand("scissor", Instant.now(), .731).getPayload());
         assertEquals("agent", result.getDisplay().getAsJsonObject().get("winner").getAsString());
-        assertEquals("Ich habe Stein, Sie haben Schere. Diese Runde geht an mich!", result.getSpeech());
+        assertNull(result.getSpeech());
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("winner: agent"));
         assertEquals("RECEPTION", mode(memory));
         assertNull(hand("rock", Instant.now(), .735));
         assertNull(agent.generate(runtime));
@@ -285,7 +295,8 @@ class GalaDinnerReceptionUnitTest {
         for (String invalid : List.of("not json", answer("YES", "Ja"), answer("START_RPS", "").replace("NONE", "dance"),
                 answer("START_GUESS", "").replace("\"operation\":\"START_GUESS\"", "\"operation\":42"))) {
             when(gateway.infer(any())).thenReturn(invalid);
-            assertTrue(speech(say("Hallo")).contains("nicht geklappt"));
+            assertNull(speech(say("Hallo")));
+            assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"));
             assertEquals("Gala reception", agent.getCurrentState().getName());
             assertFalse(memory.containsKey(PERSON));
             assertFalse(memory.containsKey(SIGN));
@@ -354,6 +365,8 @@ class GalaDinnerReceptionUnitTest {
         policy.beginLiveConversation(agent.getEventHistory());
         var projection = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter()).project(agent);
         assertFalse(projection.startupInput().toString().contains("Geheimname"));
+        assertFalse(projection.startupInput().toString().contains("Einstein"));
+        assertNull(projection.activity().continuation());
         assertTrue(projection.startupInput().toString().contains("greet the visible visitors once"));
         put(memory, COUNT, "0");
         assertThrows(IllegalArgumentException.class, () -> policy.beginLiveConversation(agent.getEventHistory()));
@@ -408,5 +421,5 @@ class GalaDinnerReceptionUnitTest {
         answer.addProperty("gaze", "toward_user");
         return answer.toString();
     }
-    private static String speech(Event event) { return BehaviourPlan.fromJson(event.getPayload()).getSpeech(); }
+    private static String speech(Event event) { return event == null ? null : BehaviourPlan.fromJson(event.getPayload()).getSpeech(); }
 }

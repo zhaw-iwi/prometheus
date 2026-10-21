@@ -88,12 +88,11 @@ public class GalaDinnerAction extends Action {
         if (command.matches("(bitte )?(stopp?|aufhören|aufhoeren|abbrechen|schluss|fertig|nein danke|tschüss|tschuess|auf wiedersehen)"
                 + "|(please )?(stop|cancel|quit|goodbye)")) {
             leave(storage, events, false);
-            reply(storage, plan("Gerne. Einen schönen Abend!", "POLITE", "gentleSmile", "toward_user"));
+            reply(storage, plan(null, "POLITE", "gentleSmile", "toward_user"));
             return;
         }
         String mode = mode(storage);
         if ("RECEPTION".equals(mode) && GalaDinnerInput.unspecifiedGame(utterance)) {
-            reply(storage, gameChoice());
             return;
         }
         if ("TASK".equals(mode)) {
@@ -107,11 +106,11 @@ public class GalaDinnerAction extends Action {
         }
         if ("GUESS".equals(mode)) {
             if (command.matches("ich gebe auf|ich geb auf|i give up")) {
-                reply(storage, finishGuess(storage, false));
+                reply(storage, finishGuess(storage));
                 return;
             }
             if (GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
-                reply(storage, finishGuess(storage, true));
+                reply(storage, finishGuess(storage));
                 return;
             }
         }
@@ -119,10 +118,6 @@ public class GalaDinnerAction extends Action {
         try {
             String prompt = GalaDinnerPrompts.TURN
                     + "\nBackend current mode: " + mode;
-            if ("GUESS".equals(mode)) {
-                var person = GalaDinnerPeople.named(text(storage, PERSON, ""));
-                prompt += "\nPrivate target (never reveal): " + person.name() + ". Fact card: " + person.facts();
-            }
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
                     messages(storage, events, prompt, runtime, now), InferenceRequest.Output.JSON_OBJECT);
             String inferred = runtime.languageModelGateway().infer(request);
@@ -141,7 +136,7 @@ public class GalaDinnerAction extends Action {
             Set<String> allowed = switch (mode) {
                 case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
                 case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET");
-                case "GUESS" -> Set.of("WAIT", "YES", "NO", "UNKNOWN", "CLARIFY", "RULES", "GIVE_UP", "RETURN", "QUIET");
+                case "GUESS" -> Set.of("WAIT", "GIVE_UP", "RETURN", "QUIET");
                 default -> throw new IllegalArgumentException("Invalid mode");
             };
             failureStage = "mode_operation";
@@ -150,7 +145,7 @@ public class GalaDinnerAction extends Action {
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
                 case "WAIT" -> response = null;
-                case "CHOOSE_GAME" -> response = gameChoice();
+                case "CHOOSE_GAME", "CLARIFY" -> response = null; // Live answers; no competing speech intent.
                 case "START_TASK" -> {
                     reception(storage);
                     put(storage, MODE, "TASK");
@@ -164,7 +159,8 @@ public class GalaDinnerAction extends Action {
                     put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
                     put(storage, MODE, "RPS");
                     put(storage, STARTED, now.toString());
-                    response = plan("Eine Runde Schere, Stein, Papier. Zeigen Sie jetzt Ihr Zeichen!",
+                    continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now.");
+                    response = plan(null,
                             "NONE", "attentive", "toward_user");
                     response.setDisplay(display("game_countdown", true));
                 }
@@ -175,27 +171,11 @@ public class GalaDinnerAction extends Action {
                     put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
                     put(storage, MODE, "GUESS");
                     put(storage, STARTED, now.toString());
-                    response = plan("Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen!",
+                    continueRequest(storage, "Guessing round started. Invite the first yes/no question without revealing the selected person.");
+                    response = plan(null,
                             "OPEN_QUESTION", "gentleSmile", "toward_user");
                 }
-                case "YES", "NO" -> response = plan(operation.equals("YES") ? "Ja." : "Nein.",
-                        "NONE", "attentive", "toward_user");
-                case "UNKNOWN" -> response = plan(
-                        "Dazu habe ich keine gesicherte Information. Stellen Sie mir eine andere Ja-Nein-Frage.",
-                        "NONE", "thoughtful", "toward_user");
-                case "RULES" -> response = plan(
-                        "Erraten Sie die Person mit Ja-Nein-Fragen. Wenn Sie aufgeben oder die Auflösung möchten, nenne ich den Namen und beende die Runde.",
-                        "NONE", "attentive", "toward_user");
-                case "GIVE_UP" -> response = finishGuess(storage, false);
-                case "CLARIFY" -> {
-                    response = plan("Zeigen Sie bitte ein frisches Handzeichen für Schere, Stein oder Papier.",
-                            "NONE", "attentive", "toward_user");
-                    if ("GUESS".equals(mode)) response = plan(
-                            "Bitte formulieren Sie die Frage noch einmal vollständig, sodass ich mit Ja oder Nein antworten kann.",
-                            "NONE", "thoughtful", "toward_user");
-                    if ("RECEPTION".equals(mode)) response = plan("Was möchten Sie gern tun?",
-                            "OPEN_QUESTION", "attentive", "toward_user");
-                }
+                case "GIVE_UP" -> response = finishGuess(storage);
                 case "RETURN" -> reception(storage);
                 case "QUIET" -> { leave(storage, events, true); response = null; }
                 default -> { }
@@ -208,7 +188,8 @@ public class GalaDinnerAction extends Action {
                     "Gala response failed stage={} mode={} error={}; returning to reception",
                     failureStage, mode, failure.getClass().getSimpleName());
             reception(storage);
-            reply(storage, plan("Das hat gerade nicht geklappt. Ich bin wieder für Ihre Fragen da.",
+            continueRequest(storage, "Requested activity control failed. Returned to reception; no requested action was completed.");
+            reply(storage, plan(null,
                     "UNCERTAIN", "thoughtful", "toward_user"));
         }
     }
@@ -217,17 +198,10 @@ public class GalaDinnerAction extends Action {
         return GalaDinnerDecision.expired(storage, now);
     }
 
-    private static BehaviourPlan gameChoice() {
-        return plan("Personenraten oder Schere, Stein, Papier?", "OPEN_QUESTION", "attentive", "toward_user");
-    }
-
-    private static BehaviourPlan finishGuess(Storage storage, boolean correct) {
-        // Preserve the target in one confirmed speech intent before reception clears the round.
-        String person = GalaDinnerPeople.named(text(storage, PERSON, "")).name();
-        var response = plan(correct
-                ? "Ja, genau: " + person + "! Das war's schon – worüber möchten Sie plaudern?"
-                : "Es war " + person + ". Die Runde ist beendet; ich bin wieder für Ihre Fragen da.",
-                "ACKNOWLEDGE", "gentleSmile", "toward_user");
+    private static BehaviourPlan finishGuess(Storage storage) {
+        // Live already has the selected card and answers the visitor directly. Ending the round
+        // updates facts quietly; it must not create a second reveal or another spoken answer.
+        var response = plan(null, "ACKNOWLEDGE", "gentleSmile", "toward_user");
         reception(storage);
         return response;
     }
@@ -254,13 +228,7 @@ public class GalaDinnerAction extends Action {
                 if (!Double.isFinite(value) || value < 0.7 || value > 1) return;
             }
             RpsSign agent = RpsSign.parse(text(storage, SIGN, "")), user = RpsSign.parse(rawSign);
-            String outcome = switch (RpsRules.evaluate(agent, user)) {
-                case DRAW -> "Unentschieden!";
-                case AGENT_WIN -> "Diese Runde geht an mich!";
-                case USER_WIN -> "Sie gewinnen!";
-            };
-            var response = plan("Ich habe " + agent.germanLabel() + ", Sie haben " + user.germanLabel()
-                    + ". " + outcome, "NONE", "gentleSmile", "toward_user");
+            var response = plan(null, "NONE", "gentleSmile", "toward_user");
             JsonObject motion = new JsonObject();
             motion.addProperty("handSign", agent.canonical());
             response.setMotion(motion);
@@ -270,6 +238,8 @@ public class GalaDinnerAction extends Action {
             display.addProperty("winner", RpsRules.evaluate(agent, user).winner());
             response.setDisplay(display);
             reception(storage);
+            continueRequest(storage, "RPS round completed. Robot: " + agent.canonical() + "; visitor: " + user.canonical()
+                    + "; winner: " + RpsRules.evaluate(agent, user).winner() + ". Explain this result once. Now at reception.");
             put(storage, LAST_INPUT, now.toString());
             reply(storage, response);
         } catch (RuntimeException invalid) {
