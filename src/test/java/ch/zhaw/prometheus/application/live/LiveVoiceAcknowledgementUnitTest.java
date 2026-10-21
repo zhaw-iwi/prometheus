@@ -13,12 +13,25 @@ import ch.zhaw.prometheus.model.task.TaskPolicy;
 class LiveVoiceAcknowledgementUnitTest {
     static final class ApplicationPolicy extends TaskPolicy implements ExternalVoicePolicy {
         private final Boolean acknowledgements;
+        private boolean activity;
         ApplicationPolicy(Boolean acknowledgements) { super(new Storage(), "Application voice"); this.acknowledgements = acknowledgements; }
         public boolean supportsLiveState(State state) { return true; }
         public String voiceInstructions() { return "Application voice"; }
+        public ch.zhaw.prometheus.model.policy.LiveActivityContext liveActivityContext() {
+            return activity ? new ch.zhaw.prometheus.model.policy.LiveActivityContext("Task facts", null) : null;
+        }
         public boolean livePendingAcknowledgements() {
             return acknowledgements == null ? ExternalVoicePolicy.super.livePendingAcknowledgements() : acknowledgements;
         }
+    }
+    @Test void activityAwareTaskUsesItsApplicationVoiceWithoutLegacyTaskDuplication() {
+        var policy = new ApplicationPolicy(false); policy.activity = true;
+        var agent = new Agent("application", "", new State("task", policy, List.of()));
+        agent.setInteractionProfile(new GenericMultimodalBehaviour().createAgent().getInteractionProfile());
+        var sections = new LiveVoicePolicyAdapter().sections(agent);
+        assertFalse(sections.containsKey("taskVoice"));
+        assertTrue(sections.get("policy").contains("Application voice"));
+        assertTrue(sections.get("state").contains("Task phase: CONFIGURATION"));
     }
 
     @Test void applicationMayDisableBothPermissionsWhileDefaultGuidanceRemainsIdentical() {
