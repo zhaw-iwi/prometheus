@@ -242,3 +242,29 @@ GI-04 is implemented and verified within those limits. The existing task capture
 gate still matches backend wording; replacing it belongs to GI-05. No claim is
 made that this milestone solves arbitrary Live paraphrase association or proves
 physical playback/gesture completion.
+
+## GI-05 investigation - response association decision, not implemented
+
+GI-04 application commit b5e09a5 is pushed to agents; shared changes are also on
+feature/gptlive (bca6d49) and main (d318090). GI-03 deployment completed successfully;
+GI-04 workflow 39674794714 was in progress when checked.
+
+The two real GI-04 voice trials produced 69 and 91 assistant transcript fragments,
+respectively; none carried client_event_id. LiveTranscriptIngressService supplies
+all recent candidate backend intent IDs with AMBIGUOUS association. TaskDecision
+firstSample currently distinguishes the requested response from acknowledgments
+and unrelated speech by matching backend wording. A generic completed caption
+cannot safely replace that association when wording becomes Live-owned.
+
+Official API checked on 2026-10-21:
+- [Transcript deltas](https://developers.openai.com/api/docs/guides/live-conversations#transcript-deltas)
+  have approximate intervals, no response item identity and no turn-done event.
+- [Output transcript schema](https://developers.openai.com/api/reference/resources/live/sideband-websocket#session.output_transcript.delta)
+  has an optional client_event_id, not a guaranteed spoken-response correlation.
+- [Playback controls](https://developers.openai.com/api/docs/guides/voice-server-controls#control-playback-when-needed)
+  distinguish input mute, context acknowledgments and actual client playback.
+
+The proposed decision is bounded semantic association versus explicit visitor
+confirmation before further task steps; exact scope and tradeoffs are recorded
+in PLAN_GALAIMPROVEMENT.md. Neither has been implemented. Investigation does not
+mark GI-05 complete, and no timeout has been substituted for completed speech.

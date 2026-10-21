@@ -1,7 +1,9 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-04 implemented and verified; GI-05 next. Later milestones are not started.
+Status: GI-01 through GI-04 implemented, verified and pushed. GI-05 investigation
+requires a response-association decision below; no GI-05 runtime changes made.
+Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
 children's interactions, including the subsequent gesture review. The user authorized consecutive implementation on 2026-10-21: finish each
@@ -268,6 +270,32 @@ the prior agreement. Reload fixtures preserve legacy first-action semantics.
 Provider review must check that spoken proposals retain every material term.
 
 ### GI-05 - Live-owned task wording and bounded response tracking
+
+Decision needed (2026-10-21): Live output transcript fragments have no guaranteed
+response/occasion identity or completed-turn event. Both GI-04 WebRTC trials
+returned no client_event_id on generated speech (0/69 and 0/91 fragments). The
+optional field in the API therefore cannot be assumed available. Current ingress
+records possible backend intents as AMBIGUOUS, and TaskDecision uses wording to
+associate the actual response. Append acknowledgments and measured silence do
+not establish which free-form response was spoken or whether it was heard.
+
+Proposed choices, requiring user direction before replacing that gate:
+
+1. Recommended: one bounded semantic check per pending task response, after a
+   completed captured segment. Bind it to the occasion, revision and epoch;
+   reject short acknowledgments, unrelated/ambiguous text and stale identities.
+   Deadline/provider failure ends automatic progression as uncertain, never
+   replaying a physical action. This adds model latency/cost and probabilistic
+   association; it is not proof of audible delivery. No per-fragment or per-frame
+   checks, no extra generation of spoken answers.
+2. Explicit visitor confirmation before another automatic task step. This avoids
+   semantic inference as the release condition but changes the interaction by
+   asking the visitor to continue after each response. It does not prove playback
+   either; it is explicit authorization to proceed.
+
+Neither option is implemented. A timer-only release or treating every substantive
+caption as the task response would violate the acceptance criteria below.
+Evidence and official API references are in GALAIMPROVEMENT_RESULTS.md.
 
 **Outcome:** Gala tasks use the same Live verbal ownership as games, without
 waiting indefinitely for backend sentences to appear verbatim in the transcript.
