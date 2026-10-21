@@ -53,6 +53,7 @@ class GalaDinnerReferenceUnitTest {
         GalaDinnerMemory.put(memory, TaskMemory.REVISION, Integer.toString(Integer.MAX_VALUE));
         var adapter = new LiveVoicePolicyAdapter();
         var projection = new LiveContextProjection(new PromptMessageAssembler(), adapter);
+        String stablePolicy = adapter.sections(agent).get("policy");
         int maximum = 0;
         for (var state : agent.reachableStates()) {
             ReflectionTestUtils.setField(agent, "currentState", state);
@@ -71,6 +72,8 @@ class GalaDinnerReferenceUnitTest {
                 assertFalse(instructions.contains("https://"));
                 assertFalse(instructions.contains("http://"));
                 assertTrue(projection.project(agent).startupInput().toString().contains("ich bin djee-djee"));
+                assertEquals(stablePolicy, adapter.sections(agent).get("policy"), state.getName());
+                assertEquals(2000, projection.project(agent).userSilenceMs());
                 assertEquals("GIGI", agent.getPersonaName());
             }
         }

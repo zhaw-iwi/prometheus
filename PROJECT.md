@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 222 (2026-10-21): Gala keeps reference/voice guidance stable across
+  activity changes, removing the 23-chunk resend ahead of game narration. A
+  bounded session-fixed user capture window is carried through immutable Live
+  context: Gala uses 2,000 ms, other agents and assistant capture retain 800 ms.
+  Reception can clarify unfinished requests and rejection logs identify a safe
+  processing stage. Passed 108 Java cases including all three agent journeys,
+  39 Live JavaScript cases and packaging. Audible cutoff cause and physical
+  performance remain unverified; evidence: `.agents/GPTLIVE_RESULTS.md`.
+
 - Milestone 221 (2026-10-20): Gala speech/task guidance removes IPA notation,
   selects one encounter-owned lifecycle contract and makes immediate activation
   output and action counts explicit. Gala renders proposal counts/termination
@@ -470,6 +479,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 222: Gala narration delivery and bounded user-turn capture
 - [x] Milestone 221: Gala speech, lifecycle and initial-action guidance follow-up
 - [x] Milestone 220: Compact task behaviour and paired Live smoke journeys
 - [x] Milestone 219: Shared Gala institutional/event reference and spoken-name guidance
@@ -10538,3 +10548,36 @@ No state graph, schema, routes, task limits or saved prompts were migrated.
 Changes are uncommitted and undeployed. Use a fresh Gala instance after deployment.
 Physical voice/sensing/robot behaviour and arbitrary free-text agreement fidelity
 remain live-trial considerations.
+
+## Milestone 222
+
+Date: 2026-10-21. Gala narration delivery and bounded user-turn capture on `agents`.
+
+The first physical trial exposed repeated policy/reference transmission at every
+activity change: 23 sequential instruction appends delayed narration by roughly
+16 seconds. Gala now keeps this guidance stable across all activities and uses
+the existing small state section. A controlled-clock regression applies a 700 ms
+cost per ACK and requires one state append plus one announcement across game,
+reception and task boundaries. The persisted two-visitor journey also checks that
+the reference is never resent during activity changes.
+
+An application policy can select a session-fixed backend user quiet window through
+immutable Live context. Gala uses 2,000 ms; other agents and assistant capture retain
+800 ms. Tests cover the recorded 770/1,200/1,708 ms fragment gaps, single admission,
+Stop/mute and missing-audio behavior. Effective settings are exported in telemetry.
+This adds up to 1.2 seconds of backend waiting and does not detect semantic sentence
+completion or change the provider's own speech timing. Reception can clarify an
+unfinished request; failure logs report a content-free processing stage.
+
+Passed 108 Java cases across 19 classes, including canonical/compact Generic,
+Social Space and Gala journeys, plus 39 Live JavaScript cases and production
+packaging. Both disposable local database runs cleaned up their schema/account.
+Maximum Gala instructions are 15,725/16,000 bytes with two maximum-length goals.
+Exact commands, artifacts and diagnosis are in `.agents/GPTLIVE_RESULTS.md`.
+
+No production state, saved graph or action prompt was changed; no commit or
+deployment was made. Existing Gala policies receive this code on reload and a
+fresh Live session selects its capture setting. Ordinary speech cutoffs, camera
+recognition and physical robot behavior still need the controlled trial in README.
+Routine sensor cadence/freshness were preserved; context injection is a cutoff
+hypothesis, not an established cause. No paid provider or physical test was run.

@@ -5,6 +5,82 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Gala narration and user-turn boundaries - Milestone 222 (2026-10-21)
+
+The user authorized this follow-up after the first Gala headset interaction on
+Heroku v111. Work remains on the Gala `agents` checkout; shared capture plumbing
+contains no Gala-specific constants or state rules. No production writes, paid
+provider calls, commit, push or deployment are part of this implementation turn.
+
+Read-only diagnosis of the supplied telemetry and durable session found:
+
+- Four activity changes each sent 23 instruction chunks, taking 16.0-16.8 seconds.
+  Gala embedded its current mode in the large policy/reference section, defeating
+  the existing section-change delivery optimization. RPS computed a draw on the
+  first received hand event, but its result waited behind this guidance. Its first
+  caption reached the browser about 52 ms before local Stop (same browser clock).
+- The opening's final word was delayed about five seconds in provider transcripts;
+  reflected output and microphone input were both quiet during part of the gap.
+  Browser playback continued unmuted and reported no packet loss. Routine context
+  injection is a candidate for a controlled retest, not an established cause.
+- Visitor questions split into independent accepted turns across transcript gaps
+  of 770, 1,200 and 1,708 ms. One application-level response rejection followed an
+  unfinished request; its exact invalid field was not captured. Simple reference
+  questions also triggered unnecessary delegation.
+
+Changes:
+
+- All Gala activity policies now expose identical reference/voice/task guidance.
+  The existing state section supplies the activity and task phase/goals. No
+  special transport, extra model call, parallel ACK or relaxed result authority
+  is introduced. Reference answers explicitly avoid lookup/delegation filler.
+- `ExternalVoicePolicy.liveUserSilenceMs()` selects a bounded, session-fixed
+  backend user quiet window. The immutable snapshot carries it into capture;
+  default/assistant capture stays at 800 ms, Gala selects 2,000 ms. There is no
+  schema change, additional DB query or entity retained in a worker. Stop/mute,
+  coverage-gap, late-fragment, scope and duration fences remain in force.
+  Status and the browser export include the effective `userSilenceMs`.
+- Reception accepts a valid CLARIFY operation without activating a game or
+  returning a failure apology. Rejection logs identify the processing stage,
+  mode and exception class without recording model output or visitor text.
+- The existing Gala journey asserts no reference resend and the session setting.
+  A separate controlled-clock regression exercises all Gala activity boundaries
+  with 700 ms per ACK: one state append plus one result takes 1,400 simulated ms
+  including both ACKs. Input/capture regressions keep the observed pause lengths
+  in one backend turn and retain default timing and conservative failure cases.
+
+Verification:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinner*UnitTest,LiveTranscriptSegmenterUnitTest,LiveTranscriptCaptureServiceUnitTest,LiveContextDeliveryUnitTest,ScopedLiveSessionServiceUnitTest
+node --test tests/js/live/diagnostics.test.mjs
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,LiveTranscriptIngressIntegrationTest,LiveSpeechPersistenceIntegrationTest,LiveMultimodalBridgeIntegrationTest,LiveContextProjectionUnitTest,AgentCapabilityLiveContextUnitTest,LiveQueryBudgetIntegrationTest,LiveSessionSmokeIntegrationTest
+npm.cmd run test:live:unit
+.\mvnw.cmd -q -DskipTests package
+```
+
+All **108 Java cases in 19 classes** passed with no failures, errors or skips:
+71 focused cases in `target/gptlive-acceptance-4b25c2623f/`, then 37 context,
+persistence, ingress, query-budget and scoped Live integration cases in
+`target/gptlive-acceptance-5b00f0ba67/`. Each directory contains its own fresh
+report counts and log. The latter run includes canonical/compact journeys for
+Generic, Social Space and Gala. Both owned local schemas/accounts were removed.
+All **39 Live JavaScript cases** passed, including the telemetry export field;
+the three-case initial telemetry subset also passed. Production packaging passed
+(`target/gala-222-package.log`); no new browser acceptance run was made. Maximum
+complete Gala instructions with two maximum-length task goals are
+**15,725/16,000 bytes** for both embodiments.
+
+Limits: the two-second window is a conservative acoustic boundary, not language
+understanding; it can add 1.2 seconds before backend actions and longer pauses
+still split turns. Live itself may respond before backend admission. The delayed
+ACK regression models transport cost and does not prove audible latency. No raw
+audio, physical headset, camera or robot retest has been performed. The root cause
+of ordinary mid-sentence cutoffs remains unresolved. Routine sensor transmission,
+freshness and presence lifecycle were preserved. README describes the microphone
+on/off camera-cue comparison and hand-detection/paused-question checks. Start a
+fresh Live session after deployment; saved graphs and action prompts are not migrated.
+
 ## Live announcement latency and audio diagnostics - Milestone 204 (2026-10-02)
 
 The user authorized implementation on `feature/gptlive` after the v104 facial-joke

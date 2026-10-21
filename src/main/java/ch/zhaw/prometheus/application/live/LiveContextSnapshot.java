@@ -9,8 +9,17 @@ import com.google.gson.JsonObject;
 
 /** Immutable selected evidence. No persistence entities escape to provider workers. */
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
-        List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
-    public LiveContextSnapshot { statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance); }
+        List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+        long userSilenceMs) {
+    public LiveContextSnapshot {
+        statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance);
+        LiveTranscriptSegmenter.validateUserSilence(userSilenceMs);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance,
+                LiveTranscriptSegmenter.SILENCE_MS);
+    }
     public record Item(String key, String type, String role, List<UUID> sourceIds,
             Instant receivedAt, Instant observedAt, Instant expiresAt, String freshness, String text) {
         public Item { sourceIds = List.copyOf(sourceIds); }

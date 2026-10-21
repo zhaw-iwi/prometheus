@@ -10,6 +10,8 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 public interface ExternalVoicePolicy {
     boolean supportsLiveState(State state);
     String voiceInstructions();
+    /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
+    default long liveUserSilenceMs() { return 800; }
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */

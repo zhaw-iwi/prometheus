@@ -148,6 +148,15 @@ class GalaDinnerReceptionUnitTest {
         assertFalse(memory.containsKey(QUIET));
     }
 
+    @Test void incompleteReceptionRequestCanClarifyWithoutStartingAnActivityOrReportingFailure() {
+        when(gateway.infer(any())).thenReturn(answer("CLARIFY", ""));
+        assertEquals("Was möchten Sie gern tun?", speech(say("Können wir")));
+        assertEquals("RECEPTION", mode(memory));
+        assertFalse(memory.containsKey(PERSON)); assertFalse(memory.containsKey(SIGN));
+        assertNull(agent.generate(runtime));
+        verify(gateway, times(1)).infer(any());
+    }
+
     @Test void invalidProviderOutputOrFailureCannotStartGamesOrKeepAnActivityStuck() {
         for (String invalid : List.of("not json", answer("YES", "Ja"), answer("START_RPS", "").replace("NONE", "dance"),
                 answer("START_GUESS", "").replace("\"operation\":\"START_GUESS\"", "\"operation\":42"))) {

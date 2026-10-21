@@ -371,6 +371,22 @@ an application update and a fresh Live session. Previously persisted task-action
 prompts are not rewritten; create a new instance for the revised task speech
 guidance. No saved graph or history is migrated automatically.
 
+Gala's reference and voice policy stay identical across reception, games and task
+co-creation. Activity changes use the small Live state section; they do not resend
+the reference before announcing a result. Ordinary reference answers need no
+lookup or delegation. The complete instructions, including two maximum task
+goals, remain within the shared 16,000-byte budget.
+
+Gala selects **2,000 ms of measured input quiet** before committing a visitor
+utterance to the backend. This keeps brief hesitations and quiet trailing words
+in one candidate turn; it is not semantic sentence-completion detection. It adds
+up to 1.2 seconds of backend admission delay compared with the default 800 ms.
+Live's own spoken response timing, assistant transcript capture, camera departure,
+operator Stop and other agents' defaults are unchanged. A fresh Live session
+selects the setting; telemetry exports it as `provider.configuration.userSilenceMs`.
+Pauses longer than the window can still split a question. An incomplete reception
+request can receive a normal clarification without starting an activity.
+
 The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
 
 - RPS commits a hidden sign before inviting a fresh camera hand sign, calculates
@@ -475,6 +491,23 @@ The harness creates and removes a disposable schema/account and writes logs unde
 real model interpretation, camera detection, browser audio or physical actions.
 It requires the empty-view boundary: a second person joining while somebody remains
 visible shares the current encounter; person identity is not tracked.
+
+`GalaDinnerLiveDeliveryUnitTest` additionally exercises real Gala context projection
+and delivery with a controlled 700 ms cost per provider acknowledgement. Short
+activity changes require one state append and one announcement, instead of the
+23 instruction appends observed in the first physical trial. This bounds synthetic
+delivery work; it does not measure real provider or audible response latency.
+
+For the next physical trial, use a fresh Live session and export telemetry after
+each short run. Ask an event question, enter/leave guessing, and play one RPS round;
+watch the camera's detected/sent hand status if recognition needs repetition.
+Repeat the recorded question forms with natural pauses, checking that each becomes
+one user turn. To investigate the still-unresolved speech cutoff, compare an
+agreed camera-cue response with the microphone on and then muted after agreement,
+keeping the camera and output device unchanged. Listen for the final word and
+retain the corresponding export. Append ACKs and transcript completion do not
+prove audibility; no audio is stored. Routine sensing cadence and freshness rules
+have not been changed on the basis of an unproven cutoff cause.
 
 ### Aisha Invest Qatar Q&A
 
@@ -1750,12 +1783,17 @@ candidates, even if only one exists. Native transcripts do not prove physical
 audibility. Interrupted text remains labeled incomplete.
 
 Continuous transcripts are aggregated independently per speaker. A complete
-segment requires 800 ms of observed quiet PCM, a 400 ms fragment grace period and
+segment normally requires 800 ms of observed quiet PCM, a 400 ms fragment grace period and
 recent audio coverage; a network pause alone never ends an utterance. The RMS
 threshold (500 PCM16 units) and 20 ms activity windows are provisional trial
 settings, not a guarantee against echo or background speech. Output timing gaps,
 missing timing and interrupted capture produce incomplete records. Late fragments
 are retained separately and never replay an accepted user observation.
+An `ExternalVoicePolicy` may select a session-fixed user quiet window from 800 to
+3,000 ms through `liveUserSilenceMs()`. The immutable context carries this value
+to capture without retaining a policy entity or adding a database read. Gala uses
+2,000 ms; assistant capture and the ordinary default remain 800 ms. Status and
+browser telemetry expose `userSilenceMs` alongside the existing baseline `silenceMs`.
 
 The additive `live_transcript_receipt` and `live_transcript_segment` tables retain
 text, provider receipt identity, session/epoch, segment status and event linkage.

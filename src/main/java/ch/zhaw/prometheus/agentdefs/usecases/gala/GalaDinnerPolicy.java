@@ -39,8 +39,11 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 + "Then listen. Do not repeat this greeting on state changes or refreshed observations.";
     }
     @Override public String voiceInstructions() {
-        return describe() + "\n" + GalaDinnerPrompts.LIVE;
+        // Keep reference and behavioural guidance stable; the Live state section carries activity changes.
+        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerReference.context()
+                + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE;
     }
+    @Override public long liveUserSilenceMs() { return 2000; }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {
         if (!storage.containsKey(GalaDinnerMemory.REPLY)) return null;

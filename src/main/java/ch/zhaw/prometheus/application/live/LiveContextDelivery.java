@@ -81,7 +81,7 @@ public final class LiveContextDelivery {
             var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
             items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
             delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
-                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance());
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs());
         }
         return delivered;
     }

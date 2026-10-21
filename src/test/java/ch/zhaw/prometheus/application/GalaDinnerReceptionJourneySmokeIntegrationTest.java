@@ -277,6 +277,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private Encounter arrive() {
         group(1); group(1);
         var session = live.create(code, id, new LiveSessionRequest("v=0 synthetic-offer", "marin")).orElseThrow();
+        assertEquals(2000L, live.status(code, id, session.handle()).orElseThrow()
+                .providerTelemetry().configuration().get("userSilenceMs"));
         var owner = new ExternalSpeech(session.handle(), live.status(code, id, session.handle()).orElseThrow().epoch());
         Peer peer = peers.getLast();
         assertEquals(1, peer.startup.input().asList().stream()
@@ -313,6 +315,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         String text = BehaviourPlan.fromJson(intent.getPayload()).getSpeech();
         await().atMost(Duration.ofSeconds(12)).until(() -> encounter.peer().sent.stream().anyMatch(event ->
                 "session.commentary.append".equals(event.get("type").getAsString()) && event.toString().contains(intent.getId().toString())));
+        assertTrue(encounter.peer().sent.stream().noneMatch(event ->
+                "session.instructions.append".equals(event.get("type").getAsString()) && event.toString().contains("GALA REFERENZ")),
+                "Activity changes must not resend the stable reference before narration");
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,
                 List.of(intent.getId()), SpeechProvenance.Association.CONFIRMED, true).isPresent());
         return text;

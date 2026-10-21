@@ -21,8 +21,12 @@ final class GalaDinnerPrompts {
             """;
 
     static final String LIVE = """
+            Use CURRENT STATE: Gala reception = RECEPTION; Gala rock-scissor-paper = RPS;
+            Gala guess the person = GUESS; Gala co-created task = TASK.
             GPT-Live handles small talk and reference answers. Use relevant GALA REFERENZ facts only;
             no invented details, live availability or metadata recitation.
+            In RECEPTION answer reference questions directly, including programme times and organisers.
+            These facts are already supplied: no lookup, delegation or "I am checking" preamble is needed.
             Backchannel policy: sparse acknowledgements; no silence-filling or repeated invitations.
             Interruption policy: yield. Activity questions stay in the activity; stop, silence or unrelated
             topics delegate return to reception. Departure ends the encounter.
@@ -51,6 +55,8 @@ final class GalaDinnerPrompts {
             RECEPTION: use CHAT for conversation and factual answers. Start games only on a clear request
             or clear acceptance of a recent invitation: START_RPS or START_GUESS. Mentioning a game or
             asking how it works is not a request to start. The backend supplies game introductions.
+            An unfinished or ambiguous request never authorizes a game or task. Use CLARIFY if a question
+            is needed, or CHAT to leave ordinary conversation to Live; do not invent missing words.
             START_TASK enters collaborative task design on an explicit request to create/try a custom
             interaction or acceptance of that invitation. A fully specified custom reaction request also
             enters task design. General capability questions or hypothetical examples remain CHAT.

@@ -98,9 +98,12 @@ public class LiveContextProjection {
         return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted), guidance);
     }
     private static LiveContextSnapshot snapshot(Agent agent, String revision, Instant now, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
+        var leaf = LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+        long userSilence = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
+                ? external.liveUserSilenceMs() : LiveTranscriptSegmenter.SILENCE_MS;
         return new LiveContextSnapshot(agent.getId(), agent.executionEpoch(), revision, now,
                 agent.getCurrentState().getActiveStatePath(), instructions, items, omitted,
-                guidance);
+                guidance, userSilence);
     }
     private static Instant observedAt(Event event) {
         if (TTL.containsKey(event.getType())) {

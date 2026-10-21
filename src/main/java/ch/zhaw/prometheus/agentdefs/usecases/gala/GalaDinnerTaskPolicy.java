@@ -21,7 +21,8 @@ public class GalaDinnerTaskPolicy extends TaskPolicy implements ExternalVoicePol
     @Override public int liveHistoryStartIndex() { return reception().liveHistoryStartIndex(); }
     @Override public void beginLiveConversation(EventHistory history) { reception().beginLiveConversation(history); }
     @Override public String liveOpeningInstructions() { return reception().liveOpeningInstructions(); }
-    @Override public String voiceInstructions() { return reception().voiceInstructions() + "\n" + super.voiceInstructions(); }
+    @Override public String voiceInstructions() { return reception().voiceInstructions(); }
+    @Override public long liveUserSilenceMs() { return reception().liveUserSilenceMs(); }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return reception().onStart(state, events, assembler, gateway); }
 }

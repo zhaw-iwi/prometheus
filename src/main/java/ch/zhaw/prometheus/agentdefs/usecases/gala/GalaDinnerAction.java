@@ -105,6 +105,7 @@ public class GalaDinnerAction extends Action {
                     "ACKNOWLEDGE", "gentleSmile", "toward_user"));
             return;
         }
+        String failureStage = "inference";
         try {
             String prompt = GalaDinnerPrompts.TURN
                     + "\nBackend current mode: " + mode;
@@ -116,21 +117,26 @@ public class GalaDinnerAction extends Action {
                     messages(storage, events, prompt, runtime, now), InferenceRequest.Output.JSON_OBJECT);
             String inferred = runtime.languageModelGateway().infer(request);
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
+            failureStage = "response_json";
             var result = JsonParser.parseString(inferred).getAsJsonObject();
+            failureStage = "response_fields";
             if (!result.keySet().equals(Set.of("operation", "gesture", "expression", "gaze")))
                 throw new IllegalArgumentException("Invalid response fields");
             String operation = string(result, "operation", 16);
             String gesture = string(result, "gesture", 20), expression = string(result, "expression", 20),
                     gaze = string(result, "gaze", 20);
+            failureStage = "nonverbal_labels";
             if (!GESTURES.contains(gesture) || !EXPRESSIONS.contains(expression) || !GAZES.contains(gaze))
                 throw new IllegalArgumentException("Invalid nonverbal label");
             Set<String> allowed = switch (mode) {
-                case "RECEPTION" -> Set.of("CHAT", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
+                case "RECEPTION" -> Set.of("CHAT", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
                 case "RPS" -> Set.of("CLARIFY", "RETURN", "QUIET");
                 case "GUESS" -> Set.of("YES", "NO", "CLARIFY", "RETURN", "QUIET");
                 default -> throw new IllegalArgumentException("Invalid mode");
             };
+            failureStage = "mode_operation";
             if (!allowed.contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
                 case "START_TASK" -> {
@@ -168,6 +174,8 @@ public class GalaDinnerAction extends Action {
                     if ("GUESS".equals(mode)) response = plan(
                             "Bitte stellen Sie eine andere Ja-Nein-Frage; das kann ich nicht eindeutig beantworten.",
                             "NONE", "thoughtful", "toward_user");
+                    if ("RECEPTION".equals(mode)) response = plan("Was möchten Sie gern tun?",
+                            "OPEN_QUESTION", "attentive", "toward_user");
                 }
                 case "RETURN" -> reception(storage);
                 case "QUIET" -> { leave(storage, events, true); response = null; }
@@ -177,7 +185,9 @@ public class GalaDinnerAction extends Action {
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             ActivityTrace.failed("gala_response_failed");
-            org.slf4j.LoggerFactory.getLogger(GalaDinnerAction.class).warn("Gala response failed; returning to reception");
+            org.slf4j.LoggerFactory.getLogger(GalaDinnerAction.class).warn(
+                    "Gala response failed stage={} mode={} error={}; returning to reception",
+                    failureStage, mode, failure.getClass().getSimpleName());
             reception(storage);
             reply(storage, plan("Das hat gerade nicht geklappt. Ich bin wieder für Ihre Fragen da.",
                     "UNCERTAIN", "thoughtful", "toward_user"));

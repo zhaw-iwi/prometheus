@@ -301,6 +301,13 @@ the initial action from later cues; a single-action agreement ends immediately.
 Proposal speech states validated counts and termination terms deterministically,
 removing premature hand motion and validating the replacement before mutation.
 Saved action prompts are not rewritten: use a new Gala instance for these changes.
+Gala's Live policy/reference is stable across all activities; only compact state
+guidance changes before result narration. Its session-fixed backend user-turn
+quiet window is 2,000 ms, selected through the generic ExternalVoicePolicy hook;
+other agents and assistant capture retain 800 ms. Telemetry exports the effective
+user window. Short pauses are tested, but semantic sentence completion and the
+reported audible cutoff are not solved by this boundary. Trial evidence and the
+controlled physical retest are in `.agents/GPTLIVE_RESULTS.md` and README.
 
 The core Social Space variant reuses the Generic task graph and full
 task contract with brief English conversation and a fixed Valerian identity.

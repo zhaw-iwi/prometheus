@@ -62,6 +62,34 @@ class LiveTranscriptCaptureServiceUnitTest {
             verify(ingress, times(1)).receipt(any(), any(), any());
         } finally { service.shutdown(); }
     }
+    @Test void applicationPauseWindowReachesCaptureAndCommitsTheJoinedRequestOnce() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var clock = mock(Clock.class); var now = new AtomicLong(1000);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        try {
+            var failure = new AtomicReference<String>();
+            var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                    () -> List.of("game"), failure::set, 2000);
+            capture.inputMuted(false);
+            capture.receive(JsonParser.parseString("{\"type\":\"session.input_transcript.delta\",\"event_id\":\"first\",\"start_ms\":0,\"end_ms\":200,\"delta\":\"Etwas\"}").getAsJsonObject());
+            var audio = new com.google.gson.JsonObject(); audio.addProperty("type", "session.input_audio.append");
+            audio.addProperty("audio", Base64.getEncoder().encodeToString(new byte[4800]));
+            for (int i = 1; i <= 17; i++) { now.set(1000 + i * 100); capture.receive(audio); service.poll(); }
+            assertTrue(capture.status().recent().stream().noneMatch(trace -> trace.phase().equals("segment_queued")));
+            now.set(2708);
+            capture.receive(JsonParser.parseString("{\"type\":\"session.input_transcript.delta\",\"event_id\":\"last\",\"start_ms\":1708,\"end_ms\":1908,\"delta\":\" spielen\"}").getAsJsonObject());
+            for (int i = 1; i <= 20; i++) { now.set(2708 + i * 100); capture.receive(audio); service.poll(); }
+            capture.close().get(3, TimeUnit.SECONDS);
+            var segment = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress).commit(any(), any(), segment.capture(), eq(List.of("game")));
+            assertEquals("Etwas spielen", segment.getValue().text());
+            assertEquals(ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE, segment.getValue().closure());
+            assertNull(failure.get());
+        } finally { service.shutdown(); }
+    }
+
     @Test void pcmGateMeasuresQuietTailWithoutRetainingOrAveragingAwayShortSpeech() {
         byte[] pcm = new byte[2880]; // 20 ms voiced, then 40 ms quiet.
         for (int i = 0; i < 480; i++) { pcm[2 * i] = (byte) 0xE8; pcm[2 * i + 1] = 3; }
