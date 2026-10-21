@@ -53,9 +53,9 @@ class GalaDinnerTaskUnitTest {
         clearInvocations(gateway);
         assertNull(hand("paper", .99, Instant.now())); verifyNoInteractions(gateway);
         String instructions = new LiveVoicePolicyAdapter().instructions(agent);
-        assertTrue(instructions.contains("Proposed goal: Eine kurze Reaktion"));
+        assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("Proposed goal: Eine kurze Reaktion"));
         assertTrue(instructions.contains("German"));
-        assertTrue(instructions.contains("deliver the backend's spoken response faithfully"));
+        assertTrue(instructions.contains("Speak its confirmed\nresponse faithfully"));
         activate();
         assertEquals("RUNNING", TaskMemory.phase(memory));
         assertEquals(1, memory.get(TaskMemory.ACTIONS).getAsInt());

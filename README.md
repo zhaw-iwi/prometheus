@@ -2421,3 +2421,14 @@ authorized proactive comment. Facts arrive before one `commentary.append`; retri
 and reconnects do not replay that occasion. Existing policies retain their speech
 intent and instruction-update behavior. Application policies own clearing context
 on cancellation, departure and new encounters; never supply facts a model must not see.
+
+Dynamic guidance sections are added, replaced and withdrawn consistently; opening
+guidance is session-only. Activity-aware task policies supply their own voice
+contract and validated task goals as quiet activity facts, avoiding duplicate
+legacy task instructions. Other task policies retain their existing guidance.
+An optional continuation expiry is checked before dispatch and again after slow
+provider waits; expired commentary becomes a quiet cancellation, not speech.
+Gala uses a 30-second continuation lifetime and clears it with the activity.
+Its consolidated instructions fit within 12,382 UTF-8 bytes in both embodiments,
+including maximum task goals in separately bounded activity data. Context delivery
+and expiry are not proof that speech was heard or that the model obeyed secrecy.

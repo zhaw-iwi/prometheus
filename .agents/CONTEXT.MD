@@ -309,6 +309,16 @@ game starts and RPS results use one identified continuation. Fresh facial estima
 support tentative expression/apparent-mood comments and visitor corrections.
 The configurable task engine retains its existing confirmed-speech/action contract.
 
+GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including task
+voice, without replaying opening instructions. Activity-aware task policies own
+their voice contract and place validated goals in quiet facts. Gala instructions
+fit at 12,382/16,000 bytes with maximum goals separately bounded in activity data.
+Continuations optionally expire; Gala uses 30 seconds and clears pending metadata
+with activity cleanup. Expiry after an ACK wait is quiet, never spoken. This does
+not establish audibility or prevent every premature model utterance. Consecutive
+implementation and verification are tracked in PLAN_GALAIMPROVEMENT.md and
+GALAIMPROVEMENT_RESULTS.md; final user physical trials remain pending.
+
 ## Conversational Task Configuration
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
@@ -339,10 +349,11 @@ user window. Short pauses are tested, but semantic sentence completion and the
 reported audible cutoff are not solved by this boundary. Trial evidence and the
 controlled physical retest are in `.agents/GPTLIVE_RESULTS.md` and README.
 
-Gala guessing keeps sourced person cards private to backend inference. UNKNOWN
-distinguishes a missing fact from CLARIFY for incomplete/nonbinary questions;
-RULES explains play without revealing the target. GIVE_UP emits one confirmed
-name before reception clears the round; stop/silence/expiry do not disclose it.
+Gala guessing exposes sourced cards to Live as quiet activity facts. Voice rules
+distinguish missing facts from incomplete/nonbinary questions, keep the identity
+secret during introductions/rules, and permit a name on correct guess or actual
+give-up only. The backend clears completed rounds; stop/silence/expiry do not
+authorize disclosure. Model-visible facts are not an enforced secrecy boundary.
 Gala voice guidance suppresses question echoes and pending-work acknowledgments.
 The third trial's durable input receipts themselves omit some final words; this
 policy follow-up does not establish a general transcription or acoustic fix.

@@ -56,14 +56,14 @@ class GalaDinnerReceptionIntegrationTest {
             assertTrue(contexts.supported(code, id));
             var draft = loaded.getStorage().get(TaskMemory.DRAFT).deepCopy();
             assertEquals(draft, ((TaskPolicy) loaded.getCurrentState().ownPolicy()).storage().get(TaskMemory.DRAFT));
-            assertTrue(new LiveVoicePolicyAdapter().instructions(loaded).contains("Proposed goal: Auf Papier"));
+            assertTrue(((GalaDinnerTaskPolicy) loaded.getCurrentState().ownPolicy()).liveActivityContext().facts().contains("Proposed goal: Auf Papier"));
             when(language.infer(any())).thenReturn(
                     "{\"operation\":\"ACTIVATE\",\"task\":null,\"reply\":{\"speech\":\"Aktiviert. Ich warte auf Papier.\"}}");
             say(code, id, "Ja, bitte aktivieren");
             loaded = agents.findById(id).orElseThrow();
             assertEquals(draft, loaded.getStorage().get(TaskMemory.SPEC));
             assertEquals("RUNNING", loaded.getStorage().get(TaskMemory.PHASE).getAsString());
-            assertTrue(new LiveVoicePolicyAdapter().instructions(loaded).contains("Agreed goal: Auf Papier"));
+            assertTrue(((GalaDinnerTaskPolicy) loaded.getCurrentState().ownPolicy()).liveActivityContext().facts().contains("Agreed goal: Auf Papier"));
             clearInvocations(language);
             ownership.pauseInput(id, session);
             taskLifecycle.closed(id, owner.epoch(), session);

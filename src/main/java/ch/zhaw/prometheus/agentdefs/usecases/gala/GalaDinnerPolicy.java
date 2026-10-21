@@ -51,15 +51,27 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         String facts = "Gala activity: " + mode + ". ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
             var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
-            facts += "Selected person: " + person.name() + ". Fact card: " + person.facts();
+            facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
         } else if ("RPS".equals(mode)) facts += "One round started; awaiting a fresh camera hand sign. Result not yet computed.";
+        else if ("TASK".equals(mode)) {
+            facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
+                + "; revision: " + GalaDinnerMemory.text(storage, ch.zhaw.prometheus.model.task.TaskMemory.REVISION, "0")
+                + "; active agreement: " + storage.containsKey(ch.zhaw.prometheus.model.task.TaskMemory.SPEC)
+                + "; draft: " + storage.containsKey(ch.zhaw.prometheus.model.task.TaskMemory.DRAFT) + ".";
+            for (String key : java.util.List.of("task.spec", "task.draft")) if (storage.containsKey(key))
+                facts += "\n" + (key.equals("task.spec") ? "Agreed goal: " : "Proposed goal: ")
+                        + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
+        }
         else facts += "No active guessing target or pending RPS round.";
+        if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         LiveActivityContext.Continuation continuation = null;
         if (storage.containsKey(GalaDinnerMemory.CONTINUATION_ID))
             continuation = new LiveActivityContext.Continuation(
                     java.util.UUID.fromString(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_ID, "")),
                     LiveActivityContext.Occasion.USER_REQUEST,
-                    GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""));
+                    GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""),
+                    storage.containsKey(GalaDinnerMemory.CONTINUATION_EXPIRES)
+                            ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null);
         return new LiveActivityContext(facts, continuation);
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,

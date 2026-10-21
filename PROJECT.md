@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 227 / GI-01 (2026-10-21): dynamic Live guidance includes additions and
+  withdrawals without replaying startup greetings. Application-owned task voice
+  and quiet goal facts remove duplicate instructions; Gala's maximum is now
+  12,382/16,000 bytes. Speaking occasions support expiry, including after slow
+  delivery acknowledgements. Gala task phase/revision/goal and quiet-state facts
+  remain backend-derived. Verification and branch integration are recorded in
+  `.agents/GALAIMPROVEMENT_RESULTS.md`; the consecutive roadmap is
+  `.agents/PLAN_GALAIMPROVEMENT.md`. Provider/physical acceptance remains pending.
+
 - Milestone 226 (2026-10-21): Live owns Gala conversation, ordinary guessing
   answers and facial comments. PROMETHEUS supplies quiet activity facts, retains
   control/actions, and identifies delayed starts/results as one speaking occasion.
@@ -10700,3 +10709,21 @@ physical/transcription limits are in `.agents/GPTLIVE_RESULTS.md`. The manual
 Existing database-query changes remain intact. No production writes, commit, push
 or deployment. Start a fresh Live session after deployment; no existing game or
 history is migrated automatically.
+
+
+## Milestone 227 - GI-01: consistent Live context
+
+Date: 2026-10-21. Shared changes begin on feature/gptlive, integrate through main,
+then agents supplies the Gala policy changes. Dynamic guidance additions/removals
+are delivered without replaying opening instructions. Application-owned task
+voice avoids duplicate legacy instructions; validated goals are quiet facts.
+Gala projects task phase/revision and silence status, strengthens target secrecy
+wording and uses expiring speaking occasions. Expired unsent commentary cancels
+quietly, including after a slow ACK. No public API/schema or saved-data migration.
+
+Passed 81 focused units, 20 isolated MySQL cases including all three agent journeys
+and query budgets, and packaging. Maximum Gala instructions: 12,382/16,000 UTF-8
+bytes in both embodiments; complete goals/cards remain separately bounded.
+Commands and evidence: `.agents/GALAIMPROVEMENT_RESULTS.md`. Prompt compliance,
+physical audibility and execution remain unverified. Consecutive milestone
+implementation and commit/push are user-authorized; GI-02 follows.

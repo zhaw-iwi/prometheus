@@ -57,12 +57,13 @@ class GalaDinnerReferenceUnitTest {
         int maximum = 0;
         for (var state : agent.reachableStates()) {
             ReflectionTestUtils.setField(agent, "currentState", state);
+            GalaDinnerMemory.put(memory, GalaDinnerMemory.MODE, state.ownPolicy() instanceof GalaDinnerTaskPolicy ? "TASK" : "RECEPTION");
             for (String phase : List.of("CONFIGURATION", "RUNNING", "WAITING", "PAUSED", "COMPLETED")) {
                 GalaDinnerMemory.put(memory, TaskMemory.PHASE, phase);
                 String instructions = assertDoesNotThrow(() -> adapter.instructions(agent), state.getName() + " / " + phase);
                 int bytes = instructions.getBytes(StandardCharsets.UTF_8).length;
                 maximum = Math.max(maximum, bytes);
-                assertTrue(bytes <= LiveVoicePolicyAdapter.MAX_INSTRUCTION_BYTES, state.getName() + ": " + bytes);
+                assertTrue(bytes <= 14400, state.getName() + ": " + bytes);
                 assertEquals(1, occurrences(instructions, "GALA REFERENZ (Stand"));
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
@@ -81,10 +82,34 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(projection.project(agent).startupInput().toString().contains("ich bin djee-djee"));
                 assertEquals(stablePolicy, adapter.sections(agent).get("policy"), state.getName());
                 assertEquals(2000, projection.project(agent).userSilenceMs());
+                if (state.ownPolicy() instanceof GalaDinnerTaskPolicy) {
+                    var facts = projection.project(agent).activity().facts();
+                    assertTrue(facts.contains("Agreed goal: " + spec.goal()));
+                    assertTrue(facts.contains("Proposed goal: " + spec.goal()));
+                    assertTrue(facts.contains("Task phase: " + phase));
+                    assertFalse(instructions.contains(spec.goal()));
+                }
                 assertEquals("GIGI", agent.getPersonaName());
             }
         }
         System.out.println("Gala maximum Live instructions (" + embodiment + ", two maximum task goals): " + maximum + " bytes");
+    }
+
+    @Test void everySelectedCardIsBoundedAndSecrecyPrecedesTheTarget() {
+        var agent = new GalaDinnerReception().createAgent();
+        var memory = ((GalaDinnerPolicy) agent.getCurrentState().ownPolicy()).storage();
+        var projection = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
+        GalaDinnerMemory.put(memory, GalaDinnerMemory.MODE, "GUESS");
+        for (var person : GalaDinnerPeople.PEOPLE) {
+            GalaDinnerMemory.put(memory, GalaDinnerMemory.PERSON, person.name());
+            var context = assertDoesNotThrow(() -> projection.project(agent));
+            assertTrue(context.instructions().contains("identity is SECRET"));
+            assertFalse(context.instructions().contains(person.name()));
+            assertTrue(context.activity().facts().contains("Secret target (never introduce it): " + person.name()));
+            assertTrue(context.activity().facts().getBytes(StandardCharsets.UTF_8).length <= 4000);
+        }
+        GalaDinnerMemory.reception(memory);
+        assertFalse(projection.project(agent).activity().facts().contains("Secret target"));
     }
 
     @Test void sourceMetadataIsExcludedAndUnsourcedSectionsAreRejected() {

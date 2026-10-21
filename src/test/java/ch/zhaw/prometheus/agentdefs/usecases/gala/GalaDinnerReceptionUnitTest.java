@@ -176,9 +176,9 @@ class GalaDinnerReceptionUnitTest {
             assertEquals(start, text(memory, CONTINUATION_ID, ""));
         }
         var instructions = new LiveVoicePolicyAdapter().instructions(agent);
-        assertTrue(instructions.contains("An unlisted fact is unknown, not false"));
-        assertTrue(instructions.contains("hypothetical or negated give-up never reveals"));
-        assertTrue(instructions.contains("fresh facial estimates"));
+        assertTrue(instructions.contains("Missing facts are unknown, not false"));
+        assertTrue(instructions.contains("Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal"));
+        assertTrue(instructions.contains("Fresh camera estimates support expression/apparent-mood"));
         assertFalse(instructions.contains("emotion diagnosis"));
     }
 
