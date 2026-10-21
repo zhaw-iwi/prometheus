@@ -88,7 +88,7 @@ class GalaDinnerReceptionIntegrationTest {
         var owner = new ExternalSpeech(session, startup.epoch());
         try {
             when(language.infer(any())).thenReturn(answer("START_TASK", ""), """
-                    {"operation":"PROPOSE","task":{"goal":"Auf Papier mit einem Witz reagieren","maxActions":2,
+                    {"operation":"PROPOSE","task":{"goal":"Auf Papier mit einem Witz reagieren","maxActions":1,"firstAction":"ON_CUE",
                     "sessionBound":true,"rules":[{"eventType":"obs.hand.sign","field":"sign","operator":"eq",
                     "value":"paper","action":"Sage einen kurzen Witz","effect":"ACT","minConfidence":0.8,
                     "samples":1,"cooldownSeconds":3}]},"reply":{"speech":"Das ist mein Vorschlag. Aktivieren?"}}
@@ -106,6 +106,8 @@ class GalaDinnerReceptionIntegrationTest {
             loaded = agents.findById(id).orElseThrow();
             assertEquals(draft, loaded.getStorage().get(TaskMemory.SPEC));
             assertEquals("RUNNING", loaded.getStorage().get(TaskMemory.PHASE).getAsString());
+            assertEquals("ON_CUE", loaded.getStorage().get(TaskMemory.SPEC).getAsJsonObject().get("firstAction").getAsString());
+            assertEquals(0, loaded.getStorage().get(TaskMemory.ACTIONS).getAsInt());
             assertTrue(((GalaDinnerTaskPolicy) loaded.getCurrentState().ownPolicy()).liveActivityContext().facts().contains("Agreed goal: Auf Papier"));
             clearInvocations(language);
             ownership.pauseInput(id, session);

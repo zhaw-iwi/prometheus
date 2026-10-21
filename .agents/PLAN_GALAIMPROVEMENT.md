@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-03 implemented and verified; GI-04 next. Later milestones are not started.
+Status: GI-01 through GI-04 implemented and verified; GI-05 next. Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
 children's interactions, including the subsequent gesture review. The user authorized consecutive implementation on 2026-10-21: finish each
@@ -233,6 +233,9 @@ show no early invitation, premature identity disclosure, repeated reveal or
 invented RPS verdict. Model-visible cards are not a hard secrecy boundary.
 
 ### GI-04 - Faithful executable task agreements
+
+Status: IMPLEMENTED; 91 focused unit cases, 19 isolated integration cases, provider
+configuration/voice review and packaging passed. Physical acceptance remains GI-12.
 
 **Outcome:** the accepted task performs the promised action at the promised time,
 with the promised count and lifecycle; unsupported sequences are not flattened.

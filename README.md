@@ -446,8 +446,9 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   then “Lass uns eine eigene Aufgabe gestalten” to enter task design. GIGI helps
   choose a supported sensor trigger and a response, proposes a bounded agreement
   and activates that saved proposal only after acceptance. For example, agree on
-  one robot joke after a `paper` hand sign. The activation response counts as the
-  first action; a two-action agreement permits that response and one later joke.
+  one robot joke after a `paper` hand sign. New future-triggered agreements use
+  `firstAction: "ON_CUE"`: acceptance arms the task with zero actions, and a
+  one-action agreement permits exactly one later matching-cue reaction.
   New/revised plans must be proposed before activation. Ordinary capability
   questions and hypothetical examples in reception do not start this activity.
   The Generic/Social Space task engine validates the agreement and waits for fresh
@@ -459,7 +460,7 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Only existing observations, speech, nonverbal output and RPS hand signs are
   executable; sensor support does not mean sensing is enabled. Enable the relevant
   sensor before a demonstration. No code, arbitrary tools or locomotion is generated.
-  Gala limits tasks to five actions including activation, requires session-bound
+  Gala limits tasks to five actual actions, requires session-bound
   execution and returns home immediately after the last action or COMPLETE rule.
   Stop/pause, unrelated topics, departure, voice closure, reset and the existing
   idle timeout discard both draft and active agreement. No task carries into the
@@ -467,17 +468,15 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Gala's task prompt selects its own operation/lifecycle contract in the shared
   configuration builder, so it does not inherit Generic's pause/resume promises.
   Asking what cancellation would do is a question, not a cancellation request.
-  Proposal speech is rendered by Gala from the validated goal and action limit:
-  pending acceptance, immediate first action, remaining cue count and termination
-  terms. It replaces provider proposal speech and removes proposal hand motion;
-  the complete replacement is validated before saving the draft. A one-action
-  proposal explicitly offers immediate-only execution and explains that a later
-  sensor reaction requires at least two actions including activation.
-  Activation requests the initial agreed action immediately, including
-  `motion.handSign` when agreed. A three-action plan permits one initial action
-  and at most two later reactions; a one-action plan finishes immediately.
-  A request for exactly one future sensor reaction needs clarification because
-  activation also consumes an action. Provider output checks assess this wording
+  Proposal speech is rendered from validated trigger/action terms, timing, total
+  count and termination rules, with no proposal hand motion. The complete
+  replacement is validated before saving. Explicit `IMMEDIATE` timing performs
+  the initial action on acceptance, including agreed `motion.handSign`; that
+  action counts toward the limit. Saved tasks without timing retain this meaning.
+  Independent conditions cannot express an ordered sequence such as first rock,
+  then happy, then stop; Gala asks for a supported alternative without changing
+  the prior proposal. A new request without a supported sensor cue also needs
+  clarification before it can become an executable task. Provider checks assess wording
   and channel selection; free-text agreements do not provide a deterministic
   guarantee that every generated plan includes every requested modality.
 - Stop, silence and topic changes return to reception. Ordinary game questions

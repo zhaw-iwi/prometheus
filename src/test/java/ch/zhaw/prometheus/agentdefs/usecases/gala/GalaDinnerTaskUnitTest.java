@@ -89,6 +89,44 @@ class GalaDinnerTaskUnitTest {
         verifyNoInteractions(gateway);
     }
 
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void futureOneActionAgreementArmsWithoutPerformingAndCompletesOnItsFirstFreshCue(boolean compact) {
+        String spec = SPEC.replace("\"maxActions\":2", "\"maxActions\":1,\"firstAction\":\"ON_CUE\"");
+        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
+                TaskReplyFixture.update("PROPOSE", spec, "UNTRUSTED", compact));
+        var proposed = BehaviourPlan.fromJson(say("Einen Witz erst bei Papier, genau einmal.").getPayload());
+        assertTrue(proposed.getSpeech().contains("Erste Aktion erst beim passenden Signal"));
+        assertTrue(proposed.getSpeech().contains("1 Aktion insgesamt"));
+        assertTrue(proposed.getSpeech().contains("Handzeichen Papier"));
+        assertTrue(proposed.getSpeech().contains("Sage einen kurzen Roboterwitz"));
+        assertNull(proposed.getMotion());
+        when(gateway.infer(any())).thenReturn(TaskReplyFixture.update("ACTIVATE", "null", "PREMATURE JOKE", compact));
+        var armed = BehaviourPlan.fromJson(say("Ja, aktivieren").getPayload());
+        assertFalse(armed.getSpeech().contains("PREMATURE")); assertNull(armed.getMotion());
+        assertEquals(0, memory.get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("RUNNING", TaskMemory.phase(memory));
+        clearInvocations(gateway); capture(armed.getSpeech()); arm();
+        assertNull(hand("rock", .99, Instant.now())); verifyNoInteractions(gateway);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"Mein kurzer Roboterwitz.\"}");
+        assertTrue(speech(hand("paper", .99, Instant.now())).contains("Roboterwitz"));
+        assertHome(); assertNull(hand("paper", .99, Instant.now())); verify(gateway).infer(any());
+    }
+
+    @Test void orderedCrossSensorRequestClarifiesInsteadOfFlatteningOrReplacingTheProposal() {
+        propose(SPEC);
+        var draft = memory.get(TaskMemory.DRAFT).deepCopy();
+        clearInvocations(gateway);
+        for (String request : List.of("Zuerst Stein, dann fröhlich, dann stoppen.", "First happy, then paper, then stop.")) {
+            var response = say(request);
+            assertTrue(speech(response).contains("feste Reihenfolge"));
+            assertEquals(draft, memory.get(TaskMemory.DRAFT));
+            assertFalse(memory.containsKey(TaskMemory.SPEC));
+        }
+        assertFalse(GalaDinnerInput.orderedCueSequence("Bei Papier einen Witz erzählen, dann stoppen."));
+        assertFalse(GalaDinnerInput.orderedCueSequence("Zuerst aktivieren, dann auf Papier reagieren."));
+        verifyNoInteractions(gateway);
+    }
+
     @Test void activationWithoutProposalAndInvalidOrAlteredPlansCannotPublishActivationClaims() {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 update("ACTIVATE", SPEC, "UNAUTHORIZED"));
@@ -137,6 +175,11 @@ class GalaDinnerTaskUnitTest {
         assertTrue(text.contains("noch nicht aktiv"));
         assertTrue(text.contains("Nach Ihrer Zustimmung eine Aktion sofort"));
         assertTrue(text.contains("beenden die Aufgabe und verwerfen den Plan"));
+        assertTrue(text.contains("Ende der Sprachverbindung"));
+        if (actions == 1) {
+            assertTrue(text.contains("Einmalige Aktion: Sage einen kurzen Roboterwitz"));
+            assertFalse(text.contains("Bei Handzeichen"), "An immediate-only action does not also wait for a sensor cue");
+        }
         assertTrue(text.contains(actions == 1 ? "danach ist die Aufgabe beendet"
                 : "dann höchstens " + (actions - 1) + " Reaktionen"));
         assertNull(proposal.getMotion());
@@ -258,8 +301,8 @@ class GalaDinnerTaskUnitTest {
                 "require explicit resumption", "1..50 maxActions", "fully specified task now"))
             assertFalse(instructions.contains(obsolete), obsolete);
         for (String contract : List.of("KEEP|PROPOSE|ACTIVATE|STOP", "1..5 maxActions", "sessionBound: always true",
-                "discards its plan", "one now and at most two later", "reply.motion.handSign", "NOW",
-                "WOULD do are KEEP, not STOP", "no waiting rule or later cue",
+                "discards its plan", "firstAction", "ON_CUE", "IMMEDIATE", "reply.motion.handSign",
+                "WOULD do are KEEP, not STOP", "acceptance performs nothing and uses zero actions",
                 "On PROPOSE, use reply {}"))
             assertTrue(instructions.contains(contract), contract);
     }

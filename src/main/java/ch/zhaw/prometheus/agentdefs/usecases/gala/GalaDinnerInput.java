@@ -29,6 +29,16 @@ final class GalaDinnerInput {
 
     static boolean unspecifiedGame(String speech) { return PLAY.matcher(normalize(speech)).matches(); }
 
+    static boolean orderedCueSequence(String speech) {
+        String value = normalize(speech);
+        String hand = "(?:stein|schere|papier|rock|scissors?|paper)";
+        String face = "(?:fröhlich|glücklich|traurig|lächel\\p{L}*|happy|sad|smil\\p{L}*)";
+        String order = ".*\\b(?:zuerst|erst|first)\\b.*\\b";
+        String then = "\\b.*\\b(?:dann|danach|then)\\b.*\\b";
+        return value.matches(order + hand + then + face + "\\b.*")
+                || value.matches(order + face + then + hand + "\\b.*");
+    }
+
     static boolean revealRequest(String speech) {
         // A model-selected operation is not enough to reveal on quotes, negation or hypotheticals.
         String value = speech.toLowerCase(Locale.ROOT).trim();

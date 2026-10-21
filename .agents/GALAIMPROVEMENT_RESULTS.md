@@ -191,3 +191,54 @@ shared schema-declaration wording change. A ConfigurationContract extension now
 allows an application-specific task-field declaration while restoring Generic's
 original prompt byte for byte (SHA-256 1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8).
 29 focused units passed after this correction; target/gi04-prompt-compat.log.
+
+Gala completion: new future-cue proposals explicitly select ON_CUE; acceptance
+arms without a joke, hand movement or action count. Immediate timing remains an
+explicit alternative, including legacy saved tasks. Proposal text is derived from
+validated trigger/action terms, timing, count and encounter termination, with
+no motion before acceptance. One-action immediate proposals do not promise an
+additional cue response. Recognized ordered cross-sensor requests clarify without
+replacing the draft; the configuration prompt also rejects unrepresentable ordered
+workflows and invented trigger fields. This bounded guard is not a general parser.
+
+Verification on agents:
+
+- 91 focused unit cases passed: GalaDinnerTaskUnitTest (23),
+  GalaDinnerReferenceUnitTest (5), GalaDinnerReceptionUnitTest (31),
+  GalaDinnerLiveDeliveryUnitTest (1), TaskFirstActionUnitTest (4),
+  GenericMultimodalTaskUnitTest (17), TaskLifecycleUnitTest (10).
+  Log: target/gi04-agents-final-unit.log. A final voice-policy-only change passed
+  the 28 affected Gala task/reference cases in target/gi04-voice-contract-unit.log.
+- 19 isolated integration cases passed through run_acceptance.py with local
+  application-test.properties: GalaDinnerReceptionIntegrationTest,
+  GalaDinnerReceptionJourneySmokeIntegrationTest, GenericMultimodalTaskIntegrationTest,
+  SocialSpaceLiveJourneySmokeIntegrationTest, QueryVolumeIntegrationTest.
+  Artifacts target/gptlive-acceptance-c2354a99ce; disposable schema/account removed.
+  Gala reload now verifies ON_CUE and zero actions after acceptance. Shared
+  reload covers both future-cue and legacy immediate timing.
+- Three real configuration-provider cases (gpt-5.6-luna, extraction route) were
+  replayed through the actual action/validation code: future proposal, acceptance,
+  immediate alternative with a supported cue. The initial trial rejected an
+  oversized generated action and an invented utterance trigger safely. Prompt
+  corrections require short natural action descriptions and clarification when
+  a supported cue is missing; the affected rerun passed. Files under target:
+  gi04-backend-initial-rejected.json, gi04-backend-results.json,
+  gi04-backend-validated.json and gi04-backend-replay.log.
+- Real gpt-live-1/marin WebRTC speech with synthetic input retained the future
+  cue, joke plus rock output, one-action limit, all termination conditions and
+  new-agreement requirement. Acceptance produced only an arming response. The
+  initial voice trial omitted lifecycle terms; the policy now explicitly permits
+  longer task proposals and requires those terms. The affected rerun passed:
+  target/gi04-task-webrtc-results.json and gi04-task-audio.webm; earlier omission
+  retained in gi04-task-first-omitted-lifecycle.json. An extra short acknowledgment
+  remains a GI-07 quality issue. Exported command injection tests speech, not DB
+  dispatch or physical robot motion. This is one final voice trial, not the
+  three-session acceptance matrix scheduled for GI-12.
+- Maximum complete Live instructions: 13,502/16,000 UTF-8 bytes in both
+  embodiments and every tested activity, below the 14,400 working limit.
+  Packaging passed (target/gi04-package.log); git diff --check passed.
+
+GI-04 is implemented and verified within those limits. The existing task capture
+gate still matches backend wording; replacing it belongs to GI-05. No claim is
+made that this milestone solves arbitrary Live paraphrase association or proves
+physical playback/gesture completion.

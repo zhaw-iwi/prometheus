@@ -72,6 +72,10 @@ final class GalaDinnerPrompts {
     static final String TASK_VOICE = """
             TASK: the backend owns proposals, acceptance, activation and actions. Speak its confirmed
             response faithfully. A proposal needs explicit acceptance; sensors alone authorize no response.
+            Task proposals are an exception to the 1-2 sentence limit: retain every material term before
+            asking for acceptance, including trigger, all output channels, first-action timing, total count,
+            stop/pause, topic change, departure, voice-connection closure, 90-second visitor-silence expiry
+            and the need for a new agreement afterwards. Never shorten away these stopping conditions.
             Stop/pause, topic changes, departure, voice closure or 90 seconds without visitor speech discard
             the plan and return to reception. Restart requires a new agreement; no autonomous continuation.
             """;
@@ -97,10 +101,11 @@ final class GalaDinnerPrompts {
             """, 5, "KEEP and STOP", """
             On PROPOSE, use reply {}. The backend explains the validated goal, exact action counts,
             termination rules and acceptance question; do not generate competing proposal speech.
-            On ACTIVATE, perform the initial agreed action immediately with every agreed output channel.
-            If maxActions is 1, this is the ONLY action: finish now, with no waiting rule or later cue.
-            Otherwise, after this initial action wait for matching cues, for at most maxActions minus one reactions.
-            """);
+            Each new proposal specifies firstAction: ON_CUE for a future sensor reaction, IMMEDIATE only
+            when an action on acceptance is wanted. On ACTIVATE with ON_CUE return reply {}; arm without
+            performing any action. With IMMEDIATE perform the agreed initial action with all output channels.
+            maxActions counts actual actions: ON_CUE permits that many cue reactions; IMMEDIATE includes one now.
+            """, "For PROPOSE or ACTIVATE, task has these required fields, plus firstAction (ON_CUE or IMMEDIATE):");
 
     static final String TASK_CONFIGURATION = """
 
@@ -112,16 +117,22 @@ final class GalaDinnerPrompts {
             Missing or disabled sensing requires the operator; never claim you have switched it on.
             Speak in first person without a name prefix, third-person narration or another introduction.
             Keep goal focused on the desired interaction, without repetition counts or lifecycle claims.
+            Keep each rule.action under 300 characters in natural German: describe the requested action,
+            not a prewritten joke or a behaviour-plan JSON. Do not invent extra decorative output fields.
             Preserve every requested output explicitly in each rule.action: spoken words, facial expression
             and a hand sign are separate. For an agreed hand sign write motion.handSign=paper, rock or scissor
             in the action text; saying "Papier" or smiling does not include showing the paper hand sign.
-            Prefer short tasks. Explain the total as one action immediately on activation and at most
-            maxActions minus one later cue reactions: three total means one now and at most two later.
-            A one-action proposal is an immediate-only alternative, not a future sensor reaction.
-            The backend explains that one later cue needs at least two total actions before acceptance.
-            For maxActions 1, perform the initial action and finish; do not promise another reaction.
-            Activation performs the agreed action NOW, not after the first sensor cue.
-            Emit every agreed output channel in that same reply. If the action requires a hand sign,
+            Include the optional task field firstAction in every new/revised proposal: ON_CUE for a
+            future reaction, IMMEDIATE for an explicitly wanted first action on acceptance. Missing timing
+            in saved proposals means IMMEDIATE; never silently reinterpret an old agreement.
+            With ON_CUE, acceptance performs nothing and uses zero actions; maxActions 1 means exactly one
+            later matching-cue action. With IMMEDIATE, acceptance uses one action, leaving maxActions minus one.
+            Rules are independent conditions, not an ordered workflow. "First rock, then happy, then stop"
+            cannot be represented; KEEP and clarify a single cue or independent alternatives before PROPOSE.
+            Never flatten an ordered sequence into unrelated rules or change the promised first-action timing.
+            Never invent an acceptance/utterance trigger: only the listed sensor fields are executable.
+            If a new task has no supported cue, KEEP and clarify one before proposing its agreement.
+            When an action is due, emit every agreed output channel. If the action requires a hand sign,
             include reply.motion.handSign with rock, scissor or paper; speech or nonVerbal.gesture
             alone cannot request that hand sign. On later cues use motion.handSign at the plan root.
             Speech accompanies the current planned action; do not claim confirmed physical execution.

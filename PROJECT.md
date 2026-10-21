@@ -82,8 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- GI-04 shared first-action timing is integrated; Gala acceptance is in progress.
-  See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+- Milestone 230 / GI-04: explicit future-cue timing arms Gala tasks with zero
+  actions; validated proposals retain trigger, modalities, timing, count and
+  lifecycle. Legacy immediate tasks and Generic's prompt identity are preserved.
+  Passed 91 focused units, 19 isolated integrations, provider configuration and
+  voice checks, and packaging. GI-05 is next; physical acceptance remains pending.
+  See `.agents/GALAIMPROVEMENT_RESULTS.md` for failures corrected and test limits.
 
 - Milestone 229 / GI-03 (2026-10-21): explicit unconfirmed game readiness,
   post-inference hand-sign eligibility, broader bounded direct-name guesses,
@@ -10772,4 +10776,9 @@ Add optional ON_CUE task timing while retaining legacy immediate semantics and
 default JSON. Validate before changing state, suppress premature activation
 output, and complete the last cue without another action. Passed 28 focused units
 and four isolated Generic integration cases. See .agents/GALAIMPROVEMENT_RESULTS.md
-for commands, fixture correction and application acceptance pending on agents.
+for commands and fixture correction. Gala application acceptance additionally
+passed 91 focused units and 19 isolated integration cases including all three
+agent journeys, future/legacy reload and query-volume regression. Real provider
+trials exposed oversized action text, an unsupported invented trigger and omitted
+spoken termination terms; targeted prompt corrections and affected reruns passed.
+Physical speech/robot execution remains unverified. GI-05 is next.

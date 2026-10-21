@@ -323,7 +323,7 @@ GALAIMPROVEMENT_RESULTS.md; final user physical trials remain pending.
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five
-actions including activation, and enforces session-bound tasks. Existing Live task
+actual actions, and enforces session-bound tasks. Existing Live task
 readiness and announcement capture apply. Completion, stop/pause, topic change,
 departure, voice close or idle timeout clears the agreement and returns to reception;
 ambient facial reactions yield to the task. New instances receive this graph.
@@ -332,9 +332,12 @@ no Gala assumptions. Practical setup and rule semantics are in README.
 Gala selects an explicit application configuration contract instead of appending
 contradictory lifecycle overrides. Generic's default prompt remains byte-identical.
 Speech uses djee-djee without phonetic notation or repeated introductions.
-Activation guidance requests all agreed channels immediately and distinguishes
-the initial action from later cues; a single-action agreement ends immediately.
-Proposal speech states validated counts and termination terms deterministically,
+GI-04 adds explicit firstAction timing. New future-triggered Gala proposals use
+ON_CUE: acceptance arms with zero actions and one fresh matching cue can complete
+a one-action agreement. IMMEDIATE requests the initial action on acceptance;
+saved tasks without timing retain that meaning and Generic's default prompt hash.
+Ordered cross-sensor sequences are clarified rather than flattened. Proposal
+speech states validated trigger/action terms, timing, counts and termination,
 removing premature hand motion and validating the replacement before mutation.
 Saved action prompts are not rewritten: use a new Gala instance for these changes.
 Gala's Live policy/reference is stable across all activities; only compact state
