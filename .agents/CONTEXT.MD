@@ -259,6 +259,12 @@ not prove audibility. See the Milestone 204 evidence in GPTLIVE_RESULTS. Durable
 and eager event state paths load together. See README and GPTLIVE_RESULTS for the
 query-budget regression evidence and remaining provider/production limits.
 
+Live application policies may separately expose bounded activity facts and an
+optional persisted speaking occasion through `LiveActivityContext`. Opt-in state
+and fact changes use quiet context, while a user-request continuation or authorized
+proactive comment receives one commentary append after its facts. Default core
+policies retain existing behavior. Context data is model-visible, not a secrecy boundary.
+
 ## Conversational Task Configuration
 
 The core Social Space variant reuses the Generic task graph with brief English

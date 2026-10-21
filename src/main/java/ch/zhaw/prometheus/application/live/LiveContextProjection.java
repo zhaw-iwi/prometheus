@@ -95,12 +95,20 @@ public class LiveContextProjection {
                 ? leaf.getName() : leaf.getEventSelectorSpec().toJson());
         for (Item item : candidates) basis.append(item.key()).append(item.type()).append(item.role())
                 .append(item.sourceIds()).append(item.observedAt()).append(item.expiresAt()).append(item.freshness()).append(item.text());
+        if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
+                && external.liveActivityContext() != null) {
+            var activity = external.liveActivityContext();
+            basis.append(activity.facts());
+            if (activity.continuation() != null) basis.append(activity.continuation().id())
+                    .append(activity.continuation().occasion()).append(activity.continuation().facts());
+        }
         return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted), guidance);
     }
     private static LiveContextSnapshot snapshot(Agent agent, String revision, Instant now, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
         return new LiveContextSnapshot(agent.getId(), agent.executionEpoch(), revision, now,
                 agent.getCurrentState().getActiveStatePath(), instructions, items, omitted,
-                guidance);
+                guidance, LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast().ownPolicy()
+                        instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null);
     }
     private static Instant observedAt(Event event) {
         if (TTL.containsKey(event.getType())) {
