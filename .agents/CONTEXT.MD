@@ -162,6 +162,11 @@ sensor input, rendered output or confirmed action completion.
 
 ## GPT-Live Experiment
 
+Application-owned Live policies may disable pending-work acknowledgments through
+`ExternalVoicePolicy.livePendingAcknowledgements()` (default true). The adapter
+removes permission from common voice and task guidance when false. This is prompt
+guidance, not audio gating; default core wording remains identical.
+
 Changes prompted by GPT-Live usage start on `feature/gptlive`, then merge into
 `main`, and only then from `main` into `agents` for the Heroku deployment. Preserve
 ordinary Text/Continuous contracts and the deployment-only catalog/persona layer.
@@ -184,6 +189,13 @@ social sample and uses monitor snapshots for state/storage while the stream is
 ready, with ordinary reads as fallback. Sensor cadence, freshness, thresholds,
 event ordering and derived social changes remain unchanged. See README and the
 query-reduction evidence in `.agents/GPTLIVE_RESULTS.md`.
+
+The 2026-10-21 follow-up batches complex state-machine collection reads and uses
+scalar initial transcript claims plus bulk receipt validation/assignment. Fragment
+durability, separate claim/processing commits and immediate scope/epoch checks
+remain. Shared work starts on feature/gptlive; agents adds a representative Gala
+load-budget test. Reduced query volume still needs production capacity headroom;
+see the same evidence file. No schema migration or sensing-cadence change.
 
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,

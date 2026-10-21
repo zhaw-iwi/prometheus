@@ -425,6 +425,17 @@ ordinary provider waits, or changing durable Live transcript transaction owners.
 `QueryVolumeIntegrationTest` measures HTTP costs and MySQL session `Questions`
 with a one-connection pool, including transaction overhead and provider-wait checks.
 
+Shared Hibernate collection batch fetching (`default_batch_fetch_size=64`) bounds
+round trips for complex state graphs while retaining eager/detached access.
+Live transcript claims use scalar scope/epoch checks and bounded bulk receipt
+reads/assignment, with a separately committed claim before processing. Every
+fragment remains durable; revocation, original receipt ordering and no automatic
+replay of uncertain actions are preserved. No schema migration is needed.
+The deployment branch also tests a mixed Gala speech/sensing minute: 2,031 MySQL
+questions versus 4,731 before these changes. Sustained load at that rate exceeds
+the documented 36,000/hour plan; this regression test is not a capacity guarantee.
+See `.agents/GPTLIVE_RESULTS.md` for workload, verification and deployment limits.
+
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check
 scoped persisted history, disconnect/reconnect, switching instances and reload.
@@ -1346,6 +1357,11 @@ rejected even when the capability is declared. The cockpit disables Start and
 explains unavailable support. The deployment feature flag, access scope and
 manual Start remain independent requirements; capability never starts capture
 or changes ordinary text/transcription/TTS generation.
+
+Application-owned `ExternalVoicePolicy` implementations may return false from
+`livePendingAcknowledgements()` to request silent waiting in common voice and
+task guidance. The default is true and preserves current core instructions.
+This changes model guidance only; it does not mute audio or establish silence.
 
 Application-owned policies can implement `ExternalVoicePolicy` to declare their
 supported states, voice guidance, encounter-history boundary, startup instructions

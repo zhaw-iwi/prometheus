@@ -75,6 +75,22 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 225 shared portion (2026-10-21): application-owned voice policies may
+  disable pending-work acknowledgments in common voice/task guidance. Default
+  core wording remains unchanged; this is a prompt preference, not audio gating.
+  Application follow-up and voice trials are on agents. Shared unit checks pass;
+  prepared for shared integration alongside Milestone 224. See `.agents/GPTLIVE_RESULTS.md`.
+
+- Milestone 224 (2026-10-21): batch complex state-machine collection reads and
+  reduce Live receipt/segment persistence queries while retaining durable claims,
+  revocation checks and no automatic action replay. Shared work starts on
+  `feature/gptlive`; the same patch and Gala load regression are local on `agents`.
+  A representative synthetic Gala minute falls from 4,731 to 2,031 MySQL questions
+  (57%); this still exceeds the current plan's hourly capacity if sustained.
+  All 738 agents Java cases have passing evidence across the broad run and
+  focused reruns; packaging passed. Ready for integration. Evidence and capacity
+  limits: `.agents/GPTLIVE_RESULTS.md`.
+
 - Reusable Live reception/task extensions (2026-10-20): explicit application-policy
   support, encounter-scoped context, optional session-close transitions and
   operator-armed presence control. Generic task configuration exposes persona-aware
@@ -352,6 +368,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 224: Complex-agent database query reduction
 - [x] Milestone 207: Integrated activity/Telemetry acceptance and deployment
 
 - [x] Milestone 206: Unified interaction activity footer and Telemetry
@@ -9021,3 +9038,33 @@ and existing capture limits plus optional platform build metadata. Detailed coun
 failed-run corrections, branch integration and release checks are maintained in
 `.agents/TELEMETRY_RESULTS.md`. No physical acoustic or paid-provider quality claim
 follows from these synthetic trials.
+
+## Milestone 224
+
+Date: 2026-10-21. Complex-agent database query reduction.
+
+Shared Hibernate collection batching and Live transcript persistence changes
+retain explicit state control, per-fragment durability, scope/epoch validation,
+ordered receipt identities, atomic claims and separate claim/processing commits.
+The initial claim uses scalar checks; receipt loading/assignment are bounded bulk
+operations. Failed or pending work is never automatically replayed.
+
+Shared work is uncommitted on feature/gptlive, with the same patch and the
+Gala-specific mixed speech/sensing workload test uncommitted on agents. That
+workload drops from 4,731 to 2,031 MySQL questions per synthetic minute. It still
+exceeds the documented 36,000/hour plan if sustained; this is a regression budget,
+not production capacity acceptance. Passed 17 focused shared checks, nine Gala/core
+journey/load checks, all 738 agents cases across broad/focused runs, and packaging.
+The broad run needed a stale catalog assertion correction and two local-connection
+startup retries. Commands, artifacts and limitations: `.agents/GPTLIVE_RESULTS.md`.
+No production data/configuration change, commit, push or deployment.
+
+
+## Milestone 225 shared portion
+
+Date: 2026-10-21. Application-owned pending-work acknowledgment guidance.
+
+Adds a default-true ExternalVoicePolicy preference and conditional common voice
+and task guidance. Existing default strings remain identical. Application-specific
+opt-out and complete trial evidence are on agents; no Gala dependency is introduced
+here. See `.agents/GPTLIVE_RESULTS.md` for shared tests and local-only scope.
