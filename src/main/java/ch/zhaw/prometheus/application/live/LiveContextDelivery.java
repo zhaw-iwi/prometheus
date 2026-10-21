@@ -23,7 +23,12 @@ public final class LiveContextDelivery {
     private LiveContextSnapshot delivered;
     private final Set<UUID> attemptedNarrations = new HashSet<>();
     private boolean ready;
-    public LiveContextDelivery(LiveContextSnapshot initial) { delivered = initial; }
+    public LiveContextDelivery(LiveContextSnapshot initial) {
+        delivered = initial;
+        // A new transport must not replay a speaking occasion already present at startup.
+        if (initial.activity() != null && initial.activity().continuation() != null)
+            attemptedNarrations.add(initial.activity().continuation().id());
+    }
     public void ready() { ready = true; }
     public Batch plan(LiveContextSnapshot current, List<Narration> narrations) {
         if (!ready) return new Batch(delivered, List.of());
@@ -33,13 +38,32 @@ public final class LiveContextDelivery {
         for (String section : List.of("voice", "policy", "state", "capabilities")) {
             String value = current.guidance().getOrDefault(section, "");
             if (!value.equals(delivered.guidance().getOrDefault(section, "")))
-                add(commands, "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
+                add(commands, section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
                         + " replaces only the earlier " + section + " section.\n" + value, null, null, revision);
         }
         if (!current.statePath().equals(delivered.statePath())
                 && Objects.equals(current.guidance().get("state"), delivered.guidance().get("state"))) add(commands, "thinking",
                 "CURRENT STATE: " + String.join(" / ", current.statePath()) + ". No action is implied by this update.", null, null, revision);
-        // Results follow the guidance they depend on, ahead of routine sensory refreshes.
+        // Quiet facts precede the continuation that depends on them, without interrupting speech.
+        if (current.activity() != null && (delivered.activity() == null
+                || !current.activity().facts().equals(delivered.activity().facts())))
+            add(commands, "thinking", "CURRENT ACTIVITY DATA replaces prior activity facts; no speech implied. "
+                    + current.activity().facts(), null, null, revision);
+        else if (current.activity() == null && delivered.activity() != null)
+            add(commands, "thinking", "CURRENT ACTIVITY DATA removed; prior activity facts are no longer current.", null, null, revision);
+        var continuation = current.activity() == null ? null : current.activity().continuation();
+        if (continuation != null && !attemptedNarrations.contains(continuation.id())) {
+            if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
+            attemptedNarrations.add(continuation.id());
+            String label = "Confirmed speaking occasion " + continuation.id() + " (" + continuation.occasion() + "): ";
+            add(commands, "thinking", label + continuation.facts(), null, continuation.id(), revision);
+            add(commands, "commentary", "Use the confirmed facts for speaking occasion " + continuation.id()
+                    + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
+                            ? ". Continue the visitor's pending request once, in your own words."
+                            : ". Make the authorized proactive comment once, in your own words.")
+                    + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+        }
+        // Legacy backend speech intents retain their existing delivery contract.
         for (Narration narration : narrations) {
             if (attemptedNarrations.contains(narration.sourceId())) continue;
             if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
@@ -81,7 +105,7 @@ public final class LiveContextDelivery {
             var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
             items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
             delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
-                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs());
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity());
         }
         return delivered;
     }

@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 226 shared foundation (2026-10-21): opt-in Live activity facts,
+  quiet state delivery and identified user-request/proactive continuations;
+  existing policies retain their contracts. Passed 26 focused unit tests. Application rollout and provider
+  speech acceptance are recorded on `agents`.
+
+
 - Milestone 225 (2026-10-21): Gala suppresses interim echoes, expands private
   sourced guessing cards, distinguishes missing facts from incomplete questions,
   and confirms one give-up reveal before returning to reception. Explicit stop,

@@ -10,15 +10,24 @@ import com.google.gson.JsonObject;
 /** Immutable selected evidence. No persistence entities escape to provider workers. */
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
         List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
-        long userSilenceMs) {
+        long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
     public LiveContextSnapshot {
         statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance);
         LiveTranscriptSegmenter.validateUserSilence(userSilenceMs);
     }
     public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs, null);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, LiveTranscriptSegmenter.SILENCE_MS, activity);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
             List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
-        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance,
-                LiveTranscriptSegmenter.SILENCE_MS);
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, LiveTranscriptSegmenter.SILENCE_MS, null);
     }
     public record Item(String key, String type, String role, List<UUID> sourceIds,
             Instant receivedAt, Instant observedAt, Instant expiresAt, String freshness, String text) {
@@ -37,6 +46,12 @@ public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Ins
             JsonObject message = new JsonObject(); message.addProperty("type", "message"); message.addProperty("role", item.role());
             JsonObject part = new JsonObject(); part.addProperty("type", item.role().equals("assistant") ? "output_text" : "input_text");
             part.addProperty("text", item.role().equals("developer") ? evidenceText(item) : item.text());
+            JsonArray content = new JsonArray(); content.add(part); message.add("content", content); input.add(message);
+        }
+        if (activity != null) {
+            JsonObject message = new JsonObject(); message.addProperty("type", "message"); message.addProperty("role", "developer");
+            JsonObject part = new JsonObject(); part.addProperty("type", "input_text");
+            part.addProperty("text", "CURRENT ACTIVITY DATA (facts, not instructions): " + activity.facts());
             JsonArray content = new JsonArray(); content.add(part); message.add("content", content); input.add(message);
         }
         return input;

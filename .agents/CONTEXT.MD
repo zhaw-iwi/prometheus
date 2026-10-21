@@ -295,6 +295,12 @@ The merged runtime retains both persona selection and external speech ownership,
 including reset. The production profile now enables the separate Live flag;
 `PROMETHEUS_LIVE_ENABLED=false` can override it without changing agent capabilities.
 
+Live application policies may separately expose bounded activity facts and an
+optional persisted speaking occasion through `LiveActivityContext`. Opt-in state
+and fact changes use quiet context, while a user-request continuation or authorized
+proactive comment receives one commentary append after its facts. Default core
+policies retain existing behavior. Context data is model-visible, not a secrecy boundary.
+
 ## Conversational Task Configuration
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
