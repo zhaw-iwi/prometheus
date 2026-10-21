@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.model.policy;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -9,10 +10,12 @@ public record LiveActivityContext(String facts, Continuation continuation) {
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
     /** A persisted identity authorizes one speaking occasion; facts are not a scripted utterance. */
-    public record Continuation(UUID id, Occasion occasion, String facts) {
+    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt) {
+        public Continuation(UUID id, Occasion occasion, String facts) { this(id, occasion, facts, null); }
         public Continuation {
             Objects.requireNonNull(id); Objects.requireNonNull(occasion); bounded(facts, 1000);
         }
+        public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
         @Override public String toString() { return "LiveContinuation[id=" + id + ",occasion=" + occasion + "]"; }
     }
     private static void bounded(String text, int limit) {

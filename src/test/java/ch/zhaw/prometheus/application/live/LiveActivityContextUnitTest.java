@@ -13,6 +13,47 @@ class LiveActivityContextUnitTest {
         return new LiveContextSnapshot(AGENT, EPOCH, state, Instant.EPOCH, List.of(state), "Guide",
                 List.of(), 0, Map.of("state", state, "policy", "Stable rules"), activity);
     }
+    @Test void dynamicGuidanceIsAddedReplacedAndWithdrawnWithoutReopeningConversation() {
+        var initial = snapshot("reception", new LiveActivityContext("No active round", null));
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var guidance = new LinkedHashMap<>(initial.guidance());
+        guidance.put("opening", "Greet once");
+        guidance.put("taskVoice", "Only accepted tasks run");
+        guidance.put("policy", "Keep selected identities secret during introductions");
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r2", Instant.EPOCH, List.of("task"), "Guide",
+                List.of(), 0, guidance, new LiveActivityContext("Selected identity: Ada", null));
+        var batch = delivery.plan(current, List.of());
+        String transmitted = batch.commands().toString();
+        assertFalse(transmitted.contains("Ada")); // Commands' diagnostics omit content.
+        var content = batch.commands().stream().map(LiveContextDelivery.Command::content).toList();
+        assertTrue(content.stream().anyMatch(c -> c.contains("Only accepted tasks run")));
+        assertTrue(content.stream().noneMatch(c -> c.contains("Greet once")));
+        assertTrue(content.getFirst().contains("Keep selected identities secret"));
+        assertTrue(content.getLast().contains("Selected identity: Ada"));
+        delivery.acknowledged(batch);
+        assertTrue(delivery.plan(current, List.of()).commands().isEmpty());
+        var withdrawn = delivery.plan(initial, List.of());
+        assertTrue(withdrawn.commands().stream().anyMatch(c -> c.content().contains("CURRENT TASKVOICE")
+                && c.content().contains("no longer applies")));
+        assertTrue(withdrawn.commands().stream().noneMatch(c -> c.content().contains("Greet once")));
+    }
+    @Test void expiredOccasionsCannotStartSpeechAndExpiryNeverBecomesAnAnnouncement() {
+        var initial = snapshot("reception", new LiveActivityContext("No active round", null));
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var expired = new Continuation(UUID.randomUUID(), Occasion.PROACTIVE, "Welcome", Instant.EPOCH);
+        var current = snapshot("reception", new LiveActivityContext("A visitor is present", expired));
+        assertTrue(delivery.plan(current, List.of()).commands().stream()
+                .noneMatch(c -> c.type().equals("session.commentary.append")));
+        var valid = new Continuation(UUID.randomUUID(), Occasion.USER_REQUEST, "Confirmed result", Instant.EPOCH.plusSeconds(10));
+        var batch = delivery.plan(snapshot("reception", new LiveActivityContext("Result ready", valid)), List.of());
+        var speech = batch.commands().getLast();
+        assertFalse(speech.expiredAt(Instant.EPOCH.plusSeconds(9)));
+        assertTrue(speech.expiredAt(Instant.EPOCH.plusSeconds(10)));
+        assertEquals("session.thinking.append", speech.expired().type());
+        assertFalse(speech.expired().content().contains("Confirmed result"));
+        assertTrue(delivery.plan(snapshot("reception", new LiveActivityContext("Result ready", valid)), List.of())
+                .commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")));
+    }
     @Test void quietFactsPrecedeOneContinuationAndNeitherRefreshNorReconnectReplaysIt() {
         var initial = snapshot("reception", new LiveActivityContext("No active round", null));
         var delivery = new LiveContextDelivery(initial); delivery.ready();
