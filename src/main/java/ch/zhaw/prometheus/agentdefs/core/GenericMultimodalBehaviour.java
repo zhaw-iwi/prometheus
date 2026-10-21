@@ -43,7 +43,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             Ask only necessary questions; use explicit reasonable defaults for neutral/uncertain signals.
             A future request, hypothetical example or proposal is not an activation command.
             %s\
-            For PROPOSE or ACTIVATE, task has these required fields:
+            %s
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
             %s\
@@ -74,7 +74,13 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             """;
     /** Authored application guidance; the owning action must enforce the same contract. */
     public record ConfigurationContract(String operationsAndLifecycle, String sessionBound,
-            int maxActions, String nullTaskOperations, String agreementReplies) {}
+            int maxActions, String nullTaskOperations, String agreementReplies, String taskFields) {
+        public ConfigurationContract(String operationsAndLifecycle, String sessionBound,
+                int maxActions, String nullTaskOperations, String agreementReplies) {
+            this(operationsAndLifecycle, sessionBound, maxActions, nullTaskOperations, agreementReplies,
+                    "For PROPOSE or ACTIVATE, task has exactly these fields:");
+        }
+    }
 
     private static final ConfigurationContract DEFAULT_CONTRACT = new ConfigurationContract("""
             Return ONLY JSON with exactly operation, task, reply:
@@ -135,8 +141,8 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     /** Reuse the validated configuration contract with an application's own persona. */
     public static String configurationInstructions(String voice) { return configurationInstructions(voice, DEFAULT_CONTRACT); }
     public static String configurationInstructions(String voice, ConfigurationContract contract) {
-        return voice + OUTPUT + CONFIGURATION.formatted(contract.operationsAndLifecycle(), contract.sessionBound(),
-                contract.maxActions(), contract.nullTaskOperations(), contract.agreementReplies());
+        return voice + OUTPUT + CONFIGURATION.formatted(contract.operationsAndLifecycle(), contract.taskFields(),
+                contract.sessionBound(), contract.maxActions(), contract.nullTaskOperations(), contract.agreementReplies());
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {
         var agent = createAgent();
