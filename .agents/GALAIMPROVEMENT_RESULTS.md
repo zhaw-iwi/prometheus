@@ -63,3 +63,9 @@ target/gptlive-acceptance-14efdf36cf; disposable schema/account removed. Initial
 new-test failures were a test-fixture mistake: getStorage returns a map copy;
 the corrected test updates the owning TaskPolicy storage inside a transaction.
 Gala agreement rendering, application checks and provider review follow on agents.
+
+GI-04 compatibility correction: the Generic prompt fingerprint gate caught the
+shared schema-declaration wording change. A ConfigurationContract extension now
+allows an application-specific task-field declaration while restoring Generic's
+original prompt byte for byte (SHA-256 1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8).
+29 focused units passed after this correction; target/gi04-prompt-compat.log.

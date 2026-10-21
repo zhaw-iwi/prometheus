@@ -42,21 +42,11 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             For one visible human say you detect one person in view and cannot establish who is outside it.
             Ask only necessary questions; use explicit reasonable defaults for neutral/uncertain signals.
             A future request, hypothetical example or proposal is not an activation command.
-            Return ONLY JSON with exactly operation, task, reply:
-            {"operation":"KEEP|PROPOSE|ACTIVATE|PAUSE|RESUME|STOP","task":null,"reply":{"speech":"..."}}.
-            KEEP answers a question, clarifies the idea, or continues conversation without changing the task.
-            PROPOSE stores a complete draft and pauses the old task while discussing a replacement.
-            ACTIVATE requires the user to accept the proposed plan or explicitly request execution of a
-            fully specified task now. Do not ask for another confirmation when already authorized.
-            STOP completes/cancels the active task when requested. Ending a task does not end conversation.
-            PAUSE suspends an active task for explicit RESUME; both keep task null and preserve its action count.
-            RESUME is valid only in PAUSED. A completed task requires a new explicitly authorized activation.
-            For PROPOSE or ACTIVATE, task has these required fields:
+            %s\
+            %s
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
-            sessionBound: true by default; use false only if the user explicitly requests autonomous
-            continuation after the Live session ends. Interactive tasks pause on session loss or Stop Live
-            and require explicit resumption. Explain this lifecycle when proposing the agreement;
+            %s\
             rules: an array of objects with exactly eventType, field, operator, value, action, effect,
             minConfidence, samples, cooldownSeconds. eventType and field come from Supported trigger fields.
             value must match the field's JSON type. action describes the agreed response; effect is ACT, WAIT or COMPLETE.
@@ -69,7 +59,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             Do not require a positive person-detection confidence to establish observed absence.
             Stopping or waiting prevents new task steps; it does not promise interruption of speech already playing.
             Rules compare one payload field using eq, lt or gt. Only listed fields/types are executable.
-            Use 1..4 rules, 1..50 maxActions including the initial action, 1..3 distinct matching samples,
+            Use 1..4 rules, 1..%d maxActions including the initial action, 1..3 distinct matching samples,
             3..60 seconds cooldown and confidence 0..1 (0 for sources without confidence).
             Default lightweight interactions to one matching sample; explain additional stability requirements
             only when the task needs them. Do not copy thresholds or actions from an unrelated task.
@@ -77,16 +67,47 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             waits silently. No inference happens for an unmatched sensor sample. Do not invent timers,
             sensor activation, arbitrary tools or compound workflows unsupported by this rule format.
             If a requested plan cannot be represented, KEEP and explain the limitation or propose an alternative.
-            ACTIVATE with task null activates the saved draft unchanged. For KEEP, STOP, PAUSE and RESUME task must be null.
-            On PROPOSE, say clearly that the task is not active and awaits acceptance.
-            On ACTIVATE, reply performs the initial agreed action and briefly establishes the waiting rule.
+            ACTIVATE with task null activates the saved draft unchanged. For %s task must be null.
+            %s\
             For an active task, explicit spoken changes/stop take precedence over sensor rules.
             Keep task JSON below 1800 characters, goal below 400, each action below 300.
             """;
+    /** Authored application guidance; the owning action must enforce the same contract. */
+    public record ConfigurationContract(String operationsAndLifecycle, String sessionBound,
+            int maxActions, String nullTaskOperations, String agreementReplies, String taskFields) {
+        public ConfigurationContract(String operationsAndLifecycle, String sessionBound,
+                int maxActions, String nullTaskOperations, String agreementReplies) {
+            this(operationsAndLifecycle, sessionBound, maxActions, nullTaskOperations, agreementReplies,
+                    "For PROPOSE or ACTIVATE, task has exactly these fields:");
+        }
+    }
+
+    private static final ConfigurationContract DEFAULT_CONTRACT = new ConfigurationContract("""
+            Return ONLY JSON with exactly operation, task, reply:
+            {"operation":"KEEP|PROPOSE|ACTIVATE|PAUSE|RESUME|STOP","task":null,"reply":{"speech":"..."}}.
+            KEEP answers a question, clarifies the idea, or continues conversation without changing the task.
+            PROPOSE stores a complete draft and pauses the old task while discussing a replacement.
+            ACTIVATE requires the user to accept the proposed plan or explicitly request execution of a
+            fully specified task now. Do not ask for another confirmation when already authorized.
+            STOP completes/cancels the active task when requested. Ending a task does not end conversation.
+            PAUSE suspends an active task for explicit RESUME; both keep task null and preserve its action count.
+            RESUME is valid only in PAUSED. A completed task requires a new explicitly authorized activation.
+            """, """
+            sessionBound: true by default; use false only if the user explicitly requests autonomous
+            continuation after the Live session ends. Interactive tasks pause on session loss or Stop Live
+            and require explicit resumption. Explain this lifecycle when proposing the agreement;
+            """, 50, "KEEP, STOP, PAUSE and RESUME", """
+            On PROPOSE, say clearly that the task is not active and awaits acceptance.
+            On ACTIVATE, reply performs the initial agreed action and briefly establishes the waiting rule.
+            """);
     static final String CONFIGURE = configurationInstructions(VOICE);
 
     /** Reuse the validated configuration contract with an application's own persona. */
-    public static String configurationInstructions(String voice) { return voice + OUTPUT + CONFIGURATION; }
+    public static String configurationInstructions(String voice) { return configurationInstructions(voice, DEFAULT_CONTRACT); }
+    public static String configurationInstructions(String voice, ConfigurationContract contract) {
+        return voice + OUTPUT + CONFIGURATION.formatted(contract.operationsAndLifecycle(), contract.taskFields(),
+                contract.sessionBound(), contract.maxActions(), contract.nullTaskOperations(), contract.agreementReplies());
+    }
 
     @Override public String key() { return KEY; }
     public static java.util.Map<String, String> builtInPrompts() {
