@@ -67,7 +67,7 @@ public class LiveVoicePolicyAdapter {
                 """.formatted(pendingAcknowledgements ? "You may acknowledge immediately while work is pending."
                         : "Wait silently while work is pending; no waiting remarks or question echoes.",
                         leaf.ownPolicy() instanceof ExternalVoicePolicy external && external.liveActivityContext() != null
-                                ? "Answer questions directly from current facts. Delegate requests that change application state."
+                                ? "Answer from current facts. The application processes visitor transcripts and confirms state changes."
                                 : "Delegate task questions to the application.")
                 + "\nLanguage: " + language;
         var sections = new LinkedHashMap<String, String>();
