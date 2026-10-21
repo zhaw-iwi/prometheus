@@ -93,7 +93,9 @@ public class TaskUpdateAction extends Action {
             if ("WAITING".equals(TaskMemory.phase(storage))) { TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage); }
             storage.put(TaskMemory.ACTIONS, new JsonPrimitive(count + (completed ? 0 : 1)));
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(rule.cooldownSeconds()).toString());
-            if (completed) { TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage); }
+            if (completed || spec.firstAction() == TaskSpec.FirstAction.ON_CUE && count + 1 >= spec.maxActions()) {
+                TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage);
+            }
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
@@ -138,6 +140,10 @@ public class TaskUpdateAction extends Action {
             reply = TaskMemory.plan(update.get("reply"));
             validationStage = "application_constraints";
             validateTaskUpdate(operation, task);
+            if (operation.equals("ACTIVATE") && task.firstAction() == TaskSpec.FirstAction.ON_CUE)
+                reply = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
+                        "The task is active and waiting for a fresh matching cue. No action has been performed yet.");
+            reply = TaskMemory.plan(prepareTaskReply(operation, task, reply).toJsonObject());
         } catch (RuntimeException invalid) {
             ch.zhaw.prometheus.logging.ActivityTrace.failed("task_configuration_invalid");
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.
@@ -161,7 +167,7 @@ public class TaskUpdateAction extends Action {
             case "ACTIVATE" -> {
                 storage.put(TaskMemory.SPEC, task.json());
                 if (storage.containsKey(TaskMemory.DRAFT)) storage.remove(TaskMemory.DRAFT);
-                storage.put(TaskMemory.ACTIONS, new JsonPrimitive(1));
+                storage.put(TaskMemory.ACTIONS, new JsonPrimitive(task.firstAction() == TaskSpec.FirstAction.IMMEDIATE ? 1 : 0));
                 TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage);
             }
             case "STOP" -> { TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage); }
@@ -180,6 +186,10 @@ public class TaskUpdateAction extends Action {
     }
     /** Additional application constraints, checked before storage or output is changed. */
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
+
+    /** Applications may render agreement terms; validate the replacement before mutation. */
+    protected ch.zhaw.prometheus.model.behaviour.BehaviourPlan prepareTaskReply(String operation, TaskSpec task,
+            ch.zhaw.prometheus.model.behaviour.BehaviourPlan reply) { return reply; }
 
     /** Applications may localize recovery before it becomes a captured speech intent. */
     protected String failureMessage(String fallback) { return fallback; }
