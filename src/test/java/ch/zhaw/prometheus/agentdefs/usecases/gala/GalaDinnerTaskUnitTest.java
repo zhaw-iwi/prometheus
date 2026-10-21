@@ -78,6 +78,17 @@ class GalaDinnerTaskUnitTest {
         verify(gateway).infer(any());
     }
 
+    @Test void noiseKeepsAnActiveTaskAndItsActionBudgetWithoutInference() {
+        propose(SPEC);
+        activate();
+        var before = memory.toMap();
+        clearInvocations(gateway);
+        assertNull(say("[laugh] [noise]"));
+        assertEquals("Gala co-created task", agent.getCurrentState().getName());
+        assertEquals(before, memory.toMap());
+        verifyNoInteractions(gateway);
+    }
+
     @Test void activationWithoutProposalAndInvalidOrAlteredPlansCannotPublishActivationClaims() {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 update("ACTIVATE", SPEC, "UNAUTHORIZED"));

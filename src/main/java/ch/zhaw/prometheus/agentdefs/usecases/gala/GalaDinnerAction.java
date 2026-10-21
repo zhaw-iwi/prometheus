@@ -70,7 +70,10 @@ public class GalaDinnerAction extends Action {
 
     private static void turn(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean() || !present(storage, now)) return;
-        String utterance = events.toList().getLast().getPayload().trim();
+        String utterance = GalaDinnerInput.speech(events.toList().getLast().getPayload());
+        // Keep the original transcript in history, but sound annotations do not authorize task control
+        // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
+        if (utterance.isBlank()) return;
         if (expiredBeforeTurn(storage, now)) {
             reception(storage);
             put(storage, SESSION, Integer.toString(events.toList().size() - 1));
@@ -89,6 +92,10 @@ public class GalaDinnerAction extends Action {
             return;
         }
         String mode = mode(storage);
+        if ("RECEPTION".equals(mode) && GalaDinnerInput.unspecifiedGame(utterance)) {
+            reply(storage, gameChoice());
+            return;
+        }
         if ("TASK".equals(mode)) {
             if (command.matches("(bitte )?(pause|pausieren)|(please )?(stop|cancel|pause)"
                     + "( (the |this |my )?(task|interaction|conversation))?")) {
@@ -129,9 +136,9 @@ public class GalaDinnerAction extends Action {
             if (!GESTURES.contains(gesture) || !EXPRESSIONS.contains(expression) || !GAZES.contains(gaze))
                 throw new IllegalArgumentException("Invalid nonverbal label");
             Set<String> allowed = switch (mode) {
-                case "RECEPTION" -> Set.of("CHAT", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
-                case "RPS" -> Set.of("CLARIFY", "RETURN", "QUIET");
-                case "GUESS" -> Set.of("YES", "NO", "CLARIFY", "RETURN", "QUIET");
+                case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
+                case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET");
+                case "GUESS" -> Set.of("WAIT", "YES", "NO", "CLARIFY", "RETURN", "QUIET");
                 default -> throw new IllegalArgumentException("Invalid mode");
             };
             failureStage = "mode_operation";
@@ -139,6 +146,8 @@ public class GalaDinnerAction extends Action {
             failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
+                case "WAIT" -> response = null;
+                case "CHOOSE_GAME" -> response = gameChoice();
                 case "START_TASK" -> {
                     reception(storage);
                     put(storage, MODE, "TASK");
@@ -196,6 +205,10 @@ public class GalaDinnerAction extends Action {
 
     private static boolean expiredBeforeTurn(Storage storage, Instant now) {
         return GalaDinnerDecision.expired(storage, now);
+    }
+
+    private static BehaviourPlan gameChoice() {
+        return plan("Personenraten oder Schere, Stein, Papier?", "OPEN_QUESTION", "attentive", "toward_user");
     }
 
     private static void leave(Storage storage, EventHistory events, boolean quiet) {

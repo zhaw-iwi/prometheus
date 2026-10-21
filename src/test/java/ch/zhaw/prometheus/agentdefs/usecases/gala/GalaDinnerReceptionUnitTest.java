@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import java.util.UUID;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 import ch.zhaw.prometheus.application.live.LiveContextProjection;
@@ -132,7 +134,7 @@ class GalaDinnerReceptionUnitTest {
     @Test void stopAndQuietExitEveryGameWithoutProviderAndQuietSurvivesSensorUpdates() {
         for (String operation : List.of("START_RPS", "START_GUESS")) {
             when(gateway.infer(any())).thenReturn(answer(operation, ""));
-            say("Spielen wir");
+            say(operation.equals("START_RPS") ? "Schere Stein Papier bitte" : "Personenraten bitte");
             clearInvocations(gateway);
             assertNotNull(say("Stopp!"));
             assertEquals("Gala reception", agent.getCurrentState().getName());
@@ -155,6 +157,72 @@ class GalaDinnerReceptionUnitTest {
         assertFalse(memory.containsKey(PERSON)); assertFalse(memory.containsKey(SIGN));
         assertNull(agent.generate(runtime));
         verify(gateway, times(1)).infer(any());
+    }
+
+    @Test void unspecifiedPlayAsksForChoiceEvenWhenTheModelWouldStartThePreviouslyMentionedGame() {
+        agent.getEventHistory().appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, "assistant",
+                "{\"speech\":\"Ich kann kleine Spiele anbieten, etwa Schere, Stein, Papier.\"}"));
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
+        for (String request : List.of("Können wir etwas spielen?", "Die Können wir etwas spielen",
+                "Okay. Können wir etwas [laugh] spielen?", "Lass uns ein Spiel spielen!",
+                "Spielen wir?", "Was können wir spielen?", "Can we play something?")) {
+            assertEquals("Personenraten oder Schere, Stein, Papier?", speech(say(request)), request);
+            assertEquals("RECEPTION", mode(memory));
+            assertFalse(memory.containsKey(SIGN)); assertFalse(memory.containsKey(PERSON));
+            assertFalse(memory.containsKey(ROUND)); assertFalse(memory.containsKey(STARTED));
+        }
+        verifyNoInteractions(gateway);
+        // Other phrasings can use the same choice operation through normal language interpretation.
+        when(gateway.infer(any())).thenReturn(answer("CHOOSE_GAME", ""));
+        assertEquals("Personenraten oder Schere, Stein, Papier?", speech(say("Ich hätte Lust auf ein Spiel.")));
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
+        assertTrue(speech(say("Wie wäre es mit einem Ratespiel?")).contains("Ja-Nein-Fragen"));
+        assertEquals("GUESS", mode(memory));
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"START_RPS", "START_GUESS"})
+    void noiseAndNeutralWaitingPreserveTheGameAndExplicitStopStillWorks(String start) {
+        when(gateway.infer(any())).thenReturn(answer(start, ""));
+        say(start.equals("START_RPS") ? "Schere Stein Papier bitte" : "Personenraten bitte");
+        var before = memory.toMap();
+        clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn(answer("QUIET", "")); // Reproduce the harmful model choice.
+        for (String sound : List.of("[laugh]", "[laughter] [noise]", "[coughing]", "[lacht]", "Ha ha!")) {
+            assertNull(say(sound));
+            assertEquals(before, memory.toMap(), "Noise must not clear game facts or renew the idle timer");
+            assertEquals(sound, agent.getEventHistory().toList().getLast().getPayload());
+        }
+        verifyNoInteractions(gateway);
+        when(gateway.infer(any())).thenReturn(answer("WAIT", ""));
+        assertNull(say("Einen Moment bitte"));
+        assertEquals(before.get(MODE), memory.get(MODE));
+        assertEquals(before.get(STARTED), memory.get(STARTED));
+        assertEquals(before.get(SIGN), memory.toMap().get(SIGN));
+        assertEquals(before.get(PERSON), memory.toMap().get(PERSON));
+        clearInvocations(gateway);
+        assertNotNull(say("[laugh] Stopp!"));
+        assertEquals("RECEPTION", mode(memory));
+        verifyNoInteractions(gateway);
+        assertNull(say("Bitte sei still [laugh]"));
+        var quiet = memory.toMap();
+        assertNull(say("[laugh]"));
+        assertEquals(quiet, memory.toMap(), "Noise cannot undo an explicit silence request");
+    }
+
+    @Test void laughterFollowedByFreshHandProducesExactlyOneResultWithoutInference() {
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
+        say("Spielen wir Schere Stein Papier");
+        when(gateway.infer(any())).thenReturn(answer("QUIET", ""));
+        clearInvocations(gateway);
+        assertNull(say("[laugh]"));
+        var result = BehaviourPlan.fromJson(hand("scissor", Instant.now(), .731).getPayload());
+        assertEquals("agent", result.getDisplay().getAsJsonObject().get("winner").getAsString());
+        assertEquals("Ich habe Stein, Sie haben Schere. Diese Runde geht an mich!", result.getSpeech());
+        assertEquals("RECEPTION", mode(memory));
+        assertNull(hand("rock", Instant.now(), .735));
+        assertNull(agent.generate(runtime));
+        verifyNoInteractions(gateway);
     }
 
     @Test void invalidProviderOutputOrFailureCannotStartGamesOrKeepAnActivityStuck() {
@@ -192,7 +260,7 @@ class GalaDinnerReceptionUnitTest {
     }
 
     @Test void idleTimeoutReturnsSilently() {
-        when(gateway.infer(any())).thenReturn(answer("START_RPS", "")); say("Spielen");
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", "")); say("Schere Stein Papier bitte");
         put(memory, LAST_INPUT, Instant.now().minusSeconds(91).toString());
         assertNull(agent.tick(runtime)); assertEquals("Gala reception", agent.getCurrentState().getName());
         assertFalse(memory.containsKey(SIGN));
@@ -201,7 +269,7 @@ class GalaDinnerReceptionUnitTest {
     @Test void cancelledInferenceCannotPublishOrStartAGame() {
         var continuing = new java.util.concurrent.atomic.AtomicBoolean(true);
         when(gateway.infer(any())).thenAnswer(call -> { continuing.set(false); return answer("START_RPS", ""); });
-        assertNull(agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Spielen"),
+        assertNull(agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Schere Stein Papier bitte"),
                 runtime.withTaskContinuation(continuing::get)));
         assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(SIGN));
     }

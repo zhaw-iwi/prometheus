@@ -387,6 +387,23 @@ selects the setting; telemetry exports it as `provider.configuration.userSilence
 Pauses longer than the window can still split a question. An incomplete reception
 request can receive a normal clarification without starting an activity.
 
+Unspecified game requests such as "Können wir etwas spielen?" stay in reception
+and ask "Personenraten oder Schere, Stein, Papier?" before a game is selected.
+Common German/English request forms are handled without inference; other wording
+can use the model's `CHOOSE_GAME` operation. A capability example is not a game
+invitation. Recognized standalone sound annotations such as `[laugh]`/`[noise]`
+and written laughter do not call a model, change activity or renew the idle timer.
+The original transcript remains in history. Real words accompanying annotations,
+including stop requests, are still processed. `WAIT` lets harmless reactions stay
+in reception or either game without producing another response. Interpretation
+of other free-form language remains model-dependent.
+
+The physical repeat script is [tests/gptlive/GALA.md](tests/gptlive/GALA.md).
+Hard-refresh the cockpit after deployment and start a fresh Live session. Check
+that laughter preserves the game and that the following hand sign produces a
+spoken result; state changes must not repeat the opening greeting. The offline
+journey checks result submission/recording, not real provider speech or audibility.
+
 The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
 
 - RPS commits a hidden sign before inviting a fresh camera hand sign, calculates

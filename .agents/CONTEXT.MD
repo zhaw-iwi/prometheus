@@ -302,7 +302,11 @@ Proposal speech states validated counts and termination terms deterministically,
 removing premature hand motion and validating the replacement before mutation.
 Saved action prompts are not rewritten: use a new Gala instance for these changes.
 Gala's Live policy/reference is stable across all activities; only compact state
-guidance changes before result narration. Its session-fixed backend user-turn
+guidance changes before result narration. Gala locally handles common unspecified
+play requests with a game-choice question and ignores recognized standalone sound
+annotations for task control. A neutral WAIT operation preserves games; original
+transcripts remain auditable. Other language interpretation remains model-dependent.
+Its session-fixed backend user-turn
 quiet window is 2,000 ms, selected through the generic ExternalVoicePolicy hook;
 other agents and assistant capture retain 800 ms. Telemetry exports the effective
 user window. Short pauses are tested, but semantic sentence completion and the

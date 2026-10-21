@@ -67,3 +67,6 @@ the real cockpit's pending work, cue waiting, failure and reset. It is skipped
 when Live is disabled. A separate bounded text-provider comparison is recorded
 in [NEEDFORSPEED_RESULTS.md](../../.agents/NEEDFORSPEED_RESULTS.md); that comparison
 is not an acoustic GPT-Live trial.
+
+For a repeatable physical Gala conversation based on the first live trial, use
+[GALA.md](GALA.md).

@@ -5,6 +5,62 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Gala game choice and non-speech control - Milestone 223 (2026-10-21)
+
+The second headset trial on Heroku v112 exposed two control errors: an unspecified
+play request selected RPS, and a subsequent `[laugh]` turn ended the round before
+the first valid hand observation. No result was generated. Persisted `quiet=true`
+and the absence of another user turn strongly identify a model-selected QUIET;
+raw model JSON was not retained. The provider's `context_injection_incomplete`
+arrived after local Stop and server delivery shutdown, not before the lost round.
+A repeated opening also appeared within the same voice session. The prior delivery
+fix was effective: the small state update and invitation were acknowledged 1,415 ms
+after announcement commitment, with no reference resend. This is delivery evidence,
+not a physical-audibility measurement.
+
+This authorized follow-up remains local on `agents`:
+
+- `GalaDinnerInput` recognizes common German/English unspecified play requests;
+  reception asks "Personenraten oder Schere, Stein, Papier?" without inference or
+  choosing a game. Other wording can use the new validated CHOOSE_GAME operation.
+  Capability examples are explicitly not treated as invitations.
+- Known standalone sound annotations and written laughter bypass task inference
+  in every Gala activity. They do not renew idle time, clear game/task facts or
+  undo silence. Original transcripts remain in history; real words accompanying
+  annotations, including explicit stop/silence, still reach control.
+- WAIT gives reception and the two games a silent, neutral continuation operation.
+  Stable Live guidance asks for a game choice and reinforces same-encounter
+  continuity. The graph, schema, shared Live transport and core agents are unchanged.
+- Unit cases deliberately configure harmful model decisions behind deterministic
+  guards. The real scoped/persisted Gala journey now covers generic request ->
+  guessing selection -> explicit stop -> RPS -> laughter -> waiting -> valid hand
+  -> one provider-bound result, plus duplicate-sign suppression and both visitors.
+  The manual script adds the selection question, laughter and repeated-greeting checks.
+
+Verification:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinner*UnitTest
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest
+.\mvnw.cmd -q -DskipTests package
+```
+
+All **54 Java cases in eight classes** passed with no failures, errors or skips:
+44 focused cases in `target/gptlive-acceptance-0d0d9f3027/`, then ten integration
+cases in `target/gptlive-acceptance-5c1eb8cf66/`. Both disposable schemas/accounts
+were removed. Each directory contains the log and fresh report counts. Packaging
+passed (`target/gala-223-package.log`); only the existing Maven Unsafe warning
+was emitted. Complete Live instructions remain **15,846/16,000 bytes** with two
+maximum task goals, in every reachable state and both embodiments.
+
+No paid provider, browser/media or physical-robot trial was run. Scripted Live
+receipts establish delivery/recording, not audible speech or model compliance.
+Unrecognized free-form language remains model-dependent; the deterministic
+request forms and sound annotations are deliberately bounded. Repeated greetings
+and ordinary speech cutoffs still require listening verification. No new commit,
+push, deployment or production data mutation. Hard-refresh the browser after
+deployment and use a fresh Live session; saved graphs/prompts are not migrated.
+
 ## Gala narration and user-turn boundaries - Milestone 222 (2026-10-21)
 
 The user authorized this follow-up after the first Gala headset interaction on

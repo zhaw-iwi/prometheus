@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 223 (2026-10-21): Gala asks for a game choice on common unspecified
+  play requests and ignores recognized standalone sound annotations for task
+  control. WAIT preserves games without another response. The extended persisted
+  journey covers choice, stop, laughter, hand result and single result delivery.
+  Passed 54 Java cases including all three canonical/compact agent journeys and
+  packaging; complete Live instructions fit at 15,846/16,000 bytes. Provider voice
+  and arbitrary-language interpretation still need live verification. Local only;
+  evidence: `.agents/GPTLIVE_RESULTS.md` and manual script `tests/gptlive/GALA.md`.
+
 - Milestone 222 (2026-10-21): Gala keeps reference/voice guidance stable across
   activity changes, removing the 23-chunk resend ahead of game narration. A
   bounded session-fixed user capture window is carried through immutable Live
@@ -479,6 +488,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 223: Gala game choice and non-speech control
 - [x] Milestone 222: Gala narration delivery and bounded user-turn capture
 - [x] Milestone 221: Gala speech, lifecycle and initial-action guidance follow-up
 - [x] Milestone 220: Compact task behaviour and paired Live smoke journeys
@@ -10581,3 +10591,27 @@ fresh Live session selects its capture setting. Ordinary speech cutoffs, camera
 recognition and physical robot behavior still need the controlled trial in README.
 Routine sensor cadence/freshness were preserved; context injection is a cutoff
 hypothesis, not an established cause. No paid provider or physical test was run.
+
+## Milestone 223
+
+Date: 2026-10-21. Gala game choice and non-speech control on `agents`.
+
+The second physical trial selected RPS from an unspecified play request, then
+treated a laughter transcript as task control and left the game before the hand
+observation. Gala now locally handles common unspecified requests with a choice
+question and bypasses inference for recognized standalone sound annotations.
+Original transcripts remain auditable, idle time is not renewed by noise, and
+explicit words accompanying annotations still receive normal handling. CHOOSE_GAME
+and WAIT extend the strict operation contract without changing the graph or schema.
+Live guidance reinforces activity choice and same-encounter greeting continuity.
+
+Passed 44 focused Java cases and ten persisted/scoped integration cases, including
+canonical/compact Gala, Generic and Social Space journeys, plus packaging. The
+Gala journey includes laughter before a valid hand sign and exactly one result
+announcement. Maximum complete instructions remain 15,846/16,000 bytes. Commands,
+diagnosis, artifacts and limitations are in `.agents/GPTLIVE_RESULTS.md`.
+
+No shared transport/core-agent changes, production writes, commit or deployment.
+Unrecognized free-form language remains model-dependent. Real provider speech,
+repeated introductions, audible cutoffs and physical sensing require the updated
+`tests/gptlive/GALA.md` trial after a hard refresh and fresh Live session.

@@ -142,12 +142,36 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     .getAsJsonObject("facialExpression").get("type").getAsString());
             assertEquals(calls, requests.size());
 
+            // Replay the second headset trial's ambiguous request. Even a prior RPS mention is no choice.
+            nativeSpeech(first, "Ich kann kleine Spiele anbieten, etwa Schere, Stein, Papier.");
+            calls = requests.size();
+            say(first, "Die Können wir etwas spielen");
+            assertEquals(calls, requests.size());
+            assertReception(); assertTaskCleared();
+            assertEquals("Personenraten oder Schere, Stein, Papier?", hearAnnouncement(first));
+            say(first, "Wie wäre es mit einem Ratespiel?", control("START_GUESS"));
+            hearAnnouncement(first);
+            assertEquals("Gala guess the person", loaded().getCurrentState().getName());
+            say(first, "Stopp!");
+            hearAnnouncement(first); assertReception();
+
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
             hearAnnouncement(first);
-            assertEquals("rock", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
+            calls = requests.size();
+            say(first, "[laugh]");
+            assertEquals(calls, requests.size());
+            assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
+            assertFalse(loaded().getStorage().containsKey("gala.quiet"));
+            say(first, "Einen Moment bitte", control("WAIT"));
+            assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             hand("paper", Instant.now());
-            assertEquals("user", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
-            hearAnnouncement(first); assertReception();
+            assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertEquals("Ich habe Schere, Sie haben Papier. Diese Runde geht an mich!", hearAnnouncement(first));
+            assertReception();
+            long results = history().stream().filter(event -> event.getPayload().contains("\"phase\":\"round_result\"")).count();
+            hand("paper", Instant.now());
+            assertEquals(results, history().stream().filter(event -> event.getPayload().contains("\"phase\":\"round_result\"")).count());
 
             String firstSpec = spec(FIRST_GOAL, "rock", 3, "Sage " + FIRST_REACTION + " und zeige Papier.");
             say(first, "Gestalten wir meine persönliche Reaktion auf Stein.", control("START_TASK"),
@@ -207,7 +231,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             // Both visitors try RPS; stale speech and a delayed old hand frame cannot affect B's round.
             say(second, "Ich möchte auch Schere, Stein, Papier spielen.", control("START_RPS"));
             hearAnnouncement(second);
-            assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals("paper", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
             assertTrue(ingress.commit(id, first.owner(), lateFirstTurn, oldStatePath).isEmpty());
             assertFalse(ingress.receipt(id, first.owner(), fragment("Noch eine alte Eingabe " + FIRST_NAME)));
@@ -219,18 +243,18 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             assertEquals(calls, requests.size());
             hand("paper", Instant.now());
-            assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertEquals("draw", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
             hearAnnouncement(second); assertReception(); assertCurrentContextIsolated();
 
             // B tries the remaining game, then creates a different custom agreement.
             say(second, "Jetzt möchte ich eine Person erraten.", control("START_GUESS"));
             hearAnnouncement(second);
-            assertEquals("Charlie Chaplin", loaded().getStorage().get("gala.person").getAsString());
-            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Charlie Chaplin"));
-            say(second, "Bist du ein Schauspieler?", control("YES"));
+            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
+            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Ada Lovelace"));
+            say(second, "Bist du eine Mathematikerin?", control("YES"));
             assertEquals("Ja.", hearAnnouncement(second));
-            say(second, "Bist du Charlie Chaplin?");
-            assertTrue(hearAnnouncement(second).startsWith("Ja, genau: Charlie Chaplin!"));
+            say(second, "Bist du Ada Lovelace?");
+            assertTrue(hearAnnouncement(second).startsWith("Ja, genau: Ada Lovelace!"));
             assertReception();
 
             String secondSpec = spec("BETA-PAPER-AGREEMENT", "paper", 2, "Ein neuer Witz für " + SECOND_NAME);
@@ -318,6 +342,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         assertTrue(encounter.peer().sent.stream().noneMatch(event ->
                 "session.instructions.append".equals(event.get("type").getAsString()) && event.toString().contains("GALA REFERENZ")),
                 "Activity changes must not resend the stable reference before narration");
+        assertTrue(encounter.peer().sent.stream().noneMatch(event -> event.toString().contains("ich bin djee-djee")),
+                "Activity updates must not send another opening greeting");
+        assertEquals(1, encounter.peer().sent.stream().filter(event ->
+                "session.commentary.append".equals(event.get("type").getAsString()) && event.toString().contains(intent.getId().toString())).count(),
+                "A confirmed result must be announced only once");
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,
                 List.of(intent.getId()), SpeechProvenance.Association.CONFIRMED, true).isPresent());
         return text;
