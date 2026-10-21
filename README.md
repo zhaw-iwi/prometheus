@@ -637,6 +637,12 @@ missing provider transcription or prove audible delivery. Evidence:
 
 ## Testing
 
+Executable task JSON optionally declares `firstAction: "ON_CUE"` to wait for a
+fresh matching observation after acceptance. Omission or `"IMMEDIATE"` keeps the
+legacy initial action. `ON_CUE` acceptance spends no action and emits no agreed
+motion; `maxActions` counts subsequent actions. Existing saved tasks are not
+reinterpreted. Applications must explain the timing before acceptance.
+
 Use a disposable local MySQL schema and a restricted test account, supplied through
 `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` and
 `SPRING_DATASOURCE_PASSWORD`. Several integration fixtures delete stored agents;

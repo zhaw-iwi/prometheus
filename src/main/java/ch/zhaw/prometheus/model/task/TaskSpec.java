@@ -5,7 +5,11 @@ import com.google.gson.*;
 import ch.zhaw.prometheus.model.event.Event;
 
 /** A bounded executable configuration, never Java code or a replacement system prompt. */
-public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound) {
+public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound, FirstAction firstAction) {
+    public enum FirstAction { IMMEDIATE, ON_CUE }
+    public TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound) {
+        this(goal, maxActions, rules, sessionBound, FirstAction.IMMEDIATE);
+    }
     public TaskSpec(String goal, int maxActions, List<Rule> rules) { this(goal, maxActions, rules, true); }
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
@@ -27,7 +31,12 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
         try {
             if (raw == null || !raw.isJsonObject() || JSON.toJson(raw).length() > 1800) throw new IllegalArgumentException();
             var object = raw.getAsJsonObject();
-            exact(object, object.has("sessionBound") ? Set.of("goal", "maxActions", "rules", "sessionBound") : Set.of("goal", "maxActions", "rules"));
+            var fields = new HashSet<>(Set.of("goal", "maxActions", "rules"));
+            if (object.has("sessionBound")) fields.add("sessionBound");
+            if (object.has("firstAction")) fields.add("firstAction");
+            exact(object, fields);
+            FirstAction firstAction = object.has("firstAction")
+                    ? FirstAction.valueOf(string(object, "firstAction", 12)) : FirstAction.IMMEDIATE;
             if (object.has("sessionBound") && (!object.get("sessionBound").isJsonPrimitive()
                     || !object.get("sessionBound").getAsJsonPrimitive().isBoolean())) throw new IllegalArgumentException();
             boolean sessionBound = !object.has("sessionBound") || object.get("sessionBound").getAsBoolean();
@@ -57,10 +66,15 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 rules.add(new Rule(type, field, op, value.deepCopy(), string(rule, "action", 300), effect,
                         confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60)));
             }
-            return new TaskSpec(goal, max, List.copyOf(rules), sessionBound);
+            return new TaskSpec(goal, max, List.copyOf(rules), sessionBound, firstAction);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }
     }
-    public JsonObject json() { return JSON.toJsonTree(this).getAsJsonObject(); }
+    public JsonObject json() {
+        var result = JSON.toJsonTree(this).getAsJsonObject();
+        // Keep legacy/default serialization stable; only the additive timing needs a new field.
+        if (firstAction == FirstAction.IMMEDIATE) result.remove("firstAction");
+        return result;
+    }
     /** Validate new agreements separately so legacy stored data remains inspectable. */
     public TaskSpec executable() {
         var conditions = new HashSet<String>();
@@ -74,6 +88,8 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
         }
         if (rules.stream().anyMatch(r -> r.effect() == Effect.WAIT) && rules.stream().noneMatch(r -> r.effect() == Effect.ACT))
             throw new IllegalArgumentException("Waiting requires a resumable action rule");
+        if (firstAction == FirstAction.ON_CUE && rules.stream().noneMatch(r -> r.effect() == Effect.ACT))
+            throw new IllegalArgumentException("A future first action requires an action cue");
         return this;
     }
     static void exact(JsonObject object, Set<String> fields) {

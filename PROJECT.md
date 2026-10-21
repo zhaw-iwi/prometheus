@@ -82,6 +82,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-04 shared first-action timing is integrated; Gala acceptance is in progress.
+  See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - Milestone 229 / GI-03 (2026-10-21): explicit unconfirmed game readiness,
   post-inference hand-sign eligibility, broader bounded direct-name guesses,
   validated give-up and quiet retained outcome facts. Recoverable inference or
@@ -10762,3 +10765,11 @@ Live readiness/question/reveal/RPS trials, and packaging. A provider-discovered
 hypothetical-rules regression was corrected and its affected sequence passed.
 Details and artifact paths: `.agents/GALAIMPROVEMENT_RESULTS.md`. Model speech
 compliance is not enforced by a playback gate; physical acceptance stays pending.
+
+## Milestone 230 - Explicit first-action timing (2026-10-21)
+
+Add optional ON_CUE task timing while retaining legacy immediate semantics and
+default JSON. Validate before changing state, suppress premature activation
+output, and complete the last cue without another action. Passed 28 focused units
+and four isolated Generic integration cases. See .agents/GALAIMPROVEMENT_RESULTS.md
+for commands, fixture correction and application acceptance pending on agents.

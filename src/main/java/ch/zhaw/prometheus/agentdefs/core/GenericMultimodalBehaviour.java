@@ -43,7 +43,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             Ask only necessary questions; use explicit reasonable defaults for neutral/uncertain signals.
             A future request, hypothetical example or proposal is not an activation command.
             %s\
-            For PROPOSE or ACTIVATE, task has exactly these fields:
+            For PROPOSE or ACTIVATE, task has these required fields:
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
             %s\

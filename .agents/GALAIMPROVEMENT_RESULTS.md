@@ -166,3 +166,22 @@ No audible-barrier guarantee, physical audio quality or robot execution is claim
 The instruction budget tests pass with room below 14,400 bytes. Packaging passed;
 logs target/gi03-package.log and target/gi03-package-final.log. Residual occasional
 waiting acknowledgments are explicitly retained for GI-07, not hidden as a pass.
+
+## GI-04 / Milestone 230 - explicit first-action timing (shared foundation)
+
+TaskSpec accepts optional firstAction ON_CUE or IMMEDIATE. Missing fields retain
+IMMEDIATE; default serialization remains unchanged. ON_CUE persists explicitly,
+arms with zero actions and strips any premature activation action/motion. Its
+final permitted cue completes without an extra cue. Existing default counts and
+Generic pause/resume behavior remain unchanged. A validated reply-rendering hook
+supports application-owned agreement summaries before mutation. No schema change.
+
+28 focused unit cases passed: TaskFirstActionUnitTest, GenericMultimodalTaskUnitTest,
+TaskLifecycleUnitTest (target/gi04-unit.log). Four Generic integration cases passed,
+including legacy/future timing reload, session recovery and Live task journey:
+run_acceptance.py with agents application-test.properties and
+--java-tests GenericMultimodalTaskIntegrationTest. Final artifacts:
+target/gptlive-acceptance-14efdf36cf; disposable schema/account removed. Initial
+new-test failures were a test-fixture mistake: getStorage returns a map copy;
+the corrected test updates the owning TaskPolicy storage inside a transaction.
+Gala agreement rendering, application checks and provider review follow on agents.
