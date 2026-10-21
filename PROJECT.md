@@ -75,6 +75,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-02 shared capture/admission changes are implemented and unit-tested; integrated
+  Gala checks are pending on agents. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - Milestone 226 shared foundation (2026-10-21): opt-in Live activity facts,
   quiet state delivery and identified user-request/proactive continuations;
   existing policies retain their contracts. Passed 26 focused unit tests. Application rollout and provider
@@ -9074,3 +9077,11 @@ Adds a default-true ExternalVoicePolicy preference and conditional common voice
 and task guidance. Existing default strings remain identical. Application-specific
 opt-out and complete trial evidence are on agents; no Gala dependency is introduced
 here. See `.agents/GPTLIVE_RESULTS.md` for shared tests and local-only scope.
+
+## Milestone 228 - Gala turn-admission reliability (2026-10-21)
+
+Preserve measured quiet before new chunks reset segmentation and scope short-reply
+context to current-session, completed native speech. Application-specific pause
+configuration is shared; legacy admission defaults are preserved. Shared focused
+unit checks pass (32 cases); full evidence and limits are recorded in
+`.agents/GALAIMPROVEMENT_RESULTS.md`. Integrated Gala acceptance follows on agents.

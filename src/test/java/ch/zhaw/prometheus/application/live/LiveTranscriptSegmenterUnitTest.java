@@ -3,6 +3,8 @@ package ch.zhaw.prometheus.application.live;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 
 class LiveTranscriptSegmenterUnitTest {
@@ -54,5 +56,40 @@ class LiveTranscriptSegmenterUnitTest {
         assertEquals(Closure.INCOMPLETE, segmenter.poll(32101).getFirst().closure());
         segmenter.fragment(fragment("large", Speaker.USER, 4000, 4100, 33000, "x".repeat(2800)));
         assertThrows(IllegalStateException.class, () -> segmenter.fragment(fragment("overflow", Speaker.USER, 4101, 4200, 33100, "x")));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"770,Ist die Person männlich oder,weiblich", "1200,Ist die Person schon lange,verstorben", "1708,Etwas,spielen"})
+    void applicationPauseWindowKeepsObservedHesitationsInOneUserTurn(int pauseMs, String first, String last) {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000);
+        capture.fragment(fragment("first", Speaker.USER, 0, 100, 100, first));
+        for (long at = 120; at < 100 + pauseMs; at += 20) {
+            capture.audio(Speaker.USER, 480, false, at);
+            assertTrue(capture.poll(at).isEmpty(), "A brief pause must not authorize a partial task question");
+        }
+        long resumed = 100 + pauseMs;
+        capture.fragment(fragment("last", Speaker.USER, resumed, resumed + 100, resumed, " " + last));
+        for (int i = 1; i <= 100; i++) capture.audio(Speaker.USER, 480, false, resumed + i * 20);
+        var done = capture.poll(resumed + 2000);
+        assertEquals(1, done.size()); assertEquals(Closure.COMPLETE, done.getFirst().closure());
+        assertEquals(first + " " + last, done.getFirst().text());
+        assertTrue(capture.poll(resumed + 2100).isEmpty());
+    }
+
+    @Test void longerUserWindowPreservesAssistantTimingAndConservativeStopAndCoverageRules() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000);
+        for (Speaker speaker : Speaker.values()) {
+            capture.fragment(fragment(speaker.name(), speaker, 0, 100, 100, "Pending"));
+            for (int i = 1; i <= 8; i++) capture.audio(speaker, 2400, false, 100 + i * 100);
+        }
+        var done = capture.poll(900);
+        assertEquals(1, done.size()); assertEquals(Speaker.ASSISTANT, done.getFirst().speaker());
+        assertTrue(capture.poll(2500).isEmpty(), "Network silence cannot complete a turn");
+        assertEquals(Closure.INCOMPLETE, capture.interrupt(Speaker.USER, "input_muted").getFirst().closure());
+        capture.fragment(fragment("gap", Speaker.USER, 3000, 3100, 3100, "Uncertain"));
+        for (int i = 1; i <= 20; i++) capture.audio(Speaker.USER, 2400, false, 4100 + i * 100);
+        assertEquals("audio_coverage_gap", capture.poll(6100).getFirst().reason());
+        assertThrows(IllegalArgumentException.class, () -> new LiveTranscriptSegmenter(UUID.randomUUID(), 799));
+        assertThrows(IllegalArgumentException.class, () -> new LiveTranscriptSegmenter(UUID.randomUUID(), 3001));
     }
 }

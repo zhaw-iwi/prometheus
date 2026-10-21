@@ -26,6 +26,7 @@ public final class LiveTranscriptSegmenter {
     private static final Comparator<Fragment> ORDER = Comparator.comparing(Fragment::startMs, Comparator.nullsLast(Long::compare))
             .thenComparing(Fragment::endMs, Comparator.nullsLast(Long::compare)).thenComparingLong(Fragment::sequence);
     private final UUID session;
+    private final long userSilenceMs;
     private final EnumMap<Speaker, Track> tracks = new EnumMap<>(Speaker.class);
     private final LinkedHashSet<String> received = new LinkedHashSet<>();
     private boolean closed;
@@ -35,8 +36,16 @@ public final class LiveTranscriptSegmenter {
         String uncertainty;
     }
     public LiveTranscriptSegmenter(UUID session) {
+        this(session, SILENCE_MS);
+    }
+    public LiveTranscriptSegmenter(UUID session, long userSilenceMs) {
+        validateUserSilence(userSilenceMs);
         this.session = session;
+        this.userSilenceMs = userSilenceMs;
         for (Speaker speaker : Speaker.values()) tracks.put(speaker, new Track());
+    }
+    static void validateUserSilence(long value) {
+        if (value < SILENCE_MS || value > 3000) throw new IllegalArgumentException("User silence must be 800 to 3000 ms");
     }
     public synchronized List<Segment> fragment(Fragment fragment) {
         if (closed) throw new IllegalStateException("Transcript capture is closed");
@@ -89,7 +98,8 @@ public final class LiveTranscriptSegmenter {
             if (track.fragments.isEmpty()) continue;
             if (nowMs - track.first > MAX_OPEN_MS) {
                 result.add(finish(entry.getKey(), track, Closure.INCOMPLETE, "activity_or_transcript_timeout"));
-            } else if (track.silenceSamples >= SILENCE_MS * 24 && nowMs - track.last >= LATENESS_MS
+            } else if (track.silenceSamples >= (entry.getKey() == Speaker.USER ? userSilenceMs : SILENCE_MS) * 24
+                    && nowMs - track.last >= LATENESS_MS
                     && nowMs - track.audioAt <= MAX_AUDIO_GAP_MS) {
                 result.add(finish(entry.getKey(), track, track.uncertainty == null ? Closure.COMPLETE : Closure.INCOMPLETE,
                         track.uncertainty == null ? "observed_silence" : track.uncertainty));

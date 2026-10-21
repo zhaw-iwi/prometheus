@@ -14,6 +14,8 @@ public interface ExternalVoicePolicy {
     default LiveActivityContext liveActivityContext() { return null; }
     /** Spoken waiting acknowledgments are permitted by default; false requests silent waiting in guidance only. */
     default boolean livePendingAcknowledgements() { return true; }
+    /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
+    default long liveUserSilenceMs() { return 800; }
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */

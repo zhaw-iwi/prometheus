@@ -43,7 +43,10 @@ public class LiveTranscriptCaptureService {
         this.ingress = ingress; this.events = events; this.clock = clock;
     }
     public Capture open(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure) {
-        Capture capture = new Capture(agent, owner, state, failure);
+        return open(agent, owner, state, failure, LiveTranscriptSegmenter.SILENCE_MS);
+    }
+    public Capture open(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure, long userSilenceMs) {
+        Capture capture = new Capture(agent, owner, state, failure, userSilenceMs);
         if (captures.putIfAbsent(owner.sessionId(), capture) != null) throw new IllegalStateException("Capture already open");
         return capture;
     }
@@ -67,15 +70,17 @@ public class LiveTranscriptCaptureService {
         private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
         private long dropped;
         private int queueHighWater;
-        Capture(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure) {
+        Capture(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure, long userSilenceMs) {
             this.agent = agent; this.owner = owner; this.state = state; this.failure = failure;
-            this.segmenter = new LiveTranscriptSegmenter(owner.sessionId());
+            this.segmenter = new LiveTranscriptSegmenter(owner.sessionId(), userSilenceMs);
         }
         public synchronized void receive(JsonObject event) {
             if (closed || failed) return;
             try {
                 String type = event.get("type").getAsString(); long now = clock.millis();
                 if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
+                    // A new voiced chunk must not erase measured quiet before the scheduled poll.
+                    completed(segmenter.poll(now));
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
                     if (speaker == Speaker.USER && muted) return;
                     if (speaker == Speaker.ASSISTANT) {
@@ -94,6 +99,8 @@ public class LiveTranscriptCaptureService {
                     boolean identified = event.has("event_id") && !event.get("event_id").isJsonNull();
                     String id = identified ? event.get("event_id").getAsString() : "local-missing-id-" + sequence;
                     if (seen.contains(id)) return;
+                    // Preserve an established acoustic boundary before a new fragment resets it.
+                    completed(segmenter.poll(now));
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());

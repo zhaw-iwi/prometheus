@@ -10,11 +10,24 @@ import com.google.gson.JsonObject;
 /** Immutable selected evidence. No persistence entities escape to provider workers. */
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
         List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
-        ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
-    public LiveContextSnapshot { statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance); }
+        long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
+    public LiveContextSnapshot {
+        statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance);
+        LiveTranscriptSegmenter.validateUserSilence(userSilenceMs);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs, null);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, LiveTranscriptSegmenter.SILENCE_MS, activity);
+    }
     public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
             List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance) {
-        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, null);
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, LiveTranscriptSegmenter.SILENCE_MS, null);
     }
     public record Item(String key, String type, String role, List<UUID> sourceIds,
             Instant receivedAt, Instant observedAt, Instant expiresAt, String freshness, String text) {

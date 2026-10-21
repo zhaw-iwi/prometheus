@@ -109,16 +109,17 @@ public class ScopedLiveSessionService {
             sessions.put(lease.handle, lease);
         }
         try {
+            lease.failure = reason -> failed(lease, reason);
+            lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             String build = System.getenv("HEROKU_SLUG_COMMIT");
             lease.configuration = Map.of("model", properties.getModel(), "voice", voice,
                     "requestTimeoutMs", properties.getRequestTimeoutMs(), "telemetryVersion", 1,
                     "build", build != null && build.matches("[a-fA-F0-9]{40,64}") ? build : "unknown",
                     "silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS,
+                    "userSilenceMs", lease.context.userSilenceMs(),
                     "latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS,
                     "maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS,
                     "maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS);
-            lease.failure = reason -> failed(lease, reason);
-            lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             lease.authorized = () -> ownership.isCurrent(agentId, new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()));
             if (bridge != null) lease.bridge = bridge.open(lease.context,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
@@ -126,7 +127,8 @@ public class ScopedLiveSessionService {
                     codeName -> { lease.contextProblem = codeName; failed(lease, codeName); });
             if (captures != null) lease.capture = captures.open(agentId,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
-                    () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; failed(lease, codeName); });
+                    () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; failed(lease, codeName); },
+                    lease.context.userSilenceMs());
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions(),
                     lease.context.startupInput()));

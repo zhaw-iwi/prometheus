@@ -326,6 +326,13 @@ Open the main surfaces:
 - Multilateral listener: `http://localhost:8080/multilateral/listen/`
 - Multilateral reports: `http://localhost:8080/multilateral/reports/`
 
+Live transcript capture preserves an already measured acoustic boundary before
+processing the next chunk. Application-owned speech can accept a short reply after
+a later completed native question; stale announcements do not permanently block
+it. Changed/overlapping context still requires clarification. This does not recover
+missing provider transcription or prove audible delivery. Evidence:
+[GI-02 results](.agents/GALAIMPROVEMENT_RESULTS.md).
+
 ## Testing
 
 Use a disposable local MySQL schema and a restricted test account, supplied through
