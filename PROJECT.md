@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 226 shared foundation (2026-10-21): opt-in Live activity facts,
+  quiet state delivery and identified user-request/proactive continuations;
+  existing policies retain their contracts. Passed 26 focused unit tests. Application rollout and provider
+  speech acceptance are recorded on `agents`.
+
+
 - Milestone 225 shared portion (2026-10-21): application-owned voice policies may
   disable pending-work acknowledgments in common voice/task guidance. Default
   core wording remains unchanged; this is a prompt preference, not audio gating.

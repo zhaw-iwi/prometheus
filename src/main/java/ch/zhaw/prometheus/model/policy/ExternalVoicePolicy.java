@@ -5,11 +5,13 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 
 /**
  * Explicit extension contract for application-owned Live policies. Implementations keep
- * executable rules and private task facts in the backend and expose only spoken guidance.
+ * executable rules in the backend and explicitly select facts available to Live.
  */
 public interface ExternalVoicePolicy {
     boolean supportsLiveState(State state);
     String voiceInstructions();
+    /** Opt in to Live answering from current application facts and quiet state updates. */
+    default LiveActivityContext liveActivityContext() { return null; }
     /** Spoken waiting acknowledgments are permitted by default; false requests silent waiting in guidance only. */
     default boolean livePendingAcknowledgements() { return true; }
     default int liveHistoryStartIndex() { return 0; }

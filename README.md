@@ -1999,3 +1999,14 @@ tails. Physical devices, Bluetooth, other browsers and Heroku/provider latency
 remain deployment trial gates. OpenAI recommends WAV/PCM for fastest response
 times, but this implementation does not establish a production latency gain:
 [OpenAI Speech guidance](https://developers.openai.com/api/docs/guides/text-to-speech#streaming-realtime-audio).
+
+### Application-owned Live conversation
+
+Application-owned Live policies can opt in with `ExternalVoicePolicy.liveActivityContext()`.
+Its bounded facts accompany startup and quiet `thinking.append` updates; state changes
+also stay quiet. Live answers questions from those facts. An optional persisted
+continuation identity distinguishes a delayed response to a user request from an
+authorized proactive comment. Facts arrive before one `commentary.append`; retries
+and reconnects do not replay that occasion. Existing policies retain their speech
+intent and instruction-update behavior. Application policies own clearing context
+on cancellation, departure and new encounters; never supply facts a model must not see.
