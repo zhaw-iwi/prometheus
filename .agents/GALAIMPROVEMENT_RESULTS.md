@@ -22,3 +22,25 @@ Passed 30 pure unit cases with:
 No Spring application, database or paid provider was started by this unit run.
 Log: `target/gi01-unit.log`. Application prompt compaction, all-state budgets and
 integrated checks follow on agents before GI-01 is declared complete.
+
+## GI-02 / Milestone 228 - user-turn admission (2026-10-21)
+
+The capture mailbox polls established acoustic evidence before a new audio chunk
+or transcript fragment can reset it. The application-specific user silence hook
+(default 800 ms, Gala 2000 ms) is now shared from feature/gptlive; thresholds and
+late/incomplete closure rules are unchanged. A pure short-reply rule allows a
+later completed native question to supersede an old announcement for activity-owned
+speech. Legacy agents retain the conservative announcement rule. Latest speech
+must precede the input, match the active state and belong to the current session.
+No extra polling, retries, schema changes or reconstructed commands are introduced.
+
+32 focused unit cases passed (capture, segmenter, short-reply context, scoped
+session, context projection); log target/gi02-unit.log. The fixture demonstrates
+three distinct turns despite a delayed scheduler, while a 1.708-second internal
+pause remains joined. Other cases retain gaps/late/duplicates/incomplete limits.
+The original Fabi trace contains no retained acoustic coverage, so this race is a
+reproduced vulnerability, not a proven explanation of that recording. Missing
+provider text cannot be recovered. Integrated admission/restart/query checks and
+Gala-specific assertions follow on agents before milestone completion.
+
+Shared integration acceptance: 10 cases passed (LiveTranscriptIngressIntegrationTest, LiveTranscriptClaimIntegrationTest, LiveQueryBudgetIntegrationTest), using run_acceptance.py with the agents application-test.properties. Artifacts: target/gptlive-acceptance-7a5f92d358; disposable schema/account removed. No production database or live provider was used.

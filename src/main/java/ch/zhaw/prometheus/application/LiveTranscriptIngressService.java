@@ -172,15 +172,22 @@ public class LiveTranscriptIngressService {
     private boolean ambiguousShortReply(Agent agent, ExternalSpeech owner, Segment segment, List<String> observedState) {
         String text = segment.text().trim().toLowerCase(Locale.ROOT).replaceAll("[.!?,]", "");
         if (!List.of("yes", "no", "yeah", "yep", "ok", "okay", "ready", "again", "ja", "nein", "bereit", "weiter", "نعم", "لا").contains(text)) return false;
-        if (!agent.getCurrentState().getActiveStatePath().equals(observedState)) return true;
-        // A narration ACK/time proximity cannot prove which backend question was spoken.
-        if (agent.getEventHistory().toList().stream().anyMatch(event -> ConversationProjection.isIntent(event)
+        var latestAnnouncement = agent.getEventHistory().toList().stream().filter(event -> ConversationProjection.isIntent(event)
                 && owner.sessionId().equals(event.speechProvenance().sessionId())
-                && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech() != null)) return true;
-        return segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
-                .stream().noneMatch(previous -> previous.getStatePath().equals(String.join(" / ", observedState))
-                        && previous.getEndMs() != null && segment.startMs() != null && previous.getEndMs() < segment.startMs()
-                        && previous.getRecordedAt().isBefore(Instant.ofEpochMilli(segment.firstReceivedMs())));
+                && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech() != null)
+                .map(Event::getCreatedDate).filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
+        var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+        boolean activityOwned = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
+                && policy.liveActivityContext() != null;
+        if (!agent.getCurrentState().getActiveStatePath().equals(observedState)
+                || !activityOwned && latestAnnouncement != null) return true;
+        var spoken = segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
+                .stream().filter(previous -> owner.sessionId().equals(previous.getSessionId()))
+                .map(previous -> new ch.zhaw.prometheus.application.live.LiveShortReplyContext.Spoken(
+                        previous.getStatePath(), previous.getEndMs(), previous.getFirstReceivedAt(), previous.getRecordedAt())).toList();
+        return ch.zhaw.prometheus.application.live.LiveShortReplyContext.ambiguous(observedState,
+                agent.getCurrentState().getActiveStatePath(), segment.startMs(), Instant.ofEpochMilli(segment.firstReceivedMs()),
+                spoken, latestAnnouncement, activityOwned);
     }
     public List<Outcome> history(UUID agent, UUID session) {
         return segments.findTop100ByAgent_IdAndSessionIdOrderByRecordedAtDesc(agent, session).stream().map(LiveTranscriptIngressService::view).toList();
