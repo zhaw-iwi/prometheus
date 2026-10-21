@@ -4,6 +4,107 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Application voice waiting guidance - Milestone 225 shared portion (2026-10-21)
+
+The Gala follow-up on agents needs to remove a conflicting general permission for
+spoken waiting acknowledgments. Shared work begins here on feature/gptlive:
+`ExternalVoicePolicy.livePendingAcknowledgements()` defaults to true. Returning
+false changes common voice and task guidance to request silent waiting. Existing
+default strings are preserved. No transport, audio gate, schema or core-definition
+setting changes; no Gala code is introduced here.
+
+The equivalent patch is present uncommitted on agents alongside the application
+fix. The pending Milestone 224 database work remains intact. Passed 10 unit cases:
+`./mvnw.cmd -q -Dtest=LiveVoiceAcknowledgementUnitTest,LiveContextProjectionUnitTest test`.
+No Spring application, database or provider connection is opened by those tests.
+Log: `target/gala-225-shared-unit.log`. No commit, merge, push or deployment.
+The complete application/provider evidence is on agents; prompt guidance alone
+cannot guarantee physical silence or prevent all premature model answers.
+
+## Complex-agent database load - Milestone 224 (2026-10-21)
+
+Investigation after the third Gala trial found the documented shared JawsDB
+allowance of 36,000 questions/hour exhausted. Retained logs begin after the trial,
+so the onset and any effect on that conversation are unknown. No production database requests
+were retried during this follow-up. Earlier reductions (`70f9a41`, `b9e693d`) are
+still present; their query-budget regressions pass. Gala revealed another cost:
+loading its state machine queried 23 action-key collections separately, plus
+transition/decision collections. This grows with definition complexity rather
+than one query per historical event.
+
+Shared implementation starts uncommitted on `feature/gptlive` in the
+`prometheus-database-query-20261021` worktree. The identical shared patch is also
+uncommitted on `agents`, which owns the Gala workload regression. No branch merge,
+commit, push, deployment, schema migration or saved-agent change is included.
+
+- Shared `application.yaml` sets Hibernate collection batch fetching to 64. It
+  retains eager/detached graph semantics and avoids a cross-turn entity cache.
+- Transcript receipts persist their already-validated new identity directly,
+  avoiding merge's redundant lookup. Every received fragment still commits
+  durably with current access scope and persisted epoch checks.
+- The initial segment claim validates scalar identity instead of loading the
+  full agent graph. It reads bounded receipt identities together, verifies
+  completeness/epoch/speaker/ownership, preserves their original order, and
+  conditionally assigns unclaimed receipts in one update. A failed assignment
+  rolls back the entire claim. The committed PENDING boundary remains separate
+  from processing; processing revalidates ownership and never retries uncertain
+  actions automatically. Duplicate segment outcomes remain durable across restart.
+- Sensor cadence, freshness, state-machine decisions, speech policy, permissions
+  and cockpit lifecycle are unchanged. This does not fix the separately reported
+  repetition, restrictive guessing cards or absent give-up reveal.
+
+Measured on disposable local MySQL with synthetic providers:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Representative Gala minute, MySQL Questions | 4,731 | 2,031 |
+| Scoped fragment, Hibernate statements | 5 | 4 |
+| Unscoped fragment, Hibernate statements | 4 | 3 |
+
+The mixed-minute test replays 12 social batches and facial/context refreshes,
+60 combined polls, 12 lease checks, four user turns and eight native speech
+segments with 72 receipts. It advances operations without sleeping; all other
+background workers are mocked. It includes transaction commands in MySQL Questions,
+checks the guessing state and exactly-once capture, and enforces a 2,100-question
+regression ceiling. This is a synthetic query budget, not a production throughput
+or acoustic test. Baseline `target/gptlive-acceptance-e554e8e6b0/` correctly fails
+that new ceiling; the implementation run passes at 2,031 (57% reduction).
+
+Verification:
+
+- Feature worktree: 17 focused Java cases passed, including receipt bounds,
+  restart/replay protection, failed processing, native recording, query volume,
+  bulk ordering, invalid/cross-session receipts, assignment rollback and immediate
+  revocation/epoch rejection. Artifact:
+  `target/gptlive-acceptance-e41e49d974/` in that worktree.
+- Agents: the new load test plus Gala, Generic and Social Space persisted journeys
+  passed nine cases. Artifact: `target/gptlive-acceptance-bb6641b74e/`.
+- Full agents run exercised 738 cases in 151 suites: 735 passed initially. One
+  deployment-catalog assertion predated Gala's existing capability-awareness opt-in;
+  the assertion now explicitly includes core and Gala definitions (production
+  behaviour unchanged). Two replay contexts hit the local MySQL connection limit
+  from cached test pools, unrelated to the production query quota. All six cases
+  in those three suites passed on a fresh disposable database. Thus all 738 cases
+  have passing evidence, with zero skips. Artifacts:
+  `target/gptlive-acceptance-4175b93c1d/` (full run and report counts) and
+  `target/gptlive-acceptance-2fe51065c2/` (focused rerun).
+- `./mvnw.cmd -q -DskipTests package` and `git diff --check` passed. Build log:
+  `target/database-query-224-package.log`. No client scripts changed; no new
+  browser, provider or physical-audio test was run.
+
+Commands use `tests/gptlive/run_acceptance.py --database-properties
+src/main/resources/application-test.properties --java-tests ...`; the feature
+worktree points to the original checkout's local test properties by absolute path.
+The runner accepts only loopback MySQL and creates/removes a restricted disposable
+schema/account. No paid provider calls or production mutations are made.
+
+Capacity remains a deployment constraint: sustaining the tested workload would
+extrapolate to 121,860 questions/hour, above 36,000. The test ceiling prevents
+regressions; it does not certify this database plan for the gala. Production must
+have measured capacity/headroom for the actual sensing and speech workload before
+an extended event. Stopping Live does not stop every camera/stream request; no
+lifecycle behaviour was changed implicitly to hide load.
+
 ## Live announcement latency and audio diagnostics - Milestone 204 (2026-10-02)
 
 The user authorized implementation on `feature/gptlive` after the v104 facial-joke
