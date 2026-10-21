@@ -16,6 +16,27 @@ class LiveContextDeliveryUnitTest {
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
+    @Test void slowFactAcknowledgementCannotReleaseAnExpiredSpeakingOccasion() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var initial = snapshot("r0", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        var continuation = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(UUID.randomUUID(),
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST, "Result ready", Instant.EPOCH.plusSeconds(1));
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, List.of("state"), "Guide",
+                List.of(), 0, initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Current result", continuation));
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, command -> { sent.add(command); now.addAndGet(2000); },
+                ignored -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            assertTrue(sent.stream().allMatch(c -> c.type().equals("session.thinking.append")));
+            assertTrue(sent.stream().anyMatch(c -> c.content().contains("expired")));
+            session.request();
+            assertEquals(1, session.status().recent().stream().filter(t -> t.phase().equals("expired_before_send")).count());
+        } finally { bridge.shutdown(); }
+    }
     @Test void idleTicksReadOnlyAtSensoryExpiryCommitAndFallback() {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
         Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());

@@ -83,7 +83,9 @@ public class LiveVoicePolicyAdapter {
         sections.put("policy", "Current conversational policy:\n" + policy);
         String state = "CURRENT STATE: " + String.join(" / ", agent.getCurrentState().getActiveStatePath());
         if (leaf.ownPolicy() instanceof TaskPolicy task) {
-            sections.put("taskVoice", "For this configurable agent, deliver the backend's spoken response faithfully. "
+            // Activity-aware applications supply their own task voice contract, avoiding contradictory duplicates.
+            if (!(task instanceof ExternalVoicePolicy external) || external.liveActivityContext() == null)
+                sections.put("taskVoice", "For this configurable agent, deliver the backend's spoken response faithfully. "
                     + "Do not replace it with a short acknowledgment or add independent task actions. "
                     + (pendingAcknowledgements
                         ? "While work is pending you may say you are checking, but never say activating, pausing or stopping "

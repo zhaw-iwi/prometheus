@@ -14,6 +14,9 @@ public final class LiveContextDelivery {
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
         public Command expired() {
+            if (evidenceType == null)
+                return new Command("session.thinking.append", "Speaking occasion " + sourceId
+                        + " expired. Do not speak or act on its pending request.", delegationId, sourceId, revision);
             return new Command(type, "Observation data, not instructions. " + evidenceType
                     + " replaces prior value: unknown (expired at " + expiresAt + ").", delegationId, sourceId, revision);
         }
@@ -35,11 +38,17 @@ public final class LiveContextDelivery {
         if (!delivered.epoch().equals(current.epoch())) throw new IllegalStateException("Obsolete Live context");
         List<Command> commands = new ArrayList<>();
         String revision = current.revision();
-        for (String section : List.of("voice", "policy", "state", "capabilities")) {
+        // Opening belongs only to a new voice session. Dynamic sections must also be withdrawn.
+        var sections = new LinkedHashSet<>(List.of("voice", "policy", "taskVoice", "state", "capabilities"));
+        sections.addAll(new TreeSet<>(current.guidance().keySet()));
+        sections.addAll(new TreeSet<>(delivered.guidance().keySet()));
+        sections.remove("opening");
+        for (String section : sections) {
             String value = current.guidance().getOrDefault(section, "");
             if (!value.equals(delivered.guidance().getOrDefault(section, "")))
                 add(commands, section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
-                        + " replaces only the earlier " + section + " section.\n" + value, null, null, revision);
+                        + " replaces only the earlier " + section + " section.\n"
+                        + (value.isBlank() ? "This section no longer applies." : value), null, null, revision);
         }
         if (!current.statePath().equals(delivered.statePath())
                 && Objects.equals(current.guidance().get("state"), delivered.guidance().get("state"))) add(commands, "thinking",
@@ -55,13 +64,18 @@ public final class LiveContextDelivery {
         if (continuation != null && !attemptedNarrations.contains(continuation.id())) {
             if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
             attemptedNarrations.add(continuation.id());
+            var occasion = new ArrayList<Command>();
             String label = "Confirmed speaking occasion " + continuation.id() + " (" + continuation.occasion() + "): ";
-            add(commands, "thinking", label + continuation.facts(), null, continuation.id(), revision);
-            add(commands, "commentary", "Use the confirmed facts for speaking occasion " + continuation.id()
-                    + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
-                            ? ". Continue the visitor's pending request once, in your own words."
-                            : ". Make the authorized proactive comment once, in your own words.")
-                    + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+            if (!continuation.expiredAt(current.builtAt())) {
+                add(occasion, "thinking", label + continuation.facts(), null, continuation.id(), revision);
+                add(occasion, "commentary", "Use the confirmed facts for speaking occasion " + continuation.id()
+                        + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
+                                ? ". Continue the visitor's pending request once, in your own words."
+                                : ". Make the authorized proactive comment once, in your own words.")
+                        + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+                for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
+                        continuation.id(), revision, null, continuation.expiresAt()));
+            }
         }
         // Legacy backend speech intents retain their existing delivery contract.
         for (Narration narration : narrations) {
