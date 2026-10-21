@@ -26,12 +26,17 @@ class LiveVoiceAcknowledgementUnitTest {
     }
     @Test void activityAwareTaskUsesItsApplicationVoiceWithoutLegacyTaskDuplication() {
         var policy = new ApplicationPolicy(false); policy.activity = true;
+        policy.storage().put("task.draft", new ch.zhaw.prometheus.model.task.TaskSpec("Quoted visitor goal", 1, List.of(
+                new ch.zhaw.prometheus.model.task.TaskSpec.Rule("obs.hand.sign", "sign", "eq",
+                        new com.google.gson.JsonPrimitive("paper"), "Respond", ch.zhaw.prometheus.model.task.TaskSpec.Effect.ACT,
+                        .7, 1, 3))).json());
         var agent = new Agent("application", "", new State("task", policy, List.of()));
         agent.setInteractionProfile(new GenericMultimodalBehaviour().createAgent().getInteractionProfile());
         var sections = new LiveVoicePolicyAdapter().sections(agent);
         assertFalse(sections.containsKey("taskVoice"));
         assertTrue(sections.get("policy").contains("Application voice"));
         assertTrue(sections.get("state").contains("Task phase: CONFIGURATION"));
+        assertFalse(String.join("\n", sections.values()).contains("Quoted visitor goal"));
     }
 
     @Test void applicationMayDisableBothPermissionsWhileDefaultGuidanceRemainsIdentical() {
