@@ -79,6 +79,8 @@ public class LiveTranscriptCaptureService {
             try {
                 String type = event.get("type").getAsString(); long now = clock.millis();
                 if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
+                    // A new voiced chunk must not erase measured quiet before the scheduled poll.
+                    completed(segmenter.poll(now));
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
                     if (speaker == Speaker.USER && muted) return;
                     if (speaker == Speaker.ASSISTANT) {
@@ -97,6 +99,8 @@ public class LiveTranscriptCaptureService {
                     boolean identified = event.has("event_id") && !event.get("event_id").isJsonNull();
                     String id = identified ? event.get("event_id").getAsString() : "local-missing-id-" + sequence;
                     if (seen.contains(id)) return;
+                    // Preserve an established acoustic boundary before a new fragment resets it.
+                    completed(segmenter.poll(now));
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());

@@ -90,6 +90,42 @@ class LiveTranscriptCaptureServiceUnitTest {
         } finally { service.shutdown(); }
     }
 
+    @Test void observedQuietSurvivesNewAudioOrTextBeforeTheScheduledPoll() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var clock = mock(Clock.class); var now = new AtomicLong(1000);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        try {
+            var failure = new AtomicReference<String>();
+            var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                    () -> List.of("reception"), failure::set, 2000);
+            capture.inputMuted(false);
+            var quiet = new com.google.gson.JsonObject(); quiet.addProperty("type", "session.input_audio.append");
+            quiet.addProperty("audio", Base64.getEncoder().encodeToString(new byte[4800]));
+            byte[] pcm = new byte[4800];
+            for (int i = 0; i < pcm.length; i += 2) { pcm[i] = (byte) 0xE8; pcm[i + 1] = 3; }
+            var voiced = quiet.deepCopy(); voiced.addProperty("audio", Base64.getEncoder().encodeToString(pcm));
+            var words = List.of("Erzaehl einen Witz", "Ja", "Noch");
+            for (int turn = 0; turn < words.size(); turn++) {
+                now.set(1000 + turn * 2100);
+                if (turn == 1) capture.receive(voiced);
+                var fragment = new com.google.gson.JsonObject(); fragment.addProperty("type", "session.input_transcript.delta");
+                fragment.addProperty("event_id", "turn_" + turn); fragment.addProperty("start_ms", turn * 2100);
+                fragment.addProperty("end_ms", turn * 2100 + 200); fragment.addProperty("delta", words.get(turn));
+                capture.receive(fragment); capture.receive(fragment);
+                for (int i = 1; i <= 20; i++) { now.set(1000 + turn * 2100 + i * 100); capture.receive(quiet); }
+            }
+            service.poll(); capture.close().get(3, TimeUnit.SECONDS);
+            var segments = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress, times(3)).commit(any(), any(), segments.capture(), eq(List.of("reception")));
+            verify(ingress, times(3)).receipt(any(), any(), any());
+            assertEquals(words, segments.getAllValues().stream().map(Segment::text).toList());
+            assertTrue(segments.getAllValues().stream().allMatch(s -> s.closure() == ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE));
+            assertNull(failure.get());
+        } finally { service.shutdown(); }
+    }
+
     @Test void pcmGateMeasuresQuietTailWithoutRetainingOrAveragingAwayShortSpeech() {
         byte[] pcm = new byte[2880]; // 20 ms voiced, then 40 ms quiet.
         for (int i = 0; i < 480; i++) { pcm[2 * i] = (byte) 0xE8; pcm[2 * i + 1] = 3; }

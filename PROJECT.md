@@ -82,6 +82,9 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-02 shared capture/admission changes are integrated; Gala acceptance is in
+  progress. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - Milestone 227 / GI-01 (2026-10-21): dynamic Live guidance includes additions and
   withdrawals without replaying startup greetings. Application-owned task voice
   and quiet goal facts remove duplicate instructions; Gala's maximum is now
@@ -10727,3 +10730,11 @@ bytes in both embodiments; complete goals/cards remain separately bounded.
 Commands and evidence: `.agents/GALAIMPROVEMENT_RESULTS.md`. Prompt compliance,
 physical audibility and execution remain unverified. Consecutive milestone
 implementation and commit/push are user-authorized; GI-02 follows.
+
+## Milestone 228 - Gala turn-admission reliability (2026-10-21)
+
+Preserve measured quiet before new chunks reset segmentation and scope short-reply
+context to current-session, completed native speech. Application-specific pause
+configuration is shared; legacy admission defaults are preserved. Shared focused
+unit checks pass (32 cases); full evidence and limits are recorded in
+`.agents/GALAIMPROVEMENT_RESULTS.md`. Integrated Gala acceptance follows on agents.
