@@ -87,7 +87,9 @@ public class LiveVoicePolicyAdapter {
             state += "\nTask phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                     + "; revision: " + ch.zhaw.prometheus.model.task.TaskMemory.text(storage, "task.revision", "0") + ".";
             // Full executable rules stay with the backend; task questions still delegate there.
-            for (String key : List.of("task.spec", "task.draft")) if (storage.containsKey(key))
+            // Activity-aware policies project their validated goals as quiet facts, not instructions.
+            boolean activityOwned = task instanceof ExternalVoicePolicy external && external.liveActivityContext() != null;
+            for (String key : List.of("task.spec", "task.draft")) if (!activityOwned && storage.containsKey(key))
                 state += "\n" + (key.equals("task.spec") ? "Agreed goal: " : "Proposed goal: ")
                         + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
         }
