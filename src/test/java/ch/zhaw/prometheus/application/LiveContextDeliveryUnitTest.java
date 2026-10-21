@@ -74,7 +74,7 @@ class LiveContextDeliveryUnitTest {
             assertEquals(2, trace.sourceIds().size()); assertTrue(trace.contentBytes() <= 480);
             for (int i = 0; i < 100; i++) bridge.changed(new AgentCommitted(AGENT, EPOCH, source));
             verify(contexts, times(2)).refresh(AGENT, owner);
-            now.set(6000); bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            now.set(6000); bridge.changed(new AgentCommitted(AGENT, EPOCH, source));
             await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 3);
             assertEquals(1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
         } finally { bridge.shutdown(); }

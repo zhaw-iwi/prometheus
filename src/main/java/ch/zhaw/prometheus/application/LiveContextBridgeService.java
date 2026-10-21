@@ -99,8 +99,12 @@ public class LiveContextBridgeService {
             refreshIfDue();
         }
         private void announcement(UUID source) {
-            if (source.equals(lastAnnouncement.getAndSet(source))) return;
-            urgent.set(true); trace("announcement_committed", null, List.of(source)); request();
+            if (!source.equals(lastAnnouncement.getAndSet(source))) {
+                urgent.set(true); trace("announcement_committed", null, List.of(source));
+            }
+            // A persisted speaking occasion can survive later sensory commits. Deduplicate its
+            // urgency, not the new context: subsequent facts still need the coalesced refresh.
+            request();
         }
         private void refreshIfDue() {
             // Claim before sampling deadlines: a concurrent completed read must not leave
