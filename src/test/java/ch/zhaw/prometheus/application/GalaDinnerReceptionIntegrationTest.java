@@ -33,6 +33,49 @@ class GalaDinnerReceptionIntegrationTest {
     @Autowired LiveAgentContextService contexts;
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired GenericTaskSessionLifecycleService taskLifecycle;
+    @Autowired LiveTranscriptIngressService ingress;
+
+    @Test void completedCurrentQuestionAllowsOkayAfterAnOldAnnouncementAndAdmitsOnlyOnce() {
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
+        UUID id = demo.createAgent(code, GalaDinnerReception.KEY, AgentEmbodiment.ROBOT.name()).getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        var startup = contexts.claim(code, id, session).orElseThrow();
+        var owner = new ExternalSpeech(session, startup.epoch());
+        try {
+            var agent = agents.findById(id).orElseThrow();
+            var path = agent.getCurrentState().getActiveStatePath();
+            var old = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                    "{\"speech\":\"Die vorige Runde ist beendet.\"}");
+            old.speechProvenance(ch.zhaw.prometheus.model.event.SpeechProvenance.intent(owner));
+            agent.getEventHistory().appendEvent(old); agents.saveAndFlush(agent);
+            long received = System.currentTimeMillis() + 1000; // controlled relative receipt times
+            var spoken = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("question",
+                    ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.ASSISTANT,
+                    0L, 500L, received, 1, "Soll ich kurz das SIRA Lab vorstellen?");
+            assertTrue(ingress.receipt(id, owner, spoken));
+            var nativeSegment = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                    spoken.speaker(), List.of(spoken), ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", received, received);
+            assertEquals("COMPLETE", ingress.commit(id, owner, nativeSegment, path).orElseThrow().status());
+            var input = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("okay",
+                    ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.USER,
+                    600L, 900L, received + 1000, 2, "Okay");
+            assertTrue(ingress.receipt(id, owner, input));
+            var reply = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                    input.speaker(), List.of(input), ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", input.receivedMs(), input.receivedMs());
+            when(language.infer(any())).thenReturn(answer("WAIT", ""));
+            var accepted = ingress.commit(id, owner, reply, path).orElseThrow();
+            assertEquals("COMPLETE", accepted.status()); assertNotNull(accepted.eventId());
+            assertEquals(accepted.eventId(), ingress.commit(id, owner, reply, path).orElseThrow().eventId());
+            verify(language, times(1)).infer(any());
+            assertEquals(1, agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()) && "Okay".equals(event.getPayload())).count());
+        } finally { ownership.release(id, session); }
+    }
 
     @Test void coCreatedProposalAndActivationReloadWithLiveTaskGuidanceAndCloseDiscardsTheAgreement() {
         String code = UUID.randomUUID().toString().substring(0, 5);

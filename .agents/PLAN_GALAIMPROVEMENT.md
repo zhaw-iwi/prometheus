@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 implemented and automated checks passed; GI-02 next. Later milestones are not started.
+Status: GI-01 and GI-02 implemented and automated checks passed; GI-03 next. Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
 children's interactions, including the subsequent gesture review. The user authorized consecutive implementation on 2026-10-21: finish each
@@ -154,6 +154,8 @@ all person cards and maximum accepted task/draft strings, including multibyte te
 chunks through the existing delivery harness. No provider compliance claim yet.
 
 ### GI-02 - Reliable user-turn admission and short-reply context
+
+Status: IMPLEMENTED; 32 focused unit cases, 28 isolated integration cases and packaging passed.
 
 **Outcome:** supported acoustic boundaries separate distinct turns without
 splitting the intended short pause within a question, and missing input remains

@@ -82,8 +82,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- GI-02 shared capture/admission changes are integrated; Gala acceptance is in
-  progress. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+- Milestone 228 / GI-02 (2026-10-21): capture preserves measured quiet before
+  new chunks reset it. Current-session completed speech can supersede old intents
+  for short replies; legacy conservatism remains. Passed 32 unit and 28 isolated
+  integration cases plus packaging. Physical recognition remains unverified;
+  see `.agents/GALAIMPROVEMENT_RESULTS.md`.
 
 - Milestone 227 / GI-01 (2026-10-21): dynamic Live guidance includes additions and
   withdrawals without replaying startup greetings. Application-owned task voice
@@ -10737,4 +10740,6 @@ Preserve measured quiet before new chunks reset segmentation and scope short-rep
 context to current-session, completed native speech. Application-specific pause
 configuration is shared; legacy admission defaults are preserved. Shared focused
 unit checks pass (32 cases); full evidence and limits are recorded in
-`.agents/GALAIMPROVEMENT_RESULTS.md`. Integrated Gala acceptance follows on agents.
+`.agents/GALAIMPROVEMENT_RESULTS.md`. Agents acceptance adds 18 isolated cases
+(all three journeys, durable short-reply admission and query load); all pass, as
+does packaging. GI-02 is complete; final physical recognition checks remain.

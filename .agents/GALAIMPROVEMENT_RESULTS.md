@@ -76,3 +76,24 @@ provider text cannot be recovered. Integrated admission/restart/query checks and
 Gala-specific assertions follow on agents before milestone completion.
 
 Shared integration acceptance: 10 cases passed (LiveTranscriptIngressIntegrationTest, LiveTranscriptClaimIntegrationTest, LiveQueryBudgetIntegrationTest), using run_acceptance.py with the agents application-test.properties. Artifacts: target/gptlive-acceptance-7a5f92d358; disposable schema/account removed. No production database or live provider was used.
+
+### GI-02 application completion
+
+Shared commit c51ea65 was pushed through feature/gptlive and main (5dc6c56),
+then merged into agents. A persisted Gala regression admits Okay after an old
+announcement and a later completed question, retaining one durable user event
+and one inference even when the accepted segment is retried.
+
+18 isolated agents integration cases passed: GalaDinnerReceptionIntegrationTest,
+GalaDinnerReceptionJourneySmokeIntegrationTest, GenericMultimodalTaskIntegrationTest,
+SocialSpaceLiveJourneySmokeIntegrationTest and QueryVolumeIntegrationTest.
+Command: `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests <comma-separated names above>`.
+Artifacts: target/gptlive-acceptance-7ca3204ee4; disposable schema/account removed.
+`./mvnw.cmd -q -DskipTests package` passed (target/gi02-package.log).
+Together with the shared checks: 32 unit and 28 integration cases passed.
+
+GI-02 implementation and automated acceptance PASS. Acoustic thresholds remain
+unchanged. Physical paused-question/rapid-follow-up recognition remains for final
+acceptance; there is no claim to recover absent transcription or prove the cause
+of the original merged child input. Same-state semantic question interpretation
+remains model-owned; established state/timing/session evidence controls admission.
