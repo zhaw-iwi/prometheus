@@ -54,11 +54,13 @@ public class LiveVoicePolicyAdapter {
                   + "Wait for the backend's chosen sign and computed result; do not choose signs, invent results or advance rounds yourself.";
         policy = assembler.forAgent(agent).resolveSystemPrompt(policy);
         String language = agent.getLanguageCode() == null ? "en" : agent.getLanguageCode();
+        boolean pendingAcknowledgements = !(leaf.ownPolicy() instanceof ExternalVoicePolicy external)
+                || external.livePendingAcknowledgements();
         String result = """
                 You are the spoken interface of a PROMETHEUS agent. Speak naturally and briefly.
                 Wait silently until the user speaks or the backend explicitly requests an announcement.
                 PROMETHEUS owns task decisions, state transitions, actions and confirmed results.
-                You may acknowledge immediately while work is pending. Never claim an action completed,
+                %s Never claim an action completed,
                 a round advanced or a result was computed until the backend confirms it.
                 Delegate task questions to the application. Do not independently execute task actions.
                 Later CURRENT STATE updates supersede earlier state guidance. Keep conversation continuity,
@@ -70,7 +72,9 @@ public class LiveVoicePolicyAdapter {
                 Finish an announcement before reacting to routine observation updates. Observations alone
                 do not authorize another task action or require you to stop speaking.
                 Produce spoken language only; backend output-format rules do not apply to your speech.
-                """ + "\nLanguage: " + language;
+                """.formatted(pendingAcknowledgements ? "You may acknowledge immediately while work is pending."
+                        : "Wait silently while work is pending; no waiting remarks or question echoes.")
+                + "\nLanguage: " + language;
         var sections = new LinkedHashMap<String, String>();
         sections.put("voice", result);
         sections.put("policy", "Current conversational policy:\n" + policy);
@@ -78,7 +82,9 @@ public class LiveVoicePolicyAdapter {
         if (leaf.ownPolicy() instanceof TaskPolicy task) {
             sections.put("taskVoice", "For this configurable agent, deliver the backend's spoken response faithfully. "
                     + "Do not replace it with a short acknowledgment or add independent task actions. "
-                    + "While work is pending you may say you are checking, but never say activating, pausing or stopping "
+                    + (pendingAcknowledgements
+                        ? "While work is pending you may say you are checking, but never say activating, pausing or stopping "
+                        : "Wait silently while work is pending. Never say activating, pausing or stopping ")
                     + "until the backend confirms that change. A proposed goal is not an active task.");
             var storage = task.storage();
             state += "\nTask phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)

@@ -82,6 +82,28 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 225 (2026-10-21): Gala suppresses interim echoes, expands private
+  sourced guessing cards, distinguishes missing facts from incomplete questions,
+  and confirms one give-up reveal before returning to reception. Explicit stop,
+  silence and hypothetical give-up retain their separate meanings. The persisted
+  journey verifies announcement delivery and duplicate-turn protection. Passed
+  83 focused Java cases including all three agent journeys, 27 real backend
+  classifications replayed through the action, and packaging. Real WebRTC probes
+  delivered the reveal without question echoes; strict silent waiting still failed.
+  Voice-trial evidence
+  and transcription limits: `.agents/GPTLIVE_RESULTS.md`. Ready for release
+  integration together with the earlier database patch.
+
+- Milestone 224 (2026-10-21): batch complex state-machine collection reads and
+  reduce Live receipt/segment persistence queries while retaining durable claims,
+  revocation checks and no automatic action replay. Shared work starts on
+  `feature/gptlive`; the same patch and Gala load regression are local on `agents`.
+  A representative synthetic Gala minute falls from 4,731 to 2,031 MySQL questions
+  (57%); this still exceeds the current plan's hourly capacity if sustained.
+  All 738 agents Java cases have passing evidence across the broad run and
+  focused reruns; packaging passed. Ready for integration. Evidence and capacity
+  limits: `.agents/GPTLIVE_RESULTS.md`.
+
 - Milestone 223 (2026-10-21): Gala asks for a game choice on common unspecified
   play requests and ignores recognized standalone sound annotations for task
   control. WAIT preserves games without another response. The extended persisted
@@ -488,6 +510,8 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 224: Complex-agent database query reduction
+- [x] Milestone 225: Gala guessing answers, give-up reveal and echo suppression
 - [x] Milestone 223: Gala game choice and non-speech control
 - [x] Milestone 222: Gala narration delivery and bounded user-turn capture
 - [x] Milestone 221: Gala speech, lifecycle and initial-action guidance follow-up
@@ -10615,3 +10639,53 @@ No shared transport/core-agent changes, production writes, commit or deployment.
 Unrecognized free-form language remains model-dependent. Real provider speech,
 repeated introductions, audible cutoffs and physical sensing require the updated
 `tests/gptlive/GALA.md` trial after a hard refresh and fresh Live session.
+
+## Milestone 224
+
+Date: 2026-10-21. Complex-agent database query reduction.
+
+Shared Hibernate collection batching and Live transcript persistence changes
+retain explicit state control, per-fragment durability, scope/epoch validation,
+ordered receipt identities, atomic claims and separate claim/processing commits.
+The initial claim uses scalar checks; receipt loading/assignment are bounded bulk
+operations. Failed or pending work is never automatically replayed.
+
+Shared work is uncommitted on feature/gptlive, with the same patch and the
+Gala-specific mixed speech/sensing workload test uncommitted on agents. That
+workload drops from 4,731 to 2,031 MySQL questions per synthetic minute. It still
+exceeds the documented 36,000/hour plan if sustained; this is a regression budget,
+not production capacity acceptance. Passed 17 focused shared checks, nine Gala/core
+journey/load checks, all 738 agents cases across broad/focused runs, and packaging.
+The broad run needed a stale catalog assertion correction and two local-connection
+startup retries. Commands, artifacts and limitations: `.agents/GPTLIVE_RESULTS.md`.
+No production data/configuration change, commit, push or deployment.
+
+
+## Milestone 225
+
+Date: 2026-10-21. Gala guessing follow-up on `agents`.
+
+Read-only access to the third trial's dialogue confirmed question echoes, missing
+words in durable user receipts, restrictive facts and an absent give-up reveal.
+Gala now requests silent waiting, supplies richer sourced private person cards,
+and separates UNKNOWN, CLARIFY and RULES. GIVE_UP captures the selected name in
+one confirmed speech intent before clearing the round. Stop, silence, departure,
+timeout and unrelated topics do not reveal; hypothetical give-up stays in play.
+No transport, capture window or schema changed. A default-true shared policy hook
+removes waiting-acknowledgment permission when an application opts out; Gala opts
+out, while default core wording remains unchanged. Shared edits start on
+feature/gptlive and are applied equivalently on agents.
+
+Passed 83 focused Java cases, including canonical/compact Gala, Generic and Social
+Space journeys; 27 real backend classifications passed action replay after a
+non-disclosure exception was clarified; packaging and diff checks passed. Full
+Live instructions fit at 15,985/16,000 bytes in every state and both embodiments
+with maximum task goals. Real WebRTC probes generated the reveal without question
+echoes; waiting remarks persisted, and one intermediate variant answered early.
+Strict silence is not verified. Provider voice evidence, exact commands and remaining
+physical/transcription limits are in `.agents/GPTLIVE_RESULTS.md`. The manual
+`tests/gptlive/GALA.md` script now checks echo suppression and an audible reveal.
+
+Existing database-query changes remain intact. No production writes, commit, push
+or deployment. Start a fresh Live session after deployment; no existing game or
+history is migrated automatically.

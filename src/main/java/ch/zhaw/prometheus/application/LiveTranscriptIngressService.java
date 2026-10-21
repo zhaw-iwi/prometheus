@@ -9,12 +9,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
+import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.*;
+import jakarta.persistence.EntityManager;
 
 /** Durable receipt/segment admission. Only complete, unambiguous user input reaches acknowledgement. */
 @Service
@@ -40,25 +42,26 @@ public class LiveTranscriptIngressService {
     private final LiveTranscriptReceiptRepository receipts;
     private final LiveTranscriptSegmentRepository segments;
     private final TransactionTemplate transaction;
+    private final EntityManager entityManager;
     public LiveTranscriptIngressService(AgentApplicationService turns, AgentRepository agents, ExternalSpeechOwnership ownership,
             ExternalSpeechRecordingService recording, LiveTranscriptReceiptRepository receipts,
-            LiveTranscriptSegmentRepository segments, PlatformTransactionManager transactions) {
+            LiveTranscriptSegmentRepository segments, PlatformTransactionManager transactions, EntityManager entityManager) {
         this.turns = turns; this.agents = agents; this.ownership = ownership; this.recording = recording;
         this.receipts = receipts; this.segments = segments; this.transaction = new TransactionTemplate(transactions);
+        this.entityManager = entityManager;
         this.transaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     public boolean receipt(UUID id, ExternalSpeech owner, Fragment fragment) {
         return turns.serialized(id, () -> Boolean.TRUE.equals(transaction.execute(status -> {
             // Every delta is durable, but it does not need the agent's state/history graph.
             // Keep live scope and persisted epoch checks under the same reset/admission lock.
-            if (!ownership.isCurrent(id, owner)) return false;
-            if (!agents.existsByIdAndExecutionEpoch(id, owner.epoch())) {
-                ownership.release(id, owner.sessionId()); return false;
-            }
+            if (!currentIdentity(id, owner)) return false;
             if (receipts.findBySessionIdAndProviderEventId(owner.sessionId(), fragment.eventId()).isPresent()) return false;
-            receipts.saveAndFlush(new LiveTranscriptReceipt(agents.getReferenceById(id), owner.sessionId(), owner.epoch(), fragment.eventId(),
+            // Assigned receipt IDs are new here: persist avoids a second duplicate lookup by merge.
+            entityManager.persist(new LiveTranscriptReceipt(agents.getReferenceById(id), owner.sessionId(), owner.epoch(), fragment.eventId(),
                     fragment.speaker().name(), fragment.startMs(), fragment.endMs(), Instant.ofEpochMilli(fragment.receivedMs()),
                     fragment.sequence(), fragment.text()));
+            entityManager.flush();
             return true;
         })));
     }
@@ -73,10 +76,14 @@ public class LiveTranscriptIngressService {
                 var value = existing.get();
                 return owner.sessionId().equals(value.getSessionId()) && owner.epoch().equals(value.getEpoch()) ? Optional.of(view(value)) : Optional.empty();
             }
-            Agent agent = current(id, owner); if (agent == null) return Optional.empty();
-            List<LiveTranscriptReceipt> sources = segment.fragments().stream().map(fragment -> receipts
-                    .findBySessionIdAndProviderEventId(owner.sessionId(), fragment.eventId())
-                    .orElseThrow(() -> new IllegalStateException("Transcript receipt is not durable"))).toList();
+            // Claim needs current scope/epoch and durable receipts, not the state/history graph.
+            if (!currentIdentity(id, owner)) return Optional.empty();
+            var receiptIds = segment.fragments().stream().map(Fragment::eventId).toList();
+            if (receiptIds.isEmpty() || receiptIds.size() > LiveTranscriptSegmenter.MAX_FRAGMENTS
+                    || new java.util.HashSet<>(receiptIds).size() != receiptIds.size())
+                throw new IllegalArgumentException("Invalid segment receipt identities");
+            List<LiveTranscriptReceipt> sources = receipts.findAllBySessionIdAndProviderEventIdIn(owner.sessionId(), receiptIds);
+            if (sources.size() != receiptIds.size()) throw new IllegalStateException("Transcript receipt is not durable");
             for (LiveTranscriptReceipt source : sources) {
                 if (!owner.epoch().equals(source.getEpoch()) || !segment.speaker().name().equals(source.getSpeaker()))
                     throw new IllegalArgumentException("Receipt belongs to another capture");
@@ -84,11 +91,16 @@ public class LiveTranscriptIngressService {
                     throw new IllegalStateException("Transcript receipt was already consumed");
             }
             String text = segment.text().trim();
-            var persisted = new LiveTranscriptSegment(segment.id(), agent, owner.sessionId(), owner.epoch(), segment.speaker().name(),
+            var persisted = new LiveTranscriptSegment(segment.id(), agents.getReferenceById(id), owner.sessionId(), owner.epoch(), segment.speaker().name(),
                     text, segment.startMs(), segment.endMs(), Instant.ofEpochMilli(segment.firstReceivedMs()), String.join(" / ", observedStatePath));
-            persisted.receipts(segment.fragments().stream().map(Fragment::eventId).toList());
-            segments.saveAndFlush(persisted); // Claim identity before any acknowledgement/action.
-            sources.forEach(receipt -> receipt.assign(segment.id())); receipts.saveAll(sources);
+            persisted.receipts(receiptIds); // Preserve provider order, independent of bulk-read order.
+            entityManager.persist(persisted);
+            entityManager.flush(); // Claim identity before any acknowledgement/action.
+            var unclaimed = sources.stream().filter(source -> source.getSegmentId() == null)
+                    .map(LiveTranscriptReceipt::getProviderEventId).toList();
+            if (!unclaimed.isEmpty() && receipts.claimForSegment(owner.sessionId(), owner.epoch(),
+                    segment.speaker().name(), unclaimed, segment.id()) != unclaimed.size())
+                throw new IllegalStateException("Transcript receipt was already consumed");
             ledgerChanged(id, owner.sessionId());
             claimed[0] = true;
             return Optional.of(view(persisted));
@@ -146,6 +158,12 @@ public class LiveTranscriptIngressService {
             }
         });
         });
+    }
+    private boolean currentIdentity(UUID id, ExternalSpeech owner) {
+        if (!ownership.isCurrent(id, owner)) return false;
+        if (agents.existsByIdAndExecutionEpoch(id, owner.epoch())) return true;
+        ownership.release(id, owner.sessionId());
+        return false;
     }
     private Agent current(UUID id, ExternalSpeech owner) {
         Agent agent = agents.findById(id).orElse(null);

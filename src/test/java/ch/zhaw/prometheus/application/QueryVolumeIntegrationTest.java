@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.*;
+import java.time.Instant;
 import java.util.concurrent.*;
 import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -231,6 +232,66 @@ class QueryVolumeIntegrationTest {
         mvc.perform(post("/demo/agents/" + UUID.randomUUID() + "/observations").header("X-Prometheus-Access-Code", fixture.code())
                 .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(List.of(valid)))).andExpect(status().isNotFound());
         assertTrue(agents.findById(fixture.id()).orElseThrow().getEventHistory().isEmpty());
+    }
+
+    @Test void galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture() throws Exception {
+        var f = fixture(new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception().createAgent());
+        for (int i = 0; i < 2; i++) demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
+                "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
+        var control = new java.util.concurrent.atomic.AtomicInteger();
+        doAnswer(call -> "{\"operation\":\"" + (control.getAndIncrement() == 0 ? "START_GUESS" : "YES")
+                + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}")
+                .when(language).infer(any());
+        var stats = emf.unwrap(SessionFactory.class).getStatistics();
+        long before = questions(); stats.clear();
+        try {
+            long revision = -1;
+            // Replay one minute's cadence without wall-clock sleeps: 12 camera/context cycles,
+            // 60 polls, 12 lease checks, 4 user turns and 8 native segments (72 receipts).
+            // Workers are mocked, so explicit refreshes account for background context work.
+            for (int cycle = 0; cycle < 12; cycle++) {
+                String timestamp = Instant.now().toString();
+                var result = demo.acknowledgeObservations(f.code(), f.id(), List.of(
+                        sensor(Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":1,\"ts\":\"" + timestamp + "\"}"),
+                        sensor(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":1,\"groupCount\":0,\"singletonCount\":1,\"largestGroupSize\":1,\"ts\":\"" + timestamp + "\"}"),
+                        sensor(Event.TYPE_SOCIAL_CONTEXT, "{\"humanCount\":1,\"people\":[],\"ts\":\"" + timestamp + "\"}")));
+                assertEquals(List.of(200, 200, 200), result.stream().map(ScopedDemoService.ObservationResult::status).toList());
+                assertTrue(demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_FACE_EMOTION,
+                        "{\"emotion\":\"neutral\",\"confidence\":0.9,\"ts\":\"" + timestamp + "\"}"),
+                        ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN).isPresent());
+                Speaker speaker = cycle % 3 == 0 ? Speaker.USER : Speaker.ASSISTANT;
+                String text = speaker == Speaker.ASSISTANT ? "Ja, ich habe Ihre Frage verstanden."
+                        : cycle == 0 ? "Ich moechte eine bekannte Person erraten." : "Ist die Person ein bekannter Physiker?";
+                var fragments = new java.util.ArrayList<Fragment>();
+                long now = System.currentTimeMillis();
+                for (int part = 0; part < 6; part++) {
+                    var fragment = new Fragment("gala-" + cycle + "-" + part, speaker,
+                            cycle * 5000L + part * 200L, cycle * 5000L + (part + 1) * 200L,
+                            now, cycle * 6L + part + 1, text.substring(text.length() * part / 6, text.length() * (part + 1) / 6));
+                    fragments.add(fragment); assertTrue(ingress.receipt(f.id(), owner, fragment));
+                }
+                var segment = new Segment(UUID.randomUUID(), speaker, fragments, Closure.COMPLETE, "observed_silence", now, now);
+                assertEquals("COMPLETE", ingress.commit(f.id(), owner, segment, List.of(
+                        cycle == 0 ? "Gala reception" : "Gala guess the person")).orElseThrow().status());
+                assertTrue(contexts.refresh(f.id(), owner).isPresent());
+                assertTrue(ownership.isCurrent(f.id(), owner));
+                for (int poll = 0; poll < 5; poll++) revision = live.updates(f.code(), f.id(), session.handle(), revision)
+                        .orElseThrow().transcriptRevision();
+            }
+            long total = questions() - before - 1;
+            System.out.printf("GALA_MIXED_MINUTE databaseQuestions=%d statements=%d entities=%d%n", total,
+                    stats.getPrepareStatementCount(), stats.getEntityLoadCount());
+            assertTrue(total <= 2100, "Mixed Gala workload query budget: " + total);
+            assertEquals(4, control.get());
+            var saved = agents.findById(f.id()).orElseThrow();
+            assertEquals("Gala guess the person", saved.getCurrentState().getName());
+            assertEquals(4, saved.getEventHistory().toList().stream().filter(e -> Event.TYPE_USER_UTTERANCE.equals(e.getType())).count());
+            var ledger = ingress.history(f.id(), owner.sessionId());
+            assertEquals(12, ledger.size()); assertTrue(ledger.stream().allMatch(s -> "COMPLETE".equals(s.status())));
+            assertTrue(ledger.stream().allMatch(s -> s.receiptIds().size() == 6));
+        } finally { live.close(f.code(), f.id(), session.handle()); }
     }
 
     @Test void measureCurrentPaths() throws Exception {

@@ -131,6 +131,62 @@ class GalaDinnerReceptionUnitTest {
         assertFalse(memory.containsKey(PERSON));
     }
 
+    @ParameterizedTest @ValueSource(strings = {"Ich gebe auf.", "I give up!"})
+    void explicitGiveUpRevealsStoredPersonOnceWithoutInference(String utterance) {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
+        say("Personenraten bitte");
+        clearInvocations(gateway);
+        assertEquals("Es war Albert Einstein. Die Runde ist beendet; ich bin wieder für Ihre Fragen da.", speech(say(utterance)));
+        assertEquals("RECEPTION", mode(memory));
+        for (String key : List.of(PERSON, STARTED, REPLY)) assertFalse(memory.containsKey(key), key);
+        assertNull(agent.generate(runtime));
+        verifyNoInteractions(gateway);
+    }
+
+    @Test void inferredRevealUsesBackendTargetAndRequiresAnActiveGuessingRound() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("GIVE_UP", ""));
+        say("Personenraten bitte");
+        assertTrue(speech(say("Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast")).startsWith("Es war Albert Einstein."));
+        assertEquals("RECEPTION", mode(memory));
+        assertFalse(memory.containsKey(PERSON));
+        assertNull(agent.generate(runtime));
+        when(gateway.infer(any())).thenReturn(answer("GIVE_UP", ""));
+        assertTrue(speech(say("Verrate die Person")).contains("nicht geklappt"));
+        assertFalse(memory.containsKey(PERSON));
+    }
+
+    @Test void unknownFactsAndIncompleteQuestionsDifferWithoutLeakingOrChangingTheTarget() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("UNKNOWN", ""),
+                answer("CLARIFY", ""), answer("RULES", ""));
+        say("Personenraten bitte");
+        assertTrue(speech(say("Hatte die Person Schuhgrösse 42?")).startsWith("Dazu habe ich keine gesicherte Information."));
+        assertTrue(speech(say("Lebt die")).contains("noch einmal vollständig"));
+        assertTrue(speech(say("Was passiert, wenn ich aufgebe?")).contains("Wenn Sie aufgeben"));
+        assertEquals("GUESS", mode(memory));
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        assertFalse(new LiveVoicePolicyAdapter().instructions(agent).contains("Albert Einstein"));
+        var capture = ArgumentCaptor.forClass(InferenceRequest.class);
+        verify(gateway, times(4)).infer(capture.capture());
+        String privatePrompt = capture.getAllValues().get(1).messages().getFirst().getContent();
+        for (String fact : List.of("not alive", "Switzerland", "co-invented a refrigerator"))
+            assertTrue(privatePrompt.contains(fact), fact);
+        assertTrue(privatePrompt.contains("Use UNKNOWN"));
+        assertFalse(privatePrompt.contains("https://"));
+    }
+
+    @Test void negatedGiveUpDoesNotUseLocalRevealAndQuietNeverDisclosesTheName() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("WAIT", ""));
+        say("Personenraten bitte");
+        assertNull(say("Ich gebe auf keinen Fall auf"));
+        assertEquals("GUESS", mode(memory));
+        verify(gateway, times(2)).infer(any());
+        clearInvocations(gateway);
+        assertNull(say("Bitte sei still"));
+        assertEquals("RECEPTION", mode(memory));
+        assertFalse(memory.containsKey(PERSON));
+        verifyNoInteractions(gateway);
+    }
+
     @Test void stopAndQuietExitEveryGameWithoutProviderAndQuietSurvivesSensorUpdates() {
         for (String operation : List.of("START_RPS", "START_GUESS")) {
             when(gateway.infer(any())).thenReturn(answer(operation, ""));

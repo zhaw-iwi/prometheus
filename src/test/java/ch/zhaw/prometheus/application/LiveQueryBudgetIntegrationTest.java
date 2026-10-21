@@ -51,7 +51,7 @@ class LiveQueryBudgetIntegrationTest {
         assertTrue(ingress.receipt(id, owner, fragment("one")));
         long queries = stats().getPrepareStatementCount(), entities = stats().getEntityLoadCount();
         System.out.println("Live receipt queries=" + queries + ", loaded entities=" + entities);
-        assertTrue(queries <= 5, "Receipt must use bounded identity/ledger queries: " + queries);
+        assertTrue(queries <= 3, "Receipt must use bounded identity/ledger queries: " + queries);
         assertEquals(0, entities, "Receipt must not load the agent graph");
         assertFalse(ingress.receipt(id, owner, fragment("one")));
         ownership.release(id, owner.sessionId());
@@ -77,7 +77,7 @@ class LiveQueryBudgetIntegrationTest {
         stats().clear(); assertTrue(ingress.receipt(id, owner, fragment("scoped")));
         long queries = stats().getPrepareStatementCount();
         System.out.println("Scoped Live receipt queries=" + queries);
-        assertTrue(queries <= 7, "Scoped receipt query budget: " + queries);
+        assertTrue(queries <= 4, "Scoped receipt query budget: " + queries);
         assertEquals(0, stats().getEntityLoadCount());
         access.setEnabled(false); codes.saveAndFlush(access);
         assertFalse(ingress.receipt(id, owner, fragment("revoked")));

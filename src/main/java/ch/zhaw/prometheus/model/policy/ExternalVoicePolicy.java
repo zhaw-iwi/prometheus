@@ -10,6 +10,8 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 public interface ExternalVoicePolicy {
     boolean supportsLiveState(State state);
     String voiceInstructions();
+    /** Spoken waiting acknowledgments are permitted by default; false requests silent waiting in guidance only. */
+    default boolean livePendingAcknowledgements() { return true; }
     /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
     default long liveUserSilenceMs() { return 800; }
     default int liveHistoryStartIndex() { return 0; }

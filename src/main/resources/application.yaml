@@ -3,3 +3,7 @@
 spring:
   jpa:
     open-in-view: false
+    properties:
+      hibernate:
+        # Bound collection reads for complex state machines without caching entities.
+        default_batch_fetch_size: 64

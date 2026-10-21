@@ -105,12 +105,15 @@ public class GalaDinnerAction extends Action {
             } else new GalaDinnerTaskAction(storage, false).execute(events, runtime);
             return;
         }
-        if ("GUESS".equals(mode) && GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
-            String person = text(storage, PERSON, "");
-            reception(storage);
-            reply(storage, plan("Ja, genau: " + person + "! Das war's schon – worüber möchten Sie plaudern?",
-                    "ACKNOWLEDGE", "gentleSmile", "toward_user"));
-            return;
+        if ("GUESS".equals(mode)) {
+            if (command.matches("ich gebe auf|ich geb auf|i give up")) {
+                reply(storage, finishGuess(storage, false));
+                return;
+            }
+            if (GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
+                reply(storage, finishGuess(storage, true));
+                return;
+            }
         }
         String failureStage = "inference";
         try {
@@ -138,7 +141,7 @@ public class GalaDinnerAction extends Action {
             Set<String> allowed = switch (mode) {
                 case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
                 case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET");
-                case "GUESS" -> Set.of("WAIT", "YES", "NO", "CLARIFY", "RETURN", "QUIET");
+                case "GUESS" -> Set.of("WAIT", "YES", "NO", "UNKNOWN", "CLARIFY", "RULES", "GIVE_UP", "RETURN", "QUIET");
                 default -> throw new IllegalArgumentException("Invalid mode");
             };
             failureStage = "mode_operation";
@@ -177,11 +180,18 @@ public class GalaDinnerAction extends Action {
                 }
                 case "YES", "NO" -> response = plan(operation.equals("YES") ? "Ja." : "Nein.",
                         "NONE", "attentive", "toward_user");
+                case "UNKNOWN" -> response = plan(
+                        "Dazu habe ich keine gesicherte Information. Stellen Sie mir eine andere Ja-Nein-Frage.",
+                        "NONE", "thoughtful", "toward_user");
+                case "RULES" -> response = plan(
+                        "Erraten Sie die Person mit Ja-Nein-Fragen. Wenn Sie aufgeben oder die Auflösung möchten, nenne ich den Namen und beende die Runde.",
+                        "NONE", "attentive", "toward_user");
+                case "GIVE_UP" -> response = finishGuess(storage, false);
                 case "CLARIFY" -> {
                     response = plan("Zeigen Sie bitte ein frisches Handzeichen für Schere, Stein oder Papier.",
                             "NONE", "attentive", "toward_user");
                     if ("GUESS".equals(mode)) response = plan(
-                            "Bitte stellen Sie eine andere Ja-Nein-Frage; das kann ich nicht eindeutig beantworten.",
+                            "Bitte formulieren Sie die Frage noch einmal vollständig, sodass ich mit Ja oder Nein antworten kann.",
                             "NONE", "thoughtful", "toward_user");
                     if ("RECEPTION".equals(mode)) response = plan("Was möchten Sie gern tun?",
                             "OPEN_QUESTION", "attentive", "toward_user");
@@ -209,6 +219,17 @@ public class GalaDinnerAction extends Action {
 
     private static BehaviourPlan gameChoice() {
         return plan("Personenraten oder Schere, Stein, Papier?", "OPEN_QUESTION", "attentive", "toward_user");
+    }
+
+    private static BehaviourPlan finishGuess(Storage storage, boolean correct) {
+        // Preserve the target in one confirmed speech intent before reception clears the round.
+        String person = GalaDinnerPeople.named(text(storage, PERSON, "")).name();
+        var response = plan(correct
+                ? "Ja, genau: " + person + "! Das war's schon – worüber möchten Sie plaudern?"
+                : "Es war " + person + ". Die Runde ist beendet; ich bin wieder für Ihre Fragen da.",
+                "ACKNOWLEDGE", "gentleSmile", "toward_user");
+        reception(storage);
+        return response;
     }
 
     private static void leave(Storage storage, EventHistory events, boolean quiet) {

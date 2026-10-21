@@ -203,6 +203,13 @@ ready, with ordinary reads as fallback. Sensor cadence, freshness, thresholds,
 event ordering and derived social changes remain unchanged. See README and the
 query-reduction evidence in `.agents/GPTLIVE_RESULTS.md`.
 
+The 2026-10-21 follow-up batches complex state-machine collection reads and uses
+scalar initial transcript claims plus bulk receipt validation/assignment. Fragment
+durability, separate claim/processing commits and immediate scope/epoch checks
+remain. Shared work starts on feature/gptlive; agents adds a representative Gala
+load-budget test. Reduced query volume still needs production capacity headroom;
+see the same evidence file. No schema migration or sensing-cadence change.
+
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.
@@ -239,6 +246,11 @@ transcription/TTS. Read
 `.agents/GPTLIVE_RESULTS.md` for evidence and pending physical trials. Backend
 sideband owns provider credentials; diagnostic state is bounded and excludes
 audio/text content. See README for scoped session contracts and configuration.
+
+Application-owned Live policies can opt out of spoken waiting acknowledgments
+through `ExternalVoicePolicy.livePendingAcknowledgements()` (default true).
+The adapter removes permission from both shared voice and task guidance when
+false. This is prompt guidance, not an audio gate; default core wording is unchanged.
 
 Application-owned Live policies can implement `ExternalVoicePolicy` to validate
 state compatibility, provide voice guidance and bound history for a new encounter.
@@ -312,6 +324,14 @@ other agents and assistant capture retain 800 ms. Telemetry exports the effectiv
 user window. Short pauses are tested, but semantic sentence completion and the
 reported audible cutoff are not solved by this boundary. Trial evidence and the
 controlled physical retest are in `.agents/GPTLIVE_RESULTS.md` and README.
+
+Gala guessing keeps sourced person cards private to backend inference. UNKNOWN
+distinguishes a missing fact from CLARIFY for incomplete/nonbinary questions;
+RULES explains play without revealing the target. GIVE_UP emits one confirmed
+name before reception clears the round; stop/silence/expiry do not disclose it.
+Gala voice guidance suppresses question echoes and pending-work acknowledgments.
+The third trial's durable input receipts themselves omit some final words; this
+policy follow-up does not establish a general transcription or acoustic fix.
 
 The core Social Space variant reuses the Generic task graph and full
 task contract with brief English conversation and a fixed Valerian identity.

@@ -47,12 +47,13 @@ class CapabilityAwarenessSmokeIntegrationTest {
         codes.deleteById(codeId);
     }
 
-    @Test void fullDeploymentCatalogOptsInOnlyCoreDefinitions() {
+    @Test void fullDeploymentCatalogOptsInCoreAndGalaDefinitions() {
         assertFalse(definitions.list().isEmpty());
         for (var definition : definitions.list()) {
-            boolean core = definition.key().startsWith("core.");
-            assertEquals(core, definition.capabilityAwareness(), definition.key());
-            assertEquals(core, definition.createAgent().getInteractionProfile().isCapabilityAwareness(), definition.key());
+            boolean aware = definition.key().startsWith("core.")
+                    || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception.KEY);
+            assertEquals(aware, definition.capabilityAwareness(), definition.key());
+            assertEquals(aware, definition.createAgent().getInteractionProfile().isCapabilityAwareness(), definition.key());
         }
     }
 

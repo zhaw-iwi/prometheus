@@ -66,6 +66,13 @@ class GalaDinnerReferenceUnitTest {
                 assertEquals(1, occurrences(instructions, "GALA REFERENZ (Stand"));
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
+                assertTrue(instructions.contains("Never repeat, paraphrase or finish the visitor's question aloud"));
+                assertTrue(instructions.contains("wait silently for results"));
+                assertFalse(instructions.contains("You may acknowledge immediately"));
+                assertFalse(instructions.contains("you may say you are checking"));
+                assertTrue(instructions.contains("Speak the confirmed answer, clarification or reveal once"));
+                assertTrue(instructions.contains("ONLY a new \"Confirmed backend announcement\" authorizes speech"));
+                assertTrue(instructions.contains("Generate <|SpawnThinking|>"));
                 assertFalse(instructions.contains("IPA"));
                 assertFalse(instructions.contains("dʒ"));
                 assertFalse(instructions.contains("GIGI"));

@@ -1,7 +1,7 @@
 # Gala: manueller GPT-Live-Test
 
 Wiederholung des Live-Tests vom 21.10.2026: Empfang → Veranstaltungsfragen →
-Personenraten → Abbruch → Schere, Stein, Papier. Grundlage: Telemetrieexport
+Personenraten → Aufgeben/Auflösung → Schere, Stein, Papier. Grundlage: Telemetrieexport
 `prometheus-telemetry-2026-10-21T05-22-50-974Z.json` und zugehörige Transkripte.
 Versprecher, Wiederholungen und getrennt erfasste Satzteile sind geglättet.
 
@@ -40,14 +40,18 @@ Danach diese Fragen einzeln stellen:
 8. «Hat die Person im 18. Jahrhundert gelebt?»
 9. «Hat die Person im 19. Jahrhundert gelebt?»
 10. «Ist die Person berühmt, weil sie etwas erfunden hat?»
+11. «Hatte die Person Schuhgrösse 42?»
+12. «Was passiert, wenn ich aufgebe?»
 
-Erwartung: kurze, konsistente Ja/Nein-Antworten oder eine Rückfrage bei
-ungeeigneten/unklaren Fragen, insbesondere Frage 1. Die gewählte Person nicht
-vorwegnehmen. Pausierte Sätze sollen jeweils als eine vollständige Frage ankommen.
+Erwartung: keine Wiederholung meiner Frage und kein Zwischenkommentar vor der
+bestätigten Antwort. Kurze, konsistente Ja/Nein-Antworten; bei Frage 1 um eine
+Ja/Nein-Frage bitten, bei Frage 11 fehlendes Wissen benennen. Frage 12 erklärt
+die Regel, ohne die Person zu verraten oder das Spiel zu beenden. Pausierte Sätze
+sollen jeweils als eine vollständige Frage ankommen.
 
 | Schritt | Sagen / tun | Prüfen |
 | --- | --- | --- |
-| 6. Abbrechen | «Okay, ich mag das jetzt nicht mehr spielen.» | Bestätigung und Rückkehr zum Empfang. |
+| 6. Auflösen | «Ich gebe auf. Kannst du mir sagen, wen du dir ausgedacht hast?» | Den gespeicherten Namen genau einmal hörbar nennen und zum Empfang zurückkehren. |
 | 7. Handspiel | «Können wir Schere, Stein, Papier spielen?» | Einladung zur Handgeste abwarten. |
 | 8. Geste | Kurz lachen, dann **Schere** ruhig und sichtbar zeigen. Bei Bedarf neu positionieren; Versuche und „erkannt/gesendet“-Status notieren. | Lachen beendet das Spiel nicht. GIGIs Handzeichen, hörbares korrektes Ergebnis und Rückkehr zum Empfang. Gewinner nicht vorgeben. |
 
@@ -61,3 +65,5 @@ Dann **Stop** und Telemetrie exportieren.
 - Gehörte Sprache mit Untertiteln vergleichen; Untertitel allein belegen keine Audioausgabe.
 - Keine erneute Begrüssung bei Spielwechseln innerhalb derselben Sitzung.
 - Festhalten: Fragen trotz Pause vollständig? Spielwechsel korrekt? Handspiel-Ergebnis hörbar?
+- Separater kurzer Kontrolllauf: Beim Personenraten «Stopp» oder «Bitte sei still»
+  sagen. Das Spiel endet ohne Namensauflösung; bei Stille auch ohne Abschiedssatz.

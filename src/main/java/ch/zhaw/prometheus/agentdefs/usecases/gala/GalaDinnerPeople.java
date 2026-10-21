@@ -3,18 +3,46 @@ package ch.zhaw.prometheus.agentdefs.usecases.gala;
 import java.util.List;
 import java.util.Locale;
 
-/** Fixed factual cards keep the target stable and unknown facts explicit. */
+/** Fixed private cards; source audit (checked 2026-10-21) stays out of model context. */
 final class GalaDinnerPeople {
     record Person(String name, List<String> aliases, String facts) {}
     static final List<Person> PEOPLE = List.of(
+            // https://www.nobelprize.org/prizes/physics/1921/einstein/biographical/
+            // https://patents.google.com/patent/US1781541A/en
             new Person("Albert Einstein", List.of("albert einstein", "einstein"),
-                    "Man; physicist; born 1879 in Ulm; died 1955; developed relativity; Nobel Prize in Physics 1921. Not an actor or musician."),
+                    "Real historical man, not fictional; physicist; born 1879 in Ulm, Germany; died 1955 in Princeton, USA; not alive. "
+                    + "Lived in the 19th and 20th centuries, not the 18th century or Middle Ages. "
+                    + "Lived and worked in Germany, Switzerland (including Zurich and Bern) and the USA; lived in Europe. "
+                    + "Famous chiefly for physics, especially relativity; Nobel Prize in Physics 1921 for the photoelectric effect. "
+                    + "Also co-invented a refrigerator with Leo Szilard (US patent 1781541, 1930): invented something, "
+                    + "but his principal fame is scientific theories, not that appliance or construction of buildings. "
+                    + "Played violin as a hobby, not a professional musician or actor. Other residence countries are not established here."),
+            // https://www.nobelprize.org/prizes/physics/1903/marie-curie/questions-and-answers/
+            // https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/
+            // https://www.nobelprize.org/prizes/chemistry/1911/marie-curie/biographical/
             new Person("Marie Curie", List.of("marie curie", "curie"),
-                    "Woman; physicist and chemist; born 1867 in Warsaw; died 1934; worked in France; researched radioactivity; Nobel Prizes in Physics 1903 and Chemistry 1911. Not an actor or musician."),
+                    "Real historical woman, not fictional; physicist and chemist; born 1867 in Warsaw (now Poland); "
+                    + "died 1934 in France; not alive. Lived in the 19th and 20th centuries, not the 18th century or Middle Ages. "
+                    + "Lived in Poland and France, studied and worked in Paris; lived in Europe. "
+                    + "Known for radioactivity research and the discovery of polonium and radium with Pierre Curie. "
+                    + "Nobel Prizes in Physics 1903 and Chemistry 1911. Her listed achievements are scientific discoveries, "
+                    + "not evidence that she never invented anything. Not an actor or professional musician; other residences are unknown here."),
+            // https://www.charliechaplin.com/en/biography/articles/21-Overview-of-His-Life
             new Person("Charlie Chaplin", List.of("charlie chaplin", "charles chaplin", "chaplin"),
-                    "Man; actor, comedian and film director; born 1889 in London; died 1977 in Switzerland; famous for silent films and the Tramp character. Not a physicist."),
+                    "Real historical man, not fictional; British actor, comedian, film director and composer. "
+                    + "Born 1889 in London, England; died 1977 in Switzerland; not alive. "
+                    + "Lived in the 19th and 20th centuries, not the 18th century or Middle Ages. "
+                    + "Lived in England, the USA and Switzerland (Corsier-sur-Vevey); lived in Europe. "
+                    + "Famous chiefly for films, especially silent comedy and his fictional Tramp character; the actor himself was real. "
+                    + "Not a physicist. Whether he held inventions/patents or lived in other countries is not established here."),
+            // https://collection.sciencemuseumgroup.org.uk/people/cp38764/ada-lovelace
             new Person("Ada Lovelace", List.of("ada lovelace", "lovelace"),
-                    "Woman; mathematician; born 1815 in London; died 1852; worked on Charles Babbage's Analytical Engine; wrote an early published computer algorithm. Not an actor or physicist."));
+                    "Real historical woman, not fictional; British mathematician and computing pioneer. "
+                    + "Born 1815 in London, England; died 1852; not alive. Lived in the 19th century only, "
+                    + "not the 18th or 20th century or Middle Ages. Lived in England, hence Europe. "
+                    + "Worked on Charles Babbage's Analytical Engine; published notes in 1843 including an algorithm "
+                    + "for calculating Bernoulli numbers and ideas about general computation. Babbage designed the machine; "
+                    + "she did not build a working computer. Not an actor or physicist. Other residences and patents are unknown here."));
     private GalaDinnerPeople() {}
     static Person named(String name) {
         return PEOPLE.stream().filter(person -> person.name().equals(name)).findFirst().orElseThrow();

@@ -5,6 +5,219 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Gala guessing and voice follow-up - Milestone 225 (2026-10-21)
+
+Scope: Gala-owned code on `agents`; a default-true waiting-acknowledgment hook
+starts on `feature/gptlive` and is applied equivalently on `agents`, retaining
+branch-specific persona/capture hooks. The pending Milestone 224 database patch is
+preserved. No transport/default core guidance change, production mutation, commit,
+push or deployment. Production reads were bounded to the supplied trial instance.
+
+After quota access resumed, the third trial yielded 60 complete segments (20 user,
+40 assistant), 360 receipts and 370 instance events. Dialogue confirms repeated
+questions before the separately delivered backend answers and a duplicate game
+choice. Some durable input receipts themselves end at `Lebt die`, `Ist es`,
+`Ist es Nikolai` or `Hat die Person in der Schweiz`; the assistant's later echo
+contains more words. No audio recording establishes the missing words' precise
+cause. The earlier database optimisation was not deployed. Do not reconstruct
+user intent from assistant guesses or claim that richer cards solve capture.
+Local diagnostic files (ignored): `target/gala-round3-dialogue.json` and
+`target/gala-20261021-round3-db.json`. Dialogue is not copied into tracked files.
+
+Changes:
+
+- Gala's stable Live policy forbids question repetition/completion and interim
+  waiting acknowledgments, including a duplicate game-choice invitation. It uses
+  the documented `Generate <|SpawnThinking|>` delegation instruction. This is
+  application-specific prompt guidance, not a deterministic audio gate. Two real
+  voice probes still spoke waiting remarks with the shared permission present.
+  `ExternalVoicePolicy.livePendingAcknowledgements()` lets Gala remove that
+  permission from both common voice and task guidance; other policies default to
+  the original wording. The shared adapter test verifies both paths.
+- Four private fact cards now cover life dates, real/fictional status, occupations,
+  known residences and achievements. Date/geography deductions are explicitly
+  allowed. Unknown residences are not interpreted as negative evidence. Einstein's
+  card includes Swiss residence and his co-invented refrigerator. Source metadata
+  is dated in code comments and never enters backend prompts or Live context.
+- UNKNOWN supplies a missing-fact response; CLARIFY asks for a complete yes/no
+  question; RULES explains play or hypothetical give-up without revealing a name.
+- GIVE_UP captures the stored target in one canonical confirmed speech intent
+  before clearing the game and returning to reception. Common standalone give-up
+  commands bypass inference. Other phrasing uses the existing one-call operation
+  classifier. Correct guesses share the same completion helper. Explicit stop,
+  silence, departure, idle expiry and unrelated topics do not reveal. A request
+  to end without revealing maps to RETURN. No schema or saved-graph migration.
+- `tests/gptlive/GALA.md` now checks no echo, unknown versus incomplete questions,
+  a hypothetical give-up, an audible reveal, and a separate stop/silence check.
+
+Verification:
+
+- Final focused acceptance command:
+  `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'GalaDinner*UnitTest,GalaDinnerReceptionJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,LiveVoiceAcknowledgementUnitTest,LiveContextProjectionUnitTest,LiveContextDeliveryUnitTest'`.
+  It passed 83 Java cases, including all three canonical/compact journeys, reveal
+  delivery/recording once, duplicate committed-turn replay, hidden target isolation,
+  correct guessing, direct/inferred give-up, unknown/clarify/rules, stop/quiet and
+  rejection outside GUESS. The disposable database is local; providers are mocked.
+  Artifact: `target/gptlive-acceptance-7d84aa76c7/`. A final prompt refinement reruns
+  the six instruction-budget/Gala journey cases in `target/gptlive-acceptance-8e31beea66/`;
+  all six passed.
+- The shared feature worktree passed ten adapter/projection unit cases, without
+  a database/provider or Spring application; `target/gala-225-shared-unit.log`.
+- Every reachable Gala state, both embodiments and maximum-length simultaneous
+  task/proposal goals fit: maximum 15,985/16,000 instruction bytes. The stable
+  reference remains identical across activity changes.
+- Real backend trial: 27 synthetic questions using captured application prompts
+  and the configured production behaviour route (`gpt-5.6-luna`, effort `none`).
+  The first run passed 26/27; "give up but do not reveal" incorrectly chose GIVE_UP.
+  After making RETURN explicit for that case, the final 27/27 operations passed
+  and all outputs were replayed through the real Gala action. This includes dates,
+  Einstein's invention/Swiss residence, incomplete inputs, unknown facts, different
+  name guesses, hypothetical/negated give-up and all four cards. Artifacts:
+  `target/gala-225-backend-cases.json`, `target/gala-225-backend-results.json`,
+  `target/gala-225-backend-results-initial.json`, `target/gala-225-backend-validated.json`.
+  Harness: ignored `target/GalaGuessingTrial.java` and `target/gala_225_backend_trial.py`.
+- Real voice probe: see final result below. Direct primary WebSocket authentication
+  was rejected with HTTP 403 before a session started. The WebRTC route used by
+  the cockpit accepted the same credentials. An initial harness run stopped on
+  an unavailable browser `crypto.randomUUID` and hung up its owned session; this
+  was corrected locally without a product change.
+- `./mvnw.cmd -q -DskipTests package` and `git diff --check` passed;
+  package log: `target/gala-225-package.log`. No production application is started.
+
+Real voice result and limitations:
+
+Four completed headless WebRTC probes used `gpt-live-1`, Marin, client delegation,
+continuous synthetic German input audio and the actual assembled Gala GUESS
+instructions. The two questions were a gender question and a give-up/reveal request;
+confirmed backend results were injected after a five-second post-speech delay.
+The probes did not run the full application or database; its persisted journey is
+covered separately. Each session closed gracefully with final usage and received
+nonzero WebRTC audio energy. Synthesized input used `gpt-4o-mini-tts`, Alloy. No
+production records or real guest audio were sent. Owned sessions were hung up.
+
+All four completed probes avoided question repetition and generated the complete
+Einstein reveal once after the confirmed result. Two prompt-only variants still
+spoke waiting remarks; removing the shared permission also exposed one premature
+`Ja` and a sigh in an intermediate probe. The final label-specific guidance
+produced only the confirmed `Ja` and reveal as substantive answers, but still said
+`Mhm` and `Alles klar, einen Moment` before confirmation. Therefore **strict silent
+waiting is NOT verified**. These trials support the reveal/echo improvement in
+this small sample, not a guarantee against premature or duplicate speech. Do not
+hide the failed variants or treat generated captions/audio packets as a physical
+headset playback test. A deterministic speech gate would be a separate transport
+change, not another assertion about prompt compliance.
+
+Final evidence: `target/gala-225-webrtc-results.json` and
+`target/gala-225-voice-assessment.json`; earlier variants are
+`target/gala-225-webrtc-results-initial.json`, `...-prompt-only.json` and
+`...-hook.json`. Ignored harness: `target/gala_225_webrtc_trial.mjs`.
+The initially rejected WebSocket probe is `target/gala-225-voice-results.json`.
+Final instruction budget: 15,985/16,000 bytes; future edits must retain the budget test.
+
+Remaining limits: synthetic voice does not certify room acoustics, physical
+headset playback, camera sensing or arbitrary phrasing. Provider-generated audio
+and transcript evidence are distinct from a delivery ACK. A fresh Live session
+is needed to load the new policy; use a new Gala instance and hard-refresh the
+browser for the controlled manual test. Partial transcription and the reported
+last-word cutoff remain open issues. The database capacity constraint from
+Milestone 224 also remains; these changes do not increase its quota.
+
+Source audit, checked 2026-10-21:
+[Nobel Einstein biography](https://www.nobelprize.org/prizes/physics/1921/einstein/biographical/),
+[Einstein/Szilard patent US1781541A](https://patents.google.com/patent/US1781541A/en),
+[Nobel Curie biography](https://www.nobelprize.org/prizes/chemistry/1911/marie-curie/biographical/),
+[Curie questions/answers](https://www.nobelprize.org/prizes/physics/1903/marie-curie/questions-and-answers/),
+[official Chaplin biography](https://www.charliechaplin.com/en/biography/articles/21-Overview-of-His-Life),
+[Science Museum Lovelace record](https://collection.sciencemuseumgroup.org.uk/people/cp38764/ada-lovelace).
+The Nobel pages returned HTTP 403 on direct opens; indexed official source extracts
+supplied the checked facts. The other primary records were accessible.
+Voice guidance follows [official GPT-Live prompting](https://developers.openai.com/api/docs/guides/live-prompting)
+and [delegation documentation](https://developers.openai.com/api/docs/guides/live-delegation).
+
+## Complex-agent database load - Milestone 224 (2026-10-21)
+
+Investigation after the third Gala trial found the documented shared JawsDB
+allowance of 36,000 questions/hour exhausted. Retained logs begin after the trial,
+so the onset and any effect on that conversation are unknown. No production database requests
+were retried during this follow-up. Earlier reductions (`70f9a41`, `b9e693d`) are
+still present; their query-budget regressions pass. Gala revealed another cost:
+loading its state machine queried 23 action-key collections separately, plus
+transition/decision collections. This grows with definition complexity rather
+than one query per historical event.
+
+Shared implementation starts uncommitted on `feature/gptlive` in the
+`prometheus-database-query-20261021` worktree. The identical shared patch is also
+uncommitted on `agents`, which owns the Gala workload regression. No branch merge,
+commit, push, deployment, schema migration or saved-agent change is included.
+
+- Shared `application.yaml` sets Hibernate collection batch fetching to 64. It
+  retains eager/detached graph semantics and avoids a cross-turn entity cache.
+- Transcript receipts persist their already-validated new identity directly,
+  avoiding merge's redundant lookup. Every received fragment still commits
+  durably with current access scope and persisted epoch checks.
+- The initial segment claim validates scalar identity instead of loading the
+  full agent graph. It reads bounded receipt identities together, verifies
+  completeness/epoch/speaker/ownership, preserves their original order, and
+  conditionally assigns unclaimed receipts in one update. A failed assignment
+  rolls back the entire claim. The committed PENDING boundary remains separate
+  from processing; processing revalidates ownership and never retries uncertain
+  actions automatically. Duplicate segment outcomes remain durable across restart.
+- Sensor cadence, freshness, state-machine decisions, speech policy, permissions
+  and cockpit lifecycle are unchanged. This does not fix the separately reported
+  repetition, restrictive guessing cards or absent give-up reveal.
+
+Measured on disposable local MySQL with synthetic providers:
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| Representative Gala minute, MySQL Questions | 4,731 | 2,031 |
+| Scoped fragment, Hibernate statements | 5 | 4 |
+| Unscoped fragment, Hibernate statements | 4 | 3 |
+
+The mixed-minute test replays 12 social batches and facial/context refreshes,
+60 combined polls, 12 lease checks, four user turns and eight native speech
+segments with 72 receipts. It advances operations without sleeping; all other
+background workers are mocked. It includes transaction commands in MySQL Questions,
+checks the guessing state and exactly-once capture, and enforces a 2,100-question
+regression ceiling. This is a synthetic query budget, not a production throughput
+or acoustic test. Baseline `target/gptlive-acceptance-e554e8e6b0/` correctly fails
+that new ceiling; the implementation run passes at 2,031 (57% reduction).
+
+Verification:
+
+- Feature worktree: 17 focused Java cases passed, including receipt bounds,
+  restart/replay protection, failed processing, native recording, query volume,
+  bulk ordering, invalid/cross-session receipts, assignment rollback and immediate
+  revocation/epoch rejection. Artifact:
+  `target/gptlive-acceptance-e41e49d974/` in that worktree.
+- Agents: the new load test plus Gala, Generic and Social Space persisted journeys
+  passed nine cases. Artifact: `target/gptlive-acceptance-bb6641b74e/`.
+- Full agents run exercised 738 cases in 151 suites: 735 passed initially. One
+  deployment-catalog assertion predated Gala's existing capability-awareness opt-in;
+  the assertion now explicitly includes core and Gala definitions (production
+  behaviour unchanged). Two replay contexts hit the local MySQL connection limit
+  from cached test pools, unrelated to the production query quota. All six cases
+  in those three suites passed on a fresh disposable database. Thus all 738 cases
+  have passing evidence, with zero skips. Artifacts:
+  `target/gptlive-acceptance-4175b93c1d/` (full run and report counts) and
+  `target/gptlive-acceptance-2fe51065c2/` (focused rerun).
+- `./mvnw.cmd -q -DskipTests package` and `git diff --check` passed. Build log:
+  `target/database-query-224-package.log`. No client scripts changed; no new
+  browser, provider or physical-audio test was run.
+
+Commands use `tests/gptlive/run_acceptance.py --database-properties
+src/main/resources/application-test.properties --java-tests ...`; the feature
+worktree points to the original checkout's local test properties by absolute path.
+The runner accepts only loopback MySQL and creates/removes a restricted disposable
+schema/account. No paid provider calls or production mutations are made.
+
+Capacity remains a deployment constraint: sustaining the tested workload would
+extrapolate to 121,860 questions/hour, above 36,000. The test ceiling prevents
+regressions; it does not certify this database plan for the gala. Production must
+have measured capacity/headroom for the actual sensing and speech workload before
+an extended event. Stopping Live does not stop every camera/stream request; no
+lifecycle behaviour was changed implicitly to hide load.
+
 ## Gala game choice and non-speech control - Milestone 223 (2026-10-21)
 
 The second headset trial on Heroku v112 exposed two control errors: an unspecified

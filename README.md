@@ -412,9 +412,19 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   entry; optional numeric confidence must be between 0.7 and 1. Spoken signs do
   not finish the round. Live must wait for the backend result.
 - Guessing persists a person from four maintained fact cards. The backend confirms
-  `Ja.` / `Nein.`, clarification or a correct name guess. Private facts do not enter
-  Live guidance. Live is instructed to speak binary answers without additions;
-  actual wording fidelity needs a provider trial. Correct guesses return home.
+  `Ja.` / `Nein.`, distinguishes an unknown fact from an incomplete/nonbinary
+  question, and explains the rules on request. The private cards cover dates,
+  occupations, known residences and achievements; dated source links remain in
+  code comments, outside prompts. Direct date/geography deductions are allowed;
+  an unlisted fact is never automatically false. Missing transcript words must
+  not be reconstructed from Live's own echoes.
+  A correct name guess or explicit give-up/reveal creates one confirmed spoken
+  answer containing the stored name, then clears the round and returns home.
+  Stop, silence, departure, timeout and unrelated topics do not reveal the name.
+  Hypothetical give-up questions explain the rules without ending the round.
+  Private cards do not enter Live guidance. Gala disables interim acknowledgments
+  and question echoes, including the duplicate game-choice invitation; Live waits
+  for confirmed game answers. These are model instructions, not an audio gate.
 - **Co-create a task**: ask “Was kannst du damit machen?” to explore capabilities,
   then “Lass uns eine eigene Aufgabe gestalten” to enter task design. GIGI helps
   choose a supported sensor trigger and a response, proposes a bounded agreement
@@ -495,6 +505,9 @@ scripted model/voice responses:
   old-trigger rejection, stale transcript/speech/frame/close rejection, preserved
   audit history, and exclusion of A's conversation/task details from B's prompts
   and provider-bound context.
+- The first visitor also exercises unknown facts, incomplete questions, a
+  hypothetical give-up and an actual reveal, including replay of the committed
+  give-up segment without another inference or announcement.
 
 Run it with the existing offline acceptance harness and a configured **loopback
 MySQL administration connection** (Python `pymysql` required):
@@ -693,6 +706,17 @@ graph merge reads without caching authorization, holding transactions across
 ordinary provider waits, or changing durable Live transcript transaction owners.
 `QueryVolumeIntegrationTest` measures HTTP costs and MySQL session `Questions`
 with a one-connection pool, including transaction overhead and provider-wait checks.
+
+Shared Hibernate collection batch fetching (`default_batch_fetch_size=64`) bounds
+round trips for complex state graphs while retaining eager/detached access.
+Live transcript claims use scalar scope/epoch checks and bounded bulk receipt
+reads/assignment, with a separately committed claim before processing. Every
+fragment remains durable; revocation, original receipt ordering and no automatic
+replay of uncertain actions are preserved. No schema migration is needed.
+The deployment branch also tests a mixed Gala speech/sensing minute: 2,031 MySQL
+questions versus 4,731 before these changes. Sustained load at that rate exceeds
+the documented 36,000/hour plan; this regression test is not a capacity guarantee.
+See `.agents/GPTLIVE_RESULTS.md` for workload, verification and deployment limits.
 
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check
@@ -1656,6 +1680,11 @@ rejected even when the capability is declared. The cockpit disables Start and
 explains unavailable support. The deployment feature flag, access scope and
 manual Start remain independent requirements; capability never starts capture
 or changes ordinary text/transcription/TTS generation.
+
+Application-owned `ExternalVoicePolicy` implementations may return false from
+`livePendingAcknowledgements()` to request silent waiting in both shared voice
+and task guidance. The default is true and retains existing core instructions.
+This changes model guidance only; it does not mute audio or prove spoken silence.
 
 Application-owned policies can implement `ExternalVoicePolicy` to declare their
 supported states, voice guidance, encounter-history boundary, startup instructions

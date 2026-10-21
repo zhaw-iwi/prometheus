@@ -152,8 +152,28 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(first, "Wie wäre es mit einem Ratespiel?", control("START_GUESS"));
             hearAnnouncement(first);
             assertEquals("Gala guess the person", loaded().getCurrentState().getName());
-            say(first, "Stopp!");
-            hearAnnouncement(first); assertReception();
+            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Albert Einstein"));
+            say(first, "Lebt die Person noch?", control("NO"));
+            assertEquals("Nein.", hearAnnouncement(first));
+            say(first, "Hat die Person etwas erfunden?", control("YES"));
+            assertEquals("Ja.", hearAnnouncement(first));
+            say(first, "Hatte die Person Schuhgrösse 42?", control("UNKNOWN"));
+            assertTrue(hearAnnouncement(first).startsWith("Dazu habe ich keine gesicherte Information."));
+            say(first, "Lebt die", control("CLARIFY"));
+            assertTrue(hearAnnouncement(first).contains("noch einmal vollständig"));
+            say(first, "Was passiert, wenn ich aufgebe?", control("RULES"));
+            assertFalse(hearAnnouncement(first).contains("Einstein"));
+            assertEquals("Albert Einstein", loaded().getStorage().get("gala.person").getAsString());
+            var giveUp = say(first, "Ich gebe auf, kannst du mir sagen, wenn du herausgedenkt hast", control("GIVE_UP"));
+            assertEquals("Es war Albert Einstein. Die Runde ist beendet; ich bin wieder für Ihre Fragen da.", hearAnnouncement(first));
+            assertReception();
+            assertFalse(loaded().getStorage().containsKey("gala.person"));
+            assertFalse(loaded().getStorage().containsKey("gala.started"));
+            int afterReveal = history().size(), afterRevealCalls = requests.size();
+            assertEquals("COMPLETE", ingress.commit(id, first.owner(), giveUp,
+                    loaded().getCurrentState().getActiveStatePath()).orElseThrow().status());
+            assertEquals(afterReveal, history().size(), "Duplicate give-up must not create a second reveal");
+            assertEquals(afterRevealCalls, requests.size());
 
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
             hearAnnouncement(first);
@@ -310,7 +330,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         assertReception(); assertTaskCleared();
         return new Encounter(owner, peer);
     }
-    private void say(Encounter encounter, String text, String... answers) {
+    private Segment say(Encounter encounter, String text, String... answers) {
         group(1); // The live camera keeps presence fresh during the journey.
         scripted.addAll(List.of(answers));
         Segment segment = receipt(encounter, text);
@@ -319,6 +339,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         assertEquals("acknowledged", outcome.reason());
         assertTrue(scripted.isEmpty(), "Every scripted response must correspond to an actual request");
         if (secondVisitor) assertCurrentContextIsolated();
+        return segment;
     }
     private Segment receipt(Encounter encounter, String text) {
         Fragment fragment = fragment(text);
