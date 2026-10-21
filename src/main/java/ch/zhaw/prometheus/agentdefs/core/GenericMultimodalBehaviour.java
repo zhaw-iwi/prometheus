@@ -51,7 +51,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
             STOP completes/cancels the active task when requested. Ending a task does not end conversation.
             PAUSE suspends an active task for explicit RESUME; both keep task null and preserve its action count.
             RESUME is valid only in PAUSED. A completed task requires a new explicitly authorized activation.
-            For PROPOSE or ACTIVATE, task has exactly these fields:
+            For PROPOSE or ACTIVATE, task has these required fields:
             goal: a string describing the user's agreed outcome and purpose;
             maxActions: an integer bounding the number of actions;
             sessionBound: true by default; use false only if the user explicitly requests autonomous

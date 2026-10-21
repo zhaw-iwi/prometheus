@@ -42,6 +42,46 @@ class GenericMultimodalTaskIntegrationTest {
     @MockitoBean LanguageModelGateway language;
     @MockitoBean SpeechSynthesisGateway speech;
 
+    @Test void additiveFirstActionTimingSurvivesReloadWithoutReinterpretingLegacyTasks() {
+        for (boolean future : List.of(false, true)) {
+            String code = UUID.randomUUID().toString().substring(0, 5);
+            var access = admin.createAccessCode(code, true);
+            admin.replaceAllowedAgentTypes(access.getId(), List.of(GenericMultimodalBehaviour.KEY));
+            UUID id = demo.createAgent(code, GenericMultimodalBehaviour.KEY).getID();
+            String spec = """
+                    {"goal":"Greet arrivals","maxActions":1,"sessionBound":true,"rules":[
+                    {"eventType":"obs.human.presence","field":"humanCount","operator":"gt","value":0,
+                    "action":"Say hello","effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3}]}
+                    """;
+            var task = JsonParser.parseString(spec).getAsJsonObject();
+            if (future) task.addProperty("firstAction", "ON_CUE");
+            when(language.infer(any())).thenReturn("{\"operation\":\"ACTIVATE\",\"task\":" + task
+                    + ",\"reply\":{\"speech\":\"Hello immediately\"}}");
+            demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Activate"),
+                    ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+            var saved = agents.findById(id).orElseThrow().getStorage();
+            assertEquals(future ? 0 : 1, saved.get(TaskMemory.ACTIONS).getAsInt());
+            var restored = TaskSpec.parse(saved.get(TaskMemory.SPEC));
+            assertEquals(future ? TaskSpec.FirstAction.ON_CUE : TaskSpec.FirstAction.IMMEDIATE, restored.firstAction());
+            assertEquals(task, restored.json());
+            if (future) {
+                new TransactionTemplate(transactions).executeWithoutResult(status -> {
+                    var agent = agents.findById(id).orElseThrow();
+                    ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage().put(TaskMemory.AFTER,
+                            new JsonPrimitive(Instant.now().minusSeconds(1).toString()));
+                    agents.saveAndFlush(agent);
+                });
+                when(language.infer(any())).thenReturn("{\"speech\":\"Hello on cue\"}");
+                demo.acknowledge(code, id, new EventRequest(Event.TYPE_HUMAN_PRESENCE, "sensor", Event.KIND_OBSERVATION,
+                        "{\"humanCount\":1,\"avgDetectionConfidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"),
+                        ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                saved = agents.findById(id).orElseThrow().getStorage();
+                assertEquals(1, saved.get(TaskMemory.ACTIONS).getAsInt());
+                assertEquals("COMPLETED", saved.get(TaskMemory.PHASE).getAsString());
+            }
+        }
+    }
+
     @Test void sessionPausePersistsAndOldCleanupCannotPauseAnExplicitlyResumedSession() {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);

@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 230 / GI-04 shared foundation: additive firstAction ON_CUE arms with
+  zero actions; omitted timing retains legacy IMMEDIATE behavior. Passed 28 focused
+  units and four isolated Generic integration cases, including reload. Gala-specific
+  agreement wording and provider acceptance follow on agents; see the Gala results.
+
 - GI-02 shared capture/admission changes are implemented and unit-tested; integrated
   Gala checks are pending on agents. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
 
@@ -9085,3 +9090,11 @@ context to current-session, completed native speech. Application-specific pause
 configuration is shared; legacy admission defaults are preserved. Shared focused
 unit checks pass (32 cases); full evidence and limits are recorded in
 `.agents/GALAIMPROVEMENT_RESULTS.md`. Integrated Gala acceptance follows on agents.
+
+## Milestone 230 - Explicit first-action timing (2026-10-21)
+
+Add optional ON_CUE task timing while retaining legacy immediate semantics and
+default JSON. Validate before changing state, suppress premature activation
+output, and complete the last cue without another action. Passed 28 focused units
+and four isolated Generic integration cases. See .agents/GALAIMPROVEMENT_RESULTS.md
+for commands, fixture correction and application acceptance pending on agents.
