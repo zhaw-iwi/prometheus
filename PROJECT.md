@@ -91,17 +91,17 @@ and regulation diagnostics remain future work.
   classifications replayed through the action, and packaging. Real WebRTC probes
   delivered the reveal without question echoes; strict silent waiting still failed.
   Voice-trial evidence
-  and transcription limits: `.agents/GPTLIVE_RESULTS.md`. Ready for release
-  integration together with the earlier database patch.
+  and transcription limits: `.agents/GPTLIVE_RESULTS.md`. Integrated for release
+  together with the database patch; see the release record in that evidence file.
 
 - Milestone 224 (2026-10-21): batch complex state-machine collection reads and
   reduce Live receipt/segment persistence queries while retaining durable claims,
   revocation checks and no automatic action replay. Shared work starts on
-  `feature/gptlive`; the same patch and Gala load regression are local on `agents`.
+  `feature/gptlive` and is merged through `main` into `agents`, which owns the Gala load regression.
   A representative synthetic Gala minute falls from 4,731 to 2,031 MySQL questions
   (57%); this still exceeds the current plan's hourly capacity if sustained.
   All 738 agents Java cases have passing evidence across the broad run and
-  focused reruns; packaging passed. Ready for integration. Evidence and capacity
+  focused reruns; packaging passed. Release integration is complete. Evidence and capacity
   limits: `.agents/GPTLIVE_RESULTS.md`.
 
 - Milestone 223 (2026-10-21): Gala asks for a game choice on common unspecified
@@ -110,7 +110,7 @@ and regulation diagnostics remain future work.
   journey covers choice, stop, laughter, hand result and single result delivery.
   Passed 54 Java cases including all three canonical/compact agent journeys and
   packaging; complete Live instructions fit at 15,846/16,000 bytes. Provider voice
-  and arbitrary-language interpretation still need live verification. Local only;
+  and arbitrary-language interpretation still need live verification;
   evidence: `.agents/GPTLIVE_RESULTS.md` and manual script `tests/gptlive/GALA.md`.
 
 - Milestone 222 (2026-10-21): Gala keeps reference/voice guidance stable across

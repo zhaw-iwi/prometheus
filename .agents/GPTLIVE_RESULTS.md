@@ -5,6 +5,37 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Milestones 224–225 release integration (2026-10-21)
+
+The user authorized commit and push after implementation review. Shared database
+and application waiting-guidance changes are committed on `feature/gptlive` as
+`b56a423`, then merged into `main` as `21b7d1b`. Gala code, load coverage, the
+manual test script and full application evidence are committed on `agents` as
+`8155ce9`; the following merge brings in the shared main ancestry.
+
+The merge also reconciles main's earlier selective core-agent port (`bb9166a`).
+Conflicts retain agents' newer embodiment/persona, Gala configuration contract,
+user-capture hook, application catalog and complete test/documentation coverage.
+Deployment source, tests and workflow match `8155ce9` exactly after resolution;
+only release documentation changes. Main acquires no Gala implementation or
+deployment configuration. Existing implementation-phase scope statements below
+describe those earlier verification turns, before this authorized release.
+
+Post-merge main verification passed 23 cases on disposable local MySQL:
+`LiveTranscriptClaimIntegrationTest`, `LiveQueryBudgetIntegrationTest`,
+`GenericMultimodalTaskIntegrationTest`, `SocialSpaceLiveJourneySmokeIntegrationTest`,
+`LiveVoiceAcknowledgementUnitTest` and `LiveContextProjectionUnitTest`.
+Command: `python tests/gptlive/run_acceptance.py --database-properties
+C:/Data/VSCodeWorkSpace/prometheus/src/main/resources/application-test.properties
+--java-tests 'LiveTranscriptClaimIntegrationTest,LiveQueryBudgetIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,LiveVoiceAcknowledgementUnitTest,LiveContextProjectionUnitTest'`.
+Artifacts: main worktree `target/gptlive-acceptance-d650e0a62e/`; owned schema/account
+removed. Agents retains the previously recorded 83-case acceptance, final six-case
+rerun, provider probes and packaging evidence because its tested code is unchanged.
+Diff checks pass. Publication order is feature/main, then agents; the agents push
+triggers Heroku. This pre-push record does not claim deployment completion.
+Strict silence, partial transcription/audio cutoffs and database capacity headroom
+remain the limitations recorded below.
+
 ## Gala guessing and voice follow-up - Milestone 225 (2026-10-21)
 
 Scope: Gala-owned code on `agents`; a default-true waiting-acknowledgment hook
