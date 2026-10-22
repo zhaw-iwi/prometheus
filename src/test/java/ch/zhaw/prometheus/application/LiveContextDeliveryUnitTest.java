@@ -191,12 +191,14 @@ class LiveContextDeliveryUnitTest {
         return new LiveContextSnapshot.Item(id.toString(), type, "developer", List.of(id), Instant.EPOCH,
                 Instant.EPOCH, Instant.ofEpochMilli(expires), "fresh", text);
     }
-    @Test void committedResultOvertakesUnsentSensoryBacklogWithoutDuplicateNarration() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void committedUpdatesReplaceUnsentSensoryBacklogAtThePermittedReadBoundary(boolean urgentResult) throws Exception {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
         Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
         var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH); var initial = snapshot("r0", "Guide");
-        var social = evidence("obs.social.context", "A visible person", 15000);
-        var oldFace = evidence("summary.face", "Superseded facial history. ".repeat(60), 15000);
+        var social = evidence("obs.social.context", "A visible person " + "detail ".repeat(70), 15000);
+        var oldFace = evidence("summary.face", "Superseded facial history.", 15000);
         var current = new AtomicReference<>(new LiveAgentContextService.Update(snapshot("r1", "Guide", social, oldFace), List.of()));
         when(contexts.refresh(AGENT, owner)).thenAnswer(call -> Optional.of(current.get()));
         var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
@@ -212,18 +214,50 @@ class LiveContextDeliveryUnitTest {
         }, value -> applied.incrementAndGet(), value -> fail(value));
         try {
             session.ready(); assertTrue(entered.await(3, TimeUnit.SECONDS));
-            UUID result = UUID.randomUUID(); now.set(100);
+            UUID result = UUID.randomUUID(); now.set(urgentResult ? 100 : 5000);
             current.set(new LiveAgentContextService.Update(snapshot("r2", "Guide", social,
-                    evidence("summary.face", "Latest face evidence", 15000)), List.of(new LiveContextDelivery.Narration(result, "Confirmed result."))));
-            bridge.changed(new AgentCommitted(AGENT, EPOCH, result)); release.countDown();
+                    evidence("summary.face", "Latest face evidence", 15000)), urgentResult ? List.of(new LiveContextDelivery.Narration(result, "Confirmed result.")) : List.of()));
+            bridge.changed(urgentResult ? new AgentCommitted(AGENT, EPOCH, result) : new AgentCommitted(AGENT, EPOCH)); release.countDown();
             await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
-            assertEquals("session.commentary.append", sent.get(1).type());
+            if (urgentResult) assertEquals("session.commentary.append", sent.get(sent.size() - 2).type());
             assertTrue(sent.getLast().content().contains("Latest face evidence"));
             assertFalse(sent.stream().anyMatch(c -> c.content().contains("Superseded facial history")));
-            assertEquals(1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
+            assertEquals(urgentResult ? 1 : 0, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
             assertTrue(session.status().recent().stream().anyMatch(t -> t.phase().equals("sensory_superseded")));
             verify(contexts, times(2)).refresh(AGENT, owner);
         } finally { release.countDown(); bridge.shutdown(); }
+    }
+    @Test void compactSensoryBatchDeliversCurrentSocialAndFaceBeforeDerivedSummariesExpire() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var initial = snapshot("r0", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        var social = evidence("obs.social.context", "Social detail ".repeat(60), 15000);
+        var face = evidence("obs.emotion.face", "Live face sample: happy; confidence .9", 15000);
+        var presence = evidence("obs.human.presence", "One visible person", 15000);
+        var grouping = evidence("obs.social.grouping", "Group detail ".repeat(10), 15000);
+        var summary = evidence("summary.face", "Temporal face detail ".repeat(12), 15000);
+        var current = snapshot("r1", "Guide", summary, grouping, presence, face, social);
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>();
+        var times = new CopyOnWriteArrayList<Long>(); var applied = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, command -> {
+            sent.add(command); times.add(now.get()); now.addAndGet(2000); // Each append ACK costs two seconds.
+        }, ignored -> applied.incrementAndGet(), reason -> fail(reason));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            assertTrue(sent.size() <= 5, "A full representative sensory refresh needs at most five ACKs");
+            int faceIndex = java.util.stream.IntStream.range(0, sent.size()).filter(i -> sent.get(i).content().contains("Live face sample")).findFirst().orElseThrow();
+            assertTrue(times.get(faceIndex) <= 6000, "Current face must precede derived summaries");
+            assertTrue(sent.getFirst().content().contains("Social detail"));
+            assertTrue(sent.stream().noneMatch(command -> command.content().contains("unknown (expired")));
+            assertTrue(sent.stream().allMatch(command -> command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES));
+            assertTrue(session.status().recent().stream().filter(t -> t.phase().equals("send"))
+                    .flatMap(t -> t.sourceIds().stream()).toList().containsAll(List.of(social.sourceIds().getFirst(), face.sourceIds().getFirst(),
+                            presence.sourceIds().getFirst(), grouping.sourceIds().getFirst(), summary.sourceIds().getFirst())));
+            assertEquals(Instant.EPOCH.plusSeconds(15), current.items().getFirst().expiresAt());
+            verify(contexts).refresh(AGENT, owner);
+        } finally { bridge.shutdown(); }
     }
     @Test void partialAcknowledgmentRetainsOldEvidenceUntilItsReplacementIsActuallySent() {
         var old = evidence("summary.face", "Previous", 15000);
@@ -238,7 +272,7 @@ class LiveContextDeliveryUnitTest {
     @Test void replacementsDeliverSocialFactsFirstWithoutWithdrawingUsableEvidence() {
         var prior = evidence("obs.social.context", "Social context: 1 people visible", 15000);
         var delivery = new LiveContextDelivery(snapshot("r1", "Guide", prior)); delivery.ready();
-        var face = evidence("obs.face.emotion", "Observed facial emotion: neutral (confidence 0.99)", 15000);
+        var face = evidence("obs.emotion.face", "Observed facial emotion: neutral (confidence 0.99)", 15000);
         var social = evidence("obs.social.context", "Social context: 2 people visible; 1 group, largest 2, singletons 0", 15000);
         var presence = evidence("obs.human.presence", "{\"humanCount\":2,\"ts\":\"1970-01-01T00:00:00Z\"}", 15000);
         var grouping = evidence("obs.social.grouping", "{\"humanCount\":2,\"groupCount\":1,\"largestGroupSize\":2}", 15000);
@@ -250,8 +284,9 @@ class LiveContextDeliveryUnitTest {
         assertTrue(first.content().contains("obs.social.context replaces prior value"));
         assertFalse(batch.commands().stream().anyMatch(command -> command.content().contains("removed")));
         assertEquals(social.sourceIds().getFirst(), first.sourceId());
+        assertEquals(face.sourceIds().getFirst(), batch.commands().get(1).sourceId(), "Current face precedes derived counts");
         assertTrue(batch.commands().stream().allMatch(command -> command.content().contains("expires=1970-01-01T00:00:15Z")));
-        assertTrue(batch.commands().stream().allMatch(command -> command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 360));
+        assertTrue(batch.commands().stream().allMatch(command -> command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES));
         assertEquals("r1", delivery.revision(), "Planning does not acknowledge delivery");
         delivery.acknowledged(batch);
         var narrowed = delivery.plan(snapshot("r3", "Guide", social), List.of());

@@ -1448,15 +1448,16 @@ refresh that context while speech continues; a response can use earlier guidance
 Incremental sensory updates replace the previous value of the same observation
 type without first withdrawing it. Compact appends retain observation/expiry
 times and existing adapter text; source IDs and revisions remain in snapshots and
-content-free command diagnostics. Rich social context is sent before other sensor
-updates and derived face summaries. Truly deselected types explicitly become
+content-free command diagnostics. Rich social context and current facial evidence
+precede derived presence/grouping and facial summaries. Truly deselected types explicitly become
 unknown. Native dialogue/history churn alone needs no extra context-marker append.
 Stable voice policy and capabilities are seeded at startup. Incremental guidance
 sends only changed sections; Generic Multimodal task updates contain the phase,
 revision and agreed/proposed goals while executable rules remain in the backend.
 Necessary guidance and confirmed announcements precede routine sensory updates.
 Compatible adjacent factual updates are packed immediately before sending, within
-a conservative 480-byte bound (below the 500-token provider limit). Long values
+a conservative 480-byte bound (below the 500-token provider limit). Shorter headers
+and 440-byte payload parts reduce avoidable fragmentation. Long values
 still use bounded sequential chunks: this is not an atomic provider context swap. Before sending each chunk, the worker checks expiry again; expired
 remaining chunks become one unknown-value notice instead of stale fresh evidence.
 
@@ -1465,7 +1466,13 @@ a five-second minimum interval, with the one-second scheduler waking deferred
 work; no worker sleeps or holds an agent lock during the wait. Sensory/delegation
 deadlines bypass this interval, and an idle 30-second fallback remains. A committed spoken intent bypasses the
 coalescing window; ordinary sensor/native-history commits retain it. An in-flight
-batch and pending provider ACK can still delay a newly committed announcement. Access revocation and session liveness
+batch and pending provider ACK can still delay a newly committed announcement.
+At an observation boundary, unsent sensory backlog yields to newer committed
+evidence once the existing five-second read boundary is due; urgent results retain
+their immediate path. Finish an already-started multipart observation first, and
+never let packing cross that replacement boundary. Original source IDs/timestamps
+and expiry remain intact; no faster polling or sensing cadence is introduced.
+Access revocation and session liveness
 checks remain independent. Transcript fragments persist using scalar
 scope/epoch checks rather than reloading history; event state paths load together
 when history is needed. These reduce database queries without changing durable

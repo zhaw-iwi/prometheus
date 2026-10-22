@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 244 (shared delivery): bounded context chunks use shorter headers and
+  prioritise current face evidence before derived summaries. Unsent sensory backlog
+  yields at observation boundaries to newer commits at the existing refresh cadence.
+  Source identity/expiry and permission checks remain intact. Focused/shared gates
+  pass; integrated application acceptance follows. See GPTLIVE_RESULTS.
+
 - Milestone 243 (shared capture): application policies may explicitly opt into
   ignoring isolated input-activity spikes. Pending onset preserves conservative
   user boundaries; default agents, assistant capture and raw durability stay

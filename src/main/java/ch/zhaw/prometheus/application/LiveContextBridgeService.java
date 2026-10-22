@@ -186,9 +186,11 @@ public class LiveContextBridgeService {
             var suppressed = new HashSet<UUID>();
             String previousEvidence = null;
             while (!queue.isEmpty()) {
-                // Finish the current multi-part observation, then allow a committed result
-                // to supersede unsent routine evidence. Never abandon guidance or a narration.
-                if (urgent.get() && queue.getFirst().evidenceType() != null
+                // Finish a multi-part observation. Then use newer committed evidence instead
+                // of its obsolete backlog, only at the already permitted read boundary.
+                // Results remain urgent; guidance and narrations are never abandoned.
+                if (replacementDue()
+                        && queue.getFirst().evidenceType() != null
                         && !Objects.equals(previousEvidence, queue.getFirst().evidenceType())
                         && queue.stream().allMatch(command -> command.evidenceType() != null)) {
                     var deferred = new HashSet<String>(); var sources = new LinkedHashSet<UUID>();
@@ -218,10 +220,14 @@ public class LiveContextBridgeService {
                 // freshness decision across an ACK wait or merge announcements/instructions.
                 while (!queue.isEmpty() && !command.interruptible() && command.type().equals("session.thinking.append")) {
                     var next = queue.getFirst();
+                    // Packing must not carry another obsolete observation across this boundary.
+                    if (replacementDue() && next.evidenceType() != null
+                            && !Objects.equals(previousEvidence, next.evidenceType())
+                            && queue.stream().allMatch(value -> value.evidenceType() != null)) break;
                     String content = command.content() + "\n" + next.content();
                     if (next.interruptible() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
                             || !next.revision().equals(command.revision()) || next.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
-                            || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 480) break;
+                            || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > LiveContextDelivery.MAX_APPEND_BYTES) break;
                     queue.removeFirst(); previousEvidence = next.evidenceType(); if (next.sourceId() != null) sources.add(next.sourceId());
                     command = new Command(command.type(), content, command.delegationId(),
                             sources.size() == 1 ? sources.iterator().next() : null, command.revision());
@@ -230,6 +236,7 @@ public class LiveContextBridgeService {
             }
             return Set.of();
         }
+        private boolean replacementDue() { return urgent.get() || dirty.get() && clock.millis() >= nextCommitReadAt; }
         private void transmit(Command command, List<UUID> sources) {
             if (closed.get()) throw new IllegalStateException("Context session closed");
             state = "awaiting_ack"; trace("send", command, sources);

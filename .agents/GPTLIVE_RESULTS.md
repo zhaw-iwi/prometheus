@@ -1138,3 +1138,33 @@ Log: target/gi16-unit.log in the feature/gptlive worktree. Integration evidence
 is recorded below before integration. Unit checks do not establish audibility.
 
 Shared boundary verification: 22 cases passed (7 scoped-session units and 15 isolated integration cases across ingress, claims, durable receipts, query budgets and session smoke). Command: run_acceptance.py --database-properties C:/Data/VSCodeWorkSpace/prometheus/src/main/resources/application-test.properties --java-tests ScopedLiveSessionServiceUnitTest,LiveTranscriptIngressIntegrationTest,LiveTranscriptClaimIntegrationTest,LiveReceiptDurabilityIntegrationTest,LiveQueryBudgetIntegrationTest,LiveSessionSmokeIntegrationTest. Evidence: target/gptlive-acceptance-41ebabf2fc/java.log; disposable schema/account removed. Existing query budgets passed unchanged. git diff --check passed. Application opt-in and integrated Gala verification follow on agents.
+
+
+## Milestone 244 / GI-17 shared delivery (2026-10-22)
+
+Context payload parts grow from 360 to 440 UTF-8 bytes with shorter headers,
+retaining the existing conservative 480-byte maximum per provider append. Current
+facial evidence follows rich social facts before derived counts/summaries. Unsent
+sensory backlog can yield to a newer commit at the existing five-second read
+boundary, finishing the current multipart observation first. Packing cannot pull
+the next obsolete type across that boundary. Urgent result priority, source IDs,
+source timestamps, original expiry and sequential per-append checks remain intact.
+No sensing change, polling increase, authorization cache or data migration.
+
+43 focused units passed (LiveContextDeliveryUnitTest, LiveContextProjectionUnitTest,
+LiveActivityContextUnitTest, ScopedLiveSessionServiceUnitTest). The strengthened
+19-case delivery suite passed again after protecting packing at the replacement
+boundary. A representative full sensory batch requires at most five appends;
+with fake two-second ACK waits, current face arrives within six seconds and all
+facts remain inside their original 15-second expiry. Tests also cover obsolete
+replacement, expiry after ACK waits, lost ACK without retry, read-coalescing storms,
+source trace IDs, reset and scoped-session stop/revocation. These are synthetic
+bounds, not a physical/provider latency claim. Logs: target/gi17-unit.log and
+target/gi17-packing-unit.log in the feature/gptlive worktree.
+
+Seven local integration cases passed: LiveMultimodalBridgeIntegrationTest,
+LiveQueryBudgetIntegrationTest and LiveSessionSmokeIntegrationTest, via the isolated
+runner and the explicit local application-test.properties. Query budgets are
+unchanged. Evidence: target/gptlive-acceptance-9f90e37b95/java.log; disposable
+schema/account removed. These preceded the final packing guard; the full agents
+acceptance covers the integrated final tree. git diff --check passed.
