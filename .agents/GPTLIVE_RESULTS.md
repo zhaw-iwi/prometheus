@@ -1620,3 +1620,9 @@ local config before creating a database; the explicit loopback configuration was
 then supplied. The earlier ingress-only run passed; no nonexistent named classes
 are counted as verification. git diff --check passed. Gala opt-in and final journey
 verification follow on agents. Provider wording remains a separate trial gate.
+
+Follow-up before release: clarification also retains the current speaking-occasion
+identity. A changed task/result occasion during an ACK wait suppresses its old
+clarification without requiring a state-path change or another database read.
+The 26-case clarification/delivery rerun passes, including this additional race
+(target/gi19-occasion-unit.log). Existing deadlines and sensor-only behaviour stay.

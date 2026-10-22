@@ -17,7 +17,7 @@ class LiveContextDeliveryUnitTest {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"new_request", "expired", "other_state", "sensor_only"})
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"new_request", "expired", "other_state", "other_occasion", "sensor_only"})
     void obsoleteClarificationIsRecheckedAfterFactDelivery(String scenario) {
         var contexts = mock(LiveAgentContextService.class); var initial = snapshot("r0", "Guide");
         var now = new AtomicLong(); Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(c -> now.get());
@@ -34,6 +34,7 @@ class LiveContextDeliveryUnitTest {
         var session = bridge.open(initial, owner, command -> {
             sent.add(command);
             if (scenario.equals("expired")) now.set(10000);
+            if (scenario.equals("other_occasion")) bridge.changed(new AgentCommitted(AGENT, EPOCH, UUID.randomUUID()));
             if (scenario.equals("new_request")) bridge.captured(new LiveTranscriptCaptureService.Committed(AGENT, owner,
                     new LiveTranscriptIngressService.Outcome(UUID.randomUUID(), "USER", "Personenraten bitte", "COMPLETE",
                             "acknowledged", UUID.randomUUID(), 200L, 300L), List.of("state")));
