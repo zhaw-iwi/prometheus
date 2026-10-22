@@ -1168,3 +1168,27 @@ runner and the explicit local application-test.properties. Query budgets are
 unchanged. Evidence: target/gptlive-acceptance-9f90e37b95/java.log; disposable
 schema/account removed. These preceded the final packing guard; the full agents
 acceptance covers the integrated final tree. git diff --check passed.
+
+## GI-19 shared short-reply recovery (2026-10-22)
+
+ExternalVoicePolicy has a default-false exact non-mutating acknowledgement hook;
+applications opting in must guarantee a non-control path. Other agents retain
+conservative short-reply admission. Internal capture notifications carry the
+source state, without changing the public ledger shape or durable receipt claims.
+Pending clarification is bounded, duplicate-safe and expires after ten seconds.
+A later admitted non-bare user request or incompatible state suppresses unsent
+recovery, rechecked after provider waits; assistant text, incomplete input and
+ordinary sensor revisions do not supersede it. The Live request explains uncertain
+choice rather than alleging missing audio. Already-sent speech is not retractable.
+No new polling, inference, schema or query-per-fragment work.
+
+Passed 35 focused units and 13 local-MySQL boundary/query cases. Final command:
+python tests/gptlive/run_acceptance.py --database-properties
+C:/Data/VSCodeWorkSpace/prometheus/src/main/resources/application-test.properties
+--java-tests LiveTranscriptIngressIntegrationTest,LiveReceiptDurabilityIntegrationTest,LiveTranscriptClaimIntegrationTest,LiveQueryBudgetIntegrationTest,LiveClarificationsUnitTest,LiveShortReplyContextUnitTest,LiveContextDeliveryUnitTest,LiveTranscriptCaptureServiceUnitTest.
+Evidence: target/gptlive-acceptance-a72ecf6032/java.log in feature/gptlive;
+disposable schema/account removed. A first runner invocation rejected the absent
+local config before creating a database; the explicit loopback configuration was
+then supplied. The earlier ingress-only run passed; no nonexistent named classes
+are counted as verification. git diff --check passed. Gala opt-in and final journey
+verification follow on agents. Provider wording remains a separate trial gate.

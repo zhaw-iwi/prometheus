@@ -53,9 +53,7 @@ public class LiveContextBridgeService {
         Session session = sessions.get(event.owner().sessionId());
         if (session == null || !session.owner.equals(event.owner()) || !session.agent.equals(event.agentId())) return;
         session.delegations.committed(event.outcome());
-        if ("CLARIFICATION".equals(event.outcome().status())) {
-            if (!session.clarifications.offer(event.outcome().segmentId())) session.fail("clarification_queue_full");
-        }
+        if (!session.clarifications.captured(event.outcome(), event.observedState(), clock.millis())) session.fail("clarification_queue_full");
         session.request();
     }
     // Tick in memory; coalesce commits, but honor sensory/delegation deadlines and bounded fallback.
@@ -77,7 +75,7 @@ public class LiveContextBridgeService {
         private final AtomicBoolean urgent = new AtomicBoolean();
         private final AtomicReference<UUID> lastAnnouncement = new AtomicReference<>();
         private final AtomicReference<OccasionIdentity> currentOccasion = new AtomicReference<>();
-        private final ArrayBlockingQueue<UUID> clarifications = new ArrayBlockingQueue<>(32);
+        private final LiveClarifications clarifications = new LiveClarifications();
         private final ArrayDeque<Trace> traces = new ArrayDeque<>();
         private volatile boolean ready;
         private volatile String state = "starting", revision;
@@ -168,8 +166,12 @@ public class LiveContextBridgeService {
                 if (!deferred.isEmpty()) return; // Refresh immediately for the urgent result before resolving routine work.
                 for (var reply : delegations.resolve(fresh.context(), clock.millis()))
                     for (Command command : LiveContextDelivery.contextReply(reply.text(), reply.id(), revision)) transmit(command);
-                UUID segment;
-                while ((segment = clarifications.poll()) != null) transmit(LiveContextDelivery.clarification(segment, revision));
+                LiveClarifications.Pending clarification;
+                while ((clarification = clarifications.poll()) != null) {
+                    if (clarifications.valid(clarification, fresh.context().statePath(), clock.millis()))
+                        transmit(LiveContextDelivery.clarification(clarification.segment(), revision));
+                    else trace("clarification_obsolete", null, List.of(clarification.segment()));
+                }
                 state = "ready";
             } catch (RuntimeException invalid) {
                 if (closed.get()) { trace("session_closed_during_delivery", null); return; }

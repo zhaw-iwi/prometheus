@@ -25,7 +25,12 @@ import jakarta.annotation.PreDestroy;
 /** Fast bounded sideband admission; database/agent work runs in ordered session mailboxes. */
 @Service
 public class LiveTranscriptCaptureService {
-    public record Committed(UUID agentId, ExternalSpeech owner, LiveTranscriptIngressService.Outcome outcome) {}
+    public record Committed(UUID agentId, ExternalSpeech owner, LiveTranscriptIngressService.Outcome outcome, List<String> observedState) {
+        public Committed { observedState = List.copyOf(observedState); }
+        public Committed(UUID agentId, ExternalSpeech owner, LiveTranscriptIngressService.Outcome outcome) {
+            this(agentId, owner, outcome, List.of());
+        }
+    }
     public record Trace(long serverMs, String phase, String receiptId, UUID segmentId, String outcome, Long providerStartMs, Long providerEndMs) {}
     public record Status(String state, int queued, int queueHighWater, long receipts, List<Trace> recent, long dropped) {}
     private final LiveTranscriptIngressService ingress;
@@ -163,7 +168,7 @@ public class LiveTranscriptCaptureService {
                     trace("agent_completed", null, segment.id(), result.map(LiveTranscriptIngressService.Outcome::status).orElse("OBSOLETE"), segment.startMs(), segment.endMs());
                     result.ifPresent(outcome -> {
                         trace("segment_outcome", null, segment.id(), outcome.reason(), segment.startMs(), segment.endMs());
-                        events.publishEvent(new Committed(agent, owner, outcome));
+                        events.publishEvent(new Committed(agent, owner, outcome, observedState));
                     });
                 });
             }

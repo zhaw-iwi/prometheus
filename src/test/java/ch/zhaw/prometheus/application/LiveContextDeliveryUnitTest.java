@@ -17,6 +17,38 @@ class LiveContextDeliveryUnitTest {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
     @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"new_request", "expired", "other_state", "sensor_only"})
+    void obsoleteClarificationIsRecheckedAfterFactDelivery(String scenario) {
+        var contexts = mock(LiveAgentContextService.class); var initial = snapshot("r0", "Guide");
+        var now = new AtomicLong(); Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(c -> now.get());
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH,
+                List.of(scenario.equals("other_state") ? "new activity" : "state"), "Guide",
+                List.of(new LiveContextSnapshot.Item("face", "obs.face.emotion", "developer", List.of(),
+                        Instant.EPOCH, Instant.EPOCH, Instant.EPOCH.plusSeconds(15), "fresh", "happy")), 0, initial.guidance());
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var ambiguous = new LiveTranscriptIngressService.Outcome(UUID.randomUUID(), "USER", "Ja", "CLARIFICATION",
+                "short_reply_without_established_context", null, 0L, 100L);
+        var session = bridge.open(initial, owner, command -> {
+            sent.add(command);
+            if (scenario.equals("expired")) now.set(10000);
+            if (scenario.equals("new_request")) bridge.captured(new LiveTranscriptCaptureService.Committed(AGENT, owner,
+                    new LiveTranscriptIngressService.Outcome(UUID.randomUUID(), "USER", "Personenraten bitte", "COMPLETE",
+                            "acknowledged", UUID.randomUUID(), 200L, 300L), List.of("state")));
+        }, ignored -> applied.incrementAndGet(), reason -> fail(reason));
+        try {
+            bridge.captured(new LiveTranscriptCaptureService.Committed(AGENT, owner, ambiguous, List.of("state")));
+            bridge.captured(new LiveTranscriptCaptureService.Committed(AGENT, owner, ambiguous, List.of("state")));
+            session.ready();
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() > 0 && session.status().state().equals("ready"));
+            var recovery = sent.stream().filter(c -> c.type().equals("session.commentary.append")).toList();
+            assertEquals(scenario.equals("sensor_only") ? 1 : 0, recovery.size());
+            if (!recovery.isEmpty()) assertTrue(recovery.getFirst().content().contains("Do not claim missing words"));
+        } finally { bridge.shutdown(); }
+    }
+    @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     void conversationBeginningDuringAnAckWaitDropsOnlyOptionalAmbientSpeech(boolean optional) {
         var contexts = mock(LiveAgentContextService.class); var captures = mock(LiveTranscriptCaptureService.class);

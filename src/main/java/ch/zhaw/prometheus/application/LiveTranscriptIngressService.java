@@ -2,7 +2,6 @@ package ch.zhaw.prometheus.application;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -174,13 +173,14 @@ public class LiveTranscriptIngressService {
         return agent != null && owner.equals(ownership.current(agent)) ? agent : null;
     }
     private boolean ambiguousShortReply(Agent agent, ExternalSpeech owner, Segment segment, List<String> observedState) {
-        String text = segment.text().trim().toLowerCase(Locale.ROOT).replaceAll("[.!?,]", "");
-        if (!List.of("yes", "no", "yeah", "yep", "ok", "okay", "ready", "again", "ja", "nein", "bereit", "weiter", "نعم", "لا").contains(text)) return false;
+        var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+        if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
+                && policy.liveNonMutatingAcknowledgement(segment.text())) return false;
+        if (!ch.zhaw.prometheus.application.live.LiveShortReplyContext.bareReply(segment.text())) return false;
         var latestAnnouncement = agent.getEventHistory().toList().stream().filter(event -> ConversationProjection.isIntent(event)
                 && owner.sessionId().equals(event.speechProvenance().sessionId())
                 && ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech() != null)
                 .map(Event::getCreatedDate).filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
-        var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
         boolean activityOwned = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
                 && policy.liveActivityContext() != null;
         if (!agent.getCurrentState().getActiveStatePath().equals(observedState)
