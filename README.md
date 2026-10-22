@@ -2004,6 +2004,14 @@ session visibly; duration expiry records an incomplete segment. Assistant captur
 never acknowledges user input. Ambiguous bare answers such as yes/no during state
 changes or following uncorrelated backend questions request clarification and do
 not advance the agent; explicit, self-contained replies remain usable.
+Application-owned policies may opt an exact non-mutating acknowledgement out of
+this safeguard through `liveNonMutatingAcknowledgement`; its default is false.
+The policy must also guarantee that admitting that input cannot start, stop or
+alter activity control. Pending clarifications retain source state/segment and a
+ten-second lifetime. A later admitted self-contained request, changed state or
+expiry discards unsent recovery, including after provider ACK waits. Routine
+sensor refresh alone does not cancel it. Clarification describes an uncertain
+choice, not broken audio; already-sent speech cannot be retracted.
 `GET /demo/agents/{agentId}/live/transcripts?sessionId={handle}` returns the last
 100 ledger outcomes under the same access scope, including incomplete/late text.
 No raw audio is stored. Real continuous quiet-audio coverage remains a live-trial
