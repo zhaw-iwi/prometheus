@@ -35,6 +35,8 @@ public class GalaDinnerReception implements AgentDefinition {
         var guessing = new GalaDinnerState("Gala guess the person", storage, true);
         var task = new GalaDinnerState("Gala co-created task", new GalaDinnerTaskPolicy(storage), true);
         var routing = new GalaDinnerState("Gala routing", storage, false);
+        task.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN),
+                new GalaDinnerAction(storage, "FAIL_TASK"), routing));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS"), rps));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "GUESS"), guessing));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "TASK"), task));

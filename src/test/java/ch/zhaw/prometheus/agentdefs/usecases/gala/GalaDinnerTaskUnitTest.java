@@ -55,7 +55,7 @@ class GalaDinnerTaskUnitTest {
         String instructions = new LiveVoicePolicyAdapter().instructions(agent);
         assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("Proposed goal: Eine kurze Reaktion"));
         assertTrue(instructions.contains("German"));
-        assertTrue(instructions.contains("Speak its confirmed\nresponse faithfully"));
+        assertTrue(instructions.contains("you compose speech from confirmed agreement"));
         activate();
         assertEquals("RUNNING", TaskMemory.phase(memory));
         assertEquals(1, memory.get(TaskMemory.ACTIONS).getAsInt());
@@ -72,7 +72,9 @@ class GalaDinnerTaskUnitTest {
         verifyNoInteractions(gateway);
         when(gateway.infer(any())).thenReturn("{\"speech\":\"Mein Humor hat heute keine Ladepause.\"}");
         Event result = hand("paper", .99, Instant.now());
-        assertTrue(BehaviourPlan.fromJson(result.getPayload()).getSpeech().endsWith("Aufgabe abgeschlossen."));
+        assertNoSpeech(result);
+        assertTrue(facts().contains("final allowed action"));
+        assertTrue(facts().contains("Sage einen kurzen Roboterwitz"));
         assertHome();
         assertNull(hand("paper", .99, Instant.now()));
         verify(gateway).infer(any());
@@ -94,21 +96,26 @@ class GalaDinnerTaskUnitTest {
         String spec = SPEC.replace("\"maxActions\":2", "\"maxActions\":1,\"firstAction\":\"ON_CUE\"");
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 TaskReplyFixture.update("PROPOSE", spec, "UNTRUSTED", compact));
-        var proposed = BehaviourPlan.fromJson(say("Einen Witz erst bei Papier, genau einmal.").getPayload());
-        assertTrue(proposed.getSpeech().contains("Erste Aktion erst beim passenden Signal"));
-        assertTrue(proposed.getSpeech().contains("1 Aktion insgesamt"));
-        assertTrue(proposed.getSpeech().contains("Handzeichen Papier"));
-        assertTrue(proposed.getSpeech().contains("Sage einen kurzen Roboterwitz"));
-        assertNull(proposed.getMotion());
+        var proposed = say("Einen Witz erst bei Papier, genau einmal.");
+        assertNoSpeech(proposed);
+        assertTrue(facts().contains("ON_CUE"));
+        assertTrue(facts().contains("\"maxActions\":1"));
+        assertTrue(facts().contains("paper"));
+        assertTrue(facts().contains("Sage einen kurzen Roboterwitz"));
+        if (proposed != null) assertNull(BehaviourPlan.fromJson(proposed.getPayload()).getMotion());
         when(gateway.infer(any())).thenReturn(TaskReplyFixture.update("ACTIVATE", "null", "PREMATURE JOKE", compact));
-        var armed = BehaviourPlan.fromJson(say("Ja, aktivieren").getPayload());
-        assertFalse(armed.getSpeech().contains("PREMATURE")); assertNull(armed.getMotion());
+        var armed = say("Ja, aktivieren"); assertNoSpeech(armed);
+        assertFalse(facts().contains("PREMATURE"));
+        assertTrue(facts().contains("Zero actions performed"));
+        assertTrue(facts().indexOf("Do NOT tell the joke") < facts().indexOf("Agreed goal:"));
+        if (armed != null) assertNull(BehaviourPlan.fromJson(armed.getPayload()).getMotion());
         assertEquals(0, memory.get(TaskMemory.ACTIONS).getAsInt());
         assertEquals("RUNNING", TaskMemory.phase(memory));
-        clearInvocations(gateway); capture(armed.getSpeech()); arm();
+        clearInvocations(gateway); capture("Ich warte jetzt auf dein Papierzeichen."); arm();
         assertNull(hand("rock", .99, Instant.now())); verifyNoInteractions(gateway);
         when(gateway.infer(any())).thenReturn("{\"speech\":\"Mein kurzer Roboterwitz.\"}");
-        assertTrue(speech(hand("paper", .99, Instant.now())).contains("Roboterwitz"));
+        assertNoSpeech(hand("paper", .99, Instant.now()));
+        assertTrue(facts().contains("Roboterwitz"));
         assertHome(); assertNull(hand("paper", .99, Instant.now())); verify(gateway).infer(any());
     }
 
@@ -118,7 +125,8 @@ class GalaDinnerTaskUnitTest {
         clearInvocations(gateway);
         for (String request : List.of("Zuerst Stein, dann fröhlich, dann stoppen.", "First happy, then paper, then stop.")) {
             var response = say(request);
-            assertTrue(speech(response).contains("feste Reihenfolge"));
+            assertNoSpeech(response);
+            assertTrue(facts().contains("ordered sequence"));
             assertEquals(draft, memory.get(TaskMemory.DRAFT));
             assertFalse(memory.containsKey(TaskMemory.SPEC));
         }
@@ -130,20 +138,20 @@ class GalaDinnerTaskUnitTest {
     @Test void activationWithoutProposalAndInvalidOrAlteredPlansCannotPublishActivationClaims() {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 update("ACTIVATE", SPEC, "UNAUTHORIZED"));
-        assertFalse(speech(say("Starte direkt")).contains("UNAUTHORIZED"));
+        assertNoSpeech(say("Starte direkt")); assertFalse(facts().contains("UNAUTHORIZED"));
         assertFalse(memory.containsKey(TaskMemory.SPEC));
         for (String invalid : List.of(SPEC.replace("\"sessionBound\":true", "\"sessionBound\":false"),
                 SPEC.replace("\"maxActions\":2", "\"maxActions\":6"),
                 SPEC.replace("\"field\":\"sign\"", "\"field\":\"identity\""))) {
             when(gateway.infer(any())).thenReturn(update("PROPOSE", invalid, "UNAUTHORIZED"));
-            assertFalse(speech(say("Ändere den Vorschlag")).contains("UNAUTHORIZED"));
+            assertNoSpeech(say("Ändere den Vorschlag")); assertFalse(facts().contains("UNAUTHORIZED"));
             assertFalse(memory.containsKey(TaskMemory.DRAFT));
         }
         when(gateway.infer(any())).thenReturn(update("PROPOSE", SPEC, "Vorschlag, noch nicht aktiv."));
         say("Bitte einen gültigen Vorschlag");
         var draft = memory.get(TaskMemory.DRAFT).deepCopy();
         when(gateway.infer(any())).thenReturn(update("ACTIVATE", SPEC.replace("\"maxActions\":2", "\"maxActions\":3"), "UNAUTHORIZED"));
-        assertFalse(speech(say("Ja")).contains("UNAUTHORIZED"));
+        assertNoSpeech(say("Ja")); assertFalse(facts().contains("UNAUTHORIZED"));
         assertEquals(draft, memory.get(TaskMemory.DRAFT));
         assertFalse(memory.containsKey(TaskMemory.SPEC));
     }
@@ -156,40 +164,37 @@ class GalaDinnerTaskUnitTest {
         when(gateway.infer(any())).thenReturn(TaskReplyFixture.update("ACTIVATE", "null", "Papier!", compact));
         var result = BehaviourPlan.fromJson(say("Ja, jetzt aktivieren.").getPayload());
         assertEquals("paper", result.getMotion().getAsJsonObject().get("handSign").getAsString());
-        assertEquals("Papier! Damit ist unsere Aufgabe abgeschlossen.", result.getSpeech());
+        assertNull(result.getSpeech());
+        assertTrue(facts().contains("Sage Papier und zeige Papier"));
+        assertTrue(facts().contains("final allowed action"));
         assertHome();
         assertNull(hand("paper", .99, Instant.now()));
         verify(gateway, times(1)).infer(any());
     }
 
     @ParameterizedTest @ValueSource(ints = {1, 3, 5})
-    void proposalSpeechStatesValidatedCountsAndTerminationEvenWhenTheModelGetsThemWrong(int actions) {
+    void proposalFactsPreserveValidatedTermsAndDiscardModelProse(int actions) {
         String spec = SPEC.replace("\"maxActions\":2", "\"maxActions\":" + actions)
                 .replace("Eine kurze Reaktion auf Papier zeigen", actions == 3 ? "界".repeat(399) + "." : "界".repeat(400));
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 TaskReplyFixture.update("PROPOSE", spec, "UNTRUSTED: Drei spätere Reaktionen, dann pausiert es.", true));
-        var proposal = BehaviourPlan.fromJson(say("Bitte einen Vorschlag.").getPayload());
-        String text = proposal.getSpeech();
+        var proposal = say("Bitte einen Vorschlag.");
+        assertNoSpeech(proposal);
+        String text = facts();
         assertFalse(text.contains("UNTRUSTED"));
-        assertFalse(text.contains(".."));
-        assertTrue(text.contains("noch nicht aktiv"));
-        assertTrue(text.contains("Nach Ihrer Zustimmung eine Aktion sofort"));
-        assertTrue(text.contains("beenden die Aufgabe und verwerfen den Plan"));
-        assertTrue(text.contains("Ende der Sprachverbindung"));
-        if (actions == 1) {
-            assertTrue(text.contains("Einmalige Aktion: Sage einen kurzen Roboterwitz"));
-            assertFalse(text.contains("Bei Handzeichen"), "An immediate-only action does not also wait for a sensor cue");
-        }
-        assertTrue(text.contains(actions == 1 ? "danach ist die Aufgabe beendet"
-                : "dann höchstens " + (actions - 1) + " Reaktionen"));
-        assertNull(proposal.getMotion());
-        assertTrue(text.length() <= 1000);
-        assertDoesNotThrow(() -> TaskMemory.plan(proposal.toJsonObject()));
+        assertTrue(text.contains("not active"));
+        assertTrue(text.contains("IMMEDIATE"));
+        assertTrue(text.contains("\"maxActions\":" + actions));
+        assertTrue(text.contains("\"sessionBound\":true"));
+        assertTrue(text.contains("Sage einen kurzen Roboterwitz"));
+        if (proposal != null) assertNull(BehaviourPlan.fromJson(proposal.getPayload()).getMotion());
+        assertTrue(text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 4000);
         assertEquals(JsonParser.parseString(spec), memory.get(TaskMemory.DRAFT));
         assertFalse(memory.containsKey(TaskMemory.SPEC));
         clearInvocations(gateway);
         when(gateway.infer(any())).thenReturn(update("KEEP", "null", "Eine Antwort auf Ihre Frage."));
-        assertEquals("Eine Antwort auf Ihre Frage.", speech(say("Was bedeutet das?")));
+        assertNoSpeech(say("Was bedeutet das?"));
+        assertTrue(facts().contains("current question"));
         verify(gateway, times(1)).infer(any());
     }
 
@@ -243,7 +248,8 @@ class GalaDinnerTaskUnitTest {
         assertNull(face("neutral")); verifyNoInteractions(gateway);
         when(gateway.infer(any())).thenReturn("{\"speech\":\"Ein kleiner Roboterwitz.\"}");
         Event response = face("happy");
-        assertEquals("Ein kleiner Roboterwitz.", speech(response));
+        assertNoSpeech(response);
+        assertTrue(facts().contains("Sage einen kurzen Roboterwitz"));
         assertEquals("RUNNING", TaskMemory.phase(memory));
         assertEquals(2, memory.get(TaskMemory.ACTIONS).getAsInt());
         assertFalse(memory.containsKey(FACE), "Ambient expression tracking must not override the task");
@@ -267,21 +273,22 @@ class GalaDinnerTaskUnitTest {
         assertHome();
     }
 
-    @Test void germanRecoveryPreservesTheAgreementAndItsCaptureCanReleaseTheNextCue() {
+    @Test void recoveryFactsPreserveTheAgreementAndRequireANewResponseCheck() {
         propose(SPEC); activate(); capture(OPENING); arm();
         var spec = memory.get(TaskMemory.SPEC).deepCopy();
         clearInvocations(gateway);
-        assertEquals("Unsere Aufgabe ist bereits aktiv.", speech(say("Resume the task.")));
+        assertNoSpeech(say("Resume the task."));
+        assertTrue(facts().contains("already active"));
         verifyNoInteractions(gateway);
         when(gateway.infer(any())).thenThrow(new IllegalStateException("provider unavailable"));
-        String recovery = speech(say("Wie war unsere Vereinbarung?"));
-        assertTrue(recovery.startsWith("Das konnte ich"));
+        assertNoSpeech(say("Wie war unsere Vereinbarung?"));
+        assertTrue(facts().contains("could not be validated"));
         assertEquals(spec, memory.get(TaskMemory.SPEC));
         assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
-        capture(recovery);
+        capture("Die bestehende Vereinbarung bleibt erhalten. Soll ich es noch einmal versuchen?");
         assertTrue(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
         doReturn("{\"speech\":\"Ein letzter Witz.\"}").when(gateway).infer(any());
-        assertNotNull(hand("paper", .99, Instant.now()));
+        assertNoSpeech(hand("paper", .99, Instant.now()));
         assertHome();
     }
 
@@ -307,6 +314,51 @@ class GalaDinnerTaskUnitTest {
             assertTrue(instructions.contains(contract), contract);
     }
 
+    @Test void lostResponseEndsOnceWithoutReplayingTheActionAndKeepsOnlyTerminalFacts() {
+        propose(SPEC); activate(); clearInvocations(gateway);
+        var pending = memory.get(TaskResponse.KEY).getAsJsonObject().deepCopy();
+        pending.addProperty("deadline", Instant.now().minusSeconds(1).toString());
+        memory.put(TaskResponse.KEY, pending);
+        assertFalse(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
+        assertNull(agent.acknowledge(new Event(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN, "system", Event.KIND_SYSTEM, "deadline"), runtime));
+        assertHome();
+        var recovery = new GalaDinnerPolicy(memory).liveActivityContext().continuation();
+        assertEquals(LiveActivityContext.Occasion.PROACTIVE, recovery.occasion());
+        assertTrue(facts().contains("physical action may already have happened"));
+        assertFalse(facts().contains("Agreed executable terms"));
+        assertNull(hand("paper", .99, Instant.now()));
+        assertNull(agent.acknowledge(new Event(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN, "system", Event.KIND_SYSTEM, "late"), runtime));
+        assertEquals(recovery.id(), new GalaDinnerPolicy(memory).liveActivityContext().continuation().id());
+        verifyNoInteractions(gateway);
+        say("Stopp");
+        assertNull(new GalaDinnerPolicy(memory).liveActivityContext().continuation());
+        assertFalse(memory.containsKey(TASK_FACTS));
+    }
+
+    @Test void clarificationInvalidatesThePreviousResponseAndStaleCheckCannotReleaseIt() {
+        propose(SPEC); activate();
+        var event = agent.recordExternalSpeech("Mein Roboterwitz ist fertig.", new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                owner.sessionId(), owner.epoch(), "old", SpeechProvenance.Association.NONE, List.of(), true));
+        var started = Instant.parse(memory.get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
+        var check = TaskResponse.claim(memory, owner, event, started, started.plusMillis(1)).orElseThrow();
+        var spec = memory.get(TaskMemory.SPEC).deepCopy(); clearInvocations(gateway);
+        assertNull(say("First happy, then paper, then stop."));
+        assertEquals(spec, memory.get(TaskMemory.SPEC));
+        assertEquals("PENDING", TaskResponse.status(memory));
+        assertFalse(TaskResponse.finish(memory, owner, check, true, Instant.now()));
+        assertNull(hand("paper", .99, Instant.now())); verifyNoInteractions(gateway);
+    }
+
+    @Test void excessiveUtf8TermsCannotReplaceAValidProposal() {
+        propose(SPEC); var prior = memory.get(TaskMemory.DRAFT).deepCopy();
+        String oversized = SPEC.replace("Eine kurze Reaktion auf Papier zeigen", "界".repeat(400))
+                .replace("Sage einen kurzen Roboterwitz", "界".repeat(300));
+        when(gateway.infer(any())).thenReturn(update("PROPOSE", oversized, "UNAUTHORIZED"));
+        assertNoSpeech(say("Ändere den Vorschlag"));
+        assertEquals(prior, memory.get(TaskMemory.DRAFT));
+        assertFalse(facts().contains("UNAUTHORIZED"));
+    }
+
     private void propose(String spec) {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 update("PROPOSE", spec, "Ich schlage eine kurze Reaktion vor. Soll ich sie aktivieren?"));
@@ -315,8 +367,13 @@ class GalaDinnerTaskUnitTest {
     private void activate() { when(gateway.infer(any())).thenReturn(update("ACTIVATE", "null", OPENING)); say("Ja, bitte aktivieren."); }
     private void arm() { put(memory, TaskMemory.AFTER, Instant.now().minusSeconds(1).toString()); }
     private void capture(String text) {
-        agent.recordExternalSpeech(text, new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+        var speech = agent.recordExternalSpeech(text, new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
                 owner.sessionId(), owner.epoch(), UUID.randomUUID().toString(), SpeechProvenance.Association.NONE, List.of(), true));
+        // Model association is mocked here; persistence/provider trials exercise the actual asynchronous check.
+        Instant started = Instant.parse(memory.get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
+        Instant captured = Instant.now(); if (captured.isBefore(started)) captured = started;
+        var check = TaskResponse.claim(memory, owner, speech, started, captured).orElseThrow();
+        assertTrue(TaskResponse.finish(memory, owner, check, true, Instant.now()));
     }
     private void assertHome() {
         assertEquals("Gala reception", agent.getCurrentState().getName());
@@ -331,7 +388,10 @@ class GalaDinnerTaskUnitTest {
         return agent.acknowledge(Event.observation(Event.TYPE_FACE_EMOTION, "sensor",
                 "{\"emotion\":\"" + emotion + "\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
-    private static String speech(Event event) { return BehaviourPlan.fromJson(event.getPayload()).getSpeech(); }
+    private String facts() { return new GalaDinnerPolicy(memory).liveActivityContext().facts(); }
+    private static void assertNoSpeech(Event event) {
+        if (event != null) assertNull(BehaviourPlan.fromJson(event.getPayload()).getSpeech());
+    }
     private static String update(String operation, String spec, String speech) {
         return "{\"operation\":\"" + operation + "\",\"task\":" + spec + ",\"reply\":"
                 + BehaviourPlan.speechOnly(speech).toJson() + "}";

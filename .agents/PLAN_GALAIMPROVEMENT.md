@@ -1,8 +1,9 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-04 implemented, verified and pushed. GI-05 investigation
-requires a response-association decision below; no GI-05 runtime changes made.
+Status: GI-01 through GI-05 implemented and verified; GI-06 is next. GI-05 uses
+the semantic-association option approved on 2026-10-22. Provider wording quality
+remains subject to GI-07 and the repeated GI-12 acceptance gate.
 Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
@@ -271,7 +272,7 @@ Provider review must check that spoken proposals retain every material term.
 
 ### GI-05 - Live-owned task wording and bounded response tracking
 
-Decision needed (2026-10-21): Live output transcript fragments have no guaranteed
+Decision resolved (2026-10-22): Live output transcript fragments have no guaranteed
 response/occasion identity or completed-turn event. Both GI-04 WebRTC trials
 returned no client_event_id on generated speech (0/69 and 0/91 fragments). The
 optional field in the API therefore cannot be assumed available. Current ingress
@@ -279,7 +280,7 @@ records possible backend intents as AMBIGUOUS, and TaskDecision uses wording to
 associate the actual response. Append acknowledgments and measured silence do
 not establish which free-form response was spoken or whether it was heard.
 
-Proposed choices, requiring user direction before replacing that gate:
+Options considered; the user approved option 1:
 
 1. Recommended: one bounded semantic check per pending task response, after a
    completed captured segment. Bind it to the occasion, revision and epoch;
@@ -293,7 +294,7 @@ Proposed choices, requiring user direction before replacing that gate:
    asking the visitor to continue after each response. It does not prove playback
    either; it is explicit authorization to proceed.
 
-Neither option is implemented. A timer-only release or treating every substantive
+Implementation uses option 1. A timer-only release or treating every substantive
 caption as the task response would violate the acceptance criteria below.
 Evidence and official API references are in GALAIMPROVEMENT_RESULTS.md.
 

@@ -82,15 +82,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- GI-05 / Milestone 231 shared response tracking is integrated; Gala acceptance
-  is in progress. The approved semantic check is bounded and asynchronous, never
-  a playback proof. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+- GI-05 / Milestone 231: Live composes Gala task speech from validated facts;
+  one asynchronous semantic check gates subsequent actions, with bounded uncertain
+  recovery and no physical replay. Passed 132 focused units, 19 distinct isolated
+  integration cases, eight provider classification cases, backend and voice trials,
+  and packaging. GI-06 is next. Remaining voice wording/physical acceptance limits
+  are recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.
 
 - Milestone 230 / GI-04: explicit future-cue timing arms Gala tasks with zero
   actions; validated proposals retain trigger, modalities, timing, count and
   lifecycle. Legacy immediate tasks and Generic's prompt identity are preserved.
   Passed 91 focused units, 19 isolated integrations, provider configuration and
-  voice checks, and packaging. GI-05 is next; physical acceptance remains pending.
+  voice checks, and packaging. Physical acceptance remains pending.
   See `.agents/GALAIMPROVEMENT_RESULTS.md` for failures corrected and test limits.
 
 - Milestone 229 / GI-03 (2026-10-21): explicit unconfirmed game readiness,
@@ -10792,6 +10795,13 @@ Physical speech/robot execution remains unverified. GI-05 is next.
 Opt-in task response identities and durable single-attempt claims support natural
 Live wording. Existing bounded background workers perform semantic association;
 epochs, revisions, deadlines and fresh-cue guards fence stale or uncertain results.
-The existing context scheduler expires missing responses. Shared unit and ten
-isolated integration cases pass. Gala/provider acceptance remains in progress;
-see `.agents/GALAIMPROVEMENT_RESULTS.md`. No physical playback proof is claimed.
+The existing context scheduler expires missing responses. Gala uses validated
+agreement/action facts and Live-owned wording; backend plans retain motion and
+nonverbal channels, with no proposal/KEEP/arming hand motion. Terminal facts
+survive cleanup for one response. Passed 132 focused units, 19 distinct isolated
+integration cases, eight provider classifications, backend/voice trials and
+packaging. Measured classification round trips 1.175-2.722 seconds. Voice trials
+exposed lifecycle omissions and premature action wording; phase/context ordering
+was tightened. Repeated acknowledgments and individual term omissions remain
+GI-07/GI-12 quality work. See `.agents/GALAIMPROVEMENT_RESULTS.md` for evidence and
+limitations. No physical playback proof is claimed.

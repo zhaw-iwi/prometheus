@@ -243,7 +243,7 @@ gate still matches backend wording; replacing it belongs to GI-05. No claim is
 made that this milestone solves arbitrary Live paraphrase association or proves
 physical playback/gesture completion.
 
-## GI-05 investigation - response association decision, not implemented
+## GI-05 investigation - response association decision (2026-10-21, historical)
 
 GI-04 application commit b5e09a5 is pushed to agents; shared changes are also on
 feature/gptlive (bca6d49) and main (d318090). GI-03 deployment completed successfully;
@@ -264,10 +264,10 @@ Official API checked on 2026-10-21:
 - [Playback controls](https://developers.openai.com/api/docs/guides/voice-server-controls#control-playback-when-needed)
   distinguish input mute, context acknowledgments and actual client playback.
 
-The proposed decision is bounded semantic association versus explicit visitor
+At that point the proposed decision was bounded semantic association versus explicit visitor
 confirmation before further task steps; exact scope and tradeoffs are recorded
-in PLAN_GALAIMPROVEMENT.md. Neither has been implemented. Investigation does not
-mark GI-05 complete, and no timeout has been substituted for completed speech.
+in PLAN_GALAIMPROVEMENT.md. Neither was implemented during the investigation.
+The user subsequently approved semantic association; implementation follows below.
 
 ## GI-05 / Milestone 231 - bounded task response association (shared foundation)
 
@@ -290,4 +290,72 @@ one durable check, duplicate native recording, paraphrase association, no furthe
 action, unlocked inference and obsolete-result rejection. The first run exposed
 an executor result-key mismatch; the declaration was corrected and the affected
 integration set passed. Disposable schema/account removed. Gala opt-in, provider
-classification/latency review and full milestone acceptance remain in progress.
+classification/latency review and full milestone acceptance followed below.
+
+## GI-05 / Milestone 231 - Gala Live-owned task responses (2026-10-22)
+
+Gala now supplies validated agreement/action/recovery facts and one identified
+occasion; Live composes all task wording. Backend task plans retain nonverbal and
+motion only. Proposal, KEEP and ON_CUE arming strip hand motion; terminal facts
+are captured before clearing the agreement. Complete task specifications have an
+1,800-byte UTF-8 bound so maximum goals/terms fit activity context. Ordered
+sequences, invalid replacements and provider failures retain the valid agreement
+where possible. A fresh clarification supersedes the earlier response claim.
+
+One durable asynchronous semantic check gates further task cues; check completion
+requires fresh evidence after its boundary. A requested literal short word can
+reach the checker, while ordinary short acknowledgments cannot release a task.
+Deadline/provider failure returns Gala to reception with one uncertain occasion,
+never a physical retry. Stop, closure and obsolete identities fence late results.
+No added poller/schema, no per-frame/per-fragment inference, no transcript endpoint.
+
+Verification:
+
+- 92 focused Gala/context units and 40 shared task/speech units passed. Generic's default
+  configuration contract remains unchanged. Gala tests cover canonical/compact
+  output, future versus immediate first action, last-action facts, no backend
+  prose, retained hand motion, silent WAIT, superseded response checks, bounded
+  UTF-8 terms, and cleanup on stop/closure/reset/departure/deadline.
+- All three representative journeys plus native persistence/query regressions:
+  18 isolated integration cases passed (target/gptlive-acceptance-5f10b5a437).
+  Four Gala persistence cases including added deadline refresh then passed
+  (target/gptlive-acceptance-acf19b72f1): 19 distinct cases across these suites.
+  The timeout test confirms exactly one recovery occasion after reload and no
+  inference/replay. Disposable schemas/accounts were removed.
+- Eight real provider classifications passed: new joke, arming paraphrase,
+  immediate joke and literal word matched; acknowledgment/promise, unrelated
+  answer, incomplete exact wording and premature action did not. gpt-5.6-luna,
+  configured EXTRACTION route, one request/case, no retries. Round trips
+  1.175-2.722 seconds, median 1.595 seconds. This small sample measures the check,
+  not end-to-end delay or worst-case capacity. It gates the next automatic action,
+  not current Live speech. target/gi05-response-results.json.
+- Real backend proposal/activation trials: the first future one-action proposal
+  incorrectly used COMPLETE; validation rejected it. Prompt now explicitly says
+  ACT performs the final action and COMPLETE only ends without acting. All three
+  affected cases then validated, with no premature speech/motion or action count.
+  target/gi05-backend-first-results.json, gi05-backend-results.json and
+  gi05-backend-validation.log retain that evidence.
+- Real gpt-live-1/marin WebRTC trials used actual projected context and synthetic
+  user audio. Live composed proposal, arming and a final joke after task cleanup,
+  without backend prose. Trials exposed omitted lifecycle terms and one premature
+  joke during ON_CUE arming. The voice contract now explicitly separates arming
+  from action; arming facts prohibit the joke, and response constraints precede
+  action descriptions in chunked context. Proposals retain facts for 60 seconds
+  because complete terms can take longer than a short game answer. The final
+  trial armed without a joke and delivered a new joke plus explicit completion
+  only after the cue occasion. target/gi05-task-webrtc-results.json/audio.webm;
+  earlier failures are retained as gi05-task-omitted-lifecycle.json and
+  gi05-task-premature-joke.json. This exported-command trial does not run the
+  DB dispatcher or semantic checker against a physical robot. Short waiting
+  acknowledgments, duplicate arming wording and occasional omission of an
+  individual ending condition (notably pause) remain GI-07/GI-12 quality items.
+- The final local-fence change also passed seven deadline/query integration
+  cases (target/gptlive-acceptance-e93ff3433d); it avoids repeating the scope query
+  already performed by the caller. No authorization check was removed at entry.
+- Maximum complete Live instructions 14,142/16,000 bytes in both embodiments,
+  below the 14,400 working limit. Packaging and git diff --check passed.
+
+Speech association is probabilistic and is not proof of audible playback or
+physical execution. Physical headset/robot acceptance remains scheduled for
+GI-12; provider synthetic audio does not replace it. Brief Live waiting
+acknowledgments remain a GI-07 quality item.

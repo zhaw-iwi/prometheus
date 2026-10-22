@@ -77,7 +77,9 @@ class GalaDinnerReceptionIntegrationTest {
         } finally { ownership.release(id, session); }
     }
 
-    @Test void coCreatedProposalAndActivationReloadWithLiveTaskGuidanceAndCloseDiscardsTheAgreement() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void coCreatedProposalAndActivationReloadAndClosureOrResponseDeadlineDiscardsTheAgreement(boolean timeout) {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
@@ -110,9 +112,20 @@ class GalaDinnerReceptionIntegrationTest {
             assertEquals(0, loaded.getStorage().get(TaskMemory.ACTIONS).getAsInt());
             assertTrue(((GalaDinnerTaskPolicy) loaded.getCurrentState().ownPolicy()).liveActivityContext().facts().contains("Agreed goal: Auf Papier"));
             clearInvocations(language);
-            ownership.pauseInput(id, session);
-            taskLifecycle.closed(id, owner.epoch(), session);
-            contexts.closed(id, owner);
+            if (timeout) {
+                var storage = ((TaskPolicy) loaded.getCurrentState().ownPolicy()).storage();
+                var pending = storage.get(ch.zhaw.prometheus.model.task.TaskResponse.KEY).getAsJsonObject().deepCopy();
+                pending.addProperty("deadline", Instant.now().minusSeconds(1).toString());
+                storage.put(ch.zhaw.prometheus.model.task.TaskResponse.KEY, pending); agents.saveAndFlush(loaded);
+                var ended = contexts.refresh(id, owner).orElseThrow().context().activity();
+                assertTrue(ended.facts().contains("could not be confirmed"));
+                assertEquals(ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.PROACTIVE, ended.continuation().occasion());
+                assertEquals(ended.continuation().id(), contexts.refresh(id, owner).orElseThrow().context().activity().continuation().id());
+            } else {
+                ownership.pauseInput(id, session);
+                taskLifecycle.closed(id, owner.epoch(), session);
+                contexts.closed(id, owner);
+            }
             loaded = agents.findById(id).orElseThrow();
             assertEquals("Gala reception", loaded.getCurrentState().getName());
             assertTrue(loaded.getStorage().keySet().stream().noneMatch(key -> key.startsWith("task.")));

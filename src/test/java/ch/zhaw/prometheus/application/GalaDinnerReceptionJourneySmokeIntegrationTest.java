@@ -82,6 +82,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             requests.add(request);
             if (secondVisitor) assertNoFirstVisitor(request.messages().stream()
                     .map(PromptMessage::getContent).reduce("", (left, right) -> left + "\n" + right));
+            if (request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech")) {
+                var response = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+                response.remove("confirmedTaskFacts"); response.remove("capturedSpeech"); response.addProperty("verdict", "MATCH");
+                return response.toString();
+            }
             String answer = scripted.poll();
             assertNotNull(answer, "Unexpected inference: sensory refreshes must not spend another task action");
             return answer;
@@ -204,14 +209,14 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             String firstSpec = spec(FIRST_GOAL, "rock", 3, "Sage " + FIRST_REACTION + " und zeige Papier.");
             say(first, "Gestalten wir meine persönliche Reaktion auf Stein.", control("START_TASK"),
                     update("PROPOSE", firstSpec, "Vorschlag " + FIRST_GOAL + ": Auf Stein folgt " + FIRST_REACTION + ". Aktivieren?"));
-            assertTrue(lastPlan().getSpeech().contains("eine Aktion sofort, dann höchstens 2 Reaktionen"));
-            assertTrue(lastPlan().getSpeech().contains("beenden die Aufgabe und verwerfen den Plan"));
+            assertNull(lastPlan().getSpeech());
+            assertTrue(contexts.snapshot(code, id).orElseThrow().activity().facts().contains("\"maxActions\":3"));
             assertNull(lastPlan().getMotion());
             hearAnnouncement(first);
             assertFalse(loaded().getStorage().containsKey(TaskMemory.SPEC));
             String initial = FIRST_REACTION + ". Noch höchstens zwei Reaktionen auf Stein.";
             say(first, "Ja, aktiviere meinen Vorschlag.", update("ACTIVATE", "null", initial));
-            assertEquals(TaskReplyFixture.plan(initial, false), lastPlan().toJsonObject());
+            assertEquals(TaskReplyFixture.plan(null, false), lastPlan().toJsonObject());
             assertEquals("paper", lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
             assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             hearAnnouncement(first);
@@ -226,7 +231,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             waitForCue();
             scripted.add(TaskReplyFixture.plan(FIRST_REACTION, compact).toString());
             hand("rock", Instant.now());
-            assertEquals(TaskReplyFixture.plan(FIRST_REACTION, false), lastPlan().toJsonObject());
+            assertEquals(TaskReplyFixture.plan(null, false), lastPlan().toJsonObject());
             hearAnnouncement(first);
             assertEquals(2, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             assertEquals("Gala co-created task", loaded().getCurrentState().getName());
@@ -303,7 +308,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             scripted.add(TaskReplyFixture.plan("Ein neuer Witz für " + SECOND_NAME, compact).toString());
             hand("paper", Instant.now());
-            assertTrue(hearAnnouncement(second).endsWith("Aufgabe abgeschlossen."));
+            assertTrue(hearAnnouncement(second).contains("final allowed action"));
             assertReception(); assertTaskCleared(); assertCurrentContextIsolated();
 
             // Inspect what actually crossed the second provider boundary, not just mocked answers.
@@ -318,6 +323,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertFalse(history().stream().filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
                     .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
             assertTrue(requests.stream().filter(request -> request.purpose() == InferencePurpose.EXTRACTION)
+                    .filter(request -> !request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech"))
                     .allMatch(request -> request.messages().getFirst().getContent().contains("only inside reply")));
             verifyNoInteractions(speech);
         } finally {
@@ -372,10 +378,15 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertTrue(encounter.peer().sent.stream().noneMatch(event -> "session.instructions.append".equals(event.get("type").getAsString())),
                     "Gala activity changes must be quiet context");
             // Scripted voice is only a persistence fixture; real wording is tested in the provider probe.
-            nativeSpeech(encounter, occasion.facts().contains("Guessing round started")
+            var storage = loaded().getStorage();
+            var agreement = storage.get(storage.containsKey(TaskMemory.DRAFT) ? TaskMemory.DRAFT : TaskMemory.SPEC);
+            nativeSpeech(encounter, loaded().getStorage().containsKey("gala.task_facts")
+                    ? (agreement == null ? "" : agreement.getAsJsonObject().get("goal").getAsString() + ". ")
+                            + loaded().getStorage().get("gala.task_facts").getAsString()
+                    : occasion.facts().contains("Guessing round started")
                     ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
                     : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
-            return occasion.facts();
+            return occasion.facts() + "\n" + activity.facts();
         }
 
         Event intent = history().stream().filter(ConversationProjection::isIntent)
@@ -402,8 +413,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                 .filter(e -> BehaviourPlan.fromJson(e.getPayload()).getSpeech() != null).count();
     }
     private void nativeSpeech(Encounter encounter, String text) {
+        boolean pending = loaded().getStorage().containsKey(TaskResponse.KEY);
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,
-                List.of(), SpeechProvenance.Association.NONE, true).isPresent());
+                List.of(), SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
+        if (pending) await().atMost(Duration.ofSeconds(8)).until(() -> loaded().getStorage()
+                .get(TaskResponse.KEY).getAsJsonObject().get("status").getAsString().equals("CAPTURED"));
     }
     private void waitForCue() {
         group(1);

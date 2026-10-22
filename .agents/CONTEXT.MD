@@ -313,7 +313,7 @@ GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including ta
 voice, without replaying opening instructions. Activity-aware task policies own
 their voice contract and place validated goals in quiet facts. Gala instructions
 fit at 12,382/16,000 bytes with maximum goals separately bounded in activity data.
-Continuations optionally expire; Gala uses 30 seconds and clears pending metadata
+Continuations optionally expire; Gala uses 30 seconds (60 for a full task proposal) and clears pending metadata
 with activity cleanup. Expiry after an ACK wait is quiet, never spoken. This does
 not establish audibility or prevent every premature model utterance. Consecutive
 implementation and verification are tracked in PLAN_GALAIMPROVEMENT.md and
@@ -323,8 +323,13 @@ GALAIMPROVEMENT_RESULTS.md; final user physical trials remain pending.
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five
-actual actions, and enforces session-bound tasks. Existing Live task
-readiness and announcement capture apply. Completion, stop/pause, topic change,
+actual actions, and enforces session-bound tasks. Live composes task wording from
+quiet agreement/response facts and identified occasions. One asynchronous semantic
+check per pending response gates the next action; no model call runs per fragment
+or sensor frame. The persisted occasion/revision/session claim prevents retries
+and obsolete results; a 45-second deadline or uncertain result ends the task
+without replaying physical actions. This does not prove audible delivery. Generic
+defaults retain wording-based capture. Completion, stop/pause, topic change,
 departure, voice close or idle timeout clears the agreement and returns to reception;
 ambient facial reactions yield to the task. New instances receive this graph.
 The shared configuration prompt builder and pre-mutation validation hook contain
@@ -336,9 +341,11 @@ GI-04 adds explicit firstAction timing. New future-triggered Gala proposals use
 ON_CUE: acceptance arms with zero actions and one fresh matching cue can complete
 a one-action agreement. IMMEDIATE requests the initial action on acceptance;
 saved tasks without timing retain that meaning and Generic's default prompt hash.
-Ordered cross-sensor sequences are clarified rather than flattened. Proposal
-speech states validated trigger/action terms, timing, counts and termination,
-removing premature hand motion and validating the replacement before mutation.
+Ordered cross-sensor sequences are clarified rather than flattened. Live receives
+validated trigger/action terms, timing, counts and termination. Complete agreements
+are bounded to 1,800 UTF-8 bytes; proposal/KEEP/ON_CUE arming strips hand motion.
+Backend-generated task prose is discarded, including failure replies. Terminal
+action facts survive cleanup long enough for one Live response.
 Saved action prompts are not rewritten: use a new Gala instance for these changes.
 Gala's Live policy/reference is stable across all activities; only compact state
 guidance changes before result narration. Gala locally handles common unspecified

@@ -64,6 +64,14 @@ kein aktueller Ausdruck darf behauptet werden.
 
 ## Abschluss
 
+Zusätzlicher Aufgabentest: «Erst wenn ich Papier zeige, erzähl einen kurzen
+Roboterwitz und zeige Stein. Genau zweimal, dann Schluss.» Den Vorschlag anhören
+und ausdrücklich annehmen. Vor dem ersten Zeichen darf keine Aktion erfolgen.
+Nach jeder Antwort auf die Bereitschaft für das nächste Zeichen warten; die
+Antwortprüfung kann wenige Sekunden dauern. Zwei unterschiedliche Witze, zwei
+Stein-Handzeichen, danach Ende. Bei unbestätigter Antwort muss die Aufgabe enden,
+ohne eine möglicherweise bereits ausgeführte Aktion automatisch zu wiederholen.
+
 Das gesprochene Ergebnis vollständig abwarten; ein Zustandswechsel allein ist
 noch kein hörbarer Abschluss. Bei ausbleibender Antwort Wartezeit notieren.
 Dann **Stop** und Telemetrie exportieren.

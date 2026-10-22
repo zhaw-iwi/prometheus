@@ -14,6 +14,7 @@ final class GalaDinnerMemory {
             STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at",
             CONTINUATION_ID = PREFIX + "continuation_id", CONTINUATION_FACTS = PREFIX + "continuation_facts",
             CONTINUATION_EXPIRES = PREFIX + "continuation_expires",
+            CONTINUATION_OCCASION = PREFIX + "continuation_occasion", TASK_FACTS = PREFIX + "task_facts",
             OUTCOME = PREFIX + "outcome", OUTCOME_ID = PREFIX + "outcome_id", OUTCOME_EXPIRES = PREFIX + "outcome_expires",
             COUNT = PREFIX + "count", QUIET = PREFIX + "quiet", SESSION = PREFIX + "session_from",
             FACE = PREFIX + "face", FACE_AT = PREFIX + "face_at", FACE_REACTED = PREFIX + "face_reacted";
@@ -36,12 +37,13 @@ final class GalaDinnerMemory {
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
         for (String key : List.of(PERSON, SIGN, STARTED, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
-                OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES)) remove(storage, key);
+                OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, TASK_FACTS)) remove(storage, key);
     }
     static void continueRequest(Storage storage, String facts) {
         put(storage, CONTINUATION_ID, java.util.UUID.randomUUID().toString());
         put(storage, CONTINUATION_FACTS, facts);
         put(storage, CONTINUATION_EXPIRES, Instant.now().plusSeconds(30).toString());
+        put(storage, CONTINUATION_OCCASION, "USER_REQUEST");
     }
     static void clear(Storage storage) {
         TaskMemory.clear(storage);

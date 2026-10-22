@@ -468,9 +468,10 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Gala's task prompt selects its own operation/lifecycle contract in the shared
   configuration builder, so it does not inherit Generic's pause/resume promises.
   Asking what cancellation would do is a question, not a cancellation request.
-  Proposal speech is rendered from validated trigger/action terms, timing, total
-  count and termination rules, with no proposal hand motion. The complete
-  replacement is validated before saving. Explicit `IMMEDIATE` timing performs
+  Live composes proposal speech from validated trigger/action terms, timing, total
+  count and termination rules. Backend plans omit task speech; proposals, questions
+  and future-cue arming cannot issue hand motion. The complete agreement (up to
+  1,800 UTF-8 bytes) is validated before saving. Explicit `IMMEDIATE` timing performs
   the initial action on acceptance, including agreed `motion.handSign`; that
   action counts toward the limit. Saved tasks without timing retain this meaning.
   Independent conditions cannot express an ordered sequence such as first rock,
@@ -494,9 +495,17 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
 Reception/game turns use one bounded classification/embodiment inference without
 generating a second ordinary spoken answer. Entering task design also invokes the
 Generic configuration action on that same request; later task turns need only that
-action. Matching task ACT/COMPLETE cues can generate one response; ordinary Gala
-sensors and RPS mechanics make no model calls. Live speaks the confirmed task
-response; Gala localizes backend recovery messages before speech capture. Late inference
+action. Matching task ACT/COMPLETE cues can generate one nonverbal/motion plan;
+ordinary Gala sensors and RPS mechanics make no model calls. Identified occasions
+and quiet facts let Live compose task speech, including new jokes and recovery.
+Before another task action, one asynchronous semantic check associates completed
+native speech with the current occasion, revision and voice session. A captured
+paraphrase may pass; unrelated, incomplete or ambiguous speech cannot. Ordinary
+short acknowledgments are skipped; an explicitly requested short word still needs
+the check. Deadline/provider failure ends the task as uncertain after at most
+45 seconds, never replaying the preceding physical action. This is response
+association, not proof of audible delivery. Generic defaults retain their existing
+wording-based capture. Late inference
 results after Live Stop are discarded. Task readiness remains visible through the
 existing monitor/Live contract.
 Reset clears owned `gala.*` and the Generic engine's task keys, preserving other
@@ -2453,7 +2462,8 @@ contract and validated task goals as quiet activity facts, avoiding duplicate
 legacy task instructions. Other task policies retain their existing guidance.
 An optional continuation expiry is checked before dispatch and again after slow
 provider waits; expired commentary becomes a quiet cancellation, not speech.
-Gala uses a 30-second continuation lifetime and clears it with the activity.
+Gala uses a 30-second continuation lifetime (60 seconds for a full task proposal)
+and clears it with the activity.
 Its consolidated instructions fit within 12,382 UTF-8 bytes in both embodiments,
 including maximum task goals in separately bounded activity data. Context delivery
 and expiry are not proof that speech was heard or that the model obeyed secrecy.

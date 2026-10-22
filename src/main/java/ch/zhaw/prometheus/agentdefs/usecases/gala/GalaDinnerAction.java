@@ -46,6 +46,7 @@ public class GalaDinnerAction extends Action {
         Storage storage = getStorage();
         reply(storage, null);
         switch (galaOperation) {
+            case "FAIL_TASK" -> GalaDinnerTaskAction.uncertain(storage);
             case "TURN" -> turn(storage, events, runtime, now);
             case "PRESENCE" -> {
                 presence(storage, events, runtime, now);
@@ -99,8 +100,8 @@ public class GalaDinnerAction extends Action {
             if (command.matches("(bitte )?(pause|pausieren)|(please )?(stop|cancel|pause)"
                     + "( (the |this |my )?(task|interaction|conversation))?")) {
                 reception(storage);
-                reply(storage, plan("Die Aufgabe ist beendet. Ich bin wieder für Ihre Fragen da.",
-                        "ACKNOWLEDGE", "attentive", "toward_user"));
+                GalaDinnerTaskAction.response(storage, "Task ended and agreement discarded at the visitor's request. Conversation remains available.", false);
+                reply(storage, plan(null, "ACKNOWLEDGE", "attentive", "toward_user"));
             } else new GalaDinnerTaskAction(storage, false).execute(events, runtime);
             return;
         }

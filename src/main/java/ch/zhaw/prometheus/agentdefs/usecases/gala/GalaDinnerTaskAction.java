@@ -1,157 +1,135 @@
 package ch.zhaw.prometheus.agentdefs.usecases.gala;
 
 import static ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerMemory.*;
-
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
 import ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour;
 import ch.zhaw.prometheus.model.Storage;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
-import ch.zhaw.prometheus.model.task.TaskMemory;
-import ch.zhaw.prometheus.model.task.TaskSpec;
-import ch.zhaw.prometheus.model.task.TaskUpdateAction;
+import ch.zhaw.prometheus.model.task.*;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Transient;
 
-/** Reuses the task engine, with a short, confirmed agreement owned by this encounter. */
+/** Backend owns executable agreements and motion; Live composes their spoken responses. */
 @Entity
 public class GalaDinnerTaskAction extends TaskUpdateAction {
+    @Transient private boolean committed;
     protected GalaDinnerTaskAction() {}
     public GalaDinnerTaskAction(Storage storage, boolean cue) {
         super(storage, (cue ? GenericMultimodalBehaviour.behaviourInstructions(GalaDinnerPrompts.VOICE)
                 : GenericMultimodalBehaviour.configurationInstructions(GalaDinnerPrompts.VOICE, GalaDinnerPrompts.TASK_CONTRACT))
                 + GalaDinnerPrompts.TASK_CONFIGURATION, cue);
     }
-
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
-        var storage = getStorage();
+        var storage = getStorage(); committed = false;
         if (!"TASK".equals(mode(storage))) return;
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean()
                 || !present(storage, Instant.now()) || GalaDinnerDecision.expired(storage, Instant.now())) {
-            reception(storage);
-            reply(storage, null);
-            return;
+            reception(storage); reply(storage, null); return;
         }
-        if (!isTaskCue() && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
-                "(?i)(please )?resume( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
-            reply(storage, BehaviourPlan.speechOnly(TaskMemory.active(storage)
-                    ? "Unsere Aufgabe ist bereits aktiv."
-                    : "Hier gibt es keine pausierte Aufgabe. Wir können einen neuen Vorschlag vereinbaren."));
-            return;
-        }
-        // A proposal from a previous visitor cannot enter this configuration or its cue history.
-        var encounter = new EventHistory();
-        var all = events.toList();
+        if (TaskResponse.expired(storage, Instant.now())) { uncertain(storage); return; }
+        var encounter = new EventHistory(); var all = events.toList();
         int from = Math.min(all.size(), Math.max(0, Integer.parseInt(text(storage, SESSION, "0"))));
         all.subList(from, all.size()).forEach(encounter::appendEvent);
+        String request = encounter.isEmpty() ? "" : encounter.toList().getLast().getPayload().trim();
+        if (!isTaskCue() && request.matches("(?i)(please )?resume( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
+            response(storage, TaskMemory.active(storage) ? "The task is already active; the agreement and action budget are unchanged."
+                    : "There is no paused Gala task to resume. A new agreement is needed.", false);
+            expectIfActive(storage, runtime); return;
+        }
+        if (!isTaskCue() && request.matches("(?i)(please )?(stop|cancel|pause)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
+            reception(storage);
+            response(storage, "The task ended and its plan was discarded. A new agreement is needed to restart.", false); return;
+        }
         if (!isTaskCue() && !encounter.isEmpty()
                 && GalaDinnerInput.orderedCueSequence(encounter.toList().getLast().getPayload())) {
-            reply(storage, BehaviourPlan.speechOnly("Eine feste Reihenfolge mehrerer Signale kann ich in dieser Aufgabe nicht verfolgen. "
-                    + "Ich kann auf ein einzelnes Signal oder unabhängig auf mehrere reagieren. "
-                    + "Die bisherige Vereinbarung bleibt unverändert. Welches Signal möchten Sie verwenden?"));
+            response(storage, "Clarification needed: an ordered sequence of sensor conditions is unsupported. "
+                    + "The prior agreement is unchanged. Offer one cue or independent alternatives; ask which cue.", false);
+            expectIfActive(storage, runtime);
             return;
         }
         super.execute(encounter, runtime);
-        if (!runtime.taskContinuation().getAsBoolean()) {
-            reception(storage);
-            reply(storage, null);
-            return;
-        }
-        var response = storage.containsKey(TaskMemory.REPLY)
-                ? BehaviourPlan.fromJson(storage.get(TaskMemory.REPLY).toString()) : null;
+        if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); reply(storage, null); return; }
+        var output = storage.containsKey(TaskMemory.REPLY) ? BehaviourPlan.fromJson(storage.get(TaskMemory.REPLY).toString()) : null;
         remove(storage, TaskMemory.REPLY);
-        boolean limit = TaskMemory.active(storage) && storage.containsKey(TaskMemory.SPEC)
-                && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))
-                    >= TaskSpec.parse(storage.get(TaskMemory.SPEC)).maxActions();
-        if (limit || "COMPLETED".equals(TaskMemory.phase(storage)) || "PAUSED".equals(TaskMemory.phase(storage))) {
-            if ("PAUSED".equals(TaskMemory.phase(storage)))
-                response = BehaviourPlan.speechOnly("Die Aufgabe ist beendet. Ich bin wieder für Ihre Fragen da.");
-            else if (limit && response != null)
-                response.setSpeech((response.getSpeech() == null ? "" : response.getSpeech() + " ")
-                        + "Damit ist unsere Aufgabe abgeschlossen.");
-            reception(storage);
+        if (!committed && output != null) {
+            boolean ended = "PAUSED".equals(TaskMemory.phase(storage));
+            if (ended) reception(storage);
+            response(storage, ended ? "Task generation failed; the task ended. A previous action may already have happened. "
+                    + "Do not repeat it. A new agreement is needed." : "Task update could not be validated or completed. "
+                    + "Existing agreement and proposal are unchanged. Ask for clarification or an explicit retry.", isTaskCue());
+            expectIfActive(storage, runtime);
         }
-        reply(storage, response);
+        if (output != null) output.setSpeech(null);
+        reply(storage, output);
     }
-
     @Override protected void validateTaskUpdate(String operation, TaskSpec task) {
-        if (task != null && (!task.sessionBound() || task.maxActions() > 5))
-            throw new IllegalArgumentException("Gala tasks must be short and session-bound");
+        if (task != null && (!task.sessionBound() || task.maxActions() > 5
+                || task.json().toString().getBytes(StandardCharsets.UTF_8).length > 1800))
+            throw new IllegalArgumentException("Gala tasks must fit the short session-bound agreement context");
         if ("ACTIVATE".equals(operation) && (!getStorage().containsKey(TaskMemory.DRAFT)
                 || !TaskSpec.parse(getStorage().get(TaskMemory.DRAFT)).json().equals(task.json())))
             throw new IllegalArgumentException("Gala activation requires the unchanged proposed agreement");
     }
-
-    @Override protected BehaviourPlan prepareTaskReply(String operation, TaskSpec task, BehaviourPlan response) {
-        if ("ACTIVATE".equals(operation) && task.firstAction() == TaskSpec.FirstAction.ON_CUE)
-            return BehaviourPlan.speechOnly("Die Aufgabe ist aktiviert. Ich warte auf das vereinbarte frische Signal; "
-                    + "noch wurde keine Aktion ausgeführt.");
-        if (!"PROPOSE".equals(operation)) return response;
-        String count = task.firstAction() == TaskSpec.FirstAction.ON_CUE
-                ? "Erste Aktion erst beim passenden Signal, höchstens " + task.maxActions()
-                    + (task.maxActions() == 1 ? " Aktion insgesamt. " : " Aktionen insgesamt. ")
-                : task.maxActions() == 1
-                ? "Nach Ihrer Zustimmung eine Aktion sofort; danach ist die Aufgabe beendet. "
-                : "Nach Ihrer Zustimmung eine Aktion sofort, dann höchstens " + (task.maxActions() - 1)
-                    + " Reaktionen auf passende Signale (" + task.maxActions() + " Aktionen insgesamt). ";
-        var plan = response.toJsonObject();
-        String goal = task.goal().stripTrailing().replaceFirst("[.!?]+$", "");
-        plan.addProperty("speech", "Vorschlag (noch nicht aktiv): " + goal + ". " + count + terms(task)
-                + "Stopp/Pause, Themenwechsel, leeres Kamerabild, Ende der Sprachverbindung oder 90 Sekunden ohne Ihre Sprache "
-                + "beenden die Aufgabe und verwerfen den Plan. Neustart nur mit neuer Vereinbarung. "
-                + "Möchten Sie diesen Vorschlag aktivieren?");
-        // A proposal never executes its hand action before acceptance.
-        plan.remove("motion");
-        return BehaviourPlan.fromJson(plan.toString());
-    }
-
-    private static String terms(TaskSpec task) {
-        var text = new StringBuilder();
-        for (var rule : task.rules()) {
-            String cue = switch (rule.field()) {
-                case "sign" -> "Handzeichen";
-                case "emotion" -> "geschätzter Gesichtsausdruck";
-                case "valence" -> "geschätzte Stimmung";
-                case "arousal" -> "geschätzte Aktivierung";
-                case "humanCount", "trackedCount", "currentHumanCount" -> "Personenzahl im Kamerabild";
-                case "groupCount", "currentGroupCount" -> "Gruppenzahl im Kamerabild";
-                case "singletonCount" -> "Zahl einzeln stehender Personen";
-                case "largestGroupSize", "currentLargestGroupSize" -> "Grösse der grössten Gruppe";
-                case "changeType" -> "Gruppenänderung";
-                case "facePresent" -> "sichtbares Gesicht";
-                case "condition" -> "Wetter";
-                case "temperature_c" -> "Temperatur";
-                case "precipitation_mm" -> "Niederschlag in Millimetern";
-                case "is_day" -> "Tageslicht";
-                case "cloud_cover" -> "Bewölkung";
-                case "days.0.condition" -> "Wetter am ersten Vorhersagetag";
-                case "days.0.temperature_min_c" -> "Tiefsttemperatur am ersten Vorhersagetag";
-                case "days.0.temperature_max_c" -> "Höchsttemperatur am ersten Vorhersagetag";
-                case "days.0.precipitation_mm" -> "Niederschlag am ersten Vorhersagetag";
-                default -> throw new IllegalArgumentException("Unsupported agreement description");
-            };
-            String value = switch (rule.value().getAsString()) {
-                case "rock" -> "Stein"; case "paper" -> "Papier"; case "scissor" -> "Schere";
-                case "happy" -> "fröhlich"; case "sad" -> "traurig"; default -> rule.value().getAsString();
-            };
-            String relation = switch (rule.operator()) { case "lt" -> " unter "; case "gt" -> " über "; default -> " "; };
-            String action = switch (rule.effect()) {
-                case WAIT -> "abwarten, ohne Aktion"; case COMPLETE -> "Aufgabe beenden"; case ACT -> rule.action();
-            };
-            action = action.replace("motion.handSign=paper", "Papier-Handzeichen zeigen")
-                    .replace("motion.handSign=rock", "Stein-Handzeichen zeigen").replace("motion.handSign=scissor", "Schere-Handzeichen zeigen")
-                    .stripTrailing().replaceFirst("[.!?]+$", "");
-            if (task.firstAction() == TaskSpec.FirstAction.IMMEDIATE && task.maxActions() == 1)
-                text.append("Einmalige Aktion: ").append(action).append(". ");
-            else text.append("Bei ").append(cue).append(relation).append(value).append(": ").append(action).append(". ");
+    @Override protected BehaviourPlan prepareTaskReply(String operation, TaskSpec task, BehaviourPlan output) {
+        output.setSpeech(null);
+        if (java.util.Set.of("PROPOSE", "KEEP", "STOP", "PAUSE").contains(operation)
+                || "ACTIVATE".equals(operation) && task.firstAction() == TaskSpec.FirstAction.ON_CUE) {
+            var json = output.toJsonObject(); json.remove("motion"); return BehaviourPlan.fromJson(json.toString());
         }
-        return text.toString();
+        return output;
     }
-
-    @Override protected String failureMessage(String fallback) {
-        return "Das konnte ich gerade nicht umsetzen. "
-                + (getStorage().containsKey(TaskMemory.DRAFT) ? "Unser Vorschlag bleibt unverändert. "
-                    : getStorage().containsKey(TaskMemory.SPEC) ? "Unsere Vereinbarung bleibt unverändert. " : "")
-                + "Bitte versuchen Sie es noch einmal.";
+    @Override protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule, BehaviourPlan output, PolicyRuntime runtime) {
+        committed = true;
+        var storage = getStorage(); output.setSpeech(null); storage.put(TaskMemory.REPLY, output.toJsonObject());
+        boolean terminal = "COMPLETED".equals(TaskMemory.phase(storage)) || "PAUSED".equals(TaskMemory.phase(storage))
+                || TaskMemory.active(storage) && storage.containsKey(TaskMemory.SPEC)
+                && storage.get(TaskMemory.ACTIONS).getAsInt() >= TaskSpec.parse(storage.get(TaskMemory.SPEC)).maxActions();
+        String facts = switch (operation) {
+            case "PROPOSE" -> "Proposal stored, not active. Before asking for acceptance, state the goal, trigger, action channels, "
+                    + "first-action timing and total count. Also state all ending conditions: stop/pause, topic change, zero visible people, "
+                    + "voice-connection closure or 90 seconds without visitor speech discard the plan. Restart requires a new agreement. "
+                    + "These terms are required even when the response needs more than two sentences.";
+            case "ACTIVATE" -> task.firstAction() == TaskSpec.FirstAction.ON_CUE
+                    ? "Task accepted and armed; waiting for a fresh matching cue. Zero actions performed; no cue has occurred. "
+                            + "Only confirm that you are waiting. Do NOT tell the joke or perform any agreed spoken action yet."
+                    : "Task accepted. Perform the agreed initial verbal action now."
+                            + (terminal ? " Completed agreement (data): " + task.json() : " Use the current agreement's goal and action requirements.");
+            case "ACT" -> "One matching cue was accepted. Perform this agreed verbal action now: " + rule.action();
+            case "COMPLETE", "STOP", "PAUSE" -> "The task ended; no further action is authorized. A new agreement is required to restart.";
+            case "RESUME" -> "No paused Gala task can be resumed; a new agreement is required.";
+            default -> "The task is unchanged. Answer the visitor's current question from confirmed agreement/perception facts, or clarify a missing design choice.";
+        };
+        if (terminal && !java.util.Set.of("STOP", "PAUSE", "COMPLETE").contains(operation))
+            facts += " This was the final allowed action; the task is now complete. Briefly say it is finished; do not invite another cue.";
+        if (terminal) { reception(storage); storage.put(TaskMemory.REPLY, output.toJsonObject()); }
+        // Unrelated questions return quietly to reception; Live already owns their answer.
+        if ("STOP".equals(operation)) return;
+        response(storage, facts, isTaskCue());
+        expectIfActive(storage, runtime);
     }
+    private static void expectIfActive(Storage storage, PolicyRuntime runtime) {
+        if (TaskMemory.active(storage)) TaskResponse.expect(storage, runtime.externalSpeech(),
+                java.util.UUID.fromString(text(storage, CONTINUATION_ID, "")), text(storage, TASK_FACTS, "")
+                        + " Agreement (data): " + storage.get(TaskMemory.SPEC), Instant.now());
+        else remove(storage, TaskResponse.KEY);
+    }
+    static void response(Storage storage, String facts, boolean proactive) {
+        put(storage, TASK_FACTS, facts);
+        continueRequest(storage, "A confirmed task response is ready. Use the current task response facts and agreement; speak once in your own words.");
+        // A full proposal includes lifecycle terms and can take longer than a short game answer.
+        if (storage.containsKey(TaskMemory.DRAFT) && "CONFIGURATION".equals(TaskMemory.phase(storage)))
+            put(storage, CONTINUATION_EXPIRES, Instant.now().plusSeconds(60).toString());
+        put(storage, CONTINUATION_OCCASION, proactive ? "PROACTIVE" : "USER_REQUEST");
+    }
+    static void uncertain(Storage storage) {
+        reception(storage);
+        response(storage, "The preceding task response could not be confirmed. The task has ended. "
+                + "A physical action may already have happened; never repeat it automatically. Explain the uncertainty briefly; "
+                + "a new agreement is required to continue.", true);
+        reply(storage, null);
+    }
+    @Override protected String failureMessage(String fallback) { return "Task update unavailable; previous valid agreement retained where possible."; }
 }

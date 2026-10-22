@@ -61,6 +61,12 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             for (String key : java.util.List.of("task.spec", "task.draft")) if (storage.containsKey(key))
                 facts += "\n" + (key.equals("task.spec") ? "Agreed goal: " : "Proposed goal: ")
                         + ch.zhaw.prometheus.model.task.TaskSpec.parse(storage.get(key)).goal();
+            String selected = storage.containsKey("task.draft") ? "task.draft" : "task.spec";
+            if (storage.containsKey(selected)) {
+                var terms = storage.get(selected).getAsJsonObject().deepCopy(); terms.remove("goal");
+                if (!terms.has("firstAction")) terms.addProperty("firstAction", "IMMEDIATE");
+                facts += "\n" + (selected.equals("task.draft") ? "Proposed" : "Agreed") + " executable terms (data): " + terms;
+            }
         }
         else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
         if (storage.containsKey(GalaDinnerMemory.OUTCOME)
@@ -69,15 +75,22 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     + ": " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME, "")
                     + " Answer the pending visitor request once; do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
+        if (storage.containsKey(GalaDinnerMemory.TASK_FACTS)
+                && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES)))
+            // Constraints precede action descriptions when the provider receives context in bounded parts.
+            facts = "Current task response facts: " + GalaDinnerMemory.text(storage, GalaDinnerMemory.TASK_FACTS, "") + "\n" + facts;
+        if (storage.containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY))
+            facts += "\nResponse association: " + ch.zhaw.prometheus.model.task.TaskResponse.status(storage)
+                    + ". This status never proves physical playback.";
         LiveActivityContext.Continuation continuation = null;
         if (storage.containsKey(GalaDinnerMemory.CONTINUATION_ID))
             continuation = new LiveActivityContext.Continuation(
                     java.util.UUID.fromString(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_ID, "")),
-                    LiveActivityContext.Occasion.USER_REQUEST,
+                    LiveActivityContext.Occasion.valueOf(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_OCCASION, "USER_REQUEST")),
                     GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""),
                     storage.containsKey(GalaDinnerMemory.CONTINUATION_EXPIRES)
                             ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null);
-        return new LiveActivityContext(facts, continuation);
+        return new LiveActivityContext(facts, continuation, ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage));
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {
