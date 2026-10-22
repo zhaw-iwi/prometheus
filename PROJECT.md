@@ -90,6 +90,15 @@ and regulation diagnostics remain future work.
   dark renders were inspected. Deployment and the students' original failed sends
   are unverified; no backend contract or detection threshold changed.
 
+- Weather context follow-up (2026-10-22): cockpit timestamps use the provider's
+  UTC offset; selected fresh weather survives encounter startup without carrying
+  prior visitor evidence. Original source expiry and selector rules remain intact.
+  Passed 42 focused Java and 62 Live JavaScript tests. Matching standalone Valerian
+  normalization passes its 140 JavaScript and 24 static-server tests. Changes are
+  approved for publication and integration through `main` to `agents`. See the
+  audit below; actual deployment status is recorded by the release workflow.
+
+
 - GI-24 / Milestone 251: new/resumed Gala RPS capture windows carry a persisted ID
   echoed by camera/manual observations. Missing/obsolete IDs cannot finish a round;
   repeated opening delivery preserves detection progress and cooldown. Resume keeps
@@ -11043,3 +11052,70 @@ submission reaches the expected scoped endpoint; production persistence, student
 network conditions and physical hand detection were not exercised. No database
 migration or detection-policy change is required. The user subsequently authorized
 commit/push on agents and integration of this shared fix into main.
+
+Main integration: agents fix `9b2648be` was cherry-picked as `240e415` to preserve
+the separate catalogs. Only the PROJECT status/audit context required resolution.
+Initial main verification exposed a pre-existing mismatch from `27ee3499`:
+the script dereferenced embodiment controls absent from main's HTML. Initialization,
+creation and connection failed, and the existing static test rejected the creation
+payload. Main now uses its existing definition-only creation contract and matching
+display bindings, with unused embodiment helpers removed. The agents branch retains
+its embodiment controls and behaviour. No backend or public API change was needed.
+After correction, the five lifecycle/weather browser cases and all 14 static client
+contracts pass; 11 hand-sensor tests and JavaScript syntax also pass on main.
+The same loopback static-server/mocked-HTTP setup was used. Production deployment
+completion and physical-device behaviour remain unverified.
+
+## Weather context follow-up (2026-10-22)
+
+### Goal and changes
+
+Make supplied current weather usable by Live and preserve still-fresh selected
+environmental context at encounter startup. Open-Meteo's offset-less local
+`current.time` previously failed the backend's absolute source-time parser; weather
+sent before the encounter boundary was also excluded. The cockpit now uses the
+provider's `utc_offset_seconds`, with explicit offsets preserved and missing or
+invalid source time kept unknown. See [Open-Meteo documentation](https://open-meteo.com/en/docs).
+
+Shared projection admits selected fresh current weather/forecasts across the
+boundary using their original identity and expiry. Previous visitor dialogue,
+face, presence and hand evidence remain excluded. No Gala rule, schema, freshness
+window, polling cadence or speech ownership changes. The standalone Valerian
+cockpit contains the same normalization fix on `feature/galadinnerupdate`.
+
+### Run and verification
+
+Reload the updated cockpit and fetch weather again; the backend and cockpit both
+need this follow-up. Already cached malformed weather is not rewritten.
+
+- `./mvnw.cmd -q -Dtest=LiveContextProjectionUnitTest,LiveContextDeliveryUnitTest,AgentCapabilityLiveContextUnitTest test`: 42 passed. The 14 projection tests
+  passed again after strengthening coverage of source age versus receipt/fetch time.
+- `npm run test:live:unit`: 62 passed, including 3 new weather cases covering
+  seasonal/fractional/negative offsets, explicit offsets, invalid/missing time,
+  stale source time, and unchanged forecast dates/location.
+- Standalone Valerian: `npm run test:js` 140 passed;
+  `.venv/Scripts/python.exe -m pytest -q apps/valerian-cockpit/tests/test_static_server.py`
+  24 passed. Its 3 new weather cases exercise the matching normalizer.
+
+### Limits and next step
+
+No live database, provider, physical audio or browser visual trial was needed or
+run for these data/context changes. Real-provider wording remains a live check;
+expired weather still requires a fresh observation. The user authorized commit,
+push and integration from `feature/gptlive` into `main`, then `main` into `agents`
+to trigger deployment. The matching standalone Valerian fix is published on its
+feature branch for the colleague's merge. Verify the release workflow and health
+after publication; physical weather-response acceptance remains a live check.
+
+Publication/integration verification (2026-10-22): shared fix `2774c9ff` was
+merged into main as `2ba2dd77`; feature/gptlive was then fast-forwarded to main.
+Main passed 56 focused Java and 62 Live JavaScript checks. The agents merge keeps
+its embodiment/persona controls and deployment catalog; main's separate DOM
+binding correction is intentionally not applied to those deployment controls.
+The merged agents tree passed 99 of 100 Java checks and all 62 Live JavaScript
+checks. `GalaDinnerLiveDeliveryUnitTest` fails its simulated 2.1-second delivery
+budget both here and on the clean pre-merge `9b2648be` baseline; this existing
+issue is not changed or hidden by the weather fix. No live database was used.
+Standalone Valerian changes are pushed as `1466ff3` (format cleanup `6350fd5`).
+The agents push triggers the existing deployment workflow; release completion
+and physical weather-response acceptance must be verified separately.

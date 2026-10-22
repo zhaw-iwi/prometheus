@@ -1923,6 +1923,16 @@ replace newer usable Live evidence. Explicitly absent or poorly detected faces
 withdraw the prior expression and its summary; summaries expire with their sources.
 Expired values become unknown, and missing/malformed/future timestamps are labeled
 unknown. These are pilot context limits, not changes to stored observations.
+The cockpit converts Open-Meteo's local current-weather time with its returned
+`utc_offset_seconds` to an absolute UTC `observed_at`. Missing/invalid source time
+remains unknown even when fetch `ts` is recent. Resending preserves source age;
+the ten-minute current-weather limit is unchanged. Refetch weather after updating
+an already open cockpit to replace its cached legacy payload.
+For encounter-scoped Live policies, selected fresh current weather and forecasts
+may precede `liveHistoryStartIndex`; their original expiry still applies. Prior
+visitor dialogue and person sensing remain excluded. This adds no database poll,
+automatic weather refresh or speech request. Weather context retains the supplied
+location rather than assuming it is the venue.
 Optional proactive continuations can opt into `interruptible` delivery (default
 false). If audio, an open transcript or admitted conversation work begins before
 dispatch, the optional comment is withdrawn, never queued for replay. This uses
