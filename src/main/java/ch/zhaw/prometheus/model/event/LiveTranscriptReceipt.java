@@ -26,12 +26,15 @@ public class LiveTranscriptReceipt {
     protected LiveTranscriptReceipt() {}
     public LiveTranscriptReceipt(Agent agent, UUID sessionId, UUID epoch, String providerEventId, String speaker,
             Long startMs, Long endMs, Instant receivedAt, long sequence, String transcript) {
-        this.id = UUID.nameUUIDFromBytes((sessionId + ":" + providerEventId).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        this.id = identity(sessionId, providerEventId);
         this.agent = agent; this.sessionId = sessionId; this.epoch = epoch; this.providerEventId = providerEventId;
         this.speaker = speaker; this.startMs = startMs; this.endMs = endMs; this.receivedAt = receivedAt;
         this.arrivalSequence = sequence; this.transcript = transcript;
     }
     public UUID getId() { return id; }
+    public static UUID identity(UUID sessionId, String providerEventId) {
+        return UUID.nameUUIDFromBytes((sessionId + ":" + providerEventId).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
     public UUID getSessionId() { return sessionId; }
     public UUID getEpoch() { return epoch; }
     public String getProviderEventId() { return providerEventId; }
