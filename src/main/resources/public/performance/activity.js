@@ -12,7 +12,12 @@ const cues = { waiting_for_cue: "Waiting for a cue", cooldown: "Waiting for the 
   awaiting_response_capture: "Waiting for response capture", stale_or_missing_observation: "Waiting for a fresh cue",
   insufficient_samples: "Waiting for a stable cue", low_confidence: "Waiting for a clearer cue", face_missing: "Waiting for a face cue",
   missing_field: "Waiting for a usable cue", invalid_observation: "Waiting for a usable cue", condition_not_met: "Waiting for a matching cue",
-  task_waiting: "Waiting for the condition to change", task_paused: "Task paused", task_completed: "Task completed" };
+  task_waiting: "Waiting for the condition to change", task_paused: "Task paused", task_completed: "Task completed",
+  rps_not_started: "No hand-game round is active", rps_waiting_for_sign: "Show one steady hand sign",
+  rps_low_confidence: "Waiting for a clearer hand sign", rps_unstable_sign: "Hold one hand sign steady",
+  rps_stale_sign: "Waiting for a fresh hand sign", rps_out_of_order: "Waiting for a newer hand sign",
+  rps_invalid_sign: "Waiting for rock, paper or scissors", rps_round_completed: "Hand-game round completed",
+  rps_cancelled: "Hand-game round ended" };
 export const ISSUE_CATEGORIES = ["speech_cut_off", "long_pause", "unexpected_response", "missed_cue"];
 export class InteractionActivity {
   constructor({ now = () => performance.now(), wall = () => Date.now() } = {}) {
@@ -109,7 +114,10 @@ export class InteractionActivity {
     if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
     if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
       return { label: "Waiting for response capture", detail: "Captions have not yet confirmed the response content.", busy: false, tone: "idle", elapsed: null };
-    const cue = cues[this.backend?.cue?.reason];
+    const reason = this.backend?.cue?.reason;
+    const terminalHandCue = ["rps_not_started", "rps_cancelled", "rps_round_completed"].includes(reason);
+    const cueAge = now - this.received + Math.max(0, this.backend?.serverMs - this.backend?.cue?.serverMs);
+    const cue = terminalHandCue && cueAge >= 10000 ? null : cues[reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };
     if (!this.connected && this.received !== null) return { label: "Reconnecting progress", busy: false, tone: "warning", elapsed: null };
     return { label: this.listening ? "Listening" : "Ready", busy: false, tone: "idle", elapsed: null };
