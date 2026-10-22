@@ -25,6 +25,9 @@ public class ExternalSpeechRecordingService {
     private final AgentMonitorBroadcaster monitor;
     private final TransactionTemplate transaction;
     private org.springframework.context.ApplicationEventPublisher events;
+    private LiveTaskResponseService taskResponses;
+    @org.springframework.beans.factory.annotation.Autowired
+    void taskResponses(LiveTaskResponseService service) { this.taskResponses = service; }
     @org.springframework.beans.factory.annotation.Autowired
     void events(org.springframework.context.ApplicationEventPublisher events) { this.events = events; }
     public ExternalSpeechRecordingService(AgentApplicationService turns, AgentRepository agents,
@@ -35,6 +38,10 @@ public class ExternalSpeechRecordingService {
     }
     public Optional<Event> record(UUID id, ExternalSpeech owner, String segmentId, String text,
             List<UUID> intentIds, Association association, boolean complete) {
+        return record(id, owner, segmentId, text, intentIds, association, complete, null);
+    }
+    public Optional<Event> record(UUID id, ExternalSpeech owner, String segmentId, String text,
+            List<UUID> intentIds, Association association, boolean complete, java.time.Instant started) {
         if (segmentId == null || !segmentId.matches("[A-Za-z0-9._:-]{1,160}")) throw new IllegalArgumentException("Invalid speech segment identity");
         return turns.serialized(id, () -> {
             boolean[] created = {false};
@@ -55,8 +62,9 @@ public class ExternalSpeechRecordingService {
                             && event.speechProvenance().epoch().equals(owner.epoch()));
                     if (!valid) throw new IllegalArgumentException("Narration source is outside the speech session");
                 }
-                agent.recordExternalSpeech(text, new SpeechProvenance(Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                Event nativeSpeech = agent.recordExternalSpeech(text, new SpeechProvenance(Origin.NATIVE, owner.sessionId(), owner.epoch(),
                         segmentId, association, sources, complete));
+                if (taskResponses != null) taskResponses.prepare(agent, owner, nativeSpeech, started);
                 var saved = agents.saveAndFlush(agent); created[0] = true;
                 // Cascade merge may replace a newly appended event; return/publish its persisted identity.
                 return saved.getEventHistory().toList().stream().filter(event -> event.speechProvenance() != null
