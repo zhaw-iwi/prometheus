@@ -1388,6 +1388,15 @@ Application-owned `ExternalVoicePolicy` implementations may return false from
 task guidance. The default is true and preserves current core instructions.
 This changes model guidance only; it does not mute audio or establish silence.
 
+Application policies may opt into `liveFilterIsolatedInputActivity()` for backend
+user-turn capture. It ignores isolated 20-ms RMS spikes and requires 40 ms of
+consecutive activity at the existing threshold before resetting measured quiet.
+Pending onset delays a user boundary until resolved; gaps/mute remain conservative.
+The setting is fixed at Live-session creation and exported as
+`provider.configuration.filterIsolatedInputActivity`. Raw receipts and diagnostics,
+assistant timing and default agents are unchanged. This is an experimental acoustic
+heuristic, not semantic turn detection or control of provider speech.
+
 Application-owned policies can implement `ExternalVoicePolicy` to declare their
 supported states, voice guidance, encounter-history boundary, startup instructions
 and optional session-close transition. Profiles can opt into

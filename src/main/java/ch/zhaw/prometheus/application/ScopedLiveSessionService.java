@@ -112,14 +112,16 @@ public class ScopedLiveSessionService {
             lease.failure = reason -> failed(lease, reason);
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             String build = System.getenv("HEROKU_SLUG_COMMIT");
-            lease.configuration = Map.of("model", properties.getModel(), "voice", voice,
-                    "requestTimeoutMs", properties.getRequestTimeoutMs(), "telemetryVersion", 1,
-                    "build", build != null && build.matches("[a-fA-F0-9]{40,64}") ? build : "unknown",
-                    "silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS,
-                    "userSilenceMs", lease.context.userSilenceMs(),
-                    "latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS,
-                    "maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS,
-                    "maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS);
+            lease.configuration = Map.ofEntries(
+                    Map.entry("model", properties.getModel()), Map.entry("voice", voice),
+                    Map.entry("requestTimeoutMs", properties.getRequestTimeoutMs()), Map.entry("telemetryVersion", 1),
+                    Map.entry("build", build != null && build.matches("[a-fA-F0-9]{40,64}") ? build : "unknown"),
+                    Map.entry("silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS),
+                    Map.entry("userSilenceMs", lease.context.userSilenceMs()),
+                    Map.entry("filterIsolatedInputActivity", lease.context.filterIsolatedInputActivity()),
+                    Map.entry("latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS),
+                    Map.entry("maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS),
+                    Map.entry("maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS));
             lease.authorized = () -> ownership.isCurrent(agentId, new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()));
             if (bridge != null) lease.bridge = bridge.open(lease.context,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
@@ -128,7 +130,7 @@ public class ScopedLiveSessionService {
             if (captures != null) lease.capture = captures.open(agentId,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
                     () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; failed(lease, codeName); },
-                    lease.context.userSilenceMs());
+                    lease.context.userSilenceMs(), lease.context.filterIsolatedInputActivity());
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions(),
                     lease.context.startupInput()));
