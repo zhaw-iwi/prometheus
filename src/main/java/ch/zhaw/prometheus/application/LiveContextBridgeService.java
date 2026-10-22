@@ -53,7 +53,8 @@ public class LiveContextBridgeService {
         Session session = sessions.get(event.owner().sessionId());
         if (session == null || !session.owner.equals(event.owner()) || !session.agent.equals(event.agentId())) return;
         session.delegations.committed(event.outcome());
-        if (!session.clarifications.captured(event.outcome(), event.observedState(), clock.millis())) session.fail("clarification_queue_full");
+        if (!session.clarifications.captured(event.outcome(), event.observedState(), session.currentOccasion.get().id(), clock.millis()))
+            session.fail("clarification_queue_full");
         session.request();
     }
     // Tick in memory; coalesce commits, but honor sensory/delegation deadlines and bounded fallback.
@@ -168,7 +169,7 @@ public class LiveContextBridgeService {
                     for (Command command : LiveContextDelivery.contextReply(reply.text(), reply.id(), revision)) transmit(command);
                 LiveClarifications.Pending clarification;
                 while ((clarification = clarifications.poll()) != null) {
-                    if (clarifications.valid(clarification, fresh.context().statePath(), clock.millis()))
+                    if (clarifications.valid(clarification, fresh.context().statePath(), currentOccasion.get().id(), clock.millis()))
                         transmit(LiveContextDelivery.clarification(clarification.segment(), revision));
                     else trace("clarification_obsolete", null, List.of(clarification.segment()));
                 }
