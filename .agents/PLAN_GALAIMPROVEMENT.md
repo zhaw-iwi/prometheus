@@ -2,7 +2,8 @@
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
 Status: GI-01 through GI-10 implemented/pushed. GI-11 local optimisation/calibration
-and GI-12 local acceptance may proceed; fixed-quota production capacity stays OPEN. GI-05 uses
+is committed at 6d68efd; GI-12 local automated acceptance is complete. Fixed-quota
+production capacity, final provider acceptance and physical trials stay OPEN. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
 The account quota is fixed at 36,000/hour; increasing it is not an option.
@@ -546,6 +547,12 @@ or an explicitly agreed operating alternative is established. This does not bloc
 GI-12 deterministic/local integration acceptance under the user's revised sequence.
 
 ### GI-12 - Integrated acceptance and reviewed rollout
+
+Status: LOCAL AUTOMATED ACCEPTANCE COMPLETE (Milestone 238); full release
+acceptance remains INCOMPLETE. 826 Java passes plus one opt-in capacity skip,
+122 Node passes, four real-app browser passes, packaging and diff checks passed.
+The final repeated provider matrix, physical headset/robot tests and GI-11
+fixed-quota headroom have not passed. See the results for exact commands and limits.
 
 Local acceptance may run while GI-11 capacity remains open. Keep functional,
 provider, physical and fixed-quota production gates separate in the evidence.

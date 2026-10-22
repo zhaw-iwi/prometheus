@@ -825,3 +825,57 @@ feature/gptlive (56921b1, 914d036) flowed through main (351d228) into agents
 Artifacts: target/gptlive-acceptance-7a9877e0c1/java.log (initial failures),
 target/gptlive-acceptance-1c71a40826/ (final Java/browser evidence),
 target/gi12-node-acceptance.log. Both runners removed their disposable resources.
+
+## GI-12 / Milestone 238 - local integrated acceptance (2026-10-22)
+
+LOCAL AUTOMATED ACCEPTANCE COMPLETE; full release acceptance INCOMPLETE. Under
+the user's revised local-first sequence, the failed GI-11 capacity gate did not
+block functional integration. GI-11 local work was committed/pushed as 6d68efd;
+resource efficiency remains required against the fixed account quota.
+
+Extended the existing canonical/compact Gala journey, retaining its two-visitor
+isolation and game/guess/reveal/gesture/task coverage. A malformed control response
+now explicitly exercises failure without a ready game, no sensor-triggered retry,
+and a fresh explicit request that succeeds. The second visitor's task is ON_CUE:
+activation and a nonmatching cue spend no actions; two fresh matching cues produce
+two actions with confirmed response association, then return to reception. The
+first visitor still covers the legacy IMMEDIATE default. No production speech
+policy or task semantics were changed for this acceptance work.
+
+The focused cross-agent acceptance (Gala, Generic, Social Space, context delivery
+and Gala delivery) passed all 27 cases. Final all-Java acceptance passed 826/826
+executed cases, with only the opt-in capacity soak skipped. All 122 JS cases passed.
+Real-app browser acceptance passed three Live-enabled cases and the feature-disabled
+text/TTS case, with two intentional Live-only skips when disabled. Packaging and
+git diff --check passed. This verifies persistence/reload, ownership/revocation,
+late events, quiet/urgent context delivery, legacy speech modes and local lifecycle
+contracts. It does not verify that scripted speech was physically audible.
+
+Commands/artifacts:
+
+- Focused: run_acceptance.py with GalaDinnerReceptionJourneySmokeIntegrationTest,
+  GenericMultimodalTaskIntegrationTest, SocialSpaceLiveJourneySmokeIntegrationTest,
+  LiveContextDeliveryUnitTest,GalaDinnerLiveDeliveryUnitTest. Evidence:
+  target/gptlive-acceptance-cbba7bc722/java.log.
+- Final: python tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests all --browser
+  --live-only --browser-grep 'real scoped cockpit|Live Multimodal exposes sensors|Generic activation telemetry'
+  with PROMETHEUS_GALA_CAPACITY=false. Evidence: target/gptlive-acceptance-1c71a40826/.
+- node --test tests/js/live/*.test.mjs tests/js/transcription/*.test.mjs
+  tests/js/speech/*.test.mjs tests/js/performance/*.test.mjs.
+- mvnw.cmd -q -DskipTests package (target/gi12-package.log).
+
+Updated the manual script with local build/database identification, a concise
+simple-language/child path and separate headset/robot output evidence. The final
+three-fresh-session provider matrix has NOT RUN on this combined version. Earlier
+provider acknowledgement/wording issues and reported acoustic clipping remain
+OPEN; physical reception/robot and final-word tests remain NOT RUN. Capacity
+headroom remains FAILED under the explicit local load profile. Do not describe
+all twelve milestones or the production reception as fully accepted.
+
+Rollout scope: no schema/configuration migration, instance rewrite or production
+database test. Use a fresh Gala instance for final trials. The prior deployed code
+baseline is 9ce55da; a rollback should use the corresponding previously verified
+Heroku release after checking its release identity, without deleting audit history
+or resetting shared branches. Commit/push follows the user's standing instruction;
+successful deployment alone cannot close these remaining gates.

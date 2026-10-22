@@ -7,12 +7,15 @@ Versprecher, Wiederholungen und getrennt erfasste Satzteile sind geglättet.
 
 ## Vorbereitung
 
-Nach einem Deployment den Browser hart neu laden (Ctrl+F5). Eine neue Gala-Instanz
+Nach einem Deployment oder lokalem Build den Browser hart neu laden (Ctrl+F5). Eine neue Gala-Instanz
 mit `ROBOT` verwenden. Headset, ruhiger Raum, nur eine
 Person im Kamerabild; während des Tests sichtbar bleiben. Kamera, **Social
 context**, Gesichtsausdruck-Erkennung, Handerkennung und Sensorübermittlung einschalten. In GPT-Live
 **Start reception** drücken und die vollständige Begrüssung abwarten.
 Deployment/Commit, Browser, Headset und Stimme notieren.
+Bei lokalen Versuchen ausdrücklich lokale Datenbank und laufenden Build notieren.
+Ein erfolgreicher lokaler Dialog bestätigt weder die Heroku-Quote noch die
+Ausgabe über den Empfangsroboter; diese Prüfungen bleiben separat.
 
 Jede Antwort ausreden lassen. `[Pause]` bedeutet etwa eine Sekunde Stille
 innerhalb desselben Satzes; das Wort nicht mitsprechen. Keine Wiederholungen
@@ -120,3 +123,17 @@ unterbrochen, wechselte die Aktivität oder verschwand jemand aus dem Kamerabild
 Erst danach Stop und Telemetrie exportieren. «local output stop» belegt nur einen
 lokalen Stopp; ein Caption-Ende oder eine bestätigte Kontextnachricht belegt nicht,
 dass der letzte Laut hörbar war. Die neue Kontextzuordnung ist ausdrücklich grob.
+
+## Kurzer Durchlauf mit einfacher Sprache
+
+Eine neue Begegnung starten: «Hallo. Wer bist du?» → «Können wir spielen?» →
+Auswahl abwarten → «Ich möchte eine Person raten.» → «Lebt die Person noch?» →
+«Ich gebe auf. Wer war es?» → Auflösung abwarten → «Schere, Stein, Papier bitte.»
+Nach bestätigtem Start eine Hand gut sichtbar ruhig halten. Ein Ergebnis,
+danach weiter gehaltenes Zeichen ohne zweites Ergebnis. Zum Schluss «Nein danke».
+Kurze Antworten ohne Echo, Druck oder Witze auf Kosten des Kindes erwarten.
+
+Für die abschliessende Abnahme denselben Ablauf einmal mit Headset und einmal
+mit der vorgesehenen Roboter-/Empfangsausgabe testen. Jeweils letzte Wörter,
+tatsächlich ausgeführte Gesten und Telemetrie festhalten; simulierte Antworten
+in automatisierten Tests ersetzen diese Prüfung nicht.

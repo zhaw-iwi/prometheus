@@ -82,6 +82,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-12 / Milestone 238: local automated acceptance complete. The Gala journey
+  adds failed-control recovery without a false start and an ON_CUE task through
+  two actions/completion; Generic and Social Space journeys pass too. All 826
+  executed Java cases, 122 Node cases and four real-app browser checks pass;
+  packaging passes. Final provider, physical and fixed-quota capacity gates remain
+  OPEN. `tests/gptlive/GALA.md` includes local setup and a short child-friendly path.
+
 - GI-11 / Milestone 237: redundant Gala memory writes removed; the original query
   regression passes at 2088/2100. Calibrated local reception load still measures
   about 156,919 questions/hour, above the fixed 36,000/hour quota (27,000 target).

@@ -154,6 +154,13 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals(calls, requests.size());
             assertReception(); assertTaskCleared();
             nativeSpeech(first, "Personenraten oder Schere, Stein, Papier?");
+            // A failed control response cannot advertise a ready game or silently retry.
+            say(first, "Personenraten bitte.", "not json");
+            assertReception(); assertTaskCleared();
+            assertTrue(contexts.snapshot(code, id).orElseThrow().activity().continuation().facts().contains("failed"));
+            calls = requests.size(); group(1);
+            assertEquals(calls, requests.size());
+            nativeSpeech(first, "Das Spiel ist noch nicht gestartet. Bitte wählen Sie es erneut.");
             say(first, "Wie wäre es mit einem Ratespiel?", control("START_GUESS"));
             hearAnnouncement(first);
             assertEquals("Gala guess the person", loaded().getCurrentState().getName());
@@ -291,7 +298,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             nativeSpeech(second, "Ja, genau: Ada Lovelace!");
             assertReception();
 
-            String secondSpec = spec("BETA-PAPER-AGREEMENT", "paper", 2, "Ein neuer Witz für " + SECOND_NAME);
+            var secondTerms = JsonParser.parseString(spec("BETA-PAPER-AGREEMENT", "paper", 2,
+                    "Ein neuer Witz für " + SECOND_NAME)).getAsJsonObject();
+            secondTerms.addProperty("firstAction", "ON_CUE");
+            String secondSpec = secondTerms.toString();
             say(second, "Gestalten wir eine neue Aufgabe mit Papier.", control("START_TASK"),
                     update("PROPOSE", secondSpec, "Vorschlag: eine kurze Reaktion auf Papier. Soll ich sie aktivieren?"));
             hearAnnouncement(second);
@@ -300,13 +310,18 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(second, "Ja, aktiviere diesen Papier-Vorschlag.", update("ACTIVATE", "null", "Die neue Aufgabe ist aktiv. Ich warte auf Papier."));
             hearAnnouncement(second);
             assertEquals(JsonParser.parseString(secondSpec), loaded().getStorage().get(TaskMemory.SPEC));
-            assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt(), "B gets a fresh action budget");
+            assertEquals(0, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt(), "Future cue must precede B's first action");
             waitForCue();
             calls = requests.size();
             hand("rock", Instant.now());
             assertEquals(calls, requests.size(), "A's trigger must not activate B's agreement");
-            assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
+            assertEquals(0, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
             scripted.add(TaskReplyFixture.plan("Ein neuer Witz für " + SECOND_NAME, compact).toString());
+            hand("paper", Instant.now());
+            hearAnnouncement(second);
+            assertEquals(1, loaded().getStorage().get(TaskMemory.ACTIONS).getAsInt());
+            waitForCue();
+            scripted.add(TaskReplyFixture.plan("Noch ein Witz für " + SECOND_NAME, compact).toString());
             hand("paper", Instant.now());
             assertTrue(hearAnnouncement(second).contains("final allowed action"));
             assertReception(); assertTaskCleared(); assertCurrentContextIsolated();
