@@ -71,6 +71,14 @@ is not an acoustic GPT-Live trial.
 For a repeatable physical Gala conversation based on the first live trial, use
 [GALA.md](GALA.md).
 
+The 22 October follow-up baseline uses `GalaLiveFollowupUnitTest`. It covers first
+and repeated RPS starts, a paused nonbinary question, a post-reveal invalid control
+reply and three questions interrupted by isolated activity spikes. Two explicitly
+named baseline tests reproduce known failures; green tests do not mean those
+product issues are fixed. The test also exports current, application-produced
+instructions and game context commands to `target/gala-followup-fixture.json`
+for provider comparisons. No database, provider or private transcript is used.
+
 ## Opt-in Gala database capacity gate
 
 Use disposable local MySQL, never the production database:

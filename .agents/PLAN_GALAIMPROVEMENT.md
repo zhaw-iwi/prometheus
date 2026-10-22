@@ -608,7 +608,87 @@ pass; provider/physical/capacity gates are recorded with their real status.
 Unresolved audible clipping or failed Live readiness/secrecy trials stay open;
 do not declare the whole improvement programme complete based only on unit tests.
 
-## Coverage of the agreed backlog
+## Follow-up from the 2026-10-22 reception trial
+
+The user authorised the following consecutive milestones, committing/pushing each
+completed milestone. These extend GI-01–12; they do not close the outstanding
+capacity, acoustic or physical gates. Keep Gala changes on agents. Shared runtime
+changes start on feature/gptlive, integrate into main, then agents. Use disposable
+local MySQL; production transcripts are evidence only, never committed fixtures.
+
+### GI-13 - Reproduce the observed failures
+
+Status: COMPLETE / Milestone 240. Five new synthetic tests pass; actual application
+contexts export to ignored target/gala-followup-fixture.json. Two known-failure
+characterizations remain explicitly open for GI-15/GI-16. See the results record.
+
+Create synthetic first/repeated RPS starts with delayed confirmation, a paused
+nonbinary guessing question, give-up followed by the revealed name, and three
+questions separated by brief activity spikes. Export actual application context
+commands for provider trials instead of maintaining a second prompt copy.
+Record current behaviour separately from desired outcomes and measured timing.
+
+Acceptance: deterministic tests protect backend readiness, state/outcome retention
+and raw fragments. Explicitly labelled characterizations reproduce false recovery
+and merged turns; these are known failures, not accepted product behaviour.
+No production behaviour change. Provider/physical results remain separate.
+
+### GI-14 - Live readiness and complete-question feasibility
+
+Simplify Gala speech guidance using Live's Backchannel, Interruption and Delegation
+policy structure. Align compact activity facts with one confirmed speaking occasion.
+Live retains wording; automatic durable utterance admission remains the only
+controller. Do not add a second delegation-driven acknowledgement path.
+
+Acceptance: all-state instruction budgets and existing unit/journey contracts pass.
+Run an early recorded before/after provider comparison, then three fresh-session
+repetitions of the candidate: delayed first/repeated RPS start, paused nonbinary
+question, guessing secrecy and reveal. Require no early invitations, unfinished-
+question answers, echoes or internal mode wording. Report timing and every failure;
+do not rerun until a favourable sample hides earlier failures.
+
+Decision gate: if clearer instructions still fail, stop for a scoped control design
+with the user. Explain latency/interruptibility consequences before adding audio
+gating or changing full duplex. Prompt checks cannot prove enforced silence.
+
+### GI-15 - Ordinary conversation after a reveal
+
+Constrain the classifier to current-mode operations and provide bounded recent
+outcome context. A repeated revealed name or question about that person remains
+conversation; do not claim an activity failed when no activity was requested.
+Invalid control cannot mutate state or automatically retry. Preserve genuine
+failure recovery, active-game secrecy, stop and outcome expiry.
+
+Acceptance: replace GI-13's false-recovery characterization with no extra occasion
+for post-reveal conversation; unit coverage for invalid operation, real failed
+start and expired outcome, plus the representative persisted Gala journey.
+
+### GI-16 - Separate turns despite brief input noise
+
+Use the synthetic spike fixture and PCM activity tests to distinguish evidence of
+speech from isolated RMS spikes before adjusting segmentation. Preserve deliberate
+within-question hesitations, raw receipts, uncertain/late/duplicate handling, Stop
+and immediate revocation. Do not simply shorten Gala's two-second quiet window.
+
+Acceptance: three separated questions become three complete segments under the
+defined noise fixture; brief within-question pauses remain one. Test low-volume
+speech and coverage gaps, then capture/ingress integrations and existing query
+budgets. This does not fix Live's independent acoustic turn-taking by itself.
+
+### GI-17 - Fresh, compact sensory context and integrated acceptance
+
+Reduce redundant sensory chunk headers/updates and coalesce obsolete unsent
+observations. Deliver facial and social evidence before their original expiry;
+preserve source IDs, original TTL, immediate permission checks and sensing cadence.
+Do not extend freshness or add database polling to make delivery appear successful.
+
+Acceptance: delayed-ACK/expiry/replacement tests show current facial and social
+facts without obsolete backlog; stop/revocation remain immediate. Run affected
+shared tests, Gala/Generic/Social Space journeys, the mixed-minute database budget
+and final provider matrix. Update the manual test script for one final user trial.
+GI-11 fixed-quota capacity and physical audibility stay separately open until proved.
+
+## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |
 | --- | --- |

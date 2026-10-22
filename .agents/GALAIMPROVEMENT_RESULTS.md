@@ -4,6 +4,41 @@ Roadmap: `.agents/PLAN_GALAIMPROVEMENT.md` on the agents branch. The user author
 consecutive milestones with a commit/push after each; final user physical trials
 are grouped at the end. Synthetic tests do not establish audibility or model compliance.
 
+## GI-13 / Milestone 240 - follow-up baseline (2026-10-22)
+
+Baseline: agents 98316fe. No runtime changes. Five synthetic tests exercise the
+actual Gala graph and transcript segmenter, without production data or providers.
+First/repeated RPS starts stay unconfirmed inside delayed inference. A 1.2-second
+pause keeps a nonbinary question together and preserves the selected person.
+Two labelled characterizations reproduce open defects: an invalid post-reveal
+operation preserves the outcome but creates false recovery; 20-ms activity spikes
+each second merge three separate questions into one complete segment. The synthetic
+invalid operation is deliberately chosen; the real trial did not log its value.
+
+The test exports actual application instructions/startup input and first/repeated
+RPS, result, guessing and reveal context commands to ignored
+target/gala-followup-fixture.json. GI-14 provider comparisons use these contexts,
+not a hand-maintained prompt copy. Paused questions require a real-provider check:
+correct backend segmentation cannot establish Live's own response timing.
+
+Verification: 47 pure Java cases passed (5 new, 34 Gala reception, 8 segmentation),
+zero failures/errors/skips. Command:
+`mvnw.cmd -q -Dtest=GalaLiveFollowupUnitTest,GalaDinnerReceptionUnitTest,LiveTranscriptSegmenterUnitTest test`.
+Log: target/gi13-unit.log. No application, database or paid provider started.
+`git diff --check` passed. Production behaviour and speech are unchanged.
+
+The preceding physical trial supplies the comparison baseline: first-round
+invitation was after confirmation, but replay invitation was about 1.0 s before
+backend confirmation and 3.0 s before occasion ACK. Two RPS results started in
+captions about 2.38/2.14 s after accepted signs. Three questions formed one roughly
+16-second user segment. There were 195 thinking chunks and 23 facial chunks expired
+before send. These are trace/caption measurements, not exact acoustic alignment,
+audibility or database-query counts. Private evidence stays under target/.
+
+Next: GI-14's before/after provider feasibility gate. GI-15/GI-16 will replace the
+known-failure assertions when their remedies land. GI-11 fixed-quota capacity and
+final provider/physical/acoustic acceptance remain open.
+
 ## GI-01 / Milestone 227 - shared context contract (2026-10-21)
 
 Shared changes begin on feature/gptlive. Dynamic guidance additions, replacements

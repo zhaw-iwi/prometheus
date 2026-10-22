@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-13 / Milestone 240: five synthetic follow-up scenarios cover delayed/repeated
+  RPS readiness, paused questions, post-reveal control and noisy turn separation.
+  Actual application contexts export for provider comparisons. The false-recovery
+  and merged-turn tests characterize known failures, not fixes. GI-14's provider
+  feasibility gate is next; no runtime behaviour changed. See the Gala plan/results.
+
 - GI-11 / Milestone 239: durable receipt admission now costs one database Question;
   storage writes change only their own links and history display avoids the full
   state graph. Matched reception cost falls 30.3%, from 7,846 to 5,469 Questions
