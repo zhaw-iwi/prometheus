@@ -95,7 +95,9 @@ def main():
         print('Disposable schema: ' + schema + '; artifacts: ' + str(artifacts), flush=True)
         if args.java_tests != 'none':
             selection = [] if args.java_tests == 'all' else ['-Dtest=' + args.java_tests]
-            run([*maven, '-q', *selection, 'test'], 'java')
+            # Every cached Spring context owns a pool. Bound aggregate local connections
+            # for full-suite runs without changing any application's production pool size.
+            run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')

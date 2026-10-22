@@ -61,7 +61,9 @@ class LiveCockpitSmokeIntegrationTest {
             observations.put(Event.TYPE_WEATHER_CURRENT, "{\"location_label\":\"Winterthur\",\"condition\":\"rain\",\"temperature_c\":17}");
             observations.put(Event.TYPE_WEATHER_FORECAST, "{\"location_label\":\"Winterthur\",\"days\":[{\"date\":\"2026-09-28\",\"condition\":\"sunny\"}]}");
             for (var observation : observations.entrySet()) {
-                postJson(path + "/acknowledge", Map.of("type", observation.getKey(), "actor", "sensor", "kind", "observation", "payload", observation.getValue()));
+                var payload = com.google.gson.JsonParser.parseString(observation.getValue()).getAsJsonObject();
+                payload.addProperty("ts", java.time.Instant.now().toString()); // This fixture represents fresh sensor evidence.
+                postJson(path + "/acknowledge", Map.of("type", observation.getKey(), "actor", "sensor", "kind", "observation", "payload", payload.toString()));
             }
             var selected = contexts.snapshot(code, id).orElseThrow();
             var types = selected.items().stream().map(item -> item.type()).toList();
