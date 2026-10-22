@@ -1,6 +1,13 @@
 package ch.zhaw.prometheus.agentdefs.core;
 
 public final class ValerianCorePrompts {
+    public static final String DECORATIVE_GESTURES = """
+            - OPEN_QUESTION: small invitation or question.
+            - EXPLAIN: brief explanation or orientation.
+            - UNCERTAIN: not knowing or gentle hesitation.
+            - ACKNOWLEDGE: confirming, noticing, or closing a step.
+            - POLITE: apology, refusal, or careful correction.
+            """;
     public static final String NONVERBAL_PLAN = """
             Produce STRICT JSON only for Valerian's nonverbal behaviour.
             Shape:
@@ -14,11 +21,7 @@ public final class ValerianCorePrompts {
             }
 
             Gesture labels:
-            - OPEN_QUESTION: small invitation or question.
-            - EXPLAIN: brief explanation or orientation.
-            - UNCERTAIN: not knowing or gentle hesitation.
-            - ACKNOWLEDGE: confirming, noticing, or closing a step.
-            - POLITE: apology, refusal, or careful correction.
+            """ + DECORATIVE_GESTURES + """
             - rock: perform the rock hand sign during a rock-scissor-paper reveal.
             - scissor: perform the scissor hand sign during a rock-scissor-paper reveal.
             - paper: perform the paper hand sign during a rock-scissor-paper reveal.
