@@ -1685,6 +1685,13 @@ behaviour speech.
 
 ## Experimental GPT-Live
 
+Application policies may override `ExternalVoicePolicy.livePendingGuidance()` to
+allow narrowly described waiting remarks. This is model guidance, not a timer or
+proof that a lookup/action is running. Defaults retain the existing acknowledgement
+permission; activity-owned applications may narrow it without legacy task wording.
+Camera hand-emission resets also fence older in-flight acknowledgements: a delayed
+send cannot restore an earlier capture window's cooldown.
+
 The `feature/gptlive` experiment uses `gpt-live-1` and the Live API, separately
 from transcription/TTS. Enable with `prometheus.live.enabled=true` (or
 `PROMETHEUS_LIVE_ENABLED=true`); the local template defaults to disabled, while
