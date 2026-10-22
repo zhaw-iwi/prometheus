@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-09 implemented; GI-10 is next. GI-05 uses
+Status: GI-01 through GI-10 implemented; GI-11 is next. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
 Later milestones are not started.
@@ -465,6 +465,9 @@ Assert the feedback reason and state agree, and only one result/action is emitte
 Run one real-camera acceptance path including repositioning and a held sign.
 
 ### GI-10 - Speech-delivery evidence and targeted cutoff correction
+
+Status: OBSERVABILITY IMPLEMENTED. Context-update/media invariants pass; the
+reported audible last-word cutoff remains OPEN, with no reproduced cause.
 
 **Outcome:** the next clipped response can be located more precisely, and any
 reproduced application-side cutoff has a targeted regression test.

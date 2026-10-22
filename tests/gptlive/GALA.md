@@ -112,3 +112,11 @@ und Aktivitätszeile («akzeptiert»/«abgeschlossen») unterscheiden. Nach dem 
 das Zeichen weiter halten: kein zweites Ergebnis. Neue Runde ausdrücklich starten;
 separat während des Wartens «Stopp» testen. Kamera/Detektor und Senden aktiviert?
 Bei Problemen Uhrzeit, Zeichen, Sende-Konfidenz und Ablehnungsgrund notieren.
+
+Bei abgeschnittenem Ton bitte sofort den Marker «speech cut off» setzen und die
+konkrete Antwort, das fehlende Wort und die Uhrzeit notieren. War es im Untertitel
+und in der aufgezeichneten Unterhaltung vorhanden? Lief noch Ton, wurde gerade
+unterbrochen, wechselte die Aktivität oder verschwand jemand aus dem Kamerabild?
+Erst danach Stop und Telemetrie exportieren. «local output stop» belegt nur einen
+lokalen Stopp; ein Caption-Ende oder eine bestätigte Kontextnachricht belegt nicht,
+dass der letzte Laut hörbar war. Die neue Kontextzuordnung ist ausdrücklich grob.

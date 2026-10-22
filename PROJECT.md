@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-10 / Milestone 236: Live export links media samples to observed context and
+  caption receipts and distinguishes fixed local-stop causes. Context updates
+  preserve output; observability callback failure cannot disrupt speech/cleanup.
+  Reported audible last-word clipping remains OPEN without a reproduced cause.
+  GI-11 follows; detailed verification is in the Gala results.
+
 - GI-09 / Milestone 235: Gala hand-game feedback distinguishes browser emission
   from actual readiness, rejected input and one accepted result. Existing acceptance
   confidence is preserved; source order and camera stability metadata are checked.
@@ -10866,3 +10872,11 @@ at once-only publication, and exempts deliberate task/game outputs. See GI-08 in
 Gala uses the existing activity journal/footer for clear readiness/rejection/result
 states. Browser emission and backend acceptance thresholds have explicit roles.
 See GI-09 in `.agents/GALAIMPROVEMENT_RESULTS.md` for verification and physical limits.
+
+## Milestone 236 - Correlated Live output evidence (2026-10-22)
+
+Fixed local-stop metadata and bounded approximate context/receipt links improve
+cutoff investigation without changing media ownership, VAD or playback timing.
+A diagnostic consumer exception is isolated from speech and cleanup. No evidence
+establishes the cause of the reported audible clipping; that fix remains OPEN.
+See GI-10 in `.agents/GALAIMPROVEMENT_RESULTS.md` for verification and limits.

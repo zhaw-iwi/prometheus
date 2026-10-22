@@ -527,3 +527,40 @@ and accounts were removed. Packaging and git diff --check passed. The first
 integration selection included a nonexistent persistence class; only the five
 actual journey/query cases from that run are counted, with the four real
 persistence cases run separately under GalaDinnerReceptionIntegrationTest.
+
+## GI-10 / Milestone 236 - Live output evidence (2026-10-22)
+
+The browser records fixed stop causes for operator Stop, lifecycle/departure,
+stale presence, lost access, provider/backend session closure, transport/media
+failure and startup/input-control errors. Microphone mute stays separate. Silence
+still happens synchronously before cleanup or provider responses. Unknown causes
+stay unknown; provider session closure is never natural utterance completion.
+
+Existing media/RTP samples include the latest observed context revision,
+acknowledged speaking source and output-caption receipt when available. These
+are explicitly approximate context associations, expire after 30 seconds and
+clear on new input. Repeated status cannot restore a cleared old occasion. Normal
+Live replies may have no backend speaking occasion. Existing clocks and retention
+bounds remain separate; no text, raw audio, device IDs or free-form error detail.
+No new poller, request, database query, PCM buffering or VAD change.
+
+Tests preserve stream/peer/output volume through instruction/thinking/commentary
+acknowledgments and activity refresh, retain immediate intentional stop and access
+revocation, fence late callbacks, and bound/private-filter metadata. A fault test
+also demonstrates that a diagnostic consumer exception cannot interrupt speech or
+prevent media release. This is defensive isolation, not a diagnosis of the user's
+reported clipping. Thirty Node cases passed on feature and agents (gi10-node.log).
+Shared changes landed through feature/gptlive 4dd6870 and main 55ab6b6.
+
+Reported audible final-word clipping remains OPEN. No application-side cutoff was
+reproduced in the context/media regressions. Provider utterance end is unavailable
+and physical audibility remains unmeasured. The manual script now requests the
+exact missing word, time, caption comparison and issue marker for the next physical
+trial. Synthetic/browser tests cannot close that physical issue.
+
+GI-10 final verification: 18 Java audio/context-delivery unit cases passed on the
+shared branch (gi10-unit.log); one real bridge integration and three real-app
+browser cases passed on agents (target/gptlive-acceptance-f6012bfc4c). Two browser
+cases ran with Live enabled; the legacy text/TTS case ran with Live disabled and
+the Live-only case was correctly skipped there. Disposable resources removed.
+Packaging and git diff --check passed. No physical headset/robot trial was run.
