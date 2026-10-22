@@ -16,6 +16,8 @@ public interface ExternalVoicePolicy {
     default boolean livePendingAcknowledgements() { return true; }
     /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
     default long liveUserSilenceMs() { return 800; }
+    /** Opt-in occupied-encounter grace for camera dropouts; Stop and access checks remain immediate. */
+    default long liveDepartureGraceMs() { return 0; }
     /** Opt-in rejection of isolated input activity spikes for backend capture only. */
     default boolean liveFilterIsolatedInputActivity() { return false; }
     /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */

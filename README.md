@@ -1401,9 +1401,13 @@ Application-owned policies can implement `ExternalVoicePolicy` to declare their
 supported states, voice guidance, encounter-history boundary, startup instructions
 and optional session-close transition. Profiles can opt into
 `presenceControlledLive` (default false): the operator arms reception, fresh
-acknowledged occupancy starts a session, and an empty camera view detaches local
-audio before closing it. Re-entry gets a new session; camera loss or voice failure
-disarms reception. This is an encounter boundary, not person recognition.
+acknowledged occupancy starts a session. `ExternalVoicePolicy.liveDepartureGraceMs()`
+(default zero, bounded to 2,000 ms) is exposed as `departureGraceMs` in scoped Live
+capabilities. During an opted-in grace, audio/input and the current session continue;
+confirmed absence stops locally without waiting for HTTP. Raw counts stay unchanged.
+Re-entry after closure gets a new session; Stop, camera loss and voice failure remain
+immediate. This is an encounter boundary, not person recognition. Browser diagnostics
+retain pending/resumed/confirmed outcomes with effective grace and duration.
 
 Configurable-task applications can reuse
 `GenericMultimodalBehaviour.configurationInstructions(voice)` and specialize

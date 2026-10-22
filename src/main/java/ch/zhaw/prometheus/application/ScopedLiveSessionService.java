@@ -32,7 +32,7 @@ import ch.zhaw.prometheus.application.live.LiveContextSnapshot;
 @Service
 public class ScopedLiveSessionService {
     public static final List<String> VOICES = List.of("marin", "quartz", "willow", "meridian");
-    public record Capabilities(boolean enabled, String model, List<String> voices, boolean diagnosticOnly, boolean eligible) {}
+    public record Capabilities(boolean enabled, String model, List<String> voices, boolean diagnosticOnly, boolean eligible, long departureGraceMs) {}
     public record SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady) {
         @Override public String toString() { return "SessionView[handle=" + handle + ",sdp=redacted]"; }
     }
@@ -85,13 +85,16 @@ public class ScopedLiveSessionService {
     }
 
     public Optional<Capabilities> capabilities(String code, UUID agentId) {
-        return demo.getAgentInfo(code, agentId).map(info -> new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false,
-                contexts.supported(code, agentId)));
+        return demo.getAgentInfo(code, agentId).map(info -> {
+            var eligibility = contexts.eligibility(code, agentId);
+            return new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false,
+                    eligibility.supported(), eligibility.departureGraceMs());
+        });
     }
 
     public Capabilities capabilities(String code) {
         demo.openSession(code);
-        return new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false, false);
+        return new Capabilities(properties.isEnabled(), properties.getModel(), VOICES, false, false, 0);
     }
 
     public Optional<SessionView> create(String code, UUID agentId, LiveSessionRequest request) {
