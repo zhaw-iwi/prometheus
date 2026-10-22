@@ -35,6 +35,42 @@ class GalaDinnerReceptionIntegrationTest {
     @Autowired GenericTaskSessionLifecycleService taskLifecycle;
     @Autowired LiveTranscriptIngressService ingress;
 
+    @Test void receptionWeatherAndHandOccasionsSurviveReloadWithoutSpeechInference() {
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
+        UUID id = demo.createAgent(code, GalaDinnerReception.KEY, AgentEmbodiment.ROBOT.name()).getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        var startup = contexts.claim(code, id, session).orElseThrow();
+        var owner = new ExternalSpeech(session, startup.epoch());
+        try {
+            for (String type : List.of(Event.TYPE_WEATHER_CURRENT, Event.TYPE_HAND_SIGN)) {
+                var agent = agents.findById(id).orElseThrow();
+                var memory = (ch.zhaw.prometheus.model.Storage) org.springframework.test.util.ReflectionTestUtils.getField(agent, "storage");
+                memory.put("gala.sensing.ambient_at", new com.google.gson.JsonPrimitive(Instant.now().minusSeconds(30).toString()));
+                for (String key : List.of("gala.continuation_id", "gala.continuation_ambient"))
+                    if (memory.containsKey(key)) memory.remove(key);
+                agents.saveAndFlush(agent);
+                String fields = Event.TYPE_WEATHER_CURRENT.equals(type)
+                        ? "\"location_label\":\"Zurich\",\"condition\":\"clear\",\"temperature_c\":9"
+                        : "\"source\":\"valerian.hand.camera\",\"sign\":\"paper\",\"confidence\":0.9,\"stabilityFrames\":3";
+                String payload = "{" + fields + ",\"observed_at\":\"" + Instant.now().minusSeconds(1) + "\"}";
+                demo.acknowledge(code, id, new EventRequest(type, "sensor", Event.KIND_OBSERVATION, payload), OutputProfile.FULL_PLAN);
+                var reloaded = agents.findById(id).orElseThrow();
+                assertEquals("Gala reception", reloaded.getCurrentState().getName());
+                assertFalse(reloaded.getStorage().containsKey("gala.sign"));
+                var occasion = contexts.refresh(id, owner).orElseThrow().context().activity().continuation();
+                assertNotNull(occasion); assertTrue(occasion.interruptible());
+                assertEquals(ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.PROACTIVE, occasion.occasion());
+                assertTrue(occasion.facts().contains(Event.TYPE_WEATHER_CURRENT.equals(type) ? "Zurich" : "paper"));
+                demo.acknowledge(code, id, new EventRequest(type, "sensor", Event.KIND_OBSERVATION, payload), OutputProfile.FULL_PLAN);
+                assertEquals(occasion.id(), contexts.refresh(id, owner).orElseThrow().context().activity().continuation().id());
+            }
+            verifyNoInteractions(language);
+        } finally { ownership.release(id, session); }
+    }
+
     @Test void completedCurrentQuestionAllowsOkayAfterAnOldAnnouncementAndAdmitsOnlyOnce() {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);

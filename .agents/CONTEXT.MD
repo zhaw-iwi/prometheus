@@ -355,10 +355,20 @@ Gala ambient sensing now uses shared source-time freshness and explicit,
 interruptible PROACTIVE occasions. Count/expression changes need two seconds of
 stable fresh evidence, share a 25-second cooldown and expire within eight seconds
 or at source expiry. Speech, games/tasks, pending outcomes and quiet take priority;
-superseded comments are discarded rather than queued. Zero visitors still closes
-immediately. Corrections suppress unsolicited expression claims for the encounter;
+superseded comments are discarded rather than queued. Confirmed absence closes
+after the existing two-second grace. Corrections suppress unsolicited expression claims for the encounter;
 missing/absent/poorly detected faces withdraw their older Live summary. Task
-thresholds remain unchanged; ambient admission adds no model call or database poll.
+thresholds remain unchanged; ambient admission adds no classifier call or database poll.
+
+GI-25 / Milestone 252 adds reception-only current-weather and hand-shape occasions
+through the same admission rules. Source-aged, location-qualified weather and
+confident stable camera signs can prompt one brief Live-composed comment; repeated
+values, old round IDs, games, recent conversation and quiet suppress it. Existing
+encounter history provides deduplication without new per-frame storage writes.
+Forecasts remain context only. The shared Gala voice guidance encourages lightly
+recurring dry robot self-irony within replies. No empty-room or idle monologues,
+new media lifecycle, sensor cadence or cockpit contract. New reception transitions
+require a fresh Gala instance; saved graphs are not migrated. See PROJECT/results.
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five

@@ -46,6 +46,7 @@ public class GalaDinnerAction extends Action {
         Storage storage = getStorage();
         reply(storage, null);
         switch (galaOperation) {
+            case "AMBIENT" -> GalaDinnerSensing.ambient(storage, events, runtime, now);
             case "FAIL_TASK" -> GalaDinnerTaskAction.uncertain(storage);
             case "TURN" -> { turn(storage, events, runtime, now); if (!present(storage, now)) reply(storage, null); }
             case "PRESENCE" -> {

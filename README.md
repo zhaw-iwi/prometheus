@@ -582,11 +582,24 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Optional ambient comments require a changed count/expression to remain stable
   across fresh readings at least two seconds apart. They have a shared 25-second
   cooldown and expire within eight seconds or when their source expires. Initial
-  presence belongs to the session greeting; zero visitors still closes immediately.
+  presence belongs to the session greeting; confirmed zero visitors closes after
+  the existing two-second departure grace.
   User turns, recent conversation, games/tasks, pending results and explicit quiet
   suppress comments without a backlog. A visitor correction suppresses unsolicited
   expression interpretations for the encounter; direct questions remain answerable.
-  Raw weather updates do not request speech. Sensing gaps reset change baselines.
+  Reception may also admit one comment on newly supplied fresh current weather
+  for its stated location, or a meaningful change (condition, wind/intensity,
+  location or at least 2 C versus the previous valid sample). Repeated reports
+  and small temperature fluctuations stay quiet. Forecasts remain context only.
+  Fresh recognised hand shapes can receive a tentative acknowledgment in reception:
+  confidence >= 0.70 and at least three stable frames for camera sources; manual
+  observations remain explicit operator input. Round-tagged signs cannot trigger
+  ambient speech. A hand comment neither starts RPS nor requests robot motion.
+  Both additions share the existing cooldown/priority/expiry rules. Encounter
+  history suppresses repeated values, including samples received during games or
+  other suppressed periods; no new poller or per-frame baseline writes are added.
+  Sensing gaps reset face/count change baselines. Create a fresh Gala instance to
+  obtain the two new reception transitions; saved graphs are not migrated.
 
 Reception/game turns use one bounded classification/embodiment inference without
 generating a second ordinary spoken answer. Entering task design also invokes the
@@ -628,8 +641,8 @@ and records requests, not physical execution or word-level alignment. Publishing
 consumes the plan once; native speech capture does not generate another gesture.
 
 Gala uses one concise voice policy across activities: direct replies without habitual
-question echoes or waiting acknowledgments, occasional dry self-irony about robot
-limitations, and no renewed invitation after refusal. Recovery states what is known
+question echoes or waiting acknowledgments, lightly recurring dry robot self-irony
+within replies, and no renewed invitation after refusal. Recovery states what is known
 and gives one useful next step; humour never substitutes for an explanation or targets
 the visitor. Unclear speech gets a short clarification. Full task proposals retain
 their lifecycle terms even when that requires more than two sentences. Provider

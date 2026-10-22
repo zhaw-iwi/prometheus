@@ -1626,3 +1626,60 @@ The final manual sequence is in tests/gptlive/GALA.md. Use a fresh Gala instance
 hard-reloaded client, record deployed build, and distinguish brief detection dropout
 from a sustained departure. User device/robot acceptance and fixed-quota capacity
 remain open. No additional deployment capacity or database retention changes made.
+
+## GI-25 / Milestone 252 - Restrained humour and reception sensing (2026-10-22)
+
+Scope: user-approved, Gala-only refinement on `agents`. One shared voice line
+encourages lightly recurring dry robot self-irony within existing replies. Two
+reception transitions admit current-weather and hand observations via the existing
+interruptible PROACTIVE occasion. Live retains wording. No idle/empty-room speech,
+media/cockpit change, game control change, schema migration or new polling.
+
+Admission retains the shared 25-second cooldown, eight seconds after user input,
+fresh visible presence, active Live ownership, and game/task/result/quiet priority.
+Comments expire within eight seconds or original source expiry (weather 600 seconds,
+hands 15). Weather must have a bounded stated location and supported condition;
+condition/location/wind/intensity changes or >=2 C versus the preceding valid sample
+are meaningful. Forecasts stay context only. Camera hand signs retain >=0.70 confidence
+and three stable frames; explicit manual input retains its existing acceptance.
+Round-tagged signs never authorize an ambient comment. No matching robot hand action.
+
+Current-encounter history deduplicates values and source times, including samples
+recorded while games or recent conversation suppressed comments. Repeats/invalid
+samples do not write a new baseline. New contradictory evidence withdraws a pending
+same-source comment, with the existing cooldown preventing replacement bursts.
+New encounters exclude previous hand history. Normal Live generation/transcript
+costs still apply to each additional admitted comment; no classifier call is added.
+
+Verification:
+
+- `mvnw.cmd -q -Dtest=GalaDinnerAmbientUnitTest,GalaDinnerSensingUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerHandSignsUnitTest,GalaDinnerTaskUnitTest test`:
+  120 passed. Instructions across all states/task phases and both embodiments:
+  14,336 bytes against the unchanged 14,400 regression ceiling / 16,000 app limit.
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest,QueryVolumeIntegrationTest`:
+  four Gala journeys and nine query cases passed, with one opt-in capacity skip.
+  Four existing persistence cases passed; the added case initially failed because
+  its fixture changed Agent.getStorage()'s snapshot, not actual Storage. Corrected
+  the fixture, reran GalaDinnerReceptionIntegrationTest: all five passed, including
+  actual reload, both new transitions, one occasion and no inference/duplicate.
+  Combined final evidence: 18 integration/query passes, one intentional skip.
+- Query scenarios remain 1,569 / 1,616 Questions against 1,700. This existing
+  workload covers ongoing games/sensing, not the audio/transcript cost of extra
+  ambient utterances; it is not a new production-capacity claim.
+- The first unit run exposed duplicate rps_not_started diagnostics on the new
+  hand-to-routing path. Emit that diagnostic only in activity states, then all
+  120 passed. No readiness threshold or RPS acceptance behavior changed.
+- Final supplied-hand wording refinement: all 16 ambient units reran successfully.
+  `mvnw.cmd -q -DskipTests package` passed. No browser/media code changed.
+
+Artifacts: target/gala-ambient-unit.log, target/gptlive-acceptance-3742545e43/java.log,
+target/gptlive-acceptance-05bf2d1473/java.log, target/gala-ambient-final-unit.log and
+target/gala-ambient-package.log. Disposable local schemas/accounts were removed;
+no live database or paid provider was used. The previously established baseline
+Gala delivery-latency test issue is outside this follow-up and remains unresolved.
+
+Create a fresh Gala instance after deployment: saved graphs do not gain the new
+transitions automatically. No standalone Valerian or main-framework adaptation is
+needed. The user authorized commit/push for deployment. Provider style, actual
+comment cadence and physical sensing/audio remain live checks; the short manual
+check is in tests/gptlive/GALA.md. Deployment completion follows the workflow.

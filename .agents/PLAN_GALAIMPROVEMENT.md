@@ -1004,6 +1004,24 @@ user trial at the end. A failed new deterministic gate must be fixed before the
 next milestone; an unforeseen audio, lifecycle or compatibility trade-off needs
 the user's decision rather than silently weakening the stated contract.
 
+### GI-25 - Restrained humour and broader reception sensing
+
+Approved follow-up: slightly encourage the existing dry self-irony within normal
+replies; admit fresh current-weather and stable hand-shape comments in reception.
+Reuse PROACTIVE occasions, the shared 25-second cooldown, source expiry and
+conversation/game/quiet priority. Deduplicate against current-encounter history,
+including observations received while comments were suppressed. Preserve RPS,
+task cues, media/departure lifecycle and sensing cadence. No idle/empty-room speech.
+
+Testable outcomes: repeated/expired/future/invalid samples cannot create speech;
+new meaningful evidence permits one interruptible occasion with stated location
+or tentative hand shape; no game start, robot gesture or backend speech text;
+pending stale comments are withdrawn; new encounters do not inherit hand history.
+Check persisted reception transitions, both existing Gala journey encodings,
+instruction headroom and query-budget regression using the disposable local DB.
+Subjective humour frequency and real sensing/speech remain user trial checks.
+Implementation/evidence: GI-25 in GALAIMPROVEMENT_RESULTS and PROJECT milestone 252.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |

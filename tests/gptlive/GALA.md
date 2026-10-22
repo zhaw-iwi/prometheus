@@ -73,6 +73,18 @@ dürfen keine nachträgliche Kommentarwarteschlange erzeugen. Wenn alle gehen,
 muss die Audioausgabe nach zwei Sekunden bestaetigter Abwesenheit stoppen. Nach der Korrektur keine weiteren
 ungefragten Behauptungen über meine Stimmung in dieser Begegnung.
 
+Optionaler GI-25-Check mit einer **frisch erstellten Gala-Instanz**: Im Empfang
+mindestens 25 Sekunden seit Begruessung/letztem spontanen Kommentar und acht
+Sekunden seit der letzten eigenen Aeusserung warten. Frisches aktuelles Wetter
+holen und senden: ein kurzer Kommentar darf den gelieferten Ort nennen, ohne
+eine Recherche zu behaupten. Identische Werte erneut senden: keine Wiederholung.
+Nach erneutem Abstand ein stabiles Handzeichen zeigen: hoechstens eine kurze
+vorsichtige Bestaetigung, kein Spielstart und kein Roboter-Handzeichen. Gehaltene
+Zeichen duerfen auch nach Ablauf der Pause nicht wiederholt kommentiert werden.
+Waehrend eines Spiels oder nach "Bitte sei still" bleiben diese Kommentare aus.
+Humor soll ueber mehrere Antworten leicht haeufiger, weiterhin kurz und freundlich
+wirken. Keine Pflichtwitze, kein Echo und keine laengeren Antworten allein fuer Humor.
+
 ## Abschluss
 
 Zusätzlicher Aufgabentest: «Erst wenn ich Papier zeige, erzähl einen kurzen

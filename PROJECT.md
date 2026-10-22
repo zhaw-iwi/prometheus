@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-25 / Milestone 252: Gala voice encourages lightly recurring dry robot
+  self-irony within replies. Reception admits fresh current-weather and stable
+  hand-shape comments through existing PROACTIVE rules, with unchanged cooldown,
+  game/quiet priority and departure lifecycle. Duplicate observations do not replay.
+  Passed 120 focused units and 18 local integration/query cases (one opt-in capacity
+  skip); instructions fit at 14,336 bytes and query variants remain 1,569/1,616.
+  Fresh Gala instances receive the new reception transitions. User-authorized
+  commit/push on `agents` initiates deployment; physical tone/cadence remain live
+  checks. See the GI-25 results and updated tests/gptlive/GALA.md.
+
 - Valerian sensing UI follow-up (2026-10-22): corrected missing dark-mode surfaces
   for hand/weather reports. Weather fetch/send status is visible beside the controls
   and in the report, including failures and an explicit preview-only state. Five
@@ -11119,3 +11129,30 @@ issue is not changed or hidden by the weather fix. No live database was used.
 Standalone Valerian changes are pushed as `1466ff3` (format cleanup `6350fd5`).
 The agents push triggers the existing deployment workflow; release completion
 and physical weather-response acceptance must be verified separately.
+
+## Milestone 252 / GI-25 - Restrained humour and broader reception sensing
+
+Date: 2026-10-22. Goal: a small increase in dry robot self-irony within replies and
+bounded current-weather/hand comments, preserving the successful Gala interaction.
+
+Shared Gala voice guidance remains concise. Reception gains two explicit sensor
+transitions using existing Live-owned wording and interruptible PROACTIVE occasions.
+Current-encounter history suppresses repeated observations without per-frame baseline
+writes; source age, supplied location, camera confidence/stability, shared cooldown,
+conversation/game priority and quiet remain authoritative. No idle/empty-room speech,
+new polling, cockpit or shared-framework changes. One duplicate readiness diagnostic
+on the routing state was corrected without changing RPS acceptance.
+
+Verified 120 focused unit tests, 18 local integration/query cases across the original
+run and corrected-fixture rerun (one opt-in capacity skip), final 16 ambient units,
+and packaging. Instructions: 14,336 bytes. Existing query workload: 1,569/1,616 against
+1,700. The new persistence fixture initially mutated a storage snapshot; corrected
+to actual Storage and all five persistence cases passed. Exact commands/artifacts
+and limits are in `.agents/GALAIMPROVEMENT_RESULTS.md` GI-25.
+
+Run with a fresh Gala instance after deployment; persisted graphs are not migrated.
+Manual acceptance is in tests/gptlive/GALA.md. No live database, provider, physical
+audio or visual-browser run was used for this backend-only change. Actual humour,
+comment frequency and the additional normal Live/transcript cost remain live checks.
+User-authorized commit/push on `agents` triggers the existing deployment workflow;
+its completion must be checked independently. No main or standalone cockpit merge.

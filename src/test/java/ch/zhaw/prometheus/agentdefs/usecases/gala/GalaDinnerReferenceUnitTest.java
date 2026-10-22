@@ -70,7 +70,8 @@ class GalaDinnerReferenceUnitTest {
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
                 assertTrue(instructions.contains("not a question echo"));
-                assertEquals(1, occurrences(instructions, "occasional dry self-irony"));
+                assertEquals(1, occurrences(instructions, "dry robot self-irony recur naturally in replies"));
+                assertTrue(instructions.contains("keep it light, varied and brief"));
                 assertTrue(instructions.contains("truthful status and one useful next step"));
                 assertTrue(instructions.contains("never a made-up cause"));
                 assertTrue(instructions.contains("not a guessed age or identity"));

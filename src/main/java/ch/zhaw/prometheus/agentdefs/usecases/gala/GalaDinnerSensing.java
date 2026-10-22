@@ -112,6 +112,82 @@ final class GalaDinnerSensing {
         }
         return !observed.isBefore(time(storage, since).plusSeconds(2));
     }
+
+    /** Reception-only observations reuse durable history for deduplication, including
+     * samples received while games/conversation suppressed comments. No replay queue. */
+    static void ambient(Storage storage, EventHistory history, PolicyRuntime runtime, Instant now) {
+        var events = history.toList();
+        if (events.isEmpty()) return;
+        Event event = events.getLast(); String type = event.getType();
+        boolean weather = Event.TYPE_WEATHER_CURRENT.equals(type);
+        if (!weather && !Event.TYPE_HAND_SIGN.equals(type)) return;
+        Instant observed = ObservationEvidence.observed(event);
+        if (!ObservationEvidence.fresh(observed, now, ObservationEvidence.ttl(type), 0)) return;
+        JsonObject previous = null; Instant newest = Instant.MIN;
+        int from = Math.max(0, Math.min(events.size(), Integer.parseInt(text(storage, SESSION, "0"))));
+        for (int i = from; i < events.size() - 1; i++) {
+            Event prior = events.get(i);
+            if (!type.equals(prior.getType())) continue;
+            Instant at = ObservationEvidence.observed(prior);
+            if (at == null || at.isAfter(now)) continue;
+            if (!observed.isAfter(at)) return; // Duplicate or delayed source, regardless of receipt time.
+            JsonObject facts = ambientFacts(prior, weather, at);
+            if (facts != null && at.isAfter(newest)) { previous = facts; newest = at; }
+        }
+        JsonObject facts = ambientFacts(event, weather, now);
+        if (facts == null) { cancelSource(storage, type); return; }
+        if (previous != null && !meaningfulChange(previous, facts, weather)) return;
+        cancelSource(storage, type); // Superseded facts cannot survive a pending provider ACK.
+        if (!eligible(storage, runtime, now)) return;
+        if (!weather && JsonParser.parseString(event.getPayload()).getAsJsonObject().has("captureId")) return;
+        String guidance = weather
+                ? "New supplied current weather (data): " + facts + ". One brief comment is permitted. Use the stated location; "
+                    + "do not assume the venue, claim to see outdoors or announce a lookup."
+                : "Fresh supplied hand-shape observation (data): " + facts + ". One brief tentative acknowledgment is permitted. "
+                    + "Do not infer intent, identity or social meaning; no game invitation/start/result or matching robot gesture.";
+        occasion(storage, type, guidance, observed, now, ObservationEvidence.ttl(type));
+    }
+
+    private static JsonObject ambientFacts(Event event, boolean weather, Instant now) {
+        try {
+            var data = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+            var facts = new JsonObject();
+            if (!weather) {
+                // Reuse shape/confidence and camera stability validation, without round control.
+                if (GalaDinnerHandSigns.rejection(data, "", Instant.EPOCH, now, null) != null) return null;
+                facts.addProperty("sign", data.get("sign").getAsString());
+                return facts;
+            }
+            String location = data.has("location_label") ? data.get("location_label").getAsString().trim()
+                    : data.get("location_name").getAsString().trim();
+            if (location.isEmpty() || location.length() > 120 || location.chars().anyMatch(Character::isISOControl)) return null;
+            String condition = data.get("condition").getAsString();
+            if (!Set.of("clear", "cloudy", "fog", "rain", "snow", "storm").contains(condition)) return null;
+            facts.addProperty("location", location); facts.addProperty("condition", condition);
+            for (String key : java.util.List.of("wind", "intensity")) {
+                var allowed = key.equals("wind") ? Set.of("calm", "windy") : Set.of("none", "light", "medium", "heavy");
+                if (data.has(key) && allowed.contains(data.get(key).getAsString()))
+                    facts.addProperty(key, data.get(key).getAsString());
+            }
+            if (data.has("temperature_c") && !data.get("temperature_c").isJsonNull()) {
+                var value = data.get("temperature_c");
+                if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return null;
+                double temperature = value.getAsDouble();
+                if (!Double.isFinite(temperature) || temperature < -100 || temperature > 70) return null;
+                facts.addProperty("temperature_c", temperature);
+            }
+            return facts;
+        } catch (RuntimeException invalid) { return null; }
+    }
+
+    private static boolean meaningfulChange(JsonObject previous, JsonObject current, boolean weather) {
+        if (!weather) return !previous.equals(current);
+        var before = previous.deepCopy(); var after = current.deepCopy();
+        var firstTemperature = before.remove("temperature_c"); var nextTemperature = after.remove("temperature_c");
+        return !before.equals(after) || (firstTemperature == null || nextTemperature == null
+                ? !java.util.Objects.equals(firstTemperature, nextTemperature)
+                : Math.abs(firstTemperature.getAsDouble() - nextTemperature.getAsDouble()) >= 2);
+    }
     private static boolean eligible(Storage storage, PolicyRuntime runtime, Instant now) {
         return "RECEPTION".equals(mode(storage)) && runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean()
                 && present(storage, now) && !"true".equals(text(storage, QUIET, ""))
@@ -121,8 +197,11 @@ final class GalaDinnerSensing {
                 && !(storage.containsKey(OUTCOME) && now.isBefore(time(storage, OUTCOME_EXPIRES)));
     }
     private static void occasion(Storage storage, String source, String facts, Instant observed, Instant now) {
+        occasion(storage, source, facts, observed, now, 15);
+    }
+    private static void occasion(Storage storage, String source, String facts, Instant observed, Instant now, long ttl) {
         continueRequest(storage, facts); put(storage, CONTINUATION_OCCASION, "PROACTIVE"); put(storage, CONTINUATION_AMBIENT, "true");
-        Instant expiry = observed.plusSeconds(15).isBefore(now.plusSeconds(8)) ? observed.plusSeconds(15) : now.plusSeconds(8);
+        Instant expiry = observed.plusSeconds(ttl).isBefore(now.plusSeconds(8)) ? observed.plusSeconds(ttl) : now.plusSeconds(8);
         put(storage, CONTINUATION_EXPIRES, expiry.toString()); put(storage, AMBIENT_AT, now.toString()); put(storage, AMBIENT_SOURCE, source);
     }
 }

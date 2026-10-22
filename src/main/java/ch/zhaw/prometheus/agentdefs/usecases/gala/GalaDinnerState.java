@@ -23,7 +23,7 @@ public class GalaDinnerState extends State {
         super(name, policy, List.of(), starting, false, EventSelectorSpec.any());
     }
     @Override public Event acknowledge(Event event, Policy outerPolicy, PolicyRuntime runtime) throws TransitionException {
-        if (Event.TYPE_HAND_SIGN.equals(event.getType()) && ownPolicy() instanceof GalaDinnerPolicy gala
+        if (isStarting() && Event.TYPE_HAND_SIGN.equals(event.getType()) && ownPolicy() instanceof GalaDinnerPolicy gala
                 && !Set.of("RPS", "TASK").contains(GalaDinnerMemory.mode(gala.storage())))
             ActivityTrace.cue("rps_not_started", event.getId(), event.getType());
         return super.acknowledge(event, outerPolicy, runtime);

@@ -55,6 +55,9 @@ public class GalaDinnerReception implements AgentDefinition {
         }
         rps.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                 new GalaDinnerAction(storage, "HAND"), routing));
+        for (String type : List.of(Event.TYPE_WEATHER_CURRENT, Event.TYPE_HAND_SIGN))
+            reception.addTransition(new Transition(new LatestEventTypeDecision(type),
+                    new GalaDinnerAction(storage, "AMBIENT"), routing));
         // The browser can submit human presence before grouping for the same camera sample.
         task.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE),
                 new GalaDinnerAction(storage, "PRESENCE"), routing));
