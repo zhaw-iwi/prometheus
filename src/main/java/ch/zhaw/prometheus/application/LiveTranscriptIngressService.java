@@ -42,27 +42,31 @@ public class LiveTranscriptIngressService {
     private final LiveTranscriptReceiptRepository receipts;
     private final LiveTranscriptSegmentRepository segments;
     private final TransactionTemplate transaction;
+    private final TransactionTemplate receiptBoundary;
+    private final LiveTranscriptReceiptWriter receiptWriter;
     private final EntityManager entityManager;
     public LiveTranscriptIngressService(AgentApplicationService turns, AgentRepository agents, ExternalSpeechOwnership ownership,
             ExternalSpeechRecordingService recording, LiveTranscriptReceiptRepository receipts,
-            LiveTranscriptSegmentRepository segments, PlatformTransactionManager transactions, EntityManager entityManager) {
+            LiveTranscriptSegmentRepository segments, PlatformTransactionManager transactions, EntityManager entityManager,
+            LiveTranscriptReceiptWriter receiptWriter) {
         this.turns = turns; this.agents = agents; this.ownership = ownership; this.recording = recording;
         this.receipts = receipts; this.segments = segments; this.transaction = new TransactionTemplate(transactions);
         this.entityManager = entityManager;
+        this.receiptWriter = receiptWriter;
+        this.receiptBoundary = new TransactionTemplate(transactions);
+        this.receiptBoundary.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
         this.transaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     public boolean receipt(UUID id, ExternalSpeech owner, Fragment fragment) {
-        return turns.serialized(id, () -> Boolean.TRUE.equals(transaction.execute(status -> {
-            // Every delta is durable, but it does not need the agent's state/history graph.
-            // Keep live scope and persisted epoch checks under the same reset/admission lock.
-            if (!currentIdentity(id, owner)) return false;
-            if (receipts.findBySessionIdAndProviderEventId(owner.sessionId(), fragment.eventId()).isPresent()) return false;
-            // Assigned receipt IDs are new here: persist avoids a second duplicate lookup by merge.
-            entityManager.persist(new LiveTranscriptReceipt(agents.getReferenceById(id), owner.sessionId(), owner.epoch(), fragment.eventId(),
-                    fragment.speaker().name(), fragment.startMs(), fragment.endMs(), Instant.ofEpochMilli(fragment.receivedMs()),
-                    fragment.sequence(), fragment.text()));
-            entityManager.flush();
-            return true;
+        return turns.serialized(id, () -> Boolean.TRUE.equals(receiptBoundary.execute(status -> {
+            // Local ownership is only a fence: the insert checks scope AND epoch in
+            // the database on every receipt, without caching authorization. Suspend
+            // outer transactions so a later turn rollback cannot lose a receipt.
+            var scope = ownership.receiptScope(id, owner);
+            if (scope == null) return false;
+            var result = receiptWriter.insert(id, owner, scope.accessCodeId(), fragment);
+            if (result == LiveTranscriptReceiptWriter.Result.OBSOLETE) ownership.release(id, owner.sessionId());
+            return result == LiveTranscriptReceiptWriter.Result.INSERTED;
         })));
     }
     public Optional<Outcome> commit(UUID id, ExternalSpeech owner, Segment segment, List<String> observedStatePath) {

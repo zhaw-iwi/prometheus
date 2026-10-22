@@ -4,6 +4,52 @@ Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## GI-11 / Milestone 239 shared persistence efficiency (2026-10-22)
+
+Shared implementation starts on feature/gptlive and follows main -> agents.
+Receipt admission now executes one MySQL/InnoDB autocommitted INSERT ... SELECT
+with current access-code enablement/link, persisted epoch and duplicate identity
+in the same statement. The local ownership snapshot is only a cancellation fence.
+There is no authorization cache, fragment buffer, INSERT IGNORE or automatic retry.
+Outer transactions are suspended; accepted receipts remain durable if the caller's
+unrelated transaction later rolls back. Rejected inserts distinguish duplicates
+from obsolete owners with one additional scalar query. The default autocommit pool
+is required; a non-autocommit connection fails closed. Segment claim/processing
+transactions, original receipt IDs, timestamps/order and receipt ledger stay intact.
+
+Storage's private collection changes from a list to a set over the same join table
+and columns. Membership changes remove/add only their own links instead of
+rebuilding every link. Eager access, orphan removal, detached merge and same-value
+write-version changes remain. A disposable test removes the new schema's composite
+primary key to exercise the legacy join-table shape, including reload/update/delete.
+No saved instance/history rewrite or production schema migration is required.
+
+Focused disposable MySQL verification: 13/13 cases passed in LiveQueryBudget,
+LiveReceiptDurability, StoragePersistence, LiveTranscriptClaim and LiveTranscriptIngress
+integration suites. Scoped and trusted receipt admission each use exactly ONE MySQL
+Question (formerly seven and six respectively, including transaction control).
+Hibernate statistics omit direct JDBC, so these checks measure session Questions.
+Tests cover Unicode/null timing, exact timestamps, rollback durability, duplicates,
+invalid-write failure, revocation/unlink/reset, restart/no-replay, claim rollback,
+storage reload/merge/orphans and bounded link changes with 100 entries.
+Evidence: target/gptlive-acceptance-749a049188/java.log.
+
+The first focused run exposed transaction-synchronization connection retention
+in a preliminary split JPA/JDBC implementation; the final atomic JDBC admission
+uses one connection, including duplicate/rejection handling. Two new test fixture
+errors were corrected before the passing rerun. Evidence of that initial failure:
+target/gptlive-acceptance-0b34efb786/java.log.
+
+Full shared Java run: 556 cases, 555 passes, one pre-existing static client contract
+failure (ValerianClientStaticResourceContractTest:189). HEAD's shared script already
+submits agentDefinitionKey plus embodiment, while that unchanged test expects only
+agentDefinitionKey; the deployment branch has the matching embodiment contract.
+Neither client source nor this test is changed by the persistence work. This is
+not a fully green shared suite. Evidence: target/gptlive-acceptance-fff5878d29/java.log.
+Both runners removed their disposable schema/account. No production database was
+used. Integrated Gala regression and sustained capacity measurement follow on agents;
+these focused savings do not establish the fixed-quota capacity gate.
+
 ## Local acceptance resource and freshness fixtures (2026-10-22)
 
 The Gala integrated acceptance run exposed two test-harness issues: a full suite

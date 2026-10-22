@@ -197,6 +197,16 @@ remain. Shared work starts on feature/gptlive; agents adds a representative Gala
 load-budget test. Reduced query volume still needs production capacity headroom;
 see the same evidence file. No schema migration or sensing-cadence change.
 
+The 2026-10-22 follow-up admits each Live fragment in one autocommitted MySQL
+statement, validating persisted scope/epoch and duplicate identity atomically.
+Local ownership is only a fence; no permission cache is used. Outer transactions
+are suspended so receipt durability remains independent of later processing.
+The separate segment claim/processing commits remain. Storage's unordered entries
+use set semantics on the existing join table to avoid rewriting unrelated links;
+explicit same-value writes still change their background-action version. Neither
+change lowers sensing cadence or requires rewriting saved instances. Shared
+evidence is in GPTLIVE_RESULTS; fixed-quota capacity remains a separate gate.
+
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,
 bounded active-state context with source IDs/times and explicit sensory freshness.

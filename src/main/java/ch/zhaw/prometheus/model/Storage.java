@@ -2,8 +2,10 @@ package ch.zhaw.prometheus.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.gson.Gson;
@@ -28,10 +30,13 @@ public class Storage {
     }
 
     @OneToMany(cascade = { CascadeType.ALL }, fetch = FetchType.EAGER, orphanRemoval = true)
-    private List<StorageEntry> entries;
+    // Entries have no positional meaning. A set lets Hibernate change individual
+    // join-table links instead of deleting and recreating every link on removal.
+    // Keep the existing storage_entries table/columns and eager detached access.
+    private Set<StorageEntry> entries;
 
     public Storage() {
-        this.entries = new ArrayList<StorageEntry>();
+        this.entries = new LinkedHashSet<>();
     }
 
     public void put(String key, JsonElement value) {

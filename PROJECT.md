@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-11 / Milestone 239 shared persistence efficiency: one durable, freshly
+  authorized database statement per Live receipt, and individual storage-link
+  updates on the existing schema. Thirteen focused MySQL cases pass; the shared
+  full suite has 555 passes and one pre-existing static-client contract failure.
+  Gala integration/capacity checks follow on agents. See GPTLIVE_RESULTS.
+
 - GI-06 / Milestone 232 shared foundation: source-aged sensor context, withdrawal
   of unusable face summaries and opt-in interruptible proactive comments. Passed
   64 focused units and isolated Live/task/query integration checks. Gala ambient
