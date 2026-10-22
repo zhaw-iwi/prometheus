@@ -141,6 +141,16 @@ Live and Generic task perception expire hand readings after 15 seconds without
 a fresh observation. The telemetry export omits sensor payloads; check the
 diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
 
+Agents can identify a hand-capture window with an opaque `display.captureId`
+(1-128 characters) alongside `awaitingUserSign: true`. The cockpit echoes it as
+`captureId` in camera and manual `obs.hand.sign` payloads. A new ID resets stability
+and resend cooldown once; repeated opening plans retain both. A matching
+`awaitingUserSign: false` closes capture, and replaying that opening does not reopen
+it. IDs are scoped to the connected instance and cleared on cockpit reset. Delayed
+requests keep their original ID and cannot restore a newer window's cooldown/status.
+The agent validates the ID; it is correlation, not authorization or hand ownership.
+Displays without an ID keep the existing uncorrelated sensor behavior.
+
 #### Cockpit lifecycle contract
 
 The sensing, interaction, and behaviour columns represent the currently
