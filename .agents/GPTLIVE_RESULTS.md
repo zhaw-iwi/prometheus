@@ -13,7 +13,7 @@ expecting fresh context. The disposable acceptance runner now limits the Spring
 test context cache to four; the smoke supplies current source times. Production
 pool sizes, observation freshness rules and database configuration are unchanged.
 
-Focused verification on feature/gptlive: all three LiveCockpitSmokeIntegrationTest
+Focused verification on feature/gptlive: both LiveCockpitSmokeIntegrationTest
 cases passed on disposable local MySQL (target/gptlive-acceptance-ab5dbf66f6/java.log).
 Full-suite verification follows on agents with the Gala changes; quota compliance
 remains separate from functional acceptance. No production database test was run.
