@@ -92,3 +92,22 @@ action, unlocked inference and obsolete-result rejection. The first run exposed
 an executor result-key mismatch; the declaration was corrected and the affected
 integration set passed. Disposable schema/account removed. Gala opt-in, provider
 classification/latency review and full milestone acceptance remain in progress.
+
+## GI-06 / Milestone 232 - fresh evidence and optional ambient delivery foundation
+
+ObservationEvidence shares TTL/source timestamp parsing across Live and tasks;
+task TTLs and two-second clock skew remain unchanged. Live requires a source
+timestamp, hides unknown raw values, ignores delayed/future replacement frames,
+and withdraws the prior facial summary on explicit absence/poor detection.
+New optional interruptible proactive continuations use existing in-memory audio,
+open-segment and mailbox activity to yield to conversation, including during ACK
+waits. Once suppressed, an occasion cannot replay. Required results/tasks retain
+their existing default. No new DB query, polling loop or persisted schema.
+
+64 focused units passed (target/gi06-shared-unit.log), including new source-age,
+face withdrawal, out-of-order input, pre-transcript audio and dispatch-race cases.
+Isolated LiveMultimodalBridgeIntegrationTest, GenericMultimodalTaskIntegrationTest
+and LiveQueryBudgetIntegrationTest passed; target/gptlive-acceptance-254e8a85cc.
+The initial test fixtures lacked source timestamps; fixtures now supply them and
+an explicit undated-sample test protects the unknown outcome. Disposable schema
+and account removed. Gala admission/cadence acceptance follows on agents.

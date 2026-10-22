@@ -1411,9 +1411,17 @@ Selected context keeps original event IDs and times. Current sensor readings are
 coalesced by type; face aggregation uses up to eight selected fresh readings.
 Provisional freshness windows are 15 seconds for face/presence/social/hand cues,
 30 seconds for situation changes, 10 minutes for current weather and six hours
-for forecasts. Source `observed_at`/`ts` takes precedence over event receipt time.
+for forecasts. Source `observed_at`/`ts` is required; receipt time cannot make an
+undated sensor value current. Shared observation age rules preserve task TTLs
+and their existing two-second clock-skew allowance. Delayed/future frames cannot
+replace newer usable Live evidence. Explicitly absent or poorly detected faces
+withdraw the prior expression and its summary; summaries expire with their sources.
 Expired values become unknown, and missing/malformed/future timestamps are labeled
 unknown. These are pilot context limits, not changes to stored observations.
+Optional proactive continuations can opt into `interruptible` delivery (default
+false). If audio, an open transcript or admitted conversation work begins before
+dispatch, the optional comment is withdrawn, never queued for replay. This uses
+existing in-memory capture state; required results and task responses are unaffected.
 While GPT-Live is active, the cockpit refreshes unchanged face, presence, grouping
 and social-context observations every five seconds, only when the detector is
 still producing an eligible reading and sensor emission is enabled. Longer

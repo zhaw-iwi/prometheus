@@ -51,6 +51,11 @@ public class LiveTranscriptCaptureService {
         return capture;
     }
     @Scheduled(fixedDelay = 100) public void poll() { captures.values().forEach(Capture::poll); }
+    /** In-memory admission hint for optional ambient comments; never a speech-completion proof. */
+    public boolean conversationallyBusy(ExternalSpeech owner) {
+        var capture = captures.get(owner.sessionId());
+        return capture != null && capture.owner.equals(owner) && capture.busy();
+    }
     @PreDestroy public void shutdown() { captures.values().forEach(Capture::close); workers.shutdownNow(); captures.clear(); }
 
     public final class Capture {
@@ -66,6 +71,7 @@ public class LiveTranscriptCaptureService {
         private final CompletableFuture<Void> drained = new CompletableFuture<>();
         private boolean closed, muted = true, failed;
         private long sequence;
+        private long lastVoiceAt = -1;
         private Long outputEnd;
         private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
         private long dropped;
@@ -93,12 +99,14 @@ public class LiveTranscriptCaptureService {
                         }
                     }
                     var activity = LivePcmActivity.measure(Base64.getDecoder().decode(event.get(speaker == Speaker.USER ? "audio" : "delta").getAsString()));
+                    if (activity.voiced()) lastVoiceAt = now;
                     segmenter.audio(speaker, activity.samples(), activity.trailingQuietSamples(), activity.voiced(), now);
                 } else if (type.equals("session.input_transcript.delta") || type.equals("session.output_transcript.delta")) {
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
                     boolean identified = event.has("event_id") && !event.get("event_id").isJsonNull();
                     String id = identified ? event.get("event_id").getAsString() : "local-missing-id-" + sequence;
                     if (seen.contains(id)) return;
+                    lastVoiceAt = now;
                     // Preserve an established acoustic boundary before a new fragment resets it.
                     completed(segmenter.poll(now));
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
@@ -183,6 +191,10 @@ public class LiveTranscriptCaptureService {
         public synchronized Status status() {
             return new Status(failed ? "failed" : closed ? drained.isDone() ? "closed" : "draining" : "active",
                     work.size(), queueHighWater, sequence, List.copyOf(traces), dropped);
+        }
+        private synchronized boolean busy() {
+            return closed || failed || draining.get() || !work.isEmpty() || segmenter.hasOpenSegment()
+                    || lastVoiceAt >= 0 && clock.millis() - lastVoiceAt < 2000;
         }
         private Long number(JsonObject event, String key) {
             if (!event.has(key) || event.get(key).isJsonNull()) return null;
