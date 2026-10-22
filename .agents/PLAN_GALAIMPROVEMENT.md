@@ -635,6 +635,12 @@ No production behaviour change. Provider/physical results remain separate.
 
 ### GI-14 - Live readiness and complete-question feasibility
 
+Status: IMPLEMENTED / Milestone 241; strict provider acceptance FAILED. All three
+candidate trials retained violations. On 2026-10-22 the user explicitly chose to
+continue GI-15–17 and retain prompt-only coordination as a known limitation,
+instead of investigating stricter speech control. This supersedes the stop gate
+below for this sequence; it does not convert the provider matrix into a pass.
+
 Simplify Gala speech guidance using Live's Backchannel, Interruption and Delegation
 policy structure. Align compact activity facts with one confirmed speaking occasion.
 Live retains wording; automatic durable utterance admission remains the only

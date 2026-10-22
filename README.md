@@ -405,11 +405,16 @@ including stop requests, are still processed. `WAIT` lets harmless reactions sta
 in reception or either game without producing another response. Interpretation
 of other free-form language remains model-dependent.
 
-Real provider trials confirm direct guessing answers, a single reveal and facial
-feedback without question echoes. Game-start preambles still occurred before backend
-confirmation, followed by the introduction. This is a remaining voice-policy limitation;
-the state machine, not spoken claims, controls the actual game. Details are in
-`.agents/GPTLIVE_RESULTS.md`.
+Gala uses explicit Backchannel, Interruption and Delegation guidance, retaining
+Live-owned wording and automatic backend transcript admission. The repeated
+2026-10-22 provider comparison still produced premature game invitations, an answer
+during a paused question, and early/duplicate reveals in some sessions. Waiting
+remarks and internal-state narration also remain possible. The user accepted
+continuing the backend fixes with this prompt-only limitation; there is no enforced
+speech barrier or change to full duplex. Backend state, not spoken claims, controls
+the game. See `.agents/GALAIMPROVEMENT_RESULTS.md`; earlier successful samples do
+not establish consistent provider compliance. Start a fresh Live session for the
+updated guidance.
 
 The physical repeat script is [tests/gptlive/GALA.md](tests/gptlive/GALA.md).
 Hard-refresh the cockpit after deployment and start a fresh Live session. Check

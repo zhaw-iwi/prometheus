@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-14 / Milestone 241: structured Gala Live speech guidance passes 72 unit cases,
+  two isolated journey cases and the unchanged 14,400-byte instruction headroom
+  check. Real provider comparison still fails strict readiness/complete-question/
+  reveal acceptance (all three candidate sessions have violations). The user
+  explicitly chose to continue GI-15–17 with prompt-only coordination retained
+  as a limitation. No audio gating or full-duplex change; provider acceptance stays
+  OPEN. See GALAIMPROVEMENT_RESULTS for the full comparison and timings.
+
 - GI-13 / Milestone 240: five synthetic follow-up scenarios cover delayed/repeated
   RPS readiness, paused questions, post-reveal control and noisy turn separation.
   Actual application contexts export for provider comparisons. The false-recovery

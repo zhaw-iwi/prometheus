@@ -79,6 +79,32 @@ product issues are fixed. The test also exports current, application-produced
 instructions and game context commands to `target/gala-followup-fixture.json`
 for provider comparisons. No database, provider or private transcript is used.
 
+### Opt-in real Gala voice comparison
+
+With `OPENAI_API_KEY` already set in the environment and a provider account that
+supports `gpt-live-1`, export the fixture with the unit test above, then run:
+
+```powershell
+node tests/gptlive/gala_provider_trial.mjs --allow-paid-provider target/gala-followup-fixture.json target/gala-provider-trial.json
+```
+
+This incurs Live and synthetic TTS costs. Input clips are cached under ignored
+`target/gala-provider-audio`; results and generated fixture files stay under
+`target`. The probe uses actual application context commands over WebRTC with
+sequential provider ACKs, five seconds of simulated backend delay after each
+activity request, and a scheduled 1.2-second pause inside a nonbinary question.
+Recorded input start/end times expose browser scheduling/transfer overhead; use
+the measured pause, not just its configured value. Sensor timestamps are rebased
+for the synthetic replay, preserving their relative age and TTL.
+
+Scenarios: first RPS start/result, replay/result, guessing start, paused question,
+give-up and reveal without a helpful follow-up name. There is no app/database in
+this probe and no claim of actual robot or headset audibility. Exit zero means
+transport completion only: review output captions against input and confirmation
+markers for premature invitations/answers/reveals, duplicates, echoes, internal
+status wording and silence. Retain every trial, including failures; three clean
+fresh sessions are the planned candidate gate, not a statistical guarantee.
+
 ## Opt-in Gala database capacity gate
 
 Use disposable local MySQL, never the production database:

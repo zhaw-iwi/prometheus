@@ -1032,3 +1032,61 @@ revocation. Any proposed changed transaction/retention contract needs an explici
 compatibility decision, including recovery behavior and saved-instance implications;
 do not silently introduce long-lived runtime caches or merge event commits.
 Final provider/physical/clipping gates also remain open. No Heroku readiness claim.
+
+
+## GI-14 / Milestone 241 - Live speech feasibility (2026-10-22)
+
+Implementation complete; strict provider acceptance FAILED and remains open.
+After reviewing the failure, the user explicitly chose "Continue remaining fixes;
+retain the limitation". Proceed to GI-15–17 without audio gating or a change to
+full duplex. The prompt refactor is guidance, not an enforced speech boundary.
+
+Gala now separates Backchannel, Interruption and Delegation policies, explicitly
+listens through a paused nonbinary question, distinguishes replay readiness from
+an old result, and treats Okay as acknowledgment rather than goodbye. Live retains
+wording; backend admission/occasions and database traffic are unchanged. The
+existing compact state/occasion contract is retained. No extra delegate controller.
+
+The opt-in tests/gptlive/gala_provider_trial.mjs exports no credentials and uses
+cached synthetic TTS input, gpt-live-1/voice marin over WebRTC, actual application
+context commands and sequential append ACKs. It waits five seconds after activity
+request audio before sending confirmation. A scheduled 1.2-second within-question
+pause measured about 1.63–1.69 seconds including browser/transfer overhead. It does
+not run the app/database or reproduce the backend's exact grouping/coalescing.
+Times below are caption/command receipt timings, not acoustic alignment.
+
+| Trial | Observations |
+| --- | --- |
+| Baseline | Waiting/status remarks before each start; Ja to the first question part, then Nein to the second; reveal before outcome update and duplicate after it. |
+| Candidate 1 | No pre-update RPS/guess invitation; waits through the question and clarifies. Still narrates return to reception and says Einen Moment before reveal. |
+| Candidate 2 | Replay invitation starts about four seconds before the update; claims person selection before start; Ja before second question part, then clarification; duplicate reveal. |
+| Candidate 3 | No invitation before initial updates; waits through question but quotes part of it when clarifying. Reveal begins before the outcome update and repeats afterwards. |
+
+No candidate passes all criteria (0/3). Do not call this a consistent improvement
+or readiness/reveal fix. The first candidate's initial confirmation batch took
+about 11.2 s, versus roughly 2.5–3.6 s for most other batches; this small sample
+cannot attribute that provider/ACK delay to the prompt. First RPS backend delay
+was deliberately synthetic; these values are not production latency predictions.
+All four sessions closed successfully. Raw captions and markers remain private
+in target/gi14-baseline-results.json and target/gi14-candidate-{1,2,3}-results.json;
+matching fixture snapshots and cached audio stay in target/. No failed sample
+was discarded or rerun to obtain a favourable result.
+
+Verification: 72 focused unit cases passed, and the two canonical/compact Gala
+journey cases passed on disposable local MySQL, cleaned up by the runner.
+Commands: mvnw.cmd -q -Dtest=GalaLiveFollowupUnitTest,GalaDinnerReceptionUnitTest,
+GalaDinnerReferenceUnitTest,GalaDinnerTaskUnitTest,GalaDinnerLiveDeliveryUnitTest test
+(single comma-separated argument); run_acceptance.py --database-properties
+src/main/resources/application-test.properties --java-tests
+GalaDinnerReceptionJourneySmokeIntegrationTest. Logs: target/gi14-unit.log and
+target/gptlive-acceptance-a7d4cb1329/java.log. Initial oversized prompt revisions
+failed the headroom assertion and were shortened; final maximum is 14,399/16,000
+bytes in both embodiments/all tested states, below the unchanged 14,400 test cap.
+Node syntax and git diff checks pass. Synthetic journeys are not provider acceptance.
+
+Provider references reviewed: https://developers.openai.com/api/docs/guides/live-prompting
+and https://developers.openai.com/api/reference/resources/live/sideband-websocket .
+The documented acknowledgement delay is not enforced silence; silent context is
+not a secrecy boundary. The current browser plays a live remote track directly;
+muting it would discard speech rather than safely defer it. No such workaround
+was introduced. Final acoustic/robot acceptance and GI-11 capacity remain open.

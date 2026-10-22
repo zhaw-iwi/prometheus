@@ -73,13 +73,15 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(instructions.contains("truthful status and one useful next step"));
                 assertTrue(instructions.contains("never a made-up cause"));
                 assertTrue(instructions.contains("not a guessed age or identity"));
-                assertTrue(instructions.contains("no waiting acknowledgment or promise"));
+                assertTrue(instructions.contains("waiting acknowledgment or promise"));
                 assertTrue(instructions.contains("Wait silently for confirmed starting facts"));
                 assertFalse(instructions.contains("You may acknowledge immediately"));
                 assertFalse(instructions.contains("you may say you are checking"));
                 assertTrue(instructions.contains("One response per visitor turn"));
                 assertTrue(instructions.contains("You own Gala conversation"));
-                assertTrue(instructions.contains("generate <|SpawnThinking|>"));
+                assertTrue(instructions.contains("Generate <|SpawnThinking|>"));
+                for (String heading : List.of("# Backchannel policy", "# Interruption policy", "# Delegation policy"))
+                    assertEquals(1, occurrences(instructions, heading));
                 assertFalse(instructions.contains("IPA"));
                 assertFalse(instructions.contains("dʒ"));
                 assertFalse(instructions.contains("GIGI"));
