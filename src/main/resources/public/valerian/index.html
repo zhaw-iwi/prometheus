@@ -1225,6 +1225,10 @@
     [data-theme="dark"] .social-context-item,
     [data-theme="dark"] .social-context-token,
     [data-theme="dark"] .social-context-empty,
+    [data-theme="dark"] .signal-report-panel,
+    [data-theme="dark"] .signal-report-stat,
+    [data-theme="dark"] .hand-report-stage,
+    [data-theme="dark"] .weather-day-card,
     [data-theme="dark"] .behaviour-visual-card,
     [data-theme="dark"] .behaviour-speech-preview,
     [data-theme="dark"] .behaviour-gesture-stage,
@@ -1241,7 +1245,8 @@
       color: var(--ink);
     }
 
-    [data-theme="dark"] .emotion-meter {
+    [data-theme="dark"] .emotion-meter,
+    [data-theme="dark"] .signal-meter {
       background: rgba(226, 232, 240, 0.14);
     }
 
@@ -1678,6 +1683,11 @@
                         <button id="send_weather_forecast" class="btn btn-outline-ink btn-sm" type="button"
                           data-testid="send-weather-forecast">Send Forecast</button>
                       </div>
+                      <p class="small text-body-secondary mt-2 mb-0">Fetch previews weather only. Send Current or
+                        Send Forecast submits it to the connected agent and fetches it first if needed.
+                        Use Fetch Current again to refresh the weather.</p>
+                      <p id="weather_action_status" class="small mt-2 mb-0" role="status"
+                        data-testid="weather-action-status"></p>
                     </div>
                   </div>
                 </div>
@@ -1946,7 +1956,7 @@
                               Weather Report
                             </span>
                             <span id="weather_report_status" class="status-pill is-idle"
-                              data-testid="weather-report-status">No weather</span>
+                              role="status" data-testid="weather-report-status">No weather</span>
                           </div>
                           <div class="signal-report-grid">
                             <div class="signal-report-stat">

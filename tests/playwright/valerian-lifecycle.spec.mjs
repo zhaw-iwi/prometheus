@@ -15,6 +15,7 @@ const AGENT = {
       "obs.emotion.face",
       "obs.social.context",
       "obs.hand.sign",
+      "obs.weather.current",
       "obs.weather.forecast",
     ],
     supportedBehaviourModalities: ["speech", "nonVerbal.gesture", "display"],
@@ -149,6 +150,100 @@ test("camera hand report separates visible detection from acknowledged framework
   await expect(page.getByTestId("hand-sign-status")).toHaveText("Not sent: enable Emit camera observations");
   expect(observations).toHaveLength(1);
 });
+
+for (const theme of ["light", "dark"]) {
+  test(`weather preview and current/forecast submission work in ${theme} mode`, async ({ page, context }, testInfo) => {
+    const weather = await openWeatherControls(page, context, theme);
+    await expect(page.getByTestId("send-weather-current")).toBeEnabled();
+    await expect(page.getByTestId("send-weather-forecast")).toBeEnabled();
+    await page.getByTestId("fetch-weather-current").click();
+    await expect(page.getByTestId("weather-action-status")).toBeVisible();
+    await expect(page.getByTestId("weather-action-status")).toHaveText("Fetched current — not sent");
+    await expect(page.getByTestId("weather-report-temperature")).toHaveText("9.5 C");
+    expect(weather.observations).toHaveLength(0);
+
+    await page.getByTestId("send-weather-current").click();
+    await expect(page.getByTestId("weather-report-status")).toContainText("Sent current");
+    await page.getByTestId("send-weather-forecast").click();
+    await expect(page.getByTestId("weather-report-status")).toContainText("Sent forecast");
+    expect(weather.observations.map(item => item.event.type)).toEqual(["obs.weather.current", "obs.weather.forecast"]);
+    for (const observation of weather.observations) {
+      expect(observation.accessCode).toBe(ACCESS_CODE);
+      expect(observation.event).toMatchObject({ actor: "system", kind: "observation" });
+      expect(JSON.parse(observation.event.payload)).toMatchObject({ location_label: "Zurich, Switzerland" });
+    }
+    expect(JSON.parse(weather.observations[0].event.payload)).toMatchObject({ kind: "current", temperature_c: 9.5 });
+    expect(JSON.parse(weather.observations[1].event.payload).days).toHaveLength(3);
+    await expect(page.getByTestId("weather-action-status")).toContainText("Sent forecast");
+    await page.locator('[data-bs-target="#sensed_signals"]').click();
+    await page.getByTestId("hand-sign-report").screenshot({ path: testInfo.outputPath(`hand-report-${theme}.png`) });
+    await page.getByTestId("weather-report").screenshot({ path: testInfo.outputPath(`weather-report-${theme}.png`) });
+    if (theme === "dark") {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.getByTestId("weather-report").screenshot({ path: testInfo.outputPath("weather-report-mobile.png") });
+    }
+  });
+}
+
+test("weather errors replace stale success and allow retry without sending a failed location lookup", async ({ page, context }) => {
+  const weather = await openWeatherControls(page, context, "dark");
+  // Send also fetches automatically when no preview exists.
+  weather.ackStatus = 500;
+  await page.getByTestId("send-weather-current").click();
+  await expect(page.getByTestId("weather-action-status")).toHaveText("Send current failed — retry");
+  weather.ackStatus = 200;
+  await page.getByTestId("send-weather-current").click();
+  await expect(page.getByTestId("weather-report-status")).toContainText("Sent current");
+  weather.ackStatus = 500;
+  await page.getByTestId("send-weather-forecast").click();
+  await expect(page.getByTestId("weather-action-status")).toHaveText("Send forecast failed — retry");
+  weather.ackStatus = 200;
+  await page.getByTestId("send-weather-forecast").click();
+  await expect(page.getByTestId("weather-report-status")).toContainText("Sent forecast");
+  expect(weather.observations).toHaveLength(4);
+
+  weather.found = false;
+  await page.getByTestId("weather-location-input").fill("Unknown place");
+  await page.getByTestId("send-weather-forecast").click();
+  await expect(page.getByTestId("weather-action-status")).toHaveText("Fetch failed — weather location not found.");
+  await page.getByTestId("send-weather-current").click();
+  await expect(page.getByTestId("weather-action-status")).toHaveText("Fetch failed — weather location not found.");
+  expect(weather.observations).toHaveLength(4);
+  weather.found = true;
+  await page.getByTestId("weather-location-input").fill("Zurich, Switzerland");
+  await page.getByTestId("send-weather-forecast").click();
+  await expect(page.getByTestId("weather-action-status")).toContainText("Sent forecast");
+  expect(weather.observations).toHaveLength(5);
+  expect(JSON.parse(weather.observations[4].event.payload)).toMatchObject({
+    kind: "forecast", location_query: "Zurich, Switzerland",
+  });
+});
+
+async function openWeatherControls(page, context, theme) {
+  const weather = { observations: [], ackStatus: 200, found: true };
+  await installLifecycleApiMocks(context, { created: true, history: [] });
+  await context.route(`**/demo/agents/${AGENT_ID}/acknowledge`, route => {
+    weather.observations.push({ event: route.request().postDataJSON(),
+      accessCode: route.request().headers()["x-prometheus-access-code"] });
+    return route.fulfill({ ...json({ active: true, responseEvent: null }), status: weather.ackStatus });
+  });
+  await context.route("https://geocoding-api.open-meteo.com/**", route => route.fulfill(json({
+    results: weather.found ? [{ name: "Zurich", country: "Switzerland", latitude: 47.38, longitude: 8.54,
+      timezone: "Europe/Zurich" }] : [],
+  })));
+  await context.route("https://api.open-meteo.com/**", route => route.fulfill(json({
+    current: { time: "2026-10-22T09:00", weather_code: 0, temperature_2m: 9.5, precipitation: 0,
+      rain: 0, showers: 0, snowfall: 0, cloud_cover: 10, wind_speed_10m: 3, wind_gusts_10m: 5, is_day: 1 },
+    daily: { time: ["2026-10-22", "2026-10-23", "2026-10-24"], weather_code: [61, 61, 61],
+      temperature_2m_min: [6.8, 6.5, 6.3], temperature_2m_max: [13.3, 13.4, 9.7], precipitation_sum: [1, 2, 3] },
+  })));
+  await page.addInitScript(value => localStorage.setItem("prometheus.valerian.theme", value), theme);
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`);
+  await enterAccessCode(page);
+  await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${AGENT_ID}`);
+  await page.locator('[data-bs-target="#manual_weather_events"]').click();
+  return weather;
+}
 
 async function enterAccessCode(page) {
   await page.getByTestId("access-code-input").fill(ACCESS_CODE);

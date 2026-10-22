@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Valerian sensing UI follow-up (2026-10-22): corrected missing dark-mode surfaces
+  for hand/weather reports. Weather fetch/send status is visible beside the controls
+  and in the report, including failures and an explicit preview-only state. Five
+  focused browser cases, 11 hand-sensor cases and 14 static client contracts pass;
+  browser retrieval from live Open-Meteo succeeds. Desktop light/dark and mobile
+  dark renders were inspected. Deployment and the students' original failed sends
+  are unverified; no backend contract or detection threshold changed.
+
 - Milestone 244 (shared delivery): bounded context chunks use shorter headers and
   prioritise current face evidence before derived summaries. Unsent sensory backlog
   yields at observation boundaries to newer commits at the existing refresh cadence.
@@ -9154,3 +9162,33 @@ proactive continuations can be interrupted by conversation during an ACK wait;
 required results retain their delivery contract. Existing capture state supplies
 the admission guard without a new query or poller. Shared acceptance and Gala
 integration status are recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
+## Valerian sensing UI follow-up (2026-10-22)
+
+The hand/weather panels retained translucent white backgrounds with white text in
+dark mode. They now reuse the existing dark surfaces and confidence-meter styling.
+Weather submission failures previously left the fetched/sent status unchanged and
+only appeared in the diagnostic log. Fetch/send progress and failure now appear
+beside the controls as well as in the report; fetching explicitly means not sent.
+The separate preview and send operations, cached payloads, scoped event contract
+and camera detection/emission rules are unchanged. README explains this workflow.
+
+Verification:
+- `node --check src/main/resources/public/valerian/script.js` passed.
+- `node --test tests/js/live/hand-sensors.test.mjs`: 11 passed.
+- `mvnw.cmd -q -Dtest=ValerianClientStaticResourceContractTest test`: 14 passed.
+- `npx.cmd playwright test --config=playwright.config.mjs tests/playwright/valerian-lifecycle.spec.mjs`:
+  five passed using the source assets on a loopback static server, with
+  `PROMETHEUS_SKIP_WEBSERVER=true` and `PROMETHEUS_BASE_URL` pointing to that server.
+  Covers preview-only fetching, current/forecast scoped POST payloads and access
+  headers, automatic fetch, rejected sends/retry, failed location lookup, camera
+  emission and cockpit lifecycle. Backend/weather responses are deterministic mocks.
+- Inspected desktop light/dark hand and weather screenshots and mobile dark weather.
+- A separate Chromium check using the real client `loadWeatherPayloads()` retrieved
+  current weather and three forecast days for Zurich from live Open-Meteo.
+
+The failure-feedback defect was reproduced before correction. Successful browser
+submission reaches the expected scoped endpoint; production persistence, students'
+network conditions and physical hand detection were not exercised. No database
+migration or detection-policy change is required. The user subsequently authorized
+commit/push on agents and integration of this shared fix into main.

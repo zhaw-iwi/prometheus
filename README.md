@@ -122,6 +122,16 @@ far-field speech; use longer custom timing or manual turns where needed. Run
 `node tests/needforspeed/replay-vad.mjs` for the offline segmentation comparison.
 It does not measure ASR accuracy or provider latency.
 
+Weather is a manual input under **Sensing → Weather**. **Fetch Current** previews
+Open-Meteo data without sending an observation. **Send Current** and **Send
+Forecast** submit the respective observation to the connected agent, fetching
+first when needed. Use **Fetch Current** again to refresh a cached reading.
+The status beside these buttons and in **Signals Sensed → Weather Report**
+distinguishes fetched, sending, sent and failed operations. A successful send
+confirms acknowledgement; whether the agent responds depends on its current policy.
+Hand and weather reports use the same dark-mode surfaces as the other reports;
+their background colour does not indicate whether sensing or sending is enabled.
+
 Camera hand sensing publishes classified rock, scissor or paper signs through
 `obs.hand.sign`; the blue landmark overlay only confirms local detection.
 Sending requires a connected agent, **Emit camera observations**, the configured
