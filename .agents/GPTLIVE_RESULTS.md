@@ -51,6 +51,28 @@ Both runners removed their disposable schema/account. No production database was
 used. Integrated Gala regression and sustained capacity measurement follow on agents;
 these focused savings do not establish the fixed-quota capacity gate.
 
+Integrated follow-up: the first agents full run exposed a heap failure in the core
+RPS cockpit smoke with the preliminary set mapping. SQL evidence shows storage
+links joining the agent/transition graph and, for one policy read, six independent
+storage-entry collections. Explicit SELECT fetching preserves eager access while
+preventing that row multiplication. The storage regression now rejects such joins
+before executing them. The failing owned JVM was stopped and its runner cleaned
+the disposable resources; it was not a passing run. Agents evidence:
+target/gptlive-acceptance-48520c915b/java.log.
+
+The complete event-history endpoint now selects EventHistory directly instead of
+loading the agent state/policies/storage. Existing scoped authorization remains;
+IDs, order, state paths, native provenance and complete history remain available.
+The regression reads 205 events in at most four scoped Questions, verifies fresh
+appends and immediate revocation, and distinguishes missing agents from empty
+histories. No history truncation, cache or Live context change is introduced.
+
+The follow-up focused run passed all 16 cases (StoragePersistence, LiveQueryBudget,
+LiveReceiptDurability, LiveCockpitSmoke and QueryVolumeIntegrationTest):
+target/gptlive-acceptance-d711109c54/java.log. The narrower-history precursor passed
+its selected HTTP/history/persistence checks at target/gptlive-acceptance-1f58e148da.
+Final integrated full-suite/soak evidence is maintained on agents in the Gala results.
+
 ## Local acceptance resource and freshness fixtures (2026-10-22)
 
 The Gala integrated acceptance run exposed two test-harness issues: a full suite
