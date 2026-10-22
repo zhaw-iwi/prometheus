@@ -369,8 +369,10 @@ class QueryVolumeIntegrationTest {
                     boolean hand = stress ? !phase.equals("live_idle") && tick % 5 == 0
                             : phase.equals("live_peak") && Set.of(95, 100, 105).contains(tick % 120);
                     if (hand) {
+                        // Echo the published capture like the cockpit, without a benchmark-only DB read.
+                        String captureId = latestHandCapture(streams.getFirst().getResponse().getContentAsString());
                         meter.run("hand", () -> assertTrue(demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_HAND_SIGN,
-                                "{\"sign\":\"paper\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"ts\":\"" + timestamp + "\"}"),
+                                "{\"sign\":\"paper\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"captureId\":\"" + captureId + "\",\"ts\":\"" + timestamp + "\"}"),
                                 ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN).isPresent()));
                         changed = true;
                     }
@@ -440,6 +442,47 @@ class QueryVolumeIntegrationTest {
             for (var stream : streams) stream.getRequest().getAsyncContext().complete();
             if (!closed) live.close(f.code(), f.id(), session.handle());
         }
+    }
+
+    @Test void galaRoundCaptureComesFromExistingBehaviourStreamWithoutADatabaseLookup() throws Exception {
+        var f = fixture(new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception().createAgent());
+        demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
+                "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var stream = mvc.perform(get("/demo/agents/" + f.id() + "/behaviour/stream?projection=conversation")
+                .header("X-Prometheus-Access-Code", f.code())).andExpect(status().isOk()).andReturn();
+        doReturn("{\"operation\":\"START_RPS\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}").when(language).infer(any());
+        try {
+            String previous = "";
+            for (int round = 0; round < 2; round++) {
+                demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_USER_UTTERANCE, "Schere Stein Papier bitte"),
+                        ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                long before = questions();
+                String capture = latestHandCapture(stream.getResponse().getContentAsString());
+                assertEquals(0, questions() - before - 1);
+                assertFalse(capture.isBlank()); assertNotEquals(previous, capture);
+                demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_HAND_SIGN,
+                        "{\"sign\":\"paper\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"captureId\":\"" + capture
+                                + "\",\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                assertEquals("Gala reception", agents.findById(f.id()).orElseThrow().getCurrentState().getName());
+                previous = capture;
+            }
+        } finally {
+            stream.getRequest().getAsyncContext().complete();
+            live.close(f.code(), f.id(), session.handle());
+        }
+    }
+
+    private String latestHandCapture(String sse) throws Exception {
+        String capture = "";
+        for (String line : sse.split("\\R")) {
+            if (!line.startsWith("data:")) continue;
+            var envelope = json.readTree(line.substring(5));
+            if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(envelope.path("type").asText())) continue;
+            var display = json.readTree(envelope.path("payload").asText()).path("display");
+            if (display.path("captureId").isTextual()) capture = display.path("captureId").asText();
+        }
+        return capture;
     }
 
     private final class CapacityMeter {

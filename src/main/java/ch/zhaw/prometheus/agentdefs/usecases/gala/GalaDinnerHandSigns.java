@@ -12,7 +12,8 @@ final class GalaDinnerHandSigns {
     static final double MIN_CONFIDENCE = 0.7;
     private GalaDinnerHandSigns() {}
 
-    static String rejection(JsonObject data, Instant started, Instant now, Instant newer) {
+    static String rejection(JsonObject data, String captureId, Instant started, Instant now, Instant newer) {
+        if (!matchesCapture(data, captureId)) return "rps_wrong_capture";
         Instant at = ObservationEvidence.observed(data);
         if (!ObservationEvidence.fresh(at, now, 15, 2) || at.isBefore(started)) return "rps_stale_sign";
         if (newer != null && at.isBefore(newer)) return "rps_out_of_order";
@@ -33,14 +34,25 @@ final class GalaDinnerHandSigns {
         } catch (RuntimeException invalid) { return "rps_invalid_sign"; }
     }
 
-    static Instant newestPrior(EventHistory history, Instant started, Instant now) {
+    // A round already in progress before this change keeps its timestamp boundary.
+    // Every newly started/resumed capture requires its exact opaque identifier.
+    private static boolean matchesCapture(JsonObject data, String captureId) {
+        if (captureId.isEmpty()) return true;
+        var supplied = data.get("captureId");
+        return supplied != null && supplied.isJsonPrimitive() && supplied.getAsJsonPrimitive().isString()
+                && captureId.equals(supplied.getAsString());
+    }
+
+    static Instant newestPrior(EventHistory history, String captureId, Instant started, Instant now) {
         Instant newest = started;
         var events = history.toList();
         for (int i = 0; i < events.size() - 1; i++) {
             var event = events.get(i);
             if (!Event.TYPE_HAND_SIGN.equals(event.getType())) continue;
             try {
-                Instant at = ObservationEvidence.observed(JsonParser.parseString(event.getPayload()).getAsJsonObject());
+                var data = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+                if (!matchesCapture(data, captureId)) continue;
+                Instant at = ObservationEvidence.observed(data);
                 if (ObservationEvidence.fresh(at, now, 15, 2) && at.isAfter(newest)) newest = at;
             } catch (RuntimeException invalid) { /* No timestamp evidence. */ }
         }

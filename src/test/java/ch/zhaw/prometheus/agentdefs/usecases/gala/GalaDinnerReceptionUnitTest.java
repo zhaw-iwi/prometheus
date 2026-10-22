@@ -103,6 +103,7 @@ class GalaDinnerReceptionUnitTest {
         assertEquals("rock", text(memory, SIGN, ""));
         assertEquals("rock", countdown.getMotion().getAsJsonObject().get("handSign").getAsString());
         assertFalse(countdown.getDisplay().getAsJsonObject().has("agentSign"));
+        assertEquals(text(memory, CAPTURE_ID, ""), countdown.getDisplay().getAsJsonObject().get("captureId").getAsString());
         Instant began = time(memory, STARTED);
         assertNull(hand("paper", began.minusSeconds(1), 1));
         assertNull(hand("paper", began.plusMillis(1), 0.2));
@@ -119,6 +120,38 @@ class GalaDinnerReceptionUnitTest {
         assertNull(hand("paper", Instant.now(), 1));
         assertNull(agent.generate(runtime));
         verify(gateway, times(1)).infer(any());
+    }
+
+    @Test void successiveCapturesRejectMissingOrOldIdentifiersWithoutChangingChoiceAndCompleteExactlyOnce() {
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
+        String previous = "previous-encounter";
+        for (int round = 0; round < 2; round++) {
+            var start = BehaviourPlan.fromJson(say("Schere Stein Papier bitte").getPayload());
+            String capture = start.getDisplay().getAsJsonObject().get("captureId").getAsString();
+            String chosen = text(memory, SIGN, "");
+            assertNotEquals(previous, capture);
+            assertNull(hand("paper", Instant.now().plusSeconds(1), .99, previous));
+            assertNull(hand("paper", Instant.now(), .99, null));
+            assertEquals(chosen, text(memory, SIGN, "")); assertEquals("RPS", mode(memory));
+            var result = BehaviourPlan.fromJson(hand("paper", Instant.now(), .99, capture).getPayload());
+            assertEquals(capture, result.getDisplay().getAsJsonObject().get("captureId").getAsString());
+            assertFalse(memory.containsKey(CAPTURE_ID));
+            String occasion = text(memory, CONTINUATION_ID, "");
+            assertNull(hand("paper", Instant.now(), .99, capture));
+            assertEquals(occasion, text(memory, CONTINUATION_ID, ""));
+            previous = capture;
+        }
+        verify(gateway, times(2)).infer(any());
+    }
+
+    @Test void anAlreadyPersistedLegacyRoundKeepsItsTimestampBoundaryUntilItEnds() {
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
+        say("Schere Stein Papier bitte"); remove(memory, CAPTURE_ID);
+        assertNull(hand("paper", time(memory, STARTED).minusMillis(1), .99, null));
+        assertNotNull(hand("paper", Instant.now(), .99, null));
+        say("Schere Stein Papier bitte");
+        assertNull(hand("paper", Instant.now(), .99, null));
+        assertEquals("RPS", mode(memory));
     }
 
     @Test void handFeedbackUsesActualReadinessAndNeverReplaysAResolvedRound() {
@@ -200,6 +233,7 @@ class GalaDinnerReceptionUnitTest {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""), answer("CHECK_EXIT", ""));
         say("Schere Stein Papier bitte");
         String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
+        String oldCapture = text(memory, CAPTURE_ID, "");
         say("Was ist das IWI?");
         Instant during = time(memory, STARTED);
         assertNull(hand("paper", during.plusNanos(1), .99));
@@ -209,6 +243,8 @@ class GalaDinnerReceptionUnitTest {
         assertTrue(resumed.getDisplay().getAsJsonObject().get("awaitingUserSign").getAsBoolean());
         assertEquals(sign, text(memory, SIGN, "")); assertEquals(round, text(memory, ROUND, ""));
         assertFalse(memory.containsKey(EXIT_REQUEST));
+        assertNotEquals(oldCapture, text(memory, CAPTURE_ID, ""));
+        assertNull(hand("paper", Instant.now(), .99, oldCapture));
         assertNull(hand("paper", during, .99));
         var result = BehaviourPlan.fromJson(hand("paper", time(memory, STARTED).plusMillis(1), .99).getPayload());
         assertEquals("user", result.getDisplay().getAsJsonObject().get("winner").getAsString());
@@ -602,8 +638,14 @@ class GalaDinnerReceptionUnitTest {
         return agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, speech), runtime);
     }
     private Event hand(String sign, Instant time, double confidence) {
+        return hand(sign, time, confidence, text(memory, CAPTURE_ID, ""));
+    }
+    private Event hand(String sign, Instant time, double confidence, String captureId) {
+        var payload = new JsonObject(); payload.addProperty("sign", sign); payload.addProperty("confidence", confidence);
+        payload.addProperty("ts", time.toString());
+        if (captureId != null) payload.addProperty("captureId", captureId);
         return agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor",
-                "{\"sign\":\"" + sign + "\",\"confidence\":" + confidence + ",\"ts\":\"" + time + "\"}"), runtime);
+                payload.toString()), runtime);
     }
     private Event group(int count, Instant time) {
         return agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",

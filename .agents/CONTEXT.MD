@@ -323,6 +323,14 @@ game starts and RPS results use one identified continuation. Fresh facial estima
 support tentative expression/apparent-mood comments and visitor corrections.
 The configurable task engine retains its existing confirmed-speech/action contract.
 
+Gala RPS commits/shows its sign at start. New/resumed rounds persist an opaque
+capture ID in the opening/result display; camera/manual observations must echo it.
+Resumption keeps the chosen sign but opens fresh capture. Timestamp, confidence
+and camera stability checks still apply; old IDs cannot affect observation ordering.
+The cockpit preserves stability/cooldown on duplicate openings and retains the
+original ID across delayed HTTP. Generic uncorrelated displays remain supported.
+See README and GI-24 results for client refresh, persistence and physical limits.
+
 GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including task
 voice, without replaying opening instructions. Activity-aware task policies own
 their voice contract and place validated goals in quiet facts. Gala instructions

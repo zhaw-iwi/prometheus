@@ -205,3 +205,19 @@ Frische Gala-Instanz verwenden und Cockpit hart neu laden.
 Gigis eigene Hand aus dem Kamerabereich fuer Besucherhaende halten. Physische
 Ausfuehrung, Erkennung und gesprochenes Timing werden durch Backendtests nicht bewiesen.
 Letzte-Wort-Abbrueche und ein exakt synchroner Countdown bleiben separate Folgearbeit.
+
+## Rundenbezogene Erkennung (GI-24)
+
+Cockpit hart neu laden. Gigi zeigt zuerst; die Besucherwahl darf darauf reagieren.
+
+1. Schere, Stein, Papier starten und eine Hand ruhig zeigen. Genau ein Ergebnis.
+2. Noch eine Runde verlangen und dasselbe Zeichen zeigen: keine erzwungene
+   2,5-Sekunden-Pause, keine zweite Geste bei der Ergebnisansage.
+3. In einer neuen Runde eine Institutsfrage stellen. Waehrend der Rueckfrage ein
+   Zeichen zeigen, dann "Nein" sagen und wieder ruhig halten. Gleiche Gigi-Wahl;
+   erst die neue Erkennung nach dem Fortsetzen darf die Runde entscheiden.
+4. Fuer eine langsame Runde Zeiten notieren: Hand ruhig sichtbar, "Emitted",
+   Ergebnisanzeige, Beginn der gesprochenen Aufloesung. Telemetrie exportieren.
+
+Gigis Hand ausserhalb des Erkennungsbereichs halten. Die Kennung ordnet Messungen
+einer Erfassungsphase zu; sie identifiziert nicht die Person hinter der Hand.

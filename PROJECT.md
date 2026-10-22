@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-24 / Milestone 251: new/resumed Gala RPS capture windows carry a persisted ID
+  echoed by camera/manual observations. Missing/obsolete IDs cannot finish a round;
+  repeated opening delivery preserves detection progress and cooldown. Resume keeps
+  Gigi's choice. Legacy active rounds retain their timestamp boundary. Passed 96
+  Java, 66 Node, four browser cases and packaging; detailed verification is recorded in
+  GALAIMPROVEMENT_RESULTS. Shared cockpit changes are integrated from feature/gptlive
+  through main; commit/push is authorised. Physical gesture/result latency, hand attribution and audio cut-offs
+  remain separate trial gates.
+
 - GI-23 / Milestone 250: implemented persisted game-exit confirmation, bounded
   waiting guidance and early committed RPS gestures. Yes/no preserve or end the
   correct round; original off-topic requests survive an accepted exit without

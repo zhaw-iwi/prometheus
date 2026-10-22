@@ -210,13 +210,13 @@ public class GalaDinnerAction extends Action {
                     put(storage, ROUND, Integer.toString(round + 1));
                     put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
                     put(storage, MODE, "RPS");
-                    put(storage, STARTED, Instant.now().toString());
+                    openCapture(storage, Instant.now());
                     continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now. "
                             + "Robot sign committed: " + text(storage, SIGN, "") + "; its hand gesture is requested now, not execution-confirmed. "
                             + "One visible hand, held briefly steady. No countdown or exact synchronisation claim. Do not claim whose hand the camera sees.");
                     response = plan(null,
                             "NONE", "attentive", "toward_user");
-                    response.setDisplay(display("game_countdown", true));
+                    response.setDisplay(captureDisplay(storage));
                     var motion = new JsonObject(); motion.addProperty("handSign", text(storage, SIGN, ""));
                     response.setMotion(motion);
                     ActivityTrace.cue("rps_waiting_for_sign", events.toList().getLast().getId(), Event.TYPE_HAND_SIGN);
@@ -287,9 +287,9 @@ public class GalaDinnerAction extends Action {
         continueRequest(storage, "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
         if (!"RPS".equals(mode(storage))) return null;
         // Signs observed during confirmation cannot decide the resumed round.
-        put(storage, STARTED, now.toString());
+        openCapture(storage, now);
         var response = plan(null, "NONE", "attentive", "toward_user");
-        response.setDisplay(display("game_countdown", true));
+        response.setDisplay(captureDisplay(storage));
         ActivityTrace.cue("rps_waiting_for_sign", null, Event.TYPE_HAND_SIGN);
         return response;
     }
@@ -323,13 +323,15 @@ public class GalaDinnerAction extends Action {
         Event event = events.toList().getLast();
         try {
             var payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
-            String rejection = GalaDinnerHandSigns.rejection(payload, time(storage, STARTED), now,
-                    GalaDinnerHandSigns.newestPrior(events, time(storage, STARTED), now));
+            String captureId = text(storage, CAPTURE_ID, "");
+            String rejection = GalaDinnerHandSigns.rejection(payload, captureId, time(storage, STARTED), now,
+                    GalaDinnerHandSigns.newestPrior(events, captureId, time(storage, STARTED), now));
             if (rejection != null) { ActivityTrace.cue(rejection, event.getId(), Event.TYPE_HAND_SIGN); return; }
             String rawSign = payload.get("sign").getAsString();
             RpsSign agent = RpsSign.parse(text(storage, SIGN, "")), user = RpsSign.parse(rawSign);
             var response = plan(null, "NONE", "gentleSmile", "toward_user");
             var display = display("game_result", false);
+            if (!captureId.isEmpty()) display.addProperty("captureId", captureId);
             display.addProperty("agentSign", agent.canonical());
             display.addProperty("userSign", user.canonical());
             display.addProperty("winner", RpsRules.evaluate(agent, user).winner());
@@ -423,6 +425,15 @@ public class GalaDinnerAction extends Action {
         motion.addProperty("energy", 0.2);
         nonverbal.add("motion", motion);
         return new BehaviourPlan(speech, nonverbal, null, null);
+    }
+    private static void openCapture(Storage storage, Instant now) {
+        put(storage, STARTED, now.toString());
+        put(storage, CAPTURE_ID, java.util.UUID.randomUUID().toString());
+    }
+    private static JsonObject captureDisplay(Storage storage) {
+        var display = display("game_countdown", true);
+        display.addProperty("captureId", text(storage, CAPTURE_ID, ""));
+        return display;
     }
     private static JsonObject display(String mode, boolean awaiting) {
         var display = new JsonObject();

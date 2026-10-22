@@ -38,7 +38,7 @@ class GalaLiveFollowupUnitTest {
 
     private void hand() {
         agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor",
-                "{\"sign\":\"paper\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), runtime);
+                "{\"sign\":\"paper\",\"confidence\":0.99,\"captureId\":\"" + text(memory, CAPTURE_ID, "") + "\",\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
 
     @Test void exportGameExitAndWaitingFixturesFromActualContexts() throws Exception {

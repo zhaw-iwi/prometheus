@@ -163,8 +163,9 @@ class GalaDinnerReceptionIntegrationTest {
         when(language.infer(any())).thenReturn(answer("START_RPS", ""));
         say(code, id, "Schere Stein Papier bitte");
         assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
+        String captureId = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
-                "{\"sign\":\"paper\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
+                "{\"sign\":\"paper\",\"confidence\":0.99,\"captureId\":\"" + captureId + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
         reloaded = agents.findById(id).orElseThrow();
         assertEquals("Gala reception", reloaded.getCurrentState().getName());
         assertFalse(reloaded.getStorage().containsKey("gala.sign"));

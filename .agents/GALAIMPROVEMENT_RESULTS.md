@@ -4,6 +4,71 @@ Roadmap: `.agents/PLAN_GALAIMPROVEMENT.md` on the agents branch. The user author
 consecutive milestones with a commit/push after each; final user physical trials
 are grouped at the end. Synthetic tests do not establish audibility or model compliance.
 
+## GI-24 / Milestone 251 - RPS capture identity (2026-10-22)
+
+Scope: retain Gigi's early committed gesture and accept the first valid visitor
+sign for a specific capture window. The visitor may adapt to Gigi's visible sign;
+no spoken countdown, speech gate or physical execution acknowledgement is added.
+
+- Each start/resume persists a fresh UUID and publishes display.captureId. Camera
+  and manual observations echo it; results carry the accepted ID. Missing, malformed
+  or mismatched IDs are rejected for new windows, including samples whose timestamp
+  would otherwise be fresh. Other captures cannot poison timestamp ordering.
+- Exit confirmation retains the choice; declining opens a new capture ID. Completion,
+  cancellation and encounter cleanup clear it. Existing pre-change active rounds
+  without an ID keep their timestamp boundary until completion/resumption; all new
+  windows require the upgraded client. No saved-instance migration.
+- The cockpit resets stability/cooldown once per identified opening, including
+  motion rendering. Repeated delivery does not restart detection or bypass cooldown.
+  A matching result closes capture; that opening cannot reopen it. Delayed HTTP
+  retains the original ID and cannot update a newer window's cooldown/status.
+  Reset/instance switch clears capture; legacy non-Gala displays retain behavior.
+- Existing confidence, three-frame camera stability, freshness, deterministic
+  scoring and Live wording ownership remain. One capture ID is stored per start/
+  resume and removed at cleanup; there are no new per-frame writes, model calls,
+  database polls or increased sensor cadence. The opt-in capacity fixture echoes
+  IDs from its existing behaviour SSE stream instead of querying agent storage.
+
+Verification and limits:
+
+- 73 focused Java unit cases pass: GalaDinnerReceptionUnitTest (42),
+  GalaDinnerHandSignsUnitTest (9), GalaLiveFollowupUnitTest (22).
+  Command: mvnw.cmd -q -Dtest=<these classes> test; log target/gala-capture-unit.log.
+- 17 isolated persistence cases pass: both variants of the four Gala journeys,
+  Gala boundaries, Generic/Social Space regression journeys and two mixed-minute
+  query cases. Disposable local schemas/users only, removed after completion.
+  Command: python tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests
+  GalaDinnerReceptionJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,QueryVolumeIntegrationTest#galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture
+  Log: target/gptlive-acceptance-bf55e9827a/java.log. Mixed-minute measurements remain
+  1,571/1,616 against 1,700; these cover the established guessing workload, not a
+  new capacity certification of RPS or the fixed production hourly quota.
+- 66 Node cases pass across Live and activity, including 11 real-emitter cases
+  with fake camera/HTTP, repeated openings, delayed observations, same-sign rounds,
+  result closure and reset. Log: target/gala-capture-node.log.
+- Four actual-app browser cases pass with Live enabled/disabled and presence
+  lifecycle: target/gptlive-acceptance-54ee519287. Same acceptance runner with
+  --java-tests none --browser --live-only --browser-grep
+  'real scoped cockpit|presence reception|feature disabled'.
+- Five reference/instruction-budget units also pass (b8c5728cf7). One additional
+  isolated SSE regression passes (f22e775ec4): two rounds obtain their capture IDs
+  from published behaviour, finish correctly and require zero DB queries to read
+  those IDs. Its initial run hit a Mockito setup error; doReturn avoids invoking
+  the pre-existing answer with a null matcher. Total: 96 Java cases passed across
+  the final relevant runs. The full timed capacity soak was not rerun.
+- Production packaging passes: mvnw.cmd -q -DskipTests package;
+  target/gala-capture-package.log. git diff --check passes.
+- No paid provider or production database was used. Physical camera/robot timing,
+  whose hand was detected and audible final words remain unverified. The updated
+  tests/gptlive/GALA.md separates visible sign, emission, result display and speech
+  onset for the next trial. Keep Gigi's own hand outside the detection area.
+
+The user authorised commit/push on 2026-10-22. Shared cockpit commit e127c229 on
+feature/gptlive is integrated as 8110e1ea on main and merged into agents. The one
+documentation conflict retained both sections. All 13 changed implementation/test
+files match the verified pre-integration snapshot exactly. Deployment success and
+physical acceptance remain separate gates.
+
 ## GI-23 / Milestone 250 - game decisions and early RPS gesture (2026-10-22)
 
 User authorised the immediately feasible follow-up and commit/push, deferring the

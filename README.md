@@ -488,8 +488,15 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   reset clears cooldown; delayed older ACKs cannot restore it. Physical gesture
   execution, camera attribution and result latency still need device testing. Accepted
   signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after round
-  entry; optional numeric confidence must be between 0.7 and 1. Spoken signs do
-  not finish the round. Live must wait for the backend result.
+  entry; numeric confidence must be between 0.7 and 1. Camera samples require three
+  stable frames. Each newly started/resumed capture also requires the exact
+  `captureId` from the opening display, even for manual observations. Wrong/missing
+  IDs cannot finish the round or affect its observation ordering. Resumption keeps
+  Gigi's chosen sign but issues a new ID. Results carry the accepted ID and close
+  capture. An already-persisted round without an ID retains its timestamp boundary
+  until completion/resumption. Refresh the cockpit before using this version;
+  external clients must echo the ID for new rounds. Spoken signs do not finish the
+  round. Live must wait for the backend result.
 - Guessing persists a person from four maintained fact cards and supplies the selected
   name/card to Live as quiet activity data. Live answers yes/no questions, distinguishes
   missing facts from incomplete/nonbinary questions, and explains rules directly.

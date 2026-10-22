@@ -143,6 +143,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(encounter, "Schere Stein Papier", control("START_RPS"));
             String chosen = loaded().getStorage().get("gala.sign").getAsString();
             assertEquals(chosen, lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
+            String initialCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
+            assertEquals(initialCapture, loaded().getStorage().get("gala.rps_capture_id").getAsString());
             hearAnnouncement(encounter);
             say(encounter, "Wann beginnt das Essen?", control("CHECK_EXIT"));
             hearAnnouncement(encounter);
@@ -152,12 +154,28 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             calls = requests.size(); say(encounter, "Nein");
             assertEquals(calls, requests.size());
             assertEquals(chosen, loaded().getStorage().get("gala.sign").getAsString());
+            String resumedCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
+            assertNotEquals(initialCapture, resumedCapture);
             hearAnnouncement(encounter);
             hand("paper", paused);
             assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
-            hand("paper", Instant.now()); assertReception();
+            hand("paper", Instant.now().plusSeconds(1), initialCapture);
+            assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
+            hand("paper", Instant.now(), resumedCapture); assertReception();
             assertNull(lastPlan().getMotion());
             assertEquals(chosen, lastPlan().getDisplay().getAsJsonObject().get("agentSign").getAsString());
+            assertEquals(resumedCapture, lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString());
+            assertTrue(hearAnnouncement(encounter).contains("RPS round completed"));
+            String outcome = loaded().getStorage().get("gala.continuation_id").getAsString();
+            hand("paper", Instant.now(), resumedCapture);
+            assertEquals(outcome, loaded().getStorage().get("gala.continuation_id").getAsString());
+
+            say(encounter, "Noch einmal Schere Stein Papier", control("START_RPS"));
+            String nextCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
+            assertNotEquals(resumedCapture, nextCapture); hearAnnouncement(encounter);
+            hand("paper", Instant.now(), resumedCapture);
+            assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
+            hand("paper", Instant.now(), nextCapture); assertReception();
             assertTrue(hearAnnouncement(encounter).contains("RPS round completed"));
         } finally {
             live.close(code, id, encounter.owner().sessionId());
@@ -539,7 +557,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         });
     }
     private void hand(String sign, Instant time) {
-        observe(Event.TYPE_HAND_SIGN, "{\"sign\":\"" + sign + "\",\"confidence\":0.99,\"ts\":\"" + time + "\"}");
+        var capture = loaded().getStorage().get("gala.rps_capture_id");
+        hand(sign, time, capture == null ? "" : capture.getAsString());
+    }
+    private void hand(String sign, Instant time, String captureId) {
+        observe(Event.TYPE_HAND_SIGN, "{\"sign\":\"" + sign + "\",\"confidence\":0.99,\"captureId\":\"" + captureId + "\",\"ts\":\"" + time + "\"}");
     }
     private void group(int count) {
         observe(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":" + count + ",\"ts\":\"" + Instant.now() + "\"}");

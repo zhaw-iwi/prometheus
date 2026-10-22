@@ -43,6 +43,20 @@ Implementation and automated acceptance complete: 130 Java, 112 Node, four brows
 cases and packaging pass. The final provider sample follows the confirmation flow;
 earlier wording failures and prompt-only readiness limits remain documented.
 
+Follow-up GI-24 / Milestone 251 (2026-10-22): identify each RPS capture window in
+the persisted opening/result display and hand observation. Reject mismatched or
+missing IDs for new windows; keep timestamp/confidence/stability checks. Resume
+uses a new capture ID with the same committed choice. Repeated opening delivery
+preserves stability/cooldown; old HTTP completion cannot modify a new window.
+Keep legacy non-Gala displays and already-persisted uncorrelated rounds working.
+Verify consecutive same-sign rounds, delayed/missing IDs, pause/resume, one result,
+durable reload, cockpit reset and legacy clients. No countdown, speech/audio changes,
+extra model calls or increased sensing cadence. Physical latency/hand attribution
+remain device-test gates. Implementation/verification evidence is in results;
+the user authorised commit/push on 2026-10-22. Shared branch integration is complete;
+deployment and physical acceptance retain separate gates.
+Automated verification: 96 Java, 66 Node, four browser cases and packaging pass.
+
 ## Outcome and architecture
 
 Gigi should converse naturally, start only confirmed activities, finish them
