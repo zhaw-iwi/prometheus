@@ -1,5 +1,21 @@
 # GPT-Live implementation and acceptance evidence
 
+## Identified hand-capture windows (2026-10-22)
+
+Shared cockpit work starts on feature/gptlive. Optional display.captureId is echoed
+by camera/manual hand observations, snapshots before HTTP, and clears on scope reset.
+Duplicate opening plans preserve frame stability and cooldown, including motion
+rendering. A matching result closes capture without allowing that opening to reopen
+it. Legacy agents retain their existing display/emission behavior. No provider,
+sensing cadence, transport authorization or persistence change in this shared part.
+The activity footer labels rejected capture identities without exposing the token.
+
+Verification: 11 hand-emitter Node cases pass, including consecutive same-sign
+captures, delayed HTTP, repeated openings, manual input, closure/reset and legacy
+behavior. Integrated Gala evidence and remaining physical timing gates are recorded
+in GALAIMPROVEMENT_RESULTS on agents. The user authorised commit/push on 2026-10-22;
+shared changes follow feature/gptlive -> main -> agents.
+
 ## Bounded waiting guidance and hand-emission reset (2026-10-22)
 
 Added an application-owned waiting-guidance hook, preserving default and opt-out

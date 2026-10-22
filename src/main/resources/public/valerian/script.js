@@ -127,6 +127,8 @@ const camera = {
   lastGestureVideoTime: -1,
   stableGestureKey: null,
   stableGestureCount: 0,
+  handCaptureId: null,
+  handCaptureOpen: false,
   lastCameraEmitKey: null,
   lastCameraEmitAt: 0,
 };
@@ -2512,7 +2514,7 @@ function renderBehaviourPlan(plan, options = {}) {
   }
   if (!options.preserveNonSpeech) {
     renderNonVerbal(plan.nonVerbal);
-    renderMotion(plan.motion);
+    renderMotion(plan.motion, { resetHandEmission: !captureIdOf(plan.display) });
     renderDisplay(plan.display);
   }
   appendLog("behaviour", `received ${behaviourSummary(plan)}`);
@@ -2556,7 +2558,7 @@ function renderNonVerbal(nonVerbal) {
   }
 }
 
-function renderMotion(motion) {
+function renderMotion(motion, options = {}) {
   if (!motion || typeof motion !== "object") {
     return;
   }
@@ -2564,7 +2566,7 @@ function renderMotion(motion) {
   const sign = normalizeSign(motion.handSign);
   if (sign) {
     renderAgentSign(sign);
-    resetCameraEmissionGate();
+    if (options.resetHandEmission !== false) resetCameraEmissionGate();
   }
   renderMotionEnergyState(motion);
   if (motion.effector) {
@@ -2604,11 +2606,7 @@ function renderDisplay(display) {
   if (!display || typeof display !== "object") {
     return;
   }
-  if (display.awaitingUserSign === true) {
-    camera.stableGestureKey = null;
-    camera.stableGestureCount = 0;
-    resetCameraEmissionGate();
-  }
+  updateHandCapture(display);
   setBehaviourChannelActive("display", true);
   setText("display_value", JSON.stringify(display, null, 2));
   if (display.agentSign) {
@@ -2628,6 +2626,26 @@ function renderDisplay(display) {
   }
   if (display.winner) {
     setText("winner_value", winnerLabel(display.winner));
+  }
+}
+
+function captureIdOf(display) {
+  return typeof display?.captureId === "string" && display.captureId.length > 0 && display.captureId.length <= 128
+    ? display.captureId : null;
+}
+
+function updateHandCapture(display) {
+  const id = captureIdOf(display);
+  if (display.awaitingUserSign === true) {
+    // Replayed opening plans must not restart stability, bypass cooldown or reopen a resolved capture.
+    if (id && id === camera.handCaptureId) return;
+    camera.handCaptureId = id;
+    camera.handCaptureOpen = !!id;
+    camera.stableGestureKey = null;
+    camera.stableGestureCount = 0;
+    resetCameraEmissionGate();
+  } else if (display.awaitingUserSign === false && id && id === camera.handCaptureId) {
+    camera.handCaptureOpen = false;
   }
 }
 
@@ -4768,6 +4786,9 @@ async function submitHandSign(sign, options = {}) {
     appendLog("hand", "unknown hand sign.");
     return false;
   }
+  // Snapshot before HTTP: a delayed request must never acquire a later capture's identity.
+  const captureId = camera.handCaptureOpen ? camera.handCaptureId : null;
+  const emissionRevision = camera.handEmissionRevision || 0;
   renderUserSign(normalized);
   renderHandSignReport(normalized, {
     source: options.source || "valerian.hand.manual",
@@ -4786,6 +4807,7 @@ async function submitHandSign(sign, options = {}) {
     detectionMode: options.detectionMode || "manual",
     ts: new Date().toISOString(),
   };
+  if (captureId) payload.captureId = captureId;
   if (options.cannedGesture) {
     payload.cannedGesture = options.cannedGesture;
   }
@@ -4798,6 +4820,7 @@ async function submitHandSign(sign, options = {}) {
     kind: "observation",
     payload: JSON.stringify(payload),
   }, { renderResponse: true });
+  if (emissionRevision !== (camera.handEmissionRevision || 0)) return !!data;
   if (data) {
     renderHandSignReport(normalized, {
       source: payload.source,
@@ -5646,6 +5669,8 @@ function resetSensingState() {
   camera.lastSocialContextEmitAt = 0;
   camera.stableGestureKey = null;
   camera.stableGestureCount = 0;
+  camera.handCaptureId = null;
+  camera.handCaptureOpen = false;
   resetCameraEmissionGate();
   setCameraStatus("Camera Idle", "idle");
 }

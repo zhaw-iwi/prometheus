@@ -26,6 +26,9 @@ function fixture() {
     renderHandSignReport(sign, options) { context.setHandSignStatus(options.statusText, options.statusMode); },
     resetHandSignReport(status) { context.setHandSignStatus(status); },
     renderUserSign() {}, setActiveStatus() {}, renderLatestEvent() {}, appendLog() {}, handleResponseEvent() {},
+    renderAgentSign() {}, resetBehaviourPanels() {}, renderNonVerbal() {}, renderMotionEnergyState() {},
+    setBehaviourChannelActive() {}, behaviourSummary() { return "plan"; }, winnerLabel(value) { return value; },
+    resetEmotionReport() {}, renderSocialMetrics() {}, resetWeatherState() {}, setCameraStatus() {},
     async fetch(url, options) {
       requests.push({ url, ...options });
       return { ok: context.httpStatus === 200, status: context.httpStatus,
@@ -41,7 +44,8 @@ function fixture() {
   }
   for (const name of ["detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "demoAgentPath",
-    "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate"]) {
+    "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
+    "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     assert.ok(match, name);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
@@ -86,6 +90,66 @@ test("camera rock, scissor and paper reach the scoped framework as timestamped o
     assert.equal(Date.parse(payload.ts), f.context.Date.now());
   }
   assert.equal(f.requests.length, 3);
+});
+
+const opening = captureId => ({ motion: { handSign: "rock" }, display: { awaitingUserSign: true, captureId } });
+const payload = request => JSON.parse(JSON.parse(request.body).payload);
+
+test("duplicate opening plans preserve fresh-frame progress and cooldown; next capture accepts the same sign", async () => {
+  const f = fixture();
+  await f.frame(); await f.frame(); // Pre-opening frames cannot count toward the new capture.
+  f.context.renderBehaviourPlan(opening("round-one"));
+  await f.frame(); f.context.renderBehaviourPlan(opening("round-one"));
+  await f.frame(); assert.equal(f.requests.length, 0);
+  f.context.renderBehaviourPlan(opening("round-one"));
+  await f.frame(); assert.equal(f.requests.length, 1);
+  assert.equal(payload(f.requests[0]).captureId, "round-one");
+  assert.equal(payload(f.requests[0]).stabilityFrames, 3);
+  f.context.renderBehaviourPlan(opening("round-one")); await f.frame();
+  assert.equal(f.requests.length, 1, "replayed motion must not bypass ordinary cooldown");
+  f.context.renderBehaviourPlan(opening("round-two"));
+  await f.frame(); await f.frame(); assert.equal(f.requests.length, 1);
+  await f.frame(); assert.equal(f.requests.length, 2, "no 2.5-second wait for the next capture");
+  assert.equal(payload(f.requests[1]).captureId, "round-two");
+});
+
+test("a delayed request retains its original capture and cannot restore the new capture's cooldown or status", async () => {
+  const f = fixture(); let release;
+  const original = f.context.fetch;
+  f.context.renderBehaviourPlan(opening("old"));
+  f.context.fetch = async (...args) => { await new Promise(resolve => { release = resolve; }); return original(...args); };
+  await f.frame(); await f.frame(); const pending = f.frame();
+  f.context.renderBehaviourPlan(opening("new"));
+  f.context.setHandSignStatus("Waiting for new capture");
+  release(); await pending;
+  assert.equal(payload(f.requests[0]).captureId, "old");
+  assert.equal(f.context.camera.lastCameraEmitKey, null);
+  assert.equal(f.status(), "Waiting for new capture");
+  f.context.fetch = original;
+  await f.frame(); await f.frame(); assert.equal(f.requests.length, 1);
+  await f.frame(); assert.equal(payload(f.requests[1]).captureId, "new");
+});
+
+test("manual input echoes the active capture; results and cockpit reset cannot reopen or leak it", async () => {
+  const f = fixture();
+  f.context.renderBehaviourPlan(opening("current"));
+  f.context.renderDisplay({ awaitingUserSign: false, captureId: "older" });
+  await f.context.submitHandSign("rock"); assert.equal(payload(f.requests.at(-1)).captureId, "current");
+  f.context.renderDisplay({ awaitingUserSign: false, captureId: "current" });
+  f.context.renderBehaviourPlan(opening("current"));
+  await f.context.submitHandSign("paper"); assert.equal(payload(f.requests.at(-1)).captureId, undefined);
+  f.context.renderBehaviourPlan(opening("next"));
+  f.context.resetSensingState();
+  await f.context.submitHandSign("paper"); assert.equal(payload(f.requests.at(-1)).captureId, undefined);
+});
+
+test("legacy capture displays still reset stability and emit ordinary observations without a capture ID", async () => {
+  const f = fixture();
+  await f.frame(); await f.frame();
+  f.context.renderBehaviourPlan({ display: { awaitingUserSign: true } });
+  await f.frame(); await f.frame(); assert.equal(f.requests.length, 0);
+  await f.frame(); assert.equal(f.requests.length, 1);
+  assert.equal(payload(f.requests[0]).captureId, undefined);
 });
 
 test("a visible overlay explicitly reports disabled emission instead of implying delivery", async () => {
