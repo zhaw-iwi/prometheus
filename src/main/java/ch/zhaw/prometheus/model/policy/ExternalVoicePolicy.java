@@ -16,6 +16,8 @@ public interface ExternalVoicePolicy {
     default boolean livePendingAcknowledgements() { return true; }
     /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
     default long liveUserSilenceMs() { return 800; }
+    /** Opt-in rejection of isolated input activity spikes for backend capture only. */
+    default boolean liveFilterIsolatedInputActivity() { return false; }
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */

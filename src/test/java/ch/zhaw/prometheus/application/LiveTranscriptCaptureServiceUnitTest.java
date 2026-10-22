@@ -19,6 +19,40 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @Test void optInFilterSeparatesThreeNoisyTurnsAndKeepsEveryReceiptAndDuplicateRule() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var now = new AtomicLong(100); var clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        try {
+            var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                    () -> List.of("conversation"), reason -> fail(reason), 2000, true);
+            capture.inputMuted(false);
+            var questions = List.of("Is the person real?", "Did they live in Europe?", "Did they live in Switzerland?");
+            for (int question = 0; question < questions.size(); question++) {
+                long start = 100 + question * 3000; now.set(start);
+                var fragment = new com.google.gson.JsonObject(); fragment.addProperty("type", "session.input_transcript.delta");
+                fragment.addProperty("event_id", "q" + question); fragment.addProperty("start_ms", start);
+                fragment.addProperty("end_ms", start + 20); fragment.addProperty("delta", questions.get(question));
+                capture.receive(fragment); capture.receive(fragment);
+                for (int offset = 20; offset <= 3000; offset += 20) {
+                    now.set(start + offset);
+                    int level = offset % 1000 == 0 ? 600 : 0;
+                    byte[] pcm = new byte[960];
+                    for (int i = 0; i < pcm.length; i += 2) { pcm[i] = (byte) level; pcm[i + 1] = (byte) (level >> 8); }
+                    var audio = new com.google.gson.JsonObject(); audio.addProperty("type", "session.input_audio.append");
+                    audio.addProperty("audio", Base64.getEncoder().encodeToString(pcm)); capture.receive(audio); service.poll();
+                }
+            }
+            capture.close().get(3, TimeUnit.SECONDS);
+            var segments = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress, times(3)).receipt(any(), any(), any());
+            verify(ingress, times(3)).commit(any(), any(), segments.capture(), eq(List.of("conversation")));
+            assertEquals(questions, segments.getAllValues().stream().map(Segment::text).toList());
+            assertTrue(segments.getAllValues().stream().allMatch(s -> s.closure() == ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE));
+        } finally { service.shutdown(); }
+    }
     @Test void voicedAudioBeforeAnyTranscriptReservesConversationWithoutDatabaseWork() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class); var now = new AtomicLong(1000); var clock = mock(Clock.class);
         when(clock.millis()).thenAnswer(call -> now.get());
@@ -88,7 +122,7 @@ class LiveTranscriptCaptureServiceUnitTest {
         try {
             var failure = new AtomicReference<String>();
             var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
-                    () -> List.of("game"), failure::set, 2000);
+                    () -> List.of("game"), failure::set, 2000, true);
             capture.inputMuted(false);
             capture.receive(JsonParser.parseString("{\"type\":\"session.input_transcript.delta\",\"event_id\":\"first\",\"start_ms\":0,\"end_ms\":200,\"delta\":\"Etwas\"}").getAsJsonObject());
             var audio = new com.google.gson.JsonObject(); audio.addProperty("type", "session.input_audio.append");

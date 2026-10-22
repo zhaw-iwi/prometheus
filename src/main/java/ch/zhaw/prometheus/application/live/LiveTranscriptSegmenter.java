@@ -93,13 +93,17 @@ public final class LiveTranscriptSegmenter {
         return track.fragments.isEmpty() ? List.of() : List.of(finish(speaker, track, Closure.INCOMPLETE, reason));
     }
     public synchronized List<Segment> poll(long nowMs) {
+        return poll(nowMs, false);
+    }
+    public synchronized List<Segment> poll(long nowMs, boolean userActivityPending) {
         List<Segment> result = new ArrayList<>();
         for (var entry : tracks.entrySet()) {
             Track track = entry.getValue();
             if (track.fragments.isEmpty()) continue;
             if (nowMs - track.first > MAX_OPEN_MS) {
                 result.add(finish(entry.getKey(), track, Closure.INCOMPLETE, "activity_or_transcript_timeout"));
-            } else if (track.silenceSamples >= (entry.getKey() == Speaker.USER ? userSilenceMs : SILENCE_MS) * 24
+            } else if (!(entry.getKey() == Speaker.USER && userActivityPending)
+                    && track.silenceSamples >= (entry.getKey() == Speaker.USER ? userSilenceMs : SILENCE_MS) * 24
                     && nowMs - track.last >= LATENESS_MS
                     && nowMs - track.audioAt <= MAX_AUDIO_GAP_MS) {
                 result.add(finish(entry.getKey(), track, track.uncertainty == null ? Closure.COMPLETE : Closure.INCOMPLETE,

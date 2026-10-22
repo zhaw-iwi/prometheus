@@ -82,6 +82,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 243 (shared capture): application policies may explicitly opt into
+  ignoring isolated input-activity spikes. Pending onset preserves conservative
+  user boundaries; default agents, assistant capture and raw durability stay
+  unchanged. Shared evidence and physical limits are in GPTLIVE_RESULTS.
+
 - GI-15 / Milestone 242: direct confirmation of a just-revealed name no longer
   calls the classifier or creates false failure recovery. Other follow-ups receive
   current-mode operation choices and the original expiring outcome context.
