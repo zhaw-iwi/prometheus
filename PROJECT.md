@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-08 / Milestone 234: occasional decorative gestures share core meanings and
+  bounded published-request history. Cooldown/repetition suppression preserves
+  face/gaze, explicit repeats and agreed task/RPS outputs. Focused contracts,
+  all three journeys and dispatch/query regressions passed. GI-09 follows;
+  physical motion/timing remains a final acceptance item. See the Gala results.
+
 - GI-07 / Milestone 233: one concise Gala voice policy adds occasional self-irony,
   truthful recovery and simple clarification. Sixty-three focused units, the two
   Gala journey variants and packaging passed. Actual Live quality and task trials
@@ -10841,3 +10847,10 @@ Consolidated voice guidance across activities, preserved complete task terms and
 bounded instructions, and reviewed real Live speech using synthetic input. See
 `.agents/GALAIMPROVEMENT_RESULTS.md` GI-07 for verification and remaining quality
 limitations; no deterministic test claims humour or audible playback compliance.
+
+## Milestone 234 - Occasional meaningful Gala gestures (2026-10-22)
+
+Shared core label meanings are exposed without changing the existing core prompt.
+Gala adds bounded recent-request context to existing selection, filters decoration
+at once-only publication, and exempts deliberate task/game outputs. See GI-08 in
+`.agents/GALAIMPROVEMENT_RESULTS.md` for measured verification and limitations.

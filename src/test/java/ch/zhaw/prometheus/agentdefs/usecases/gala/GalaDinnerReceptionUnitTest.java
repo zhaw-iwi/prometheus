@@ -78,6 +78,24 @@ class GalaDinnerReceptionUnitTest {
             assertTrue(instructions.contains(required), required);
     }
 
+    @Test void decorativeHistoryGuidesTheExistingRequestAndExplicitGestureCanRepeat() {
+        when(gateway.infer(any())).thenReturn(answer("CHAT", "").replace("\"NONE\"", "\"EXPLAIN\""));
+        var first = BehaviourPlan.fromJson(say("Was macht das Labor?").getPayload());
+        var second = BehaviourPlan.fromJson(say("Und das Institut?").getPayload());
+        var requested = BehaviourPlan.fromJson(say("Please show that gesture again").getPayload());
+        assertEquals("EXPLAIN", first.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("NONE", second.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("EXPLAIN", requested.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        var requests = ArgumentCaptor.forClass(InferenceRequest.class);
+        verify(gateway, times(3)).infer(requests.capture());
+        String prompt = requests.getAllValues().get(1).messages().getFirst().getContent();
+        assertTrue(prompt.contains(ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES));
+        assertTrue(prompt.contains("Recent published gesture requests"));
+        assertTrue(prompt.contains("\"label\":\"EXPLAIN\""));
+        assertNull(agent.generate(runtime));
+        assertEquals(2, memory.get(GalaDinnerGestures.HISTORY).getAsJsonArray().size());
+    }
+
     @Test void rpsCommitsHiddenSignRejectsBadFramesAndReturnsToReceptionWithCalculatedResult() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
         var countdown = BehaviourPlan.fromJson(say("Spielen wir Schere Stein Papier").getPayload());

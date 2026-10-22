@@ -93,7 +93,14 @@ Dann **Stop** und Telemetrie exportieren.
 
 Optionaler Sprachstil-Check: Nach einer normalen Frage zweimal um einen kurzen
 Roboterwitz bitten. Die Antworten sollen variieren, ohne die Frage nachzusprechen
-oder mich zum Ziel des Witzes zu machen. Nach ?Nein danke? keine neue Einladung.
-Einen unklaren Satz sagen: eine kurze R?ckfrage, keine erfundene Interpretation.
-Bei einem ernsten Thema kein erzwungener Witz. Technische Probleme m?ssen mit
-ehrlichem Status und einem hilfreichen n?chsten Schritt erkl?rt werden.
+oder mich zum Ziel des Witzes zu machen. Nach «Nein danke» keine neue Einladung.
+Einen unklaren Satz sagen: eine kurze Rückfrage, keine erfundene Interpretation.
+Bei einem ernsten Thema kein erzwungener Witz. Technische Probleme müssen mit
+ehrlichem Status und einem hilfreichen nächsten Schritt erklärt werden.
+
+Gestencheck: Mehrere normale Fragen kurz hintereinander stellen. Gesten sollen
+gelegentlich und passend auftreten, nicht bei jeder Antwort oder als gleiche
+Bewegung in Serie. «Zeig diese Geste bitte nochmals» darf sie gezielt wiederholen.
+Spielzeichen und ausdrücklich vereinbarte Aufgabenbewegungen müssen unabhängig
+von dieser dekorativen Pause erscheinen. Anzeige und tatsächlich ausgeführte
+Roboterbewegung getrennt notieren; keine wortgenaue Synchronisation voraussetzen.

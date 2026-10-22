@@ -16,14 +16,17 @@ import jakarta.persistence.Transient;
 @Entity
 public class GalaDinnerTaskAction extends TaskUpdateAction {
     @Transient private boolean committed;
+    @Transient private boolean requiredGesture;
     protected GalaDinnerTaskAction() {}
     public GalaDinnerTaskAction(Storage storage, boolean cue) {
         super(storage, (cue ? GenericMultimodalBehaviour.behaviourInstructions(GalaDinnerPrompts.VOICE)
                 : GenericMultimodalBehaviour.configurationInstructions(GalaDinnerPrompts.VOICE, GalaDinnerPrompts.TASK_CONTRACT))
-                + GalaDinnerPrompts.TASK_CONFIGURATION, cue);
+                + GalaDinnerPrompts.TASK_CONFIGURATION
+                + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
+                + GalaDinnerGestures.guidance(storage, Instant.now()), cue);
     }
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
-        var storage = getStorage(); committed = false;
+        var storage = getStorage(); committed = false; requiredGesture = false;
         if (!"TASK".equals(mode(storage))) return;
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean()
                 || !present(storage, Instant.now()) || GalaDinnerDecision.expired(storage, Instant.now())) {
@@ -63,7 +66,7 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
             expectIfActive(storage, runtime);
         }
         if (output != null) output.setSpeech(null);
-        reply(storage, output);
+        reply(storage, output, requiredGesture);
     }
     @Override protected void validateTaskUpdate(String operation, TaskSpec task) {
         if (task != null && (!task.sessionBound() || task.maxActions() > 5
@@ -83,6 +86,8 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
     }
     @Override protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule, BehaviourPlan output, PolicyRuntime runtime) {
         committed = true;
+        requiredGesture = "ACT".equals(operation)
+                || "ACTIVATE".equals(operation) && task.firstAction() == TaskSpec.FirstAction.IMMEDIATE;
         var storage = getStorage(); output.setSpeech(null); storage.put(TaskMemory.REPLY, output.toJsonObject());
         boolean terminal = "COMPLETED".equals(TaskMemory.phase(storage)) || "PAUSED".equals(TaskMemory.phase(storage))
                 || TaskMemory.active(storage) && storage.containsKey(TaskMemory.SPEC)

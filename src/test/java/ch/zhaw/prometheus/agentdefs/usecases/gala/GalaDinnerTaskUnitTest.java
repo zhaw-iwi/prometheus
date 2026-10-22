@@ -44,6 +44,18 @@ class GalaDinnerTaskUnitTest {
 
     @BeforeEach void occupied() { put(memory, COUNT, "1"); put(memory, SEEN, Instant.now().toString()); }
 
+    @Test void agreedTaskGestureIsNotSuppressedByRecentDecorativeHistory() {
+        propose(SPEC.replace("Sage einen kurzen Roboterwitz", "Zeige die EXPLAIN Geste"));
+        GalaDinnerGestures.publish(memory, GalaDinnerAction.plan(null, "EXPLAIN", "attentive", "toward_user"), false, Instant.now());
+        when(gateway.infer(any())).thenReturn("""
+                {"operation":"ACTIVATE","task":null,"reply":{"nonVerbal":{"gesture":"EXPLAIN"}}}
+                """);
+        var plan = BehaviourPlan.fromJson(say("Ja, jetzt aktivieren.").getPayload());
+        assertEquals("EXPLAIN", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals(1, memory.get(TaskMemory.ACTIONS).getAsInt());
+        assertNull(plan.getSpeech());
+    }
+
     @Test void proposalActivationCaptureFreshCueAndCompletionUseTheGenericContract() {
         propose(SPEC);
         assertEquals("Gala co-created task", agent.getCurrentState().getName());

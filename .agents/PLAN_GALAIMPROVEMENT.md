@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-07 implemented; GI-08 is next. GI-05 uses
+Status: GI-01 through GI-08 implemented; GI-09 is next. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
 Later milestones are not started.
@@ -400,6 +400,9 @@ sentence assertions for generated prose. Anchors: `GalaDinnerPrompts`, reference
 tests, Gala journey and `tests/gptlive/GALA.md`.
 
 ### GI-08 - Occasional, distinctive gesture behaviour
+
+Status: IMPLEMENTED. Cadence/publication contracts and representative journeys
+passed; physical distinctiveness remains for GI-12.
 
 **Outcome:** gestures emphasize meaningful moments without accompanying every
 utterance or repeatedly performing the same decorative movement.

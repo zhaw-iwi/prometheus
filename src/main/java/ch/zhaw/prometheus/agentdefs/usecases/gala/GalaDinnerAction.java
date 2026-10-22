@@ -121,7 +121,8 @@ public class GalaDinnerAction extends Action {
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
             String prompt = GalaDinnerPrompts.TURN
-                    + "\nBackend current mode: " + mode;
+                    + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
+                    + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
                     messages(storage, events, prompt, runtime, now), InferenceRequest.Output.JSON_OBJECT);
             String inferred = runtime.languageModelGateway().infer(request);
@@ -187,7 +188,7 @@ public class GalaDinnerAction extends Action {
                 case "QUIET" -> { leave(storage, events, true); response = null; }
                 default -> { }
             }
-            reply(storage, response);
+            reply(storage, response, GalaDinnerGestures.requested(utterance));
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             ActivityTrace.failed("gala_response_failed");

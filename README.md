@@ -518,6 +518,14 @@ results after Live Stop are discarded. Task readiness remains visible through th
 existing monitor/Live contract.
 Reset clears owned `gala.*` and the Generic engine's task keys, preserving other
 storage. Task policy/action subclasses reuse existing JPA fields. The existing
+Gala decorative gestures reuse the core semantic meanings and receive the last
+five published gesture requests in the existing selector prompt. A 12-second
+cooldown and 60-second same-label interval suppress excess decoration without
+changing face/gaze. Explicit gesture requests and agreed task actions take
+precedence; RPS hand signs remain independent. History resets at a new encounter
+and records requests, not physical execution or word-level alignment. Publishing
+consumes the plan once; native speech capture does not generate another gesture.
+
 Gala uses one concise voice policy across activities: direct replies without habitual
 question echoes or waiting acknowledgments, occasional dry self-irony about robot
 limitations, and no renewed invitation after refusal. Recovery states what is known

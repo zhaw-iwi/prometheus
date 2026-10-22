@@ -457,3 +457,37 @@ last wording guard has deterministic coverage only, pending the GI-12 provider
 matrix. These quality gaps remain recorded, rather than rerunning until clean.
 Maximum instructions before this last 39-byte clarification: 14,304/16,000 bytes;
 the final full-state budget test remains below the 14,400 working limit.
+
+## GI-08 / Milestone 234 - occasional meaningful gestures (2026-10-22)
+
+Core decorative label meanings are reused verbatim; the existing core nonverbal
+prompt text and Generic configuration hash remain unchanged. Gala supplies up to
+five published requests from the previous minute to its existing selector, with
+no second inference. Publication suppresses decoration within 12 seconds or the
+same label within 60 seconds, preserving face/gaze and intentional NONE. Explicit
+German/English gesture commands and agreed task actions bypass cadence; RPS hand
+signs remain independent. The command exemption only relaxes cadence for an
+already selected gesture, never authorizes motion by itself. No random rotation.
+
+History is encounter-local persisted state, updated in existing publication
+transactions and cleared at new Live encounters/departure. It records published
+requests, not execution. Consuming the pending plan prevents reload/re-generation
+from replaying it. No native-transcript gesture generation, poller, sensor write
+stream or additional authorization read was added. Persistence writes remain
+part of the measured GI-11 budget, rather than being claimed free.
+
+Focused unit coverage includes boundaries, repeated/different labels, NONE,
+explicit requests/negation, task gesture and RPS preservation, bounded/corrupt
+history, encounter reset, once-only publication and existing invalid-decoration
+recovery. Three actual requests still make exactly three model calls. Thirteen
+isolated integration cases passed across the three journeys, dispatch and query
+budgets (target/gptlive-acceptance-7d8ce2283f); disposable resources removed.
+Physical execution, distinctiveness and speech alignment are NOT RUN; the manual
+Gala script now asks the operator to distinguish visible plans from robot motion.
+
+Final GI-08 verification: 98 focused unit cases passed (88 in gi08-unit.log and
+10 in gi08-lifecycle-unit.log). One real-app browser test passed for sensor/native
+speech/gesture-plan coexistence (target/gptlive-acceptance-3ccb6bd599); its feature-off
+variant was skipped by that test and is not claimed as legacy coverage. Packaging
+and git diff --check passed. Core extraction was committed through feature/gptlive
+(be99cd8) and main (8215a21); the agents merge preserved its existing RPS labels.

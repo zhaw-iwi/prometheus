@@ -33,6 +33,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 || !"RECEPTION".equals(GalaDinnerMemory.mode(storage)))
             throw new IllegalArgumentException("A fresh occupied reception observation is required");
         GalaDinnerMemory.put(storage, GalaDinnerMemory.SESSION, Integer.toString(history.toList().size()));
+        GalaDinnerMemory.remove(storage, GalaDinnerGestures.HISTORY);
         GalaDinnerSensing.begin(storage, java.time.Instant.now());
     }
     @Override public String liveOpeningInstructions() {
@@ -101,7 +102,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         if (!storage.containsKey(GalaDinnerMemory.REPLY)) return null;
         var plan = BehaviourPlan.fromJson(storage.get(GalaDinnerMemory.REPLY).toString());
         GalaDinnerMemory.remove(storage, GalaDinnerMemory.REPLY);
-        return plan;
+        boolean required = "true".equals(GalaDinnerMemory.text(storage, GalaDinnerGestures.REQUIRED, ""));
+        GalaDinnerMemory.remove(storage, GalaDinnerGestures.REQUIRED);
+        return GalaDinnerGestures.publish(storage, plan, required, java.time.Instant.now());
     }
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return null; }

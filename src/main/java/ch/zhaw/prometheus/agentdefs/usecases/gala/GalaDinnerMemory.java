@@ -31,8 +31,15 @@ final class GalaDinnerMemory {
         return Integer.parseInt(text(storage, COUNT, "0")) > 0 && now.isBefore(time(storage, SEEN).plusSeconds(15));
     }
     static void reply(Storage storage, BehaviourPlan plan) {
+        reply(storage, plan, false);
+    }
+    static void reply(Storage storage, BehaviourPlan plan, boolean requiredGesture) {
         remove(storage, REPLY);
-        if (plan != null && !plan.isEmpty()) storage.put(REPLY, plan.toJsonObject());
+        remove(storage, GalaDinnerGestures.REQUIRED);
+        if (plan != null && !plan.isEmpty()) {
+            storage.put(REPLY, plan.toJsonObject());
+            if (requiredGesture) put(storage, GalaDinnerGestures.REQUIRED, "true");
+        }
     }
     static void reception(Storage storage) {
         TaskMemory.clear(storage);
