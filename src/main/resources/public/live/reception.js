@@ -4,7 +4,7 @@
  */
 export class PresenceReception {
   constructor({ start, stop, waiting = () => {}, failed = () => {}, diagnostic = () => {}, now = Date.now,
-    schedule = setTimeout, cancel = clearTimeout }) {
+    schedule = (fn, ms) => setTimeout(fn, ms), cancel = timer => clearTimeout(timer) }) {
     Object.assign(this, { start, stop, waiting, failed, diagnostic, now, schedule, cancel });
     this.armed = false; this.version = 0; this.generation = 0; this.count = null; this.pending = null;
     this.absentSince = null; this.graceMs = 0;
