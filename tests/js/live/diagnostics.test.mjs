@@ -2,6 +2,43 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveDiagnostics } from "../../../src/main/resources/public/live/diagnostics.js";
 
+test("media correlation is bounded approximate context, clears on input and never proves an output end", () => {
+  let now = 0; const diagnostics = new LiveDiagnostics({ now: () => now });
+  const status = { context: { revision: "revision1", recent: [{ sequence: 1, phase: "ack",
+    type: "session.commentary.append", sourceId: "occasion1" }] } };
+  diagnostics.record({ handle: "s", phase: "status", status });
+  diagnostics.record({ handle: "s", phase: "caption_received", direction: "output", receiptId: "receipt1", text: "private" });
+  const sample = () => diagnostics.record({ handle: "s", phase: "rtc_audio", direction: "output", totalAudioEnergy: 1 });
+  sample(); let session = diagnostics.snapshot().sessions[0];
+  assert.equal(session.media.at(-1).speakingSourceId, "occasion1");
+  assert.equal(session.media.at(-1).outputReceiptId, "receipt1");
+  assert.equal(session.media.at(-1).contextRevision, "revision1");
+  assert.equal(session.coverage.outputEnd, "unknown"); assert.equal(session.coverage.providerTurnEnd, "not_available");
+  assert.equal(session.media.at(-1).association, "latest_observed_context_not_response_binding");
+  now = 30001; sample(); session = diagnostics.snapshot().sessions[0];
+  assert.equal(session.media.at(-1).speakingSourceId, null); assert.equal(session.media.at(-1).outputReceiptId, null);
+  diagnostics.record({ handle: "s", phase: "caption_received", direction: "input", receiptId: "user2" });
+  diagnostics.record({ handle: "s", phase: "status", status }); sample();
+  assert.equal(diagnostics.snapshot().sessions[0].media.at(-1).speakingSourceId, null, "Repeated status cannot rebind an old occasion");
+  status.context.recent[0].sequence = 2; status.context.recent[0].sourceId = "occasion2";
+  diagnostics.record({ handle: "s", phase: "status", status }); sample();
+  assert.equal(diagnostics.snapshot().sessions[0].media.at(-1).speakingSourceId, "occasion2");
+  assert.equal(JSON.stringify(diagnostics.snapshot()).includes("private"), false);
+});
+
+test("local output stop classifications retain fixed causes and never invent natural completion", () => {
+  const diagnostics = new LiveDiagnostics();
+  for (const [reason, classification] of [["operator_stop", "intentional_stop"], ["visitor_departure", "lifecycle_closure"],
+    ["authorization_revoked", "lifecycle_closure"], ["transport_failure", "transport_failure"],
+    ["provider_session_closed", "provider_session_closure"], ["private failure text", "unknown"]]) {
+    diagnostics.record({ handle: "s", phase: "output_end", reason });
+    const end = diagnostics.snapshot().sessions[0].outputEnd;
+    assert.equal(end.classification, classification); assert.equal(end.utteranceEnd, "unknown");
+    assert.equal(end.assessment, "local_output_stop_only");
+  }
+  assert.equal(JSON.stringify(diagnostics.snapshot()).includes("private"), false);
+});
+
 test("Live usage remains cumulative and export retains safe capture/configuration/error coverage", () => {
   const diagnostics = new LiveDiagnostics();
   diagnostics.record({ handle: "s", phase: "capture", capture: { requested: { echoCancellation: true, deviceId: "private" }, applied: { echoCancellation: false } } });

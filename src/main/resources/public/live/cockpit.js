@@ -21,7 +21,7 @@ export class LiveCockpit {
         await this.client.start({ ...this.scope, voice: this.preferences.voice,
           mediaPreferences: this.preferences.media, outputDeviceId: this.preferences.outputDeviceId });
       },
-      stop: reason => this.client.stop(reason),
+      stop: (reason, cause) => this.client.stop(reason, "Idle", cause),
       waiting: () => this.state({ state: "Waiting", detail: "Reception armed. Waiting for visitors in the camera view." }),
       failed: error => this.state({ state: "Error", detail: error.message }),
     });
@@ -40,7 +40,7 @@ export class LiveCockpit {
   observePresence(count) { return this.reception.observe(count); }
   commitPresence(count, version) { void this.reception.committed(count, version); }
   stop(reason) { return this.reception.disarm(reason); }
-  invalidate(reason) { this.reception.disarm(reason); return this.client.invalidate(reason); }
+  invalidate(reason) { this.reception.disarm(reason, "scope_change"); return this.client.invalidate(reason); }
   async configure(scope) {
     const version = ++this.version;
     void this.invalidate();

@@ -2038,3 +2038,21 @@ authorized proactive comment. Facts arrive before one `commentary.append`; retri
 and reconnects do not replay that occasion. Existing policies retain their speech
 intent and instruction-update behavior. Application policies own clearing context
 on cancellation, departure and new encounters; never supply facts a model must not see.
+
+### Live output evidence (GI-10)
+
+Live telemetry now records fixed local-stop causes (operator, scope/departure,
+stale presence, authorization, provider/session closure, media and transport
+failure), separate from microphone mute. Existing playback/RTP samples retain the
+latest observed context revision, acknowledged speaking source and output-caption
+receipt where available. Associations expire after 30 seconds and are cleared by
+new input; they are approximate context links, never response/playback bindings.
+No text, audio, SDP, device identifiers or free-form error messages are exported.
+Existing session/media retention limits and polling cadence are unchanged.
+
+A provider session closing or an HTML audio track ending does not establish the
+natural end of an utterance. Exports retain unknown provider turn end and physical
+audibility. Context updates alone do not detach or mute output; explicit stop and
+lifecycle failures still silence synchronously. No speculative buffering, VAD or
+playback timing change is included. Audible last-word clipping remains OPEN until
+a specific occurrence can be correlated with this evidence and physical listening.
