@@ -1298,3 +1298,75 @@ Verification:
 
 GI-20 follows. Actual spoken clarification and remaining quality limits are part
 of GI-22; this milestone does not close GI-14 or fixed-quota capacity gates.
+
+## GI-20 feasibility - audio-policy decision pending (2026-10-22)
+
+No runtime departure change has been made. The proposed immediate local silence
+plus session-preserving grace needs an explicit recovery policy: muting is not
+pausing the model. Official sources checked through OpenAI Docs:
+https://developers.openai.com/api/docs/guides/live-conversations#control-microphone-input
+and https://developers.openai.com/api/docs/guides/voice-server-controls?api=live#control-playback-when-needed.
+Input mute leaves generation running; client playback must be controlled
+separately. An append ACK is not a safe signal to resume model output.
+
+A synthetic counting probe used a real gpt-live-1/marin WebRTC session, browser
+microphone-track disable plus provider input mute/unmute, and local output mute
+without detaching the stream. This isolates transport/playback feasibility; it
+does not run the Gala backend, database, actual camera or robot. The provider
+accepted mute after 171 ms and unmute at 1,845 ms; local playback resumed at
+1,850 ms. Captions before suspension contained "eins", during mute "zwei", and
+after resumption "drei" followed by subsequent numbers. Remote audio continued
+during mute (8/18 sampled 100-ms windows above RMS 0.01) and after resumption.
+The same session closed normally. There was no queued replay, but a portion of
+the ongoing response was hidden; continuity cannot be claimed. This is synthetic
+browser/media evidence, not a human physical-audibility assessment.
+
+Ignored evidence: target/gi20-presence-probe.mjs,
+target/gi20-presence-fixture.json and target/gi20-presence-results-2.json.
+The first probe timed out because its inherited log filter excluded mute ACKs;
+that harness error was corrected and retained as target/gi20-presence-results.json.
+It is not counted as an application/provider mute failure. Both sessions were
+cleaned up; no production database was accessed.
+
+Decision requested: apply the two-second grace to audio as well (recommended),
+allowing brief speech in a possibly empty view, or retain immediate silence and
+accept interruption on brief detection loss. Either option retains immediate
+operator Stop, explicit camera stop, access revocation, reset/switch and failure
+fences. The original no-stale-tail guarantee must not be silently weakened.
+GI-18 and GI-19 are pushed (agents 1c4be46); GI-20–22 remain unfinished pending
+this decision, as required by the plan's unforeseen-trade-off halt condition.
+
+
+### GI-20 decision and implementation
+
+The user approved two-second grace for audio/input as well as encounter state.
+This supersedes the pending decision above and its immediate-mute requirement.
+Brief absence preserves conversation; sustained absence closes once. Stop, camera
+shutdown, access loss and failures remain immediate. Raw counts are unchanged;
+new sensor actions/gestures and ambient comments are suppressed during grace,
+without replay on return. Task agreement/budget survives; user stop/reveal remains
+available. Non-opted-in agents keep immediate departure. No extra database polling.
+
+Real provider retry using the actual PresenceReception module: 1,519 ms absence,
+one session, zero local stops, zero muted output samples. Seven voiced 100-ms
+windows during absence and 54 after; captions continued eins -> zwei -> drei,
+without skipping the muted word from the earlier probe. This is synthetic media
+evidence, not physical audibility. target/gi20-grace-results-2.json retained.
+The first grace probe caught native setTimeout invoked with the wrong receiver;
+arrow wrappers fix it. Failed evidence retained as gi20-grace-results.json.
+
+Verification: 101 Gala unit cases and three persisted/budget cases passed in
+`target/gptlive-acceptance-78d47664b1/java.log`; both canonical/compact journeys.
+The actual agents browser presence lifecycle test passed with brief recovery,
+sustained departure and new encounter. The earlier journey assertion raced
+asynchronous close cleanup; it now waits for the committed cleanup, preserving
+immediate local stop. All failures retained (91d817ee6e and gi20-unit.log).
+Instructions remain below the 14,400-byte test ceiling even with absent-presence
+facts and maximum task goals; task voice wording was compacted with the same
+required lifecycle terms. The true application ceiling remains 16,000 bytes.
+Mixed-minute Questions remain 1,571/1,700 (1,103 statements, 9,737 entities).
+No production database, source TTL change, schema or new polling. Shared changes
+were cherry-picked feature -> main to retain main's linear history, then merged
+into agents. Browser template mismatch on shared branches remains pre-existing;
+this milestone's complete deployment UI passes. GI-21 follows.
+`nRunner note: the browser-enabled selection passed two cases; the subsequent disabled-app selection matched no titles and exited 1 (no application failure). Final GI-22 will run the real scoped cockpit title in both modes.

@@ -264,8 +264,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             Segment lateFirstTurn = receipt(first, "Starte noch einmal mein Spiel, " + FIRST_NAME);
             List<String> oldStatePath = loaded().getCurrentState().getActiveStatePath();
             group(0);
-            assertReception(); assertTaskCleared();
+            assertEquals("Gala co-created task", loaded().getCurrentState().getName());
             assertTrue(live.close(code, id, first.owner().sessionId()).orElseThrow().finalized());
+            await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> { assertReception(); assertTaskCleared(); });
             assertTrue(first.peer().closed);
             firstEventIds = history().stream().map(Event::getId).collect(java.util.stream.Collectors.toSet());
             String retained = history().stream().map(Event::getPayload).reduce("", String::concat);

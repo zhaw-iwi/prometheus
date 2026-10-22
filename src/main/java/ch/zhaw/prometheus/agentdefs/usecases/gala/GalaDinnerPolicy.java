@@ -47,6 +47,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE;
     }
     @Override public long liveUserSilenceMs() { return 2000; }
+    @Override public long liveDepartureGraceMs() { return GalaDinnerMemory.DEPARTURE_GRACE_MS; }
     @Override public boolean liveFilterIsolatedInputActivity() { return true; }
     @Override public boolean liveNonMutatingAcknowledgement(String transcript) {
         return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
@@ -55,6 +56,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
+        if (storage.containsKey(GalaDinnerMemory.ABSENT_SINCE))
+            facts += "Camera visibility temporarily uncertain; conversation continues during a two-second departure check. No new sensor action or invitation for a cue until visibility returns. ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
             var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
             facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();

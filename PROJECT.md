@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-20 / Milestone 247: two-second camera-absence grace preserves Gala audio,
+  session and activity. Confirmed absence closes once; Stop/revocation remain
+  immediate. Browser boundaries, persisted journeys, task/hand suppression and
+  a real-provider continuity probe pass; physical camera/audio remains unverified.
+  Mixed-minute cost stays 1,571/1,700. GI-21 follows; see GALAIMPROVEMENT_RESULTS.
+
 - GI-19 / Milestone 246: Gala non-control replies after game results avoid false
   short-reply clarification. Shared recovery is bounded by source state, speaking
   occasion, later admitted input and ten-second expiry, including ACK-wait races.
@@ -665,6 +671,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 247: Two-second Gala encounter and audio grace
 
 - [x] Milestone 246: Context-aware short replies and stale clarification cancellation
 - [x] Milestone 245: Preserve Gala games on harmless acknowledgements

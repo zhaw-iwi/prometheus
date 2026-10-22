@@ -41,6 +41,24 @@ class GalaLiveFollowupUnitTest {
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
 
+    @Test void dropoutBlocksHandResultsButKeepsRoundAndSpokenGiveUpAvailable() {
+        say("START_RPS", "Schere Stein Papier bitte");
+        String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
+        agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
+                "{\"humanCount\":0,\"ts\":\"" + Instant.now().plusMillis(1) + "\"}"), runtime);
+        clearInvocations(gateway); hand();
+        assertEquals("RPS", mode(memory)); assertEquals(sign, text(memory, SIGN, ""));
+        assertEquals(round, text(memory, ROUND, "")); assertNull(agent.generate(runtime)); verifyNoInteractions(gateway);
+        say("RETURN", "Stopp"); say("START_GUESS", "Personenraten bitte");
+        String person = text(memory, PERSON, "");
+        agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
+                "{\"humanCount\":0,\"ts\":\"" + Instant.now().plusMillis(1) + "\"}"), runtime);
+        clearInvocations(gateway);
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Ich gebe auf"), runtime);
+        assertEquals("RECEPTION", mode(memory)); assertTrue(recentOutcome(memory, Instant.now()).contains(person));
+        verifyNoInteractions(gateway); assertNull(agent.generate(runtime));
+    }
+
     @Test void neutralAcknowledgementsCannotExitGamesEvenWithADestructiveClassifier() {
         for (String start : List.of("START_GUESS", "START_RPS")) {
             say("RETURN", "Stop");

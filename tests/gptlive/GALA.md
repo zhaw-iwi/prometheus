@@ -70,7 +70,7 @@ Sensorübermittlungen lang im Bild; danach geht sie wieder, während die erste
 bleibt. Höchstens ein kurzer Kommentar pro stabiler Änderung, keine erneute
 Vorstellung. Schnelles Hin-und-her, laufende Sprache, Spiele und «Bitte sei still»
 dürfen keine nachträgliche Kommentarwarteschlange erzeugen. Wenn alle gehen,
-muss die Audioausgabe sofort stoppen. Nach der Korrektur keine weiteren
+muss die Audioausgabe nach zwei Sekunden bestaetigter Abwesenheit stoppen. Nach der Korrektur keine weiteren
 ungefragten Behauptungen über meine Stimmung in dieser Begegnung.
 
 ## Abschluss
@@ -156,3 +156,11 @@ darf keine veraltete Wahrnehmung nachliefern. Danach Sensorübermittlung ausscha
 mindestens 15 Sekunden warten und erneut fragen: keine Behauptung über den aktuellen
 Ausdruck oder die aktuelle Personenzahl ohne frische Daten. Keine zusätzliche
 ungefragte Kommentarserie erwarten.
+
+
+GI-20: Beim Raten kurz (0,5 bis 1,5 Sekunden) aus dem Kamerabild gehen und wieder
+erscheinen: gleiche Sitzung und Person, keine neue Begruessung, keine unterbrochene
+Antwort durch lokale Stummschaltung. Danach mindestens drei Sekunden verschwinden:
+Sitzung endet; bei Rueckkehr eine frische Begruessung, keine alte Aufgabe. Stop und
+Kamera ausschalten muessen weiterhin sofort stoppen. Die Zwei-Sekunden-Frist
+beginnt erst bei der erkannten Null-Personen-Meldung; Erkennungszeit separat beachten.

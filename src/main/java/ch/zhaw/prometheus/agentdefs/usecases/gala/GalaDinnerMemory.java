@@ -8,10 +8,11 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
 final class GalaDinnerMemory {
+    static final long DEPARTURE_GRACE_MS = 2000;
     static final String PREFIX = "gala.";
     static final String MODE = PREFIX + "mode", REPLY = PREFIX + "reply", PERSON = PREFIX + "person",
             SIGN = PREFIX + "sign", ROUND = PREFIX + "round", LAST_INPUT = PREFIX + "last_input",
-            STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at",
+            STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at", ABSENT_SINCE = PREFIX + "absent_since",
             CONTINUATION_ID = PREFIX + "continuation_id", CONTINUATION_FACTS = PREFIX + "continuation_facts",
             CONTINUATION_EXPIRES = PREFIX + "continuation_expires",
             CONTINUATION_OCCASION = PREFIX + "continuation_occasion", TASK_FACTS = PREFIX + "task_facts",
@@ -38,6 +39,20 @@ final class GalaDinnerMemory {
     }
     static boolean present(Storage storage, Instant now) {
         return Integer.parseInt(text(storage, COUNT, "0")) > 0 && now.isBefore(time(storage, SEEN).plusSeconds(15));
+    }
+    static boolean departureDue(Storage storage, Instant now) {
+        return "0".equals(text(storage, COUNT, "0")) && storage.containsKey(ABSENT_SINCE)
+                && !now.isBefore(time(storage, ABSENT_SINCE).plusMillis(DEPARTURE_GRACE_MS));
+    }
+    static boolean conversationPresent(Storage storage, Instant now) {
+        return present(storage, now) || storage.containsKey(ABSENT_SINCE) && !departureDue(storage, now)
+                && now.isBefore(time(storage, SEEN).plusSeconds(15));
+    }
+    static void endEncounter(Storage storage, int historySize) {
+        reception(storage); GalaDinnerSensing.clear(storage);
+        for (String key : List.of(ABSENT_SINCE, LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED,
+                GalaDinnerGestures.HISTORY, REPLY, GalaDinnerGestures.REQUIRED)) remove(storage, key);
+        put(storage, SESSION, Integer.toString(historySize));
     }
     static void reply(Storage storage, BehaviourPlan plan) {
         reply(storage, plan, false);

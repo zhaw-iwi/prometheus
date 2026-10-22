@@ -28,8 +28,10 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         var storage = getStorage(); committed = false; requiredGesture = false;
         if (!"TASK".equals(mode(storage))) return;
+        // A camera dropout preserves the agreement but cannot trigger a sensor action.
+        if (!present(storage, Instant.now()) && conversationPresent(storage, Instant.now())) return;
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean()
-                || !present(storage, Instant.now()) || GalaDinnerDecision.expired(storage, Instant.now())) {
+                || !conversationPresent(storage, Instant.now()) || GalaDinnerDecision.expired(storage, Instant.now())) {
             reception(storage); reply(storage, null); return;
         }
         if (TaskResponse.expired(storage, Instant.now())) { uncertain(storage); return; }
@@ -94,7 +96,7 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
                 && storage.get(TaskMemory.ACTIONS).getAsInt() >= TaskSpec.parse(storage.get(TaskMemory.SPEC)).maxActions();
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal stored, not active. Before asking for acceptance, state the goal, trigger, action channels, "
-                    + "first-action timing and total count. Also state all ending conditions: stop/pause, topic change, zero visible people, "
+                    + "first-action timing and total count. Also state all ending conditions: stop/pause, topic change, no visible people for two seconds, "
                     + "voice-connection closure or 90 seconds without visitor speech discard the plan. Restart requires a new agreement. "
                     + "These terms are required even when the response needs more than two sentences.";
             case "ACTIVATE" -> task.firstAction() == TaskSpec.FirstAction.ON_CUE

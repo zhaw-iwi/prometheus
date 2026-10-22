@@ -47,10 +47,10 @@ public class GalaDinnerAction extends Action {
         reply(storage, null);
         switch (galaOperation) {
             case "FAIL_TASK" -> GalaDinnerTaskAction.uncertain(storage);
-            case "TURN" -> turn(storage, events, runtime, now);
+            case "TURN" -> { turn(storage, events, runtime, now); if (!present(storage, now)) reply(storage, null); }
             case "PRESENCE" -> {
                 presence(storage, events, runtime, now);
-                if ("TASK".equals(mode(storage))) new GalaDinnerTaskAction(storage, true).execute(events, runtime);
+                if ("TASK".equals(mode(storage)) && present(storage, now)) new GalaDinnerTaskAction(storage, true).execute(events, runtime);
             }
             case "FACE" -> {
                 if ("TASK".equals(mode(storage))) new GalaDinnerTaskAction(storage, true).execute(events, runtime);
@@ -62,16 +62,14 @@ public class GalaDinnerAction extends Action {
             }
             case "EXPIRE" -> {
                 if ("RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", null);
-                reception(storage);
-                remove(storage, LAST_INPUT);
-                put(storage, SESSION, Integer.toString(events.toList().size()));
+                endEncounter(storage, events.toList().size());
             }
             default -> throw new IllegalStateException("Unknown gala action");
         }
     }
 
     private static void turn(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
-        if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean() || !present(storage, now)) return;
+        if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean() || !conversationPresent(storage, now)) return;
         String utterance = GalaDinnerInput.speech(events.toList().getLast().getPayload());
         // Keep the original transcript in history, but sound annotations do not authorize task control
         // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
@@ -114,7 +112,7 @@ public class GalaDinnerAction extends Action {
                 reception(storage);
                 GalaDinnerTaskAction.response(storage, "Task ended and agreement discarded at the visitor's request. Conversation remains available.", false);
                 reply(storage, plan(null, "ACKNOWLEDGE", "attentive", "toward_user"));
-            } else new GalaDinnerTaskAction(storage, false).execute(events, runtime);
+            } else if (present(storage, now)) new GalaDinnerTaskAction(storage, false).execute(events, runtime);
             return;
         }
         if ("GUESS".equals(mode)) {

@@ -67,7 +67,7 @@ class GalaDinnerTaskUnitTest {
         String instructions = new LiveVoicePolicyAdapter().instructions(agent);
         assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("Proposed goal: Eine kurze Reaktion"));
         assertTrue(instructions.contains("German"));
-        assertTrue(instructions.contains("you compose speech from confirmed agreement"));
+        assertTrue(instructions.contains("speak from confirmed agreement/response facts"));
         activate();
         assertEquals("RUNNING", TaskMemory.phase(memory));
         assertEquals(1, memory.get(TaskMemory.ACTIONS).getAsInt());
@@ -230,6 +230,11 @@ class GalaDinnerTaskUnitTest {
                 case "reset" -> agent.reset();
                 default -> fail();
             }
+            if (List.of("departure", "presence").contains(ending)) {
+                assertEquals("TASK", mode(memory));
+                put(memory, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS).toString());
+                agent.tick(runtime);
+            }
             assertHome();
             assertEquals("keep", text(memory, "unrelated", ""));
             verifyNoInteractions(gateway);
@@ -375,6 +380,20 @@ class GalaDinnerTaskUnitTest {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_TASK", ""),
                 update("PROPOSE", spec, "Ich schlage eine kurze Reaktion vor. Soll ich sie aktivieren?"));
         say("Lass uns eine Aufgabe mit meinem Handzeichen gestalten.");
+    }
+
+    @Test void dropoutKeepsAgreementAndBudgetWithoutExecutingOrReplayingCues() {
+        propose(SPEC); activate(); capture(OPENING); arm();
+        var agreement = memory.get(TaskMemory.SPEC).deepCopy(); var actions = memory.get(TaskMemory.ACTIONS).deepCopy();
+        Instant observed = Instant.now();
+        agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
+                "{\"humanCount\":0,\"ts\":\"" + observed + "\"}"), runtime);
+        clearInvocations(gateway); hand("paper", .99, observed.plusMillis(1)); face("happy");
+        assertEquals(agreement, memory.get(TaskMemory.SPEC)); assertEquals(actions, memory.get(TaskMemory.ACTIONS));
+        agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
+                "{\"humanCount\":1,\"ts\":\"" + observed.plusMillis(2) + "\"}"), runtime);
+        assertEquals(actions, memory.get(TaskMemory.ACTIONS)); verifyNoInteractions(gateway);
+        assertEquals("RUNNING", TaskMemory.phase(memory));
     }
     private void activate() { when(gateway.infer(any())).thenReturn(update("ACTIVATE", "null", OPENING)); say("Ja, bitte aktivieren."); }
     private void arm() { put(memory, TaskMemory.AFTER, Instant.now().minusSeconds(1).toString()); }

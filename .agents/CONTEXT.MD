@@ -142,7 +142,7 @@ PROMETHEUS currently provides:
   event/institutional information, deterministic one-round RPS, persisted person
   guessing and return-to-reception on completion, interruption or idle/departure;
   it uses GPT-Live only, with quiet creation, one greeting per visible encounter,
-  immediate local audio stop on camera departure, fresh sessions on re-entry and
+  a two-second camera-departure grace including audio, fresh sessions after confirmed departure and
   restrained facial-change embodiment. One packaged, sourced reference supplies
   institutional/event facts across Gala policies; audit URLs stay outside model
   context. Spoken guidance uses djee-djee while the stored name stays GIGI.

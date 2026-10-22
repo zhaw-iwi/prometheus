@@ -323,11 +323,14 @@ To operate the entrance demonstration:
 4. A fresh occupied sample acknowledged by the backend starts one voice session
    and supplies one German opening greeting. Stable visibility, camera refreshes
    and additional people joining do not start another session or greeting.
-5. A zero-person camera sample immediately detaches local Live audio/microphone,
-   then closes that voice session. The backend returns to reception on the fresh
-   zero-person grouping observation without a timer. Re-entry starts a fresh
-   session after close and a successful observation acknowledgement; prior
-   visitors' dialogue is excluded from its context, while persisted history remains.
+5. A zero-person camera sample starts a **two-second grace**, including audio/input.
+   A brief dropout preserves the same session, game and task budget. New sensor
+   actions and ambient comments wait for visible presence; missed cues are not replayed.
+   Repeated zeros do not extend the deadline. Sustained absence stops local media
+   and closes Live; the backend clears the encounter through existing ticks/close.
+   Re-entry after close and a fresh acknowledged sample creates a new session.
+   Durable prior transcripts remain, but are excluded from the new context.
+   Identity is not tracked: a replacement within two seconds can share the encounter.
 6. **Stop** disarms automatic encounters. Stopping the camera also stops reception.
    Voice-session close returns an interrupted activity to reception through a backend
    transition; no further camera observation is required.

@@ -93,11 +93,10 @@ that a clean checkout must depend on.
 3. Preserve scoped access checks, serialized mutations, durable receipt/segment
    claims, epochs, post-commit publication and no automatic replay of uncertain
    actions. At-most-once dispatch is not a guarantee of exactly-once audibility.
-4. Stop, revocation, reset, switch and session loss fence late work. Preserve the
-   immediate local audio silence on observed zero visitors. GI-20 proposes a
-   bounded grace period before session destruction and activity cleanup, not
-   delayed silence or relaxed access checks. Until GI-20 lands, zero visitors
-   still closes immediately. Missing sensing is not observed departure.
+4. Stop, revocation, reset, switch and session loss fence late work immediately.
+   GI-20's user-approved two-second camera-absence grace includes audio/input:
+   brief zero readings preserve conversation and state; confirmed absence closes.
+   Missing sensing retains the existing fail-closed deadline.
 5. Preserve public HTTP/SSE and canonical behaviour-plan contracts. Keep compact
    provider encoding internal. Text/Continuous, Talk to Me and non-opted-in
    agents retain their existing speech and task contracts.
@@ -860,64 +859,35 @@ Acceptance:
 
 ### GI-20 - Two-second grace before destructive departure handling
 
-Status: PROPOSED. Initial value: 2,000 ms, selected for this follow-up; validate
-with a fake clock and a final real-camera trial before claiming it sufficient.
+Status: COMPLETE (automated/provider gates; physical trial remains GI-22). The user approved applying
+both audio and encounter grace after a real-provider mute probe hid a spoken word.
+The revised contract deliberately permits speech for up to two seconds in a possibly
+empty view. No provider mute/unmute or audio buffering occurs during grace.
 
-Use one coherent, bounded departure policy across the browser and backend. The
-first fresh zero-person observation makes visibility uncertain and silences local
-audio/input immediately, but does not close Live or clear the active game/task.
-Keep raw counts honest; do not publish a fabricated occupied sample to preserve
-state. Routine ambient speech, task actions and new game results remain suspended
-while presence is unconfirmed. Do not introduce a second task engine or change
-the raw human-presence/grouping contracts for other agents.
+Scoped capabilities expose a policy-owned grace (Gala: 2,000 ms; others: zero).
+Browser observations and committed backend samples remain separate; raw counts
+are unchanged. First fresh zero preserves Live, the target/round/task budget and
+conversation, including explicit stop/give-up. New sensor actions, gestures and
+ambient comments are suppressed. Task activation waits for visible presence; no
+missed cue is replayed. Already authorized speech can continue.
 
-A fresh positive observation before the deadline cancels departure. Resume the
-same session/activity only after the corresponding backend acknowledgement; no
-opening greeting, new target, reset action budget or replay of missed cues. After
-two seconds with absence still current and fresh, finalize departure exactly once:
-close the session, clear encounter-owned state and require a fresh acknowledged
-arrival for a new encounter. Repeated zero samples must not extend the deadline.
-Coordinate sample ordering, pending HTTP requests, timer and startup/close versions
-so an old zero or ACK cannot close or reopen a newer encounter.
+A positive sample before the deadline cancels absence without a new greeting or
+reset. Repeated zeros do not extend the deadline. Confirmed absence closes once,
+clears encounter-owned state and requires a fresh acknowledged arrival after close.
+Sample revisions and encounter generations fence delayed ACKs/startup. Backend
+uses its first accepted-zero receipt time; browser uses its local observation time.
+Network delay can make backend cleanup later, but cannot postpone local audio stop.
+Existing ticks/Live-close transitions finalize cleanup without new polling.
 
-Retain immediate operator Stop, explicit camera stop, revocation, reset/switch and
-transport-failure fences. Preserve the existing stale-sensing fail-closed deadline;
-no missing stream, old positive sample or failed acknowledgement authorizes resume.
-Retain an operator's microphone-mute preference across temporary suspension.
-Silencing must not accumulate audio for replay on return. Reuse existing media and
-lease controls; explicitly verify provider input/capture boundaries and outbound
-audio resumption before accepting this design. Silence can interrupt an utterance;
-this milestone prevents state loss, not every audible cutoff.
+Stop, explicit camera shutdown, revocation, reset/switch and failures remain immediate;
+missing sensing still fails closed at 15 seconds. Microphone mute is untouched.
+Person identity is not tracked: replacement within two seconds can share the encounter.
 
-This adds up to two seconds before encounter destruction, not to normal spoken
-replies or admission. A visitor returning within the grace period is treated as
-continuing the encounter. Person identity is not tracked: an immediate replacement
-visitor could also inherit that short encounter window. Document this trade-off;
-do not claim identity-based isolation. Confirmed departure retains fresh-session
-isolation and durable prior transcripts.
-
-Use the existing scheduler/observation flow and bounded lifecycle metadata, not
-additional database polling or per-frame writes. Record absence-pending, resumed
-and departure-confirmed outcomes with duration, session/epoch and effective grace;
-retain specific stop causes and build identity in the existing diagnostic export.
-
-Acceptance:
-
-- Fake-clock cases: `1 -> 0 -> 1` at 500/1,500 ms preserves session and target;
-  sustained zero reaches the 2,000-ms boundary and closes exactly once. Test the
-  boundary itself, repeated zeros, repeated flicker, stale/out-of-order samples
-  and absence during startup or delayed observation acknowledgement.
-- The backend does not reset on the initial zero. RPS target/sign and task budget
-  survive transient absence; no cue, gesture or announcement executes during it
-  or replays afterward. Genuine departure clears all encounter-owned state.
-- Stop/revocation during grace or resume prevents any resurrection. Explicit
-  camera stop and missing sensing still terminate safely. Manual mute survives.
-- JS client/reception tests, Gala sensing units, persisted journey and one actual
-  browser lifecycle test verify both halves together. Check all-state instruction
-  budgets if guidance changes and retain non-opted-in lifecycle behaviour.
-- A real-provider pause/resume probe checks for audio backlog, capture corruption
-  and stale reply tails. If session-preserving silence cannot satisfy the contract,
-  report the concrete limitation before substituting a different audio policy.
+Acceptance retains fake-clock boundary/repeat/flicker/late-ACK/startup/Stop tests,
+Gala sensing/game/task units, persisted journeys, an actual browser lifecycle test,
+all-state byte budgets and the real-provider continuity probe. The original muted
+pause/resume requirement is superseded by the user's explicit audio-grace decision.
+The final real-camera test remains open; automated checks cannot prove audibility.
 
 ### GI-21 - Maintain perception topic and deliver relevant fresh evidence
 

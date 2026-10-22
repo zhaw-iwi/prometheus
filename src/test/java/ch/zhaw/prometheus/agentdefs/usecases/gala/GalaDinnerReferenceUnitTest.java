@@ -51,6 +51,7 @@ class GalaDinnerReferenceUnitTest {
         memory.put(TaskMemory.SPEC, spec.json());
         memory.put(TaskMemory.DRAFT, spec.json());
         GalaDinnerMemory.put(memory, GalaDinnerSensing.CORRECTED, "true");
+        GalaDinnerMemory.put(memory, GalaDinnerMemory.ABSENT_SINCE, java.time.Instant.now().toString());
         GalaDinnerMemory.put(memory, TaskMemory.REVISION, Integer.toString(Integer.MAX_VALUE));
         var adapter = new LiveVoicePolicyAdapter();
         var projection = new LiveContextProjection(new PromptMessageAssembler(), adapter);

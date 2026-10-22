@@ -93,7 +93,8 @@ class GalaDinnerSensingUnitTest {
         face("neutral", 26, ""); face("neutral", 28, ""); GalaDinnerSensing.corrected(storage);
         reception(storage); face("neutral", 29, ""); face("neutral", 31, ""); face("sad", 32, ""); face("sad", 34, "");
         assertFalse(storage.containsKey(CONTINUATION_ID)); assertEquals("true", text(storage, GalaDinnerSensing.CORRECTED, ""));
-        group(0, 35); assertFalse(storage.containsKey(GalaDinnerSensing.CORRECTED));
+        group(0, 35); assertTrue(storage.containsKey(GalaDinnerSensing.CORRECTED));
+        group(0, 37); assertFalse(storage.containsKey(GalaDinnerSensing.CORRECTED));
     }
     @Test void anAmbientOccasionCannotOutliveItsSourceAndSensingGapsResetTheBaseline() {
         group(1, 24); group(2, 26); group(2, 28, 40);
@@ -125,5 +126,34 @@ class GalaDinnerSensingUnitTest {
         continueRequest(storage, "Same facts");
         assertNotEquals(first, text(storage, CONTINUATION_ID, ""));
         assertEquals(factsVersion, storage.writeVersion(CONTINUATION_FACTS));
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"GUESS", "RPS", "TASK"})
+    void dropoutPreservesActivityButConfirmedDepartureClearsItOnce(String mode) {
+        put(storage, MODE, mode); put(storage, PERSON, "Marie Curie"); put(storage, SIGN, "rock");
+        put(storage, "task.actions", "2"); put(storage, "unrelated", "keep");
+        group(0, 1); String deadline = text(storage, ABSENT_SINCE, "");
+        assertEquals(mode, mode(storage)); assertFalse(present(storage, start.plusSeconds(1)));
+        assertTrue(conversationPresent(storage, start.plusSeconds(2)));
+        group(0, 2); assertEquals(deadline, text(storage, ABSENT_SINCE, ""));
+        group(1, 2, 2); // Equal source time is rejected, even if positive.
+        assertEquals("0", text(storage, COUNT, ""));
+        assertFalse(departureDue(storage, start.plusMillis(2999)));
+        assertTrue(departureDue(storage, start.plusSeconds(3)));
+        group(0, 3); assertEquals("RECEPTION", mode(storage));
+        assertFalse(storage.containsKey(PERSON)); assertFalse(storage.containsKey(SIGN));
+        assertFalse(storage.containsKey("task.actions")); assertFalse(storage.containsKey(ABSENT_SINCE));
+        String sessionVersion = storage.writeVersion(SESSION);
+        group(0, 4); assertEquals(sessionVersion, storage.writeVersion(SESSION));
+        assertEquals("keep", text(storage, "unrelated", "")); verifyNoInteractions(gateway);
+    }
+
+    @Test void freshReturnCancelsAbsenceWithoutGreetingReinitializationOrCueReplay() {
+        put(storage, MODE, "GUESS"); put(storage, PERSON, "Marie Curie"); put(storage, SESSION, "7");
+        group(0, 1); group(1, 2);
+        assertEquals("GUESS", mode(storage)); assertEquals("Marie Curie", text(storage, PERSON, ""));
+        assertEquals("7", text(storage, SESSION, "")); assertFalse(storage.containsKey(ABSENT_SINCE));
+        group(0, 1, 3); assertEquals("1", text(storage, COUNT, ""));
+        group(1, 4); assertFalse(storage.containsKey(CONTINUATION_ID)); verifyNoInteractions(gateway);
     }
 }

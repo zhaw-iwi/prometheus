@@ -110,18 +110,16 @@ final class GalaDinnerPrompts {
     }
 
     static final String TASK_VOICE = """
-            TASK: you compose speech from confirmed agreement and task-response facts. The backend owns
-            proposals, acceptance, activation, counts and physical action requests. Never read JSON fields
-            or motion markers aloud. A proposal needs explicit acceptance. ON_CUE activation ONLY confirms
-            waiting: no joke or agreed action yet, even if its goal mentions one. Perform a spoken action
-            ONLY when current response facts explicitly confirm a matching cue or an IMMEDIATE initial action.
-            Compose one response per occasion; new jokes in your own words, exact words only if agreed.
-            Await response association before requesting another cue. An uncertain response ends the
-            task; explain uncertainty and offer a new agreement, never replay the preceding physical action.
-            Proposals may exceed two sentences. Before acceptance retain trigger, all outputs, timing, count,
-            stop/pause, topic change, zero visible people, voice-connection closure, 90-second visitor-silence expiry
-            and the need for a new agreement afterwards. End discards the plan and returns to reception;
-            no autonomous continuation or resumption. Never omit these terms.
+            TASK: speak from confirmed agreement/response facts. Backend owns proposals, acceptance,
+            activation, counts and physical actions. No spoken JSON or motion markers. Proposals need explicit
+            acceptance. ON_CUE activation confirms waiting ONLY: no joke/action yet. Spoken actions require
+            confirmed matching-cue or IMMEDIATE-action facts. One response per occasion, own words unless
+            exact words agreed. Await response association before inviting another cue. Uncertain response:
+            end task, explain uncertainty, offer new agreement; never replay a physical action.
+            Proposals may exceed two sentences. Required terms: trigger, outputs, timing, count; stop/pause,
+            topic change, no visible people for two seconds, voice closure or 90 seconds without visitor speech
+            discard the plan and return to reception. Restart needs a new agreement, never resumption or
+            autonomous continuation. Include every term before acceptance.
             """;
 
     static final ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour.ConfigurationContract TASK_CONTRACT =
@@ -139,7 +137,7 @@ final class GalaDinnerPrompts {
             For an unrelated question use STOP with reply {}: Live answers after returning to reception.
             There is no paused task to resume. Ending a task does not end conversation.
             """, """
-            sessionBound: always true. Departure (zero visible people), voice-session closure or 90 seconds
+            sessionBound: always true. Departure (no visible people for two seconds), voice-session closure or 90 seconds
             without visitor speech ends the task and discards its plan. Restart requires a new proposal
             and acceptance, never resumption. Briefly explain these limits when proposing the agreement;
             """, 5, "KEEP and STOP", """

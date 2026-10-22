@@ -42,19 +42,26 @@ final class GalaDinnerSensing {
             if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return;
             int count = value.getAsBigDecimal().intValueExact(); if (count < 0 || count > 1000) return;
             int before = Integer.parseInt(text(storage, COUNT, "0"));
+            if (departureDue(storage, now)) endEncounter(storage, events.toList().size());
             boolean gap = observed.isAfter(time(storage, SEEN).plusSeconds(15));
             put(storage, SEEN, observed.toString()); put(storage, COUNT, Integer.toString(count));
             if (count == 0) {
-                reception(storage); clear(storage);
-                for (String key : Set.of(LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED)) remove(storage, key);
-                put(storage, SESSION, Integer.toString(events.toList().size()));
-                if (before > 0) reply(storage, GalaDinnerAction.plan(null, "NONE", "warmNeutral", "forward"));
-                return; // Immediate departure never waits for ambient stability or a farewell.
+                if (before > 0 && runtime.externalSpeech() != null && !storage.containsKey(ABSENT_SINCE))
+                    put(storage, ABSENT_SINCE, now.toString());
+                cancelAmbient(storage);
+                // No missed cue or unstable expression is queued for a returning visitor.
+                activityEnded(storage);
+                reply(storage, null);
+                if (runtime.externalSpeech() == null) endEncounter(storage, events.toList().size());
+                return;
             }
+            boolean resumed = storage.containsKey(ABSENT_SINCE);
+            remove(storage, ABSENT_SINCE);
             if (runtime.externalSpeech() == null) {
                 reception(storage); remove(storage, QUIET); remove(storage, LAST_INPUT); return;
             }
             String current = Integer.toString(count);
+            if (resumed) { put(storage, GROUP_BASE, current); remove(storage, GROUP_CANDIDATE); return; }
             if (gap) { put(storage, GROUP_BASE, current); remove(storage, GROUP_CANDIDATE); }
             if (!current.equals(text(storage, GROUP_CANDIDATE, ""))) cancelSource(storage, "group");
             if (!storage.containsKey(GROUP_BASE)) put(storage, GROUP_BASE, current);
