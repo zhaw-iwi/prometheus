@@ -315,7 +315,6 @@ function wireUi() {
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
   document.getElementById("agent_type_select").addEventListener("change", updateAgentTypeControls);
-  document.getElementById("agent_embodiment_select").addEventListener("change", handleAgentEmbodimentChange);
   document.getElementById("create_agent_instance").addEventListener("click", createAgentInstance);
   document.getElementById("delete_agent").addEventListener("click", deleteSelectedAgent);
   document.getElementById("connect_agent").addEventListener("click", async () => {
@@ -970,8 +969,8 @@ function renderAgentTypes() {
     }
     const option = document.createElement("option");
     option.value = type.key;
-    option.textContent = prometheusFacingText(type.displayName || type.key, selectedPersonaName());
-    option.title = prometheusFacingText(type.description || type.key, selectedPersonaName());
+    option.textContent = prometheusFacingText(type.displayName || type.key);
+    option.title = prometheusFacingText(type.description || type.key);
     select.appendChild(option);
   }
   updateAgentTypeControls();
@@ -999,8 +998,7 @@ function renderAgents() {
 
 async function createAgentInstance() {
   const agentDefinitionKey = document.getElementById("agent_type_select").value;
-  const embodiment = document.getElementById("agent_embodiment_select").value;
-  if (!state.accessCode || !agentDefinitionKey || !embodiment) {
+  if (!state.accessCode || !agentDefinitionKey) {
     setAgentTypeStatus("Select an agent type first.", "error");
     return;
   }
@@ -1011,7 +1009,7 @@ async function createAgentInstance() {
     const response = await scopedFetch("/demo/agents", {
       method: "POST",
       headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ agentDefinitionKey, embodiment }),
+      body: JSON.stringify({ agentDefinitionKey }),
     });
     if (!response.ok) {
       setAgentTypeStatus(`Create failed: ${response.status}`, "error");
@@ -1144,8 +1142,6 @@ async function loadAgentInfo() {
       data.personaName,
     ) || "-";
     document.getElementById("agent_info_language").textContent = agentLanguageLabel(data.languageCode);
-    document.getElementById("agent_info_embodiment").textContent = agentEmbodimentLabel(data.embodiment);
-    document.getElementById("agent_info_persona").textContent = asText(data.personaName);
     renderAgentInteractionProfile(data.interactionProfile);
     setActiveStatus(data.active);
     applyInteractionProfile(data.interactionProfile);
@@ -1201,8 +1197,6 @@ function resetAgentInfo() {
   document.getElementById("agent_info_name").textContent = "-";
   document.getElementById("agent_info_description").textContent = "-";
   document.getElementById("agent_info_language").textContent = "-";
-  document.getElementById("agent_info_embodiment").textContent = "-";
-  document.getElementById("agent_info_persona").textContent = "-";
   renderAgentInteractionProfile(null);
   setActiveStatus(null);
   applyInteractionProfile(null);
@@ -1218,32 +1212,11 @@ function agentLanguageLabel(languageCode) {
   return typeof languageCode === "string" && languageCode.trim() ? languageCode.trim() : "-";
 }
 
-function agentEmbodimentLabel(embodiment) {
-  const normalized = typeof embodiment === "string" ? embodiment.trim().toUpperCase() : "";
-  if (normalized === "ROBOT") {
-    return "Robot";
-  }
-  if (normalized === "COCKPIT") {
-    return "Cockpit";
-  }
-  return "-";
-}
-
-function selectedPersonaName() {
-  const selector = document.getElementById("agent_embodiment_select");
-  return selector && selector.value === "ROBOT" ? "Gigi" : "Valerian";
-}
-
 function agentPersonaName(agent) {
   if (agent && typeof agent.personaName === "string" && agent.personaName.trim()) {
     return agent.personaName.trim();
   }
-  return agent && agent.embodiment === "ROBOT" ? "Gigi" : "Valerian";
-}
-
-function handleAgentEmbodimentChange() {
-  renderAgentTypes();
-  updateAgentTypeControls();
+  return "Valerian";
 }
 
 function renderProfileTokenList(id, values) {
@@ -5745,7 +5718,6 @@ function setControlsEnabled(enabled) {
     "submit_access_code",
     "clear_access_code",
     "agent_type_select",
-    "agent_embodiment_select",
     "create_agent_instance",
     "agent_id_input",
     "agent_select",
@@ -5953,12 +5925,11 @@ function demoAgentPath(path) {
 
 function updateAgentTypeControls() {
   const select = document.getElementById("agent_type_select");
-  const embodiment = document.getElementById("agent_embodiment_select");
   const button = document.getElementById("create_agent_instance");
-  if (!select || !embodiment || !button) {
+  if (!select || !button) {
     return;
   }
-  button.disabled = !state.accessCode || !select.value || !embodiment.value;
+  button.disabled = !state.accessCode || !select.value;
 }
 
 function updateAgentSelectionControls() {
@@ -6009,7 +5980,7 @@ function agentTypeSortKey(agentType) {
   return agentType && (agentType.displayName || agentType.key) ? (agentType.displayName || agentType.key) : "";
 }
 
-function prometheusFacingText(value, personaName = selectedPersonaName()) {
+function prometheusFacingText(value, personaName = "Valerian") {
   if (typeof value !== "string") {
     return value || "";
   }

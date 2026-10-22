@@ -82,6 +82,9 @@ and regulation diagnostics remain future work.
   browser retrieval from live Open-Meteo succeeds. Desktop light/dark and mobile
   dark renders were inspected. Deployment and the students' original failed sends
   are unverified; no backend contract or detection threshold changed.
+  Main integration also restores its existing agent-creation/display bindings:
+  deployment-only DOM references had prevented initialization and connection.
+  Main now passes the same five browser, 11 hand-sensor and 14 static client cases.
 
 - Milestone 244 (shared delivery): bounded context chunks use shorter headers and
   prioritise current face evidence before derived summaries. Unsent sensory backlog
@@ -9192,3 +9195,16 @@ submission reaches the expected scoped endpoint; production persistence, student
 network conditions and physical hand detection were not exercised. No database
 migration or detection-policy change is required. The user subsequently authorized
 commit/push on agents and integration of this shared fix into main.
+
+Main integration: agents fix `9b2648be` was cherry-picked as `240e415` to preserve
+the separate catalogs. Only the PROJECT status/audit context required resolution.
+Initial main verification exposed a pre-existing mismatch from `27ee3499`:
+the script dereferenced embodiment controls absent from main's HTML. Initialization,
+creation and connection failed, and the existing static test rejected the creation
+payload. Main now uses its existing definition-only creation contract and matching
+display bindings, with unused embodiment helpers removed. The agents branch retains
+its embodiment controls and behaviour. No backend or public API change was needed.
+After correction, the five lifecycle/weather browser cases and all 14 static client
+contracts pass; 11 hand-sensor tests and JavaScript syntax also pass on main.
+The same loopback static-server/mocked-HTTP setup was used. Production deployment
+completion and physical-device behaviour remain unverified.
