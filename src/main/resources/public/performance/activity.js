@@ -9,6 +9,7 @@ const labels = { thinking: "Thinking", preparing_speech: "Preparing response", u
   speaking: "Speaking", loading: "Preparing speech", output: "Live output activity", connecting: "Connecting",
   stopping: "Stopping", failed: "Processing failed", rejected: "Input could not be processed", "provider-error": "Speech service error" };
 const cues = { waiting_for_cue: "Waiting for a cue", cooldown: "Waiting for the next cue",
+  awaiting_confirmation: "Waiting for your decision", confirmation_resolved: "Decision received",
   awaiting_response_capture: "Waiting for response capture", stale_or_missing_observation: "Waiting for a fresh cue",
   insufficient_samples: "Waiting for a stable cue", low_confidence: "Waiting for a clearer cue", face_missing: "Waiting for a face cue",
   missing_field: "Waiting for a usable cue", invalid_observation: "Waiting for a usable cue", condition_not_met: "Waiting for a matching cue",
@@ -115,7 +116,7 @@ export class InteractionActivity {
     if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
       return { label: "Waiting for response capture", detail: "Captions have not yet confirmed the response content.", busy: false, tone: "idle", elapsed: null };
     const reason = this.backend?.cue?.reason;
-    const terminalHandCue = ["rps_not_started", "rps_cancelled", "rps_round_completed"].includes(reason);
+    const terminalHandCue = ["rps_not_started", "rps_cancelled", "rps_round_completed", "confirmation_resolved"].includes(reason);
     const cueAge = now - this.received + Math.max(0, this.backend?.serverMs - this.backend?.cue?.serverMs);
     const cue = terminalHandCue && cueAge >= 10000 ? null : cues[reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };

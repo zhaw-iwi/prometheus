@@ -11,6 +11,8 @@ status or timing guarantees. An emission revision fences delayed camera hand ACK
 after a new capture window; confidence, stability and ordinary cooldown remain.
 Four voice-adapter unit tests and seven real-emitter Node tests passed; log:
 target/gala-followup-voice.log. Gala-specific choices remain on agents.
+The activity footer also renders pending/resolved confirmations; a resolved cue
+expires after ten seconds. All seven activity-footer Node tests passed.
 
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
