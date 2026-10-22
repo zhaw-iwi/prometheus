@@ -64,8 +64,8 @@ public class LiveVoicePolicyAdapter {
                 Finish an announcement before reacting to routine observation updates. Observations alone
                 do not authorize another task action or require you to stop speaking.
                 Produce spoken language only; backend output-format rules do not apply to your speech.
-                """.formatted(pendingAcknowledgements ? "You may acknowledge immediately while work is pending."
-                        : "Wait silently while work is pending; no waiting remarks or question echoes.",
+                """.formatted(leaf.ownPolicy() instanceof ExternalVoicePolicy external ? external.livePendingGuidance()
+                        : "You may acknowledge immediately while work is pending.",
                         leaf.ownPolicy() instanceof ExternalVoicePolicy external && external.liveActivityContext() != null
                                 ? "Answer from current facts. The application processes visitor transcripts and confirms state changes."
                                 : "Delegate task questions to the application.")

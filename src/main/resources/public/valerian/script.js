@@ -4739,6 +4739,7 @@ async function maybeEmitCameraSign(candidate) {
     setHandSignStatus(`Emitted ${new Date(camera.lastCameraEmitAt).toLocaleTimeString()}`, "live");
     return;
   }
+  const emissionRevision = camera.handEmissionRevision || 0;
   const ok = await submitHandSign(candidate.sign, {
     source: "valerian.hand.camera",
     detectionMode: "client_camera",
@@ -4746,7 +4747,7 @@ async function maybeEmitCameraSign(candidate) {
     cannedGesture: candidate.cannedGesture,
     stabilityFrames: camera.stableGestureCount,
   });
-  if (ok) {
+  if (ok && emissionRevision === (camera.handEmissionRevision || 0)) {
     camera.lastCameraEmitKey = emitKey;
     markSensorEmitted("hand");
     renderHandSignReport(candidate.sign, {
@@ -5419,6 +5420,7 @@ function markSensorEmitted(mode) {
 }
 
 function resetCameraEmissionGate() {
+  camera.handEmissionRevision = (camera.handEmissionRevision || 0) + 1;
   camera.lastCameraEmitKey = null;
   camera.lastCameraEmitAt = 0;
 }

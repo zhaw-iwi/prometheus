@@ -1,5 +1,14 @@
 # GPT-Live implementation and acceptance evidence
 
+## Bounded waiting guidance and hand-emission reset (2026-10-22)
+
+Added an application-owned waiting-guidance hook, preserving default and opt-out
+voice/task instructions. It supplies prompt permission only, not synthetic work
+status or timing guarantees. An emission revision fences delayed camera hand ACKs
+after a new capture window; confidence, stability and ordinary cooldown remain.
+Four voice-adapter unit tests and seven real-emitter Node tests passed; log:
+target/gala-followup-voice.log. Gala-specific choices remain on agents.
+
 Branch: `feature/gptlive`. Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
