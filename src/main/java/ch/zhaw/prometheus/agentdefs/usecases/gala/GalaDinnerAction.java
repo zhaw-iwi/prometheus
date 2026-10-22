@@ -213,7 +213,7 @@ public class GalaDinnerAction extends Action {
                     put(storage, MODE, "RPS");
                     openCapture(storage, Instant.now());
                     continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now. "
-                            + "Robot sign committed: " + text(storage, SIGN, "") + "; its hand gesture is requested now, not execution-confirmed. "
+                            + "Robot sign committed; hand gesture requested, execution unconfirmed. Do not name your sign before the result. "
                             + "One visible hand, held briefly steady. No countdown or exact synchronisation claim. Do not claim whose hand the camera sees.");
                     response = plan(null,
                             "NONE", "attentive", "toward_user");

@@ -28,6 +28,7 @@ class GalaDinnerReferenceUnitTest {
                 "Institut der SML", "Socially Intelligent and Responsible Agents",
                 "soziale Topologie", "experimentell", "Unitree G1", "PROMETHEUS",
                 "rund 90", "17:30 Door Opening und Networking", "18:30 Seating und Welcome Words",
+                "gala day 17:30–18:30", "networking ongoing, later programme upcoming",
                 "14- bis 23", "CHF 1'000", "Name nicht bekannt",
                 "früheren Gästeprogramm", "23:30", "kein Live-Fortschritt",
                 "20.10.2026", "aktuelle Verfügbarkeit", "August–Dezember 2026",
@@ -79,6 +80,9 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(instructions.contains("one brief status"));
                 assertTrue(instructions.contains("No status for reference/guessing answers"));
                 assertTrue(instructions.contains("Await confirmed starting facts"));
+                assertTrue(instructions.contains("name your sign only with the confirmed result"));
+                assertEquals(1, occurrences(instructions,
+                        "Reception frame, even in rehearsals: gala day 17:30–18:30; networking ongoing, later programme upcoming."));
                 assertFalse(instructions.contains("You may acknowledge immediately"));
                 assertFalse(instructions.contains("you may say you are checking"));
                 assertTrue(instructions.contains("One response per visitor turn"));

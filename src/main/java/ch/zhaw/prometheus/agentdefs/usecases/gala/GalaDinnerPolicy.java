@@ -74,8 +74,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
         } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
-                : "One round started; awaiting a fresh camera hand sign. Robot sign committed: "
-                    + GalaDinnerMemory.text(storage, GalaDinnerMemory.SIGN, "") + ". Gesture requested, execution unconfirmed. Result not yet computed.";
+                : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";
         else if ("TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                 + "; revision: " + GalaDinnerMemory.text(storage, ch.zhaw.prometheus.model.task.TaskMemory.REVISION, "0")

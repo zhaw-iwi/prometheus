@@ -392,6 +392,9 @@ as the earlier guest programme; the new briefing does not reconfirm those times.
 Scheduled times do not establish live progress. Availability is a briefing
 snapshot; the team confirms current availability, seating assignments, menus
 and changes. The prize winner and surprise guest identity are not supplied.
+The owner's 23 October update fixes the conversational frame to the gala reception,
+17:30-18:30, including rehearsals: networking is ongoing and later programme items
+are upcoming. This does not change the real clock, sensor freshness or schedule.
 
 The packaged reference and opening guidance apply to loaded Gala policies after
 an application update and a fresh Live session. Previously persisted task-action
@@ -404,6 +407,9 @@ they avoid instruction-induced interruptions and do not request another answer. 
 is model-visible activity data, separate from behavioural instructions. Game starts
 and computed RPS results carry one persisted user-request continuation: facts first,
 then an invitation for Live to express the result. Routine sensing does not speak.
+RPS start/wait facts say only that Gigi's sign is committed; Live names its sign
+only with the confirmed result. The start still requests the chosen hand gesture,
+and result facts still contain both signs and the calculated winner.
 Ordinary reference answers need no
 lookup or delegation. The complete instructions, including two maximum task
 goals, remain within the shared 16,000-byte budget.

@@ -1683,3 +1683,40 @@ transitions automatically. No standalone Valerian or main-framework adaptation i
 needed. The user authorized commit/push for deployment. Provider style, actual
 comment cadence and physical sensing/audio remain live checks; the short manual
 check is in tests/gptlive/GALA.md. Deployment completion follows the workflow.
+
+
+## GI-26 - RPS introduction and reception programme perspective (2026-10-23)
+
+Base: d8dbcc84 on agents. The user authorized these two narrow changes and a
+commit/push to deploy. RPS start continuations and ongoing activity facts now
+report commitment without the chosen value. Live guidance reserves naming its
+sign for the confirmed result. Backend choice, immediate motion, capture IDs,
+freshness/acceptance and both signs/winner in the result remain unchanged.
+
+The packaged reference records the owner's 17:30-18:30 reception window with
+separate dated provenance. Programme perspective stays at that reception during
+rehearsals too: networking ongoing, later programme upcoming. Actual clocks,
+sensor expiry, event date, scheduled times and unknown prize winner remain intact.
+Compact equivalent team-reference/RPS guidance preserves the existing instruction
+ceiling. No shared framework, cockpit, database schema or graph change.
+
+Verification:
+
+- `mvnw.cmd -q -Dtest=GalaDinnerReferenceUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerHandSignsUnitTest test`:
+  56 passed (5 reference, 42 reception, 9 hand-sign). Existing RPS fixtures now
+  protect initial sign omission, early gesture and final signs/winner; reference
+  tests check the window and speech rule throughout reachable states/task phases
+  and both embodiments. Maximum instructions: 14,392 bytes against unchanged
+  14,400 regression ceiling / 16,000 application limit.
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest`:
+  four passed with the existing synthetic provider and disposable local MySQL.
+  Owned application stopped; schema/account removed. No production DB access.
+- `mvnw.cmd -q -DskipTests package`: passed. `git diff --check`: passed.
+
+Artifacts: target/gala-reception-wording-unit.log,
+target/gptlive-acceptance-7606d023c0/java.log,
+target/gala-reception-wording-journey.log and target/gala-reception-wording-package.log.
+No real provider or physical speech trial; tests establish context/contracts,
+not generated-wording compliance. Start a fresh Live session after deployment,
+with a new RPS round; pending old continuations are not rewritten. No new instance
+is required by this follow-up. Manual checks are in tests/gptlive/GALA.md.

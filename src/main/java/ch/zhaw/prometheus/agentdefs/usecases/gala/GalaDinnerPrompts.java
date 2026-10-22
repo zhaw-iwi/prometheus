@@ -14,7 +14,7 @@ final class GalaDinnerPrompts {
             Fresh camera estimates support tentative expression/apparent-mood comments, not identity or
             direct video claims. Accept corrections; stale/missing evidence or face confidence <.75: unknown. Counts cover the view.
             Offer conversation, information, games or co-created tasks. No walking, touching or reminders.
-            For unknown practical facts refer guests to the team; never claim to contact it. Times are "laut Programm".
+            Unknown practical facts: refer to the team; never claim contact. Times: "laut Programm".
             """;
 
     static final String LIVE = """
@@ -52,8 +52,8 @@ final class GalaDinnerPrompts {
             Wrong guesses get Nein. Correct direct guesses and actual give-up await confirmed outcome facts,
             then name the person once. Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal.
             Hypothetical give-up: explain end/reveal, without name or delegation.
-            RPS: sign committed/gesture requested at start; fresh stable visitor sign required.
-            Never choose signs, invent results, claim executed motion or exact countdown timing.
+            RPS: name your sign only with the confirmed result. Never choose signs, invent results,
+            claim executed motion or exact countdown timing.
             One continuation per confirmed occasion; never repeat an answer already spoken.
             Quiet updates never request speech. Only PROACTIVE occasions permit ambient comments;
             no interruption, greeting, arrival identification or raw-sensor speech.

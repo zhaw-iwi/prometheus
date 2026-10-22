@@ -370,6 +370,11 @@ recurring dry robot self-irony within replies. No empty-room or idle monologues,
 new media lifecycle, sensor cadence or cockpit contract. New reception transitions
 require a fresh Gala instance; saved graphs are not migrated. See PROJECT/results.
 
+GI-26 keeps the RPS choice out of start/wait speech facts and reserves naming it
+for the confirmed result; early hand motion and deterministic results remain.
+The shared reference frames programme answers from gala reception, 17:30-18:30,
+even in rehearsals. This is conversational guidance, not a clock/freshness change.
+
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five
 actual actions, and enforces session-bound tasks. Live composes task wording from

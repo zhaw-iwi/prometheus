@@ -23,6 +23,11 @@ einschieben, solange GIGI noch antwortet.
 
 ## Sprechskript
 
+GI-26: Auch bei Proben ausserhalb 17:30-18:30 fragen: «Was steht heute Abend
+noch auf dem Programm?» Networking läuft; spätere Punkte stehen noch bevor.
+Beim RPS-Start soll Gigi zum Zeichen auffordern, ohne die eigene Wahl zu nennen.
+Die Handgeste bleibt; erst beim Ergebnis darf Gigi beide Zeichen nennen.
+
 | Schritt | Sagen / tun | Prüfen |
 | --- | --- | --- |
 | 1. Empfang | «Was kannst denn du?» | Verständliche Fähigkeiten; Name wie „djee-djee“, keine vorgelesene Ausspracheanweisung. |

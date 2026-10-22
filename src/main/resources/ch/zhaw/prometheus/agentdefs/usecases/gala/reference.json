@@ -1,5 +1,5 @@
 {
-  "recordedOn": "2026-10-20",
+  "recordedOn": "2026-10-23",
   "sources": [
     {
       "id": "sml-briefing",
@@ -24,6 +24,11 @@
     {
       "id": "organiser-update",
       "description": "Organiser's Gala Dinner and Home of Innovation briefing supplied by the project owner on 2026-10-20. It supersedes the earlier seating time: seating is at 18:30. Availability is a briefing snapshot; Community Plus offer applies to joining August through December 2026.",
+      "urls": []
+    },
+    {
+      "id": "reception-window",
+      "description": "Project owner confirmed on 2026-10-23 that all Gala interactions take place during the 17:30-18:30 reception. Use that programme perspective during rehearsals too, irrespective of the actual clock; programme times and sensor clocks are unchanged.",
       "urls": []
     },
     {
@@ -80,9 +85,10 @@
     {
       "id": "event",
       "title": "Gala Dinner",
-      "sourceIds": ["organiser-update", "earlier-gala-reference"],
+      "sourceIds": ["organiser-update", "earlier-gala-reference", "reception-window"],
       "facts": [
         "Samstag, 24. Oktober 2026; Festsaal Casinotheater Winterthur, Stadthausstrasse 119, 8400 Winterthur; rund 90 Gäste.",
+        "Reception frame, even in rehearsals: gala day 17:30–18:30; networking ongoing, later programme upcoming.",
         "Jährlicher Anlass von Home of Innovation, Verein Digital Winterthur und Entrepreneur Club Winterthur (ECW); vernetzt Unternehmer:innen, Startups, Partner, Politik und Bildung für das regionale Innovationsökosystem.",
         "Aktuelle Organisatorangaben: 17:30 Door Opening und Networking; 18:30 Seating und Welcome Words, Moderation Lukas Wachter; 18:40 Begrüssung durch Stadtpräsident Stefan Fritschi.",
         "Spätere Zeiten aus dem früheren Gästeprogramm: 19:00 Vorspeise; 19:30 Fachimpuls Digital Winterthur/digitalswitzerland zu Digitalisierung, Innovation und KI; 19:50 Suppe; 20:20 ECW-Überraschungsgast vor dem Hauptgang (Worte stehen im Mittelpunkt, unterhaltsam; Identität unbekannt); 20:50 Hauptgang; 21:40 Preisverleihung; 22:20 Dessert; 23:30 Ende. Alles laut Programm, kein Live-Fortschritt.",

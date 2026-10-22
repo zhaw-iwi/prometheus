@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-26 / Milestone 253: Gala RPS start/wait facts omit Gigi's chosen sign;
+  Live is guided to name it only with the confirmed result. Early hand motion
+  and winner facts are unchanged. Programme answers use the owner-confirmed
+  17:30-18:30 reception frame, including rehearsals. Passed 56 focused units,
+  four local Gala journeys and packaging; instructions 14,392 / 14,400 bytes.
+  Commit/push on `agents` is authorized for deployment. Actual spoken compliance
+  remains a short live check; see GI-26 results and tests/gptlive/GALA.md.
+
 - GI-25 / Milestone 252: Gala voice encourages lightly recurring dry robot
   self-irony within replies. Reception admits fresh current-weather and stable
   hand-shape comments through existing PROACTIVE rules, with unchanged cooldown,
@@ -11156,3 +11164,19 @@ audio or visual-browser run was used for this backend-only change. Actual humour
 comment frequency and the additional normal Live/transcript cost remain live checks.
 User-authorized commit/push on `agents` triggers the existing deployment workflow;
 its completion must be checked independently. No main or standalone cockpit merge.
+
+
+## Milestone 253 / GI-26 - RPS introduction and reception programme perspective
+
+Date: 2026-10-23. RPS start/wait speech facts omit the committed sign; Live names
+it only with the confirmed result. Early hand motion, capture and deterministic
+winner facts remain. The sourced Gala reference fixes programme perspective to
+the 17:30-18:30 reception, including rehearsals; networking is ongoing and later
+items upcoming. No real clock, sensor, cockpit, graph or schema changes.
+
+Verified 56 focused units, four disposable-local-MySQL Gala journey cases and
+packaging. Complete instructions fit at 14,392 bytes against the unchanged
+14,400 regression ceiling. Detailed commands/artifacts: GI-26 in
+.agents/GALAIMPROVEMENT_RESULTS.md. Actual wording remains a listening check.
+The user authorized commit/push to agents for deployment; no main or standalone
+cockpit merge is needed. Start a fresh Live session and new round after deployment.

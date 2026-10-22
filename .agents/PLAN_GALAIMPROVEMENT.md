@@ -1022,6 +1022,19 @@ instruction headroom and query-budget regression using the disposable local DB.
 Subjective humour frequency and real sensing/speech remain user trial checks.
 Implementation/evidence: GI-25 in GALAIMPROVEMENT_RESULTS and PROJECT milestone 252.
 
+### GI-26 - RPS introduction and reception programme perspective
+
+Approved follow-up: remove the chosen sign from RPS start/wait facts and guide
+Live to name it only with the confirmed result. Keep selection, early hand motion,
+capture admission and result facts intact. Add the owner-confirmed 17:30-18:30
+reception frame to the sourced reference, including rehearsals; networking is
+ongoing, later programme upcoming. No real-clock, sensing or cockpit changes.
+
+Extend existing RPS/reference tests to protect initial context, motion/result
+contracts, all-state guidance and the unchanged instruction ceiling. Run the
+existing local Gala journey and package. Actual spoken compliance remains a short
+user listening check in tests/gptlive/GALA.md. Evidence: GI-26 in results.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |
