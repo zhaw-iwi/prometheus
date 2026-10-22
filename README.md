@@ -1749,6 +1749,13 @@ acknowledgements. Stopping prevents new reactions but need not interrupt speech
 already queued or playing. Provider interpretation and acoustic behaviour require
 live acceptance; see [implementation and verification](.agents/GENERIC_MULTIMODAL_RESULTS.md).
 
+Application-owned Live tasks may opt into `TaskResponse` instead of that lexical
+association. One completed captured response receives at most one semantic check
+on the existing bounded action workers. Only a matching current response releases
+fresh subsequent cues; a 45-second deadline or uncertain result stops automatic
+progression. This adds a model round trip at task boundaries and does not prove
+physical playback. Ordinary Generic tasks retain their default contract.
+
 Task configurations default to `sessionBound: true`. An associated Live stop or
 disconnect pauses the task, preserves the agreement/action count, and discards
 late activation/action results. Reconnecting alone does not resume it. Explicit

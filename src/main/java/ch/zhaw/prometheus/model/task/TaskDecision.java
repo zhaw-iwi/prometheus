@@ -29,7 +29,8 @@ public class TaskDecision extends Decision {
         var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
         Instant after = Instant.parse(TaskMemory.text(storage, TaskMemory.AFTER, Instant.EPOCH.toString()));
         if (now.isBefore(after) || !TaskMemory.observed(latest).isAfter(after)) return waitFor("cooldown", latest.getId());
-        int firstSample = firstSample(events, runtime.externalSpeech());
+        int firstSample = storage.containsKey(TaskResponse.KEY) ? TaskResponse.firstSample(storage, events, runtime.externalSpeech())
+                : firstSample(events, runtime.externalSpeech());
         if (firstSample < 0) return waitFor("awaiting_response_capture", latest.getId());
         final int from = firstSample;
         var reason = new String[]{"waiting_for_cue"};

@@ -22,6 +22,13 @@ public record TaskCueStatus(UUID epoch, String phase, int revision, boolean draf
         }
         long after = Instant.parse(TaskMemory.text(storage, TaskMemory.AFTER, Instant.EPOCH.toString())).toEpochMilli();
         int revision = Integer.parseInt(TaskMemory.text(storage, TaskMemory.REVISION, "0"));
+        if (storage.containsKey(TaskResponse.KEY)) {
+            var expectedOwner = TaskResponse.owner(storage);
+            return new TaskCueStatus(agent.executionEpoch(), TaskResponse.expired(storage, now) ? "UNCERTAIN" : TaskMemory.phase(storage),
+                    revision, storage.containsKey(TaskMemory.DRAFT), expectedOwner.epoch().equals(agent.executionEpoch())
+                    && TaskResponse.captured(storage, expectedOwner), Math.max(0, after - now.toEpochMilli()),
+                    revision + "." + after + "." + TaskResponse.status(storage));
+        }
         return new TaskCueStatus(agent.executionEpoch(), TaskMemory.phase(storage), revision, storage.containsKey(TaskMemory.DRAFT),
                 TaskDecision.firstSample(events, owner) >= 0, Math.max(0, after - now.toEpochMilli()), revision + "." + after + "." + intent);
     }

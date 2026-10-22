@@ -6,7 +6,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Application facts for Live to reason from, independent of behavioural instructions and speech. */
-public record LiveActivityContext(String facts, Continuation continuation) {
+public record LiveActivityContext(String facts, Continuation continuation, Instant refreshAt) {
+    public LiveActivityContext(String facts, Continuation continuation) { this(facts, continuation, null); }
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
     /** A persisted identity authorizes one speaking occasion; facts are not a scripted utterance. */

@@ -124,7 +124,7 @@ public class LiveTranscriptIngressService {
                 candidates = candidates.subList(Math.max(0, candidates.size() - 64), candidates.size());
                 var result = recording.record(id, owner, segment.id().toString(), text, candidates,
                         candidates.isEmpty() ? SpeechProvenance.Association.NONE : SpeechProvenance.Association.AMBIGUOUS,
-                        segment.closure() == Closure.COMPLETE);
+                        segment.closure() == Closure.COMPLETE, Instant.ofEpochMilli(segment.firstReceivedMs()));
                 persisted.finish(segment.closure().name(), segment.reason(), result.map(Event::getId).orElse(null));
             } else if (!ownership.acceptingInput(id, owner)) {
                 persisted.finish("INCOMPLETE", "input_stopped_before_admission", null);

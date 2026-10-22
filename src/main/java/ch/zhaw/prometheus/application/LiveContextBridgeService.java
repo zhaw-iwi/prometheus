@@ -123,6 +123,9 @@ public class LiveContextBridgeService {
                 for (var boundary : new java.time.Instant[] {item.observedAt(), item.expiresAt()})
                     if (boundary != null && boundary.isAfter(context.builtAt())) next = Math.min(next, boundary.toEpochMilli());
             }
+            if (context.activity() != null && context.activity().refreshAt() != null
+                    && context.activity().refreshAt().toEpochMilli() > now)
+                next = Math.min(next, context.activity().refreshAt().toEpochMilli());
             nextRefreshAt = next;
         }
         private void run() {
