@@ -5,6 +5,20 @@ Roadmap: [PLAN_GPTLIVE.md](PLAN_GPTLIVE.md).
 Each follow-up records its commit/deployment scope below. A passed synthetic
 test is not acoustic acceptance.
 
+## Local acceptance resource and freshness fixtures (2026-10-22)
+
+The Gala integrated acceptance run exposed two test-harness issues: a full suite
+retained enough cached Spring contexts/pools to exhaust local MySQL connections,
+and the all-sensors smoke supplied observations without source timestamps despite
+expecting fresh context. The disposable acceptance runner now limits the Spring
+test context cache to four; the smoke supplies current source times. Production
+pool sizes, observation freshness rules and database configuration are unchanged.
+
+Focused verification on feature/gptlive: both LiveCockpitSmokeIntegrationTest
+cases passed on disposable local MySQL (target/gptlive-acceptance-ab5dbf66f6/java.log).
+Full-suite verification follows on agents with the Gala changes; quota compliance
+remains separate from functional acceptance. No production database test was run.
+
 ## Gala conversation ownership — Milestone 226 (2026-10-21)
 
 The user authorized the first top-down slice and commit/push. Live now answers
