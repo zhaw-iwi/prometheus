@@ -41,6 +41,92 @@ class GalaLiveFollowupUnitTest {
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
 
+    @Test void neutralAcknowledgementsCannotExitGamesEvenWithADestructiveClassifier() {
+        for (String start : List.of("START_GUESS", "START_RPS")) {
+            say("RETURN", "Stop");
+            say(start, "Ich möchte dieses Spiel spielen");
+            String mode = mode(memory), person = text(memory, PERSON, ""), sign = text(memory, SIGN, "");
+            String round = text(memory, ROUND, ""), began = text(memory, STARTED, "");
+            String occasion = text(memory, CONTINUATION_ID, ""), expiry = text(memory, CONTINUATION_EXPIRES, "");
+            clearInvocations(gateway);
+            for (String text : List.of("Ja, gerne.", "Okay!", "Alles klar", "Danke", "Sure", "Thank you")) {
+                say("RETURN", text);
+                assertEquals(mode, mode(memory));
+                assertEquals(person, text(memory, PERSON, "")); assertEquals(sign, text(memory, SIGN, ""));
+                assertEquals(round, text(memory, ROUND, "")); assertEquals(began, text(memory, STARTED, ""));
+                assertEquals(occasion, text(memory, CONTINUATION_ID, "")); assertEquals(expiry, text(memory, CONTINUATION_EXPIRES, ""));
+                assertNull(agent.generate(runtime));
+            }
+            verify(gateway, never()).infer(any());
+        }
+    }
+
+    @Test void acknowledgementPrefixesAndRealChoicesKeepTheirControlMeaning() {
+        for (String text : List.of("Ja", "Nein", "Okay, ich gebe auf", "Ja, aber hör auf", "Danke, jetzt etwas anderes"))
+            assertFalse(GalaDinnerInput.acknowledgement(text), text);
+        say("START_GUESS", "Ja, gerne."); // Reception acceptance still uses context/classification.
+        assertEquals("GUESS", mode(memory));
+        say("WAIT", "Ist die Person eine Frau?");
+        String target = text(memory, PERSON, "");
+        say("GIVE_UP", "Okay, ich gebe auf.");
+        assertEquals("RECEPTION", mode(memory));
+        assertTrue(recentOutcome(memory, Instant.now()).contains(target));
+        say("START_RPS", "Schere Stein Papier bitte");
+        say("RETURN", "Danke, jetzt erzähl mir vom Gala Dinner");
+        assertEquals("RECEPTION", mode(memory));
+    }
+
+    @Test void controlTraceContainsLabelsAndEventIdentityWithoutReplacingTheWaitingCue() {
+        say("START_GUESS", "Personenraten bitte");
+        var sink = mock(ch.zhaw.prometheus.logging.ActivityTrace.Sink.class);
+        try (var scope = ch.zhaw.prometheus.logging.ActivityTrace.attach(sink)) {
+            say("RETURN", "Ja, gerne");
+        }
+        verify(sink).stage("gala_control/GUESS/LOCAL/WAIT/GUESS/acknowledgement");
+        verify(sink).event(any());
+        verify(sink, never()).cue(any(), any());
+    }
+
+    @Test void explicitGiveUpWithoutDisclosureEndsLocallyWhileHypotheticalsStayInTheGame() {
+        say("START_GUESS", "Personenraten bitte");
+        clearInvocations(gateway);
+        say("GIVE_UP", "Ich gebe auf, aber verrate den Namen nicht.");
+        assertEquals("RECEPTION", mode(memory));
+        assertFalse(memory.containsKey(PERSON)); assertFalse(memory.containsKey(OUTCOME));
+        verify(gateway, never()).infer(any());
+        for (String text : List.of("Wenn ich gebe auf, aber verrate den Namen nicht", "Ich gebe nicht auf",
+                "Ich gebe auf keinen Fall auf", "Er sagt: \"Ich gebe auf, aber verrate den Namen nicht\""))
+            assertFalse(GalaDinnerInput.giveUpWithoutReveal(text), text);
+    }
+
+    @Test void exportCurrentControlParaphrasesForProviderComparison() throws Exception {
+        var rows = new JsonArray();
+        for (var entry : List.of(
+                new String[]{"Alles klar, danke.", "WAIT"}, new String[]{"Ja, das klingt gut so.", "WAIT"},
+                new String[]{"Nein, ich überlege noch.", "WAIT"}, new String[]{"Warte, ich denke kurz nach.", "WAIT"},
+                new String[]{"Ich möchte weiter raten.", "WAIT"}, new String[]{"Lebt die Person noch?", "WAIT"},
+                new String[]{"Was passiert, wenn ich aufgebe?", "WAIT"}, new String[]{"Okay, ich gebe auf.", "GIVE_UP"},
+                new String[]{"Ja, aber hör bitte auf mit dem Spiel.", "RETURN"},
+                new String[]{"Ich will aufhören; den Namen möchte ich nicht wissen.", "RETURN"},
+                new String[]{"Erzähl mir stattdessen vom Gala Dinner.", "RETURN"},
+                new String[]{"Sei bitte still.", "QUIET"})) {
+            say("RETURN", "Stop"); say("START_GUESS", "Personenraten bitte");
+            clearInvocations(gateway);
+            say(entry[1], entry[0]);
+            var capture = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+            verify(gateway).infer(capture.capture());
+            var row = new JsonObject(); row.addProperty("question", entry[0]); row.addProperty("expected", entry[1]);
+            var messages = new JsonArray();
+            for (var message : capture.getValue().messages()) {
+                var value = new JsonObject(); value.addProperty("role", message.getRole()); value.addProperty("content", message.getContent());
+                messages.add(value);
+            }
+            row.add("messages", messages); rows.add(row);
+        }
+        Files.createDirectories(Path.of("target"));
+        Files.writeString(Path.of("target/gala-control-followup-cases.json"), new Gson().toJson(rows));
+    }
+
     @Test void firstAndRepeatedRpsRequestsRemainUnconfirmedUntilInferenceReturns() {
         for (String request : List.of("Schere Stein Papier bitte", "Wollen wir das nochmal spielen?")) {
             put(memory, COUNT, "1"); put(memory, SEEN, Instant.now().toString());

@@ -23,6 +23,12 @@ acceptance is grouped at the end; intermediate automated/provider gates remain.
 Saved-instance migrations are not implicitly authorized. Assign project milestone
 numbers when implementing.
 
+Planning update, 2026-10-22: GI-18–22 below cover active-game preservation,
+short-reply recovery, contextual perception follow-ups and brief presence dropouts.
+Status: IN PROGRESS. The user authorized implementation of GI-18–22 on 2026-10-22,
+including the established per-milestone verification, commit/push and branch flow.
+Final physical acceptance remains a user trial, not an automated-test claim.
+
 ## Outcome and architecture
 
 Gigi should converse naturally, start only confirmed activities, finish them
@@ -88,8 +94,10 @@ that a clean checkout must depend on.
    claims, epochs, post-commit publication and no automatic replay of uncertain
    actions. At-most-once dispatch is not a guarantee of exactly-once audibility.
 4. Stop, revocation, reset, switch and session loss fence late work. Preserve the
-   immediate local audio stop on observed zero visitors; social smoothing must
-   not silently delay it. Missing sensing is not observed departure.
+   immediate local audio silence on observed zero visitors. GI-20 proposes a
+   bounded grace period before session destruction and activity cleanup, not
+   delayed silence or relaxed access checks. Until GI-20 lands, zero visitors
+   still closes immediately. Missing sensing is not observed departure.
 5. Preserve public HTTP/SSE and canonical behaviour-plan contracts. Keep compact
    provider encoding internal. Text/Continuous, Talk to Me and non-opted-in
    agents retain their existing speech and task contracts.
@@ -710,6 +718,280 @@ facts without obsolete backlog; stop/revocation remain immediate. Run affected
 shared tests, Gala/Generic/Social Space journeys, the mixed-minute database budget
 and final provider matrix. Update the manual test script for one final user trial.
 GI-11 fixed-quota capacity and physical audibility stay separately open until proved.
+
+## Proposed follow-up from the later 2026-10-22 trials
+
+Baseline: `agents` at `7a99a68`, GI-17 / project Milestone 244. Record per-milestone
+implementation and actual verification in the existing results file; milestones
+still labelled PROPOSED have not landed.
+
+### Evidence, scope and working model
+
+- In `prometheus-telemetry-2026-10-22T12-57-02-120Z.json` and its previously
+  reviewed database conversation, the guessing game returned to reception after
+  "Ja, gerne." around 14:54:58 Zurich time. Live kept answering guessing questions;
+  a subsequent give-up could no longer resolve the active backend target. The
+  exact classifier operation was not recorded; incorrect control is an inference.
+- A post-RPS "Okay" was quarantined because the preceding assistant segment
+  belonged to the previous state. Its clarification overlapped a later complete
+  guessing-game request. That does not establish fragmented user speech.
+- A facial-expression question worked, but "Und jetzt?" lost the topic as newer
+  facial evidence reached Live around reply onset. Topic continuity and evidence
+  availability are distinct; delivering facts cannot retroactively fix speech.
+- `marc2.json` contains 13 Live sessions for one agent/epoch; seven provider starts
+  occurred between 15:22:25 and 15:23:51 Zurich time. The user confirmed automatic
+  restarts. All closes were locally initiated; the five context-injection errors
+  followed shutdown initiation. Brief zero-person detections fit the code path,
+  but this export lacks raw counts and specific stop causes, so they are not proven.
+- The other device's export lacks diagnostics in the current tree and reports
+  an unknown build. Verify its actual server build and browser assets before the
+  final comparison; a stale or different installation is possible, not established.
+
+Live retains conversational wording and acoustic turn-taking. The backend owns
+game/task control, encounter lifetime and current facts. A harmless acknowledgement
+must not destroy an activity; uncertain control is not evidence of broken audio.
+Brief visibility uncertainty must not automatically become a new encounter.
+
+Guiding implementation and tests:
+
+- `GalaDinnerInput`, `GalaDinnerAction`, `GalaDinnerPrompts`, `GalaDinnerMemory`
+  and `GalaDinnerDecision`; `GalaLiveFollowupUnitTest` and
+  `GalaDinnerReceptionUnitTest` already protect mode-valid control and outcomes.
+- `LiveShortReplyContext`, `LiveTranscriptIngressService`, `LiveContextBridgeService`
+  and `LiveContextDelivery`; use the existing short-reply, ingress and delivery
+  unit/integration fixtures rather than a second admission or speech mechanism.
+- `PresenceReception` in `public/live/reception.js`, `LiveCockpit`, `LiveClient`,
+  `valerian/script.js` observation submission and `GalaDinnerSensing`;
+  `tests/js/live/reception.test.mjs`, client/diagnostic tests and
+  `GalaDinnerSensingUnitTest` cover lifecycle, source time and race handling.
+- `LiveContextProjection`/delivery and Gala voice guidance for perception;
+  `LiveContextDeliveryUnitTest`, `GalaDinnerLiveDeliveryUnitTest` and the existing
+  actual-context provider fixtures protect ordering and unchanged source expiry.
+- Extend `GalaDinnerReceptionJourneySmokeIntegrationTest` and
+  `tests/gptlive/GALA.md`; retain the Generic and Social Space journeys as shared
+  regression checks. Tests use synthetic conversations and disposable local MySQL.
+
+| ID | Outcome | Prerequisites |
+| --- | --- | --- |
+| GI-18 | Harmless acknowledgements preserve active games | GI-17 |
+| GI-19 | Short replies do not cause stale or misleading clarification | GI-18 |
+| GI-20 | Brief visibility dropouts preserve the encounter | GI-18; GI-19 for integrated races |
+| GI-21 | Contextual perception follow-ups use current evidence | GI-19, GI-20 |
+| GI-22 | Integrated acceptance and one final device trial | GI-18–21 |
+
+### GI-18 - Preserve active games on harmless acknowledgements
+
+Status: IMPLEMENTED / Milestone 245. Focused units and both persisted Gala journeys
+pass. The first provider matrix matched 11/12 classifications; the failed explicit
+no-reveal exit is now handled locally. One further exit paraphrase passed. See the
+results file for exact evidence and remaining arbitrary-language limits.
+
+Use the existing narrow deterministic input handling to recognize complete neutral
+acknowledgements such as "Ja, gerne.", "Okay", "Alles klar" and "Danke" within
+an already-active guessing/RPS game. Preserve target/sign/round and original
+outcome lifetimes; create no new invitation, reveal, backend speech or classifier
+call solely for that acknowledgement. Live can respond naturally if appropriate.
+Do not match prefixes of "Okay, ich gebe auf" or "Ja, aber hör auf". Do not treat
+all yes/no replies as neutral: an answer to a concrete game choice or task proposal
+must still follow the existing acceptance contract.
+
+Tighten destructive-control validation and guidance around explicit stop,
+give-up, silence and clear topic/activity changes. Ambiguity preserves the game;
+ordinary game questions and acknowledgements are not refusals. Keep unrelated
+topic exits usable, without another model request to validate every model request.
+Arbitrary free-form classification still requires provider evaluation.
+
+Add bounded content-free control evidence using the existing activity trace:
+input event ID, before/after mode, selected/applied operation and rejection reason.
+No utterance, hidden target or new database polling in diagnostics.
+
+Acceptance:
+
+- Synthetic sequence: start guessing -> neutral replies -> ordinary questions ->
+  give up. The same target survives until one confirmed reveal; outcome facts
+  survive cleanup long enough for Live, with no backend-authored verbal answer.
+- Adversarial model stubs cannot turn a recognized neutral acknowledgement into
+  RETURN. RPS sign/round also survive; no extra inference is made on that path.
+- Explicit stop, actual give-up, forbidden disclosure, correct guess and a clear
+  topic change retain their distinct semantics. Reception choices and task
+  acceptance still work. Invalid decoration does not destroy an active game.
+- Focused unit cases plus the persisted Gala journey exercise the actual action;
+  a small real-classifier matrix checks paraphrases separately from unit success.
+
+### GI-19 - Context-aware short replies and obsolete clarification cancellation
+
+Status: PROPOSED.
+
+Separate harmless acknowledgement from a context-dependent decision. For Gala's
+opted-in activity ownership, an "Okay" after an RPS outcome may be recorded and
+handled as a non-mutating acknowledgement despite the transition to reception.
+Do not globally bypass the short-reply safeguard: "Ja" accepting an unresolved
+choice/task or replying to overlapping, uncorrelated speech remains conservative.
+Keep application semantics behind the existing policy boundary, with unchanged
+defaults for other agents and no Gala imports into shared application code.
+
+Carry bounded clarification identity, cause and validity through the existing
+queue. Before delivery, discard a clarification superseded by a later complete
+self-contained request or an incompatible activity/session/epoch. Expire obsolete
+requests; recheck after delayed provider ACKs. Do not cancel useful clarification
+merely because a routine sensor refresh changed the context revision. No automatic
+retry or replay of the rejected control is permitted.
+
+Supply truthful clarification purpose to Live: uncertainty about what the short
+answer refers to, not a claim that the microphone captured only fragments. Live
+chooses the wording. A commentary already sent to the provider cannot be unsent;
+this milestone guarantees cancellation of unsent obsolete requests, with audible
+overlap retained as a provider-trial question.
+
+Acceptance:
+
+- RPS result -> reception -> "Okay" produces no clarification or new activity.
+  An unresolved task acceptance is not accidentally discarded or auto-approved.
+- Queue an ambiguous reply, delay delivery, then admit a complete guessing-game
+  request: guessing starts once, and the stale clarification is never sent.
+- An unresolved choice still receives at most one relevant clarification; sensor
+  refresh alone does not suppress it. Expiry, duplicate receipts, late assistant
+  recording, Stop, revocation and epoch changes preserve existing claim semantics.
+- Shared short-reply units, delayed-delivery tests and real local-MySQL ingress
+  cases verify persistence and admission. Retain raw receipts and durable transcripts.
+
+### GI-20 - Two-second grace before destructive departure handling
+
+Status: PROPOSED. Initial value: 2,000 ms, selected for this follow-up; validate
+with a fake clock and a final real-camera trial before claiming it sufficient.
+
+Use one coherent, bounded departure policy across the browser and backend. The
+first fresh zero-person observation makes visibility uncertain and silences local
+audio/input immediately, but does not close Live or clear the active game/task.
+Keep raw counts honest; do not publish a fabricated occupied sample to preserve
+state. Routine ambient speech, task actions and new game results remain suspended
+while presence is unconfirmed. Do not introduce a second task engine or change
+the raw human-presence/grouping contracts for other agents.
+
+A fresh positive observation before the deadline cancels departure. Resume the
+same session/activity only after the corresponding backend acknowledgement; no
+opening greeting, new target, reset action budget or replay of missed cues. After
+two seconds with absence still current and fresh, finalize departure exactly once:
+close the session, clear encounter-owned state and require a fresh acknowledged
+arrival for a new encounter. Repeated zero samples must not extend the deadline.
+Coordinate sample ordering, pending HTTP requests, timer and startup/close versions
+so an old zero or ACK cannot close or reopen a newer encounter.
+
+Retain immediate operator Stop, explicit camera stop, revocation, reset/switch and
+transport-failure fences. Preserve the existing stale-sensing fail-closed deadline;
+no missing stream, old positive sample or failed acknowledgement authorizes resume.
+Retain an operator's microphone-mute preference across temporary suspension.
+Silencing must not accumulate audio for replay on return. Reuse existing media and
+lease controls; explicitly verify provider input/capture boundaries and outbound
+audio resumption before accepting this design. Silence can interrupt an utterance;
+this milestone prevents state loss, not every audible cutoff.
+
+This adds up to two seconds before encounter destruction, not to normal spoken
+replies or admission. A visitor returning within the grace period is treated as
+continuing the encounter. Person identity is not tracked: an immediate replacement
+visitor could also inherit that short encounter window. Document this trade-off;
+do not claim identity-based isolation. Confirmed departure retains fresh-session
+isolation and durable prior transcripts.
+
+Use the existing scheduler/observation flow and bounded lifecycle metadata, not
+additional database polling or per-frame writes. Record absence-pending, resumed
+and departure-confirmed outcomes with duration, session/epoch and effective grace;
+retain specific stop causes and build identity in the existing diagnostic export.
+
+Acceptance:
+
+- Fake-clock cases: `1 -> 0 -> 1` at 500/1,500 ms preserves session and target;
+  sustained zero reaches the 2,000-ms boundary and closes exactly once. Test the
+  boundary itself, repeated zeros, repeated flicker, stale/out-of-order samples
+  and absence during startup or delayed observation acknowledgement.
+- The backend does not reset on the initial zero. RPS target/sign and task budget
+  survive transient absence; no cue, gesture or announcement executes during it
+  or replays afterward. Genuine departure clears all encounter-owned state.
+- Stop/revocation during grace or resume prevents any resurrection. Explicit
+  camera stop and missing sensing still terminate safely. Manual mute survives.
+- JS client/reception tests, Gala sensing units, persisted journey and one actual
+  browser lifecycle test verify both halves together. Check all-state instruction
+  budgets if guidance changes and retain non-opted-in lifecycle behaviour.
+- A real-provider pause/resume probe checks for audio backlog, capture corruption
+  and stale reply tails. If session-preserving silence cannot satisfy the contract,
+  report the concrete limitation before substituting a different audio policy.
+
+### GI-21 - Maintain perception topic and deliver relevant fresh evidence
+
+Status: PROPOSED.
+
+Use Live's existing conversation plus compact activity/perception context for
+follow-ups such as facial question -> answer -> "Und jetzt?". Guidance should
+reassess the current facial expression in that context, not offer a game. The same
+phrase after a game or another topic must not be forced into a facial answer.
+Prefer existing dialogue/context selection; any needed explicit topic hint must
+be small, encounter-scoped, expire within 30 seconds and clear on a topic change.
+Do not add a general topic-classification service or an extra inference per turn.
+
+Deliver the latest already-committed relevant sensor evidence before routine
+derived summaries using the existing delivery/coalescing path. Bound any
+user-triggered priority refresh to once per admitted turn and measure its query
+cost; do not reduce global refresh intervals, poll per frame or extend source TTLs.
+Unknown/stale/low-confidence evidence warrants an honest limitation, not an
+invented smile, camera access or a backend-generated verbal answer. Explicit
+visitor corrections continue to override unsolicited interpretation.
+
+Acceptance:
+
+- Synthetic facial question -> neutral/tense estimate -> fresh smile -> "Und
+  jetzt?": exported actual contexts contain fresh evidence and coherent follow-up
+  guidance, with no backend speech or automatic game start. Source expiry remains
+  original; delayed ACKs cannot resurrect an obsolete facial summary.
+- Equivalent cases with stale/missing evidence, a correction, an intervening topic
+  change and a completed game prevent false facial claims or sticky topic hints.
+- Delayed-delivery unit/integration checks exercise replacement and withdrawal;
+  the real-provider matrix tests the actual answer. Compare evidence commit/send/
+  ACK with response onset. Evidence arriving after speech begins is reported as
+  such; no guarantee of waiting is claimed under the accepted GI-14 limitation.
+- Clean up redundant expiring facial-summary traffic only where the tests show
+  identical factual coverage and less work. Keep this secondary to the follow-up fix.
+
+### GI-22 - Integrated acceptance and final device trial
+
+Status: PROPOSED.
+
+Extend the existing representative journey rather than create a parallel suite:
+RPS result -> "Okay" -> guessing selection -> "Ja, gerne" -> guessing questions ->
+brief visibility dropout -> continued questions -> give-up/reveal -> facial question
+and "Und jetzt?" -> genuine departure -> fresh visitor with one greeting.
+Add a focused delayed-clarification race alongside that happy path.
+
+Acceptance and release evidence:
+
+- Run affected deterministic suites first; then Gala, Generic and Social Space
+  journeys on disposable local MySQL, shared lifecycle/permission regressions,
+  focused browser tests, instruction budgets and packaging. Recheck the existing
+  mixed-minute database ceiling (1,700) and compare a dropout fixture for added
+  writes/model calls; do not loosen the budget to pass. No production test load.
+- Run a recorded before/after provider comparison and three fresh-session candidate
+  repetitions using exported actual contexts. Assess acknowledgements, explicit
+  exits/reveal, clarification overlap, contextual perception and suspension audio;
+  retain every result. Unit success is not proof of spoken wording or audibility.
+- Update README, relevant current PROJECT/context statements and the existing
+  results file only when changes land. Expand `tests/gptlive/GALA.md` with the
+  short sequence and explicit brief-versus-sustained camera absence steps.
+- On the other device verify server commit/build and served client assets; use a
+  fresh session/instance as required by saved-graph compatibility. One final user
+  trial can cover the entire sequence; intermediate manual trials are not required
+  if the automated and provider gates pass.
+- Remaining "Einen Moment...", duplicated provider caption fragments and physical
+  cutoffs are measured quality limits, not silently declared fixed. Do not rewrite
+  durable provider transcripts or add a second TTS/backend speech path. The dropped
+  Bluetooth/voice-repetition investigation stays outside this work.
+- Preserve the explicitly accepted GI-14 prompt-only limitation. GI-11 fixed-quota
+  capacity also remains open; this follow-up must not worsen resource budgets.
+
+Shared implementation follows `feature/gptlive` -> `main` -> `agents`; Gala-only
+policy/tests stay on `agents`. Once implementation is authorized, each milestone
+can be verified and released independently in the order above, with an integrated
+user trial at the end. A failed new deterministic gate must be fixed before the
+next milestone; an unforeseen audio, lifecycle or compatibility trade-off needs
+the user's decision rather than silently weakening the stated contract.
 
 ## Coverage of the original agreed backlog
 

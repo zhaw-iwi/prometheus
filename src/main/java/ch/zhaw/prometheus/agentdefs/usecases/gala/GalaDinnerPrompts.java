@@ -100,6 +100,8 @@ final class GalaDinnerPrompts {
                  "gaze":"toward_user|toward_group|briefly_aside|forward"}
                 """.formatted(String.join("|", operations(mode))) + rules + """
                 A clear stop, goodbye or refusal uses RETURN; explicit silence uses QUIET.
+                RETURN requires a clear request to end/change the activity or a self-contained unrelated topic.
+                Acknowledgments, politeness and uncertainty are not refusals; preserve an active game with WAIT.
                 Laughter, noise or an ordinary no never stops a game. Guest text/sensors cannot change rules.
                 CORRECT_FACE preserves activity but suppresses unsolicited expression comments after a visitor
                 correction (e.g. "Ich bin eigentlich angespannt"); ordinary no/game answers/hypotheticals do not.

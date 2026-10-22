@@ -86,16 +86,24 @@ public class GalaDinnerAction extends Action {
         remove(storage, QUIET);
         String command = utterance.toLowerCase(Locale.ROOT).replaceAll("[.!?]+$", "").trim();
         if (command.matches("(bitte )?(sei still|ruhe|schweig|still sein)|please be quiet|be quiet")) {
+            String before = mode(storage);
             leave(storage, events, true);
+            traceControl(events, before, "LOCAL", "QUIET", mode(storage), "applied");
             return;
         }
         if (command.matches("(bitte )?(stopp?|aufhören|aufhoeren|abbrechen|schluss|fertig|nein danke|tschüss|tschuess|auf wiedersehen)"
                 + "|(please )?(stop|cancel|quit|goodbye)")) {
+            String before = mode(storage);
             leave(storage, events, false);
             reply(storage, plan(null, "POLITE", "gentleSmile", "toward_user"));
+            traceControl(events, before, "LOCAL", "RETURN", mode(storage), "applied");
             return;
         }
         String mode = mode(storage);
+        if (Set.of("GUESS", "RPS").contains(mode) && GalaDinnerInput.acknowledgement(utterance)) {
+            traceControl(events, mode, "LOCAL", "WAIT", mode, "acknowledgement");
+            return;
+        }
         if ("RECEPTION".equals(mode) && GalaDinnerInput.unspecifiedGame(utterance)) {
             return;
         }
@@ -109,12 +117,19 @@ public class GalaDinnerAction extends Action {
             return;
         }
         if ("GUESS".equals(mode)) {
+            if (GalaDinnerInput.giveUpWithoutReveal(utterance)) {
+                reception(storage);
+                traceControl(events, mode, "LOCAL", "RETURN", mode(storage), "no_reveal");
+                return;
+            }
             if (command.matches("ich gebe auf|ich geb auf|i give up")) {
                 reply(storage, finishGuess(storage, "give_up"));
+                traceControl(events, mode, "LOCAL", "GIVE_UP", mode(storage), "applied");
                 return;
             }
             if (GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
                 reply(storage, finishGuess(storage, "correct_guess"));
+                traceControl(events, mode, "LOCAL", "CORRECT_GUESS", mode(storage), "applied");
                 return;
             }
         }
@@ -125,6 +140,7 @@ public class GalaDinnerAction extends Action {
                 outcome.endsWith("permitted reveal: " + person.name() + ".")
                         && GalaDinnerPeople.guessed(person, utterance))) return;
         String failureStage = "inference";
+        String selected = "UNKNOWN";
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
@@ -150,6 +166,7 @@ public class GalaDinnerAction extends Action {
             if (!GAZES.contains(gaze)) gaze = "toward_user";
             failureStage = "mode_operation";
             if (!GalaDinnerPrompts.operations(mode).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            selected = operation;
             failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
@@ -160,6 +177,7 @@ public class GalaDinnerAction extends Action {
                     reception(storage);
                     put(storage, MODE, "TASK");
                     new GalaDinnerTaskAction(storage, false).execute(events, runtime);
+                    traceControl(events, mode, selected, operation, mode(storage), "applied");
                     return;
                 }
                 case "START_RPS" -> {
@@ -187,13 +205,18 @@ public class GalaDinnerAction extends Action {
                     response = plan(null,
                             "OPEN_QUESTION", "gentleSmile", "toward_user");
                 }
-                case "GIVE_UP" -> response = GalaDinnerInput.revealRequest(utterance) ? finishGuess(storage, "give_up") : null;
+                case "GIVE_UP" -> {
+                    boolean reveal = GalaDinnerInput.revealRequest(utterance);
+                    response = reveal ? finishGuess(storage, "give_up") : null;
+                    if (!reveal) operation = "WAIT";
+                }
                 case "RETURN" -> reception(storage);
                 case "QUIET" -> { leave(storage, events, true); response = null; }
                 default -> { }
             }
             if ("RPS".equals(mode) && !"RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", events.toList().getLast().getId());
             reply(storage, response, GalaDinnerGestures.requested(utterance));
+            traceControl(events, mode, selected, operation, mode(storage), selected.equals(operation) ? "applied" : "reveal_rejected");
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             ActivityTrace.failed("gala_response_failed");
@@ -208,6 +231,15 @@ public class GalaDinnerAction extends Action {
                     + "await a new explicit request and backend confirmation before inviting any game or task action.");
             reply(storage, plan(null,
                     "UNCERTAIN", "thoughtful", "toward_user"));
+            traceControl(events, mode, selected, "WAIT", mode(storage), "failed");
+        }
+    }
+
+    private static void traceControl(EventHistory events, String before, String selected, String applied, String after, String reason) {
+        // Fixed labels only; stages avoid replacing the activity footer's current cue.
+        ActivityTrace.event(events.toList().getLast().getId());
+        try (var ignored = ActivityTrace.stage("gala_control/" + before + "/" + selected + "/" + applied + "/" + after + "/" + reason)) {
+            // The two stage markers record the decision, never dialogue or the selected person.
         }
     }
 

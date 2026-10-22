@@ -82,6 +82,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-18 / Milestone 245: complete neutral acknowledgements preserve active Gala
+  games without inference; explicit no-reveal give-up ends quietly. Content-free
+  control stages expose selected/applied transitions. Focused units and both local
+  persisted Gala journeys pass. Provider evidence includes one misclassification
+  now covered by local handling; arbitrary-language limits remain. GI-19 follows;
+  see GALAIMPROVEMENT_RESULTS for commands and evidence.
+
 - GI-17 / Milestone 244: bounded context chunks use shorter headers and
   prioritise current face evidence before derived summaries. Unsent sensory backlog
   yields at observation boundaries to newer commits at the existing refresh cadence.
@@ -652,6 +659,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 245: Preserve Gala games on harmless acknowledgements
 - [x] Milestone 224: Complex-agent database query reduction
 - [x] Milestone 225: Gala guessing answers, give-up reveal and echo suppression
 - [x] Milestone 223: Gala game choice and non-speech control

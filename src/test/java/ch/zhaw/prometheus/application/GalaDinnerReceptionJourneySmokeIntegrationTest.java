@@ -168,6 +168,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             var guessing = contexts.snapshot(code, id).orElseThrow().activity();
             assertTrue(guessing.facts().contains("Albert Einstein"));
             assertTrue(guessing.facts().contains("not alive"));
+            calls = requests.size();
+            say(first, "Ja, gerne.");
+            say(first, "Alles klar, danke.", control("WAIT")); // Free-form wording retains the ordinary classifier.
+            assertEquals(calls + 1, requests.size());
+            assertEquals("Albert Einstein", loaded().getStorage().get("gala.person").getAsString());
             long intentsBefore = speechIntents();
             for (String question : List.of("Lebt die Person noch?", "Hat die Person etwas erfunden?",
                     "Hatte die Person Schuhgrösse 42?", "Lebt die", "Was passiert, wenn ich aufgebe?")) {

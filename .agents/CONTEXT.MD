@@ -374,7 +374,11 @@ Gala's Live policy/reference is stable across all activities; only compact state
 guidance changes before result narration. Gala locally handles common unspecified
 play requests with a game-choice question and ignores recognized standalone sound
 annotations for task control. A neutral WAIT operation preserves games; original
-transcripts remain auditable. Other language interpretation remains model-dependent.
+transcripts remain auditable. Complete neutral acknowledgements in active games
+now bypass classification and preserve their target/round. Explicit no-reveal
+give-up has narrow local handling; reception/task acceptance is unchanged.
+Other language interpretation remains model-dependent. Content-free control
+stages record applied transitions without replacing the current readiness cue.
 Its session-fixed backend user-turn
 quiet window is 2,000 ms, selected through the generic ExternalVoicePolicy hook;
 other agents and assistant capture retain 800 ms. Telemetry exports the effective

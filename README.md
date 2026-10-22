@@ -411,6 +411,15 @@ including stop requests, are still processed. `WAIT` lets harmless reactions sta
 in reception or either game without producing another response. Interpretation
 of other free-form language remains model-dependent.
 
+Within an active guessing/RPS game, complete neutral acknowledgements such as
+"Ja, gerne", "Okay", "Alles klar" and "Danke" preserve the round without calling
+the classifier or adding a speaking occasion. Prefixes do not hide a subsequent
+request. Reception choices and task acceptance retain their existing interpretation.
+A recognized explicit give-up with forbidden disclosure ends without revealing.
+Content-free `gala_control/` activity stages record before/after modes and applied
+operations, leaving the existing readiness cue intact. Free-form exits remain
+model-dependent; this is not a blanket yes/no admission bypass.
+
 Gala uses explicit Backchannel, Interruption and Delegation guidance, retaining
 Live-owned wording and automatic backend transcript admission. The repeated
 2026-10-22 provider comparison still produced premature game invitations, an answer

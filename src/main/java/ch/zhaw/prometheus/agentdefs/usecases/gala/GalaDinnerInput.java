@@ -29,6 +29,13 @@ final class GalaDinnerInput {
 
     static boolean unspecifiedGame(String speech) { return PLAY.matcher(normalize(speech)).matches(); }
 
+    static boolean acknowledgement(String speech) {
+        // Whole utterances only: an acknowledgement prefix cannot hide a subsequent request.
+        return java.util.Set.of("ja gerne", "ja gern", "gerne", "gern", "ok", "okay", "alles klar",
+                "verstanden", "danke", "vielen dank", "gut", "yes please", "sure", "all right",
+                "got it", "thanks", "thank you").contains(normalize(speech));
+    }
+
     static boolean orderedCueSequence(String speech) {
         String value = normalize(speech);
         String hand = "(?:stein|schere|papier|rock|scissors?|paper)";
@@ -39,10 +46,19 @@ final class GalaDinnerInput {
                 || value.matches(order + face + then + hand + "\\b.*");
     }
 
+    static boolean giveUpWithoutReveal(String speech) {
+        if (speech.matches(".*[\"“”„«»].*")) return false;
+        String value = normalize(speech);
+        return value.matches("(?:ich gebe auf|ich geb auf) (?:aber |bitte )?(?:verrate?|nenne?|sage?) (?:mir )?(?:bitte )?"
+                + "(?:den namen|die person) (?:bitte )?nicht")
+                || value.matches("i give up (?:but )?(?:do not|don t|never) (?:reveal|tell me) (?:the name|the person)");
+    }
+
     static boolean revealRequest(String speech) {
         // A model-selected operation is not enough to reveal on quotes, negation or hypotheticals.
         String value = speech.toLowerCase(Locale.ROOT).trim();
         if (value.matches(".*[\"“”„«»].*")) return false;
+        value = value.replaceFirst("^(?:ok(?:ay)?|alles klar|gut)[,;:]\\s*", "");
         if (value.matches("(?:ich gebe auf|ich geb auf|i give up)[, ]+(?:wenn|falls|if)\\b.*")) return false;
         if (value.matches("(?:ich gebe auf|ich geb auf|i give up)(?:[,.!?].*)?"))
             return !value.matches(".*\\b(?:nicht|niemals|never|not)\\b.*(?:nam|person|nenn|verrat|sag|reveal|tell).*" )

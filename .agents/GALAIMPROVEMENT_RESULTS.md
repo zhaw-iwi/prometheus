@@ -1223,3 +1223,39 @@ Fixture, event/caption logs and audio cache remain ignored under target/. No
 failed sample was discarded, and no repeat was added to obtain a favourable
 result. This closes the implementation/automated follow-up sequence under the
 user's accepted limitation, not the outstanding provider/physical/capacity gates.
+
+## GI-18 / Milestone 245 - active-game acknowledgements (2026-10-22)
+
+Whole-utterance neutral acknowledgements now bypass classification inside GUESS
+and RPS. Target, sign, round, start time and pending-occasion identity/expiry remain
+unchanged. No extra speech or inference is created. Reception choices, task
+acceptance, compound requests, explicit exits and ordinary yes/no retain their
+existing paths. A narrow explicit give-up-without-disclosure rule ends quietly;
+acknowledgement-prefixed actual give-up can reveal, with negation/hypothetical
+guards preserved. Content-free gala_control stages record mode/operation/reason
+and input identity without overwriting waiting-cue telemetry. No schema, extra
+database read, per-frame inference or default-core change.
+
+Verification:
+
+- 78 unit cases passed: mvnw.cmd -q
+  -Dtest=GalaLiveFollowupUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerTaskUnitTest test.
+  Evidence: target/gi18-unit.log. Instructions remain within the existing cap.
+- Both canonical/compact persisted Gala journeys passed through
+  tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests
+  GalaDinnerReceptionJourneySmokeIntegrationTest. Final tree evidence:
+  target/gptlive-acceptance-83092b3a57/java.log; disposable schema/account removed.
+- Twelve real backend classifications used actual exported application requests:
+  11 matched expected operations. "Ich gebe auf, aber verrate den Namen nicht"
+  incorrectly produced WAIT (no disclosure, but no exit). This now bypasses the
+  classifier and is regression-tested. A further free-form exit paraphrase,
+  "Ich will aufhören; den Namen möchte ich nicht wissen", produced RETURN.
+  No failed sample was discarded or relabelled. Private evidence:
+  target/gi18-control-provider-results.json and
+  target/gi18-control-provider-paraphrase.json. No speech-quality claim follows
+  from this classifier check; arbitrary paraphrases remain model-dependent.
+- git diff --check passed. No production database load or physical trial.
+
+GI-19 follows under the approved consecutive plan. The accepted GI-14 limitation,
+physical audio/camera quality and GI-11 capacity remain open.
