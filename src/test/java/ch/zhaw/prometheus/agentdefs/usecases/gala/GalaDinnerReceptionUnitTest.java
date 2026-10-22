@@ -193,6 +193,9 @@ class GalaDinnerReceptionUnitTest {
         var projection = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
         var context = projection.project(agent);
         assertTrue(context.activity().facts().contains("Albert Einstein"));
+        assertTrue(context.activity().continuation().facts().contains("You hold the backend-selected person; the visitor asks yes/no questions and guesses"));
+        assertTrue(context.activity().continuation().facts().contains("Never ask the visitor to choose a person or guess yourself"));
+        assertFalse(context.activity().continuation().facts().contains("Albert Einstein"));
         assertTrue(context.activity().facts().contains("not alive"));
         assertTrue(context.startupInput().toString().contains("co-invented a refrigerator"));
         assertFalse(context.instructions().contains("Albert Einstein"));
@@ -213,6 +216,7 @@ class GalaDinnerReceptionUnitTest {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""));
         say("Noch ein Ratespiel");
         assertEquals("Marie Curie", text(memory, PERSON, ""));
+        assertEquals(context.activity().continuation().facts(), projection.project(agent).activity().continuation().facts());
     }
 
     @Test void offTopicQuestionKeepsTargetUntilConfirmationThenAnswersTheOriginalRequestWithoutReveal() {
@@ -338,8 +342,10 @@ class GalaDinnerReceptionUnitTest {
             assertEquals(start, text(memory, CONTINUATION_ID, ""));
         }
         var instructions = new LiveVoicePolicyAdapter().instructions(agent);
-        assertTrue(instructions.contains("Missing facts are unknown, not false"));
-        assertTrue(instructions.contains("Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal"));
+        assertTrue(instructions.contains("Missing facts: unknown, not false"));
+        assertTrue(instructions.contains("Negated give-up never reveals"));
+        assertTrue(instructions.contains("Never reveal on stop/silence or if forbidden"));
+        assertTrue(instructions.contains("Hypothetical give-up: explain end/reveal, no name/delegation"));
         assertTrue(instructions.contains("Fresh camera estimates support tentative expression/apparent-mood"));
         assertFalse(instructions.contains("emotion diagnosis"));
     }

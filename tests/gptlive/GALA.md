@@ -28,6 +28,12 @@ noch auf dem Programm?» Networking läuft; spätere Punkte stehen noch bevor.
 Beim RPS-Start soll Gigi zum Zeichen auffordern, ohne die eigene Wahl zu nennen.
 Die Handgeste bleibt; erst beim Ergebnis darf Gigi beide Zeichen nennen.
 
+GI-27: Beim Spielangebot und nach «Personenraten bitte» auf die Rollen achten:
+Gigi hat die Person, ich stelle Ja/Nein-Fragen und rate. Gigi darf mich nicht
+auffordern, selbst eine Person auszuwählen. «Lebt die Person noch?», danach
+«Ich gebe auf» und eine weitere Runde testen: gleiche Rollen, neuer Zielname,
+keine vorzeitige Namensnennung. Dies prüft die Formulierung, nicht Audio-Abbrüche.
+
 | Schritt | Sagen / tun | Prüfen |
 | --- | --- | --- |
 | 1. Empfang | «Was kannst denn du?» | Verständliche Fähigkeiten; Name wie „djee-djee“, keine vorgelesene Ausspracheanweisung. |

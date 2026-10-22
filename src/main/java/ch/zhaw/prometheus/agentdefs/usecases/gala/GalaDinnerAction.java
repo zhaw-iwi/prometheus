@@ -229,7 +229,8 @@ public class GalaDinnerAction extends Action {
                     put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
                     put(storage, MODE, "GUESS");
                     put(storage, STARTED, Instant.now().toString());
-                    continueRequest(storage, "Guessing round started. Invite the first yes/no question without revealing the selected person.");
+                    continueRequest(storage, "Guessing round started. You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
+                            + "Invite their first question without revealing the person. Never ask the visitor to choose a person or guess yourself.");
                     response = plan(null,
                             "OPEN_QUESTION", "gentleSmile", "toward_user");
                 }

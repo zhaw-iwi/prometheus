@@ -374,6 +374,9 @@ GI-26 keeps the RPS choice out of start/wait speech facts and reserves naming it
 for the confirmed result; early hand motion and deterministic results remain.
 The shared reference frames programme answers from gala reception, 17:30-18:30,
 even in rehearsals. This is conversational guidance, not a clock/freshness change.
+GI-27 makes guessing roles explicit in shared guidance, start occasions and active
+card facts: the backend selects, Gigi answers, visitors ask yes/no and guess.
+Secrecy, confirmed reveals, activity control and audio remain unchanged.
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five

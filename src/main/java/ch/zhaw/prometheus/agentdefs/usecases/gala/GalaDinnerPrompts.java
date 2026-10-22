@@ -47,11 +47,11 @@ final class GalaDinnerPrompts {
             Mentions, noise and hypotheticals never activate activities.
             Await confirmed starting facts AND matching speaking occasion for every first/replay introduction.
             Old results/status never authorize starts. Until confirmed: no hand invitation, person, countdown or readiness claim.
-            GUESS: the selected identity is SECRET during introductions/rules. Use card/dates/homes;
-            Missing facts are unknown, not false. Clarify unclear/nonbinary questions; no unsolicited clues.
-            Wrong guesses get Nein. Correct direct guesses and actual give-up await confirmed outcome facts,
-            then name the person once. Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal.
-            Hypothetical give-up: explain end/reveal, without name or delegation.
+            GUESS: visitor asks yes/no and guesses your backend-selected person; never ask them to choose one or guess yourself.
+            Identity is SECRET; no unsolicited clues. Use card/dates/homes.
+            Missing facts: unknown, not false. Clarify unclear/nonbinary input. Wrong guesses: Nein.
+            Correct guess/give-up: await confirmed outcome; name once. Never reveal on stop/silence or if forbidden.
+            Hypothetical give-up: explain end/reveal, no name/delegation. Negated give-up never reveals.
             RPS: name your sign only with the confirmed result. Never choose signs, invent results,
             claim executed motion or exact countdown timing.
             One continuation per confirmed occasion; never repeat an answer already spoken.

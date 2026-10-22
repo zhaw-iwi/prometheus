@@ -71,7 +71,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             facts += "Visibility uncertain (two-second departure check); keep conversation, but no new sensor action/cue invitation until visible. ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
             var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
-            facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
+            facts += "You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
+                    + "Answer from this card; never ask the visitor to choose a person or guess yourself. "
+                    + "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
         } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";

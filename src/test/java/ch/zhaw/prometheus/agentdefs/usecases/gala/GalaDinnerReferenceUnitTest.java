@@ -80,6 +80,8 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(instructions.contains("one brief status"));
                 assertTrue(instructions.contains("No status for reference/guessing answers"));
                 assertTrue(instructions.contains("Await confirmed starting facts"));
+                assertTrue(instructions.contains("visitor asks yes/no and guesses your backend-selected person"));
+                assertTrue(instructions.contains("never ask them to choose one or guess yourself"));
                 assertTrue(instructions.contains("name your sign only with the confirmed result"));
                 assertEquals(1, occurrences(instructions,
                         "Reception frame, even in rehearsals: gala day 17:30–18:30; networking ongoing, later programme upcoming."));
@@ -120,13 +122,16 @@ class GalaDinnerReferenceUnitTest {
         for (var person : GalaDinnerPeople.PEOPLE) {
             GalaDinnerMemory.put(memory, GalaDinnerMemory.PERSON, person.name());
             var context = assertDoesNotThrow(() -> projection.project(agent));
-            assertTrue(context.instructions().contains("identity is SECRET"));
+            assertTrue(context.instructions().contains("Identity is SECRET"));
             assertFalse(context.instructions().contains(person.name()));
             assertTrue(context.activity().facts().contains("Secret target (never introduce it): " + person.name()));
+            assertTrue(context.activity().facts().contains("the visitor asks yes/no questions and guesses"));
+            assertTrue(context.activity().facts().contains("never ask the visitor to choose a person or guess yourself"));
             assertTrue(context.activity().facts().getBytes(StandardCharsets.UTF_8).length <= 4000);
         }
         GalaDinnerMemory.reception(memory);
         assertFalse(projection.project(agent).activity().facts().contains("Secret target"));
+        assertFalse(projection.project(agent).activity().facts().contains("You hold the backend-selected person"));
     }
 
     @Test void sourceMetadataIsExcludedAndUnsourcedSectionsAreRejected() {

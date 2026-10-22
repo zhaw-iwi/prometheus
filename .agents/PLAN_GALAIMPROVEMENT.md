@@ -1035,6 +1035,17 @@ contracts, all-state guidance and the unchanged instruction ceiling. Run the
 existing local Gala journey and package. Actual spoken compliance remains a short
 user listening check in tests/gptlive/GALA.md. Evidence: GI-26 in results.
 
+### GI-27 - Explicit guessing roles
+
+Approved narrow follow-up to the 22:39 UTC trial: stable Live guidance states the
+visitor's guessing role even in reception. The start occasion and active card
+repeat that Gigi holds the backend-selected person and answers the visitor's
+yes/no questions; no visitor-selected target or reversed guessing role.
+Preserve secrecy, uncertainty, confirmed reveals and no-reveal exits. Verify
+all-state instruction limits, every selected card, initial/replay invitations,
+existing game-control regressions and the local journey. Spoken adherence remains
+a listening check; no audio or stricter readiness coordination in this change.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |

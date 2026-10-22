@@ -82,6 +82,20 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Audio inspection handoff (2026-10-23): `.agents/PLAN_CUTOFFINSPECTION.md` defines
+  optional browser-local received-track recording paired with existing telemetry,
+  bounded retention, lifecycle isolation, automated acceptance and a physical trial.
+  Planning only; recording is not implemented and audible cut-offs remain open.
+
+- GI-27 / Milestone 254: guessing roles are explicit in the shared Live guidance,
+  start invitation and active card: backend selects, Gigi answers, visitor asks
+  yes/no and guesses. Secrecy, reveal control and game mechanics remain. Passed
+  47 focused units, four local journeys and packaging; instructions 14,398 / 14,400
+  bytes. User authorized commit/push on `agents` for deployment. Spoken adherence remains a live
+  check; audio cut-offs and accepted readiness limits are outside this follow-up.
+  Publication preflight also reproduced an existing delivery-timing assertion
+  failure on both the published base and GI-27; see GALAIMPROVEMENT_RESULTS.
+
 - GI-26 / Milestone 253: Gala RPS start/wait facts omit Gigi's chosen sign;
   Live is guided to name it only with the confirmed result. Early hand motion
   and winner facts are unchanged. Programme answers use the owner-confirmed
@@ -11180,3 +11194,20 @@ packaging. Complete instructions fit at 14,392 bytes against the unchanged
 .agents/GALAIMPROVEMENT_RESULTS.md. Actual wording remains a listening check.
 The user authorized commit/push to agents for deployment; no main or standalone
 cockpit merge is needed. Start a fresh Live session and new round after deployment.
+
+
+## Milestone 254 / GI-27 - Explicit guessing roles
+
+Date: 2026-10-23. The visitor asks yes/no and guesses Gigi's backend-selected
+person. Shared guidance applies already in reception; start occasions and active
+card facts reinforce these roles and prohibit reversing them. Compact guessing
+rules retain secrecy, uncertainty and confirmed reveal/no-reveal conditions.
+No game-control, sensing, audio, schema or cockpit change.
+
+Verified 47 focused units, four disposable-local-MySQL journeys and packaging.
+Instructions fit at 14,398 / 14,400 bytes; every selected card stays bounded.
+Detailed commands, earlier assertion/budget corrections and artifacts: GI-27 in
+.agents/GALAIMPROVEMENT_RESULTS.md. Spoken adherence still needs a live check;
+cut-offs and prompt-only readiness remain separate. The user subsequently authorized
+commit/push on agents together with the audio-inspection plan; deployment is tracked
+by the GitHub Actions workflow. The recording feature is planned, not implemented.

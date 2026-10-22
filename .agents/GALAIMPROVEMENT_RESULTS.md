@@ -1720,3 +1720,56 @@ No real provider or physical speech trial; tests establish context/contracts,
 not generated-wording compliance. Start a fresh Live session after deployment,
 with a new RPS round; pending old continuations are not rewritten. No new instance
 is required by this follow-up. Manual checks are in tests/gptlive/GALA.md.
+
+
+## GI-27 - Explicit guessing roles (2026-10-23)
+
+Base: 34390c9a on agents. User authorized strengthening the roles after the
+22:39 UTC trial showed two reversed introductions, both beginning in reception.
+Shared Live guidance therefore defines the roles before the activity starts:
+the visitor asks yes/no and guesses the backend-selected person; Gigi answers.
+The start occasion and active card facts reinforce this and explicitly reject
+asking the visitor to select a person or Gigi becoming the guesser.
+
+Only Gala speech guidance/facts and neighboring tests/documentation changed.
+Identity secrecy, supplied-card bounds, unknown/nonbinary questions, wrong guesses,
+confirmed correct-guess/give-up reveals, hypothetical/negated give-up and no-reveal
+exits remain. Selection, state control, audio, task mechanics and sensing are intact.
+Compact equivalent guessing guidance retains the unchanged instruction ceiling.
+
+Verification:
+
+- `mvnw.cmd -q -Dtest=GalaDinnerReferenceUnitTest,GalaDinnerReceptionUnitTest test`:
+  final 47 passed. Every state/task phase and both embodiments receive the roles;
+  maximum instructions 14,398 / 14,400 bytes (application limit 16,000). Every
+  selected card remains below its 4,000-byte bound. Initial/replay invitation roles,
+  hidden name, unchanged question flow, correct guess and next target are checked.
+  Earlier runs found an old wording assertion and then a 14,406-byte candidate;
+  updated the assertion and compacted equivalent wording without raising limits.
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest`:
+  four passed with synthetic speech and disposable local MySQL. Owned application
+  stopped and schema/account removed. No production database used for verification.
+- `mvnw.cmd -q -DskipTests package` and `git diff --check`: passed.
+
+Artifacts: target/gala-guessing-roles-unit.log,
+target/gala-guessing-roles-unit-final.log (earlier attempts),
+target/gala-guessing-roles-unit-verified.log (passing),
+target/gptlive-acceptance-fb6c9aff74/java.log,
+target/gala-guessing-roles-journey.log and target/gala-guessing-roles-package.log.
+No real-provider/physical speech trial: these checks verify guidance, persistence
+and game contracts, not guaranteed spoken compliance. Audio cut-offs and the
+accepted prompt-only readiness limitation remain outside scope. Manual role checks
+are in tests/gptlive/GALA.md. The user subsequently authorized commit/push on agents
+together with `.agents/PLAN_CUTOFFINSPECTION.md`, a handoff for optional local
+received-audio recording paired with telemetry. That recording is not implemented.
+Deployment is tracked by the GitHub Actions workflow. After deployment, use a fresh
+Live session and new round; previously stored pending occasions are not rewritten.
+
+Publication preflight (2026-10-23): `git diff --check` passed. An older failing
+delivery report prompted a focused rerun of `GalaDinnerLiveDeliveryUnitTest`:
+its <=2,100 ms controlled-clock delivery assertion fails both with GI-27 and in
+a clean detached checkout of published base 34390c9a. This existing failure is
+not fixed or hidden by this publication; it does not test physical audio playback.
+Evidence: target/gala-roles-publish-delivery-check.log and
+target/gala-roles-publish-baseline-delivery-check.log. The 47 role/reference units,
+four local journeys and packaging above remain the passing verification for GI-27.

@@ -404,7 +404,11 @@ guidance. No saved graph or history is migrated automatically.
 Gala's reference and voice policy stay identical across reception, games and task
 co-creation. Activity changes use quiet state/fact updates, not instruction appends;
 they avoid instruction-induced interruptions and do not request another answer. A selected guessing card
-is model-visible activity data, separate from behavioural instructions. Game starts
+is model-visible activity data, separate from behavioural instructions.
+Personenraten has fixed roles: Gigi holds the backend-selected person; the visitor
+asks yes/no questions and guesses. Shared Live guidance states this already in
+reception, and the start invitation and active card repeat it. Gigi must not ask
+visitors to choose the person or become the guesser itself. Game starts
 and computed RPS results carry one persisted user-request continuation: facts first,
 then an invitation for Live to express the result. Routine sensing does not speak.
 RPS start/wait facts say only that Gigi's sign is committed; Live names its sign
