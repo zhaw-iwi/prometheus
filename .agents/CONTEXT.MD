@@ -206,6 +206,10 @@ use set semantics on the existing join table to avoid rewriting unrelated links;
 explicit same-value writes still change their background-action version. Neither
 change lowers sensing cadence or requires rewriting saved instances. Shared
 evidence is in GPTLIVE_RESULTS; fixed-quota capacity remains a separate gate.
+Storage links load by a separate eager SELECT to prevent multiplication across
+state/policy collections. Complete-history display selects history/events/paths
+directly after the existing scope check; it retains all durable events without
+caching permissions, truncating history or changing Live context selection.
 
 On `feature/gptlive`, GL-01 adds an experimental, disabled-by-default Live API
 session gateway. GL-02 seeds it from an immutable,

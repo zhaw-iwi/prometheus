@@ -30,6 +30,9 @@ public class Storage {
     }
 
     @OneToMany(cascade = { CascadeType.ALL }, fetch = FetchType.EAGER, orphanRemoval = true)
+    // A set otherwise permits eager joins with the agent's other collections,
+    // multiplying rows across storage/history/state graphs. Keep this read separate.
+    @org.hibernate.annotations.Fetch(org.hibernate.annotations.FetchMode.SELECT)
     // Entries have no positional meaning. A set lets Hibernate change individual
     // join-table links instead of deleting and recreating every link on removal.
     // Keep the existing storage_entries table/columns and eager detached access.

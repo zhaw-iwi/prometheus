@@ -15,6 +15,7 @@ import jakarta.persistence.EntityManagerFactory;
 
 @SpringBootTest(properties = {"prometheus.runtime.tick.enabled=false",
         "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.jpa.properties.hibernate.session_factory.statement_inspector=ch.zhaw.prometheus.application.StoragePersistenceIntegrationTest$FetchShapeInspector",
         "logging.level.org.hibernate.stat=OFF",
         "logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener=OFF"})
 class StoragePersistenceIntegrationTest {
@@ -22,6 +23,34 @@ class StoragePersistenceIntegrationTest {
     @Autowired EntityManagerFactory factory;
     @Autowired PlatformTransactionManager transactions;
     @Autowired javax.sql.DataSource dataSource;
+    @Autowired ch.zhaw.prometheus.repositories.AgentRepository agents;
+
+    public static class FetchShapeInspector implements org.hibernate.resource.jdbc.spi.StatementInspector {
+        static final ThreadLocal<Boolean> checking = new ThreadLocal<>();
+        @Override public String inspect(String sql) {
+            if (Boolean.TRUE.equals(checking.get()) && sql.contains("storage_entries")) {
+                assertFalse(sql.matches("(?s).*(?:from|join) (?:agent|state|policy|event|state_transitions) .*"),
+                        "Eager storage must not multiply the rows of the agent/state/history graph");
+            }
+            return sql;
+        }
+    }
+
+    @Test void eagerAgentReadKeepsStorageSeparateFromTheHistoryAndStateGraph() {
+        var storage = new Storage();
+        for (int i = 0; i < 30; i++) storage.put("key" + i, new JsonPrimitive(i));
+        var agent = new ch.zhaw.prometheus.model.Agent("Fetch shape", "",
+                new ch.zhaw.prometheus.model.State("read", new ch.zhaw.prometheus.model.policy.PromptPolicy("", null, null), java.util.List.of()), storage);
+        for (int i = 0; i < 30; i++) agent.getEventHistory().appendEvent(
+                ch.zhaw.prometheus.model.event.Event.observation("obs.test", "user", "event" + i));
+        var id = agents.saveAndFlush(agent).getId();
+        FetchShapeInspector.checking.set(true);
+        try {
+            var loaded = agents.findById(id).orElseThrow();
+            assertEquals(30, loaded.getStorage().size());
+            assertEquals(30, loaded.getEventHistory().toList().size());
+        } finally { FetchShapeInspector.checking.remove(); }
+    }
 
     @Test void existingJoinRowsReloadAndRemovalCostsDoNotGrowWithStorageSize() throws Exception {
         var storage = new Storage();
