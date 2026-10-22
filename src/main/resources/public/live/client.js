@@ -24,10 +24,12 @@ export class LiveClient {
       if (run.pendingDiagnostics.length > 16) run.pendingDiagnostics.shift();
       return;
     }
-    this.onDiagnostic({ ...value, browserMs: value.browserMs ?? performance.now(), agentId: run.agentId, handle: run.handle, generation: run.generation });
+    try {
+      this.onDiagnostic({ ...value, browserMs: value.browserMs ?? performance.now(), agentId: run.agentId, handle: run.handle, generation: run.generation });
+    } catch (_) { /* Observability cannot interrupt speech or prevent local cleanup. */ }
   }
   invalidate(reason = "Agent connection changed.") {
-    const closing = this.stop(reason); this.generation++; this.status("Idle", reason); return closing;
+    const closing = this.stop(reason, "Idle", "scope_change"); this.generation++; this.status("Idle", reason); return closing;
   }
   async gatherIce(run) {
     if (run.peer.iceGatheringState === "complete") return;
@@ -60,8 +62,10 @@ export class LiveClient {
           ]).get(code);
         } catch (_) { /* Empty or unknown error responses retain the generic status message. */ }
       }
-      throw new Error(detail || ({ 401: "Access is no longer valid.", 404: "Agent or session is unavailable.",
+      const error = new Error(detail || ({ 401: "Access is no longer valid.", 404: "Agent or session is unavailable.",
         409: "This agent already has an active voice session.", 503: "GPT-Live is disabled.", 502: "The voice provider is unavailable." })[response.status] || `Voice request failed (${response.status}).`);
+      error.liveReason = [401, 403].includes(response.status) ? "authorization_revoked" : "backend_failure";
+      throw error;
     }
     return response.json();
   }
@@ -75,9 +79,9 @@ export class LiveClient {
       const capability = await this.api(run, "capabilities"); this.check(run);
       if (!capability.enabled || !capability.eligible) throw new Error("This agent is not available for the GPT-Live pilot.");
       if (outputDeviceId && typeof this.audio.setSinkId !== "function") throw new Error("Speaker selection is unavailable. Choose the system default.");
-      run.output = this.createOutputLease(agentId, () => { if (this.current === run) void this.stop("Output ownership was lost.", "Disconnected"); });
+      run.output = this.createOutputLease(agentId, () => { if (this.current === run) void this.stop("Output ownership was lost.", "Disconnected", "output_ownership_lost"); });
       if (!run.output.acquire()) throw new Error("Another window owns this agent's speaker output.");
-      run.media = this.createMedia(() => { if (this.current === run) void this.stop("Another window owns the microphone.", "Disconnected"); });
+      run.media = this.createMedia(() => { if (this.current === run) void this.stop("Another window owns the microphone.", "Disconnected", "microphone_ownership_lost"); });
       await run.media.acquire(mediaPreferences);
       if (this.current !== run) { run.media.release(); return; }
       run.media.setEnabled(false);
@@ -87,31 +91,31 @@ export class LiveClient {
       this.check(run);
       run.peer = this.createPeer(); run.media.addTracks(run.peer);
       for (const track of run.media.stream.getAudioTracks()) run.audioMonitor.track(track, "input");
-      for (const track of run.media.stream.getAudioTracks()) track.addEventListener("ended", () => { if (this.current === run) void this.stop("Microphone disconnected. Reconnect when ready.", "Disconnected"); });
+      for (const track of run.media.stream.getAudioTracks()) track.addEventListener("ended", () => { if (this.current === run) void this.stop("Microphone disconnected. Reconnect when ready.", "Disconnected", "microphone_ended"); });
       run.peer.ontrack = event => {
         if (this.current !== run) return;
         this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
         if (event.track) run.audioMonitor.track(event.track, "output");
         this.diagnostic(run, { phase: "output_track" });
-        event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected"); });
-        Promise.resolve(this.audio.play()).catch(() => { if (this.current === run) void this.stop("Speaker playback was blocked.", "Error"); });
+        event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected", "output_track_ended"); });
+        Promise.resolve(this.audio.play()).catch(() => { if (this.current === run) void this.stop("Speaker playback was blocked.", "Error", "playback_blocked"); });
       };
-      run.peer.onconnectionstatechange = () => { if (this.current === run && ["failed", "disconnected", "closed"].includes(run.peer.connectionState)) void this.stop("Voice connection lost. Reconnect when ready.", "Disconnected"); };
+      run.peer.onconnectionstatechange = () => { if (this.current === run && ["failed", "disconnected", "closed"].includes(run.peer.connectionState)) void this.stop("Voice connection lost. Reconnect when ready.", "Disconnected", "transport_failure"); };
       run.channel = run.peer.createDataChannel("oai-events");
       let started;
       run.started = new Promise(resolve => { started = resolve; run.cancelStartup = resolve; });
-      run.channel.onclose = () => { if (this.current === run) void this.stop("Voice data connection closed.", "Disconnected"); };
+      run.channel.onclose = () => { if (this.current === run) void this.stop("Voice data connection closed.", "Disconnected", "data_channel_closed"); };
       run.channel.onmessage = ({ data }) => {
         if (this.current !== run) return;
         try {
           const event = JSON.parse(data);
           if (event.type === "session.input_transcript.delta" || event.type === "session.output_transcript.delta")
-            this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, providerStartMs: event.start_ms, providerEndMs: event.end_ms });
+            this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, direction: event.type === "session.output_transcript.delta" ? "output" : "input", providerStartMs: event.start_ms, providerEndMs: event.end_ms });
           if (event.type === "session.started") started();
           if (run.captions.receive(event)) this.onCaptions(run.captions.snapshot());
-          if (event.type === "session.closed") void this.stop("Voice session ended.", "Disconnected");
-          if (event.type === "error") void this.stop("The voice provider reported an error.", "Error");
-        } catch (_) { void this.stop("Invalid or excessive voice captions.", "Error"); }
+          if (event.type === "session.closed") void this.stop("Voice session ended.", "Disconnected", "provider_session_closed");
+          if (event.type === "error") void this.stop("The voice provider reported an error.", "Error", "provider_error");
+        } catch (_) { void this.stop("Invalid or excessive voice captions.", "Error", "invalid_provider_event"); }
       };
       const offer = await run.peer.createOffer(); this.check(run);
       await run.peer.setLocalDescription(offer); this.check(run);
@@ -133,7 +137,7 @@ export class LiveClient {
       if (this.pollMs) run.timer = setInterval(() => void this.poll(), this.pollMs);
       this.diagnostic(run, { phase: "started" });
     } catch (error) {
-      if (this.current === run) await this.stop(error?.name === "NotAllowedError" ? "Microphone permission was denied. Allow it in Chrome, then reconnect." : error.message, "Error");
+      if (this.current === run) await this.stop(error?.name === "NotAllowedError" ? "Microphone permission was denied. Allow it in Chrome, then reconnect." : error.message, "Error", error.liveReason || "startup_failed");
     }
   }
   async poll() {
@@ -143,7 +147,11 @@ export class LiveClient {
       const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
       const status = update.status;
       this.diagnostic(run, { phase: "status", status });
-      if (status.state !== "attached") throw new Error("Backend voice connection lost. Reconnect when ready.");
+      if (status.state !== "attached") {
+        const error = new Error("Backend voice connection lost. Reconnect when ready.");
+        error.liveReason = status.state === "closed" ? "backend_session_closed" : "backend_failure";
+        throw error;
+      }
       run.transcriptRevision = update.transcriptRevision;
       const ledger = update.transcripts;
       if (!Array.isArray(ledger)) return;
@@ -159,7 +167,7 @@ export class LiveClient {
         run.ledgerKey = key; run.captions.reconcile(ledger); this.onCaptions(run.captions.snapshot()); this.onLedger(ledger, run.agentId);
         const history = await this.api(run, "history"); this.check(run); this.onHistory(history, run.agentId);
       }
-    } catch (error) { if (this.current === run) await this.stop(error.message, "Disconnected"); }
+    } catch (error) { if (this.current === run) await this.stop(error.message, "Disconnected", error.liveReason || "backend_failure"); }
     finally { run.polling = false; }
   }
   async mute() {
@@ -168,21 +176,23 @@ export class LiveClient {
     try {
       const muted = !run.muted;
       await this.api(run, `sessions/${run.handle}/input?muted=${muted}`, { method: "POST" }); this.check(run);
-      run.muted = muted; run.media.setEnabled(!muted); this.status("Active", muted ? "Microphone muted. You can still hear the assistant." : "Microphone on.", { muted });
-    } catch (error) { if (this.current === run) await this.stop(error.message, "Error"); }
+      run.muted = muted; run.media.setEnabled(!muted);
+      this.diagnostic(run, { phase: "input_control", outcome: muted ? "muted" : "unmuted" }); this.status("Active", muted ? "Microphone muted. You can still hear the assistant." : "Microphone on.", { muted });
+    } catch (error) { if (this.current === run) await this.stop(error.message, "Error", error.liveReason || "input_control_failed"); }
     finally { run.muting = false; }
   }
-  stop(detail = "Voice stopped.", finalState = "Idle") {
+  stop(detail = "Voice stopped.", finalState = "Idle", reason = "operator_stop") {
     const run = this.current; if (!run) return this.closing || Promise.resolve();
     this.current = null; run.stopped = true;
     // Silence and release are synchronous, before any provider or backend response.
     this.audio.pause(); this.audio.muted = true; this.audio.srcObject = null;
+    this.diagnostic(run, { phase: "output_end", reason });
     run.audioMonitor.playback("local_stop"); run.audioMonitor.close();
     run.media?.release(); run.output?.release(); clearInterval(run.timer);
     run.channel?.close(); run.peer?.close();
     run.cancelStartup?.();
     run.cancelGathering?.();
-    this.diagnostic(run, { phase: "local_stop" });
+    this.diagnostic(run, { phase: "local_stop", reason });
     this.status("Stopping", detail);
     const closing = this.finalize(run).then(result => {
       this.diagnostic(run, { phase: "stopped", finalized: result?.finalized === true, status: result?.state ? result : undefined });

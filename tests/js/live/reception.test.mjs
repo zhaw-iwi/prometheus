@@ -18,6 +18,13 @@ function fixture(overrides = {}) {
   return { reception, calls, advance: ms => { now += ms; } };
 }
 
+test("departure, stale presence and operator stop pass distinct metadata without delaying silence", () => {
+  const causes = []; const { reception: r, advance } = fixture({ stop: (_, cause) => { causes.push(cause); } });
+  r.arm(); r.observe(1); r.observe(0); assert.equal(causes.at(-1), "visitor_departure");
+  r.arm(); advance(15000); r.checkFreshness(); assert.equal(causes.at(-1), "presence_stale");
+  r.disarm(); assert.equal(causes.at(-1), "operator_stop");
+});
+
 test("arming is quiet; only an acknowledged arrival starts one session", async () => {
   const { reception: r, calls } = fixture();
   r.arm(); assert.deepEqual(calls, ["waiting"]);
