@@ -8,6 +8,11 @@ public final class LiveShortReplyContext {
     public record Spoken(String statePath, Long endMs, Instant firstReceivedAt, Instant recordedAt) {}
     private LiveShortReplyContext() {}
 
+    public static boolean bareReply(String text) {
+        String value = text.trim().toLowerCase(java.util.Locale.ROOT).replaceAll("[.!?,]", "");
+        return List.of("yes", "no", "yeah", "yep", "ok", "okay", "ready", "again", "ja", "nein", "bereit", "weiter", "نعم", "لا").contains(value);
+    }
+
     public static boolean ambiguous(List<String> observedState, List<String> currentState,
             Long inputStart, Instant inputReceived, List<Spoken> recent,
             Instant latestAnnouncement, boolean activityOwned) {

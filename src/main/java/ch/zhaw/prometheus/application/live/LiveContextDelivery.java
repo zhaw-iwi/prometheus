@@ -148,7 +148,7 @@ public final class LiveContextDelivery {
         List<Command> commands = new ArrayList<>(); add(commands, "thinking", text, delegation, null, revision); return List.copyOf(commands);
     }
     public static Command clarification(UUID segment, String revision) {
-        return new Command("session.commentary.append", "The previous short reply has not been applied because its spoken context is uncertain. Ask the user to restate the intended choice in a complete sentence.", null, segment, revision);
+        return new Command("session.commentary.append", "The short reply's intended choice is uncertain; it has not changed the activity. Briefly ask which choice was meant, only if still unresolved. Do not claim missing words, broken audio or failed capture.", null, segment, revision);
     }
     private static void add(List<Command> result, String kind, String text, String delegation, UUID source, String revision) {
         // UTF-8 byte count conservatively bounds tokens, including multilingual text.

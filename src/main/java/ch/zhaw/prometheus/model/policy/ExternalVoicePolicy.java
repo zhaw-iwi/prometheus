@@ -18,6 +18,8 @@ public interface ExternalVoicePolicy {
     default long liveUserSilenceMs() { return 800; }
     /** Opt-in rejection of isolated input activity spikes for backend capture only. */
     default boolean liveFilterIsolatedInputActivity() { return false; }
+    /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */
+    default boolean liveNonMutatingAcknowledgement(String transcript) { return false; }
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */
