@@ -4838,17 +4838,19 @@ async function submitHandSign(sign, options = {}) {
 }
 
 async function fetchWeatherCurrent() {
+  setWeatherReportStatus("Fetching weather", "idle");
   try {
     const payloads = await loadWeatherPayloads();
     weather.current = payloads.current;
     weather.forecast = payloads.forecast;
     weather.locationQuery = weatherLocationQuery();
     renderWeatherPayload(weather.current);
-    setWeatherReportStatus("Fetched current", "live");
+    setWeatherReportStatus("Fetched current — not sent", "idle");
     appendLog("weather", "current weather fetched.");
     return true;
   } catch (error) {
     renderWeatherStatus("Weather unavailable");
+    setWeatherReportStatus(`Fetch failed — ${errorMessage(error)}`, "error");
     appendLog("weather", errorMessage(error));
     return false;
   }
@@ -4856,6 +4858,7 @@ async function fetchWeatherCurrent() {
 
 async function sendWeatherCurrent() {
   if (!state.agentId) {
+    setWeatherReportStatus("Not sent — connect an agent", "idle");
     appendLog("weather", "send skipped: no agent.");
     return false;
   }
@@ -4865,6 +4868,7 @@ async function sendWeatherCurrent() {
       return false;
     }
   }
+  setWeatherReportStatus("Sending current", "idle");
   const data = await acknowledgeEvent({
     type: "obs.weather.current",
     actor: "system",
@@ -4874,29 +4878,35 @@ async function sendWeatherCurrent() {
   if (data) {
     setWeatherReportStatus(`Sent current ${new Date().toLocaleTimeString()}`, "live");
     appendLog("weather", "current weather sent.");
+  } else {
+    setWeatherReportStatus("Send current failed — retry", "error");
   }
   return !!data;
 }
 
 async function sendWeatherForecast() {
   if (!state.agentId) {
+    setWeatherReportStatus("Not sent — connect an agent", "idle");
     appendLog("weather", "send skipped: no agent.");
     return false;
   }
   if (!weather.forecast || weather.locationQuery !== weatherLocationQuery()) {
+    setWeatherReportStatus("Fetching weather", "idle");
     try {
       const payloads = await loadWeatherPayloads();
       weather.current = payloads.current;
       weather.forecast = payloads.forecast;
       weather.locationQuery = weatherLocationQuery();
       renderWeatherPayload(weather.forecast);
-      setWeatherReportStatus("Fetched forecast", "live");
+      setWeatherReportStatus("Fetched forecast — not sent", "idle");
     } catch (error) {
       renderWeatherStatus("Weather unavailable");
+      setWeatherReportStatus(`Fetch failed — ${errorMessage(error)}`, "error");
       appendLog("weather", errorMessage(error));
       return false;
     }
   }
+  setWeatherReportStatus("Sending forecast", "idle");
   const data = await acknowledgeEvent({
     type: "obs.weather.forecast",
     actor: "system",
@@ -4906,6 +4916,8 @@ async function sendWeatherForecast() {
   if (data) {
     setWeatherReportStatus(`Sent forecast ${new Date().toLocaleTimeString()}`, "live");
     appendLog("weather", "weather forecast sent.");
+  } else {
+    setWeatherReportStatus("Send forecast failed — retry", "error");
   }
   return !!data;
 }
@@ -5193,6 +5205,7 @@ function resetWeatherReport() {
 }
 
 function setWeatherReportStatus(text, mode = "idle") {
+  setText("weather_action_status", text);
   const el = document.getElementById("weather_report_status");
   if (!el) {
     return;
