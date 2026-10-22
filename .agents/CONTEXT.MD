@@ -379,6 +379,11 @@ now bypass classification and preserve their target/round. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
 Other language interpretation remains model-dependent. Content-free control
 stages record applied transitions without replacing the current readiness cue.
+The Live admission hook also accepts exact non-control replies after a fresh game
+result without requiring an assistant segment in the new state. Other yes/no/task
+decisions retain conservative admission. Unsent clarifications expire after ten
+seconds and are suppressed by later accepted requests or changed state/occasion,
+without extra database reads; they never claim that captured speech was incomplete.
 Its session-fixed backend user-turn
 quiet window is 2,000 ms, selected through the generic ExternalVoicePolicy hook;
 other agents and assistant capture retain 800 ms. Telemetry exports the effective

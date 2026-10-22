@@ -1259,3 +1259,42 @@ Verification:
 
 GI-19 follows under the approved consecutive plan. The accepted GI-14 limitation,
 physical audio/camera quality and GI-11 capacity remain open.
+
+## GI-19 / Milestone 246 - short replies and stale recovery (2026-10-22)
+
+Shared implementation 18b15e6 plus 4617920 follows feature/gptlive -> main ->
+agents. The application-owned acknowledgement hook defaults false; Gala opts in
+only where its action guarantees no control. Active-game acknowledgements and
+neutral receipt/thanks after a fresh completed round preserve state and outcome
+expiry. Affirmative reception choices, task acceptance, bare yes/no, expired
+outcomes and compound requests retain normal context checks. Durable receipts,
+input observations and transcript reasons remain unchanged.
+
+Unsent recovery retains segment/source-state/occasion and a ten-second deadline.
+Later admitted non-bare user input supersedes older recovery; assistant/incomplete
+input and routine sensing do not. Recheck follows provider waits, including an
+occasion change within the same state. Queue/deduplication remain bounded; no
+inference, database poll or new receipt query is introduced. Live is asked to
+clarify the intended choice without claiming broken audio or missing words.
+Already-sent provider speech cannot be unsent.
+
+Verification:
+
+- Shared 35 units and 13 local boundary/query cases passed; the additional
+  occasion race passed in the 26-case delivery/clarification rerun. Commands and
+  worktree evidence are in GPTLIVE_RESULTS (a72ecf6032 and gi19-occasion-unit.log).
+- Integrated final focused suite: 105 unit cases passed with mvnw.cmd -q
+  -Dtest=GalaLiveFollowupUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerTaskUnitTest,LiveClarificationsUnitTest,LiveContextDeliveryUnitTest test.
+  Evidence: target/gi19-final-unit.log. All-state instruction cap is unchanged.
+- Ten isolated integration cases passed: both Gala variants, five Generic cases,
+  both Social Space variants and the mixed-minute query case. Command:
+  python tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests
+  GalaDinnerReceptionJourneySmokeIntegrationTest,GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,QueryVolumeIntegrationTest#galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture.
+  Evidence: target/gptlive-acceptance-446c408a9f/java.log. Cost 1,571/1,700 Questions;
+  schema/account removed. This run preceded only the final shared occasion fence,
+  separately covered by the focused integrated rerun.
+- git diff --check passed. No production database or physical/device test.
+
+GI-20 follows. Actual spoken clarification and remaining quality limits are part
+of GI-22; this milestone does not close GI-14 or fixed-quota capacity gates.

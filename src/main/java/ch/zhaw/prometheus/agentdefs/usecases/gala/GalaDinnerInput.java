@@ -36,6 +36,19 @@ final class GalaDinnerInput {
                 "got it", "thanks", "thank you").contains(normalize(speech));
     }
 
+    static boolean nonMutatingAcknowledgement(ch.zhaw.prometheus.model.Storage storage, String speech, java.time.Instant now) {
+        if (!acknowledgement(speech)) return false;
+        String mode = GalaDinnerMemory.mode(storage);
+        if (java.util.Set.of("GUESS", "RPS").contains(mode)) return true;
+        // An affirmative acceptance can still select the next game/task. Only neutral
+        // receipt/thanks forms qualify after a completed round in reception.
+        if (!"RECEPTION".equals(mode) || !java.util.Set.of("ok", "okay", "alles klar", "verstanden",
+                "danke", "vielen dank", "thanks", "thank you", "got it").contains(normalize(speech))) return false;
+        return !GalaDinnerMemory.recentOutcome(storage, now).isBlank()
+                || now.isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES))
+                && GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, "").startsWith("RPS round completed.");
+    }
+
     static boolean orderedCueSequence(String speech) {
         String value = normalize(speech);
         String hand = "(?:stein|schere|papier|rock|scissors?|paper)";

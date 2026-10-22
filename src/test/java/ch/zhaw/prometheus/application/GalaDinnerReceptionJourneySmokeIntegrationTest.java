@@ -170,6 +170,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertTrue(guessing.facts().contains("not alive"));
             calls = requests.size();
             say(first, "Ja, gerne.");
+            say(first, "Okay"); // Recorded assistant segment can still belong to the preceding state.
             say(first, "Alles klar, danke.", control("WAIT")); // Free-form wording retains the ordinary classifier.
             assertEquals(calls + 1, requests.size());
             assertEquals("Albert Einstein", loaded().getStorage().get("gala.person").getAsString());
@@ -222,6 +223,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
             assertTrue(hearAnnouncement(first).contains("winner: agent"));
             assertReception();
+            calls = requests.size();
+            say(first, "Okay");
+            assertEquals(calls, requests.size()); assertReception();
             long results = history().stream().filter(event -> event.getPayload().contains("\"phase\":\"round_result\"")).count();
             hand("paper", Instant.now());
             assertEquals(results, history().stream().filter(event -> event.getPayload().contains("\"phase\":\"round_result\"")).count());

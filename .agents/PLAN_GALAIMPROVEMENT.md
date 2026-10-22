@@ -820,7 +820,10 @@ Acceptance:
 
 ### GI-19 - Context-aware short replies and obsolete clarification cancellation
 
-Status: PROPOSED.
+Status: IMPLEMENTED / Milestone 246. Gala's exact non-control acknowledgement
+opt-in and bounded source-state/occasion clarification validity pass shared units,
+durable-ingress/query tests and all three representative journeys. Already-sent
+speech remains non-retractable; provider wording acceptance follows in GI-22.
 
 Separate harmless acknowledgement from a context-dependent decision. For Gala's
 opted-in activity ownership, an "Okay" after an RPS outcome may be recorded and

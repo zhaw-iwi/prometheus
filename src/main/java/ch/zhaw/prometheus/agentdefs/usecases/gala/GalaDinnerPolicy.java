@@ -48,6 +48,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public boolean liveFilterIsolatedInputActivity() { return true; }
+    @Override public boolean liveNonMutatingAcknowledgement(String transcript) {
+        return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
+    }
     @Override public boolean livePendingAcknowledgements() { return false; }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);

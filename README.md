@@ -419,6 +419,9 @@ A recognized explicit give-up with forbidden disclosure ends without revealing.
 Content-free `gala_control/` activity stages record before/after modes and applied
 operations, leaving the existing readiness cue intact. Free-form exits remain
 model-dependent; this is not a blanket yes/no admission bypass.
+Neutral receipt/thanks replies after a fresh completed game also take this path.
+They can be admitted despite the preceding assistant segment's old state; an
+affirmative game choice or task acceptance still needs established context.
 
 Gala uses explicit Backchannel, Interruption and Delegation guidance, retaining
 Live-owned wording and automatic backend transcript admission. The repeated

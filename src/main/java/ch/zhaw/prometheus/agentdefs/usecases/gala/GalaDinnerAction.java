@@ -76,6 +76,7 @@ public class GalaDinnerAction extends Action {
         // Keep the original transcript in history, but sound annotations do not authorize task control
         // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
         if (utterance.isBlank()) return;
+        boolean acknowledgement = GalaDinnerInput.nonMutatingAcknowledgement(storage, utterance, now);
         GalaDinnerSensing.cancelAmbient(storage);
         if (expiredBeforeTurn(storage, now)) {
             if ("RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", events.toList().getLast().getId());
@@ -100,7 +101,7 @@ public class GalaDinnerAction extends Action {
             return;
         }
         String mode = mode(storage);
-        if (Set.of("GUESS", "RPS").contains(mode) && GalaDinnerInput.acknowledgement(utterance)) {
+        if (acknowledgement) {
             traceControl(events, mode, "LOCAL", "WAIT", mode, "acknowledgement");
             return;
         }

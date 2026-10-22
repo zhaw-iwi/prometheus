@@ -82,6 +82,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-19 / Milestone 246: Gala non-control replies after game results avoid false
+  short-reply clarification. Shared recovery is bounded by source state, speaking
+  occasion, later admitted input and ten-second expiry, including ACK-wait races.
+  Shared units/durable boundary tests and all three journeys pass; mixed-minute
+  queries remain 1,571/1,700. GI-20 follows; provider wording and physical gates
+  remain separate. See GALAIMPROVEMENT_RESULTS.
+
 - GI-18 / Milestone 245: complete neutral acknowledgements preserve active Gala
   games without inference; explicit no-reveal give-up ends quietly. Content-free
   control stages expose selected/applied transitions. Focused units and both local
@@ -659,6 +666,7 @@ and regulation diagnostics remain future work.
 
 ## Historical milestones checklist
 
+- [x] Milestone 246: Context-aware short replies and stale clarification cancellation
 - [x] Milestone 245: Preserve Gala games on harmless acknowledgements
 - [x] Milestone 224: Complex-agent database query reduction
 - [x] Milestone 225: Gala guessing answers, give-up reveal and echo suppression

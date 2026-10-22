@@ -99,6 +99,26 @@ class GalaLiveFollowupUnitTest {
             assertFalse(GalaDinnerInput.giveUpWithoutReveal(text), text);
     }
 
+    @Test void onlyNeutralCompletedRoundRepliesOptOutOfAmbiguousAdmission() {
+        var policy = new GalaDinnerPolicy(memory);
+        assertFalse(policy.liveNonMutatingAcknowledgement("Okay"));
+        say("START_RPS", "Schere Stein Papier bitte"); hand();
+        assertEquals("RECEPTION", mode(memory));
+        assertTrue(policy.liveNonMutatingAcknowledgement("Okay!"));
+        for (String input : List.of("Ja", "Nein", "Ja, gerne", "Okay, Personenraten bitte"))
+            assertFalse(policy.liveNonMutatingAcknowledgement(input), input);
+        clearInvocations(gateway);
+        String occasion = text(memory, CONTINUATION_ID, "");
+        say("START_GUESS", "Okay");
+        verify(gateway, never()).infer(any()); assertEquals("RECEPTION", mode(memory));
+        assertEquals(occasion, text(memory, CONTINUATION_ID, ""));
+        put(memory, CONTINUATION_EXPIRES, Instant.now().minusSeconds(1).toString());
+        assertFalse(policy.liveNonMutatingAcknowledgement("Okay"));
+        put(memory, MODE, "TASK");
+        assertFalse(policy.liveNonMutatingAcknowledgement("Okay"));
+        assertFalse(new GalaDinnerTaskPolicy(memory).liveNonMutatingAcknowledgement("Okay"));
+    }
+
     @Test void exportCurrentControlParaphrasesForProviderComparison() throws Exception {
         var rows = new JsonArray();
         for (var entry : List.of(
