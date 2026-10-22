@@ -17,6 +17,7 @@ const cues = { waiting_for_cue: "Waiting for a cue", cooldown: "Waiting for the 
   rps_not_started: "No hand-game round is active", rps_waiting_for_sign: "Show one steady hand sign",
   rps_low_confidence: "Waiting for a clearer hand sign", rps_unstable_sign: "Hold one hand sign steady",
   rps_stale_sign: "Waiting for a fresh hand sign", rps_out_of_order: "Waiting for a newer hand sign",
+  rps_wrong_capture: "Waiting for this round's hand sign",
   rps_invalid_sign: "Waiting for rock, paper or scissors", rps_round_completed: "Hand-game round completed",
   rps_cancelled: "Hand-game round ended" };
 export const ISSUE_CATEGORIES = ["speech_cut_off", "long_pause", "unexpected_response", "missed_cue"];
