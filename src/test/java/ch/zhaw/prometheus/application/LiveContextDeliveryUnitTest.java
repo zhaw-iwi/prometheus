@@ -35,9 +35,28 @@ class LiveContextDeliveryUnitTest {
         try {
             session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
             assertEquals(optional ? 0 : 1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
-            assertEquals(optional ? 1 : 0, session.status().recent().stream().filter(t -> t.phase().equals("ambient_superseded_by_speech")).count());
+            assertEquals(optional ? 1 : 0, session.status().recent().stream().filter(t -> t.phase().equals("ambient_superseded")).count());
             busy.set(false); session.request();
             assertEquals(optional ? 0 : 1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
+        } finally { bridge.shutdown(); }
+    }
+    @Test void supersededAmbientContextDuringDeliveryCannotReleaseItsOldComment() {
+        var contexts = mock(LiveAgentContextService.class); var initial = snapshot("r0", "Guide");
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH); var id = UUID.randomUUID();
+        var occasion = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(id,
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.PROACTIVE, "Optional group comment", Instant.EPOCH.plusSeconds(10), true);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, List.of("state"), "Guide", List.of(), 0,
+                initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Group facts", occasion));
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var bridge = new LiveContextBridgeService(contexts, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var session = bridge.open(initial, owner, c -> {
+            sent.add(c); if (id.equals(c.sourceId())) bridge.changed(new AgentCommitted(AGENT, EPOCH, null));
+        }, ignored -> applied.incrementAndGet(), reason -> fail(reason));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            assertTrue(sent.stream().noneMatch(c -> c.type().equals("session.commentary.append")));
+            assertEquals(1, session.status().recent().stream().filter(t -> t.phase().equals("ambient_superseded")).count());
         } finally { bridge.shutdown(); }
     }
     @Test void slowFactAcknowledgementCannotReleaseAnExpiredSpeakingOccasion() {
