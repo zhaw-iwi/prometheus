@@ -415,7 +415,7 @@ including stop requests, are still processed. `WAIT` lets harmless reactions sta
 in reception or either game without producing another response. Interpretation
 of other free-form language remains model-dependent.
 
-Within an active guessing/RPS game, complete neutral acknowledgements such as
+Within an active guessing/RPS game without a pending exit decision, complete neutral acknowledgements such as
 "Ja, gerne", "Okay", "Alles klar" and "Danke" preserve the round without calling
 the classifier or adding a speaking occasion. Prefixes do not hide a subsequent
 request. Reception choices and task acceptance retain their existing interpretation.
@@ -423,7 +423,7 @@ A recognized explicit give-up with forbidden disclosure ends without revealing.
 Content-free `gala_control/` activity stages record before/after modes and applied
 operations, leaving the existing readiness cue intact. Free-form exits remain
 model-dependent; this is not a blanket yes/no admission bypass.
-Bare follow-ups such as "Und jetzt?" preserve the current reception/game activity
+Bare follow-ups such as "Und jetzt?" preserve the current reception/game activity outside exit confirmation
 without classification. A direct facial question sets a 30-second topic hint;
 substantive topic changes and encounter end clear it. Sensor updates and follow-ups
 do not renew it. Live uses its preceding conversation and latest fresh face estimate. Low-confidence estimates
@@ -434,6 +434,22 @@ occasionally misinterpret a follow-up; this is guidance, not deterministic speec
 Neutral receipt/thanks replies after a fresh completed game also take this path.
 They can be admitted despite the preceding assistant segment's old state; an
 affirmative game choice or task acceptance still needs established context.
+
+An unrelated request during RPS/guessing asks whether to **end the game** before
+answering. The backend retains the target/sign and original request while awaiting
+that decision, suspends hand acceptance, and shows "Waiting for your decision".
+Yes ends without revealing the person and supplies the original question for Live;
+no resumes the same round. Bare replies still require established spoken context.
+Ambiguous replies preserve the decision. Explicit Stop/silence, encounter close and
+the existing idle timeout still clear it. Resumed RPS rejects signs observed during
+the question. Narrow institution/programme phrases have a deterministic safeguard;
+other topic interpretation and spoken compliance remain model-dependent.
+
+Live may give one brief pending-confirmation status after a noticeable wait for a
+requested game/task. It must not claim a lookup or progress without evidence.
+Programme/institute facts are already in context; ordinary reference and guessing
+answers get no waiting preamble. This is prompt guidance, not an enforced timer or
+speech barrier; it adds no polling or duplicate backend utterance.
 
 Gala uses explicit Backchannel, Interruption and Delegation guidance, retaining
 Live-owned wording and automatic backend transcript admission. The repeated
@@ -454,8 +470,13 @@ journey checks result submission/recording, not real provider speech or audibili
 
 The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
 
-- RPS commits a hidden sign before inviting a fresh camera hand sign, calculates
-  the result locally, emits `motion.handSign` and returns to reception. Accepted
+- RPS commits its sign and immediately emits `motion.handSign` with the start
+  invitation, then accepts the next fresh stable camera sign. It calculates the
+  result locally and returns to reception without repeating the gesture. This is
+  deliberately an early reveal: the visitor can see Gigi's choice before choosing.
+  There is no exact spoken countdown/capture synchronisation. The existing camera
+  reset clears cooldown; delayed older ACKs cannot restore it. Physical gesture
+  execution, camera attribution and result latency still need device testing. Accepted
   signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after round
   entry; optional numeric confidence must be between 0.7 and 1. Spoken signs do
   not finish the round. Live must wait for the backend result.
@@ -473,7 +494,7 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   recent outcome and current-mode operation choices; they do not renew its expiry.
   Free-form classification remains model-dependent and invalid control cannot
   change the activity. Genuine failures retain the existing recovery path.
-  Stop, silence, departure, timeout and unrelated topics do not reveal.
+  Stop, silence, departure, timeout and confirmed topic exits do not reveal.
   Hypothetical/negated give-up preserves the round. This trades the former model-side
   secrecy boundary for responsive conversation: premature disclosure is now a model
   instruction risk, covered by provider trials and the manual script.

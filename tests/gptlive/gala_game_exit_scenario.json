@@ -1,0 +1,28 @@
+{
+  "settleOutput": true,
+  "clips": {
+    "guess": "Personenraten bitte.",
+    "institute": "Was macht das IWI?",
+    "no": "Nein, ich möchte weiterspielen.",
+    "question": "Lebt die Person noch?",
+    "food": "Wann beginnt das Essen?",
+    "yes": "Ja, beende das Spiel und beantworte meine Frage.",
+    "rps": "Ich möchte Schere Stein Papier spielen."
+  },
+  "steps": [
+    {"audio": "guess", "waitMs": 1500},
+    {"context": "guessStart", "waitMs": 7000},
+    {"audio": "institute", "waitMs": 1500},
+    {"context": "confirmation", "waitMs": 7000},
+    {"audio": "no", "waitMs": 1500},
+    {"context": "continueGame", "waitMs": 6000},
+    {"audio": "question", "waitMs": 6500},
+    {"audio": "food", "waitMs": 1500},
+    {"context": "confirmationAgain", "waitMs": 7000},
+    {"audio": "yes", "waitMs": 1500},
+    {"context": "exitGame", "waitMs": 8000},
+    {"audio": "rps", "waitMs": 6000},
+    {"context": "rpsStart", "waitMs": 7000},
+    {"context": "rpsEnd", "waitMs": 7000}
+  ]
+}

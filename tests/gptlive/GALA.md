@@ -183,3 +183,25 @@ beginnt erst bei der erkannten Null-Personen-Meldung; Erkennungszeit separat bea
 Jede Antwort fertig sprechen lassen. Besonders Schritte 5/6 mit Zeit und gehoerter
 Antwort notieren: Providerproben zeigen hier noch variable Formulierungen. Ein
 passender Untertitel allein bestaetigt nicht, dass jedes Wort hoerbar war.
+
+## Spielwechsel und fruehe Handgeste (GI-23)
+
+Frische Gala-Instanz verwenden und Cockpit hart neu laden.
+
+1. Personenraten starten. "Was macht das IWI?" fragen: zuerst die Frage, ob das
+   Spiel beendet werden soll; noch keine Sachantwort oder Namensaufloesung.
+2. "Nein" sagen, weiterfragen: gleiche Person. Dann "Wann beginnt das Essen?"
+   fragen und diesmal "Ja" sagen: Spiel endet, urspruengliche Frage wird beantwortet.
+3. Schere, Stein, Papier starten: Gigi fordert seine Handgeste bereits beim Start an.
+   Eine Hand ruhig zeigen: genau ein Ergebnis, keine zweite Ausfuehrung derselben Geste.
+   Zeit von sichtbarem Zeichen bis Ergebnis notieren; keine exakte Synchronisation erwarten.
+4. In einer weiteren RPS-Runde eine Institutsfrage stellen und waehrend der
+   Rueckfrage ein Zeichen zeigen: kein Ergebnis. "Nein" sagen, danach ein frisches
+   Zeichen zeigen: dieselbe Gigi-Wahl und genau ein Ergebnis.
+5. Bei merklicher Wartezeit auf einen Spiel-/Aufgabenstart darf ein kurzer Hinweis
+   auf ausstehende Bestaetigung kommen. Keine behauptete Recherche beim Gala-Programm,
+   kein Fragen-Echo, keine wiederholten Wartefloskeln. Stop bleibt unmittelbar.
+
+Gigis eigene Hand aus dem Kamerabereich fuer Besucherhaende halten. Physische
+Ausfuehrung, Erkennung und gesprochenes Timing werden durch Backendtests nicht bewiesen.
+Letzte-Wort-Abbrueche und ein exakt synchroner Countdown bleiben separate Folgearbeit.

@@ -74,8 +74,10 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(instructions.contains("truthful status and one useful next step"));
                 assertTrue(instructions.contains("never a made-up cause"));
                 assertTrue(instructions.contains("not a guessed age or identity"));
-                assertTrue(instructions.contains("waiting acknowledgment or promise"));
-                assertTrue(instructions.contains("Wait silently for confirmed starting facts"));
+                assertTrue(instructions.contains("No invented lookup"));
+                assertTrue(instructions.contains("one brief status"));
+                assertTrue(instructions.contains("No status for reference/guessing answers"));
+                assertTrue(instructions.contains("Await confirmed starting facts"));
                 assertFalse(instructions.contains("You may acknowledge immediately"));
                 assertFalse(instructions.contains("you may say you are checking"));
                 assertTrue(instructions.contains("One response per visitor turn"));

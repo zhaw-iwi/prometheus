@@ -41,6 +41,7 @@ final class GalaDinnerInput {
     }
 
     static boolean nonMutatingAcknowledgement(ch.zhaw.prometheus.model.Storage storage, String speech, java.time.Instant now) {
+        if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)) return false;
         if (!acknowledgement(speech)) return false;
         String mode = GalaDinnerMemory.mode(storage);
         if (java.util.Set.of("GUESS", "RPS").contains(mode)) return true;
@@ -61,6 +62,24 @@ final class GalaDinnerInput {
         String then = "\\b.*\\b(?:dann|danach|then)\\b.*\\b";
         return value.matches(order + hand + then + face + "\\b.*")
                 || value.matches(order + face + then + hand + "\\b.*");
+    }
+
+    static String exitConfirmation(String speech) {
+        String value = normalize(speech);
+        if (java.util.Set.of("ja", "ja bitte", "ja gerne", "ja gern", "yes", "yes please", "sure",
+                "beenden", "spiel beenden", "end the game").contains(value)) return "EXIT_GAME";
+        if (java.util.Set.of("nein", "nein danke", "no", "no thanks", "weiterspielen", "weiter spielen",
+                "lass uns weiterspielen", "keep playing", "continue playing").contains(value)) return "KEEP_GAME";
+        return null; // Okay, quoted answers and mixed requests need contextual classification.
+    }
+
+    static boolean explicitReferenceQuestion(String speech) {
+        // Whole, unambiguous institution/programme questions only. "Does the person work at ZHAW?"
+        // and pronoun-based guesses deliberately remain with ordinary game interpretation.
+        String value = normalize(speech);
+        return value.matches("(?:was (?:macht|ist|bedeutet) (?:das |die |der )?|what is (?:the )?)"
+                + "(?:iwi|sml|sira(?: lab)?|institut für wirtschaftsinformatik|school of management and law|home of innovation)")
+                || value.matches("wann (?:beginnt|startet) (?:das |der )?(?:essen|dinner|gala dinner|hauptgang|programm)(?: heute(?: abend)?)?");
     }
 
     static boolean giveUpWithoutReveal(String speech) {

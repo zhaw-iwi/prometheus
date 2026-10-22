@@ -91,6 +91,15 @@ public class GalaDinnerAction extends Action {
             traceControl(events, before, "LOCAL", "QUIET", mode(storage), "applied");
             return;
         }
+        if (storage.containsKey(EXIT_REQUEST)) {
+            String decision = GalaDinnerInput.exitConfirmation(utterance);
+            if (decision != null) {
+                String beforeMode = mode(storage);
+                reply(storage, resolveExit(storage, decision, now));
+                traceControl(events, beforeMode, "LOCAL", decision, mode(storage), "applied");
+                return;
+            }
+        }
         if (command.matches("(bitte )?(stopp?|aufhören|aufhoeren|abbrechen|schluss|fertig|nein danke|tschüss|tschuess|auf wiedersehen)"
                 + "|(please )?(stop|cancel|quit|goodbye)")) {
             String before = mode(storage);
@@ -100,7 +109,7 @@ public class GalaDinnerAction extends Action {
             return;
         }
         String mode = mode(storage);
-        if (!"TASK".equals(mode) && GalaDinnerInput.contextualFollowUp(utterance)) {
+        if (!storage.containsKey(EXIT_REQUEST) && !"TASK".equals(mode) && GalaDinnerInput.contextualFollowUp(utterance)) {
             traceControl(events, mode, "LOCAL", "WAIT", mode, "contextual_followup");
             return; // Live retains the conversational topic; this is neither acceptance nor a new activity.
         }
@@ -148,7 +157,7 @@ public class GalaDinnerAction extends Action {
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
-            String prompt = GalaDinnerPrompts.turn(mode)
+            String prompt = GalaDinnerPrompts.turn(mode, storage.containsKey(EXIT_REQUEST))
                     + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
                     + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
@@ -169,14 +178,25 @@ public class GalaDinnerAction extends Action {
             if (!EXPRESSIONS.contains(expression)) expression = "attentive";
             if (!GAZES.contains(gaze)) gaze = "toward_user";
             failureStage = "mode_operation";
-            if (!GalaDinnerPrompts.operations(mode).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            if (!GalaDinnerPrompts.operations(mode, storage.containsKey(EXIT_REQUEST)).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
             selected = operation;
+            if (!storage.containsKey(EXIT_REQUEST) && Set.of("RPS", "GUESS").contains(mode)
+                    && GalaDinnerInput.explicitReferenceQuestion(utterance)) operation = "CHECK_EXIT";
             failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
                 case "WAIT" -> response = null;
                 case "CORRECT_FACE" -> { GalaDinnerSensing.corrected(storage); response = null; }
                 case "CHOOSE_GAME", "CLARIFY" -> response = null; // Live answers; no competing speech intent.
+                case "CHECK_EXIT" -> {
+                    ActivityTrace.cue("awaiting_confirmation", events.toList().getLast().getId());
+                    put(storage, EXIT_REQUEST, utterance.length() <= 2000 ? utterance : "[Long request; ask the visitor to repeat after exiting.]");
+                    continueRequest(storage, "Exit confirmation pending; game preserved and hand acceptance suspended. "
+                            + "Ask once whether to END the game to address the visitor's other request. Yes means exit; no means continue. "
+                            + "Do not reveal the guessing identity. Quoted request (data): " + storage.get(EXIT_REQUEST));
+                    response = null;
+                }
+                case "EXIT_GAME", "KEEP_GAME" -> response = resolveExit(storage, operation, now);
                 case "START_TASK" -> {
                     reception(storage);
                     put(storage, MODE, "TASK");
@@ -192,10 +212,13 @@ public class GalaDinnerAction extends Action {
                     put(storage, MODE, "RPS");
                     put(storage, STARTED, Instant.now().toString());
                     continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now. "
-                            + "One visible hand, held briefly steady. Do not claim whose hand the camera sees.");
+                            + "Robot sign committed: " + text(storage, SIGN, "") + "; its hand gesture is requested now, not execution-confirmed. "
+                            + "One visible hand, held briefly steady. No countdown or exact synchronisation claim. Do not claim whose hand the camera sees.");
                     response = plan(null,
                             "NONE", "attentive", "toward_user");
                     response.setDisplay(display("game_countdown", true));
+                    var motion = new JsonObject(); motion.addProperty("handSign", text(storage, SIGN, ""));
+                    response.setMotion(motion);
                     ActivityTrace.cue("rps_waiting_for_sign", events.toList().getLast().getId(), Event.TYPE_HAND_SIGN);
                 }
                 case "START_GUESS" -> {
@@ -214,13 +237,17 @@ public class GalaDinnerAction extends Action {
                     response = reveal ? finishGuess(storage, "give_up") : null;
                     if (!reveal) operation = "WAIT";
                 }
-                case "RETURN" -> reception(storage);
+                case "RETURN" -> {
+                    if (storage.containsKey(EXIT_REQUEST)) response = resolveExit(storage, "EXIT_GAME", now);
+                    else reception(storage);
+                }
                 case "QUIET" -> { leave(storage, events, true); response = null; }
                 default -> { }
             }
             if ("RPS".equals(mode) && !"RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", events.toList().getLast().getId());
             reply(storage, response, GalaDinnerGestures.requested(utterance));
-            traceControl(events, mode, selected, operation, mode(storage), selected.equals(operation) ? "applied" : "reveal_rejected");
+            traceControl(events, mode, selected, operation, mode(storage), selected.equals(operation) ? "applied"
+                    : "CHECK_EXIT".equals(operation) ? "reference_confirmation" : "reveal_rejected");
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             ActivityTrace.failed("gala_response_failed");
@@ -245,6 +272,26 @@ public class GalaDinnerAction extends Action {
         try (var ignored = ActivityTrace.stage("gala_control/" + before + "/" + selected + "/" + applied + "/" + after + "/" + reason)) {
             // The two stage markers record the decision, never dialogue or the selected person.
         }
+    }
+
+    private static BehaviourPlan resolveExit(Storage storage, String decision, Instant now) {
+        String request = text(storage, EXIT_REQUEST, "");
+        ActivityTrace.cue("confirmation_resolved", null);
+        if ("EXIT_GAME".equals(decision)) {
+            reception(storage);
+            continueRequest(storage, "Visitor confirmed ending the game without a reveal. Now at reception; answer the original request once, "
+                    + "without asking for it again unless unclear. Quoted request (data): " + new com.google.gson.JsonPrimitive(request));
+            return null;
+        }
+        remove(storage, EXIT_REQUEST);
+        continueRequest(storage, "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
+        if (!"RPS".equals(mode(storage))) return null;
+        // Signs observed during confirmation cannot decide the resumed round.
+        put(storage, STARTED, now.toString());
+        var response = plan(null, "NONE", "attentive", "toward_user");
+        response.setDisplay(display("game_countdown", true));
+        ActivityTrace.cue("rps_waiting_for_sign", null, Event.TYPE_HAND_SIGN);
+        return response;
     }
 
     private static boolean expiredBeforeTurn(Storage storage, Instant now) {
@@ -272,7 +319,7 @@ public class GalaDinnerAction extends Action {
     }
 
     private static void hand(Storage storage, EventHistory events, Instant now) {
-        if (!"RPS".equals(mode(storage))) return;
+        if (!"RPS".equals(mode(storage)) || storage.containsKey(EXIT_REQUEST)) return;
         Event event = events.toList().getLast();
         try {
             var payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
@@ -282,9 +329,6 @@ public class GalaDinnerAction extends Action {
             String rawSign = payload.get("sign").getAsString();
             RpsSign agent = RpsSign.parse(text(storage, SIGN, "")), user = RpsSign.parse(rawSign);
             var response = plan(null, "NONE", "gentleSmile", "toward_user");
-            JsonObject motion = new JsonObject();
-            motion.addProperty("handSign", agent.canonical());
-            response.setMotion(motion);
             var display = display("game_result", false);
             display.addProperty("agentSign", agent.canonical());
             display.addProperty("userSign", user.canonical());

@@ -4,6 +4,81 @@ Roadmap: `.agents/PLAN_GALAIMPROVEMENT.md` on the agents branch. The user author
 consecutive milestones with a commit/push after each; final user physical trials
 are grouped at the end. Synthetic tests do not establish audibility or model compliance.
 
+## GI-23 / Milestone 250 - game decisions and early RPS gesture (2026-10-22)
+
+User authorised the immediately feasible follow-up and commit/push, deferring the
+unresolved last-word cut-offs and exact countdown synchronisation.
+
+- RPS/guessing can enter an explicit persisted exit-confirmation phase within their
+  existing state. The original request and target/sign remain. No hand result is
+  accepted during confirmation. Yes exits without a reveal and passes the original
+  question to Live; no resumes the same game. Resumed RPS requires a fresh observation.
+  Bare yes/no retain the existing durable spoken-context admission checks. Local
+  complete replies avoid inference; free-form decisions use the existing classifier.
+  Stop, silence, close, reset and idle cleanup discard pending confirmation.
+- Clear institution/programme questions have a narrow deterministic correction for
+  a mistaken classifier WAIT/RETURN; person-relative questions stay game questions.
+  Normal and pending-decision classifier instructions are distinct. Live retains all
+  wording; confirmation, resume and accepted-exit continuations carry facts only.
+- RPS publishes the committed hand gesture at start and computes the next accepted
+  fresh/stable sign locally. Result publication does not repeat physical motion.
+  Early reveal is intentional and lets the visitor react to Gigi's visible choice.
+  Existing confidence/stability/freshness checks remain. The browser already reset
+  normal cooldown at start; a revision now prevents an older ACK restoring it.
+- An application waiting-guidance hook preserves shared defaults. Gala permits one
+  brief status about delayed game/task confirmation, not invented research or progress.
+  This is prompt permission, not an enforced timer, actual work telemetry or audio gate.
+  Reference/guessing answers have no permitted waiting preamble. Repeated instructions
+  were compacted without raising the 14,400-byte headroom check or 16,000-byte limit.
+- Footer feedback distinguishes awaiting/resolved decisions. Shared changes follow
+  feature/gptlive -> main -> agents; Gala code/fixtures stay on agents. No schema,
+  transcript retention, sensing frequency or authorization-cache change.
+
+Verification:
+
+- Final isolated acceptance: 130 Java cases, zero failures/errors/skips, including
+  113 focused units and 17 persisted cases (four Gala journeys, four Gala boundaries,
+  five Generic, two Social Space, two query variants). Command: python
+  tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties
+  --java-tests <the seven focused unit classes plus five integration selections>.
+  Evidence: target/gptlive-acceptance-06f555297a/java.log. Earlier passing integration
+  runs: 2154cff566 and ddfffabae6. Only disposable local schemas/users, all removed.
+- 112 Node cases passed across Live, activity, transcription and Speech
+  (target/gala-followup-node.log). Four actual-app browser cases passed, Live on/off
+  and presence lifecycle (target/gptlive-acceptance-4bce45425e; --java-tests none
+  --browser --live-only --browser-grep 'real scoped cockpit|presence reception|feature disabled').
+  Production packaging passed (target/gala-followup-package.log).
+- Maximum all-state/both-embodiment instructions: 14,335 bytes, below unchanged
+  14,400 test/16,000 application limits. Initial budget failures were corrected by
+  shortening repeated guidance, not loosening tests or removing reference facts.
+- Query baselines unchanged: 1,571 ordinary / 1,616 transient-zero Questions, both
+  within 1,700. The production hourly capacity gate remains open; no production DB
+  was queried and no increased sensor/poll cadence was introduced.
+
+Bounded real-provider evidence (synthetic input, no robot or physical audibility):
+
+- Eight actual classifier request fixtures on gpt-5.6-luna/none: initial 6/8 raw
+  operations matched; pending decisions were sometimes CHECK_EXIT. Separate pending
+  control instructions corrected both. Final raw comparison matched 7/8; an explicit
+  institute question returned WAIT. The added narrow correction is unit-tested with
+  that exact question and both erroneous WAIT/RETURN, preserving person-relative
+  questions. No claim of general-language classifier perfection. Evidence:
+  target/gala-game-exit-provider-results.json and -final-results.json.
+- Three gpt-live-1/marin sessions: all asked exit questions, preserved the declined
+  game and narrated the correct RPS result. Initial two sessions prefaced questions
+  with some facts; second also claimed a programme lookup. The final candidate puts
+  game rules before reference facts and carries the rule in current game context.
+  Final session asked both exit questions WITHOUT factual prefacing/lookup claims,
+  continued on no, and answered the original food question on yes. One truthful
+  pending-start status was spoken. Early start wording still occurred: the accepted
+  prompt-only readiness limitation remains. This single final passing sample is not
+  a reliability rate. Reports target/gala-game-exit-live-1.json through -3.json;
+  final immutable fixture target/gala-game-exit-fixture-final3.json.
+- tests/gptlive/gala_game_exit_scenario.json and actual-context export tests reproduce
+  this provider sequence. The physical script is updated in tests/gptlive/GALA.md.
+  Gesture/camera attribution, audible last words, ten-second delay reproduction and
+  exact countdown timing remain unverified/deferred. No audio gate was introduced.
+
 ## GI-13 / Milestone 240 - follow-up baseline (2026-10-22)
 
 Baseline: agents 98316fe. No runtime changes. Five synthetic tests exercise the

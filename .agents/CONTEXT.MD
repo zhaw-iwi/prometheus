@@ -375,8 +375,16 @@ guidance changes before result narration. Gala locally handles common unspecifie
 play requests with a game-choice question and ignores recognized standalone sound
 annotations for task control. A neutral WAIT operation preserves games; original
 transcripts remain auditable. Complete neutral acknowledgements in active games
-now bypass classification and preserve their target/round. Explicit no-reveal
+now bypass classification and preserve their target/round unless an exit decision is pending. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
+Unrelated game requests now enter a persisted exit-confirmation phase: target/sign
+and original question remain, hand results suspend, yes exits without reveal and no
+resumes. Explicit Stop/close/idle cleanup still applies. RPS requests its committed
+hand gesture at start, accepts a fresh stable sign and computes one result locally
+without repeating motion. Camera reset revisions fence obsolete hand ACKs. Exact
+countdown timing is deferred. Live may give one truthful pending-confirmation status
+for delayed game/task work; no fabricated reference lookup. Speech compliance remains
+prompt-based. See README and GALAIMPROVEMENT_RESULTS for verification and limits.
 Bare contextual follow-ups also preserve activity without inference; Live uses its
 prior topic and current fresh evidence. A direct facial question sets a narrow
 30-second hint, cleared by a substantive new topic or encounter end; source TTL

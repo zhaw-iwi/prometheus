@@ -25,9 +25,23 @@ numbers when implementing.
 
 Planning update, 2026-10-22: GI-18–22 below cover active-game preservation,
 short-reply recovery, contextual perception follow-ups and brief presence dropouts.
-Status: IN PROGRESS. The user authorized implementation of GI-18–22 on 2026-10-22,
+Status: implementation and automated acceptance COMPLETE; physical acceptance OPEN.
+The user authorized implementation of GI-18–22 on 2026-10-22,
 including the established per-milestone verification, commit/push and branch flow.
 Final physical acceptance remains a user trial, not an automated-test claim.
+
+Follow-up GI-23 / Milestone 250 (2026-10-22): the user authorised implementation
+and commit/push of the immediately feasible improvements. Scope: bounded waiting
+guidance, persisted exit confirmation for RPS/guessing, early committed RPS gesture,
+and a stale hand-ACK cooldown fence. Verify yes/no through durable capture/reload,
+unchanged game choice on decline, no hand completion during confirmation, original
+question on accepted exit without reveal, one start gesture/result, existing core
+journeys, instruction/query budgets and browser lifecycle. Exact countdown/capture
+synchronisation and final-word audio cut-offs are explicitly deferred. Prompt-only
+speech compliance and physical execution retain separate acceptance; see results.
+Implementation and automated acceptance complete: 130 Java, 112 Node, four browser
+cases and packaging pass. The final provider sample follows the confirmation flow;
+earlier wording failures and prompt-only readiness limits remain documented.
 
 ## Outcome and architecture
 

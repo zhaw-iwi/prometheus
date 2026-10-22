@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-23 / Milestone 250: implemented persisted game-exit confirmation, bounded
+  waiting guidance and early committed RPS gestures. Yes/no preserve or end the
+  correct round; original off-topic requests survive an accepted exit without
+  revealing the person. Obsolete hand ACKs cannot restore cooldown. Passed 130
+  focused Java, 112 Node, four browser cases and packaging; instructions 14,335
+  bytes, query variants 1,571/1,616 against 1,700. Final provider sample follows the
+  exit flow; earlier samples and early-start wording retain prompt-only limits.
+  Last-word cut-offs, exact countdown timing and physical execution remain deferred.
+  See GALAIMPROVEMENT_RESULTS and tests/gptlive/GALA.md.
+
 - GI-22 / Milestone 249: integrated Gala follow-up implementation and automated
   acceptance complete. Browser-confirmed close owns departure cleanup; a 30-second
   user-topic hint bounds facial follow-ups. 874 Java cases (one capacity skip),

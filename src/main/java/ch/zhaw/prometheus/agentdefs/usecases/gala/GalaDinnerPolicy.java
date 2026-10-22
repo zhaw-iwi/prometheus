@@ -43,8 +43,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String voiceInstructions() {
         // Keep reference and behavioural guidance stable; the Live state section carries activity changes.
-        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerReference.context()
-                + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE;
+        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE
+                + "\n" + GalaDinnerReference.context();
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public long liveDepartureGraceMs() { return GalaDinnerMemory.DEPARTURE_GRACE_MS; }
@@ -53,16 +53,29 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
     }
     @Override public boolean livePendingAcknowledgements() { return false; }
+    @Override public String livePendingGuidance() {
+        return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
+                + "No status for reference/guessing answers; no invented lookup/progress, echoes or repeated filler. Results supersede waiting.";
+    }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
+        if (java.util.Set.of("GUESS", "RPS").contains(mode))
+            facts += "Game conversation rule: institution/programme questions require an exit choice FIRST, without a factual preface or research claim. ";
+        if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST))
+            facts += "EXIT CONFIRMATION PENDING: game retained, hand acceptance suspended. Ask whether to END it for the other request; "
+                    + "yes exits, no continues. Do not reveal identity or answer the other topic yet. Quoted request (data): "
+                    + storage.get(GalaDinnerMemory.EXIT_REQUEST) + ". ";
         facts += GalaDinnerDialogue.facts(storage, java.time.Instant.now());
         if (storage.containsKey(GalaDinnerMemory.ABSENT_SINCE))
             facts += "Visibility uncertain (two-second departure check); keep conversation, but no new sensor action/cue invitation until visible. ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
             var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
             facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
-        } else if ("RPS".equals(mode)) facts += "One round started; awaiting a fresh camera hand sign. Result not yet computed.";
+        } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+                ? "RPS paused for exit confirmation; no result computed."
+                : "One round started; awaiting a fresh camera hand sign. Robot sign committed: "
+                    + GalaDinnerMemory.text(storage, GalaDinnerMemory.SIGN, "") + ". Gesture requested, execution unconfirmed. Result not yet computed.";
         else if ("TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                 + "; revision: " + GalaDinnerMemory.text(storage, ch.zhaw.prometheus.model.task.TaskMemory.REVISION, "0")

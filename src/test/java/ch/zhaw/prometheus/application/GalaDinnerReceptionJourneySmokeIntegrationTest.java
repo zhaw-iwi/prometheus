@@ -118,6 +118,54 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void exitConfirmationSurvivesReloadAndBareRepliesKeepOrEndTheCorrectGame(boolean compact) {
+        this.compact = compact;
+        code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
+        id = demo.createAgent(code, GalaDinnerReception.KEY, "ROBOT").getID();
+        var encounter = arrive();
+        try {
+            say(encounter, "Personenraten bitte", control("START_GUESS")); hearAnnouncement(encounter);
+            say(encounter, "Was macht das IWI?", control("CHECK_EXIT"));
+            assertEquals("Albert Einstein", loaded().getStorage().get("gala.person").getAsString());
+            assertTrue(hearAnnouncement(encounter).contains("Exit confirmation pending"));
+            capturedSpeech(encounter, "Soll ich das Spiel beenden und dir vom IWI erzählen?");
+            int calls = requests.size();
+            say(encounter, "Ja");
+            assertEquals(calls, requests.size()); assertReception();
+            var facts = contexts.snapshot(code, id).orElseThrow().activity().continuation().facts();
+            assertTrue(facts.contains("Was macht das IWI?")); assertFalse(facts.contains("Albert Einstein"));
+            assertFalse(loaded().getStorage().containsKey("gala.exit_request"));
+            assertFalse(loaded().getStorage().containsKey("gala.outcome"));
+            hearAnnouncement(encounter);
+
+            say(encounter, "Schere Stein Papier", control("START_RPS"));
+            String chosen = loaded().getStorage().get("gala.sign").getAsString();
+            assertEquals(chosen, lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
+            hearAnnouncement(encounter);
+            say(encounter, "Wann beginnt das Essen?", control("CHECK_EXIT"));
+            hearAnnouncement(encounter);
+            Instant paused = Instant.now(); hand("paper", paused);
+            assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
+            capturedSpeech(encounter, "Soll ich das Spiel beenden und deine Frage zum Essen beantworten?");
+            calls = requests.size(); say(encounter, "Nein");
+            assertEquals(calls, requests.size());
+            assertEquals(chosen, loaded().getStorage().get("gala.sign").getAsString());
+            hearAnnouncement(encounter);
+            hand("paper", paused);
+            assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
+            hand("paper", Instant.now()); assertReception();
+            assertNull(lastPlan().getMotion());
+            assertEquals(chosen, lastPlan().getDisplay().getAsJsonObject().get("agentSign").getAsString());
+            assertTrue(hearAnnouncement(encounter).contains("RPS round completed"));
+        } finally {
+            live.close(code, id, encounter.owner().sessionId());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void twoVisitorsExploreGamesAndTasksWithoutInheritingConversationOrAnUnfinishedAgreement(boolean compact) {
         this.compact = compact;
         code = UUID.randomUUID().toString().substring(0, 5);
@@ -472,6 +520,16 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                 List.of(), SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
         if (pending) await().atMost(Duration.ofSeconds(8)).until(() -> loaded().getStorage()
                 .get(TaskResponse.KEY).getAsJsonObject().get("status").getAsString().equals("CAPTURED"));
+    }
+    private void capturedSpeech(Encounter encounter, String text) {
+        int sequence = ++receiptSequence;
+        var fragment = new Fragment("journey-assistant-" + sequence, Speaker.ASSISTANT,
+                sequence * 1000L, sequence * 1000L + 500, Instant.now().toEpochMilli(), sequence, text);
+        assertTrue(ingress.receipt(id, encounter.owner(), fragment));
+        var segment = new Segment(UUID.randomUUID(), Speaker.ASSISTANT, List.of(fragment), Closure.COMPLETE,
+                "observed_silence", fragment.receivedMs(), fragment.receivedMs());
+        assertEquals("COMPLETE", ingress.commit(id, encounter.owner(), segment,
+                loaded().getCurrentState().getActiveStatePath()).orElseThrow().status());
     }
     private void waitForCue() {
         group(1);

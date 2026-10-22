@@ -96,12 +96,12 @@ class GalaDinnerReceptionUnitTest {
         assertEquals(2, memory.get(GalaDinnerGestures.HISTORY).getAsJsonArray().size());
     }
 
-    @Test void rpsCommitsHiddenSignRejectsBadFramesAndReturnsToReceptionWithCalculatedResult() {
+    @Test void rpsShowsCommittedSignImmediatelyRejectsBadFramesAndPublishesOneCalculatedResult() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
         var countdown = BehaviourPlan.fromJson(say("Spielen wir Schere Stein Papier").getPayload());
         assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
         assertEquals("rock", text(memory, SIGN, ""));
-        assertNull(countdown.getMotion());
+        assertEquals("rock", countdown.getMotion().getAsJsonObject().get("handSign").getAsString());
         assertFalse(countdown.getDisplay().getAsJsonObject().has("agentSign"));
         Instant began = time(memory, STARTED);
         assertNull(hand("paper", began.minusSeconds(1), 1));
@@ -112,7 +112,8 @@ class GalaDinnerReceptionUnitTest {
         var result = BehaviourPlan.fromJson(hand("paper", Instant.now(), 0.95).getPayload());
         assertNull(result.getSpeech());
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("winner: user"));
-        assertEquals("rock", result.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertNull(result.getMotion(), "The result must not repeat the already requested gesture");
+        assertEquals("rock", result.getDisplay().getAsJsonObject().get("agentSign").getAsString());
         assertEquals("Gala reception", agent.getCurrentState().getName());
         assertFalse(memory.containsKey(SIGN));
         assertNull(hand("paper", Instant.now(), 1));
@@ -175,13 +176,86 @@ class GalaDinnerReceptionUnitTest {
         assertEquals("Marie Curie", text(memory, PERSON, ""));
     }
 
-    @Test void offTopicQuestionReturnsHomeAndAnswersTheSameUtterance() {
+    @Test void offTopicQuestionKeepsTargetUntilConfirmationThenAnswersTheOriginalRequestWithoutReveal() {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""),
-                answer("RETURN", "Laut Programm gibt es den Hauptgang um 20:50."));
+                answer("CHECK_EXIT", ""));
         say("Lass uns raten");
         assertNull(speech(say("Wann kommt der Hauptgang?")));
+        assertEquals("GUESS", mode(memory));
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        assertEquals("Wann kommt der Hauptgang?", text(memory, EXIT_REQUEST, ""));
+        assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("EXIT CONFIRMATION PENDING"));
+        assertFalse(GalaDinnerInput.nonMutatingAcknowledgement(memory, "Ja gerne", Instant.now()));
+        clearInvocations(gateway);
+        assertNull(speech(say("Ja gerne")));
         assertEquals("Gala reception", agent.getCurrentState().getName());
         assertFalse(memory.containsKey(PERSON));
+        assertFalse(memory.containsKey(EXIT_REQUEST));
+        assertFalse(memory.containsKey(OUTCOME));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Wann kommt der Hauptgang?"));
+        verifyNoInteractions(gateway);
+    }
+
+    @Test void decliningExitKeepsRpsChoiceAndRequiresANewObservationAfterResumption() {
+        when(gateway.infer(any())).thenReturn(answer("START_RPS", ""), answer("CHECK_EXIT", ""));
+        say("Schere Stein Papier bitte");
+        String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
+        say("Was ist das IWI?");
+        Instant during = time(memory, STARTED);
+        assertNull(hand("paper", during.plusNanos(1), .99));
+        assertEquals("RPS", mode(memory));
+        clearInvocations(gateway);
+        var resumed = BehaviourPlan.fromJson(say("Nein danke").getPayload());
+        assertTrue(resumed.getDisplay().getAsJsonObject().get("awaitingUserSign").getAsBoolean());
+        assertEquals(sign, text(memory, SIGN, "")); assertEquals(round, text(memory, ROUND, ""));
+        assertFalse(memory.containsKey(EXIT_REQUEST));
+        assertNull(hand("paper", during, .99));
+        var result = BehaviourPlan.fromJson(hand("paper", time(memory, STARTED).plusMillis(1), .99).getPayload());
+        assertEquals("user", result.getDisplay().getAsJsonObject().get("winner").getAsString());
+        assertNull(result.getMotion()); verifyNoInteractions(gateway);
+    }
+
+    @Test void ambiguousConfirmationPreservesGameAndExplicitStopOrCloseStillClearsIt() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("CHECK_EXIT", ""), answer("WAIT", ""));
+        say("Personenraten bitte"); say("Was macht das IWI?"); say("Okay");
+        assertEquals("GUESS", mode(memory)); assertTrue(memory.containsKey(EXIT_REQUEST));
+        say("Stopp");
+        assertFalse(memory.containsKey(EXIT_REQUEST)); assertFalse(memory.containsKey(PERSON));
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("CHECK_EXIT", ""));
+        say("Personenraten bitte"); say("Wann gibt es Essen?");
+        agent.acknowledge(new Event(GalaDinnerPolicy.LIVE_ENDED, "system", Event.KIND_SYSTEM, "stop"), runtime);
+        assertFalse(memory.containsKey(EXIT_REQUEST)); assertEquals("RECEPTION", mode(memory));
+    }
+
+    @Test void freeFormExitDecisionsRequireAPendingConfirmationAndDeclineRetainsGuessingTarget() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("EXIT_GAME", ""));
+        say("Raten bitte"); say("Lebt die Person?");
+        assertEquals("GUESS", mode(memory)); assertFalse(memory.containsKey(EXIT_REQUEST));
+        when(gateway.infer(any())).thenReturn(answer("CHECK_EXIT", ""), answer("KEEP_GAME", ""));
+        say("Erzähl mir vom IWI"); say("Ich würde lieber weiter raten");
+        assertFalse(memory.containsKey(EXIT_REQUEST)); assertEquals("Albert Einstein", text(memory, PERSON, ""));
+    }
+
+    @Test void explicitReferenceQuestionCannotBeMisclassifiedAsGameUncertaintyOrImmediateExit() {
+        for (String mistaken : List.of("WAIT", "RETURN")) {
+            when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer(mistaken, ""));
+            say("Personenraten bitte");
+            String person = text(memory, PERSON, ""); say("Was macht das Institut für Wirtschaftsinformatik?");
+            assertEquals("GUESS", mode(memory)); assertEquals(person, text(memory, PERSON, ""));
+            assertTrue(memory.containsKey(EXIT_REQUEST)); say("Stopp");
+        }
+        assertFalse(GalaDinnerInput.explicitReferenceQuestion("Arbeitet die Person am IWI?"));
+        assertFalse(GalaDinnerInput.explicitReferenceQuestion("Was macht das IWI? Nein, weiterspielen."));
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"EXIT_GAME", "RETURN"})
+    void inferredConsentRetainsTheOriginalQuestionRegardlessOfExitLabel(String operation) {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("CHECK_EXIT", ""), answer(operation, ""));
+        say("Personenraten bitte"); say("Was macht das IWI?");
+        say("Beende bitte die Runde und beantworte meine Frage");
+        assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(PERSON));
+        assertFalse(memory.containsKey(EXIT_REQUEST)); assertFalse(memory.containsKey(OUTCOME));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Was macht das IWI?"));
     }
 
     @ParameterizedTest @ValueSource(strings = {"Ich gebe auf.", "I give up!"})

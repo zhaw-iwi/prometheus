@@ -41,6 +41,51 @@ class GalaLiveFollowupUnitTest {
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
 
+    @Test void exportGameExitAndWaitingFixturesFromActualContexts() throws Exception {
+        put(memory, COUNT, "1"); put(memory, SEEN, Instant.now().toString());
+        var initial = projection.project(agent); var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapter(Instant.class,
+                (JsonSerializer<Instant>) (value, type, context) -> new JsonPrimitive(value.toString())).create();
+        var fixture = JsonParser.parseString(Files.readString(Path.of("tests/gptlive/gala_game_exit_scenario.json"))).getAsJsonObject();
+        fixture.addProperty("instructions", initial.instructions()); fixture.add("input", initial.startupInput());
+        say("START_GUESS", "Personenraten bitte"); export(fixture, "guessStart", delivery, gson);
+        say("CHECK_EXIT", "Was macht das IWI?"); export(fixture, "confirmation", delivery, gson);
+        say("KEEP_GAME", "Nein"); export(fixture, "continueGame", delivery, gson);
+        say("WAIT", "Lebt die Person noch?");
+        say("CHECK_EXIT", "Wann beginnt das Essen?"); export(fixture, "confirmationAgain", delivery, gson);
+        say("EXIT_GAME", "Ja"); export(fixture, "exitGame", delivery, gson);
+        say("START_RPS", "Schere Stein Papier bitte"); export(fixture, "rpsStart", delivery, gson);
+        hand(); export(fixture, "rpsEnd", delivery, gson);
+        Files.writeString(Path.of("target/gala-game-exit-fixture.json"), gson.toJson(fixture));
+    }
+
+    @Test void exportCurrentGameExitClassifierCases() throws Exception {
+        var rows = new JsonArray();
+        for (var entry : List.of(
+                new String[]{"START_GUESS", "no", "Arbeitet die Person an der ZHAW?", "WAIT"},
+                new String[]{"START_GUESS", "no", "Welche Schuhgrösse hat die Person?", "WAIT"},
+                new String[]{"START_GUESS", "no", "Was macht das Institut für Wirtschaftsinformatik?", "CHECK_EXIT"},
+                new String[]{"START_RPS", "no", "Wann beginnt das Essen heute Abend?", "CHECK_EXIT"},
+                new String[]{"START_GUESS", "yes", "Bitte beende die Runde und beantworte meine andere Frage.", "EXIT_GAME"},
+                new String[]{"START_RPS", "yes", "Ich möchte lieber noch weiterspielen.", "KEEP_GAME"},
+                new String[]{"START_GUESS", "yes", "Okay", "WAIT"},
+                new String[]{"START_GUESS", "no", "Ich möchte mit dem Spiel aufhören.", "RETURN"})) {
+            GalaDinnerMemory.clear(memory); agent.reset();
+            say(entry[0], entry[0].equals("START_GUESS") ? "Personenraten bitte" : "Schere Stein Papier bitte");
+            if (entry[1].equals("yes")) say("CHECK_EXIT", "Was macht das IWI?");
+            clearInvocations(gateway); say(entry[3], entry[2]);
+            var capture = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+            verify(gateway).infer(capture.capture());
+            var row = new JsonObject(); row.addProperty("expected", entry[3]);
+            var messages = new JsonArray();
+            for (var message : capture.getValue().messages()) {
+                var value = new JsonObject(); value.addProperty("role", message.getRole()); value.addProperty("content", message.getContent()); messages.add(value);
+            }
+            row.add("messages", messages); rows.add(row);
+        }
+        Files.writeString(Path.of("target/gala-game-exit-control-cases.json"), new Gson().toJson(rows));
+    }
+
     @Test void dropoutBlocksHandResultsButKeepsRoundAndSpokenGiveUpAvailable() {
         say("START_RPS", "Schere Stein Papier bitte");
         String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
