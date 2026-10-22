@@ -16,6 +16,7 @@ import com.google.gson.JsonParser;
 import ch.zhaw.prometheus.model.Agent;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
+import ch.zhaw.prometheus.model.event.ObservationEvidence;
 import ch.zhaw.prometheus.model.policy.NonverbalSummaryPromptContextAugmenter;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.application.live.LiveContextSnapshot.Item;
@@ -36,19 +37,21 @@ public class LiveContextProjection {
         var guidance = policies.sections(agent);
         String instructions = String.join("\n", guidance.values());
         var leaf = LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+        Instant now = clock.instant();
         // selectList retains source identity/time; EventHistory.select intentionally creates working copies.
         List<Event> selected = agent.getEventHistory().selectList(leaf.getEventSelector());
         if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) {
             var all = agent.getEventHistory().toList();
             int start = Math.max(0, Math.min(all.size(), external.liveHistoryStartIndex()));
             var encounter = new java.util.HashSet<>(all.subList(start, all.size()));
-            selected = selected.stream().filter(encounter::contains).toList();
+            // Weather belongs to the environment, not the previous visitor. Retain only
+            // selected, fresh source evidence; never renew its age at encounter startup.
+            selected = selected.stream().filter(event -> encounter.contains(event) || freshWeather(event, now)).toList();
         }
         List<Item> candidates = new ArrayList<>();
         List<Event> aggregateEvents = new ArrayList<>();
         List<UUID> aggregateSources = new ArrayList<>();
         Instant aggregateTime = null, aggregateExpiry = null;
-        Instant now = clock.instant();
         var latestTimes = new HashMap<String, Instant>();
         for (int index = 0; index < selected.size(); index++) {
             Event event = selected.get(index);
@@ -123,6 +126,10 @@ public class LiveContextProjection {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType()))
             return ch.zhaw.prometheus.model.event.ObservationEvidence.observed(event);
         return event.getCreatedDate();
+    }
+    private static boolean freshWeather(Event event, Instant now) {
+        return (Event.TYPE_WEATHER_CURRENT.equals(event.getType()) || Event.TYPE_WEATHER_FORECAST.equals(event.getType()))
+                && ObservationEvidence.fresh(ObservationEvidence.observed(event), now, ObservationEvidence.ttl(event.getType()), 0);
     }
     static String bounded(String text, int maxBytes) {
         if (text.getBytes(StandardCharsets.UTF_8).length <= maxBytes) return text;

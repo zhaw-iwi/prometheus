@@ -27,6 +27,13 @@ class LiveContextProjectionUnitTest {
         return new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter(), Clock.fixed(now, ZoneOffset.UTC));
     }
     State leaf(Agent agent) { return LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast(); }
+    static final class EncounterPolicy extends PromptPolicy implements ch.zhaw.prometheus.model.policy.ExternalVoicePolicy {
+        final int start;
+        EncounterPolicy(int start) { super("Speak briefly.", null, null); this.start = start; }
+        public boolean supportsLiveState(State state) { return true; }
+        public String voiceInstructions() { return "Speak briefly."; }
+        public int liveHistoryStartIndex() { return start; }
+    }
     Event append(Agent agent, String type, String payload, Instant observed, String... path) {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(type)) {
             var source = com.google.gson.JsonParser.parseString(payload).getAsJsonObject();
@@ -88,6 +95,42 @@ class LiveContextProjectionUnitTest {
         var narrowed = projection(NOW.plusSeconds(6)).project(agent);
         assertTrue(narrowed.items().isEmpty());
         assertNotEquals(expired.revision(), narrowed.revision());
+    }
+    @Test void encounterStartsWithFreshSelectedWeatherButNeverPriorVisitorEvidence() {
+        Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
+        Event weather = append(agent, Event.TYPE_WEATHER_CURRENT,
+                "{\"location_label\":\"Zurich\",\"condition\":\"clear\",\"temperature_c\":9,\"observed_at\":\""
+                + NOW.minusSeconds(559) + "\",\"ts\":\"" + NOW + "\"}", NOW, name);
+        Event forecast = append(agent, Event.TYPE_WEATHER_FORECAST,
+                "{\"days\":[{\"date\":\"2026-09-28\",\"condition\":\"rain\"}]}", NOW.minusSeconds(60), name);
+        append(agent, Event.TYPE_USER_UTTERANCE, "previous visitor secret", NOW, name);
+        append(agent, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, "{\"speech\":\"previous private reply\"}", NOW, name);
+        append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.9}", NOW, name);
+        append(agent, Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":2}", NOW, name);
+        append(agent, Event.TYPE_HAND_SIGN, "{\"sign\":\"rock\"}", NOW, name);
+        append(agent, Event.TYPE_WEATHER_CURRENT, "{\"condition\":\"snow\"}", NOW, "excluded");
+        leaf(agent).setPolicy(new EncounterPolicy(agent.getEventHistory().toList().size()));
+        var result = projection(NOW).project(agent);
+        assertEquals(List.of(Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST), result.items().stream().map(i -> i.type()).toList());
+        assertEquals(List.of(weather.getId()), result.items().getFirst().sourceIds());
+        assertTrue(result.items().getFirst().text().contains("Current weather for Zurich: clear"));
+        assertTrue(result.items().getFirst().text().contains("9 C"));
+        assertEquals(NOW.minusSeconds(559), result.items().getFirst().observedAt());
+        assertEquals(List.of(forecast.getId()), result.items().getLast().sourceIds());
+        var expired = projection(NOW.plusSeconds(41)).project(agent);
+        assertEquals(List.of(Event.TYPE_WEATHER_FORECAST), expired.items().stream().map(i -> i.type()).toList());
+        assertTrue(projection(NOW.plusSeconds(21540)).project(agent).items().isEmpty());
+        leaf(agent).setEventSelectorSpec(EventSelectorSpec.type(Event.TYPE_USER_UTTERANCE));
+        assertTrue(projection(NOW).project(agent).items().isEmpty());
+    }
+    @Test void encounterDoesNotReviveExpiredUndatedOrFutureWeatherWithReceiptTime() {
+        for (String observed : List.of(NOW.minusSeconds(600).toString(), NOW.plusSeconds(1).toString(), "2026-09-27T12:00", "invalid")) {
+            Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
+            append(agent, Event.TYPE_WEATHER_CURRENT, "{\"condition\":\"clear\",\"observed_at\":\"" + observed
+                    + "\",\"ts\":\"" + NOW + "\"}", NOW, name);
+            leaf(agent).setPolicy(new EncounterPolicy(agent.getEventHistory().toList().size()));
+            assertTrue(projection(NOW).project(agent).items().isEmpty(), observed);
+        }
     }
     @Test void absentOrPoorlyDetectedFaceWithdrawsItsOlderExpressionAndSummary() {
         for (String invalid : List.of("\"facePresent\":false", "\"faceDetectionConfidence\":0.2", "\"faceDetectionConfidence\":1.2")) {
