@@ -71,10 +71,10 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             }
         }
         else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
-        if (storage.containsKey(GalaDinnerMemory.OUTCOME)
-                && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.OUTCOME_EXPIRES)))
+        String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
+        if (!outcome.isBlank())
             facts += "\nConfirmed guessing outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
-                    + ": " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME, "")
+                    + ": " + outcome
                     + " Answer the pending visitor request once; do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerSensing.CORRECTED, "")))

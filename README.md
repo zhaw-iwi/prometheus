@@ -438,6 +438,11 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Correct direct name guesses (including "War es ...?") and actual give-up/reveal
   requests end the round. Confirmed outcome facts survive cleanup for 30 seconds
   so Live can finish the pending answer once; no extra reveal commentary is sent.
+  During that original window, repeating/confirming the revealed name is ordinary
+  conversation and bypasses backend classification. Other follow-ups receive the
+  recent outcome and current-mode operation choices; they do not renew its expiry.
+  Free-form classification remains model-dependent and invalid control cannot
+  change the activity. Genuine failures retain the existing recovery path.
   Stop, silence, departure, timeout and unrelated topics do not reveal.
   Hypothetical/negated give-up preserves the round. This trades the former model-side
   secrecy boundary for responsive conversation: premature disclosure is now a model

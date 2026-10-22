@@ -77,17 +77,54 @@ class GalaLiveFollowupUnitTest {
         // This establishes backend preservation, not whether Live waits or clarifies the question.
     }
 
-    @Test void baselineInvalidPostRevealClassificationPreservesOutcomeButCreatesFalseRecovery() {
+    @Test void repeatedRevealedNameNeedsNoClassificationOrRecoveryAndPreservesOutcomeExpiry() {
         say("START_GUESS", "Personenraten bitte");
         say("WAIT", "Ich gebe auf");
         String outcome = text(memory, OUTCOME, "");
+        String expiry = text(memory, OUTCOME_EXPIRES, ""), identity = text(memory, OUTCOME_ID, "");
         assertFalse(outcome.isBlank()); assertFalse(memory.containsKey(CONTINUATION_ID));
-        // Synthetic invalid operation; the real trial did not log the returned operation.
-        say("GIVE_UP", "Albert Einstein");
-        assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(PERSON));
-        assertEquals(outcome, text(memory, OUTCOME, ""));
-        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"),
-                "GI-15 must replace this known-failure characterization with ordinary follow-up acceptance");
+        clearInvocations(gateway);
+        for (String name : List.of("Albert Einstein", "War es Einstein?", "Es war Albert Einstein.")) {
+            say("GIVE_UP", name); // Would be invalid if inference were unnecessarily called.
+            assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(PERSON));
+            assertEquals(outcome, text(memory, OUTCOME, ""));
+            assertEquals(expiry, text(memory, OUTCOME_EXPIRES, ""));
+            assertEquals(identity, text(memory, OUTCOME_ID, ""));
+            assertFalse(memory.containsKey(CONTINUATION_ID));
+        }
+        verifyNoInteractions(gateway);
+    }
+
+    @Test void followUpClassifierSeesCurrentOperationsAndOnlyFreshCompletedOutcome() {
+        say("START_GUESS", "Personenraten bitte"); say("WAIT", "Ich gebe auf");
+        clearInvocations(gateway);
+        say("CHAT", "Hat diese Person in der Schweiz gelebt?");
+        var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(gateway).infer(request.capture());
+        var messages = request.getValue().messages();
+        String control = messages.getFirst().getContent();
+        assertTrue(control.contains("\"operation\":\"" + String.join("|", GalaDinnerPrompts.operations("RECEPTION")) + "\""));
+        assertFalse(GalaDinnerPrompts.operations("RECEPTION").contains("GIVE_UP"));
+        assertTrue(messages.stream().anyMatch(m -> m.getContent().startsWith("Recent completed guessing round")
+                && m.getContent().contains("Albert Einstein")));
+        assertFalse(memory.containsKey(CONTINUATION_ID));
+        put(memory, OUTCOME_EXPIRES, Instant.now().minusSeconds(1).toString());
+        clearInvocations(gateway); say("CHAT", "Albert Einstein");
+        verify(gateway).infer(request.capture());
+        assertTrue(request.getValue().messages().stream().noneMatch(m -> m.getContent().startsWith("Recent completed guessing round")));
+        assertFalse(memory.containsKey(CONTINUATION_ID));
+    }
+
+    @Test void invalidModeOperationCannotChangeAnActiveTargetAndRealFailureStillHasRecovery() {
+        say("START_GUESS", "Personenraten bitte");
+        say("START_RPS", "Wechseln wir das Spiel");
+        assertEquals("GUESS", mode(memory)); assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        assertFalse(memory.containsKey(SIGN));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"));
+        say("WAIT", "Stop");
+        say("GIVE_UP", "Starte Schere Stein Papier");
+        assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(SIGN));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"));
     }
 
     @Test void baselineBriefActivitySpikesMergeThreeOtherwiseSeparateQuestions() {

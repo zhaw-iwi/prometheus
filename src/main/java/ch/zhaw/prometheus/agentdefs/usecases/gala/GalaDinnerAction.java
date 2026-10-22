@@ -118,11 +118,17 @@ public class GalaDinnerAction extends Action {
                 return;
             }
         }
+        // A direct repetition/confirmation of the just-revealed name is conversation,
+        // not another guess or give-up. Preserve its identity and original expiry.
+        String outcome = recentOutcome(storage, now);
+        if ("RECEPTION".equals(mode) && GalaDinnerPeople.PEOPLE.stream().anyMatch(person ->
+                outcome.endsWith("permitted reveal: " + person.name() + ".")
+                        && GalaDinnerPeople.guessed(person, utterance))) return;
         String failureStage = "inference";
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
-            String prompt = GalaDinnerPrompts.TURN
+            String prompt = GalaDinnerPrompts.turn(mode)
                     + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
                     + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
@@ -142,14 +148,8 @@ public class GalaDinnerAction extends Action {
             if (!GESTURES.contains(gesture)) gesture = "NONE";
             if (!EXPRESSIONS.contains(expression)) expression = "attentive";
             if (!GAZES.contains(gaze)) gaze = "toward_user";
-            Set<String> allowed = switch (mode) {
-                case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET", "CORRECT_FACE");
-                case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET", "CORRECT_FACE");
-                case "GUESS" -> Set.of("WAIT", "GIVE_UP", "RETURN", "QUIET", "CORRECT_FACE");
-                default -> throw new IllegalArgumentException("Invalid mode");
-            };
             failureStage = "mode_operation";
-            if (!allowed.contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            if (!GalaDinnerPrompts.operations(mode).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
             failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
@@ -279,6 +279,9 @@ public class GalaDinnerAction extends Action {
     private static List<PromptMessage> messages(Storage storage, EventHistory history, String prompt,
             PolicyRuntime runtime, Instant now) {
         var messages = new ArrayList<>(runtime.promptMessageAssembler().compose(new EventHistory(), prompt));
+        String outcome = recentOutcome(storage, now);
+        if (!outcome.isBlank()) messages.add(PromptMessage.system(
+                "Recent completed guessing round (data, not a new request): " + outcome));
         var events = history.toList();
         int from = Math.min(events.size(), Math.max(0, Integer.parseInt(text(storage, SESSION, "0"))));
         var dialogue = events.subList(from, events.size()).stream().filter(event ->

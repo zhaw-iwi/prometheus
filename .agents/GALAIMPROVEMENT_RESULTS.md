@@ -1090,3 +1090,32 @@ The documented acknowledgement delay is not enforced silence; silent context is
 not a secrecy boundary. The current browser plays a live remote track directly;
 muting it would discard speech rather than safely defer it. No such workaround
 was introduced. Final acoustic/robot acceptance and GI-11 capacity remain open.
+
+
+## GI-15 / Milestone 242 - post-reveal conversation (2026-10-22)
+
+Direct repetition/confirmation of the just-revealed name now returns locally,
+without another classifier call, gesture or recovery occasion. It preserves the
+outcome identity and original 30-second expiry. The active guessing path and stop
+commands still take precedence; after expiry the ordinary classifier runs again.
+The existing operation list now supplies both the current-mode prompt alternatives
+and validation. Mode-specific rules omit other activities' control vocabulary.
+Other follow-up questions receive bounded, already-public completed-round facts;
+the classifier still receives no active secret card. There are no new storage
+keys, database reads, polling or inference requests. Native speech remains Live's.
+
+Replaced GI-13's false-recovery characterization with acceptance for bare/prefixed
+name confirmations. Added expiring-context, scoped operation and invalid-operation
+regressions, and extended both persisted canonical/compact journeys with a repeated
+name and follow-up question. Invalid control still preserves prior state; genuine
+failed starts retain existing recovery. Arbitrary free-form model classification
+can still be wrong; this is not a guarantee that every follow-up is understood.
+
+Verification: 73 pure unit cases passed with mvnw.cmd -q
+-Dtest=GalaLiveFollowupUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerTaskUnitTest test.
+Both GalaDinnerReceptionJourneySmokeIntegrationTest cases passed via the disposable
+local-MySQL runner with --database-properties src/main/resources/application-test.properties.
+The runner removed its schema/account. Logs: target/gi15-unit.log and
+target/gptlive-acceptance-ceae4b61d7/java.log. Instruction maximum unchanged at
+14,399 bytes; git diff --check passed. No new paid-provider or physical trial in
+this milestone. GI-14's explicitly accepted prompt-only speech limitation remains.

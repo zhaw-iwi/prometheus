@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-15 / Milestone 242: direct confirmation of a just-revealed name no longer
+  calls the classifier or creates false failure recovery. Other follow-ups receive
+  current-mode operation choices and the original expiring outcome context.
+  73 focused units and both isolated Gala journeys pass. No extra database/model
+  request or speech intent; genuine control failures retain recovery. GI-16 is next.
+
 - GI-14 / Milestone 241: structured Gala Live speech guidance passes 72 unit cases,
   two isolated journey cases and the unchanged 14,400-byte instruction headroom
   check. Real provider comparison still fails strict readiness/complete-question/

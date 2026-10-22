@@ -137,3 +137,8 @@ Für die abschliessende Abnahme denselben Ablauf einmal mit Headset und einmal
 mit der vorgesehenen Roboter-/Empfangsausgabe testen. Jeweils letzte Wörter,
 tatsächlich ausgeführte Gesten und Telemetrie festhalten; simulierte Antworten
 in automatisierten Tests ersetzen diese Prüfung nicht.
+
+Nach der Auflösung den Namen nochmals sagen («Albert Einstein?» bzw. den gerade
+genannten Namen), danach «Hat diese Person in der Schweiz gelebt?». Das bleibt
+ein normales Gespräch: kein neues Spiel, keine erneute Auflösung aus dem Backend
+und keine Meldung, dass ein Spielstart fehlgeschlagen sei.

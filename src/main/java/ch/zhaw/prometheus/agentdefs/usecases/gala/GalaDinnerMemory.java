@@ -32,6 +32,10 @@ final class GalaDinnerMemory {
     static void remove(Storage storage, String key) { if (storage.containsKey(key)) storage.remove(key); }
     static String mode(Storage storage) { return text(storage, MODE, "RECEPTION"); }
     static Instant time(Storage storage, String key) { return Instant.parse(text(storage, key, Instant.EPOCH.toString())); }
+    static String recentOutcome(Storage storage, Instant now) {
+        return storage.containsKey(OUTCOME) && now.isBefore(time(storage, OUTCOME_EXPIRES))
+                ? text(storage, OUTCOME, "") : "";
+    }
     static boolean present(Storage storage, Instant now) {
         return Integer.parseInt(text(storage, COUNT, "0")) > 0 && now.isBefore(time(storage, SEEN).plusSeconds(15));
     }

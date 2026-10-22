@@ -619,8 +619,8 @@ local MySQL; production transcripts are evidence only, never committed fixtures.
 ### GI-13 - Reproduce the observed failures
 
 Status: COMPLETE / Milestone 240. Five new synthetic tests pass; actual application
-contexts export to ignored target/gala-followup-fixture.json. Two known-failure
-characterizations remain explicitly open for GI-15/GI-16. See the results record.
+contexts export to ignored target/gala-followup-fixture.json. Initially two
+known-failure characterizations were open for GI-15/GI-16. See the results record.
 
 Create synthetic first/repeated RPS starts with delayed confirmation, a paused
 nonbinary guessing question, give-up followed by the revealed name, and three
@@ -658,6 +658,11 @@ with the user. Explain latency/interruptibility consequences before adding audio
 gating or changing full duplex. Prompt checks cannot prove enforced silence.
 
 ### GI-15 - Ordinary conversation after a reveal
+
+Status: COMPLETE / Milestone 242. Direct name confirmation bypasses classification;
+mode-specific choices and expiring completed-round facts guide other follow-ups.
+73 units and both isolated Gala journeys pass. Free-form classification remains
+model-dependent; malformed or invalid real control still has bounded recovery.
 
 Constrain the classifier to current-mode operations and provide bounded recent
 outcome context. A repeated revealed name or question about that person remains

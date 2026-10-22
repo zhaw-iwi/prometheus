@@ -194,6 +194,14 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals(afterRevealCalls, requests.size());
             assertEquals(outcomeIdentity, loaded().getStorage().get("gala.outcome_id").getAsString());
 
+            say(first, "Albert Einstein");
+            assertEquals(afterRevealCalls, requests.size(), "A repeated revealed name needs no classification");
+            say(first, "Hat er in der Schweiz gelebt?", control("CHAT"));
+            assertReception(); assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
+            assertEquals(outcomeIdentity, loaded().getStorage().get("gala.outcome_id").getAsString());
+            assertTrue(requests.getLast().messages().stream().anyMatch(message ->
+                    message.getContent().startsWith("Recent completed guessing round") && message.getContent().contains("Albert Einstein")));
+
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
             assertFalse(loaded().getStorage().containsKey("gala.outcome"));
             hearAnnouncement(first);
