@@ -28,6 +28,11 @@ class LiveContextProjectionUnitTest {
     }
     State leaf(Agent agent) { return LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast(); }
     Event append(Agent agent, String type, String payload, Instant observed, String... path) {
+        if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(type)) {
+            var source = com.google.gson.JsonParser.parseString(payload).getAsJsonObject();
+            if (!source.has("observed_at") && !source.has("ts")) source.addProperty("ts", observed.toString());
+            payload = source.toString();
+        }
         Event event = agent.getEventHistory().appendEvent(Event.observation(type, Event.ACTOR_USER, payload).withStatePath(path));
         ReflectionTestUtils.setField(event, "id", UUID.randomUUID());
         ReflectionTestUtils.setField(event, "createdDate", observed);
@@ -83,6 +88,39 @@ class LiveContextProjectionUnitTest {
         var narrowed = projection(NOW.plusSeconds(6)).project(agent);
         assertTrue(narrowed.items().isEmpty());
         assertNotEquals(expired.revision(), narrowed.revision());
+    }
+    @Test void absentOrPoorlyDetectedFaceWithdrawsItsOlderExpressionAndSummary() {
+        for (String invalid : List.of("\"facePresent\":false", "\"faceDetectionConfidence\":0.2", "\"faceDetectionConfidence\":1.2")) {
+            Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
+            append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.9}", NOW.minusSeconds(2), name);
+            append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"angry\",\"confidence\":0.99," + invalid + "}", NOW.minusSeconds(1), name);
+            var result = projection(NOW).project(agent);
+            assertFalse(result.startupInput().toString().contains("angry"));
+            assertFalse(result.startupInput().toString().contains("happy"));
+            assertFalse(result.startupInput().toString().contains("Nonverbal summary"));
+            assertEquals("unknown", result.items().getFirst().freshness());
+        }
+    }
+    @Test void receiptTimeCannotMakeAnUndatedSensorValueCurrent() {
+        Agent agent = new MultimodalBehaviour().createAgent();
+        var event = agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_FACE_EMOTION, "sensor",
+                "{\"emotion\":\"happy\",\"confidence\":0.99}").withStatePath(leaf(agent).getName()));
+        ReflectionTestUtils.setField(event, "createdDate", NOW);
+        var result = projection(NOW).project(agent);
+        assertEquals("unknown", result.items().getFirst().freshness());
+        assertFalse(result.startupInput().toString().contains("happy"));
+        assertFalse(result.startupInput().toString().contains("Nonverbal summary"));
+    }
+    @Test void delayedAndFutureFramesCannotReplaceMoreRecentValidEvidence() {
+        Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
+        append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.9}", NOW.minusSeconds(1), name);
+        append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"sad\",\"confidence\":0.99}", NOW.minusSeconds(8), name);
+        append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"angry\",\"confidence\":0.99}", NOW.plusSeconds(20), name);
+        var result = projection(NOW).project(agent);
+        assertTrue(result.startupInput().toString().contains("happy"));
+        assertFalse(result.startupInput().toString().contains("sad"));
+        assertFalse(result.startupInput().toString().contains("angry"));
+        assertFalse(projection(NOW.plusSeconds(15)).project(agent).startupInput().toString().contains("Nonverbal summary"));
     }
     @Test void cameraHandSignsReachGenericLiveContextAndExpireWhenNoLongerObserved() {
         Agent agent = new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour().createAgent();

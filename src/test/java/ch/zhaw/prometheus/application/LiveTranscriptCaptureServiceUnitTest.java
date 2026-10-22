@@ -19,6 +19,23 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @Test void voicedAudioBeforeAnyTranscriptReservesConversationWithoutDatabaseWork() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class); var now = new AtomicLong(1000); var clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        var owner = new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID());
+        var capture = service.open(UUID.randomUUID(), owner, () -> List.of("reception"), reason -> fail(reason));
+        try {
+            capture.inputMuted(false); assertFalse(service.conversationallyBusy(owner));
+            var bytes = new byte[4800]; java.util.Arrays.fill(bytes, (byte)64);
+            var audio = new com.google.gson.JsonObject(); audio.addProperty("type", "session.input_audio.append");
+            audio.addProperty("audio", Base64.getEncoder().encodeToString(bytes)); capture.receive(audio);
+            assertTrue(service.conversationallyBusy(owner));
+            assertFalse(service.conversationallyBusy(new ExternalSpeech(owner.sessionId(), UUID.randomUUID())));
+            now.set(2999); assertTrue(service.conversationallyBusy(owner));
+            now.set(3000); assertFalse(service.conversationallyBusy(owner)); verifyNoInteractions(ingress);
+        } finally { capture.close().get(3, TimeUnit.SECONDS); service.shutdown(); }
+    }
     @Test void mailboxOverflowFailsClosedWithBoundedContentFreeEvidence() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class);
         var entered = new java.util.concurrent.CountDownLatch(1); var release = new java.util.concurrent.CountDownLatch(1);

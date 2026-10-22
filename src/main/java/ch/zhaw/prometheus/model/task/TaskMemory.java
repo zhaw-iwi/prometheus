@@ -98,22 +98,12 @@ public final class TaskMemory {
                 || value.getAsDouble() < 0 || value.getAsDouble() > 1) throw new IllegalArgumentException("Invalid output intensity");
     }
     public static Instant observed(Event event) {
-        try {
-            var json = JsonParser.parseString(event.getPayload()).getAsJsonObject();
-            var value = json.has("observed_at") ? json.get("observed_at") : json.get("ts");
-            return value == null ? null : Instant.parse(value.getAsString());
-        } catch (RuntimeException invalid) { return null; }
+        return ch.zhaw.prometheus.model.event.ObservationEvidence.observed(event);
     }
     public static boolean fresh(Event event, Instant now) {
-        var time = observed(event);
-        long ttl = switch (event.getType()) {
-            case Event.TYPE_WEATHER_CURRENT -> 600;
-            case Event.TYPE_WEATHER_FORECAST -> 21600;
-            case Event.TYPE_SOCIAL_SITUATION_CHANGE -> 30;
-            default -> 15;
-        };
         // Browser clocks can lead the server slightly; never extend the source TTL.
-        return time != null && !time.isAfter(now.plusSeconds(2)) && now.isBefore(time.plusSeconds(ttl));
+        return ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(observed(event), now,
+                ch.zhaw.prometheus.model.event.ObservationEvidence.ttl(event.getType()), 2);
     }
     /** Keep recent dialogue and one fresh reading of each type; old sensor values never masquerade as current. */
     public static List<PromptMessage> messages(EventHistory events, String instructions, PromptMessageAssembler assembler, Instant now) {

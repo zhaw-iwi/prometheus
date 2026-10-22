@@ -8,7 +8,9 @@ import java.util.*;
 public final class LiveContextDelivery {
     public record Narration(UUID sourceId, String text) {}
     public record Command(String type, String content, String delegationId, UUID sourceId, String revision,
-            String evidenceType, Instant expiresAt) {
+            String evidenceType, Instant expiresAt, boolean interruptible) {
+        public Command(String type, String content, String delegationId, UUID sourceId, String revision,
+                String evidenceType, Instant expiresAt) { this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, false); }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision) {
             this(type, content, delegationId, sourceId, revision, null, null);
         }
@@ -74,7 +76,7 @@ public final class LiveContextDelivery {
                                 : ". Make the authorized proactive comment once, in your own words.")
                         + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
-                        continuation.id(), revision, null, continuation.expiresAt()));
+                        continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible()));
             }
         }
         // Legacy backend speech intents retain their existing delivery contract.

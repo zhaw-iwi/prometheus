@@ -16,6 +16,30 @@ class LiveContextDeliveryUnitTest {
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void conversationBeginningDuringAnAckWaitDropsOnlyOptionalAmbientSpeech(boolean optional) {
+        var contexts = mock(LiveAgentContextService.class); var captures = mock(LiveTranscriptCaptureService.class);
+        var busy = new AtomicBoolean(); var initial = snapshot("r0", "Guide");
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH); var id = UUID.randomUUID();
+        when(captures.conversationallyBusy(owner)).thenAnswer(call -> busy.get());
+        var occasion = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(id,
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.PROACTIVE, "A useful comment", Instant.EPOCH.plusSeconds(10), optional);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, List.of("state"), "Guide", List.of(), 0,
+                initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Current facts", occasion));
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var bridge = new LiveContextBridgeService(contexts, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)); bridge.transcripts(captures);
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var session = bridge.open(initial, owner, c -> { sent.add(c); if (id.equals(c.sourceId())) busy.set(true); },
+                ignored -> applied.incrementAndGet(), reason -> fail(reason));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            assertEquals(optional ? 0 : 1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
+            assertEquals(optional ? 1 : 0, session.status().recent().stream().filter(t -> t.phase().equals("ambient_superseded_by_speech")).count());
+            busy.set(false); session.request();
+            assertEquals(optional ? 0 : 1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
+        } finally { bridge.shutdown(); }
+    }
     @Test void slowFactAcknowledgementCannotReleaseAnExpiredSpeakingOccasion() {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
         Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
