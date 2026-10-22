@@ -57,7 +57,7 @@ export class LiveDiagnostics {
         ...Object.fromEntries(["paused", "muted", "enabled", "ended"].map(key => [key, typeof value[key] === "boolean" ? value[key] : null])) });
       if (entry.media.length > 2400) { entry.media.shift(); entry.mediaDropped++; }
     } else if (value.phase !== "status") {
-      entry.browser.push({ browserMs, ...pick(value, ["phase", "receiptId", "segmentId", "outcome", "direction"], ["providerStartMs", "providerEndMs"]),
+      entry.browser.push({ browserMs, ...pick(value, ["phase", "receiptId", "segmentId", "outcome", "direction"], ["providerStartMs", "providerEndMs", "graceMs", "durationMs"]),
         reason: stopReasons.has(value.reason) ? value.reason : null });
       if (entry.browser.length > this.traceLimit) { entry.browser.shift(); entry.browserDropped++; }
     }

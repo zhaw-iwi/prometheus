@@ -24,6 +24,7 @@ export class LiveCockpit {
       stop: (reason, cause) => this.client.stop(reason, "Idle", cause),
       waiting: () => this.state({ state: "Waiting", detail: "Reception armed. Waiting for visitors in the camera view." }),
       failed: error => this.state({ state: "Error", detail: error.message }),
+      diagnostic: value => { if (this.client.current) this.client.diagnostic(this.client.current, value); },
     });
     this.receptionTimer = setInterval(() => this.reception.checkFreshness(), 1000);
     $("gptlive_start").addEventListener("click", () => void this.start());
@@ -73,7 +74,7 @@ export class LiveCockpit {
       await this.beforeStart(); if (version !== this.version) return;
       this.save(); this.ledger = []; this.renderHistory();
       if (scope.interactionProfile?.presenceControlledLive) {
-        this.reception.arm();
+        this.reception.arm(this.capability.departureGraceMs);
         return;
       }
       await this.client.start({ ...scope, voice: this.preferences.voice, mediaPreferences: this.preferences.media, outputDeviceId: this.preferences.outputDeviceId });
@@ -82,7 +83,8 @@ export class LiveCockpit {
   }
   state(value) {
     if (["Error", "Disconnected"].includes(value.state) && this.reception?.armed) {
-      this.reception.armed = false; this.reception.version++; this.reception.running = false;
+      this.reception.clearDeparture(); this.reception.armed = false; this.reception.version++;
+      this.reception.generation++; this.reception.running = false;
     }
     if (value.state) {
       this.client.state = value.state;

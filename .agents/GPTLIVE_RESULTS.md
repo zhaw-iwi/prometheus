@@ -1626,3 +1626,24 @@ identity. A changed task/result occasion during an ACK wait suppresses its old
 clarification without requiring a state-path change or another database read.
 The 26-case clarification/delivery rerun passes, including this additional race
 (target/gi19-occasion-unit.log). Existing deadlines and sensor-only behaviour stay.
+
+
+## GI-20 shared presence grace (2026-10-22)
+
+ExternalVoicePolicy opts into a bounded departure grace through scoped capabilities,
+using the existing eligibility read. Default remains zero. PresenceReception keeps
+audio/input and session through transient zero readings; sample revision and encounter
+generation independently fence delayed ACKs and startup. Deadline never slides.
+Stop, camera shutdown, stale sensing, access loss and failures retain immediate
+teardown. Existing per-session telemetry adds grace/duration and fixed lifecycle
+outcomes, no dialogue or new polling. The user explicitly approved audio continuing
+during the two-second grace after a real-provider mute probe clipped speech.
+
+Verification: 54 Node Live tests; 6 MVC contract cases; local LiveSessionSmoke and
+LiveCockpitSmoke passed (target/gptlive-acceptance-28a45d8725/java.log). The first
+browser attempt lacked installed packages; npm ci resolved that. The next exposed
+an existing feature/main template mismatch (script wires agent_embodiment_select,
+absent in that branch's HTML) before connection, unrelated to these changes.
+No claim of shared-branch browser acceptance: the updated lifecycle browser test
+will run on the complete agents deployment UI. Evidence retained in
+target/gptlive-acceptance-a9a880ddd1; no production database used.
