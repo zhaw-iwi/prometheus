@@ -43,6 +43,7 @@ public class LiveContextBridgeService {
     }
     @EventListener public void changed(AgentCommitted event) {
         sessions.values().stream().filter(session -> session.agent.equals(event.agentId())).forEach(session -> {
+            if (event.activityKnown()) session.currentOccasion.set(new OccasionIdentity(event.narrationId()));
             if (!session.owner.epoch().equals(event.epoch())) session.fail("agent_epoch_changed");
             else if (event.narrationId() != null) session.announcement(event.narrationId());
             else session.request();
@@ -62,6 +63,8 @@ public class LiveContextBridgeService {
     @Scheduled(fixedDelay = 1000) public void refresh() { sessions.values().forEach(Session::refreshIfDue); }
     @PreDestroy public void shutdown() { sessions.values().forEach(Session::close); workers.shutdownNow(); }
 
+    private record OccasionIdentity(UUID id) {}
+
     public final class Session {
         private final UUID agent;
         private final ExternalSpeech owner;
@@ -73,6 +76,7 @@ public class LiveContextBridgeService {
         private final AtomicBoolean running = new AtomicBoolean(), dirty = new AtomicBoolean(), closed = new AtomicBoolean();
         private final AtomicBoolean urgent = new AtomicBoolean();
         private final AtomicReference<UUID> lastAnnouncement = new AtomicReference<>();
+        private final AtomicReference<OccasionIdentity> currentOccasion = new AtomicReference<>();
         private final ArrayBlockingQueue<UUID> clarifications = new ArrayBlockingQueue<>(32);
         private final ArrayDeque<Trace> traces = new ArrayDeque<>();
         private volatile boolean ready;
@@ -82,6 +86,8 @@ public class LiveContextBridgeService {
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
             agent = initial.agentId(); this.owner = owner; delivery = new LiveContextDelivery(initial);
+            currentOccasion.set(new OccasionIdentity(initial.activity() == null || initial.activity().continuation() == null
+                    ? null : initial.activity().continuation().id()));
             revision = initial.revision(); this.send = send; this.applied = applied; this.failure = failure;
         }
         public void ready() { delivery.ready(); ready = true; state = "ready"; request(); }
@@ -146,7 +152,12 @@ public class LiveContextBridgeService {
                 // Deferred work remains dirty; no worker sleeps while waiting for this window.
                 nextCommitReadAt = clock.millis() + 5000;
                 nextRefreshAt = clock.millis() + 30000;
+                var priorOccasion = currentOccasion.get();
                 var fresh = contexts.refresh(agent, owner).orElseThrow(() -> new IllegalStateException("Obsolete context owner"));
+                var activity = fresh.context().activity();
+                // A newer post-commit notification must win over the snapshot being read.
+                currentOccasion.compareAndSet(priorOccasion, new OccasionIdentity(activity == null || activity.continuation() == null
+                        ? null : activity.continuation().id()));
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
@@ -187,11 +198,12 @@ public class LiveContextBridgeService {
                 }
                 Command command = queue.removeFirst();
                 if (command.interruptible() && (suppressed.contains(command.sourceId())
+                        || !Objects.equals(command.sourceId(), currentOccasion.get().id())
                         || transcripts != null && transcripts.conversationallyBusy(owner))) {
                     if (suppressed.add(command.sourceId())) {
-                        trace("ambient_superseded_by_speech", command);
+                        trace("ambient_superseded", command);
                         transmit(new Command("session.thinking.append", "Optional ambient speaking occasion " + command.sourceId()
-                                + " is withdrawn because conversation takes priority. Do not speak its comment.", null, command.sourceId(), command.revision()));
+                                + " is withdrawn because its context changed or conversation takes priority. Do not speak its comment.", null, command.sourceId(), command.revision()));
                     }
                     continue; // Attempted once; never backlog or replay this optional comment.
                 }
