@@ -879,3 +879,121 @@ baseline is 9ce55da; a rollback should use the corresponding previously verified
 Heroku release after checking its release identity, without deleting audit history
 or resetting shared branches. Commit/push follows the user's standing instruction;
 successful deployment alone cannot close these remaining gates.
+
+## GI-11 / Milestone 239 - persistence efficiency (2026-10-22)
+
+Implemented and verified the next database-efficiency slice. GI-11 capacity is
+still INCOMPLETE. No production database/load test, quota increase, sensor cadence
+change, permission cache, buffered transcript durability or saved-instance rewrite.
+
+Shared changes: feature/gptlive 453748a and 1305c57 -> main 1cc13d9/dc05c43 ->
+agents c566f5d/f588577. Newly admitted Live fragments use one atomic autocommitted
+MySQL INSERT ... SELECT, validating enabled scope/link, persisted epoch and absence
+of the receipt identity in that statement. Local ownership remains a fence, not
+authorization. Outer transactions are suspended; later processing rollback cannot
+erase an accepted receipt. Duplicate/obsolete admission gets one additional check
+to release obsolete owners. Segment claims/processing remain separate transactions.
+The default autocommit pool is required; a non-autocommit connection fails closed.
+
+Storage entries use set semantics on the same join-table columns, changing only
+the affected links. Eager SELECT fetching prevents row multiplication across
+agent/policy/state collections. Explicit same-value writes still change versions
+used to fence background actions. Tests cover legacy join-table shape, reload,
+detached merge/removal and bounded link writes with 100 entries. The complete-history
+endpoint reads history/events/paths directly; authorization, fresh data, all event
+identities/order, state paths and native provenance are preserved.
+
+### Functional verification and discovered regressions
+
+- Focused shared persistence: 13 cases passed after correcting a preliminary
+  JPA/JDBC synchronization issue and two new test fixtures. Shared final fetch/history
+  follow-up: 16 focused cases passed. Detailed commands/artifacts and limits are in
+  GPTLIVE_RESULTS. Scoped and trusted new-receipt admission each measure exactly
+  one MySQL Question, including durability and persisted authorization/epoch guards.
+- The first agents full run exposed excessive heap use in the core RPS cockpit
+  smoke with the preliminary set mapping. SQL evidence showed storage entries
+  joining the agent graph and six storage collections in one policy query. The
+  explicit SELECT fixes that query shape; a regression rejects such graph joins.
+  The owned failing JVM was stopped and the runner removed its disposable schema
+  and account. This was a failed run: target/gptlive-acceptance-48520c915b/java.log.
+- Final integrated run: 832 Java cases, 831 passed, one intentional opt-in capacity
+  skip, zero failures/errors. Counted only XML reports from this run (29 stale
+  report files excluded). Four real-app browser cases passed: three Live enabled
+  and one feature-disabled Text/Speech case; two Live-only cases skipped when disabled.
+  Command: run_acceptance.py --database-properties src/main/resources/application-test.properties
+  --java-tests all --browser --live-only --browser-grep
+  'real scoped cockpit|Live Multimodal exposes sensors|Generic activation telemetry'.
+  Evidence: target/gptlive-acceptance-28fc8a7fff/ and target/gi11-final-java-counts.json.
+- The shared full suite before integration has a separate pre-existing static
+  client contract failure: its script includes embodiment, while its test expects
+  the older request shape. Its 555 passes/one failure are recorded in GPTLIVE_RESULTS;
+  the agents branch's matching embodiment contract passes. No unrelated client
+  contract was changed to hide that failure.
+- Tightened the accelerated mixed-minute ceiling from 2,100 to 1,700. It measured
+  1,569 in the full run and 1,571 in the final one-case rerun (minor timing-sensitive
+  variation), versus 2,088 before this slice: about 25% less. Evidence:
+  target/gptlive-acceptance-42bd00bddc/java.log. The final command selects
+  QueryVolumeIntegrationTest#galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture.
+  Packaging (`mvnw.cmd -q -DskipTests package`, target/gi11-package.log) and
+  git diff --check passed. The capacity target was not relaxed.
+
+### Matched reception capacity measurement
+
+Same one-instance/one-cockpit reception workload as Milestone 237: 30 seconds quiet
+Live, 180 seconds busy Live, 30 seconds camera after Stop. No profile calibration
+change in this comparison. Every game/capture functional assertion passed: all 36
+segments COMPLETE with six receipt identities each, final reception and released
+ownership. The one capacity case FAILED only the unchanged 27,000/hour assertion.
+
+| Phase | Earlier Questions | New Questions | New hourly equivalent | New transactions |
+| --- | ---: | ---: | ---: | ---: |
+| Quiet Live, 30 s | 668 | 624 | 74,878 | 58 |
+| Busy Live, 180 s | 7,846 | 5,469 | 109,380 | 421 |
+| Camera after Stop, 30 s | 65 | 65 | 7,800 | 8 |
+
+Busy load falls **30.3%**, with unchanged calls and 1 ms maximum scheduled lateness.
+Excluding the one SSE reconnect gives 107,980/hour. Quiet phase maximum lateness
+was 262 ms, after-Stop 1 ms. These are local synthetic hourly equivalents, not
+measured production throughput or a bound on actual provider fragmentation.
+The stress profile was not rerun in this slice.
+
+| Busy path | Calls | Earlier Questions | New Questions |
+| --- | ---: | ---: | ---: |
+| Social sample (three observations) | 36 | 1,743 | 1,587 |
+| Facial sample | 36 | 1,251 | 885 |
+| Hand sample | 9 | 294 | 273 |
+| Fragment receipt | 216 | 1,512 | 216 |
+| Segment commit | 36 | 1,452 | 1,418 |
+| Live context refresh | 39 | 624 | 624 |
+| Complete history refresh | 36 | 648 | 144 |
+| Status poll | 180 | 216 | 216 |
+| Lease check | 36 | 36 | 36 |
+| SSE reconnect | 1 | 70 | 70 |
+
+The 2,377 saved Questions comprise 1,296 from receipts, 504 from history and 577
+across sensor/segment persistence. Hibernate reports 3,982 prepared statements
+and no receipt entity inserts because the writer uses JDBC. Actual Questions
+include those 216 durable inserts; zero Hibernate statements is not zero SQL.
+
+Command: PROMETHEUS_GALA_CAPACITY=true, PROFILE=reception, SECONDS=180, then the
+disposable runner with --java-tests 'QueryVolumeIntegrationTest#galaReceptionCapacitySoak'
+(environment keys use the full PROMETHEUS_GALA_CAPACITY_ prefix as in tests/gptlive/README).
+Evidence: target/gptlive-acceptance-479a52651b/java.log,
+target/gala-capacity-reception-report.json; prior comparison preserved as
+target/gala-capacity-reception-before239.json. Runner resources were removed.
+
+### Remaining capacity work
+
+The 109,380/hour result is still over the fixed 36,000 quota and requires about
+75% further reduction to reach 27,000/hour headroom. Sensor turns contribute 2,745
+Questions (50.2%); segment processing adds 1,418 (25.9%). Live context is another
+624 (11.4%). Receipts are now only 3.9%; further receipt micro-optimizations cannot
+close this gap. Quiet Live also exceeds the target independently of speech.
+
+The next design should address repeated graph reads and the read/save transactions
+around sensor and segment processing. Preserve per-event failure/commit isolation,
+source freshness, provider-wait connection release, durable transcripts and immediate
+revocation. Any proposed changed transaction/retention contract needs an explicit
+compatibility decision, including recovery behavior and saved-instance implications;
+do not silently introduce long-lived runtime caches or merge event commits.
+Final provider/physical/clipping gates also remain open. No Heroku readiness claim.

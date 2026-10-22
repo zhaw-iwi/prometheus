@@ -82,11 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- GI-11 / Milestone 239 shared persistence efficiency: one durable, freshly
-  authorized database statement per Live receipt, and individual storage-link
-  updates on the existing schema. Thirteen focused MySQL cases pass; the shared
-  full suite has 555 passes and one pre-existing static-client contract failure.
-  Gala integration/capacity checks follow on agents. See GPTLIVE_RESULTS.
+- GI-11 / Milestone 239: durable receipt admission now costs one database Question;
+  storage writes change only their own links and history display avoids the full
+  state graph. Matched reception cost falls 30.3%, from 7,846 to 5,469 Questions
+  per 180 seconds (~109,380/hour). The fixed 27,000/hour headroom gate still FAILS;
+  sensor turns and segment processing dominate the remaining cost. Integrated
+  acceptance passes 831 Java cases (one opt-in skip) and four real-app browser
+  cases. The mixed-minute regression is 1,569–1,571 with a tightened 1,700 ceiling.
+  GI-11 remains INCOMPLETE; see GALAIMPROVEMENT_RESULTS for failures/fixes and limits.
 
 - GI-12 / Milestone 238: local automated acceptance complete. The Gala journey
   adds failed-control recovery without a false start and an ON_CUE task through

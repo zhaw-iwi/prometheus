@@ -805,7 +805,10 @@ The local regression checks actual MySQL `Questions`, including JDBC work and
 transaction commands; Hibernate statement counts alone omit the receipt writer.
 The deployment branch also tests a mixed Gala speech/sensing minute: the earlier
 reduction was 4,731 to 1,996 MySQL questions; after the Gala interaction improvements
-and redundant-memory-write cleanup, it uses 2,088 against its 2,100 regression ceiling.
+and redundant-memory-write cleanup it used 2,088. Atomic receipt admission,
+individual storage-link writes and direct history reads reduce it to 1,569–1,571 against
+a tightened 1,700 regression ceiling. The matched sustained reception profile
+falls from about 156,919 to 109,380 questions/hour (30.3% less).
 Sustained load at that rate exceeds
 the documented 36,000/hour plan; this regression test is not a capacity guarantee.
 See `.agents/GPTLIVE_RESULTS.md` for the original reduction and

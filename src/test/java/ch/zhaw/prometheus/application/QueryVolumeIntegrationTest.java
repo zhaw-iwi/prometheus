@@ -283,7 +283,7 @@ class QueryVolumeIntegrationTest {
             long total = questions() - before - 1;
             System.out.printf("GALA_MIXED_MINUTE databaseQuestions=%d statements=%d entities=%d%n", total,
                     stats.getPrepareStatementCount(), stats.getEntityLoadCount());
-            assertTrue(total <= 2100, "Mixed Gala workload query budget: " + total);
+            assertTrue(total <= 1700, "Mixed Gala workload query budget: " + total);
             assertEquals(4, control.get());
             var saved = agents.findById(f.id()).orElseThrow();
             assertEquals("Gala guess the person", saved.getCurrentState().getName());

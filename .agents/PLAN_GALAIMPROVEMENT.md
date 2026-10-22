@@ -2,7 +2,8 @@
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
 Status: GI-01 through GI-10 implemented/pushed. GI-11 local optimisation/calibration
-is committed at 6d68efd; GI-12 local automated acceptance is complete. Fixed-quota
+includes Milestone 239's shared persistence reductions (30.3% in the matched
+reception soak); GI-12 local automated acceptance is complete. Fixed-quota
 production capacity, final provider acceptance and physical trials stay OPEN. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
@@ -507,6 +508,15 @@ create a focused corrective follow-up from the evidence before claiming resoluti
 ### GI-11 - Sustained database capacity and operational recovery
 
 Status: INCOMPLETE - fixed-quota production headroom is still required. The user
+authorised the database-efficiency follow-up on 2026-10-22. Milestone 239 reduces
+matched reception load from 7,846 to 5,469 Questions/180 seconds, about 109,380/hour.
+Receipt admission costs one Question; storage-link writes and history reads are
+bounded without a data migration. All 831 executed Java cases and four selected
+real-app browser checks pass; the unchanged 27,000/hour capacity gate still FAILS.
+Sensor turns and segment processing remain the next measured bottlenecks. This
+does not authorize weakening per-event commits/failure isolation, retaining stale
+runtime state, caching permissions, buffering receipts or silently changing sensing.
+The user previously
 authorised local optimisation/calibration and proceeding with GI-12 local
 acceptance while this gate remains open. The original stress comparison showed
 a 9.17% regression; the results document calibrated profiles and subsequent
