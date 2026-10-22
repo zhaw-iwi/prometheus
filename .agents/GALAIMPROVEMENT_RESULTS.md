@@ -1148,3 +1148,78 @@ fragments are still durable; late/uncertain speech is not promoted into a valid
 control request. Correctly separating actual questions may appropriately create
 more backend turns than the defective merged capture; this is not a capacity fix.
 GI-11 fixed-quota capacity, physical clipping and GI-14 prompt-only limitations stay open.
+
+
+## GI-17 / Milestone 244 - sensory delivery and final acceptance (2026-10-22)
+
+Shared implementation: feature/gptlive b519715, main ab432fe, agents integration
+d9ae2a2. Shorter context headers and 440-byte payload parts retain the conservative
+480-byte append bound. Current face evidence follows social context before derived
+summaries. New commits can replace obsolete unsent observations at the existing
+five-second refresh boundary, after completing the current multipart observation.
+The packing loop respects that same boundary. No change to source timestamps,
+expiry, sampling, permission checks or the database refresh interval. Delivery
+still checks expiry after each ACK; a slow provider cannot make old data fresh.
+
+Shared focused tests and the seven initial local integrations are recorded in
+GPTLIVE_RESULTS. The delayed-ACK regression delivers the representative full
+sensory batch in at most five appends, with face evidence sent within six seconds
+under simulated two-second ACKs and all facts inside their original 15-second TTL.
+This is a synthetic bound for that fixture, not a production latency guarantee.
+
+Final integrated tree d9ae2a2 passed:
+
+- 847 Java cases, zero failures/errors; one opt-in capacity soak skipped. This
+  includes both Gala and Social Space journey variants, the five Generic task
+  integration cases, capture/durability, revocation/Stop and context delivery.
+- Four application/browser cases: three with Live enabled, and the legacy
+  feature-disabled path. Two Live-only cases correctly skip when disabled.
+- 97 Node cases: Live 47, transcription 29, output speech 21.
+- Packaging with tests skipped after the full acceptance run; git diff checks.
+- Mixed-minute regression: 1,569 database Questions under the unchanged 1,700
+  ceiling. No production database access; disposable local schema/account removed.
+
+Commands: python tests/gptlive/run_acceptance.py --database-properties
+src/main/resources/application-test.properties --java-tests all --browser
+--live-only --browser-grep 'real scoped cockpit|Live Multimodal exposes sensors|Generic activation telemetry';
+npm run test:live:unit, test:transcription:unit and test:speech:unit;
+mvnw.cmd -q -DskipTests package. Evidence: target/gptlive-acceptance-2e890a9cd2/
+and target/gi17-{live-node,transcription-node,speech-node,package}.log. The first
+PowerShell packaging invocation stopped on a JVM stderr warning; running the
+same command through cmd with native redirection completed successfully.
+
+Final provider evidence is recorded below. The manual GALA.md script now covers
+post-reveal name/fact follow-ups, separate noisy turns with quiet trailing speech,
+and fresh/expired social and facial evidence. Physical audibility, real-camera
+accuracy, robot gesture execution and GI-11 fixed-quota capacity remain open.
+The user accepted continuing with GI-14's prompt-only speech limitation; no
+audio gating, changed full duplex or second controller was introduced.
+
+### Final provider matrix
+
+Three fresh gpt-live-1/marin sessions used the final exported application fixture
+and the same six synthetic German clips/delayed confirmations as GI-14. All
+sessions closed successfully. Transport success is not behavioural acceptance.
+The following observations are from provider captions, not recorded acoustics:
+
+| Trial | Observations |
+| --- | --- |
+| Final 1 | Waiting remarks before game confirmations. Answers Ja before the second half of the nonbinary question, then clarifies. One reveal after the outcome update starts. |
+| Final 2 | Waiting remarks on replay and give-up. No premature Ja, but only Einen Moment instead of a substantive clarification in the observation window. One reveal after the outcome update starts. |
+| Final 3 | Fillers/waiting remarks, including Warte mal kurz during the question pause. Volunteers that the target is a real historical man at game introduction; then correctly asks for a binary question. One reveal after the outcome update starts. |
+
+Strict acceptance is still 0/3. No game invitation before its update or duplicated
+reveal was observed in these final samples; earlier GI-14 violations still stand.
+Do not infer consistent readiness, secrecy or complete-question behaviour from
+this small sample. First/replay RPS results were captioned correctly in all three.
+The question's scheduled 1.2-second gap measured 1.63–1.64 seconds including audio
+transfer overhead. Confirmation batches took 1.61–3.56 seconds from first append
+to final ACK. These sequential-append probes do not reproduce backend packing,
+coalescing or noisy capture and cannot establish their production latency benefit.
+
+Commands: node tests/gptlive/gala_provider_trial.mjs --allow-paid-provider
+target/gi17-final-fixture.json target/gi17-final-N-results.json, for N=1,2,3.
+Fixture, event/caption logs and audio cache remain ignored under target/. No
+failed sample was discarded, and no repeat was added to obtain a favourable
+result. This closes the implementation/automated follow-up sequence under the
+user's accepted limitation, not the outstanding provider/physical/capacity gates.

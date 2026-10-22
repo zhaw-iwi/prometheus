@@ -694,6 +694,12 @@ budgets. This does not fix Live's independent acoustic turn-taking by itself.
 
 ### GI-17 - Fresh, compact sensory context and integrated acceptance
 
+Status: IMPLEMENTED / Milestone 244. Compact delivery and replacement of obsolete
+unsent observations pass final local acceptance: 847 Java passes (one opt-in
+capacity skip), 97 Node passes and four real-app browser passes. Original sensory
+expiry, access checks and database budgets are preserved. Final provider trials
+are recorded in GALAIMPROVEMENT_RESULTS; GI-14's accepted prompt-only limitation remains.
+
 Reduce redundant sensory chunk headers/updates and coalesce obsolete unsent
 observations. Deliver facial and social evidence before their original expiry;
 preserve source IDs, original TTL, immediate permission checks and sensing cadence.

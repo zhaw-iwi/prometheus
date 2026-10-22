@@ -326,7 +326,7 @@ The configurable task engine retains its existing confirmed-speech/action contra
 GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including task
 voice, without replaying opening instructions. Activity-aware task policies own
 their voice contract and place validated goals in quiet facts. Gala instructions
-fit at 12,382/16,000 bytes with maximum goals separately bounded in activity data.
+currently fit at 14,399/16,000 bytes with maximum goals separately bounded in activity data.
 Continuations optionally expire; Gala uses 30 seconds (60 for a full task proposal) and clears pending metadata
 with activity cleanup. Expiry after an ACK wait is quiet, never spoken. This does
 not establish audibility or prevent every premature model utterance. Consecutive
@@ -378,9 +378,23 @@ transcripts remain auditable. Other language interpretation remains model-depend
 Its session-fixed backend user-turn
 quiet window is 2,000 ms, selected through the generic ExternalVoicePolicy hook;
 other agents and assistant capture retain 800 ms. Telemetry exports the effective
-user window. Short pauses are tested, but semantic sentence completion and the
+user window. Gala also opts into requiring 40 ms of sustained above-threshold
+input activity before resetting quiet, so isolated 20-ms spikes do not merge
+separate questions. Pending onset protects a trailing word; raw receipts remain
+durable. Short pauses are tested, but semantic sentence completion and the
 reported audible cutoff are not solved by this boundary. Trial evidence and the
 controlled physical retest are in `.agents/GPTLIVE_RESULTS.md` and README.
+
+Shared Live context delivery uses shorter headers and prioritises current face
+evidence ahead of derived summaries. At the existing refresh boundary, newer
+commits replace obsolete unsent sensory observations after completing the current
+multipart observation. Source IDs, original expiry and access checks are retained;
+no faster polling or extended freshness. Gala's current-mode classifier also sees
+only a fresh completed-round outcome; direct confirmation of its revealed name
+bypasses classification without renewing that outcome or creating recovery speech.
+Real provider trials still violate prompt-only readiness and complete-question
+guidance. The user accepted this limitation for the current sequence; no audio
+gating or full-duplex change was introduced. See `GALAIMPROVEMENT_RESULTS.md`.
 
 Gala guessing exposes sourced cards to Live as quiet activity facts. Voice rules
 distinguish missing facts from incomplete/nonbinary questions, keep the identity

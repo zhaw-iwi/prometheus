@@ -82,24 +82,27 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Milestone 244 (shared delivery): bounded context chunks use shorter headers and
+- GI-17 / Milestone 244: bounded context chunks use shorter headers and
   prioritise current face evidence before derived summaries. Unsent sensory backlog
   yields at observation boundaries to newer commits at the existing refresh cadence.
-  Source identity/expiry and permission checks remain intact. Focused/shared gates
-  pass; integrated application acceptance follows. See GPTLIVE_RESULTS.
+  Source identity/expiry and permission checks remain intact. Final local acceptance
+  passes 847 Java cases (one opt-in capacity skip), 97 Node cases, four application
+  browser cases and packaging. The mixed-minute budget is 1,569/1,700. Final provider
+  evidence and remaining physical/capacity gates are in GALAIMPROVEMENT_RESULTS;
+  prompt-only speech coordination remains an explicitly accepted limitation.
 
 - GI-16 / Milestone 243: Gala opts into ignoring isolated input-activity spikes.
   Three synthetic noisy questions remain separate; pending onset protects trailing
   speech. Default agents, assistant capture and raw durability stay unchanged.
   52 shared units, 22 shared boundary cases, 24 integrated units and three Gala/query
   integration cases pass; mixed-minute cost is 1,571/1,700. Physical accuracy remains
-  unverified; this does not control Live's speech timing. GI-17 is next.
+  unverified; this does not control Live's speech timing.
 
 - GI-15 / Milestone 242: direct confirmation of a just-revealed name no longer
   calls the classifier or creates false failure recovery. Other follow-ups receive
   current-mode operation choices and the original expiring outcome context.
   73 focused units and both isolated Gala journeys pass. No extra database/model
-  request or speech intent; genuine control failures retain recovery. GI-16 is next.
+  request or speech intent; genuine control failures retain recovery.
 
 - GI-14 / Milestone 241: structured Gala Live speech guidance passes 72 unit cases,
   two isolated journey cases and the unchanged 14,400-byte instruction headroom
@@ -112,8 +115,8 @@ and regulation diagnostics remain future work.
 - GI-13 / Milestone 240: five synthetic follow-up scenarios cover delayed/repeated
   RPS readiness, paused questions, post-reveal control and noisy turn separation.
   Actual application contexts export for provider comparisons. The false-recovery
-  and merged-turn tests characterize known failures, not fixes. GI-14's provider
-  feasibility gate is next; no runtime behaviour changed. See the Gala plan/results.
+  and merged-turn tests initially characterized known failures, resolved by GI-15
+  and GI-16. No runtime behaviour changed in GI-13. See the Gala plan/results.
 
 - GI-11 / Milestone 239: durable receipt admission now costs one database Question;
   storage writes change only their own links and history display avoids the full

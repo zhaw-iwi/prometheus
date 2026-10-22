@@ -148,3 +148,11 @@ Sie sollten als drei Benutzereinträge aufgezeichnet werden. Separat eine Frage
 mit kurzer Denkpause («Ist die Person … noch am Leben?») und leisen Schlusswörtern
 testen: sie muss zusammenbleiben. Live kann trotz verbessertem Backend-Mitschnitt
 weiterhin zu früh antworten; das ist eine separat bekannte Einschränkung.
+
+Sensorvergleich: Nach einem stabil übermittelten Lächeln und einer Änderung der
+Personenzahl erst «Wie viele Personen siehst du?», danach «Und mein Gesichtsausdruck?»
+fragen. Übermittlungszeit und Antwort notieren. Eine langsame vorherige Antwort
+darf keine veraltete Wahrnehmung nachliefern. Danach Sensorübermittlung ausschalten,
+mindestens 15 Sekunden warten und erneut fragen: keine Behauptung über den aktuellen
+Ausdruck oder die aktuelle Personenzahl ohne frische Daten. Keine zusätzliche
+ungefragte Kommentarserie erwarten.
