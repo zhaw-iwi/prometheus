@@ -104,3 +104,11 @@ Bewegung in Serie. «Zeig diese Geste bitte nochmals» darf sie gezielt wiederho
 Spielzeichen und ausdrücklich vereinbarte Aufgabenbewegungen müssen unabhängig
 von dieser dekorativen Pause erscheinen. Anzeige und tatsächlich ausgeführte
 Roboterbewegung getrennt notieren; keine wortgenaue Synchronisation voraussetzen.
+
+Handzeichencheck: Vor Spielbeginn ein Zeichen halten: kein Spielstart und kein
+Ergebnis. Erst die bestätigte Einladung abwarten. Eine Hand gut sichtbar kurz
+ruhig halten; bei Schwierigkeiten neu positionieren. Beobachtungsanzeige («gesendet»)
+und Aktivitätszeile («akzeptiert»/«abgeschlossen») unterscheiden. Nach dem Ergebnis
+das Zeichen weiter halten: kein zweites Ergebnis. Neue Runde ausdrücklich starten;
+separat während des Wartens «Stopp» testen. Kamera/Detektor und Senden aktiviert?
+Bei Problemen Uhrzeit, Zeichen, Sende-Konfidenz und Ablehnungsgrund notieren.

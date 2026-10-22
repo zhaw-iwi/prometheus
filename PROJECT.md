@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-09 / Milestone 235: Gala hand-game feedback distinguishes browser emission
+  from actual readiness, rejected input and one accepted result. Existing acceptance
+  confidence is preserved; source order and camera stability metadata are checked.
+  No new sampling/polling. GI-10 follows; real-camera acceptance remains NOT RUN.
+  Verification is recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - GI-08 / Milestone 234: occasional decorative gestures share core meanings and
   bounded published-request history. Cooldown/repetition suppression preserves
   face/gaze, explicit repeats and agreed task/RPS outputs. Focused contracts,
@@ -10854,3 +10860,9 @@ Shared core label meanings are exposed without changing the existing core prompt
 Gala adds bounded recent-request context to existing selection, filters decoration
 at once-only publication, and exempts deliberate task/game outputs. See GI-08 in
 `.agents/GALAIMPROVEMENT_RESULTS.md` for measured verification and limitations.
+
+## Milestone 235 - Hand-game readiness and acceptance feedback (2026-10-22)
+
+Gala uses the existing activity journal/footer for clear readiness/rejection/result
+states. Browser emission and backend acceptance thresholds have explicit roles.
+See GI-09 in `.agents/GALAIMPROVEMENT_RESULTS.md` for verification and physical limits.

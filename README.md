@@ -518,6 +518,19 @@ results after Live Stop are discarded. Task readiness remains visible through th
 existing monitor/Live contract.
 Reset clears owned `gala.*` and the Generic engine's task keys, preserving other
 storage. Task policy/action subclasses reuse existing JPA fields. The existing
+Gala RPS readiness comes from the active round. The shared activity footer now
+distinguishes no round, waiting, low-confidence/unstable/stale/out-of-order input,
+accepted cue, completed round and cancellation. These content-free diagnostics
+reuse the bounded activity journal; they do not start a game or request speech.
+The browser's default 0.65 confidence is a send threshold, not acceptance. Gala
+keeps its 0.70 acceptance threshold, requires source freshness after round start,
+and checks the existing three-frame metadata for camera-origin readings. Missing
+confidence is unknown. Explicit operator hand injection has no camera-frame count.
+A confirmed introduction asks for one visible hand held briefly steady, without
+claiming speaker-to-hand identity. A held sign after completion cannot replay it.
+The last display plan remains a historical request; the activity state controls
+readiness. No camera sampling or per-frame persistence was added.
+
 Gala decorative gestures reuse the core semantic meanings and receive the last
 five published gesture requests in the existing selector prompt. A 12-second
 cooldown and 60-second same-label interval suppress excess decoration without

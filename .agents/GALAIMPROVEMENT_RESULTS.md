@@ -491,3 +491,39 @@ speech/gesture-plan coexistence (target/gptlive-acceptance-3ccb6bd599); its feat
 variant was skipped by that test and is not claimed as legacy coverage. Packaging
 and git diff --check passed. Core extraction was committed through feature/gptlive
 (be99cd8) and main (8215a21); the agents merge preserved its existing RPS labels.
+
+## GI-09 / Milestone 235 - hand-game readiness and acceptance (2026-10-22)
+
+The existing activity journal/footer distinguishes no round, awaiting one steady
+hand, low confidence, unstable camera evidence, stale/pre-start/out-of-order input,
+accepted cue, completed round and cancellation. Repeated reasons coalesce through
+the existing service. Terminal footer hints expire after ten seconds; no stale
+hint claims an active round. A rejected observation changes neither activity nor
+hidden sign. Held signs after resolution cannot produce another result.
+
+Browser 0.65 remains a configurable emission threshold; the operator label now
+explains that sending is not acceptance. Gala's unchanged 0.70 acceptance threshold
+requires a valid confidence, fresh source timestamp after start and, for camera
+origin, the already-emitted three-frame stability metadata. Explicit operator
+injection has no frame count. The post-start timestamp boundary remains unchanged.
+Out-of-order checks reuse loaded event history; no new polling, sampling or
+per-frame state records. Confirmed game introduction/display advises one visible
+hand held steady without speaker attribution. Other agent acceptance rules remain
+unchanged. Shared feedback landed through feature/gptlive 4f8d8f3 and main 6acd9d4.
+
+Pure/unit acceptance covers confidence boundaries, missing evidence, stability,
+pre-start/future/stale/out-of-order input, actual readiness, cancellation, held-sign
+suppression and a new round. The normal selector still makes just one call to start;
+hand rejection/resolution makes none. Camera disabled/emission failure and stable
+held-sign retry behaviour retain the existing browser regressions. Real-camera
+repositioning/held-sign acceptance is NOT RUN; the manual script covers it for the
+user's grouped physical acceptance at GI-12. No saved graphs were migrated.
+
+GI-09 verification: 50 focused Java unit cases passed (target/gi09-unit.log),
+29 Node cases passed (target/gi09-node.log), and nine isolated integration cases
+passed: Gala journey/query budgets (target/gptlive-acceptance-07ea80fd49) and
+Gala persistence/reload (target/gptlive-acceptance-1b8f38af4e). Disposable schemas
+and accounts were removed. Packaging and git diff --check passed. The first
+integration selection included a nonexistent persistence class; only the five
+actual journey/query cases from that run are counted, with the four real
+persistence cases run separately under GalaDinnerReceptionIntegrationTest.

@@ -120,6 +120,33 @@ class GalaDinnerReceptionUnitTest {
         verify(gateway, times(1)).infer(any());
     }
 
+    @Test void handFeedbackUsesActualReadinessAndNeverReplaysAResolvedRound() {
+        var sink = mock(ch.zhaw.prometheus.logging.ActivityTrace.Sink.class);
+        try (var ignored = ch.zhaw.prometheus.logging.ActivityTrace.attach(sink)) {
+            assertNull(hand("paper", Instant.now(), .99));
+            verify(sink).cue(eq("rps_not_started"), any(), eq(Event.TYPE_HAND_SIGN));
+            when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
+            var start = BehaviourPlan.fromJson(say("Schere Stein Papier bitte").getPayload());
+            assertEquals(.7, start.getDisplay().getAsJsonObject().get("minimumConfidence").getAsDouble());
+            verify(sink).cue(eq("rps_waiting_for_sign"), any(), eq(Event.TYPE_HAND_SIGN));
+            Instant at = time(memory, STARTED).plusMillis(10);
+            assertNull(hand("paper", at, .65));
+            verify(sink).cue(eq("rps_low_confidence"), any(), eq(Event.TYPE_HAND_SIGN));
+            assertNotNull(hand("paper", at.plusMillis(1), .7));
+            verify(sink).cue(eq("cue_matched"), any(), eq(Event.TYPE_HAND_SIGN));
+            verify(sink).cue(eq("rps_round_completed"), any(), eq(Event.TYPE_HAND_SIGN));
+            assertNull(hand("paper", at.plusMillis(2), .99));
+            assertNull(agent.generate(runtime));
+            assertEquals("Gala reception", agent.getCurrentState().getName());
+            verify(gateway, times(1)).infer(any());
+            say("Schere Stein Papier bitte");
+            assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
+            say("Stopp");
+            verify(sink).cue(eq("rps_cancelled"), any());
+            assertNull(hand("paper", Instant.now(), .99));
+        }
+    }
+
     @Test void guessingPublishesTheCardForLiveAndBackendOnlyControlsTheRound() {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", ""), answer("WAIT", ""));
         assertNull(speech(say("Ich möchte eine Person erraten")));

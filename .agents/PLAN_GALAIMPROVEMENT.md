@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-08 implemented; GI-09 is next. GI-05 uses
+Status: GI-01 through GI-09 implemented; GI-10 is next. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
 Later milestones are not started.
@@ -434,6 +434,10 @@ extracted. Browser checks distinguish current-plan indicators from execution
 acknowledgements. Robot trials verify distinctiveness, timing and actual motion.
 
 ### GI-09 - Understandable hand-sign readiness and feedback
+
+Status: IMPLEMENTED. Automated acceptance covers readiness, rejection and single
+resolution; real-camera repositioning/held-sign acceptance is NOT RUN and remains
+with the user's grouped physical acceptance at GI-12.
 
 **Outcome:** the visitor/operator can distinguish an unstarted game from a hand
 that was not detected, rejected or already accepted.
