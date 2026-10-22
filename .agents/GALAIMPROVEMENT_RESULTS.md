@@ -268,3 +268,26 @@ The proposed decision is bounded semantic association versus explicit visitor
 confirmation before further task steps; exact scope and tradeoffs are recorded
 in PLAN_GALAIMPROVEMENT.md. Neither has been implemented. Investigation does not
 mark GI-05 complete, and no timeout has been substituted for completed speech.
+
+## GI-05 / Milestone 231 - bounded task response association (shared foundation)
+
+The user approved one semantic check per pending task response on 2026-10-22.
+TaskResponse stores one occasion/session/epoch/revision with a 45-second deadline.
+Native recording claims a completed, fresh, nontrivial candidate atomically with
+its durable record. Existing bounded background-action workers run the check
+after commit without holding an entity, JDBC transaction or agent lock. Output
+identities and verdict are validated; uncertainty never releases another action.
+Completion rechecks ownership/current response and requires fresh post-check cues.
+Duplicate/reloaded claims do not retry. Context refresh reuses its existing
+deadline scheduler for expiry; no extra poller, schema or transcript endpoint.
+Legacy tasks without the opt-in response state retain their wording-based gate.
+
+Focused shared units passed (target/gi05-shared-unit.log), including the new
+TaskResponseUnitTest and existing task/Live contracts. Ten isolated integration
+cases passed: LiveSpeechPersistenceIntegrationTest, GenericMultimodalTaskIntegrationTest,
+LiveQueryBudgetIntegrationTest; target/gptlive-acceptance-0c331985c5. Tests verify
+one durable check, duplicate native recording, paraphrase association, no further
+action, unlocked inference and obsolete-result rejection. The first run exposed
+an executor result-key mismatch; the declaration was corrected and the affected
+integration set passed. Disposable schema/account removed. Gala opt-in, provider
+classification/latency review and full milestone acceptance remain in progress.

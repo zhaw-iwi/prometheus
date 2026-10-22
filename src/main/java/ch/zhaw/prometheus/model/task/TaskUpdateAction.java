@@ -61,6 +61,7 @@ public class TaskUpdateAction extends Action {
             var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
             if (rule.effect() == TaskSpec.Effect.WAIT) {
                 TaskMemory.put(storage, TaskMemory.PHASE, "WAITING"); TaskMemory.revise(storage);
+                TaskResponse.preserveCapturedBoundaryOnWait(storage);
                 ch.zhaw.prometheus.logging.ActivityTrace.cue("task_waiting", events.toList().getLast().getId());
                 return; // A temporary condition never spends an action or calls a model.
             }
@@ -96,6 +97,7 @@ public class TaskUpdateAction extends Action {
             if (completed || spec.firstAction() == TaskSpec.FirstAction.ON_CUE && count + 1 >= spec.maxActions()) {
                 TaskMemory.put(storage, TaskMemory.PHASE, "COMPLETED"); TaskMemory.revise(storage);
             }
+            taskCommitted(completed ? "COMPLETE" : "ACT", spec, rule, plan, runtime);
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
@@ -183,9 +185,14 @@ public class TaskUpdateAction extends Action {
         // Only observations captured after this response/cooldown can advance the task.
         if (operation.equals("ACTIVATE") || operation.equals("RESUME"))
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(3).toString());
+        taskCommitted(operation, task, null, reply, runtime);
     }
     /** Additional application constraints, checked before storage or output is changed. */
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
+
+    /** Called only after validated state and output are committed to turn-local storage. */
+    protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule,
+            ch.zhaw.prometheus.model.behaviour.BehaviourPlan reply, PolicyRuntime runtime) {}
 
     /** Applications may render agreement terms; validate the replacement before mutation. */
     protected ch.zhaw.prometheus.model.behaviour.BehaviourPlan prepareTaskReply(String operation, TaskSpec task,

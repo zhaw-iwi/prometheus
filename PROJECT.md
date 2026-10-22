@@ -82,6 +82,10 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-05 / Milestone 231 shared response tracking is integrated; Gala acceptance
+  is in progress. The approved semantic check is bounded and asynchronous, never
+  a playback proof. See `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - Milestone 230 / GI-04: explicit future-cue timing arms Gala tasks with zero
   actions; validated proposals retain trigger, modalities, timing, count and
   lifecycle. Legacy immediate tasks and Generic's prompt identity are preserved.
@@ -10782,3 +10786,12 @@ agent journeys, future/legacy reload and query-volume regression. Real provider
 trials exposed oversized action text, an unsupported invented trigger and omitted
 spoken termination terms; targeted prompt corrections and affected reruns passed.
 Physical speech/robot execution remains unverified. GI-05 is next.
+
+## Milestone 231 - Bounded Live task response association (2026-10-22)
+
+Opt-in task response identities and durable single-attempt claims support natural
+Live wording. Existing bounded background workers perform semantic association;
+epochs, revisions, deadlines and fresh-cue guards fence stale or uncertain results.
+The existing context scheduler expires missing responses. Shared unit and ten
+isolated integration cases pass. Gala/provider acceptance remains in progress;
+see `.agents/GALAIMPROVEMENT_RESULTS.md`. No physical playback proof is claimed.

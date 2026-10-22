@@ -6,6 +6,12 @@ import static org.mockito.Mockito.*;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import static org.awaitility.Awaitility.await;
+import java.time.*;
+import java.util.concurrent.*;
+import com.google.gson.*;
+import ch.zhaw.prometheus.model.Storage;
+import ch.zhaw.prometheus.model.task.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -27,6 +33,66 @@ class LiveSpeechPersistenceIntegrationTest {
     @Autowired AgentApplicationService application;
     @Autowired PlatformTransactionManager transactions;
     @MockitoBean LanguageModelGateway gateway;
+    @Test void optedInTaskResponseClaimsOnceAndPersistsSemanticAssociationWithoutExecutingAnotherAction() {
+        var storage = new Storage(); storage.put(TaskMemory.PHASE,new JsonPrimitive("RUNNING"));
+        storage.put(TaskMemory.ACTIONS,new JsonPrimitive(1));
+        Agent agent = agents.saveAndFlush(new Agent("semantic association", "", new TaskState("task",new TaskPolicy(storage,""),false),storage));
+        var owner = new ExternalSpeech(UUID.randomUUID(),agent.executionEpoch());
+        TaskResponse.expect(storage,owner,UUID.randomUUID(),"Tell a robot joke",Instant.now().minusSeconds(1)); agents.saveAndFlush(agent);
+        ownership.acquire(agent.getId(),owner);
+        when(gateway.infer(any())).thenAnswer(call -> {
+            var request = (ch.zhaw.prometheus.spi.InferenceRequest)call.getArgument(0);
+            var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            var result = new JsonObject();
+            for (String key : List.of("responseId","revision","segmentId")) result.add(key,data.get(key));
+            result.addProperty("verdict","MATCH"); return result.toString();
+        });
+        recording.record(agent.getId(),owner,"ack","Okay",List.of(),SpeechProvenance.Association.NONE,true,Instant.now());
+        verifyNoInteractions(gateway);
+        for (int i=0;i<2;i++) recording.record(agent.getId(),owner,"joke","My circuits run on coffee today!",List.of(),SpeechProvenance.Association.NONE,true,Instant.now());
+        await().atMost(Duration.ofSeconds(8)).untilAsserted(() -> {
+            var loaded=agents.findById(agent.getId()).orElseThrow();var stored=((TaskPolicy)loaded.getCurrentState().ownPolicy()).storage();
+            assertEquals("CAPTURED",TaskResponse.status(stored)); assertTrue(TaskResponse.captured(stored,owner));
+            assertEquals(1,stored.get(TaskMemory.ACTIONS).getAsInt());
+            assertEquals(2,loaded.getEventHistory().toList().size());
+        });
+        verify(gateway,times(1)).infer(any()); ownership.release(agent.getId(),owner.sessionId());
+    }
+
+    @Test void responseCheckDoesNotHoldATransactionOrAgentLockAndOldSuccessCannotReleaseANewResponse() throws Exception {
+        var storage=new Storage(); storage.put(TaskMemory.PHASE,new JsonPrimitive("RUNNING"));
+        Agent agent=agents.saveAndFlush(new Agent("delayed semantic check","",new TaskState("task",new TaskPolicy(storage,""),false),storage));
+        var owner=new ExternalSpeech(UUID.randomUUID(),agent.executionEpoch());
+        TaskResponse.expect(storage,owner,UUID.randomUUID(),"Tell a robot joke",Instant.now().minusSeconds(1)); agents.saveAndFlush(agent);
+        ownership.acquire(agent.getId(),owner);
+        var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
+        when(gateway.infer(any())).thenAnswer(call -> {
+            assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            var request=(ch.zhaw.prometheus.spi.InferenceRequest)call.getArgument(0);
+            var data=JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            var answer=new JsonObject();for(String key:List.of("responseId","revision","segmentId"))answer.add(key,data.get(key));
+            answer.addProperty("verdict","MATCH");entered.countDown();assertTrue(release.await(5,TimeUnit.SECONDS));return answer.toString();
+        });
+        try {
+            recording.record(agent.getId(),owner,"old","My circuits run on coffee today!",List.of(),SpeechProvenance.Association.NONE,true,Instant.now());
+            assertTrue(entered.await(5,TimeUnit.SECONDS));
+            UUID replacement=UUID.randomUUID();
+            application.serialized(agent.getId(),() -> new TransactionTemplate(transactions).execute(status -> {
+                var loaded=agents.findById(agent.getId()).orElseThrow();var current=((TaskPolicy)loaded.getCurrentState().ownPolicy()).storage();
+                TaskResponse.expect(current,owner,replacement,"A new task response",Instant.now());agents.saveAndFlush(loaded);return null;
+            }));
+            release.countDown();
+            // Queue a fence on the same existing worker lane, so assertions run after completion.
+            var drained=new CountDownLatch(1);
+            var fence=background.reserve(new ch.zhaw.prometheus.model.PreparedAction(UUID.randomUUID(),null,java.util.Map.of(),g->java.util.Map.of()),gateway,
+                    (a,v,versions)->{drained.countDown();return "fence";});fence.commit(agent.getId());
+            assertTrue(drained.await(5,TimeUnit.SECONDS));
+            var loaded=agents.findById(agent.getId()).orElseThrow();var current=((TaskPolicy)loaded.getCurrentState().ownPolicy()).storage();
+            assertEquals("PENDING",TaskResponse.status(current));assertFalse(TaskResponse.captured(current,owner));
+            verify(gateway,times(1)).infer(any());
+        } finally { release.countDown();ownership.release(agent.getId(),owner.sessionId()); }
+    }
+    @Autowired BackgroundActionExecutor background;
     @Test void nativeIntentAndRealizationSurviveReloadWithoutDuplicateConversationOrStateExecution() {
         when(gateway.infer(any())).thenReturn("{\"speech\":\"Planned result\"}");
         Agent agent = agents.saveAndFlush(new Agent("speech persistence", "", new State("talk", new PromptPolicy("Speak", null, null), List.of())));

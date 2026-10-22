@@ -13,7 +13,7 @@ public final class TaskMemory {
     private static final Set<String> GESTURES = Set.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper");
     public static final String PHASE = "task.phase", SPEC = "task.spec", DRAFT = "task.draft", REPLY = "task.reply",
             ACTIONS = "task.actions", AFTER = "task.after", REVISION = "task.revision", SESSION = "task.session", PAUSE_REASON = "task.pauseReason";
-    private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION, SESSION, PAUSE_REASON);
+    private static final List<String> KEYS = List.of(PHASE, SPEC, DRAFT, REPLY, ACTIONS, AFTER, REVISION, SESSION, PAUSE_REASON, TaskResponse.KEY);
     private TaskMemory() {}
     public static String phase(Storage storage) { return text(storage, PHASE, "CONFIGURATION"); }
     public static boolean active(Storage storage) { return Set.of("RUNNING", "WAITING").contains(phase(storage)); }
