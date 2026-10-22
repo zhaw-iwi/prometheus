@@ -15,10 +15,14 @@ class LiveVoiceAcknowledgementUnitTest {
         private final Boolean acknowledgements;
         private boolean activity;
         private boolean filterInput;
+        private String pendingGuidance;
         ApplicationPolicy(Boolean acknowledgements) { super(new Storage(), "Application voice"); this.acknowledgements = acknowledgements; }
         public boolean supportsLiveState(State state) { return true; }
         public String voiceInstructions() { return "Application voice"; }
         public boolean liveFilterIsolatedInputActivity() { return filterInput; }
+        public String livePendingGuidance() {
+            return pendingGuidance == null ? ExternalVoicePolicy.super.livePendingGuidance() : pendingGuidance;
+        }
         public ch.zhaw.prometheus.model.policy.LiveActivityContext liveActivityContext() {
             return activity ? new ch.zhaw.prometheus.model.policy.LiveActivityContext("Task facts", null) : null;
         }
@@ -36,6 +40,16 @@ class LiveVoiceAcknowledgementUnitTest {
         assertFalse(projection.project(agent).filterIsolatedInputActivity());
         policy.filterInput = true;
         assertTrue(projection.project(agent).filterIsolatedInputActivity());
+    }
+    @Test void activityOwnedWaitingGuidanceCanBeNarrowedWithoutEnablingLegacyAcknowledgements() {
+        var policy = new ApplicationPolicy(false); policy.activity = true;
+        policy.pendingGuidance = "One status only while awaiting confirmation; never invent a lookup.";
+        var agent = new Agent("application", "", new State("task", policy, List.of()));
+        agent.setInteractionProfile(new GenericMultimodalBehaviour().createAgent().getInteractionProfile());
+        var sections = new LiveVoicePolicyAdapter().sections(agent);
+        assertTrue(sections.get("voice").contains(policy.pendingGuidance));
+        assertFalse(sections.get("voice").contains("You may acknowledge immediately"));
+        assertFalse(sections.containsKey("taskVoice"));
     }
     @Test void activityAwareTaskUsesItsApplicationVoiceWithoutLegacyTaskDuplication() {
         var policy = new ApplicationPolicy(false); policy.activity = true;

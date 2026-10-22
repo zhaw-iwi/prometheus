@@ -41,7 +41,7 @@ function fixture() {
   }
   for (const name of ["detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "demoAgentPath",
-    "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round"]) {
+    "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     assert.ok(match, name);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
@@ -145,4 +145,22 @@ test("failed sends and a missing connection never claim that the sign was emitte
   f.context.state.agentId = null; await f.frame();
   assert.match(f.status(), /not sent.*connect/i);
   assert.equal(f.requests.length, 2);
+});
+
+test("an old hand acknowledgement cannot restore cooldown after a new capture window opens", async () => {
+  const f = fixture();
+  let release;
+  const original = f.context.fetch;
+  f.context.fetch = async (...args) => { await new Promise(resolve => { release = resolve; }); return original(...args); };
+  await f.frame(); await f.frame();
+  const old = f.frame();
+  f.context.resetCameraEmissionGate();
+  release(); await old;
+  assert.equal(f.context.camera.lastCameraEmitKey, null);
+  assert.equal(f.context.camera.lastCameraEmitAt, 0);
+  f.context.fetch = original;
+  await f.frame();
+  assert.equal(f.requests.length, 2);
+  await f.frame();
+  assert.equal(f.requests.length, 2, "ordinary cooldown still applies after the fresh send");
 });
