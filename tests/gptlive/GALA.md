@@ -164,3 +164,22 @@ Antwort durch lokale Stummschaltung. Danach mindestens drei Sekunden verschwinde
 Sitzung endet; bei Rueckkehr eine frische Begruessung, keine alte Aufgabe. Stop und
 Kamera ausschalten muessen weiterhin sofort stoppen. Die Zwei-Sekunden-Frist
 beginnt erst bei der erkannten Null-Personen-Meldung; Erkennungszeit separat beachten.
+
+
+## Kurzer Abnahmelauf GI-18 bis GI-22
+
+1. Schere, Stein, Papier spielen, Ergebnis abwarten, dann nur "Okay" sagen.
+2. "Personenraten bitte", danach "Ja, gerne". Das Spiel darf dadurch nicht enden.
+3. Kurz aus dem Kamerabild gehen (0,5-1,5 s erkannte Abwesenheit), zurueckkommen,
+   weiterfragen. Gleiche Person, gleiche Sitzung, keine neue Begruessung.
+4. "Ich gebe auf". Namen einmal hoeren; danach "War es [Name]?".
+5. "Wie wirkt mein Gesichtsausdruck?", dann laecheln und nach frischem Sensorwert:
+   "Und jetzt?". Antwort zum aktuellen Ausdruck, kein neues Spielangebot.
+6. "Wann beginnt das Essen?", danach "Und jetzt?". Keine Rueckkehr zum Gesichtsthema.
+7. Gesichtserkennung aus; nach 15 s erneut fragen: keine aktuelle Mimik erfinden.
+8. Mindestens drei Sekunden erkannte Abwesenheit: Sitzung endet. Rueckkehr startet
+   einen frischen Empfang. Stop/Kamera aus muessen weiterhin sofort stoppen.
+
+Jede Antwort fertig sprechen lassen. Besonders Schritte 5/6 mit Zeit und gehoerter
+Antwort notieren: Providerproben zeigen hier noch variable Formulierungen. Ein
+passender Untertitel allein bestaetigt nicht, dass jedes Wort hoerbar war.

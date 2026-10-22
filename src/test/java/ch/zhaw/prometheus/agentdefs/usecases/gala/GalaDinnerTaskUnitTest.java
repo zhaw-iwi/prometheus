@@ -233,7 +233,7 @@ class GalaDinnerTaskUnitTest {
             if (List.of("departure", "presence").contains(ending)) {
                 assertEquals("TASK", mode(memory));
                 put(memory, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS).toString());
-                agent.tick(runtime);
+                agent.acknowledge(new Event(GalaDinnerPolicy.LIVE_ENDED, "system", Event.KIND_SYSTEM, "departure"), runtime);
             }
             assertHome();
             assertEquals("keep", text(memory, "unrelated", ""));

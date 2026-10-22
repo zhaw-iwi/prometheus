@@ -874,10 +874,11 @@ missed cue is replayed. Already authorized speech can continue.
 A positive sample before the deadline cancels absence without a new greeting or
 reset. Repeated zeros do not extend the deadline. Confirmed absence closes once,
 clears encounter-owned state and requires a fresh acknowledged arrival after close.
-Sample revisions and encounter generations fence delayed ACKs/startup. Backend
-uses its first accepted-zero receipt time; browser uses its local observation time.
-Network delay can make backend cleanup later, but cannot postpone local audio stop.
-Existing ticks/Live-close transitions finalize cleanup without new polling.
+Sample revisions and encounter generations fence delayed ACKs/startup. The browser owns the two-second confirmation deadline. Its Live close drives backend
+cleanup; a second server timer must not erase a resumed encounter behind a delayed
+positive acknowledgement. Backend zero readings suppress sensor actions; conversation
+admission retains its bounded grace. The existing 90-second idle limit is unchanged.
+Network delay can postpone persisted cleanup, never local audio stop. No new polling.
 
 Stop, explicit camera shutdown, revocation, reset/switch and failures remain immediate;
 missing sensing still fails closed at 15 seconds. Microphone mute is untouched.
@@ -892,8 +893,11 @@ The final real-camera test remains open; automated checks cannot prove audibilit
 ### GI-21 - Maintain perception topic and deliver relevant fresh evidence
 
 Status: COMPLETE. Local non-control guard and native-topic guidance implemented;
-60 focused checks and a real-provider comparison pass. The original model topic
-failure did not reproduce with timely evidence. Timing/physical limits remain.
+60 focused checks and an initial provider comparison passed. GI-22 repetitions then
+exposed a topic-switch failure: a narrow 30-second face-topic hint was added without
+new classification, and clears on the next substantive topic or encounter end.
+Final repetitions retain a spoken-quality limitation (2/3 facial follow-ups correct);
+backend control, freshness and expiry tests pass. Timing/physical limits remain.
 
 Use Live's existing conversation plus compact activity/perception context for
 follow-ups such as facial question -> answer -> "Und jetzt?". Guidance should
@@ -928,7 +932,11 @@ Acceptance:
 
 ### GI-22 - Integrated acceptance and final device trial
 
-Status: PROPOSED.
+Status: IMPLEMENTATION AND AUTOMATED ACCEPTANCE COMPLETE; final device trial open.
+All tests pass (874 Java, one deliberate capacity skip; 104 Node; four browser cases;
+packaging). Three final provider sessions retain all evidence, including occasional
+fillers and one failed facial follow-up. These are not deterministic speech guarantees.
+The resource ceiling is unchanged; see results for commands, counts and limitations.
 
 Extend the existing representative journey rather than create a parallel suite:
 RPS result -> "Okay" -> guessing selection -> "Ja, gerne" -> guessing questions ->

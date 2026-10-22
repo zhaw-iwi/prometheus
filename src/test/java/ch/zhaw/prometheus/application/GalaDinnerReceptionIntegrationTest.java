@@ -172,6 +172,8 @@ class GalaDinnerReceptionIntegrationTest {
                 Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()) && event.getPayload().contains("handSign")));
 
         say(code, id, "Vorheriger Besucher"); group(code, id, 0);
+        assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
+        contexts.closed(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, startup.epoch()));
         assertEquals("Gala reception", agents.findById(id).orElseThrow().getCurrentState().getName());
         ownership.release(id, session); group(code, id, 1);
         UUID nextSession = UUID.randomUUID();

@@ -42,13 +42,14 @@ final class GalaDinnerSensing {
             if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) return;
             int count = value.getAsBigDecimal().intValueExact(); if (count < 0 || count > 1000) return;
             int before = Integer.parseInt(text(storage, COUNT, "0"));
-            if (departureDue(storage, now)) endEncounter(storage, events.toList().size());
             boolean gap = observed.isAfter(time(storage, SEEN).plusSeconds(15));
             put(storage, SEEN, observed.toString()); put(storage, COUNT, Integer.toString(count));
             if (count == 0) {
                 if (before > 0 && runtime.externalSpeech() != null && !storage.containsKey(ABSENT_SINCE))
                     put(storage, ABSENT_SINCE, now.toString());
                 cancelAmbient(storage);
+                // Browser owns the confirmed departure deadline and closes Live. A second
+                // server timer could erase a resumed encounter behind a delayed positive ACK.
                 // No missed cue or unstable expression is queued for a returning visitor.
                 activityEnded(storage);
                 reply(storage, null);

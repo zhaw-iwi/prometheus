@@ -23,7 +23,6 @@ public class GalaDinnerDecision extends Decision {
                 && expired(storage, Instant.now());
     }
     static boolean expired(Storage storage, Instant now) {
-        if (GalaDinnerMemory.departureDue(storage, now)) return true;
         if (!storage.containsKey(GalaDinnerMemory.LAST_INPUT)) return false;
         return !now.isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.LAST_INPUT).plusSeconds(90));
     }

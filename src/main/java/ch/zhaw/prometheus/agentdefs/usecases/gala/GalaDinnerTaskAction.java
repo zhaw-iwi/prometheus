@@ -29,7 +29,8 @@ public class GalaDinnerTaskAction extends TaskUpdateAction {
         var storage = getStorage(); committed = false; requiredGesture = false;
         if (!"TASK".equals(mode(storage))) return;
         // A camera dropout preserves the agreement but cannot trigger a sensor action.
-        if (!present(storage, Instant.now()) && conversationPresent(storage, Instant.now())) return;
+        if (runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean()
+                && storage.containsKey(ABSENT_SINCE) && !present(storage, Instant.now())) return;
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean()
                 || !conversationPresent(storage, Instant.now()) || GalaDinnerDecision.expired(storage, Instant.now())) {
             reception(storage); reply(storage, null); return;

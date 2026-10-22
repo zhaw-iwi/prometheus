@@ -56,6 +56,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
+        facts += GalaDinnerDialogue.facts(storage, java.time.Instant.now());
         if (storage.containsKey(GalaDinnerMemory.ABSENT_SINCE))
             facts += "Visibility uncertain (two-second departure check); keep conversation, but no new sensor action/cue invitation until visible. ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
@@ -102,7 +103,10 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     storage.containsKey(GalaDinnerMemory.CONTINUATION_EXPIRES)
                             ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null,
                     "true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_AMBIENT, "")));
-        return new LiveActivityContext(facts, continuation, ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage));
+        var refresh = ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage);
+        var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
+        if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
+        return new LiveActivityContext(facts, continuation, refresh);
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {

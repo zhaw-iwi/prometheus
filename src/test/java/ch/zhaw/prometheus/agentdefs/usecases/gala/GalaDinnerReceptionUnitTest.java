@@ -426,7 +426,7 @@ class GalaDinnerReceptionUnitTest {
         assertNull(speech(group(0, baseline.plusMillis(3))));
         assertEquals("GUESS", mode(memory)); assertTrue(memory.containsKey(PERSON));
         put(memory, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS).toString());
-        assertNull(agent.tick(runtime));
+        assertNull(agent.acknowledge(new Event(GalaDinnerPolicy.LIVE_ENDED, "system", Event.KIND_SYSTEM, "departure"), runtime));
         assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(PERSON));
         clearInvocations(gateway);
         assertNull(say("Bist du Physiker?")); verifyNoInteractions(gateway);
@@ -473,14 +473,15 @@ class GalaDinnerReceptionUnitTest {
         say("Stopp"); assertEquals("true", text(memory, GalaDinnerSensing.CORRECTED, ""));
         group(0, Instant.now().plusMillis(1)); assertTrue(memory.containsKey(GalaDinnerSensing.CORRECTED));
         put(memory, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS).toString());
-        agent.tick(runtime); assertFalse(memory.containsKey(GalaDinnerSensing.CORRECTED));
+        agent.acknowledge(new Event(GalaDinnerPolicy.LIVE_ENDED, "system", Event.KIND_SYSTEM, "departure"), runtime);
+        assertFalse(memory.containsKey(GalaDinnerSensing.CORRECTED));
     }
 
     @Test void newLiveEncounterExcludesPreviousDialogueAndPrivateFacts() {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", "")); say("Geheimname möchte raten");
         assertFalse(new LiveVoicePolicyAdapter().instructions(agent).contains("Albert Einstein"));
         group(0, Instant.now());
-        put(memory, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS).toString()); agent.tick(runtime);
+        agent.acknowledge(new Event(GalaDinnerPolicy.LIVE_ENDED, "system", Event.KIND_SYSTEM, "departure"), runtime);
         group(1, Instant.now().plusMillis(1));
         var policy = (GalaDinnerPolicy) agent.getCurrentState().ownPolicy();
         policy.beginLiveConversation(agent.getEventHistory());

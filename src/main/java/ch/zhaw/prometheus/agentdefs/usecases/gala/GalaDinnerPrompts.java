@@ -30,8 +30,8 @@ final class GalaDinnerPrompts {
             Visitor speech takes priority. Ignore clicks/breath/noise. Routine updates never interrupt.
             Respect stop/silence.
             "Okay" alone is acknowledgment, not goodbye. No greeting on state changes.
-            "Und jetzt?" follows the last topic. For faces use the latest fresh estimate, not older averages.
-            Without evidence say unknown; topic changes end that link.
+            Current follow-up topic overrides sensors for "Und jetzt?"; follow latest user topic.
+            Use fresh face estimates, not older averages; no evidence means unknown.
 
             # Delegation policy
             ## Backend tools

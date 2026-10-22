@@ -234,7 +234,8 @@ class QueryVolumeIntegrationTest {
         assertTrue(agents.findById(fixture.id()).orElseThrow().getEventHistory().isEmpty());
     }
 
-    @Test void galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture() throws Exception {
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture(boolean dropout) throws Exception {
         var f = fixture(new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception().createAgent());
         for (int i = 0; i < 2; i++) demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
                 "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
@@ -252,6 +253,11 @@ class QueryVolumeIntegrationTest {
             // 60 polls, 12 lease checks, 4 user turns and 8 native segments (72 receipts).
             // Workers are mocked, so explicit refreshes account for background context work.
             for (int cycle = 0; cycle < 12; cycle++) {
+                // One additional transient-zero ingress; the normal fresh sample immediately
+                // following it restores visibility. Timed boundaries live in fake-clock tests.
+                if (dropout && cycle == 4) assertTrue(demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
+                        "{\"humanCount\":0,\"ts\":\"" + Instant.now() + "\"}"),
+                        ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN).isPresent());
                 String timestamp = Instant.now().toString();
                 var result = demo.acknowledgeObservations(f.code(), f.id(), List.of(
                         sensor(Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":1,\"ts\":\"" + timestamp + "\"}"),
@@ -281,7 +287,7 @@ class QueryVolumeIntegrationTest {
                         .orElseThrow().transcriptRevision();
             }
             long total = questions() - before - 1;
-            System.out.printf("GALA_MIXED_MINUTE databaseQuestions=%d statements=%d entities=%d%n", total,
+            System.out.printf("GALA_MIXED_MINUTE dropout=%s databaseQuestions=%d statements=%d entities=%d%n", dropout, total,
                     stats.getPrepareStatementCount(), stats.getEntityLoadCount());
             assertTrue(total <= 1700, "Mixed Gala workload query budget: " + total);
             assertEquals(4, control.get());

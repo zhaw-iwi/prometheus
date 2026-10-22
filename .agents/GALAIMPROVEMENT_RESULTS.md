@@ -1412,3 +1412,77 @@ Reproduce: run GalaLiveFollowupUnitTest to export target/gala-perception-fixture
 then node tests/gptlive/gala_provider_trial.mjs --allow-paid-provider
  target/gala-perception-fixture.json target/gi21-provider-repeat.json with the key
 in the environment. All trial transcripts are synthetic and stay ignored.
+
+
+## GI-22 - Integrated acceptance and device handoff (2026-10-22)
+
+The persisted canonical/compact Gala journey now also covers RPS -> Okay -> guessing
+-> Ja gerne -> transient zero -> same target/session -> question -> give-up/reveal
+-> expression question -> fresh happy estimate -> Und jetzt. Existing separate-guest,
+durable transcript, stale-session, task-budget, Generic and Social Space checks remain.
+Scoped Gala capabilities report 2,000 ms. The mixed-minute workload adds a separate
+transient-zero variant rather than replacing or loosening the baseline.
+
+Two final-review corrections:
+
+- Browser confirmed departure/Live close now owns encounter destruction. An independent
+  backend two-second timer could reset a game while a resumed positive sample waited
+  behind HTTP. Backend suppresses zero-presence cues and preserves state until close;
+  explicit failure/access fences and 90-second idle expiry remain. A late-positive test
+  verifies no destructive reset; local browser timer tests still close at exactly 2 s.
+- Provider repetition exposed one post-dinner facial-topic error. A narrow local hint
+  now records a direct facial question for at most 30 s, never renews on Und jetzt or
+  sensor traffic, and clears on a substantive topic/encounter change. Its expiry uses
+  the existing context deadline mechanism. No extra classifier or faster global read.
+  Facebook and other non-face topics do not match. Live still supplies every answer.
+
+Verification and retained failures:
+
+- Full isolated acceptance: 874 Java cases, zero failures/errors, one deliberate
+  opt-in capacity skip; four browser cases (actual scoped cockpit with Live on/off,
+  presence lifecycle, feature-off UI). target/gptlive-acceptance-a82d0d9664.
+  Command: python tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests all --browser
+  --live-only --browser-grep 'real scoped cockpit|presence reception|feature disabled'.
+- The last topic-expiry scheduling/word-boundary refinement followed that full run:
+  50 affected Gala/context-delivery units passed, then mvnw.cmd -q -DskipTests package
+  passed. Evidence target/gi22-final-topic-expiry.log and target/gi22-package.log.
+- 104 Node Live/transcription/speech tests pass (target/gi22-node.log).
+- Maximum all-state instructions: 14,389 bytes against unchanged 14,400 test ceiling
+  and 16,000 app budget, including maximum task goals and both embodiments.
+- Mixed-minute baseline observed 1,569-1,571 Questions; dropout variant 1,616/1,700,
+  with 1,142 statements and 9,940 loaded entities. It includes one additional sensor
+  ingress and no additional inference (four user classifications in each variant).
+  These are compressed workloads, not proof of the 36,000/hour production quota gate.
+- Earlier full run 247e1e7beb failed one obsolete immediate-departure assertion; it
+  now verifies preserved state followed by authoritative close. Run 3556043cd5 failed
+  a synthetic timestamp tie: the runtime correctly rejected an equal-time positive
+  sample. Controlled distinct timestamps replaced wall-clock coincidence. All retained.
+  The final full run passes. No production database tested; disposable schemas/users
+  removed. Existing shared-branch HTML mismatch remains outside this Gala change.
+
+Provider evidence (real gpt-live-1/marin, synthetic microphone, actual exported contexts):
+
+- Initial integrated three sessions: target/gi22-provider-1.json through -3.json.
+  Games, results, reveal and dropout continuity worked; one dinner-follow-up incorrectly
+  referred back to the face. This motivated the bounded hint, not a hidden rerun.
+- Final three fresh sessions: target/gi22-final-provider-1.json through -3.json.
+  All closed normally; correct RPS winner and Marie Curie reveal in every session;
+  no new encounter greeting after dropout. All declined an expired face estimate and
+  did not carry the face topic into the dinner follow-up. Facial Und jetzt itself was
+  correct in 2/3: one offered another activity. No deterministic wording guarantee.
+  Fillers (e.g. Einen Moment) and extra question invitations remain. One output echoed
+  Und jetzt before the supplied follow-up. Topic hinting is not a speech barrier.
+- In these fixtures fresh context commands were ACKed before the following question;
+  actual backend admission/delivery can be later. The accepted GI-14 prompt-only
+  timing limitation and physical cutoff/Bluetooth questions are not declared solved.
+- The final expiry-only refinement changes scheduling, not the before-deadline wording
+  exercised by these trials. Fixtures regenerated by GalaLiveFollowupUnitTest; run
+  tests/gptlive/gala_provider_trial.mjs --allow-paid-provider with
+  target/gala-integrated-fixture.json and a unique ignored result path. Three trials
+  are samples, not an estimated reliability rate. Physical audio remains unmeasured.
+
+The final manual sequence is in tests/gptlive/GALA.md. Use a fresh Gala instance and
+hard-reloaded client, record deployed build, and distinguish brief detection dropout
+from a sustained departure. User device/robot acceptance and fixed-quota capacity
+remain open. No additional deployment capacity or database retention changes made.

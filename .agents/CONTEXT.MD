@@ -378,7 +378,9 @@ transcripts remain auditable. Complete neutral acknowledgements in active games
 now bypass classification and preserve their target/round. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
 Bare contextual follow-ups also preserve activity without inference; Live uses its
-prior topic and current fresh evidence. No persisted topic or faster sensor refresh.
+prior topic and current fresh evidence. A direct facial question sets a narrow
+30-second hint, cleared by a substantive new topic or encounter end; source TTL
+and global refresh cadence stay unchanged. Spoken follow-ups remain model-dependent.
 Other language interpretation remains model-dependent. Content-free control
 stages record applied transitions without replacing the current readiness cue.
 The Live admission hook also accepts exact non-control replies after a fresh game

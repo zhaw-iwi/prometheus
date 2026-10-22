@@ -327,7 +327,8 @@ To operate the entrance demonstration:
    A brief dropout preserves the same session, game and task budget. New sensor
    actions and ambient comments wait for visible presence; missed cues are not replayed.
    Repeated zeros do not extend the deadline. Sustained absence stops local media
-   and closes Live; the backend clears the encounter through existing ticks/close.
+   and closes Live; that close clears the backend encounter. A second backend timer
+   must not erase a resumed game behind a slow positive acknowledgement.
    Re-entry after close and a fresh acknowledged sample creates a new session.
    Durable prior transcripts remain, but are excluded from the new context.
    Identity is not tracked: a replacement within two seconds can share the encounter.
@@ -423,10 +424,12 @@ Content-free `gala_control/` activity stages record before/after modes and appli
 operations, leaving the existing readiness cue intact. Free-form exits remain
 model-dependent; this is not a blanket yes/no admission bypass.
 Bare follow-ups such as "Und jetzt?" preserve the current reception/game activity
-without classification. Live uses its preceding conversational topic and the latest
-fresh face estimate; topic changes end the facial link. Low-confidence estimates
+without classification. A direct facial question sets a 30-second topic hint;
+substantive topic changes and encounter end clear it. Sensor updates and follow-ups
+do not renew it. Live uses its preceding conversation and latest fresh face estimate. Low-confidence estimates
 are inconclusive. Sensor TTL and the five-second coalesced refresh stay unchanged;
-new evidence may still reach Live after a response has started.
+new evidence may still reach Live after a response has started. Provider trials still
+occasionally misinterpret a follow-up; this is guidance, not deterministic speech control.
 
 Neutral receipt/thanks replies after a fresh completed game also take this path.
 They can be admitted despite the preceding assistant segment's old state; an

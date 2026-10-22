@@ -1,0 +1,38 @@
+{
+  "settleOutput": true,
+  "clips": {
+    "rps": "Ich moechte Schere Stein Papier spielen.",
+    "okay": "Okay.",
+    "guess": "Personenraten bitte.",
+    "acknowledge": "Ja, gerne.",
+    "question": "Lebt die Person noch?",
+    "giveUp": "Ich gebe auf. Wer war es?",
+    "face": "Wie wirkt mein Gesichtsausdruck?",
+    "now": "Und jetzt?",
+    "food": "Wann beginnt das Essen?"
+  },
+  "steps": [
+    {"audio": "rps", "waitMs": 1500},
+    {"context": "rpsStart", "waitMs": 7000},
+    {"context": "rpsEnd", "waitMs": 7000},
+    {"audio": "okay", "waitMs": 6500},
+    {"audio": "guess", "waitMs": 1500},
+    {"context": "guessStart", "waitMs": 7000},
+    {"audio": "acknowledge", "waitMs": 6500},
+    {"context": "absence", "waitMs": 500},
+    {"context": "resumed"},
+    {"audio": "question", "waitMs": 6500},
+    {"audio": "giveUp", "waitMs": 1500},
+    {"context": "guessEnd", "waitMs": 7000},
+    {"audio": "name", "waitMs": 6500},
+    {"context": "faceNeutral"},
+    {"audio": "face", "waitMs": 6500},
+    {"context": "faceHappy"},
+    {"audio": "now", "waitMs": 6500},
+    {"audio": "food", "waitMs": 1500},
+    {"context": "topicChanged", "waitMs": 6500},
+    {"audio": "now", "waitMs": 6500},
+    {"context": "faceExpired"},
+    {"audio": "face", "waitMs": 6500}
+  ]
+}

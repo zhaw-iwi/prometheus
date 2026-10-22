@@ -83,6 +83,7 @@ public class GalaDinnerAction extends Action {
         }
         put(storage, LAST_INPUT, now.toString());
         remove(storage, QUIET);
+        GalaDinnerDialogue.user(storage, utterance, now);
         String command = utterance.toLowerCase(Locale.ROOT).replaceAll("[.!?]+$", "").trim();
         if (command.matches("(bitte )?(sei still|ruhe|schweig|still sein)|please be quiet|be quiet")) {
             String before = mode(storage);

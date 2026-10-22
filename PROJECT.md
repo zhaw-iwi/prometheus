@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-22 / Milestone 249: integrated Gala follow-up implementation and automated
+  acceptance complete. Browser-confirmed close owns departure cleanup; a 30-second
+  user-topic hint bounds facial follow-ups. 874 Java cases (one capacity skip),
+  104 Node cases, four browser cases and packaging pass. Query variants remain
+  <=1,616/1,700. Three final provider sessions preserve games/results/reveals;
+  wording remains variable (2/3 facial follow-ups correct). Final device trial and
+  fixed-quota capacity are open; see GALAIMPROVEMENT_RESULTS and tests/gptlive/GALA.md.
+
 - GI-21 / Milestone 248: short contextual follow-ups cannot mutate Gala games.
   Live follows the preceding topic and latest fresh face evidence; no stored topic,
   added inference or faster database refresh. Sixty focused checks and baseline/
@@ -677,6 +685,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 249: Integrated Gala follow-up acceptance and device handoff
 
 - [x] Milestone 248: Native contextual perception follow-ups
 

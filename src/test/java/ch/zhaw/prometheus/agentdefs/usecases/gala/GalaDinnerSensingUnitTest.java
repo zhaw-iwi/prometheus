@@ -94,7 +94,8 @@ class GalaDinnerSensingUnitTest {
         reception(storage); face("neutral", 29, ""); face("neutral", 31, ""); face("sad", 32, ""); face("sad", 34, "");
         assertFalse(storage.containsKey(CONTINUATION_ID)); assertEquals("true", text(storage, GalaDinnerSensing.CORRECTED, ""));
         group(0, 35); assertTrue(storage.containsKey(GalaDinnerSensing.CORRECTED));
-        group(0, 37); assertFalse(storage.containsKey(GalaDinnerSensing.CORRECTED));
+        group(0, 37); assertTrue(storage.containsKey(GalaDinnerSensing.CORRECTED));
+        endEncounter(storage, 1); assertFalse(storage.containsKey(GalaDinnerSensing.CORRECTED));
     }
     @Test void anAmbientOccasionCannotOutliveItsSourceAndSensingGapsResetTheBaseline() {
         group(1, 24); group(2, 26); group(2, 28, 40);
@@ -140,7 +141,8 @@ class GalaDinnerSensingUnitTest {
         assertEquals("0", text(storage, COUNT, ""));
         assertFalse(departureDue(storage, start.plusMillis(2999)));
         assertTrue(departureDue(storage, start.plusSeconds(3)));
-        group(0, 3); assertEquals("RECEPTION", mode(storage));
+        group(0, 3); assertEquals(mode, mode(storage));
+        endEncounter(storage, 1); assertEquals("RECEPTION", mode(storage));
         assertFalse(storage.containsKey(PERSON)); assertFalse(storage.containsKey(SIGN));
         assertFalse(storage.containsKey("task.actions")); assertFalse(storage.containsKey(ABSENT_SINCE));
         String sessionVersion = storage.writeVersion(SESSION);

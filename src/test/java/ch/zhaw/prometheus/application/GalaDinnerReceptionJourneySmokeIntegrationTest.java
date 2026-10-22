@@ -53,6 +53,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     @Autowired LiveAgentContextService contexts;
     @Autowired LiveTranscriptIngressService ingress;
     @Autowired ExternalSpeechRecordingService recording;
+    @Autowired ExternalSpeechOwnership ownership;
     @MockitoBean LanguageModelGateway language;
     @MockitoBean LiveSessionGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
@@ -305,16 +306,35 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             hearAnnouncement(second); assertReception(); assertCurrentContextIsolated();
 
             // B tries the remaining game, then creates a different custom agreement.
+            calls = requests.size(); say(second, "Okay"); assertEquals(calls, requests.size());
             say(second, "Jetzt möchte ich eine Person erraten.", control("START_GUESS"));
             hearAnnouncement(second);
             assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
             assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Ada Lovelace"));
+            calls = requests.size(); say(second, "Ja, gerne."); assertEquals(calls, requests.size());
+            var round = loaded().getStorage().get("gala.round").deepCopy();
+            int sessionsBefore = peers.size();
+            group(0);
+            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
+            group(1);
+            assertEquals(round, loaded().getStorage().get("gala.round"));
+            assertEquals(sessionsBefore, peers.size()); assertTrue(ownership.isCurrent(id, second.owner()));
             say(second, "Bist du eine Mathematikerin?", control("WAIT"));
             nativeSpeech(second, "Ja.");
-            say(second, "Bist du Ada Lovelace?");
+            say(second, "Ich gebe auf");
             assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
-            nativeSpeech(second, "Ja, genau: Ada Lovelace!");
+            nativeSpeech(second, "Es war Ada Lovelace!");
             assertReception();
+            observe(Event.TYPE_FACE_EMOTION, "{\"emotion\":\"neutral\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}");
+            say(second, "Wie wirkt mein Gesichtsausdruck?", control("CHAT"));
+            nativeSpeech(second, "Dein Ausdruck wirkt gerade eher neutral.");
+            observe(Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}");
+            calls = requests.size(); say(second, "Und jetzt?"); assertEquals(calls, requests.size());
+            var face = contexts.snapshot(code, id).orElseThrow().items().stream()
+                    .filter(item -> Event.TYPE_FACE_EMOTION.equals(item.type())).findFirst().orElseThrow();
+            assertTrue(face.text().contains("happy")); assertEquals("fresh", face.freshness());
+            nativeSpeech(second, "Jetzt wirkt dein Gesicht eher fröhlich.");
+            assertReception(); assertCurrentContextIsolated();
 
             var secondTerms = JsonParser.parseString(spec("BETA-PAPER-AGREEMENT", "paper", 2,
                     "Ein neuer Witz für " + SECOND_NAME)).getAsJsonObject();
@@ -369,6 +389,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private Encounter arrive() {
         group(1); group(1);
         var session = live.create(code, id, new LiveSessionRequest("v=0 synthetic-offer", "marin")).orElseThrow();
+        assertEquals(2000, live.capabilities(code, id).orElseThrow().departureGraceMs());
         assertEquals(2000L, live.status(code, id, session.handle()).orElseThrow()
                 .providerTelemetry().configuration().get("userSilenceMs"));
         var owner = new ExternalSpeech(session.handle(), live.status(code, id, session.handle()).orElseThrow().epoch());
