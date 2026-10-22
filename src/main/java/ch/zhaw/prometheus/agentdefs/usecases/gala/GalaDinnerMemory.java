@@ -23,7 +23,12 @@ final class GalaDinnerMemory {
     static String text(Storage storage, String key, String fallback) {
         return storage.containsKey(key) ? storage.get(key).getAsString() : fallback;
     }
-    static void put(Storage storage, String key, String value) { storage.put(key, new JsonPrimitive(value)); }
+    // Gala actions are blocking. Unchanged facts need no new storage write version;
+    // timestamps and occasion IDs still change normally. Shared Storage semantics stay intact.
+    static void put(Storage storage, String key, String value) {
+        var next = new JsonPrimitive(value);
+        if (!storage.containsKey(key) || !next.equals(storage.get(key))) storage.put(key, next);
+    }
     static void remove(Storage storage, String key) { if (storage.containsKey(key)) storage.remove(key); }
     static String mode(Storage storage) { return text(storage, MODE, "RECEPTION"); }
     static Instant time(Storage storage, String key) { return Instant.parse(text(storage, key, Instant.EPOCH.toString())); }

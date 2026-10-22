@@ -1,10 +1,17 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-10 implemented; GI-11 is next. GI-05 uses
+Status: GI-01 through GI-10 implemented/pushed. GI-11 local optimisation/calibration
+and GI-12 local acceptance may proceed; fixed-quota production capacity stays OPEN. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
-Later milestones are not started.
+The account quota is fixed at 36,000/hour; increasing it is not an option.
+On 2026-10-22 the user authorised removing redundant Gala writes, calibrating the
+benchmark, examining sensing/capture costs and continuing functional work against
+local MySQL. Complete local acceptance independently of the capacity gate, then
+finish the resource-efficiency follow-up before claiming Heroku reception readiness.
+Do not mark GI-11 capacity or the overall programme complete just because local
+functional tests pass. Provider/physical checks also retain their own status.
 
 This plan covers the assessment of the latest adult interaction and the two
 children's interactions, including the subsequent gesture review. The user authorized consecutive implementation on 2026-10-21: finish each
@@ -498,6 +505,13 @@ create a focused corrective follow-up from the evidence before claiming resoluti
 
 ### GI-11 - Sustained database capacity and operational recovery
 
+Status: INCOMPLETE - fixed-quota production headroom is still required. The user
+authorised local optimisation/calibration and proceeding with GI-12 local
+acceptance while this gate remains open. The original stress comparison showed
+a 9.17% regression; the results document calibrated profiles and subsequent
+measurements separately. No paid capacity increase, reduction in sensing cadence,
+loss of durability or delayed access revocation is an accepted remedy.
+
 **Outcome:** the intended reception load has measured database headroom, and
 backend failure cannot masquerade as a successfully started activity.
 
@@ -507,15 +521,16 @@ Scope:
   mix of capture receipts, sensing, state updates, monitor/SSE and reconnects.
   Include camera activity after Live stops, since Stop Live does not stop sensing.
 - Preserve prior reductions, immediate authorization checks and durable writes.
-  Remove demonstrated redundant reads only; do not solve quota pressure by
+  Remove demonstrated redundant reads and unchanged Gala memory writes; do not solve quota pressure by
   silently losing transcript durability, lowering sensing cadence or caching
   permissions. Avoid new polling for gesture/occasion/diagnostic state.
 - Specify expected concurrent instances and operator pages, measure idle and peak
   load, and compare against the verified account quota. Target at most 75% of that
   quota under sustained intended load. For 36,000 questions/hour this is 27,000/hour;
   the prior roughly 2,000/minute synthetic result does not establish readiness.
-- If the target cannot be met safely, record the required capacity or operating
-  limit as an unresolved deployment decision. Do not purchase capacity or silently
+- If the target cannot be met safely, keep a resource-efficiency follow-up open
+  against the fixed quota and record any proposed operating limits for review.
+  Do not purchase capacity or silently
   disable sensing. Expose bounded operator recovery and no false ready/result state
   during connection/quota failures; avoid automatic retry storms.
 
@@ -527,9 +542,13 @@ an uncertain action. Unit mocks do not establish SQL counts or throughput.
 Gala mixed-minute regression in `QueryVolumeIntegrationTest`; run on disposable
 local MySQL. Record actual queries, transactions, duration and load assumptions,
 plus a sustained soak. Capacity readiness is blocked until the measured headroom
-or an explicitly agreed operational/capacity alternative is established.
+or an explicitly agreed operating alternative is established. This does not block
+GI-12 deterministic/local integration acceptance under the user's revised sequence.
 
 ### GI-12 - Integrated acceptance and reviewed rollout
+
+Local acceptance may run while GI-11 capacity remains open. Keep functional,
+provider, physical and fixed-quota production gates separate in the evidence.
 
 **Outcome:** improvements work together, regressions are bounded, and release
 claims match actual automated/provider/physical evidence.

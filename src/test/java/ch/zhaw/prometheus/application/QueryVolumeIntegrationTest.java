@@ -294,6 +294,172 @@ class QueryVolumeIntegrationTest {
         } finally { live.close(f.code(), f.id(), session.handle()); }
     }
 
+    /** Opt-in wall-clock capacity gate; never runs against the production schema. */
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "PROMETHEUS_GALA_CAPACITY", matches = "true")
+    void galaReceptionCapacitySoak() throws Exception {
+        int peakSeconds = Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_GALA_CAPACITY_SECONDS", "180"));
+        assertTrue(peakSeconds >= 60 && peakSeconds <= 600 && peakSeconds % 60 == 0,
+                "Use complete 60-second game cycles, between 60 and 600 seconds");
+        String profile = System.getenv().getOrDefault("PROMETHEUS_GALA_CAPACITY_PROFILE", "reception");
+        assertTrue(Set.of("reception", "stress").contains(profile), "Unknown capacity profile");
+        boolean stress = profile.equals("stress");
+        var f = fixture(new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception().createAgent());
+        demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
+                "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
+        var operation = new java.util.concurrent.atomic.AtomicReference<>("CHAT");
+        doAnswer(call -> "{\"operation\":\"" + operation.get()
+                + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}")
+                .when(language).infer(any());
+        var streams = new ArrayList<org.springframework.test.web.servlet.MvcResult>();
+        var report = new com.google.gson.JsonObject();
+        report.addProperty("instances", 1); report.addProperty("operatorPages", 1);
+        report.addProperty("profile", profile);
+        report.addProperty("quotaPerHour", 36000); report.addProperty("targetPerHour", 27000);
+        report.addProperty("providerAndCaptureWorkers", "offline; explicit context reads approximate scheduling, not a production throughput guarantee");
+        report.addProperty("load", stress
+                ? "original stress: status 1/s; social batch and face 1/5s; held hand 1/2.5s; context each work tick; SSE reconnect 1/min including phase starts"
+                : "reception: status 1/s; Live social batch and face 1/5s; hand held 5s after RPS start (3 samples/min); context coalesced 5s except confirmed game occasions; one SSE reconnect at peak +60s; after Stop one changed social/face sample at +10s, unchanged samples suppressed, no visible hand");
+        report.addProperty("speech", "4 user + 8 native segments/min, 6 durable receipts/segment; synthetic fragmentation");
+        var phases = new com.google.gson.JsonArray(); report.add("phases", phases);
+        long revision = -1, receiptSequence = 0; int segments = 0; boolean closed = false;
+        try {
+            for (String phase : List.of("live_idle", "live_peak", "camera_after_stop")) {
+                if (phase.equals("camera_after_stop")) { live.close(f.code(), f.id(), session.handle()); closed = true; }
+                var meter = new CapacityMeter(); long before = questions(), began = System.nanoTime();
+                var stats = emf.unwrap(SessionFactory.class).getStatistics(); stats.clear();
+                int seconds = phase.equals("live_peak") ? peakSeconds : Math.min(30, peakSeconds / 3);
+                long maximumLatenessMs = 0; int nextContextTick = 0; boolean contextDirty = false;
+                for (int tick = 0; tick < seconds * 2; tick++) {
+                    long due = began + tick * 500_000_000L, wait = due - System.nanoTime();
+                    if (wait > 0) Thread.sleep(java.time.Duration.ofNanos(wait));
+                    maximumLatenessMs = Math.max(maximumLatenessMs, Math.max(0, (System.nanoTime() - due) / 1_000_000));
+                    if (stress ? tick % 120 == 0 : streams.isEmpty() || phase.equals("live_peak") && tick == 120)
+                        meter.run("sse_connect_or_reconnect", () -> {
+                        for (var stream : streams) stream.getRequest().getAsyncContext().complete(); streams.clear();
+                        for (String route : List.of("/behaviour/stream?projection=conversation", "/monitor/stream")) {
+                            var stream = mvc.perform(get("/demo/agents/" + f.id() + route)
+                                    .header("X-Prometheus-Access-Code", f.code())).andExpect(status().isOk()).andReturn();
+                            assertTrue(stream.getRequest().isAsyncStarted()); streams.add(stream);
+                        }
+                    });
+                    String timestamp = Instant.now().toString(); boolean changed = false;
+                    if (closed && !stress ? tick == 20 : tick % 10 == 0) {
+                        int count = closed && !stress ? 2 : 1;
+                        meter.run("social_batch", () -> {
+                            var result = demo.acknowledgeObservations(f.code(), f.id(), List.of(
+                                    sensor(Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":" + count + ",\"ts\":\"" + timestamp + "\"}"),
+                                    sensor(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":" + count + ",\"groupCount\":0,\"singletonCount\":" + count + ",\"largestGroupSize\":1,\"ts\":\"" + timestamp + "\"}"),
+                                    sensor(Event.TYPE_SOCIAL_CONTEXT, "{\"humanCount\":" + count + ",\"people\":[],\"ts\":\"" + timestamp + "\"}")));
+                            assertEquals(List.of(200, 200, 200), result.stream().map(ScopedDemoService.ObservationResult::status).toList());
+                        });
+                        meter.run("face", () -> assertTrue(demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_FACE_EMOTION,
+                                "{\"emotion\":\"" + (count == 2 ? "happy" : "neutral") + "\",\"confidence\":0.9,\"ts\":\"" + timestamp + "\"}"),
+                                ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN).isPresent()));
+                        changed = true;
+                    }
+                    boolean hand = stress ? !phase.equals("live_idle") && tick % 5 == 0
+                            : phase.equals("live_peak") && Set.of(95, 100, 105).contains(tick % 120);
+                    if (hand) {
+                        meter.run("hand", () -> assertTrue(demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_HAND_SIGN,
+                                "{\"sign\":\"paper\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"ts\":\"" + timestamp + "\"}"),
+                                ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN).isPresent()));
+                        changed = true;
+                    }
+                    if (phase.equals("live_peak") && tick % 10 == 0) {
+                        Speaker speaker = tick % 30 == 0 ? Speaker.USER : Speaker.ASSISTANT;
+                        int step = (tick / 30) % 4;
+                        operation.set(List.of("START_GUESS", "WAIT", "GIVE_UP", "START_RPS").get(step));
+                        String text = speaker == Speaker.ASSISTANT ? "Eine kurze Testantwort ohne physische Ausgabe."
+                                : List.of("Personenraten bitte.", "Lebt die bekannte Person noch?", "Ich gebe auf", "Schere Stein Papier bitte.").get(step);
+                        var fragments = new ArrayList<Fragment>(); long now = System.currentTimeMillis();
+                        for (int part = 0; part < 6; part++) {
+                            long sequence = ++receiptSequence;
+                            var fragment = new Fragment("capacity-" + sequence, speaker, sequence * 200, (sequence + 1) * 200,
+                                    now, sequence, text.substring(text.length() * part / 6, text.length() * (part + 1) / 6));
+                            fragments.add(fragment); meter.run("receipt", () -> assertTrue(ingress.receipt(f.id(), owner, fragment)));
+                        }
+                        var segment = new Segment(UUID.randomUUID(), speaker, fragments, Closure.COMPLETE, "observed_silence", now, now);
+                        meter.run("segment_commit", () -> assertEquals("COMPLETE", ingress.commit(f.id(), owner, segment, List.of("Gala capacity trial")).orElseThrow().status()));
+                        segments++; changed = true;
+                    }
+                    contextDirty |= changed;
+                    // Game start/reveal/result notifications bypass normal coalescing in the real bridge.
+                    boolean occasion = phase.equals("live_peak") && Set.of(0, 60, 90, 95).contains(tick % 120);
+                    if (!closed && (stress ? changed : occasion || contextDirty && tick >= nextContextTick)) {
+                        meter.run("context_refresh", () -> assertTrue(contexts.refresh(f.id(), owner).isPresent()));
+                        contextDirty = false; nextContextTick = tick + 10;
+                    }
+                    if (!closed && tick % 10 == 0) meter.run("lease_check", () -> assertTrue(ownership.isCurrent(f.id(), owner)));
+                    if (!closed && tick % 2 == 0) {
+                        long previous = revision; long[] next = { revision };
+                        meter.run("status_poll", () -> next[0] = live.updates(f.code(), f.id(), session.handle(), previous).orElseThrow().transcriptRevision());
+                        revision = next[0];
+                        if (revision != previous) meter.run("conversation_refresh", () -> mvc.perform(get("/demo/agents/" + f.id() + "/live/history")
+                                .header("X-Prometheus-Access-Code", f.code())).andExpect(status().isOk()));
+                    }
+                }
+                long remainder = began + seconds * 1_000_000_000L - System.nanoTime();
+                if (remainder > 0) Thread.sleep(java.time.Duration.ofNanos(remainder));
+                double elapsed = (System.nanoTime() - began) / 1_000_000_000.0;
+                long total = questions() - before - 1 - 2 * meter.calls;
+                var result = new com.google.gson.JsonObject(); result.addProperty("phase", phase);
+                result.addProperty("seconds", elapsed); result.addProperty("questions", total);
+                result.addProperty("statements", stats.getPrepareStatementCount()); result.addProperty("transactions", stats.getTransactionCount());
+                result.addProperty("questionsPerHour", Math.ceil(total * 3600 / elapsed)); result.addProperty("maximumLatenessMs", maximumLatenessMs);
+                long reconnectQuestions = meter.paths.getOrDefault("sse_connect_or_reconnect", new long[2])[1];
+                result.addProperty("questionsPerHourWithoutReconnects", Math.ceil((total - reconnectQuestions) * 3600 / elapsed));
+                result.add("paths", new com.google.gson.Gson().toJsonTree(meter.paths));
+                result.add("ormOperations", new com.google.gson.Gson().toJsonTree(meter.operations)); phases.add(result);
+                assertEquals(total, meter.paths.values().stream().mapToLong(value -> value[1]).sum());
+                if (!stress && closed) {
+                    assertEquals(seconds > 10 ? 1 : 0, meter.paths.getOrDefault("social_batch", new long[2])[0]);
+                    assertEquals(seconds > 10 ? 1 : 0, meter.paths.getOrDefault("face", new long[2])[0]);
+                    assertFalse(meter.paths.containsKey("hand")); assertFalse(meter.paths.containsKey("context_refresh"));
+                }
+                System.out.println("GALA_CAPACITY_PHASE " + result);
+            }
+            var ledger = ingress.history(f.id(), owner.sessionId()); assertEquals(segments, ledger.size());
+            assertTrue(ledger.stream().allMatch(row -> "COMPLETE".equals(row.status()) && row.receiptIds().size() == 6));
+            assertEquals("Gala reception", agents.findById(f.id()).orElseThrow().getCurrentState().getName());
+            assertFalse(ownership.isCurrent(f.id(), owner));
+            boolean headroom = phases.asList().stream().allMatch(value -> value.getAsJsonObject().get("questionsPerHour").getAsDouble() <= 27000);
+            report.addProperty("headroomMet", headroom); report.addProperty("durableSegments", segments);
+            String reportFile = "target/gala-capacity-" + profile + "-report.json";
+            java.nio.file.Files.writeString(java.nio.file.Path.of(reportFile), new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(report));
+            assertTrue(headroom, "Capacity gate unmet; see " + reportFile + ". Do not silently change sensing/durability/authorization.");
+        } finally {
+            for (var stream : streams) stream.getRequest().getAsyncContext().complete();
+            if (!closed) live.close(f.code(), f.id(), session.handle());
+        }
+    }
+
+    private final class CapacityMeter {
+        long calls;
+        final Map<String, long[]> paths = new LinkedHashMap<>();
+        final Map<String, Map<String, Long>> operations = new LinkedHashMap<>();
+        Map<String, Long> statistics() {
+            var stats = emf.unwrap(SessionFactory.class).getStatistics();
+            return Map.of("statements", stats.getPrepareStatementCount(), "transactions", stats.getTransactionCount(),
+                    "entityLoads", stats.getEntityLoadCount(), "inserts", stats.getEntityInsertCount(),
+                    "updates", stats.getEntityUpdateCount(), "deletes", stats.getEntityDeleteCount(),
+                    "collectionUpdates", stats.getCollectionUpdateCount());
+        }
+        void run(String name, Check work) throws Exception {
+            boolean sqlDiagnostics = "true".equals(System.getenv("PROMETHEUS_GALA_SQL_DIAGNOSTICS"));
+            var prior = statistics(); long before = questions();
+            if (sqlDiagnostics) System.out.println("CAPACITY_SQL_BEGIN " + name);
+            try { work.run(); }
+            finally { if (sqlDiagnostics) System.out.println("CAPACITY_SQL_END " + name); }
+            long cost = questions() - before - 1; calls++;
+            var values = paths.computeIfAbsent(name, key -> new long[2]); values[0]++; values[1] += cost;
+            var totals = operations.computeIfAbsent(name, key -> new LinkedHashMap<>());
+            statistics().forEach((key, value) -> totals.merge(key, value - prior.get(key), Long::sum));
+        }
+    }
+
     @Test void measureCurrentPaths() throws Exception {
         for (AgentDefinition definition : List.of(new MultimodalBehaviour(), new LiveMultimodal())) {
             for (int history : List.of(5, 205)) {

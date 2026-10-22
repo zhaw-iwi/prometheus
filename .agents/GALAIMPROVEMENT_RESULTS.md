@@ -564,3 +564,264 @@ browser cases passed on agents (target/gptlive-acceptance-f6012bfc4c). Two brows
 cases ran with Live enabled; the legacy text/TTS case ran with Live disabled and
 the Live-only case was correctly skipped there. Disposable resources removed.
 Packaging and git diff --check passed. No physical headset/robot trial was run.
+
+## GI-11 / Milestone 237 - measured capacity decision (2026-10-22, INCOMPLETE)
+
+Live access was available. A read-only SHOW CREATE USER CURRENT_USER() check
+confirmed MAX_QUERIES_PER_HOUR = 36000; credentials/grant text were not retained
+in this report. Target headroom is 75%, or 27000 questions/hour. No production
+load test, account change or capacity purchase was performed.
+
+Added an opt-in capacity gate to the existing QueryVolumeIntegrationTest. It
+uses the disposable-local-MySQL acceptance runner, one connection for complete
+MySQL session Questions accounting, real scoped persistence/HTTP/SSE and offline
+providers. Measuring SHOW queries are excluded. It reports SQL statements,
+transactions, wall-clock duration, scheduling lateness and per-path call/query
+counts. It fails on insufficient headroom, independently of per-request regression
+ceilings. The test is skipped unless PROMETHEUS_GALA_CAPACITY=true.
+
+Declared load: one Gala instance, one operator cockpit, two SSE streams with one
+controlled reconnect per minute, status at 1 Hz, social batch plus face every
+five seconds, and a continuously visible hand every 2.5 seconds in busy/post-stop
+phases. Busy speech has four user turns and eight native segments per minute,
+six durable receipts each. Guessing/give-up/RPS produce state changes. Capture
+workers and the bridge are mocked; an explicit context refresh after each work
+tick substitutes for background reads. In the busy phase that is every 2.5 seconds,
+more frequent than the real bridge's ordinary five-second coalescing window.
+After Stop, the test still sends unchanged face/social samples every five seconds;
+the browser normally suppresses unchanged samples once Live is inactive. These
+are stress assumptions, not measured production request rates. This does not
+establish real-provider throughput or a production upper bound. Actual workers
+may add work. No sensing
+cadence, authorization check or durable write has been removed to meet the gate.
+
+The 15-second busy harness check completed correctly and failed only its capacity
+gate (target/gptlive-acceptance-16426bd287, gala-capacity-short-report.json).
+The sustained run used 30 seconds quiet Live, 180 seconds busy Live, then 30
+seconds camera after Stop Live. All 36 segments and 216 receipts remained durable;
+the agent ended in reception with its old voice ownership released. Maximum
+scheduling lateness was 263/113/2 ms across the three phases, so overload did not
+artificially reduce the offered cadence. Resources were removed after failure.
+
+| Phase | Seconds | MySQL questions | SQL statements | Transactions | Questions/hour | Without reconnect cost/hour |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| live_idle | 30.001 | 683 | 496 | 59 | 81957 | 73557 |
+| live_peak | 180.001 | 9993 | 7377 | 840 | 199859 | 195659 |
+| camera_after_stop | 30.001 | 706 | 470 | 76 | 84717 | 76317 |
+
+The busy phase used 9993 questions. Its measured path costs were: social batch
+1806; face 1269; hand 1683; durable receipts 1512; segment commits 1461; context
+refresh 1152; conversation refresh 648; status polls 216; lease checks 36; SSE
+connect/reconnect 210. These sum to the measured total. Receipt persistence alone
+cost seven questions per fragment (504/minute at this profile), exceeding the entire 450/minute headroom target before other work.
+
+Prior reductions are still present: b9e693d reduced polling/sensor graph work;
+b56a423 added collection batching and scalar/bulk receipt checks. The current
+receipt path retains current scope/epoch, duplicate checking and durable insertion
+inside its transaction. The old approximately 1996-question mixed-minute regression
+was already documented as exceeding capacity; the new test adds hands, streams,
+conversation refresh and wall-clock persistence growth. No newly discovered stray
+poller accounts for the capacity gap.
+
+The measured busy stress profile alone requires at least 266479 questions/hour
+to occupy at most 75% of a quota. The earlier 300000/hour suggestion was an estimate
+for this artificial profile, not an established production requirement or purchase
+recommendation. Calibrate browser/worker cadence and profile persistence costs
+before choosing capacity. Additional active instances/pages or more fragmented
+speech need separate allowance. Stop Live does not itself disable camera emission,
+but the measured post-stop phase is not representative of an unchanged scene.
+
+Initial decision request (superseded by the user's fixed-quota/local-first direction below): increase database capacity while preserving
+current behaviour, or authorize a larger capture/sensing persistence and batching
+optimisation milestone. The latter must retain durable receipts, immediate access
+checks, game/task correctness and existing sensing cadence. No such tradeoff or
+purchase is inferred. GI-11 remains INCOMPLETE; GI-12 has NOT STARTED.
+
+Artifacts: target/gala-capacity-report.json and
+ target/gptlive-acceptance-6ae89040e7/java.log. The capacity test failed its one
+headroom assertion with zero runtime errors; this is not a passing release gate.
+GI-11 benchmark/docs remain uncommitted pending the user's capacity decision.
+GI-05 through GI-10 are committed/pushed; latest agents commit 9ce55da. Its GitHub
+deployment workflow completed successfully (actions/runs/39736950905). A separate
+Heroku CLI release check timed out, so no release-number/health claim is made.
+
+The ordinary query regression run (capacity opt-in disabled) finished with nine
+passing cases, one failure and one intentional skip across QueryVolumeIntegrationTest
+and LiveQueryBudgetIntegrationTest. The older accelerated Gala mixed-minute case
+used 2104 questions against its unchanged 2100 ceiling (1492 prepared statements).
+This smaller regression is OPEN as well; the ceiling has not been relaxed. Scalar
+receipt/epoch/auth checks, bounded context loading, idle polling, transaction
+release and revocation cases passed. Evidence:
+target/gptlive-acceptance-2962700bdc/java.log. Disposable resources removed.
+The new capacity test compiles and its sustained run completed all durability,
+state/ownership and timing checks before failing its deliberate headroom assertion.
+No production optimisation is claimed in GI-11 and no GI-11 changes were pushed.
+
+### Matched baseline investigation (2026-10-22)
+
+At the user's request, separated a broader benchmark from a behavioural regression.
+Created an isolated detached worktree at pre-GI-01 revision 38e1fc0 and copied the
+identical current QueryVolumeIntegrationTest into it. Used the same local non-secret
+settings and disposable-local-MySQL runner, offline providers, and identical input
+counts/durations. No production load or application change was performed.
+
+| Workload | Pre-improvement 38e1fc0 | Current 9ce55da | Increase |
+| --- | ---: | ---: | ---: |
+| Original accelerated mixed minute, questions | 1996 | 2104 | 5.41% |
+| Quiet Live stress phase, 30 seconds | 637 | 683 | 7.22% |
+| Busy stress phase, 180 seconds | 9154 | 9993 | 9.17% |
+| Camera-after-stop stress phase, 30 seconds | 700 | 706 | 0.86% |
+
+The original workload reproduced the previously recorded 1996 exactly. Unlike a
+wall-clock capacity test it compresses a minute's events into a few seconds, so
+time-based stability/cooldown rules can affect comparisons. The busy stress test
+used 840 transactions on both revisions; prepared statements rose from 6538 to
+7377, matching the 839-question increase. The old agent also fails the quota gate
+at approximately 183079 questions/hour under this same stress profile. This is
+not evidence that the new improvements created a several-fold increase.
+
+Busy-phase attribution (same route call counts on both revisions):
+
+| Path | Old questions | Current questions | Difference |
+| --- | ---: | ---: | ---: |
+| Social samples | 1584 | 1806 | +222 |
+| Facial samples | 828 | 1269 | +441 |
+| Hand samples | 1653 | 1683 | +30 |
+| Segment processing | 1315 | 1461 | +146 |
+| Fragment receipts | 1512 | 1512 | 0 |
+| Context refreshes | 1152 | 1152 | 0 |
+| Conversation refreshes | 648 | 648 | 0 |
+| Status polls / lease checks / stream setup | 462 | 462 | 0 |
+
+Face/social processing accounts for 663/839 (79%) of the increase. GI-06 stores
+stability candidates and baselines; presence/face handling also rewrites unchanged
+baseline values. StorageEntry.setValue always changes its write token, so an
+unchanged logical value still dirties its row. This is a concrete optimisation
+candidate, not proof that all 663 extra statements are unnecessary. Additional
+outcome/continuation state also costs writes. Do not globally change write-token
+semantics: background actions use them to reject obsolete results. Prefer targeted
+Gala no-change handling, with freshness and concurrent-action regression coverage.
+
+Neither benchmark exercises the GI-05 co-created-task semantic association job.
+Gesture output is NONE, so GI-08 decorative-gesture history is not exercised.
+GI-09/10 diagnostics introduced no extra database poller. Existing earlier query
+reductions (b9e693d, b56a423) remain effective. The original 4731-to-1996 reduction
+was already documented as insufficient for sustained use on the 36000/hour quota.
+
+Next investigation priorities: calibrate the stress profile against actual browser
+deduplication/context scheduling; isolate redundant Gala state writes; then examine
+sensor graph loading/commits and durable fragment overhead. Retain scope revocation,
+receipt durability, fresh game cues and per-event correctness. The current evidence
+does not justify weakening those guarantees or choosing a paid tier yet.
+
+Baseline verification: two selected tests, one pass and one expected capacity
+assertion failure, zero errors. All durability/state/ownership checks completed;
+the disposable schema/account were removed. Baseline report copied to
+target/gala-capacity-baseline-38e1fc0-report.json. Original baseline logs remain in
+the isolated prometheus-gala-query-comparison-20261022 worktree under
+target/gptlive-acceptance-f9cfd212a1/java.log. Current measurements are the earlier
+GI-11 runs documented above. No production fix, threshold change, commit or push
+was made during this investigation.
+
+### Fixed-quota follow-up and local-first acceptance (2026-10-22)
+
+The user confirmed that the Heroku account quota cannot be increased and authorised
+removing redundant Gala writes, calibrating the benchmark, examining sensing and
+fragment costs, then continuing local functional acceptance. Capacity remains an
+independent OPEN production gate; local MySQL does not establish Heroku readiness.
+No sensing interval, durable transcript contract, authorization check or quota
+target was weakened. Larger persistence changes remain a measured follow-up after
+local integration acceptance, with no paid-tier alternative.
+
+GalaDinnerMemory.put now avoids assigning an equal JsonPrimitive. This is scoped
+to the Gala blocking actions: shared Storage/StorageEntry write-version semantics
+and generic agents are unchanged. Fresh observation times, changed counts/baselines,
+new occasion IDs and expiry updates continue to write. Two focused unit cases
+cover stable fact versions with refreshed TTLs, changed observations/departure,
+idempotent reception and distinct identities for repeated requests with equal facts.
+
+Verification before the extended GI-12 journey: 83 focused Gala unit cases,
+19 disposable-MySQL cases (plus the intentionally skipped opt-in soak), and 17
+real browser-emitter Node cases passed. The original mixed-minute test now uses
+2088 Questions / 1476 prepared statements, below its unchanged 2100 ceiling and
+down from 2104. Artifacts: target/gi11-state-writes-unit.log,
+target/gptlive-acceptance-23851e0f4e/java.log, target/gi11-calibration-js.log.
+
+Benchmark calibration adds an explicit default reception profile while retaining
+the original stress profile for matched comparisons. Reception uses stable Live
+social/face samples every five seconds, a five-second hand hold after RPS starts
+(three samples per minute), five-second context coalescing with urgent game
+occasions, and one controlled reconnect at busy +60 seconds. After Stop, one
+changed social/face sample at +10 seconds is emitted; unchanged samples and an
+absent hand emit nothing. Context scheduling is still approximated with explicit
+reads and offline workers; fragment count remains synthetic. Real provider/worker
+load and actual reception activity require separate measurement. Complete cycles
+of 60--600 seconds are required so the final game outcome can be asserted.
+
+| Profile / phase | Seconds | Questions | Prepared statements | Transactions | Equivalent/hour | Excluding stream setup/reconnect/hour |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Reception / quiet Live | 30 | 668 | 481 | 59 | 80160 | 71760 |
+| Reception / busy Live | 180 | 7846 | 5747 | 673 | 156919 | 155519 |
+| Reception / camera after Stop | 30 | 65 | 41 | 8 | 7800 | 7800 |
+| Original stress / busy Live | 180 | 9900 | 7284 | 840 | 198000 | 193800 |
+
+The matched code saving is 93/9993 (0.93%) in the stress workload. Its social,
+face, hand and segment costs fall by 63, 18, 3 and 9 respectively; other paths
+are unchanged. The additional 2054-question difference between stress and reception
+is entirely workload calibration: fewer hand samples (1386), context reads (528)
+and reconnects (140). Do not report it as a production optimisation.
+
+Both opt-in tests completed all 36 segments/216 receipts, final reception and
+ownership-release assertions, then failed only the unchanged 27000/hour headroom
+gate (zero errors). Maximum scheduling lateness was 79/1/1 ms for reception and
+344/247/2 ms for stress. Disposable databases/accounts were removed. Artifacts:
+target/gala-capacity-reception-report.json, target/gala-capacity-stress-report.json,
+target/gptlive-acceptance-30fdb2ff0f/java.log and
+target/gptlive-acceptance-ddf490b494/java.log.
+
+Persistence cost examination used per-route Hibernate operation counters plus
+opt-in, synthetic-only SQL logging delimited by CapacityMeter. SQL attribution
+contains table/operation counts, not speech or credentials, in
+target/gala-sql-attribution.json. Concrete findings:
+
+- Every scoped receipt costs four SQL statements: enabled access/link check,
+  persisted execution-epoch check, duplicate receipt lookup and durable insert.
+  Three transaction-control Questions bring this to seven. At 72 fragments/minute,
+  receipts alone cost 504/minute, already above the 450/minute headroom target.
+  Combining authorization/epoch checks is a candidate for preserving immediate
+  revocation with fewer reads; a permission cache is not. Durable batching would
+  need explicit commit/ACK, crash, ordering, duplicate and failure guarantees.
+- Sensor batches already share one loaded persistence context but retain per-event
+  validation, loading/saving transactions and commits. In the calibrated busy phase,
+  36 three-event social batches use 216 transactions and 1743 Questions; 36 face
+  observations use 72 transactions and 1251 Questions. These are not 36 standalone
+  inserts. Any batch transaction redesign must retain failure isolation, event
+  ordering and immediate scope checks.
+- Storage.entries is an unidirectional collection. Trace evidence includes
+  `delete from storage_entries where storage_id=?` followed by re-inserting links
+  when keys are added/removed. Across all stress phases the face path alone issues
+  402 storage-link inserts and 20 collection deletes, among 1264 ORM statements.
+  Avoiding equal value assignments does not fix this collection churn. A targeted
+  ownership/mapping or stable-state representation change deserves profiling and
+  a migration/compatibility review; it is not implemented here.
+- Context/history reads still load the agent graph and historical entities even
+  for bounded projections. Preserve the prior fetch batching and turn-context
+  reductions; investigate narrower reads without caching permissions or silently
+  dropping audit history.
+
+These findings justify proceeding with local functional acceptance while keeping
+a specific persistence-efficiency task open. They do not support claiming the fixed
+quota is adequate, nor deferring its resolution until the actual gala reception.
+
+Local full-suite verification after the write cleanup and acceptance-fixture fixes:
+827 Java cases, 826 passed and the opt-in capacity case intentionally skipped;
+zero failures/errors. All 122 Live/transcription/speech/performance Node cases
+passed. Four real-app browser cases passed (three Live-enabled and one disabled
+text/TTS path; two Live-only cases intentionally skipped when disabled).
+The initial full run exposed one outdated source-timestamp fixture and two local
+connection-limit errors from cached test contexts. Shared test-only fixes on
+feature/gptlive (56921b1, 914d036) flowed through main (351d228) into agents
+(ad0ae7b); the final complete rerun passed. Production pool settings are unchanged.
+Artifacts: target/gptlive-acceptance-7a9877e0c1/java.log (initial failures),
+target/gptlive-acceptance-1c71a40826/ (final Java/browser evidence),
+target/gi12-node-acceptance.log. Both runners removed their disposable resources.

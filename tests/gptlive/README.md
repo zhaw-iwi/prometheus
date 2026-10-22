@@ -70,3 +70,42 @@ is not an acoustic GPT-Live trial.
 
 For a repeatable physical Gala conversation based on the first live trial, use
 [GALA.md](GALA.md).
+
+## Opt-in Gala database capacity gate
+
+Use disposable local MySQL, never the production database:
+
+```powershell
+$env:PROMETHEUS_GALA_CAPACITY = 'true'
+$env:PROMETHEUS_GALA_CAPACITY_SECONDS = '180'
+$env:PROMETHEUS_GALA_CAPACITY_PROFILE = 'reception'
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'QueryVolumeIntegrationTest#galaReceptionCapacitySoak'
+```
+
+It runs quiet Live, sustained speech/sensing, and camera-after-Stop phases for one
+instance/cockpit. Use complete game cycles: 60 to 600 seconds, in multiples of 60.
+The default `reception` profile follows five-second stable Live sensing and context
+coalescing, with urgent game occasions bypassing that window. A hand is held for
+five seconds after each confirmed RPS start (three samples). Two SSE streams stay
+open, with one controlled reconnect at busy +60 seconds. After Stop there is one
+changed face/social sample at +10 seconds; unchanged readings are suppressed and
+no hand is visible. These are explicit scenario assumptions, not all possible
+camera activity. Speech remains four user and eight native segments per minute,
+with six durable fragments each.
+
+Set the profile to `stress` to reproduce the original continuously held hand,
+per-work-tick context refresh and per-minute/phase reconnect profile, including
+unchanged post-stop readings. Keep these results separate from code savings.
+Reports are `target/gala-capacity-reception-report.json` and
+`target/gala-capacity-stress-report.json`; route costs include Hibernate operation
+counts. Optional local SQL attribution uses `PROMETHEUS_GALA_SQL_DIAGNOSTICS=true`
+and the `org.hibernate.SQL` DEBUG logger; inputs/providers are synthetic.
+Providers/capture workers remain offline fixtures; explicit context reads
+approximate scheduling. Neither profile is an observed production rate or a
+production upper bound. Real worker/fragmentation measurements remain necessary.
+The gate intentionally fails above 27,000 questions/hour (75% of the
+verified 36,000/hour account allowance). A passing regression ceiling is not capacity
+readiness. The account quota is fixed; do not raise the target to pass. Reset the
+opt-in environment variable to `false` for ordinary local functional acceptance.
+Local functional testing can proceed while the separately reported capacity gate
+fails; it does not establish Heroku reception readiness.

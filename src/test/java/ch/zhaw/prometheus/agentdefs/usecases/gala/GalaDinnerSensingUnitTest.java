@@ -100,4 +100,30 @@ class GalaDinnerSensingUnitTest {
         assertEquals(start.plusSeconds(43), time(storage, CONTINUATION_EXPIRES));
         group(3, 60); group(3, 62); assertFalse(storage.containsKey(CONTINUATION_ID));
     }
+    @Test void unchangedSensingRetainsFactVersionsButRefreshesEvidenceAndStillDetectsChanges() {
+        group(1, 1); group(1, 3); face("neutral", 3, ""); face("neutral", 5, "");
+        var keys = java.util.List.of(COUNT, GalaDinnerSensing.GROUP_BASE, GalaDinnerSensing.GROUP_CANDIDATE,
+                FACE, GalaDinnerSensing.FACE_BASE, GalaDinnerSensing.FACE_CANDIDATE);
+        var versions = new java.util.HashMap<String, String>();
+        keys.forEach(key -> versions.put(key, storage.writeVersion(key)));
+        String seen = storage.writeVersion(SEEN), faceAt = storage.writeVersion(FACE_AT);
+        group(1, 7); face("neutral", 7, "");
+        keys.forEach(key -> assertEquals(versions.get(key), storage.writeVersion(key), key));
+        assertNotEquals(seen, storage.writeVersion(SEEN)); assertNotEquals(faceAt, storage.writeVersion(FACE_AT));
+        assertTrue(present(storage, start.plusSeconds(21))); assertFalse(present(storage, start.plusSeconds(22)));
+        group(1, 20); group(2, 26); group(2, 28);
+        assertNotEquals(versions.get(COUNT), storage.writeVersion(COUNT));
+        assertTrue(storage.containsKey(CONTINUATION_ID));
+        group(0, 29); assertFalse(present(storage, start.plusSeconds(29)));
+        assertFalse(storage.containsKey(CONTINUATION_ID));
+    }
+    @Test void repeatedReceptionDoesNotRewriteModeButEachNewRequestHasItsOwnIdentity() {
+        reception(storage); String mode = storage.writeVersion(MODE);
+        reception(storage); assertEquals(mode, storage.writeVersion(MODE));
+        continueRequest(storage, "Same facts"); String first = text(storage, CONTINUATION_ID, "");
+        String factsVersion = storage.writeVersion(CONTINUATION_FACTS);
+        continueRequest(storage, "Same facts");
+        assertNotEquals(first, text(storage, CONTINUATION_ID, ""));
+        assertEquals(factsVersion, storage.writeVersion(CONTINUATION_FACTS));
+    }
 }

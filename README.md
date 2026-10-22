@@ -791,10 +791,15 @@ Live transcript claims use scalar scope/epoch checks and bounded bulk receipt
 reads/assignment, with a separately committed claim before processing. Every
 fragment remains durable; revocation, original receipt ordering and no automatic
 replay of uncertain actions are preserved. No schema migration is needed.
-The deployment branch also tests a mixed Gala speech/sensing minute: 1,996 MySQL
-questions versus 4,731 before these changes. Sustained load at that rate exceeds
+The deployment branch also tests a mixed Gala speech/sensing minute: the earlier
+reduction was 4,731 to 1,996 MySQL questions; after the Gala interaction improvements
+and redundant-memory-write cleanup, it uses 2,088 against its 2,100 regression ceiling.
+Sustained load at that rate exceeds
 the documented 36,000/hour plan; this regression test is not a capacity guarantee.
-See `.agents/GPTLIVE_RESULTS.md` for workload, verification and deployment limits.
+See `.agents/GPTLIVE_RESULTS.md` for the original reduction and
+`.agents/GALAIMPROVEMENT_RESULTS.md` for calibrated reception/stress profiles and
+the fixed-quota efficiency follow-up. Functional acceptance uses disposable local
+MySQL independently of the production capacity gate.
 
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check

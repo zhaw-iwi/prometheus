@@ -82,6 +82,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-11 / Milestone 237: redundant Gala memory writes removed; the original query
+  regression passes at 2088/2100. Calibrated local reception load still measures
+  about 156,919 questions/hour, above the fixed 36,000/hour quota (27,000 target).
+  Matched stress savings from the code change are 0.93%; profile calibration is
+  reported separately. Sensing/storage-link churn and durable fragment costs are
+  measured in `.agents/GALAIMPROVEMENT_RESULTS.md`. Production capacity stays OPEN.
+  The user authorised continuing GI-12 local acceptance before the larger resource
+  follow-up; local success does not establish Heroku reception readiness.
+  Local full acceptance: 826 Java passes (one opt-in capacity skip), 122 Node passes,
+  and four real-app browser passes including feature-disabled text/TTS. Deployment
+  success cannot close the capacity/provider/physical gates.
+
 - GI-10 / Milestone 236: Live export links media samples to observed context and
   caption receipts and distinguishes fixed local-stop causes. Context updates
   preserve output; observability callback failure cannot disrupt speech/cleanup.
