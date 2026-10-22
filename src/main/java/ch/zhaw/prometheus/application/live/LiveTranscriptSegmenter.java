@@ -87,6 +87,7 @@ public final class LiveTranscriptSegmenter {
     public synchronized void uncertain(Speaker speaker, String reason) {
         if (!tracks.get(speaker).fragments.isEmpty()) tracks.get(speaker).uncertainty = reason;
     }
+    public synchronized boolean hasOpenSegment() { return tracks.values().stream().anyMatch(track -> !track.fragments.isEmpty()); }
     public synchronized List<Segment> interrupt(Speaker speaker, String reason) {
         Track track = tracks.get(speaker);
         return track.fragments.isEmpty() ? List.of() : List.of(finish(speaker, track, Closure.INCOMPLETE, reason));

@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,10 +25,6 @@ public class LiveContextProjection {
     private final PromptMessageAssembler assembler;
     private final LiveVoicePolicyAdapter policies;
     private final Clock clock;
-    private static final Map<String, Long> TTL = Map.of(
-            Event.TYPE_FACE_EMOTION, 15L, Event.TYPE_HUMAN_PRESENCE, 15L, Event.TYPE_SOCIAL_GROUPING, 15L,
-            Event.TYPE_SOCIAL_CONTEXT, 15L, Event.TYPE_SOCIAL_SITUATION_CHANGE, 30L, Event.TYPE_HAND_SIGN, 15L,
-            Event.TYPE_WEATHER_CURRENT, 600L, Event.TYPE_WEATHER_FORECAST, 21600L);
     @Autowired public LiveContextProjection(PromptMessageAssembler assembler, LiveVoicePolicyAdapter policies) {
         this(assembler, policies, Clock.systemUTC());
     }
@@ -52,15 +49,23 @@ public class LiveContextProjection {
         List<UUID> aggregateSources = new ArrayList<>();
         Instant aggregateTime = null, aggregateExpiry = null;
         Instant now = clock.instant();
+        var latestTimes = new HashMap<String, Instant>();
         for (int index = 0; index < selected.size(); index++) {
             Event event = selected.get(index);
             boolean dialogue = Event.TYPE_USER_UTTERANCE.equals(event.getType()) || Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType());
-            if (!dialogue && !TTL.containsKey(event.getType())) continue;
+            if (!dialogue && !ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType())) continue;
             Instant observed = observedAt(event);
-            Instant expiry = !dialogue && observed != null ? observed.plusSeconds(TTL.get(event.getType())) : null;
+            if (!dialogue && latestTimes.containsKey(event.getType())
+                    && (observed == null || observed.isAfter(now) || !observed.isAfter(latestTimes.get(event.getType())))) continue;
+            if (!dialogue && observed != null && !observed.isAfter(now)) latestTimes.put(event.getType(), observed);
+            Instant expiry = !dialogue && observed != null ? observed.plusSeconds(ch.zhaw.prometheus.model.event.ObservationEvidence.ttl(event.getType())) : null;
             String freshness = dialogue ? "history" : observed == null || observed.isAfter(now) ? "unknown"
                     : !now.isBefore(expiry) ? "expired" : "fresh";
+            if (Event.TYPE_FACE_EMOTION.equals(event.getType()) && freshness.equals("fresh")
+                    && !ch.zhaw.prometheus.model.event.ObservationEvidence.usableFace(JsonParser.parseString(event.getPayload()).getAsJsonObject(), 0))
+                freshness = "unknown";
             String text = freshness.equals("expired") ? "Current value unknown; previous observation expired."
+                    : freshness.equals("unknown") ? "Current value unknown; missing/invalid source age or unreliable detection."
                     : assembler.toPromptMessage(event).getContent();
             if (text.isBlank()) continue;
             String key = event.getId() == null ? "unpersisted-" + index : event.getId().toString();
@@ -74,8 +79,9 @@ public class LiveContextProjection {
                 aggregateEvents.add(event);
                 if (aggregateEvents.size() > 8) aggregateEvents.removeFirst();
                 aggregateTime = observed;
-                if (aggregateExpiry == null || expiry.isBefore(aggregateExpiry)) aggregateExpiry = expiry;
-            }
+                aggregateExpiry = aggregateEvents.stream().map(LiveContextProjection::observedAt).min(Instant::compareTo).orElseThrow()
+                        .plusSeconds(ch.zhaw.prometheus.model.event.ObservationEvidence.ttl(Event.TYPE_FACE_EMOTION));
+            } else if (event.getType().equals(Event.TYPE_FACE_EMOTION)) aggregateEvents.clear();
         }
         EventHistory aggregateHistory = new EventHistory();
         for (Event event : aggregateEvents) {
@@ -113,17 +119,8 @@ public class LiveContextProjection {
                 guidance, userSilence, leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null);
     }
     private static Instant observedAt(Event event) {
-        if (TTL.containsKey(event.getType())) {
-            try {
-                var payload = JsonParser.parseString(event.getPayload());
-                if (payload.isJsonObject()) {
-                    for (String field : List.of("observed_at", "ts")) {
-                        if (payload.getAsJsonObject().has(field))
-                            return Instant.parse(payload.getAsJsonObject().get(field).getAsString());
-                    }
-                }
-            } catch (RuntimeException invalid) { return null; }
-        }
+        if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType()))
+            return ch.zhaw.prometheus.model.event.ObservationEvidence.observed(event);
         return event.getCreatedDate();
     }
     static String bounded(String text, int maxBytes) {

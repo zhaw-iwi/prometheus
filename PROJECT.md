@@ -82,6 +82,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-06 / Milestone 232 shared foundation: source-aged sensor context, withdrawal
+  of unusable face summaries and opt-in interruptible proactive comments. Passed
+  64 focused units and isolated Live/task/query integration checks. Gala ambient
+  admission follows on agents; see `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
 - GI-05 / Milestone 231: Live composes Gala task speech from validated facts;
   one asynchronous semantic check gates subsequent actions, with bounded uncertain
   recovery and no physical replay. Passed 132 focused units, 19 distinct isolated
@@ -10805,3 +10810,13 @@ exposed lifecycle omissions and premature action wording; phase/context ordering
 was tightened. Repeated acknowledgments and individual term omissions remain
 GI-07/GI-12 quality work. See `.agents/GALAIMPROVEMENT_RESULTS.md` for evidence and
 limitations. No physical playback proof is claimed.
+
+## Milestone 232 - Fresh evidence and interruptible ambient delivery (2026-10-22)
+
+Share observation TTL/source-time parsing without changing task thresholds. Live
+does not treat undated/absent/poorly detected faces as current, discard newer
+evidence for delayed frames, or retain an unsupported face summary. Optional
+proactive continuations can be interrupted by conversation during an ACK wait;
+required results retain their delivery contract. Existing capture state supplies
+the admission guard without a new query or poller. Shared acceptance and Gala
+integration status are recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.

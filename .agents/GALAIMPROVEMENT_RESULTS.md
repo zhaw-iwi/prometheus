@@ -359,3 +359,22 @@ Speech association is probabilistic and is not proof of audible playback or
 physical execution. Physical headset/robot acceptance remains scheduled for
 GI-12; provider synthetic audio does not replace it. Brief Live waiting
 acknowledgments remain a GI-07 quality item.
+
+## GI-06 / Milestone 232 - fresh evidence and optional ambient delivery foundation
+
+ObservationEvidence shares TTL/source timestamp parsing across Live and tasks;
+task TTLs and two-second clock skew remain unchanged. Live requires a source
+timestamp, hides unknown raw values, ignores delayed/future replacement frames,
+and withdraws the prior facial summary on explicit absence/poor detection.
+New optional interruptible proactive continuations use existing in-memory audio,
+open-segment and mailbox activity to yield to conversation, including during ACK
+waits. Once suppressed, an occasion cannot replay. Required results/tasks retain
+their existing default. No new DB query, polling loop or persisted schema.
+
+64 focused units passed (target/gi06-shared-unit.log), including new source-age,
+face withdrawal, out-of-order input, pre-transcript audio and dispatch-race cases.
+Isolated LiveMultimodalBridgeIntegrationTest, GenericMultimodalTaskIntegrationTest
+and LiveQueryBudgetIntegrationTest passed; target/gptlive-acceptance-254e8a85cc.
+The initial test fixtures lacked source timestamps; fixtures now supply them and
+an explicit undated-sample test protects the unknown outcome. Disposable schema
+and account removed. Gala admission/cadence acceptance follows on agents.
