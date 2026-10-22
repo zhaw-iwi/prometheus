@@ -27,6 +27,7 @@ public interface ExternalVoicePolicy {
     default boolean liveFilterIsolatedInputActivity() { return false; }
     /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */
     default boolean liveNonMutatingAcknowledgement(String transcript) { return false; }
+    /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */

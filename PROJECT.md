@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Weather context follow-up (2026-10-22): cockpit timestamps use the provider's
+  UTC offset; selected fresh weather survives encounter startup without carrying
+  prior visitor evidence. Original source expiry and selector rules remain intact.
+  Passed 42 focused Java and 62 Live JavaScript tests. Matching standalone Valerian
+  normalization passes its 140 JavaScript and 24 static-server tests. Changes are
+  approved for publication and integration through `main` to `agents`. See the
+  audit below; actual deployment status is recorded by the release workflow.
+
 - Milestone 244 (shared delivery): bounded context chunks use shorter headers and
   prioritise current face evidence before derived summaries. Unsent sensory backlog
   yields at observation boundaries to newer commits at the existing refresh cadence.
@@ -9143,3 +9151,44 @@ proactive continuations can be interrupted by conversation during an ACK wait;
 required results retain their delivery contract. Existing capture state supplies
 the admission guard without a new query or poller. Shared acceptance and Gala
 integration status are recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
+## Weather context follow-up (2026-10-22)
+
+### Goal and changes
+
+Make supplied current weather usable by Live and preserve still-fresh selected
+environmental context at encounter startup. Open-Meteo's offset-less local
+`current.time` previously failed the backend's absolute source-time parser; weather
+sent before the encounter boundary was also excluded. The cockpit now uses the
+provider's `utc_offset_seconds`, with explicit offsets preserved and missing or
+invalid source time kept unknown. See [Open-Meteo documentation](https://open-meteo.com/en/docs).
+
+Shared projection admits selected fresh current weather/forecasts across the
+boundary using their original identity and expiry. Previous visitor dialogue,
+face, presence and hand evidence remain excluded. No Gala rule, schema, freshness
+window, polling cadence or speech ownership changes. The standalone Valerian
+cockpit contains the same normalization fix on `feature/galadinnerupdate`.
+
+### Run and verification
+
+Reload the updated cockpit and fetch weather again; the backend and cockpit both
+need this follow-up. Already cached malformed weather is not rewritten.
+
+- `./mvnw.cmd -q -Dtest=LiveContextProjectionUnitTest,LiveContextDeliveryUnitTest,AgentCapabilityLiveContextUnitTest test`: 42 passed. The 14 projection tests
+  passed again after strengthening coverage of source age versus receipt/fetch time.
+- `npm run test:live:unit`: 62 passed, including 3 new weather cases covering
+  seasonal/fractional/negative offsets, explicit offsets, invalid/missing time,
+  stale source time, and unchanged forecast dates/location.
+- Standalone Valerian: `npm run test:js` 140 passed;
+  `.venv/Scripts/python.exe -m pytest -q apps/valerian-cockpit/tests/test_static_server.py`
+  24 passed. Its 3 new weather cases exercise the matching normalizer.
+
+### Limits and next step
+
+No live database, provider, physical audio or browser visual trial was needed or
+run for these data/context changes. Real-provider wording remains a live check;
+expired weather still requires a fresh observation. The user authorized commit,
+push and integration from `feature/gptlive` into `main`, then `main` into `agents`
+to trigger deployment. The matching standalone Valerian fix is published on its
+feature branch for the colleague's merge. Verify the release workflow and health
+after publication; physical weather-response acceptance remains a live check.

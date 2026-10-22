@@ -5020,7 +5020,7 @@ function normalizeOpenMeteoWeather(query, location, data) {
       temperature_c: round(current.temperature_2m, 1),
       precipitation_mm: round(currentPrecipitation, 2),
       weather_code: Number(current.weather_code || 0),
-      observed_at: current.time || new Date().toISOString(),
+      observed_at: weatherObservedAt(current.time, data?.utc_offset_seconds),
       ts: new Date().toISOString(),
     },
     forecast: {
@@ -5031,6 +5031,19 @@ function normalizeOpenMeteoWeather(query, location, data) {
       ts: new Date().toISOString(),
     },
   };
+}
+
+// Open-Meteo ISO times use the response's fixed UTC offset, not the browser's zone.
+// Missing source age stays unknown: fetch/send time must never freshen old weather.
+function weatherObservedAt(time, utcOffsetSeconds) {
+  if (typeof time !== "string") return null;
+  const parts = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?)(Z|[+-]\d{2}:\d{2})?$/.exec(time);
+  if (!parts) return null;
+  const wallTime = Date.parse(parts[1] + "Z");
+  if (!Number.isFinite(wallTime) || new Date(wallTime).toISOString().slice(0, 16) !== parts[1].slice(0, 16)) return null;
+  if (!parts[2] && (!Number.isInteger(utcOffsetSeconds) || Math.abs(utcOffsetSeconds) > 18 * 3600)) return null;
+  const instant = parts[2] ? Date.parse(time) : wallTime - utcOffsetSeconds * 1000;
+  return Number.isFinite(instant) ? new Date(instant).toISOString() : null;
 }
 
 function weatherLocationPayload(query, location) {

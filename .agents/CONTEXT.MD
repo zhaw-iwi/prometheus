@@ -248,6 +248,14 @@ transcription/TTS. Read
 sideband owns provider credentials; diagnostic state is bounded and excludes
 audio/text content. See README for scoped session contracts and configuration.
 
+The weather follow-up (2026-10-22) normalizes cockpit current-weather source time
+using Open-Meteo's returned UTC offset. Shared Live projection retains selected,
+fresh weather across encounter boundaries without carrying previous dialogue or
+person sensing. Source expiry and selectors remain authoritative; receipt/resend
+time never refreshes old weather. The standalone Valerian cockpit has the matching
+normalization change. The user authorized commit/push and integration from
+`feature/gptlive` through `main` to `agents`; see PROJECT's weather follow-up.
+
 The dedicated Live Multimodal core definition separates external voice guidance
 from embodiment generation through persisted `EmbodimentPolicy`. It accepts all
 current observations and exposes all declared behaviour modalities. Backend plans
