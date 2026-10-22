@@ -12,7 +12,7 @@ const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 const key = process.env.OPENAI_API_KEY;
 if (!key) throw Error('Set OPENAI_API_KEY in the environment, never in command arguments');
 const headers = {Authorization: key.startsWith('Bearer ') ? key : `Bearer ${key}`, 'Content-Type': 'application/json'};
-const clips = {
+const clips = fixture.clips || {
   first: 'Ich möchte Schere Stein Papier spielen.',
   replay: 'Wollen wir das nochmal spielen?',
   guess: 'Personenraten bitte.',
@@ -91,11 +91,14 @@ try {
   async function context(name) {
     console.log(`Context: ${name}`);
     await page.evaluate(name => mark('trial.confirmation.start', {name}), name);
+    const shifts = new Map();
     for (const command of fixture[name]) {
       let content = command.content;
       if (command.evidenceType && command.expiresAt) {
         // Replay a fresh synthetic observation with the original relative timestamp/TTL.
-        const shift = Date.now() + 15000 - Date.parse(command.expiresAt);
+        const identity = command.evidenceType + command.expiresAt;
+        if (!shifts.has(identity)) shifts.set(identity, Date.now() + 15000 - Date.parse(command.expiresAt));
+        const shift = shifts.get(identity);
         content = content.replace(/\d{4}-\d\d-\d\dT[\d:.]+Z/g, value => new Date(Date.parse(value) + shift).toISOString());
       }
       const id = await page.evaluate(({type, content, name}) => {
@@ -108,13 +111,26 @@ try {
     await page.evaluate(name => mark('trial.confirmation.complete', {name}), name);
   }
   await page.waitForTimeout(8500);
-  for (const [request, start, end] of [['first', 'rpsStart', 'rpsEnd'], ['replay', 'rpsReplay', 'rpsReplayEnd']]) {
+  if (fixture.steps) for (const step of fixture.steps) {
+    if (step.context) await context(step.context);
+    if (step.audio) await audio(step.audio);
+    if (step.waitMs) await page.waitForTimeout(step.waitMs);
+    if (fixture.settleOutput && step.waitMs >= 5000) {
+      // Do not turn a representative happy path into an accidental interruption trial.
+      await page.waitForFunction(() => {
+        const last = logs.findLast(e => e.type === 'session.output_transcript.delta');
+        return !last || performance.now() - epoch - last.ms >= 2500;
+      }, {}, {timeout: 25000});
+    }
+  } else {
+   for (const [request, start, end] of [['first', 'rpsStart', 'rpsEnd'], ['replay', 'rpsReplay', 'rpsReplayEnd']]) {
     await audio(request); await page.waitForTimeout(5000); await context(start);
     await page.waitForTimeout(8500); await context(end); await page.waitForTimeout(8500);
   }
   await audio('guess'); await page.waitForTimeout(5000); await context('guessStart'); await page.waitForTimeout(8500);
   await audio('questionFirst'); await page.waitForTimeout(1200); await audio('questionLast'); await page.waitForTimeout(8500);
   await audio('giveUp'); await page.waitForTimeout(5000); await context('guessEnd'); await page.waitForTimeout(10000);
+  }
   await page.evaluate(() => send('session.close', {}));
   await page.waitForFunction(() => logs.some(event => event.type === 'session.closed'), {}, {timeout: 15000});
   report.closed = true;

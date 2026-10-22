@@ -891,7 +891,9 @@ The final real-camera test remains open; automated checks cannot prove audibilit
 
 ### GI-21 - Maintain perception topic and deliver relevant fresh evidence
 
-Status: PROPOSED.
+Status: COMPLETE. Local non-control guard and native-topic guidance implemented;
+60 focused checks and a real-provider comparison pass. The original model topic
+failure did not reproduce with timely evidence. Timing/physical limits remain.
 
 Use Live's existing conversation plus compact activity/perception context for
 follow-ups such as facial question -> answer -> "Und jetzt?". Guidance should

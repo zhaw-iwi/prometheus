@@ -1,0 +1,26 @@
+{
+  "settleOutput": true,
+  "clips": {
+    "face": "Wie wirkt mein Gesichtsausdruck?",
+    "now": "Und jetzt?",
+    "correct": "Ich bin eigentlich angespannt.",
+    "food": "Wann beginnt das Essen?",
+    "game": "Was kann ich nach einem beendeten Spiel machen?"
+  },
+  "steps": [
+    {"context": "faceNeutral"},
+    {"audio": "face", "waitMs": 6500},
+    {"context": "faceHappy"},
+    {"audio": "now", "waitMs": 6500},
+    {"audio": "correct", "waitMs": 1000},
+    {"context": "faceCorrection", "waitMs": 5500},
+    {"audio": "food", "waitMs": 6500},
+    {"audio": "now", "waitMs": 6500},
+    {"context": "faceExpired"},
+    {"audio": "face", "waitMs": 6500},
+    {"context": "faceUncertain"},
+    {"audio": "now", "waitMs": 6500},
+    {"audio": "game", "waitMs": 6500},
+    {"audio": "now", "waitMs": 6500}
+  ]
+}

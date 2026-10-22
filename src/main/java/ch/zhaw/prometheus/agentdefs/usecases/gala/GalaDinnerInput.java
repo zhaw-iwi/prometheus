@@ -29,6 +29,10 @@ final class GalaDinnerInput {
 
     static boolean unspecifiedGame(String speech) { return PLAY.matcher(normalize(speech)).matches(); }
 
+    static boolean contextualFollowUp(String speech) {
+        return java.util.Set.of("und jetzt", "und nun", "and now", "what about now").contains(normalize(speech));
+    }
+
     static boolean acknowledgement(String speech) {
         // Whole utterances only: an acknowledgement prefix cannot hide a subsequent request.
         return java.util.Set.of("ja gerne", "ja gern", "gerne", "gern", "ok", "okay", "alles klar",

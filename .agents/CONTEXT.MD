@@ -377,6 +377,8 @@ annotations for task control. A neutral WAIT operation preserves games; original
 transcripts remain auditable. Complete neutral acknowledgements in active games
 now bypass classification and preserve their target/round. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
+Bare contextual follow-ups also preserve activity without inference; Live uses its
+prior topic and current fresh evidence. No persisted topic or faster sensor refresh.
 Other language interpretation remains model-dependent. Content-free control
 stages record applied transitions without replacing the current readiness cue.
 The Live admission hook also accepts exact non-control replies after a fresh game

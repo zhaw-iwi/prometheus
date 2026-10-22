@@ -422,6 +422,12 @@ A recognized explicit give-up with forbidden disclosure ends without revealing.
 Content-free `gala_control/` activity stages record before/after modes and applied
 operations, leaving the existing readiness cue intact. Free-form exits remain
 model-dependent; this is not a blanket yes/no admission bypass.
+Bare follow-ups such as "Und jetzt?" preserve the current reception/game activity
+without classification. Live uses its preceding conversational topic and the latest
+fresh face estimate; topic changes end the facial link. Low-confidence estimates
+are inconclusive. Sensor TTL and the five-second coalesced refresh stay unchanged;
+new evidence may still reach Live after a response has started.
+
 Neutral receipt/thanks replies after a fresh completed game also take this path.
 They can be admitted despite the preceding assistant segment's old state; an
 affirmative game choice or task acceptance still needs established context.

@@ -1369,4 +1369,46 @@ No production database, source TTL change, schema or new polling. Shared changes
 were cherry-picked feature -> main to retain main's linear history, then merged
 into agents. Browser template mismatch on shared branches remains pre-existing;
 this milestone's complete deployment UI passes. GI-21 follows.
-`nRunner note: the browser-enabled selection passed two cases; the subsequent disabled-app selection matched no titles and exited 1 (no application failure). Final GI-22 will run the real scoped cockpit title in both modes.
+
+Runner note: the browser-enabled selection passed two cases; the subsequent disabled-app selection matched no titles and exited 1 (no application failure). Final GI-22 will run the real scoped cockpit title in both modes.
+
+
+## GI-21 - Contextual perception follow-ups (2026-10-22)
+
+Live retains conversation/topic ownership. A bare German/English "Und jetzt?" form
+is locally non-control in reception/games: no classifier call, game invitation,
+activity exit or backend speech. Compound requests and task control keep their
+existing interpretation. Voice guidance follows the preceding topic, uses the
+latest fresh face estimate rather than an older aggregate, accepts corrections
+and treats confidence below .75 as inconclusive. No persisted topic, new model
+call, refresh poll, faster cadence or extended TTL was added.
+
+Existing GI-17 delivery already prioritizes latest raw face evidence and replaces
+obsolete unsent observations at the five-second coalesced read boundary. Its
+projection, delayed-delivery and withdrawal tests were rerun. Facial aggregate
+traffic remains: it carries distinct temporal information, so deleting it would
+not preserve identical factual coverage. No user-triggered graph read was added
+within the narrow database budget. A reply can still start before new evidence
+arrives (accepted GI-14 limitation).
+
+Verification: 59 units plus one local multimodal bridge integration case pass in
+target/gptlive-acceptance-e07138de61/java.log. Actual context fixtures cover current,
+expired, low-confidence and corrected expressions, intervening topics and active
+games. The maximum instruction case is 14,387/14,400 test bytes (16,000 app limit).
+Early budget failures were fixed by compacting guidance, not raising the ceiling.
+
+Real gpt-live-1/marin baseline/candidate sessions both answered neutral -> happy
+for facial question -> "Und jetzt?", followed the dinner topic after switching,
+accepted correction, and declined reliable inference for expired/uncertain input.
+Both closed normally. The original facial-topic failure did not reproduce under
+these delivered-before-input conditions; do not claim a measured model-quality
+improvement. Evidence: target/gi21-provider-before.json and gi21-provider-after.json,
+actual projection/command fixtures retained. Some correction/game responses lasted
+past the fixed 6.5-second harness pause and were interrupted by its next input.
+The repeatable runner now waits for output-caption quiet before its next happy-path
+input; GI-22 repeats the candidate. Captions are not physical audibility evidence.
+
+Reproduce: run GalaLiveFollowupUnitTest to export target/gala-perception-fixture.json,
+then node tests/gptlive/gala_provider_trial.mjs --allow-paid-provider
+ target/gala-perception-fixture.json target/gi21-provider-repeat.json with the key
+in the environment. All trial transcripts are synthetic and stay ignored.

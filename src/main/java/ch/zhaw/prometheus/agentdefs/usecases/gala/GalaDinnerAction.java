@@ -99,6 +99,10 @@ public class GalaDinnerAction extends Action {
             return;
         }
         String mode = mode(storage);
+        if (!"TASK".equals(mode) && GalaDinnerInput.contextualFollowUp(utterance)) {
+            traceControl(events, mode, "LOCAL", "WAIT", mode, "contextual_followup");
+            return; // Live retains the conversational topic; this is neither acceptance nor a new activity.
+        }
         if (acknowledgement) {
             traceControl(events, mode, "LOCAL", "WAIT", mode, "acknowledgement");
             return;

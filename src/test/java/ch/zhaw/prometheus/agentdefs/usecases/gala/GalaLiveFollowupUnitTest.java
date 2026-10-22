@@ -303,4 +303,68 @@ class GalaLiveFollowupUnitTest {
     private static Fragment fragment(String id, long at, String text) {
         return new Fragment(id, Speaker.USER, at, at + 20, at, at, text);
     }
+
+    @Test void contextualFollowUpsCannotStartOrExitGamesAndPreferLatestSelectedFaceEvidence() {
+        var now = Instant.now().minusMillis(100);
+        sensedFace("neutral", .99, now.minusSeconds(2));
+        say("CHAT", "Wie wirkt mein Gesichtsausdruck?");
+        sensedFace("happy", .99, now);
+        clearInvocations(gateway);
+        say("START_RPS", "Und jetzt?");
+        assertEquals("RECEPTION", mode(memory)); assertNull(agent.generate(runtime)); verifyNoInteractions(gateway);
+        var selected = projection.project(agent);
+        var face = selected.items().stream().filter(i -> Event.TYPE_FACE_EMOTION.equals(i.type())).findFirst().orElseThrow();
+        assertTrue(face.text().contains("happy")); assertEquals(now.plusSeconds(15), face.expiresAt());
+        assertTrue(selected.instructions().contains("follows the last topic"));
+        assertTrue(selected.instructions().contains("not older averages"));
+        for (String start : List.of("START_GUESS", "START_RPS")) {
+            say("RETURN", "Stop"); say(start, "Dieses Spiel bitte");
+            String before = mode(memory), target = text(memory, PERSON, ""), sign = text(memory, SIGN, "");
+            clearInvocations(gateway); say("RETURN", "Und nun?");
+            assertEquals(before, mode(memory)); assertEquals(target, text(memory, PERSON, ""));
+            assertEquals(sign, text(memory, SIGN, "")); verifyNoInteractions(gateway);
+        }
+        for (String input : List.of("Und jetzt Personenraten", "And now stop", "Und jetzt gib auf"))
+            assertFalse(GalaDinnerInput.contextualFollowUp(input));
+    }
+
+    @Test void faceFollowUpDoesNotRenewEvidenceOverrideCorrectionOrCreateAStickyTopic() {
+        Instant observed = Instant.now().minusSeconds(16);
+        sensedFace("happy", .99, observed);
+        say("CHAT", "Wie wirkt mein Gesichtsausdruck?"); say("START_RPS", "Und jetzt?");
+        var selected = projection.project(agent);
+        var face = selected.items().stream().filter(i -> Event.TYPE_FACE_EMOTION.equals(i.type())).findFirst().orElseThrow();
+        assertEquals("expired", face.freshness()); assertFalse(face.text().contains("happy"));
+        assertEquals(observed.plusSeconds(15), face.expiresAt());
+        say("CORRECT_FACE", "Ich bin eigentlich angespannt"); say("CHAT", "Wann beginnt das Essen?");
+        say("START_GUESS", "Und jetzt?"); assertEquals("RECEPTION", mode(memory));
+        assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("Visitor corrected"));
+        assertFalse(memory.toMap().keySet().stream().anyMatch(k -> k.contains("topic")));
+        assertFalse(memory.containsKey(CONTINUATION_ID));
+    }
+
+    @Test void exportActualPerceptionFollowUpContexts() throws Exception {
+        put(memory, COUNT, "1"); put(memory, SEEN, Instant.now().toString());
+        var initial = projection.project(agent); var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapter(Instant.class,
+                (JsonSerializer<Instant>) (value, type, context) -> new JsonPrimitive(value.toString())).create();
+        var fixture = new JsonObject(); fixture.addProperty("instructions", initial.instructions()); fixture.add("input", initial.startupInput());
+        sensedFace("neutral", .99, Instant.now().minusSeconds(1)); export(fixture, "faceNeutral", delivery, gson);
+        say("CHAT", "Wie wirkt mein Gesichtsausdruck?");
+        sensedFace("happy", .99, Instant.now()); say("CHAT", "Und jetzt?"); export(fixture, "faceHappy", delivery, gson);
+        say("CORRECT_FACE", "Ich bin eigentlich angespannt."); export(fixture, "faceCorrection", delivery, gson);
+        var expired = new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter(),
+                java.time.Clock.fixed(Instant.now().plusSeconds(16), java.time.ZoneOffset.UTC));
+        var batch = delivery.plan(expired.project(agent), List.of());
+        fixture.add("faceExpired", gson.toJsonTree(batch.commands())); delivery.acknowledged(batch);
+        sensedFace("sad", .2, Instant.now()); export(fixture, "faceUncertain", delivery, gson);
+        JsonParser.parseString(Files.readString(Path.of("tests/gptlive/gala_perception_scenario.json")))
+                .getAsJsonObject().entrySet().forEach(entry -> fixture.add(entry.getKey(), entry.getValue()));
+        Files.writeString(Path.of("target/gala-perception-fixture.json"), gson.toJson(fixture));
+    }
+
+    private void sensedFace(String emotion, double confidence, Instant observed) {
+        agent.acknowledge(Event.observation(Event.TYPE_FACE_EMOTION, "sensor", "{\"emotion\":\"" + emotion
+                + "\",\"confidence\":" + confidence + ",\"ts\":\"" + observed + "\"}"), runtime);
+    }
 }

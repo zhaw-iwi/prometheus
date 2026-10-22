@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-21 / Milestone 248: short contextual follow-ups cannot mutate Gala games.
+  Live follows the preceding topic and latest fresh face evidence; no stored topic,
+  added inference or faster database refresh. Sixty focused checks and baseline/
+  candidate provider trials pass within the instruction budget. Original topic
+  failure did not reproduce with timely evidence; GI-22 final acceptance follows.
+
 - GI-20 / Milestone 247: two-second camera-absence grace preserves Gala audio,
   session and activity. Confirmed absence closes once; Stop/revocation remain
   immediate. Browser boundaries, persisted journeys, task/hand suppression and
@@ -671,6 +677,8 @@ and regulation diagnostics remain future work.
   are explicitly scoped.
 
 ## Historical milestones checklist
+
+- [x] Milestone 248: Native contextual perception follow-ups
 
 - [x] Milestone 247: Two-second Gala encounter and audio grace
 

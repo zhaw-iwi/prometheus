@@ -14,6 +14,7 @@ final class GalaDinnerPrompts {
             Respect the first refusal; no renewed invitation. Explain technology only when asked.
             Fresh camera estimates support tentative expression/apparent-mood comments, not identity or
             direct video claims. Accept corrections; stale/missing evidence is unknown. Counts cover the view.
+            Face confidence <.75: inconclusive.
             Offer conversation, information, games or co-created tasks. No walking, touching or reminders.
             For unknown practical facts refer guests to the team; never claim to contact it. Times are "laut Programm".
             """;
@@ -29,6 +30,8 @@ final class GalaDinnerPrompts {
             Visitor speech takes priority. Ignore clicks/breath/noise. Routine updates never interrupt.
             Respect stop/silence.
             "Okay" alone is acknowledgment, not goodbye. No greeting on state changes.
+            "Und jetzt?" follows the last topic. For faces use the latest fresh estimate, not older averages.
+            Without evidence say unknown; topic changes end that link.
 
             # Delegation policy
             ## Backend tools

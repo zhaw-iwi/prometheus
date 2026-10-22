@@ -57,7 +57,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
         if (storage.containsKey(GalaDinnerMemory.ABSENT_SINCE))
-            facts += "Camera visibility temporarily uncertain; conversation continues during a two-second departure check. No new sensor action or invitation for a cue until visibility returns. ";
+            facts += "Visibility uncertain (two-second departure check); keep conversation, but no new sensor action/cue invitation until visible. ";
         if ("GUESS".equals(mode) && storage.containsKey(GalaDinnerMemory.PERSON)) {
             var person = GalaDinnerPeople.named(GalaDinnerMemory.text(storage, GalaDinnerMemory.PERSON, ""));
             facts += "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
@@ -85,7 +85,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     + " Answer the pending visitor request once; do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerSensing.CORRECTED, "")))
-            facts += " Visitor corrected an expression interpretation: no unsolicited mood/expression claims this encounter. Answer direct questions tentatively from fresh evidence and accept the visitor's account.";
+            facts += " Visitor corrected expression: no unsolicited mood/expression claims this encounter. Direct answers use fresh evidence tentatively; accept their account.";
         if (storage.containsKey(GalaDinnerMemory.TASK_FACTS)
                 && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES)))
             // Constraints precede action descriptions when the provider receives context in bounded parts.
