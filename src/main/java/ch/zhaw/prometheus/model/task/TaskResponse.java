@@ -29,7 +29,9 @@ public final class TaskResponse {
                     MATCH requires a substantive response fulfilling the requested spoken purpose/content.
                     Natural paraphrases and a newly composed requested joke are allowed. Preserve explicit exact-word requirements.
                     An acknowledgment, promise to answer later, unrelated speech, contradiction, or incomplete response is not MATCH.
-                    For activation, speech must establish that the task is armed and waiting, without doing the future action.
+                    Exception: an explicitly requested exact word (even "Okay") fulfils that literal content requirement.
+                    For ON_CUE activation, speech must establish that the task is armed and waiting, without doing the future action.
+                    For IMMEDIATE activation, the agreed initial verbal action must be performed.
                     Do not require narration of a physical gesture, and never infer physical execution or audibility.
                     Choose AMBIGUOUS when evidence is insufficient. Do not generate an answer or authorize any action.
                     """), PromptMessage.of("user", data.toString())), InferenceRequest.Output.JSON_OBJECT);
@@ -85,7 +87,9 @@ public final class TaskResponse {
         String speech = BehaviourPlan.fromJson(event.getPayload()).getSpeech();
         if (speech == null || speech.isBlank() || speech.length() > 3000) return Optional.empty();
         String normalized = speech.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N} ]", "").trim();
-        if (normalized.matches("okay|ok|ja|yes|gut|alles klar|klar|mhm|aha|verstehe|verstanden|sure|alright")) return Optional.empty();
+        if (normalized.matches("okay|ok|ja|yes|gut|alles klar|klar|mhm|aha|verstehe|verstanden|sure|alright")
+                && !java.util.regex.Pattern.compile("(?iu)(?<![\\p{L}\\p{N}])" + java.util.regex.Pattern.quote(normalized)
+                        + "(?![\\p{L}\\p{N}])").matcher(v.get("facts").getAsString()).find()) return Optional.empty();
         v.addProperty("status", "CHECKING"); v.addProperty("segment", source.segmentId()); storage.put(KEY, v);
         return Optional.of(new Check(UUID.fromString(v.get("id").getAsString()), owner.sessionId(), owner.epoch(),
                 revision(storage), source.segmentId(), v.get("facts").getAsString(), speech, Instant.parse(v.get("deadline").getAsString())));

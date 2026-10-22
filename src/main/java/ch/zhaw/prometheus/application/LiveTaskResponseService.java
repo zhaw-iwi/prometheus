@@ -85,6 +85,7 @@ public class LiveTaskResponseService {
     }
     /** Existing context refresh supplies deadlines; this adds no polling or query. Caller saves the loaded agent. */
     boolean expire(Agent agent, ExternalSpeech owner) {
+        if (!owner.equals(ownership.current(agent)) || !ownership.taskWorkAllowed(agent.getId(), owner)) return false;
         if (!(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy) || !TaskResponse.expired(policy.storage(), clock.instant())) return false;
         recover(agent, owner, "response_capture_deadline"); return true;
     }
