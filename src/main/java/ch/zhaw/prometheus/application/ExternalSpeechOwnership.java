@@ -31,6 +31,12 @@ public class ExternalSpeechOwnership {
         }
         return true;
     }
+    /** Local fence only. Receipt persistence must check this scope and the epoch in the database. */
+    record ReceiptScope(UUID accessCodeId) {}
+    ReceiptScope receiptScope(UUID id, ExternalSpeech owner) {
+        Grant grant = owners.get(id);
+        return grant != null && grant.owner.equals(owner) ? new ReceiptScope(grant.scope) : null;
+    }
     public void pauseInput(UUID id, UUID session) {
         Grant grant = owners.get(id);
         if (grant != null && grant.owner.sessionId().equals(session)) grant.input.set(false);

@@ -17,6 +17,7 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import jakarta.persistence.EntityManagerFactory;
 
 @SpringBootTest(properties = {"prometheus.runtime.tick.enabled=false",
+        "spring.datasource.hikari.maximum-pool-size=1", "spring.datasource.hikari.minimum-idle=1",
         "spring.jpa.properties.hibernate.generate_statistics=true",
         "logging.level.org.hibernate.stat=OFF",
         "logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener=OFF"})
@@ -28,6 +29,14 @@ class LiveQueryBudgetIntegrationTest {
     @Autowired EntityManagerFactory factory;
     @Autowired ch.zhaw.prometheus.repositories.AccessCodeRepository codes;
     @Autowired ch.zhaw.prometheus.repositories.AccessCodeAgentRepository links;
+    @Autowired javax.sql.DataSource dataSource;
+
+    long questions() throws Exception {
+        try (var connection = dataSource.getConnection(); var statement = connection.createStatement();
+             var result = statement.executeQuery("SHOW SESSION STATUS LIKE 'Questions'")) {
+            assertTrue(result.next()); return result.getLong(2);
+        }
+    }
 
     Agent agent(int events) {
         Agent agent = new LiveMultimodal().createAgent();
@@ -45,10 +54,12 @@ class LiveQueryBudgetIntegrationTest {
     Fragment fragment(String id) {
         return new Fragment(id, Speaker.USER, 0L, 500L, Instant.now().toEpochMilli(), 1, "Hello");
     }
-    @Test void receiptDoesNotLoadHistoryAndStillRejectsDuplicateWrongEpochAndReleasedOwner() {
+    @Test void receiptDoesNotLoadHistoryAndStillRejectsDuplicateWrongEpochAndReleasedOwner() throws Exception {
         Agent agent = agent(200); UUID id = agent.getId(); var owner = own(agent);
         stats().clear();
+        long before = questions();
         assertTrue(ingress.receipt(id, owner, fragment("one")));
+        assertEquals(1, questions() - before - 1, "One autocommitted statement, including durable epoch/duplicate checks");
         long queries = stats().getPrepareStatementCount(), entities = stats().getEntityLoadCount();
         System.out.println("Live receipt queries=" + queries + ", loaded entities=" + entities);
         assertTrue(queries <= 3, "Receipt must use bounded identity/ledger queries: " + queries);
@@ -67,20 +78,28 @@ class LiveQueryBudgetIntegrationTest {
         assertTrue(large <= small + 1, "History must not add one query per event: " + small + " -> " + large);
         assertTrue(large <= 25, "Context query budget: " + large);
     }
-    @Test void scopedReceiptUsesScalarChecksAndRejectsRevokedAccessImmediately() {
+    @Test void scopedReceiptUsesScalarChecksAndRejectsRevokedAccessImmediately() throws Exception {
         Agent agent = agent(200); UUID id = agent.getId();
         var access = codes.saveAndFlush(new ch.zhaw.prometheus.model.access.AccessCode(
                 UUID.randomUUID().toString().substring(0, 5), true));
         links.saveAndFlush(new ch.zhaw.prometheus.model.access.AccessCodeAgent(access, agent));
         var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
         ownership.acquire(id, owner, access.getId());
-        stats().clear(); assertTrue(ingress.receipt(id, owner, fragment("scoped")));
+        stats().clear(); long before = questions();
+        assertTrue(ingress.receipt(id, owner, fragment("scoped")));
+        assertEquals(1, questions() - before - 1, "One durable statement including fresh scope and epoch checks");
         long queries = stats().getPrepareStatementCount();
         System.out.println("Scoped Live receipt queries=" + queries);
         assertTrue(queries <= 4, "Scoped receipt query budget: " + queries);
         assertEquals(0, stats().getEntityLoadCount());
         access.setEnabled(false); codes.saveAndFlush(access);
         assertFalse(ingress.receipt(id, owner, fragment("revoked")));
+        assertFalse(ownership.hasOwner(id));
+        access.setEnabled(true); codes.saveAndFlush(access);
+        ownership.acquire(id, owner, access.getId());
+        links.delete(links.findByAccessCode_IdAndAgent_Id(access.getId(), id).orElseThrow());
+        assertFalse(ingress.receipt(id, owner, fragment("unlinked")));
+        assertFalse(ownership.hasOwner(id));
     }
     long contextQueries(int size) {
         Agent agent = agent(size); UUID id = agent.getId(); var owner = own(agent);

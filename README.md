@@ -445,6 +445,15 @@ Live transcript claims use scalar scope/epoch checks and bounded bulk receipt
 reads/assignment, with a separately committed claim before processing. Every
 fragment remains durable; revocation, original receipt ordering and no automatic
 replay of uncertain actions are preserved. No schema migration is needed.
+New Live receipts use one autocommitted MySQL statement that checks the current
+scope, epoch and duplicate identity before inserting. Ambient transactions are
+suspended, so later turn rollback cannot lose an accepted receipt. No permission
+cache or fragment buffer is introduced. The writer requires the default pool
+autocommit setting and fails closed otherwise. Segment claims/processing keep
+their separate transactions. Storage entries use the existing join table as a
+set, allowing individual link removal without rewriting unrelated entries.
+The local regression checks actual MySQL `Questions`, including JDBC work and
+transaction commands; Hibernate statement counts alone omit the receipt writer.
 The deployment branch also tests a mixed Gala speech/sensing minute: 2,031 MySQL
 questions versus 4,731 before these changes. Sustained load at that rate exceeds
 the documented 36,000/hour plan; this regression test is not a capacity guarantee.
