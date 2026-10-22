@@ -450,7 +450,10 @@ suspended, so later turn rollback cannot lose an accepted receipt. No permission
 cache or fragment buffer is introduced. The writer requires the default pool
 autocommit setting and fails closed otherwise. Segment claims/processing keep
 their separate transactions. Storage entries use the existing join table as a
-set, allowing individual link removal without rewriting unrelated entries.
+set, allowing individual link removal without rewriting unrelated entries. A separate
+eager SELECT prevents storage from multiplying the state/policy graph's query rows.
+Complete-history display reads only the history/events/paths after the ordinary
+scope check, preserving event identity/order and fresh data without a cache.
 The local regression checks actual MySQL `Questions`, including JDBC work and
 transaction commands; Hibernate statement counts alone omit the receipt writer.
 The deployment branch also tests a mixed Gala speech/sensing minute: 2,031 MySQL

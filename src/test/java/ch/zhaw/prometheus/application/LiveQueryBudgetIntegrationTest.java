@@ -30,6 +30,8 @@ class LiveQueryBudgetIntegrationTest {
     @Autowired ch.zhaw.prometheus.repositories.AccessCodeRepository codes;
     @Autowired ch.zhaw.prometheus.repositories.AccessCodeAgentRepository links;
     @Autowired javax.sql.DataSource dataSource;
+    @Autowired ScopedDemoService demo;
+    @Autowired AgentApplicationService application;
 
     long questions() throws Exception {
         try (var connection = dataSource.getConnection(); var statement = connection.createStatement();
@@ -112,5 +114,29 @@ class LiveQueryBudgetIntegrationTest {
         assertTrue(loaded.getEventHistory().toList().stream().allMatch(event ->
                 event.getStatePath().equals(java.util.List.of("conversation", "nested"))));
         ownership.release(id, owner.sessionId()); return queries;
+    }
+
+    @Test void scopedHistoryReadsOnlyOrderedHistoryAndImmediatelyReflectsAppendAndRevocation() throws Exception {
+        Agent agent = agent(205); UUID id = agent.getId();
+        var access = codes.saveAndFlush(new ch.zhaw.prometheus.model.access.AccessCode(
+                UUID.randomUUID().toString().substring(0, 5), true));
+        links.saveAndFlush(new ch.zhaw.prometheus.model.access.AccessCodeAgent(access, agent));
+        var expected = agent.getEventHistory().toList().stream().map(Event::getId).toList();
+        stats().clear(); long before = questions();
+        var history = demo.getAgentEventHistory(access.getCode(), id).orElseThrow();
+        long cost = questions() - before - 1;
+        assertTrue(cost <= 4, "Scoped history must read only authorization, history, events and paths: " + cost);
+        assertEquals(expected, history.stream().map(Event::getId).toList());
+        assertTrue(history.stream().allMatch(event -> event.getStatePath().equals(java.util.List.of("conversation", "nested"))));
+        assertEquals(0, stats().getEntityStatistics(Agent.class.getName()).getLoadCount());
+        assertEquals(0, stats().getEntityStatistics(ch.zhaw.prometheus.model.State.class.getName()).getLoadCount());
+        agent = agents.findById(id).orElseThrow();
+        agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Fresh append"));
+        agents.saveAndFlush(agent);
+        assertEquals("Fresh append", demo.getAgentEventHistory(access.getCode(), id).orElseThrow().getLast().getPayload());
+        access.setEnabled(false); codes.saveAndFlush(access);
+        assertThrows(DemoAccessDeniedException.class, () -> demo.getAgentEventHistory(access.getCode(), id));
+        assertTrue(application.getAgentEventHistory(UUID.randomUUID()).isEmpty());
+        assertTrue(application.getAgentEventHistory(agent(0).getId()).orElseThrow().isEmpty());
     }
 }

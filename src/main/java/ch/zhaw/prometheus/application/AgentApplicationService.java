@@ -274,7 +274,9 @@ public class AgentApplicationService {
     }
 
     public Optional<List<Event>> getAgentEventHistory(UUID agentID) {
-        return this.findAgent(agentID).map(agent -> agent.getEventHistory().toList());
+        // History display needs durable events/paths, not the agent's policies,
+        // transitions and storage. Scoped callers retain their fresh access check.
+        return this.repository.findHistoryById(agentID).map(ch.zhaw.prometheus.model.event.EventHistory::toList);
     }
 
     public Optional<List<Event>> getAgentCurrentStateEventHistory(UUID agentID) {
