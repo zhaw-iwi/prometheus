@@ -75,6 +75,7 @@ public class GalaDinnerAction extends Action {
         // Keep the original transcript in history, but sound annotations do not authorize task control
         // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
         if (utterance.isBlank()) return;
+        GalaDinnerSensing.cancelAmbient(storage);
         if (expiredBeforeTurn(storage, now)) {
             reception(storage);
             put(storage, SESSION, Integer.toString(events.toList().size() - 1));
@@ -139,9 +140,9 @@ public class GalaDinnerAction extends Action {
             if (!EXPRESSIONS.contains(expression)) expression = "attentive";
             if (!GAZES.contains(gaze)) gaze = "toward_user";
             Set<String> allowed = switch (mode) {
-                case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET");
-                case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET");
-                case "GUESS" -> Set.of("WAIT", "GIVE_UP", "RETURN", "QUIET");
+                case "RECEPTION" -> Set.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET", "CORRECT_FACE");
+                case "RPS" -> Set.of("WAIT", "CLARIFY", "RETURN", "QUIET", "CORRECT_FACE");
+                case "GUESS" -> Set.of("WAIT", "GIVE_UP", "RETURN", "QUIET", "CORRECT_FACE");
                 default -> throw new IllegalArgumentException("Invalid mode");
             };
             failureStage = "mode_operation";
@@ -150,6 +151,7 @@ public class GalaDinnerAction extends Action {
             BehaviourPlan response = plan(null, gesture, expression, gaze);
             switch (operation) {
                 case "WAIT" -> response = null;
+                case "CORRECT_FACE" -> { GalaDinnerSensing.corrected(storage); response = null; }
                 case "CHOOSE_GAME", "CLARIFY" -> response = null; // Live answers; no competing speech intent.
                 case "START_TASK" -> {
                     reception(storage);
@@ -259,62 +261,10 @@ public class GalaDinnerAction extends Action {
     }
 
     private static void presence(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
-        try {
-            var payload = JsonParser.parseString(events.toList().getLast().getPayload()).getAsJsonObject();
-            Instant observed = observed(payload);
-            if (!fresh(observed, now, 15) || !observed.isAfter(time(storage, SEEN))) return;
-            var countValue = payload.get("humanCount");
-            if (countValue == null || !countValue.isJsonPrimitive() || !countValue.getAsJsonPrimitive().isNumber()) return;
-            int count = countValue.getAsBigDecimal().intValueExact();
-            if (count < 0 || count > 1000) return;
-            int before = Integer.parseInt(text(storage, COUNT, "0"));
-            put(storage, SEEN, observed.toString());
-            put(storage, COUNT, Integer.toString(count));
-            if (count == 0) {
-                reception(storage);
-                remove(storage, LAST_INPUT);
-                remove(storage, QUIET);
-                remove(storage, FACE);
-                remove(storage, FACE_AT);
-                remove(storage, FACE_REACTED);
-                put(storage, SESSION, Integer.toString(events.toList().size()));
-                if (before > 0) reply(storage, plan(null, "NONE", "warmNeutral", "forward"));
-            } else if (runtime.externalSpeech() == null) {
-                // A fresh sample acknowledged before a new Live session restores reception.
-                reception(storage);
-                remove(storage, QUIET);
-                remove(storage, LAST_INPUT);
-            }
-        } catch (RuntimeException invalid) {
-            // Missing, malformed or delayed camera readings are not evidence of a departure.
-        }
+        GalaDinnerSensing.presence(storage, events, runtime, now);
     }
-
     private static void face(Storage storage, Event event, PolicyRuntime runtime, Instant now) {
-        if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean()
-                || !present(storage, now) || "true".equals(text(storage, QUIET, ""))) return;
-        try {
-            var payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
-            Instant observed = observed(payload);
-            if (!fresh(observed, now, 15) || !observed.isAfter(time(storage, FACE_AT))) return;
-            if (!payload.has("confidence") || !payload.get("confidence").isJsonPrimitive()
-                    || !payload.get("confidence").getAsJsonPrimitive().isNumber()) return;
-            double confidence = payload.get("confidence").getAsDouble();
-            if (!Double.isFinite(confidence) || confidence < 0.75 || confidence > 1) return;
-            String emotion = string(payload, "emotion", 20);
-            if (!Set.of("happy", "neutral", "sad", "angry", "fearful", "disgusted", "surprised").contains(emotion)) return;
-            put(storage, FACE_AT, observed.toString());
-            if (emotion.equals(text(storage, FACE, "")) || now.isBefore(time(storage, FACE_REACTED).plusSeconds(5))) return;
-            put(storage, FACE, emotion);
-            put(storage, FACE_REACTED, now.toString());
-            String expression = switch (emotion) {
-                case "happy", "surprised" -> "gentleSmile";
-                case "neutral" -> "attentive";
-                default -> "thoughtful";
-            };
-            reply(storage, plan(null, "NONE", expression,
-                    Integer.parseInt(text(storage, COUNT, "0")) > 1 ? "toward_group" : "toward_user"));
-        } catch (RuntimeException invalid) { /* uncertain cues do not authorize a reaction */ }
+        GalaDinnerSensing.face(storage, event, runtime, now);
     }
 
     private static List<PromptMessage> messages(Storage storage, EventHistory history, String prompt,
@@ -339,7 +289,9 @@ public class GalaDinnerAction extends Action {
             try {
                 long ttl = Event.TYPE_WEATHER_FORECAST.equals(event.getType()) ? 21600
                         : Event.TYPE_WEATHER_CURRENT.equals(event.getType()) ? 600 : 15;
-                if (fresh(observed(JsonParser.parseString(event.getPayload()).getAsJsonObject()), now, ttl)) {
+                var data = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+                if (fresh(observed(data), now, ttl) && (!Event.TYPE_FACE_EMOTION.equals(event.getType())
+                        || ch.zhaw.prometheus.model.event.ObservationEvidence.usableFace(data, 0))) {
                     String content = runtime.promptMessageAssembler().toPromptMessage(event).getContent();
                     perception.append(event.getType()).append(": ").append(content, 0, Math.min(800, content.length())).append('\n');
                 }
@@ -358,12 +310,12 @@ public class GalaDinnerAction extends Action {
         return text;
     }
     private static Instant observed(JsonObject payload) {
-        return Instant.parse(string(payload, payload.has("observed_at") ? "observed_at" : "ts", 50));
+        return ch.zhaw.prometheus.model.event.ObservationEvidence.observed(payload);
     }
     private static boolean fresh(Instant observed, Instant now, long seconds) {
-        return !observed.isAfter(now.plusSeconds(2)) && now.isBefore(observed.plusSeconds(seconds));
+        return ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(observed, now, seconds, 2);
     }
-    private static BehaviourPlan plan(String speech, String gesture, String expression, String direction) {
+    static BehaviourPlan plan(String speech, String gesture, String expression, String direction) {
         var nonverbal = new JsonObject();
         nonverbal.addProperty("gesture", gesture);
         var face = new JsonObject();

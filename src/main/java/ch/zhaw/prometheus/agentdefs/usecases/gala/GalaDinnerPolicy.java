@@ -33,6 +33,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 || !"RECEPTION".equals(GalaDinnerMemory.mode(storage)))
             throw new IllegalArgumentException("A fresh occupied reception observation is required");
         GalaDinnerMemory.put(storage, GalaDinnerMemory.SESSION, Integer.toString(history.toList().size()));
+        GalaDinnerSensing.begin(storage, java.time.Instant.now());
     }
     @Override public String liveOpeningInstructions() {
         return "At the beginning of this new voice session only, greet the visible visitors once in German: "
@@ -75,6 +76,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     + ": " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME, "")
                     + " Answer the pending visitor request once; do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
+        if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerSensing.CORRECTED, "")))
+            facts += " Visitor corrected an expression interpretation: no unsolicited mood/expression claims this encounter. Answer direct questions tentatively from fresh evidence and accept the visitor's account.";
         if (storage.containsKey(GalaDinnerMemory.TASK_FACTS)
                 && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES)))
             // Constraints precede action descriptions when the provider receives context in bounded parts.
@@ -89,7 +92,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     LiveActivityContext.Occasion.valueOf(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_OCCASION, "USER_REQUEST")),
                     GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""),
                     storage.containsKey(GalaDinnerMemory.CONTINUATION_EXPIRES)
-                            ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null);
+                            ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null,
+                    "true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_AMBIENT, "")));
         return new LiveActivityContext(facts, continuation, ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage));
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,

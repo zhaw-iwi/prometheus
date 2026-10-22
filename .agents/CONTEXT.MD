@@ -321,6 +321,15 @@ GALAIMPROVEMENT_RESULTS.md; final user physical trials remain pending.
 
 ## Conversational Task Configuration
 
+Gala ambient sensing now uses shared source-time freshness and explicit,
+interruptible PROACTIVE occasions. Count/expression changes need two seconds of
+stable fresh evidence, share a 25-second cooldown and expire within eight seconds
+or at source expiry. Speech, games/tasks, pending outcomes and quiet take priority;
+superseded comments are discarded rather than queued. Zero visitors still closes
+immediately. Corrections suppress unsolicited expression claims for the encounter;
+missing/absent/poorly detected faces withdraw their older Live summary. Task
+thresholds remain unchanged; ambient admission adds no model call or database poll.
+
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five
 actual actions, and enforces session-bound tasks. Live composes task wording from

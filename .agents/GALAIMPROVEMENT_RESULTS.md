@@ -378,3 +378,35 @@ and LiveQueryBudgetIntegrationTest passed; target/gptlive-acceptance-254e8a85cc.
 The initial test fixtures lacked source timestamps; fixtures now supply them and
 an explicit undated-sample test protects the unknown outcome. Disposable schema
 and account removed. Gala admission/cadence acceptance follows on agents.
+
+## GI-06 / Milestone 232 - Gala ambient admission (2026-10-22)
+
+GalaDinnerSensing separates optional ambient admission from activity control.
+Fresh changed counts/expressions need observations at least two seconds apart,
+share a 25-second cooldown and expire after at most eight seconds or source
+expiry. Initial presence belongs to opening; zero visitors still clears the
+encounter immediately. Baselines advance even when speech is suppressed, so
+tasks, games, recent user turns, pending outcomes and quiet cannot create a
+comment backlog. Gaps reset the baseline. Raw weather creates no occasion.
+Explicit expression corrections preserve the activity and suppress unsolicited
+interpretations for that encounter. Direct questions remain Live-owned.
+
+Interruptible dispatch uses in-memory audio/open transcript/mailbox activity.
+Known activity identity notifications also withdraw superseded occasions during
+an ACK wait without another query. Native-record notifications do not falsely
+clear that identity. Required task/game results retain their default delivery.
+
+Verification: 146 focused units passed (target/gi06-final-unit.log), including
+source expiry/absence, out-of-order/future frames, count/face oscillation, stable
+changes, correction, quiet/task/pending-result priority, no backlog, source-bound
+occasion lifetime and dispatch supersession. Seventeen isolated integrations
+passed across all three representative journeys, Gala persistence, Live bridge
+and query budgets (target/gptlive-acceptance-1fc4eda457); disposable resources
+removed. Six browser reception tests passed, retaining immediate local audio
+closure (target/gi06-reception-node.log). Packaging and git diff --check passed.
+Complete Live instructions max 14,331/16,000 bytes (below working limit 14,400),
+including maximum task goals and correction context.
+
+No detector threshold, identity tracking, per-frame inference or new database
+poller. Physical cadence, noisy-room sensing and generated ambient phrasing
+remain for the GI-12 live acceptance round.

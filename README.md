@@ -491,6 +491,14 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   a changed facial label at confidence >= 0.75, with a five-second cooldown.
   Stable expressions do not repeatedly react. These estimates do not identify a
   speaker or prove feelings; group counts do not identify returning individuals.
+  Optional ambient comments require a changed count/expression to remain stable
+  across fresh readings at least two seconds apart. They have a shared 25-second
+  cooldown and expire within eight seconds or when their source expires. Initial
+  presence belongs to the session greeting; zero visitors still closes immediately.
+  User turns, recent conversation, games/tasks, pending results and explicit quiet
+  suppress comments without a backlog. A visitor correction suppresses unsolicited
+  expression interpretations for the encounter; direct questions remain answerable.
+  Raw weather updates do not request speech. Sensing gaps reset change baselines.
 
 Reception/game turns use one bounded classification/embodiment inference without
 generating a second ordinary spoken answer. Entering task design also invokes the

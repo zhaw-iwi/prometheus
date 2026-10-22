@@ -1,7 +1,7 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-05 implemented and verified; GI-06 is next. GI-05 uses
+Status: GI-01 through GI-06 implemented and verified; GI-07 is next. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
 remains subject to GI-07 and the repeated GI-12 acceptance gate.
 Later milestones are not started.

@@ -413,6 +413,16 @@ class GalaDinnerReceptionUnitTest {
                 .project(agent).startupInput().toString();
         assertTrue(context.contains("Nonverbal summary"));
     }
+    @Test void visitorCorrectionKeepsTheActivityAndSuppressesUnsolicitedInterpretations() {
+        when(gateway.infer(any())).thenReturn(answer("START_GUESS", "")); say("Personenraten bitte");
+        when(gateway.infer(any())).thenReturn(answer("CORRECT_FACE", ""));
+        assertNull(say("Ich bin eigentlich angespannt."));
+        assertEquals("GUESS", mode(memory));
+        assertEquals("true", text(memory, GalaDinnerSensing.CORRECTED, ""));
+        assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("Visitor corrected"));
+        say("Stopp"); assertEquals("true", text(memory, GalaDinnerSensing.CORRECTED, ""));
+        group(0, Instant.now().plusMillis(1)); assertFalse(memory.containsKey(GalaDinnerSensing.CORRECTED));
+    }
 
     @Test void newLiveEncounterExcludesPreviousDialogueAndPrivateFacts() {
         when(gateway.infer(any())).thenReturn(answer("START_GUESS", "")); say("Geheimname möchte raten");

@@ -62,6 +62,14 @@ können. Danach: «Ich bin eigentlich angespannt.» GIGI soll die Korrektur akze
 Bei ausgeschalteter Gesichtserkennung nach Ablauf von 15 Sekunden erneut fragen:
 kein aktueller Ausdruck darf behauptet werden.
 
+Optionaler Wahrnehmungscheck: Eine zweite Person bleibt mindestens zwei frische
+Sensorübermittlungen lang im Bild; danach geht sie wieder, während die erste
+bleibt. Höchstens ein kurzer Kommentar pro stabiler Änderung, keine erneute
+Vorstellung. Schnelles Hin-und-her, laufende Sprache, Spiele und «Bitte sei still»
+dürfen keine nachträgliche Kommentarwarteschlange erzeugen. Wenn alle gehen,
+muss die Audioausgabe sofort stoppen. Nach der Korrektur keine weiteren
+ungefragten Behauptungen über meine Stimmung in dieser Begegnung.
+
 ## Abschluss
 
 Zusätzlicher Aufgabentest: «Erst wenn ich Papier zeige, erzähl einen kurzen

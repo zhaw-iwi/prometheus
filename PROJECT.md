@@ -82,10 +82,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- GI-06 / Milestone 232 shared foundation: source-aged sensor context, withdrawal
-  of unusable face summaries and opt-in interruptible proactive comments. Passed
-  64 focused units and isolated Live/task/query integration checks. Gala ambient
-  admission follows on agents; see `.agents/GALAIMPROVEMENT_RESULTS.md`.
+- GI-06 / Milestone 232: Gala admits stable, fresh, occasional proactive comments
+  that yield to conversation/activities and expire without a backlog. Corrections
+  suppress unsolicited expression interpretations; zero-person closure remains
+  immediate. Passed 146 focused units, 17 isolated integrations, six browser tests
+  and packaging. GI-07 is next; physical cadence remains unverified. See the Gala results.
 
 - GI-05 / Milestone 231: Live composes Gala task speech from validated facts;
   one asynchronous semantic check gates subsequent actions, with bounded uncertain
@@ -10820,3 +10821,10 @@ proactive continuations can be interrupted by conversation during an ACK wait;
 required results retain their delivery contract. Existing capture state supplies
 the admission guard without a new query or poller. Shared acceptance and Gala
 integration status are recorded in `.agents/GALAIMPROVEMENT_RESULTS.md`.
+
+Gala application completion adds stable count/expression admission, shared ambient
+cooldown, source-bound expiry, correction/quiet/task priority, baseline reset on
+sensing gaps and no queued comments. Superseded activity identities fence dispatch
+without another read. Passed 146 focused units, 17 isolated integration cases,
+six browser reception tests and packaging. New Gala instances receive the updated
+action prompts. Physical cadence and provider wording remain subject to GI-12.
