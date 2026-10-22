@@ -100,6 +100,52 @@ test("start waits for sideband/session readiness, input mute preserves output, S
   assert.equal(f.diagnostics.at(-1).finalized, true);
 });
 
+test("context acknowledgments and refreshed activity preserve native playback and caption evidence", async () => {
+  const f = fixture(); await f.start();
+  const stream = {}; f.peer.ontrack({ streams: [stream] }); await Promise.resolve();
+  f.emit({ type: "session.output_transcript.delta", event_id: "output1", delta: "Final word", start_ms: 10, end_ms: 20 });
+  f.state.status.context = { state: "ready", revision: "new_revision", recent: [] };
+  for (const type of ["session.instructions.updated", "session.thinking.appended", "session.commentary.appended"])
+    f.emit({ type, event_id: "ack1" });
+  await f.client.poll();
+  assert.equal(f.client.state, "Active"); assert.equal(f.audio.srcObject, stream);
+  assert.equal(f.audio.muted, false); assert.notEqual(f.audio.paused, true); assert.notEqual(f.peer.closed, true);
+  assert.equal(f.diagnostics.some(value => value.phase === "output_end"), false);
+  assert.ok(f.diagnostics.some(value => value.phase === "caption_received" && value.direction === "output" && value.receiptId === "output1"));
+  await f.client.stop();
+  assert.equal(f.diagnostics.find(value => value.phase === "output_end").reason, "operator_stop");
+  const count = f.diagnostics.length; f.emit({ type: "session.output_transcript.delta", event_id: "late", delta: "late" });
+  assert.equal(f.diagnostics.length, count); assert.equal(f.audio.srcObject, null);
+});
+
+test("transport loss, provider closure and scope change retain distinct stop causes", async () => {
+  for (const reason of ["transport_failure", "provider_session_closed", "scope_change", "backend_session_closed"]) {
+    const f = fixture(); await f.start();
+    if (reason === "transport_failure") { f.peer.connectionState = "failed"; f.peer.onconnectionstatechange(); }
+    else if (reason === "provider_session_closed") f.emit({ type: "session.closed" });
+    else if (reason === "backend_session_closed") { f.state.status.state = "closed"; await f.client.poll(); }
+    else f.client.invalidate();
+    assert.equal(f.audio.srcObject, null); assert.equal(f.audio.muted, true);
+    await f.client.closing;
+    assert.equal(f.diagnostics.find(value => value.phase === "output_end").reason, reason);
+  }
+});
+
+test("revoked authorization stops immediately with a content-free cause", async () => {
+  let revoked = false;
+  const f = fixture({ respond: async url => revoked && url.includes("/updates?") ? { ok: false, status: 401 } : null });
+  await f.start(); revoked = true; await f.client.poll();
+  assert.equal(f.audio.srcObject, null); assert.equal(f.audio.muted, true);
+  assert.equal(f.diagnostics.find(value => value.phase === "output_end").reason, "authorization_revoked");
+});
+
+test("a failing diagnostics consumer cannot interrupt speech or prevent cleanup", async () => {
+  const f = fixture({ client: { onDiagnostic() { throw new Error("private consumer failure"); } } });
+  await f.start(); await f.client.poll(); assert.equal(f.client.state, "Active");
+  await f.client.stop(); assert.equal(f.audio.muted, true); assert.equal(f.audio.srcObject, null);
+  assert.equal(f.media.released, true); assert.equal(f.output.released, true);
+});
+
 test("overlapping caption receipts reconcile by identity, preserving legitimate repeated words", () => {
   const captions = new LiveCaptions();
   const event = { type: "session.input_transcript.delta", event_id: "u1", delta: "again ", start_ms: 10 };
