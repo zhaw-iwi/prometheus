@@ -23,7 +23,7 @@ class ScopedLiveSessionControllerWebMvcTest {
     @MockitoBean LiveTranscriptIngressService ingress;
     final UUID agent = UUID.randomUUID(), handle = UUID.randomUUID();
     @Test void featureDiscoveryWorksBeforeSelectingAnAgentButStillRequiresAccess() throws Exception {
-        when(service.capabilities("ABCDE")).thenReturn(new ScopedLiveSessionService.Capabilities(true, "gpt-live-1", java.util.List.of("marin"), false, false));
+        when(service.capabilities("ABCDE")).thenReturn(new ScopedLiveSessionService.Capabilities(true, "gpt-live-1", java.util.List.of("marin"), false, false, 0));
         mvc.perform(get("/demo/live/capabilities").header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true)).andExpect(jsonPath("$.eligible").value(false));
         when(service.capabilities((String) null)).thenThrow(new DemoAccessDeniedException());

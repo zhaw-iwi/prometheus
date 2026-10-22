@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveDiagnostics } from "../../../src/main/resources/public/live/diagnostics.js";
 
+test("presence grace metadata is session-scoped without observation payloads", () => {
+  const diagnostics = new LiveDiagnostics();
+  diagnostics.record({ handle: "session", phase: "presence", outcome: "presence_resumed", graceMs: 2000, durationMs: 1500, text: "private" });
+  const value = diagnostics.snapshot().sessions[0].browser[0];
+  assert.equal(value.graceMs, 2000); assert.equal(value.durationMs, 1500); assert.equal(value.outcome, "presence_resumed");
+  assert.equal(JSON.stringify(diagnostics.snapshot()).includes("private"), false);
+});
+
 test("media correlation is bounded approximate context, clears on input and never proves an output end", () => {
   let now = 0; const diagnostics = new LiveDiagnostics({ now: () => now });
   const status = { context: { revision: "revision1", recent: [{ sequence: 1, phase: "ack",

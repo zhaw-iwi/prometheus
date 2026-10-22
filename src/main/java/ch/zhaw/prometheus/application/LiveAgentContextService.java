@@ -28,8 +28,21 @@ public class LiveAgentContextService {
         this.ownership = ownership;
     }
     public boolean supported(String code, UUID id) {
-        return turns.serialized(id, () -> Boolean.TRUE.equals(transaction.execute(status ->
-                demo.getAgentInfo(code, id).isPresent() && agents.findById(id).map(projection::supports).orElse(false))));
+        return eligibility(code, id).supported();
+    }
+    public record Eligibility(boolean supported, long departureGraceMs) {}
+    public Eligibility eligibility(String code, UUID id) {
+        return turns.serialized(id, () -> transaction.execute(status -> {
+            if (demo.getAgentInfo(code, id).isEmpty()) return new Eligibility(false, 0);
+            return agents.findById(id).map(agent -> {
+                boolean supported = projection.supports(agent);
+                var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+                long grace = supported && agent.getInteractionProfile().isPresenceControlledLive()
+                        && leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
+                        ? Math.max(0, Math.min(2000, external.liveDepartureGraceMs())) : 0;
+                return new Eligibility(supported, grace);
+            }).orElse(new Eligibility(false, 0));
+        }));
     }
     public Optional<LiveContextSnapshot> snapshot(String code, UUID id) {
         return turns.serialized(id, () -> transaction.execute(status -> {

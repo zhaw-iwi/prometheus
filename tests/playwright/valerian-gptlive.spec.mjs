@@ -6,11 +6,11 @@ const AGENT = { id: ID, name: "Valerian voice pilot", description: "Multimodal c
 const json = body => ({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 const event = (id, speech, provenance = null) => ({ id, type: "resp.behaviour_plan", actor: "assistant", kind: "response", payload: JSON.stringify({ speech }), provenance, createdDate: "2026-09-28T10:00:00Z" });
 
-test("presence reception is quiet until arrival, silences on departure and starts a fresh encounter", async ({ page, context }, info) => {
+test("presence reception preserves brief dropouts, closes sustained departure and starts a fresh encounter", async ({ page, context }, info) => {
   const agent = { ...AGENT, name: "GIGI", interactionProfile: { ...AGENT.interactionProfile,
     presenceControlledLive: true, externalRealtimeSpeech: true,
     supportedObservations: ["obs.user_utterance", "obs.human.presence", "obs.social.grouping", "obs.social.context"] } };
-  const scenario = await setup(context, { agent, agents: [agent] });
+  const scenario = await setup(context, { agent, agents: [agent], departureGraceMs: 2000 });
   await open(page); await page.getByTestId("gptlive-tab").click();
   await expect(page.getByTestId("gptlive-start")).toHaveText("Start reception");
   await page.getByTestId("gptlive-start").click();
@@ -34,8 +34,14 @@ test("presence reception is quiet until arrival, silences on departure and start
     void window.__sampleVisitors(0);
     return document.getElementById("gptlive_audio").srcObject === null && window.__live.tracks.every(track => track.stopped);
   });
-  expect(silenced).toBe(true);
+  expect(silenced).toBe(false);
+  await expect.poll(() => page.evaluate(() => !!camera.receptionSocialPending)).toBe(false);
+  await page.evaluate(() => window.__sampleVisitors(1));
+  await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+  expect(scenario.requests.filter(r => r.method === "POST" && r.path.endsWith("/live/sessions"))).toHaveLength(1);
+  await page.evaluate(() => window.__sampleVisitors(0));
   await expect(page.getByTestId("gptlive-status")).toHaveText("Waiting");
+  expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject === null)).toBe(true);
   await expect.poll(() => page.evaluate(() => !!camera.receptionSocialPending)).toBe(false);
   await page.evaluate(() => window.__sampleVisitors(1));
   await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
@@ -115,7 +121,7 @@ async function setup(context, scenario = {}) {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(); scenario.requests.push({ path, method });
     if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: scenario.agents || [AGENT] }));
     if (method === "DELETE" && /^\/demo\/agents\/[^/]+$/.test(path)) return route.fulfill({ status: 204 });
-    if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: scenario.eligible !== false, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
+    if (path.endsWith("/live/capabilities")) return route.fulfill(json({ enabled: scenario.enabled !== false, eligible: scenario.eligible !== false, departureGraceMs: scenario.departureGraceMs || 0, model: "gpt-live-1", voices: ["marin", "quartz", "willow", "meridian"] }));
     if (path.endsWith("/info")) return route.fulfill(json(scenario.agent || AGENT));
     if (path.endsWith("/observations")) return route.fulfill(json(request.postDataJSON()
       .map(() => ({ status: 200, response: { active: true, responseEvent: null } }))));
