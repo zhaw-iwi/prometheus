@@ -57,6 +57,15 @@ class TaskResponseUnitTest {
         assertTrue(TaskResponse.finish(storage,owner,c,false,now.plusSeconds(4)));
         assertEquals("UNCERTAIN",TaskResponse.status(storage)); assertFalse(TaskResponse.captured(storage,owner));
     }
+    @Test void explicitlyRequestedShortWordStillRequiresTheSemanticCheck() {
+        TaskResponse.expect(storage, owner, response, "Say exactly Okay on this cue.", now);
+        var check = TaskResponse.claim(storage, owner, speech("Okay!", owner, true, "literal"),
+                now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
+        assertFalse(TaskResponse.captured(storage, owner));
+        assertTrue(check.request().messages().getFirst().getContent().contains("explicitly requested exact word"));
+        assertTrue(TaskResponse.finish(storage, owner, check, true, now.plusSeconds(3)));
+        assertTrue(TaskResponse.captured(storage, owner));
+    }
     @Test void deadlineOrRevisionChangeFencesLateSuccessAndReloadCannotRepeatClaim() {
         var e=speech("A complete robot joke is here",owner,true,"f");
         var c=TaskResponse.claim(storage,owner,e,now.plusSeconds(1),now.plusSeconds(3)).orElseThrow();
