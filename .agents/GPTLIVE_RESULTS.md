@@ -1108,3 +1108,33 @@ trial or screenshot-based browser acceptance is claimed for GL-01.
 
 Both OS trials remain for the later physical comparison. Echo cancellation was
 requested at browser capture only; no Bluetooth fix or root cause is established.
+
+
+## Milestone 243 / GI-16 shared capture - isolated input activity (2026-10-22)
+
+An application-owned ExternalVoicePolicy can opt into liveFilterIsolatedInputActivity.
+The session-fixed flag is propagated through the immutable context and capture
+configuration and reported in content-free telemetry. Default agents retain the
+existing acoustic rule; output/assistant capture is unchanged.
+
+The opt-in input filter requires 40 ms of consecutive above-threshold activity
+at the existing RMS >500 threshold. An isolated 20-ms spike no longer resets the
+measured quiet window. Pending onset blocks a user boundary until the next samples
+resolve it; sustained activity resets quiet, while an isolated spike allows the
+existing quiet to continue. Coverage gaps and input mute reset onset state. Raw
+transcript receipts, last-voice priority, measured diagnostics, closure uncertainty,
+authorization and persistence remain unchanged. No database poll or provider call
+was added. This is a coarse heuristic, not a trained VAD or semantic end-of-turn
+signal; physical validation of short/quiet speech remains open.
+
+Passed 52 focused units: LivePcmActivityUnitTest, LiveTranscriptSegmenterUnitTest,
+LiveTranscriptCaptureServiceUnitTest, LiveContextProjectionUnitTest,
+LiveContextDeliveryUnitTest and LiveVoiceAcknowledgementUnitTest. Fake-clock PCM
+checks cover isolated noise, low-level sustained onset, split packets, pending
+onset at a boundary, assistant independence, Stop, gaps, joined hesitation and
+three separate noisy turns with every receipt/duplicate rule preserved.
+Command: mvnw.cmd -q -Dtest=<the six classes above, comma-separated> test.
+Log: target/gi16-unit.log in the feature/gptlive worktree. Integration evidence
+is recorded below before integration. Unit checks do not establish audibility.
+
+Shared boundary verification: 22 cases passed (7 scoped-session units and 15 isolated integration cases across ingress, claims, durable receipts, query budgets and session smoke). Command: run_acceptance.py --database-properties C:/Data/VSCodeWorkSpace/prometheus/src/main/resources/application-test.properties --java-tests ScopedLiveSessionServiceUnitTest,LiveTranscriptIngressIntegrationTest,LiveTranscriptClaimIntegrationTest,LiveReceiptDurabilityIntegrationTest,LiveQueryBudgetIntegrationTest,LiveSessionSmokeIntegrationTest. Evidence: target/gptlive-acceptance-41ebabf2fc/java.log; disposable schema/account removed. Existing query budgets passed unchanged. git diff --check passed. Application opt-in and integrated Gala verification follow on agents.

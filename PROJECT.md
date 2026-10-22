@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 243 (shared capture): application policies may explicitly opt into
+  ignoring isolated input-activity spikes. Pending onset preserves conservative
+  user boundaries; default agents, assistant capture and raw durability stay
+  unchanged. Shared evidence and physical limits are in GPTLIVE_RESULTS.
+
 - GI-11 / Milestone 239 shared persistence efficiency: one durable, freshly
   authorized database statement per Live receipt, and individual storage-link
   updates on the existing schema. Thirteen focused MySQL cases pass; the shared

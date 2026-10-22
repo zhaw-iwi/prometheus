@@ -14,15 +14,28 @@ class LiveVoiceAcknowledgementUnitTest {
     static final class ApplicationPolicy extends TaskPolicy implements ExternalVoicePolicy {
         private final Boolean acknowledgements;
         private boolean activity;
+        private boolean filterInput;
         ApplicationPolicy(Boolean acknowledgements) { super(new Storage(), "Application voice"); this.acknowledgements = acknowledgements; }
         public boolean supportsLiveState(State state) { return true; }
         public String voiceInstructions() { return "Application voice"; }
+        public boolean liveFilterIsolatedInputActivity() { return filterInput; }
         public ch.zhaw.prometheus.model.policy.LiveActivityContext liveActivityContext() {
             return activity ? new ch.zhaw.prometheus.model.policy.LiveActivityContext("Task facts", null) : null;
         }
         public boolean livePendingAcknowledgements() {
             return acknowledgements == null ? ExternalVoicePolicy.super.livePendingAcknowledgements() : acknowledgements;
         }
+    }
+    @Test void isolatedInputFilteringRequiresExplicitApplicationOptIn() {
+        var projection = new LiveContextProjection(new ch.zhaw.prometheus.model.policy.PromptMessageAssembler(), new LiveVoicePolicyAdapter());
+        var core = new GenericMultimodalBehaviour().createAgent();
+        assertFalse(projection.project(core).filterIsolatedInputActivity());
+        var policy = new ApplicationPolicy(false);
+        var agent = new Agent("application", "", new State("task", policy, List.of()));
+        agent.setInteractionProfile(core.getInteractionProfile());
+        assertFalse(projection.project(agent).filterIsolatedInputActivity());
+        policy.filterInput = true;
+        assertTrue(projection.project(agent).filterIsolatedInputActivity());
     }
     @Test void activityAwareTaskUsesItsApplicationVoiceWithoutLegacyTaskDuplication() {
         var policy = new ApplicationPolicy(false); policy.activity = true;
