@@ -518,6 +518,14 @@ results after Live Stop are discarded. Task readiness remains visible through th
 existing monitor/Live contract.
 Reset clears owned `gala.*` and the Generic engine's task keys, preserving other
 storage. Task policy/action subclasses reuse existing JPA fields. The existing
+Gala uses one concise voice policy across activities: direct replies without habitual
+question echoes or waiting acknowledgments, occasional dry self-irony about robot
+limitations, and no renewed invitation after refusal. Recovery states what is known
+and gives one useful next step; humour never substitutes for an explanation or targets
+the visitor. Unclear speech gets a short clarification. Full task proposals retain
+their lifecycle terms even when that requires more than two sentences. Provider
+compliance and physical speech quality remain separate acceptance checks.
+
 Gala inheritance adds nullable
 `action.gala_operation` and `decision.gala_condition` columns; the interaction
 profile adds a default-false `presenceControlledLive` flag without a new column.

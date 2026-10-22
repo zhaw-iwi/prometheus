@@ -90,3 +90,10 @@ Dann **Stop** und Telemetrie exportieren.
 - Festhalten: Fragen trotz Pause vollständig? Spielwechsel korrekt? Handspiel-Ergebnis hörbar?
 - Separater kurzer Kontrolllauf: Beim Personenraten «Stopp» oder «Bitte sei still»
   sagen. Das Spiel endet ohne Namensauflösung; bei Stille auch ohne Abschiedssatz.
+
+Optionaler Sprachstil-Check: Nach einer normalen Frage zweimal um einen kurzen
+Roboterwitz bitten. Die Antworten sollen variieren, ohne die Frage nachzusprechen
+oder mich zum Ziel des Witzes zu machen. Nach ?Nein danke? keine neue Einladung.
+Einen unklaren Satz sagen: eine kurze R?ckfrage, keine erfundene Interpretation.
+Bei einem ernsten Thema kein erzwungener Witz. Technische Probleme m?ssen mit
+ehrlichem Status und einem hilfreichen n?chsten Schritt erkl?rt werden.

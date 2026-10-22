@@ -68,7 +68,12 @@ class GalaDinnerReferenceUnitTest {
                 assertEquals(1, occurrences(instructions, "GALA REFERENZ (Stand"));
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
-                assertTrue(instructions.contains("No question echo, paraphrase, sentence completion"));
+                assertTrue(instructions.contains("not a question echo"));
+                assertEquals(1, occurrences(instructions, "occasional dry self-irony"));
+                assertTrue(instructions.contains("truthful status and one useful next step"));
+                assertTrue(instructions.contains("never a made-up cause"));
+                assertTrue(instructions.contains("not a guessed age or identity"));
+                assertTrue(instructions.contains("no waiting acknowledgment or promise"));
                 assertTrue(instructions.contains("Wait silently for confirmed starting facts"));
                 assertFalse(instructions.contains("You may acknowledge immediately"));
                 assertFalse(instructions.contains("you may say you are checking"));

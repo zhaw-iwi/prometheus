@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-07 / Milestone 233: one concise Gala voice policy adds occasional self-irony,
+  truthful recovery and simple clarification. Sixty-three focused units, the two
+  Gala journey variants and packaging passed. Actual Live quality and task trials
+  retain short stock acknowledgments as an open quality item. GI-08 follows;
+  see `.agents/GALAIMPROVEMENT_RESULTS.md` for evidence and physical-test limits.
+
 - GI-06 / Milestone 232: Gala admits stable, fresh, occasional proactive comments
   that yield to conversation/activities and expire without a backlog. Corrections
   suppress unsolicited expression interpretations; zero-person closure remains
@@ -10828,3 +10834,10 @@ sensing gaps and no queued comments. Superseded activity identities fence dispat
 without another read. Passed 146 focused units, 17 isolated integration cases,
 six browser reception tests and packaging. New Gala instances receive the updated
 action prompts. Physical cadence and provider wording remain subject to GI-12.
+
+## Milestone 233 - Gala voice style and truthful recovery (2026-10-22)
+
+Consolidated voice guidance across activities, preserved complete task terms and
+bounded instructions, and reviewed real Live speech using synthetic input. See
+`.agents/GALAIMPROVEMENT_RESULTS.md` GI-07 for verification and remaining quality
+limitations; no deterministic test claims humour or audible playback compliance.

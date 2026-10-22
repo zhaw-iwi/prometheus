@@ -1,9 +1,9 @@
 # Gala interaction improvement plan
 
 Created: 2026-10-21. Baseline: `agents` at `38e1fc0`, project Milestone 226.
-Status: GI-01 through GI-06 implemented and verified; GI-07 is next. GI-05 uses
+Status: GI-01 through GI-07 implemented; GI-08 is next. GI-05 uses
 the semantic-association option approved on 2026-10-22. Provider wording quality
-remains subject to GI-07 and the repeated GI-12 acceptance gate.
+has remaining acknowledgments documented in the results; GI-12 retains its repeated acceptance gate.
 Later milestones are not started.
 
 This plan covers the assessment of the latest adult interaction and the two
@@ -368,6 +368,9 @@ at most one occasion; raw refreshes produce none; no sensing implies no claim.
 `tests/js/live/reception.test.mjs`. Use fake clocks; physical trials verify cadence.
 
 ### GI-07 - Concise dialogue and warmer self-irony
+
+Status: IMPLEMENTED. Deterministic contracts passed; provider wording review retains
+short stock acknowledgments as an open quality item for GI-12.
 
 **Outcome:** Gigi is more playful without becoming repetitive, dismissive or vague
 about actual failures and task status.

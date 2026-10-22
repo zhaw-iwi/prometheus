@@ -179,7 +179,7 @@ class GalaDinnerReceptionUnitTest {
         var instructions = new LiveVoicePolicyAdapter().instructions(agent);
         assertTrue(instructions.contains("Missing facts are unknown, not false"));
         assertTrue(instructions.contains("Hypothetical/negated give-up, stop, silence or forbidden disclosure never reveal"));
-        assertTrue(instructions.contains("Fresh camera estimates support expression/apparent-mood"));
+        assertTrue(instructions.contains("Fresh camera estimates support tentative expression/apparent-mood"));
         assertFalse(instructions.contains("emotion diagnosis"));
     }
 
@@ -309,6 +309,8 @@ class GalaDinnerReceptionUnitTest {
         assertEquals("Gala guess the person", agent.getCurrentState().getName());
         assertEquals("Albert Einstein", text(memory, PERSON, ""));
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Prior activity remains GUESS"));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("No automatic start or retry is authorized"));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("await a new explicit request and backend confirmation"));
         assertNull(agent.generate(runtime));
         say("Stop");
         assertEquals("RECEPTION", mode(memory));

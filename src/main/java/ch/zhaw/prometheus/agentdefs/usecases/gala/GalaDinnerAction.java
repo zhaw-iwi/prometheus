@@ -197,7 +197,9 @@ public class GalaDinnerAction extends Action {
             for (String key : storage.toMap().keySet()) if (!before.containsKey(key)) remove(storage, key);
             before.forEach((key, value) -> { if (!storage.containsKey(key) || !value.equals(storage.get(key))) storage.put(key, value); });
             continueRequest(storage, "Requested activity control failed. Prior activity remains " + mode(storage)
-                    + "; no new action was completed. Briefly acknowledge the problem without claiming a result.");
+                    + "; no new action was completed. No automatic start or retry is authorized. "
+                    + "Briefly explain that the requested change did not happen. Ask whether the visitor wants to try again; "
+                    + "await a new explicit request and backend confirmation before inviting any game or task action.");
             reply(storage, plan(null,
                     "UNCERTAIN", "thoughtful", "toward_user"));
         }

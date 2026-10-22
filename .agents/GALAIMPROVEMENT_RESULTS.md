@@ -410,3 +410,50 @@ including maximum task goals and correction context.
 No detector threshold, identity tracking, per-frame inference or new database
 poller. Physical cadence, noisy-room sensing and generated ambient phrasing
 remain for the GI-12 live acceptance round.
+
+## GI-07 / Milestone 233 - concise voice and warmer self-irony (2026-10-22)
+
+One applicable policy across every activity now asks for direct brief replies,
+no habitual echo/preamble/waiting acknowledgment, occasional varied self-irony,
+respect for refusal, simple unclear-speech clarification and truthful recovery
+with a next step. It avoids jokes at the visitor's expense or during distress.
+Full task proposals remain an explicit brevity exception. No new inference,
+backend speech generator, lifecycle change or database access was added.
+
+Verification: 63 focused Gala unit cases passed (target/gi07-unit.log), including
+all activity/embodiment budgets and existing non-destructive recovery contracts.
+Two isolated Gala journey variants passed (target/gptlive-acceptance-44a6a33b99);
+disposable schema/account removed. Packaging and git diff --check passed.
+
+Actual gpt-live-1/marin WebRTC review used current projected instructions and
+synthetic TTS input. Nine fixed turns covered ordinary SIRA information, facial
+estimate/correction, unclear speech, refusal, a simulated control failure, two
+jokes and bereavement. The jokes varied (WLAN smalltalk; robot left/right), the
+unclear turn got a brief clarification, and the serious turn got sympathy rather
+than humour. No repeated introduction, visitor blame or question echo was seen.
+The ordinary answer included an unnecessary offer; refusal used "Alles klar".
+While awaiting a failed game start, Live incorrectly asked the visitor to confirm
+readiness. The policy now explicitly assigns automatic confirmation to the backend.
+Original evidence remains target/gi07-quality-first-results.json/audio.webm.
+
+A separate task proposal/acceptance/cue trial retained trigger, both output channels,
+count and all ending conditions including pause. Arming did not execute the joke;
+the cue produced one new joke and completion. Short "Okay" then "Alles klar"
+arming acknowledgments still appeared. This is an OPEN wording-quality issue,
+not grounds for claiming enforced one-response compliance. Evidence is retained
+as target/gi07-task-results.json. GI-12 must still run the repeated critical gate.
+These exported-context trials do not establish database dispatch, physical motion
+or audible final-word delivery. No saved instances were rewritten.
+
+The focused failure follow-up initially suggested starting after the control
+failure (target/gi07-recovery-failure-results.json). Recovery facts now explicitly
+prohibit automatic start/retry and require a fresh visitor request plus backend
+confirmation. The affected unit contract and another fixed follow-up passed:
+Live said it had changed nothing and asked about trying again; no game invitation
+or invented target followed. target/gi07-followup-webrtc-results.json/audio.webm.
+A stock acknowledgment and an unsupported offer to ask the team remained; voice
+guidance now explicitly refers visitors to staff without claiming contact. This
+last wording guard has deterministic coverage only, pending the GI-12 provider
+matrix. These quality gaps remain recorded, rather than rerunning until clean.
+Maximum instructions before this last 39-byte clarification: 14,304/16,000 bytes;
+the final full-state budget test remains below the 14,400 working limit.
