@@ -2,6 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { InteractionActivity } from "../../../src/main/resources/public/performance/activity.js";
 
+test("confirmation replaces hand readiness and its completion expires", () => {
+  let now = 0; const activity = new InteractionActivity({ now: () => now }); activity.scope("agent");
+  for (const [revision, reason, label] of [[1, "rps_waiting_for_sign", "Show one steady hand sign"],
+    [2, "awaiting_confirmation", "Waiting for your decision"], [3, "confirmation_resolved", "Decision received"]]) {
+    activity.accept({ version: 1, agentId: "agent", epoch: "epoch", revision, serverMs: now,
+      active: [], recent: [], cue: { reason, serverMs: now } });
+    assert.equal(activity.view().label, label);
+  }
+  now = 10000; assert.equal(activity.view().label, "Ready");
+});
+
 test("hand-game diagnostics distinguish readiness, rejection, acceptance and completion", () => {
   let now = 0; const activity = new InteractionActivity({ now: () => now }); activity.scope("agent");
   let revision = 0;
