@@ -90,6 +90,7 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(projection.project(agent).startupInput().toString().contains("ich bin djee-djee"));
                 assertEquals(stablePolicy, adapter.sections(agent).get("policy"), state.getName());
                 assertEquals(2000, projection.project(agent).userSilenceMs());
+                assertTrue(projection.project(agent).filterIsolatedInputActivity());
                 if (state.ownPolicy() instanceof GalaDinnerTaskPolicy) {
                     var facts = projection.project(agent).activity().facts();
                     assertTrue(facts.contains("Agreed goal: " + spec.goal()));

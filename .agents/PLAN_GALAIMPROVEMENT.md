@@ -676,6 +676,12 @@ start and expired outcome, plus the representative persisted Gala journey.
 
 ### GI-16 - Separate turns despite brief input noise
 
+Status: COMPLETE / Milestone 243. Gala opts into a 40-ms input-onset filter;
+default agents and assistant capture are unchanged. Three synthetic noisy questions
+remain distinct; pauses, raw receipts, uncertainty and Stop pass. Shared/local
+integration and the unchanged mixed-minute query budget pass (1,571/1,700).
+Physical quiet/short-word accuracy and Live's independent turn-taking stay open.
+
 Use the synthetic spike fixture and PCM activity tests to distinguish evidence of
 speech from isolated RMS spikes before adjusting segmentation. Preserve deliberate
 within-question hesitations, raw receipts, uncertain/late/duplicate handling, Stop

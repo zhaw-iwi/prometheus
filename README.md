@@ -391,6 +391,12 @@ up to 1.2 seconds of backend admission delay compared with the default 800 ms.
 Live's own spoken response timing, assistant transcript capture, camera departure,
 operator Stop and other agents' defaults are unchanged. A fresh Live session
 selects the setting; telemetry exports it as `provider.configuration.userSilenceMs`.
+Gala also opts into the input activity filter: isolated 20-ms RMS spikes do not
+reset quiet, while 40 ms of consecutive activity at the same threshold does.
+An unresolved onset prevents committing a user boundary. Raw receipts and the
+two-second window remain intact. This does not establish that every quiet/short
+word is detected or change Live's independent response timing. Physical testing
+remains required; start a fresh Live session to select the filter.
 Pauses longer than the window can still split a question. An incomplete reception
 request can receive a normal clarification without starting an activity.
 

@@ -127,24 +127,27 @@ class GalaLiveFollowupUnitTest {
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("failed"));
     }
 
-    @Test void baselineBriefActivitySpikesMergeThreeOtherwiseSeparateQuestions() {
+    @Test void isolatedActivitySpikesNoLongerMergeThreeSeparateQuestions() {
         var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000);
+        var filter = new LivePcmActivity.OnsetFilter();
+        var completed = new java.util.ArrayList<Segment>();
         var questions = List.of("Ist die Person männlich?", "Hat die Person echt gelebt?", "Hat sie in Europa gelebt?");
         for (int question = 0; question < questions.size(); question++) {
             long start = 100 + question * 3000;
-            capture.fragment(fragment("question-" + question, start, (question == 0 ? "" : " ") + questions.get(question)));
+            capture.fragment(fragment("question-" + question, start, questions.get(question)));
             for (long offset = 20; offset <= 2980; offset += 20) {
                 // A single 20-ms activity indication each second interrupts measured quiet.
-                capture.audio(Speaker.USER, 480, offset % 1000 == 0, start + offset);
-                assertTrue(capture.poll(start + offset).isEmpty());
+                byte[] pcm = new byte[960];
+                int level = offset % 1000 == 0 ? 600 : 0;
+                for (int i = 0; i < pcm.length; i += 2) { pcm[i] = (byte) level; pcm[i + 1] = (byte) (level >> 8); }
+                var activity = filter.measure(pcm, start + offset);
+                capture.audio(Speaker.USER, activity.samples(), activity.trailingQuietSamples(), activity.voiced(), start + offset);
+                completed.addAll(capture.poll(start + offset, filter.pending()));
             }
         }
-        for (long at = 9100; at <= 11100; at += 20) capture.audio(Speaker.USER, 480, false, at);
-        var completed = capture.poll(11100);
-        assertEquals(1, completed.size(), "GI-16 must distinguish noise from real speech before changing this baseline");
-        assertEquals(Closure.COMPLETE, completed.getFirst().closure());
-        assertEquals(String.join(" ", questions), completed.getFirst().text());
-        assertEquals(3, completed.getFirst().fragments().size());
+        assertEquals(3, completed.size());
+        assertEquals(questions, completed.stream().map(Segment::text).toList());
+        assertTrue(completed.stream().allMatch(s -> s.closure() == Closure.COMPLETE && s.fragments().size() == 1));
     }
 
     @Test void exportActualGameContextsForRepeatableProviderTrials() throws Exception {

@@ -47,6 +47,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE;
     }
     @Override public long liveUserSilenceMs() { return 2000; }
+    @Override public boolean liveFilterIsolatedInputActivity() { return true; }
     @Override public boolean livePendingAcknowledgements() { return false; }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);

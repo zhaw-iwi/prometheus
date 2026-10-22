@@ -74,9 +74,9 @@ For a repeatable physical Gala conversation based on the first live trial, use
 The 22 October follow-up baseline uses `GalaLiveFollowupUnitTest`. It covers first
 and repeated RPS starts, a paused nonbinary question, post-reveal follow-ups and
 three questions interrupted by isolated activity spikes. GI-15 replaces the false
-post-reveal recovery characterization with acceptance. The remaining explicitly
-named baseline reproduces merged turns; green tests do not mean that issue is
-fixed. The test also exports current, application-produced
+post-reveal recovery characterization with acceptance. GI-16 replaces the merged-
+turn baseline with three distinct turns under its isolated-spike fixture; physical
+speech accuracy remains unverified. The test also exports current, application-produced
 instructions and game context commands to `target/gala-followup-fixture.json`
 for provider comparisons. No database, provider or private transcript is used.
 

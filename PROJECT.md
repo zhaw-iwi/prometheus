@@ -82,10 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Milestone 243 (shared capture): application policies may explicitly opt into
-  ignoring isolated input-activity spikes. Pending onset preserves conservative
-  user boundaries; default agents, assistant capture and raw durability stay
-  unchanged. Shared evidence and physical limits are in GPTLIVE_RESULTS.
+- GI-16 / Milestone 243: Gala opts into ignoring isolated input-activity spikes.
+  Three synthetic noisy questions remain separate; pending onset protects trailing
+  speech. Default agents, assistant capture and raw durability stay unchanged.
+  52 shared units, 22 shared boundary cases, 24 integrated units and three Gala/query
+  integration cases pass; mixed-minute cost is 1,571/1,700. Physical accuracy remains
+  unverified; this does not control Live's speech timing. GI-17 is next.
 
 - GI-15 / Milestone 242: direct confirmation of a just-revealed name no longer
   calls the classifier or creates false failure recovery. Other follow-ups receive

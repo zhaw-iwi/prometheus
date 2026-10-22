@@ -1119,3 +1119,32 @@ The runner removed its schema/account. Logs: target/gi15-unit.log and
 target/gptlive-acceptance-ceae4b61d7/java.log. Instruction maximum unchanged at
 14,399 bytes; git diff --check passed. No new paid-provider or physical trial in
 this milestone. GI-14's explicitly accepted prompt-only speech limitation remains.
+
+
+## GI-16 / Milestone 243 - isolated input activity (2026-10-22)
+
+Shared opt-in implementation: feature/gptlive 89fa527, main b559eee, agents merge
+ e7030ff. Gala reception and task policies opt in for fresh Live sessions; all
+reachable states are checked. No default core behaviour change. The shared filter
+requires 40 ms consecutive RMS >500 before resetting input quiet; pending onset
+blocks a user boundary. Isolated 20-ms spikes no longer merge the three synthetic
+questions. The two-second Gala window, assistant timing, raw receipts/diagnostics,
+coverage uncertainty and Stop remain intact. Details are in GPTLIVE_RESULTS.
+
+Verification: shared 52 focused units and 22 boundary cases (including 15 isolated
+integrations) passed. Agents then passed 24 focused cases with
+-Dtest=GalaLiveFollowupUnitTest,GalaDinnerReferenceUnitTest,LivePcmActivityUnitTest,LiveTranscriptCaptureServiceUnitTest.
+The two Gala journey cases and QueryVolumeIntegrationTest#galaMixedMinuteHasBoundedQueriesAndPreservesGameAndCapture
+passed on disposable local MySQL. Mixed-minute cost is 1,571 Questions, unchanged
+from the earlier final sample and below the unchanged 1,700 ceiling. Evidence:
+target/gi16-gala-unit.log and target/gptlive-acceptance-89638621c5/java.log.
+Disposable schema/account removed; git diff --check passed. No new paid-provider
+trial: this filter affects backend capture, not Live's independent acoustic policy.
+
+Remaining limits: RMS is a coarse heuristic. A real very short sound can resemble
+a spike; long noise can resemble speech. Above-threshold quiet speech, split packets,
+trailing onset, gaps and Stop are synthetic-tested, not physically accepted. Raw
+fragments are still durable; late/uncertain speech is not promoted into a valid
+control request. Correctly separating actual questions may appropriately create
+more backend turns than the defective merged capture; this is not a capacity fix.
+GI-11 fixed-quota capacity, physical clipping and GI-14 prompt-only limitations stay open.

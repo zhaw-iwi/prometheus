@@ -142,3 +142,9 @@ Nach der Auflösung den Namen nochmals sagen («Albert Einstein?» bzw. den gera
 genannten Namen), danach «Hat diese Person in der Schweiz gelebt?». Das bleibt
 ein normales Gespräch: kein neues Spiel, keine erneute Auflösung aus dem Backend
 und keine Meldung, dass ein Spielstart fehlgeschlagen sei.
+
+Beim Personenraten drei einzelne Fragen mit etwa drei Sekunden Abstand stellen.
+Sie sollten als drei Benutzereinträge aufgezeichnet werden. Separat eine Frage
+mit kurzer Denkpause («Ist die Person … noch am Leben?») und leisen Schlusswörtern
+testen: sie muss zusammenbleiben. Live kann trotz verbessertem Backend-Mitschnitt
+weiterhin zu früh antworten; das ist eine separat bekannte Einschränkung.
