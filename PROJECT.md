@@ -82,6 +82,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Milestone 244 (shared delivery): bounded context chunks use shorter headers and
+  prioritise current face evidence before derived summaries. Unsent sensory backlog
+  yields at observation boundaries to newer commits at the existing refresh cadence.
+  Source identity/expiry and permission checks remain intact. Focused/shared gates
+  pass; integrated application acceptance follows. See GPTLIVE_RESULTS.
+
 - GI-16 / Milestone 243: Gala opts into ignoring isolated input-activity spikes.
   Three synthetic noisy questions remain separate; pending onset protects trailing
   speech. Default agents, assistant capture and raw durability stay unchanged.
