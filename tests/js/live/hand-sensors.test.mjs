@@ -112,6 +112,16 @@ test("low confidence and unstable signs explain why the framework has no reading
   assert.equal(f.requests.length, 0);
 });
 
+test("browser confidence gates emission and never claims game acceptance", async () => {
+  const f = fixture();
+  for (let frame = 0; frame < 3; frame++) await f.frame("Open_Palm", .649);
+  assert.equal(f.requests.length, 0);
+  for (let frame = 0; frame < 3; frame++) await f.frame("Open_Palm", .65);
+  assert.equal(f.requests.length, 1);
+  assert.equal(JSON.parse(JSON.parse(f.requests[0].body).payload).confidence, .65);
+  assert.match(f.status(), /^Emitted /); assert.doesNotMatch(f.status(), /accepted|ready|won|winner/i);
+});
+
 test("confirmed hand delivery stays visible during cooldown and held signs are resent", async () => {
   const f = fixture();
   for (let frame = 0; frame < 3; frame++) await f.frame();

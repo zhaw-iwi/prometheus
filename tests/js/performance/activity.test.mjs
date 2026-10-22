@@ -2,6 +2,27 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { InteractionActivity } from "../../../src/main/resources/public/performance/activity.js";
 
+test("hand-game diagnostics distinguish readiness, rejection, acceptance and completion", () => {
+  let now = 0; const activity = new InteractionActivity({ now: () => now }); activity.scope("agent");
+  let revision = 0;
+  for (const [reason, label] of Object.entries({ rps_not_started: "No hand-game round is active",
+    rps_waiting_for_sign: "Show one steady hand sign", rps_low_confidence: "Waiting for a clearer hand sign",
+    rps_unstable_sign: "Hold one hand sign steady", rps_stale_sign: "Waiting for a fresh hand sign",
+    rps_out_of_order: "Waiting for a newer hand sign", rps_round_completed: "Hand-game round completed",
+    rps_cancelled: "Hand-game round ended" })) {
+    activity.accept({ version: 1, agentId: "agent", epoch: "epoch", revision: ++revision,
+      serverMs: now, active: [], recent: [], cue: { reason, serverMs: now } });
+    assert.equal(activity.view().label, label); assert.equal(activity.view().busy, false);
+  }
+  activity.accept({ version: 1, agentId: "agent", epoch: "epoch", revision: ++revision, serverMs: now,
+    active: [], recent: [{ sequence: revision, serverMs: now, stage: "cue", outcome: "cue_matched", details: { kind: "obs.hand.sign" } }],
+    cue: { reason: "rps_round_completed", serverMs: now } });
+  assert.equal(activity.view().label, "Cue accepted"); now = 4100;
+  assert.equal(activity.view().label, "Hand-game round completed");
+  now = 10000; assert.equal(activity.view().label, "Ready");
+  activity.scope("other"); assert.equal(activity.view().label, "Ready");
+});
+
 test("draft acceptance, brief cue acknowledgement and paused tasks share the footer", () => {
   let now = 0; const a = new InteractionActivity({ now: () => now }); a.scope("agent");
   a.taskStatus({ epoch: "epoch", phase: "CONFIGURATION", draft: true });
