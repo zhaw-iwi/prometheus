@@ -128,7 +128,7 @@ def main():
                             time.sleep(0.5)
                     else:
                         raise RuntimeError('Isolated app startup timed out.')
-                    specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs']
+                    specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs']
                     if enabled == 'true':
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:

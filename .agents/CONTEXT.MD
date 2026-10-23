@@ -127,6 +127,9 @@ PROMETHEUS currently provides:
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;
+- a detachable Diagnostics state view: a movable/maximisable floating panel or
+  cockpit-owned popup reuses the existing state rendering and monitor stream,
+  follows connection changes and returns to Diagnostics when dismissed;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;

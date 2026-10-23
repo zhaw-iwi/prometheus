@@ -64,3 +64,17 @@ or robot execution.
 The lower-level boundary checks are `TaskBehaviourEncodingUnitTest`,
 `CompactBehaviourPlanUnitTest`, `GenericMultimodalTaskUnitTest`,
 `TaskLifecycleUnitTest` and `SocialSpaceAgentUnitTest`.
+
+## Detachable state view
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest,LiveCockpitSmokeIntegrationTest --browser --browser-grep 'state view|Valerian columns follow|Valerian cockpit opens connected|Valerian camera and microphone controls|Valerian cockpit columns expand|real scoped cockpit'
+```
+
+`valerian-state-view.spec.mjs` checks floating movement, keyboard controls,
+maximise/restore, dock/close, popup blocking, theme, agent changes and owner
+teardown, with desktop/mobile screenshots. Its real-app case uses scoped HTTP,
+MySQL and native monitor SSE to verify an RPS transition and reset while detached.
+Only the inference provider is scripted; the state view adds no model calls.
+The runner includes these cases with Live enabled and disabled. Database
+fixtures remain isolated; popup behaviour is verified in Playwright Chromium.

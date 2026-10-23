@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Detachable state view (2026-10-23): Diagnostics can move its existing current
+  state and state list into a draggable, maximisable panel or a separate browser
+  window. Close/dock, popup blocking, theme and connection lifecycle handling
+  retain one cockpit-owned view and the existing monitor stream. Implementation
+  starts on `main`, with user-authorised integration into `agents`. Verification
+  and release limits are recorded in the follow-up audit below.
+
 - Live quick-reply ordering (2026-10-23): when both complete tracks become ready
   together, persist an earlier non-overlapping invitation before its reply.
   No additional buffering, delay, database request or relaxed completeness rule.
@@ -9280,3 +9287,45 @@ push and integration from `feature/gptlive` into `main`, then `main` into `agent
 to trigger deployment. The matching standalone Valerian fix is published on its
 feature branch for the colleague's merge. Verify the release workflow and health
 after publication; physical weather-response acceptance remains a live check.
+
+## Detachable cockpit state view (2026-10-23)
+
+### Goal and changes
+
+The Diagnostics current-state label and state list can move into a fixed-width
+floating panel or a separate browser window. The title supports pointer dragging
+and keyboard movement; maximise/restore, dock and close controls keep it reachable
+on small screens. Close dismisses the detached view without stopping the agent.
+
+One set of DOM nodes retains the existing renderer and monitor SSE updates.
+The popup is a same-origin display owned by the original cockpit, with no extra
+agent session, stream, polling or model request. It follows theme/connection
+changes; disconnect clears the view, and logout/navigation closes the popup.
+Blocked popups give inline guidance. README and the isolated acceptance runner
+document the controls and repeatable verification.
+
+### Verification
+
+- Existing `ValerianClientStaticResourceContractTest` (14) and
+  `LiveCockpitSmokeIntegrationTest` (2) passed using disposable local MySQL.
+  Evidence: `target/gptlive-acceptance-00f7edbe45/java.log` in the main worktree.
+- Final main acceptance passed 11 browser cases with Live enabled and seven with
+  Live disabled. This includes all six new state-view cases, real scoped HTTP /
+  MySQL / monitor SSE transition and reset, existing detached-column media
+  ownership, maximise and cockpit lifecycle checks. Evidence:
+  `target/gptlive-acceptance-44cade12c7` in the main worktree.
+- Inspected desktop light/dark floating, popup and maximised views plus narrow
+  mobile dark layouts. Visual review caught the blank-document stylesheet issue;
+  an explicit same-origin popup page and loaded-style checks resolve it. Initial
+  mock login failure was a missing transcription-capability fixture, corrected
+  before the final runs. No runtime authentication change was required.
+- JavaScript syntax checks, `git diff --check` and Maven packaging passed.
+  Every acceptance invocation removed its disposable schema/account and app.
+
+### Integration and limits
+
+Implemented on `main` for the user-authorised normal merge into `agents`.
+Browser checks use Chromium and scripted inference; no paid OpenAI requests or
+physical multi-monitor trials were needed. Native window placement/maximisation
+and popup permission remain browser/OS controls. No database schema or backend
+contract changes. Publishing and Heroku deployment remain a separate next step.
