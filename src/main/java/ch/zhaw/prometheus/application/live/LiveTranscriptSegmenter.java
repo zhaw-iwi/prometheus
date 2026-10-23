@@ -110,6 +110,15 @@ public final class LiveTranscriptSegmenter {
                         track.uncertainty == null ? "observed_silence" : track.uncertainty));
             }
         }
+        // Both tracks may become ready in one poll. Persist an already-complete,
+        // non-overlapping invitation before its reply, without waiting for more speech.
+        // Overlap/uncertainty keeps the conservative original order and ingress guards.
+        if (result.size() == 2) {
+            var user = result.getFirst(); var assistant = result.getLast();
+            if (user.closure() == Closure.COMPLETE && assistant.closure() == Closure.COMPLETE
+                    && user.startMs() != null && assistant.endMs() != null && assistant.endMs() < user.startMs())
+                java.util.Collections.swap(result, 0, 1);
+        }
         return List.copyOf(result);
     }
     public synchronized List<Segment> close() {
