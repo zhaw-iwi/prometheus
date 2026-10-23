@@ -27,6 +27,11 @@ public interface ExternalVoicePolicy {
     default boolean liveFilterIsolatedInputActivity() { return false; }
     /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */
     default boolean liveNonMutatingAcknowledgement(String transcript) { return false; }
+    /** Resolve a short control reply from current application facts and completed session dialogue.
+     * Ingress still requires a preceding, non-overlapping assistant segment from the current owner.
+     * This does not authorize an action: ordinary acknowledgement/actions validate it again.
+     */
+    default boolean liveResolvedControlReply(String transcript, EventHistory history, ExternalSpeech owner) { return false; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
