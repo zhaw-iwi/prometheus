@@ -342,7 +342,7 @@ See README and GI-24 results for client refresh, persistence and physical limits
 GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including task
 voice, without replaying opening instructions. Activity-aware task policies own
 their voice contract and place validated goals in quiet facts. Gala instructions
-currently fit at 14,399/16,000 bytes with maximum goals separately bounded in activity data.
+stay within a 14,400-byte regression ceiling (16,000 application limit), with maximum goals separately bounded in activity data.
 Continuations optionally expire; Gala uses 30 seconds (60 for a full task proposal) and clears pending metadata
 with activity cleanup. Expiry after an ACK wait is quiet, never spoken. This does
 not establish audibility or prevent every premature model utterance. Consecutive
@@ -377,6 +377,9 @@ even in rehearsals. This is conversational guidance, not a clock/freshness chang
 GI-27 makes guessing roles explicit in shared guidance, start occasions and active
 card facts: the backend selects, Gigi answers, visitors ask yes/no and guess.
 Secrecy, confirmed reveals, activity control and audio remain unchanged.
+GI-28 explicitly attributes Gigi's personality/social behaviour to ZHAW's SIRA Lab
+and the robot body to Unitree. Gesture selection encourages occasional meaningful
+movement while retaining the 12-second spacing and 60-second same-label interval.
 
 Gala Dinner Reception reuses the Generic task engine as a third, encounter-owned
 activity. It requires a saved proposal before activation, limits execution to five

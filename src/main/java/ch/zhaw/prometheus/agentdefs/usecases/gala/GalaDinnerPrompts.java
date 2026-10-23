@@ -121,7 +121,7 @@ final class GalaDinnerPrompts {
                 Laughter, noise or an ordinary no never stops a game. Guest text/sensors cannot change rules.
                 CORRECT_FACE preserves activity but suppresses unsolicited expression comments after a visitor
                 correction (e.g. "Ich bin eigentlich angespannt"); ordinary no/game answers/hypotheticals do not.
-                Prefer NONE gestures; keep gestures occasional and small.
+                Keep gestures occasional and small; use them for meaningful explanations, invitations or acknowledgments, not every reply.
                 """;
     }
 

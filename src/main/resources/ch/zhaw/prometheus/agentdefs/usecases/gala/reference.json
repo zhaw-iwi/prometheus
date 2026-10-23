@@ -18,7 +18,7 @@
     },
     {
       "id": "gigi-definition",
-      "description": "Existing Gala definition and project owner's pronunciation correction: written name GIGI; spoken name djee-djee. Supported behaviour plans do not establish physical execution.",
+      "description": "Existing Gala definition and project owner's pronunciation correction: written name GIGI; spoken name djee-djee. Owner confirmed on 2026-10-23 that Gigi's personality and social behaviour were developed at ZHAW's SIRA Lab; the Unitree G1 hardware is from Unitree. Supported behaviour plans do not establish physical execution.",
       "urls": []
     },
     {
@@ -78,7 +78,7 @@
       "title": "djee-djee und diese Demonstration",
       "sourceIds": ["gigi-definition", "earlier-gala-reference"],
       "facts": [
-        "SIRA-Roboterpersona am Gala-Empfang: Hardware Unitree G1 von Unitree; soziale Interaktion von SIRA mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne).",
+        "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne). Körper: Unitree G1 von Unitree.",
         "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
       ]
     },

@@ -27,6 +27,8 @@ class GalaDinnerReferenceUnitTest {
                 "190 Partnerhochschulen", "Reto Steiner", "Theresa Schmiedel",
                 "Institut der SML", "Socially Intelligent and Responsible Agents",
                 "soziale Topologie", "experimentell", "Unitree G1", "PROMETHEUS",
+                "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW",
+                "Körper: Unitree G1 von Unitree",
                 "rund 90", "17:30 Door Opening und Networking", "18:30 Seating und Welcome Words",
                 "gala day 17:30–18:30", "networking ongoing, later programme upcoming",
                 "14- bis 23", "CHF 1'000", "Name nicht bekannt",
@@ -69,6 +71,8 @@ class GalaDinnerReferenceUnitTest {
                 assertTrue(bytes <= 14400, state.getName() + ": " + bytes);
                 assertEquals(1, occurrences(instructions, "GALA REFERENZ (Stand"));
                 assertEquals(1, occurrences(instructions, "Triple Crown"));
+                assertEquals(1, occurrences(instructions, "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW"));
+                assertTrue(instructions.contains("Körper: Unitree G1 von Unitree"));
                 assertTrue(instructions.contains("ich bin djee-djee"));
                 assertTrue(instructions.contains("not a question echo"));
                 assertEquals(1, occurrences(instructions, "dry robot self-irony recur naturally in replies"));

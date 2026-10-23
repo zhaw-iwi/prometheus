@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-28 / Milestone 255: Gigi's shared reference explicitly attributes its
+  personality/social behaviour to ZHAW's SIRA Lab and its body to Unitree. Two
+  gesture prompts encourage occasional meaningful movement; the 12-second spacing,
+  60-second repeat interval and game/task exceptions are unchanged. Passed 53
+  focused units and packaging; instructions 14,397 / 14,400 bytes. User authorized
+  commit/push on `agents` and Heroku deployment verification. Actual wording and
+  gesture frequency remain a robot check.
+
 - Audio inspection handoff (2026-10-23): `.agents/PLAN_CUTOFFINSPECTION.md` defines
   optional browser-local received-track recording paired with existing telemetry,
   bounded retention, lifecycle isolation, automated acceptance and a physical trial.
@@ -11211,3 +11219,21 @@ Detailed commands, earlier assertion/budget corrections and artifacts: GI-27 in
 cut-offs and prompt-only readiness remain separate. The user subsequently authorized
 commit/push on agents together with the audio-inspection plan; deployment is tracked
 by the GitHub Actions workflow. The recording feature is planned, not implemented.
+
+
+## Milestone 255 / GI-28 - SIRA authorship and restrained gesture encouragement
+
+Date: 2026-10-23. Replaced the existing Gigi reference fact with explicit SIRA Lab
+authorship of personality/social behaviour, retaining Unitree hardware attribution
+and recording the owner's confirmation outside model context. Two Gala-specific
+gesture prompts now encourage occasional meaningful explanations/invitations/
+acknowledgments rather than defaulting to NONE. Cadence, bounded history, explicit
+requests, RPS/task outputs, state control and Live speech ownership are unchanged.
+
+Verified 53 focused source-only units and packaging. Full instructions fit at
+14,397 / 14,400 bytes across states, task phases and embodiments. No provider,
+physical robot or database trial was run for this wording-only follow-up. Evidence:
+GI-28 in .agents/GALAIMPROVEMENT_RESULTS.md; manual checks: tests/gptlive/GALA.md.
+The user authorized commit/push on agents and Heroku deployment verification;
+the release is tracked by GitHub Actions. After deployment, use a fresh Live
+session; this follow-up needs no new instance or stored-graph migration.

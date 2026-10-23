@@ -14,6 +14,16 @@ context**, Gesichtsausdruck-Erkennung, Handerkennung und Sensorübermittlung ein
 **Start reception** drücken und die vollständige Begrüssung abwarten.
 Deployment/Commit, Browser, Headset und Stimme notieren.
 Bei lokalen Versuchen ausdrücklich lokale Datenbank und laufenden Build notieren.
+
+Optionaler GI-28-Check nach frischem Live-Start: «Wer hat dich entwickelt?» und
+«Wer hat deinen Roboterkörper gebaut?» fragen. Persönlichkeit/Sozialverhalten
+sollen dem SIRA Lab der ZHAW, der Unitree-G1-Körper Unitree zugeschrieben werden.
+Im anschliessenden Gespräch auf gelegentliche passende Gesten beim Erklären,
+Einladen oder Bestätigen achten: nicht bei jeder Antwort, keine beliebige Rotation.
+Dekorative Gesten mindestens 12 Sekunden auseinander, dieselbe Geste frühestens
+nach 60 Sekunden; explizit gewünschte Gesten und vereinbarte Spiel-/Task-Aktionen
+sind davon ausgenommen. Anforderung im Cockpit und tatsächliche Roboterbewegung
+getrennt notieren; aus einem Verhaltensplan folgt keine bestätigte Ausführung.
 Ein erfolgreicher lokaler Dialog bestätigt weder die Heroku-Quote noch die
 Ausgabe über den Empfangsroboter; diese Prüfungen bleiben separat.
 

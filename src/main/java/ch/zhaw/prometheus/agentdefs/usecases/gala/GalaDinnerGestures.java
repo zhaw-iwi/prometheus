@@ -15,7 +15,7 @@ final class GalaDinnerGestures {
 
     static String guidance(Storage storage, Instant now) {
         return "\nRecent published gesture requests (data, not physical execution): " + recent(storage, now)
-                + ". Prefer NONE unless a meaningful distinct beat is justified. Decorative gestures wait 12 seconds; "
+                + ". Occasionally support a clear conversational point with a fitting gesture; choose NONE for routine/listening moments. Decorative gestures wait 12 seconds; "
                 + "the same label waits 60 seconds. Never rotate labels just for variety. "
                 + "Requested gestures and agreed task actions take precedence over decorative cadence.";
     }

@@ -369,6 +369,9 @@ accreditations and research focus, the youth prize, Home of Innovation services,
 contacts and the dated Community Plus offer. Source URLs and audit descriptions
 remain in the resource and are excluded from model instructions; there is no
 web lookup. Supplied institutional claims have not been independently reverified.
+Gigi's reference explicitly attributes its personality/social behaviour to the
+ZHAW SIRA Lab and its Unitree G1 body to Unitree, so origin questions can distinguish
+the lab's contribution from hardware manufacture.
 
 `GalaDinnerReference` renders those facts once per assembled Live prompt.
 Reception, both games and the task policy reuse that same reference through
@@ -643,8 +646,10 @@ The last display plan remains a historical request; the activity state controls
 readiness. No camera sampling or per-frame persistence was added.
 
 Gala decorative gestures reuse the core semantic meanings and receive the last
-five published gesture requests in the existing selector prompt. A 12-second
-cooldown and 60-second same-label interval suppress excess decoration without
+five published gesture requests in the existing selector prompt. Guidance encourages
+occasional small gestures for meaningful explanations, invitations or acknowledgments;
+routine/listening moments use NONE, with no gesture on every reply or forced rotation.
+A 12-second cooldown and 60-second same-label interval suppress excess decoration without
 changing face/gaze. Explicit gesture requests and agreed task actions take
 precedence; RPS hand signs remain independent. History resets at a new encounter
 and records requests, not physical execution or word-level alignment. Publishing

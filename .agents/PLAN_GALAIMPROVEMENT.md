@@ -1046,6 +1046,22 @@ all-state instruction limits, every selected card, initial/replay invitations,
 existing game-control regressions and the local journey. Spoken adherence remains
 a listening check; no audio or stricter readiness coordination in this change.
 
+### GI-28 - Explicit SIRA authorship and slightly more expressive gestures
+
+Replace the existing Gigi reference fact with explicit SIRA Lab authorship of
+personality/social behaviour, retaining Unitree's hardware attribution and sourced
+audit metadata. Relax the two Gala-specific prefer-NONE instructions to encourage
+occasional meaningful gestures in explanations, invitations and acknowledgments.
+Keep the 12-second decorative spacing, 60-second same-label suppression, bounded
+history, no forced rotation, explicit requests and agreed task/RPS actions intact.
+No new inference, timer, graph, sensing, persistence or speech-ownership behavior.
+
+Verify the facts in every state/task phase and embodiment within the unchanged
+instruction ceiling; run existing gesture/cadence and reception regressions and
+package. Actual wording and gesture frequency/execution require a short robot
+trial. The user subsequently authorized commit/push on agents and verification
+of the resulting Heroku deployment; no standalone cockpit update is required.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |

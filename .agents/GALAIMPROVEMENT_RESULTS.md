@@ -1773,3 +1773,43 @@ not fixed or hidden by this publication; it does not test physical audio playbac
 Evidence: target/gala-roles-publish-delivery-check.log and
 target/gala-roles-publish-baseline-delivery-check.log. The 47 role/reference units,
 four local journeys and packaging above remain the passing verification for GI-27.
+
+
+## GI-28 - SIRA authorship and restrained gesture encouragement (2026-10-23)
+
+Base: df09ecf4 on agents, initially clean. The existing packaged Gigi reference
+now explicitly says its personality/social behaviour was developed at ZHAW's
+SIRA Lab with PROMETHEUS; the body is a Unitree G1 from Unitree. The owner's
+confirmation is recorded in audit metadata, excluded from model instructions.
+The replacement retains the technology facts and reduces instruction size by
+one byte instead of appending another identity rule.
+
+Both Gala gesture-selection prompts now encourage occasional small, meaningful
+gestures for explanations, invitations and acknowledgments. Routine/listening
+moments still use NONE; not every reply gets a gesture and labels must not rotate
+just for variety. Deterministic publication is untouched: 12-second spacing,
+60-second same-label interval, five-entry history, explicit-request exceptions
+and independent RPS/agreed task output. No additional model call, timer, database
+operation, state transition, sensor change, playback change or speech owner.
+
+Verification:
+
+- `mvnw.cmd -q -Dtest=GalaDinnerReferenceUnitTest,GalaDinnerGesturesUnitTest,GalaDinnerReceptionUnitTest test`:
+  53 passed (5 reference, 6 gestures, 42 reception). The reference assertions
+  cover authorship and hardware in every reachable state/task phase and both
+  embodiments. Maximum instructions 14,397 / 14,400 bytes; application limit
+  remains 16,000. Existing tests protect cadence/repetition, NONE, required
+  gestures, RPS motion, history bounds/encounter cleanup and once-only publication.
+- `mvnw.cmd -q -DskipTests package`: passed.
+- `git diff --check`: passed.
+
+Artifacts: target/gala-origin-gestures-unit.log and
+target/gala-origin-gestures-package.log. No database/provider/physical trial was
+needed or run for these wording changes. Tests verify supplied context and
+deterministic controls, not actual generated-wording compliance, gesture frequency
+or robot execution. The existing delivery-timing limitation recorded under GI-27
+was not changed or retested. Updated README, context, plan, PROJECT and the short
+GI-28 check in tests/gptlive/GALA.md. The user subsequently authorized commit/push
+on agents and verification of the resulting Heroku deployment, tracked by GitHub
+Actions. No standalone Valerian cockpit update is required. After deployment,
+start a fresh Live session; no new instance is required for these changes.
