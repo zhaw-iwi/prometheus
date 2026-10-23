@@ -44,6 +44,11 @@ public class ExternalSpeechRecordingService {
     }
     public Optional<Event> record(UUID id, ExternalSpeech owner, String segmentId, String text,
             List<UUID> intentIds, Association association, boolean complete, java.time.Instant started) {
+        return record(id, owner, segmentId, text, intentIds, association, complete, started, List.of());
+    }
+    public Optional<Event> record(UUID id, ExternalSpeech owner, String segmentId, String text,
+            List<UUID> intentIds, Association association, boolean complete, java.time.Instant started,
+            List<ch.zhaw.prometheus.model.policy.LiveSpeechPart> parts) {
         if (segmentId == null || !segmentId.matches("[A-Za-z0-9._:-]{1,160}")) throw new IllegalArgumentException("Invalid speech segment identity");
         return turns.serialized(id, () -> {
             boolean[] created = {false};
@@ -70,7 +75,7 @@ public class ExternalSpeechRecordingService {
                 if (taskResponses != null) taskResponses.prepare(agent, owner, nativeSpeech, started);
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
                 if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)
-                    playbackReady[0] = policy.liveSpeechCaptured(nativeSpeech, owner, started, java.time.Instant.now());
+                    playbackReady[0] = policy.liveSpeechCaptured(nativeSpeech, owner, started, java.time.Instant.now(), parts);
                 var saved = agents.saveAndFlush(agent); created[0] = true;
                 // Cascade merge may replace a newly appended event; return/publish its persisted identity.
                 return saved.getEventHistory().toList().stream().filter(event -> event.speechProvenance() != null
