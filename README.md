@@ -1869,7 +1869,19 @@ finalization remains unconfirmed without `session.closed`.
 
 The cockpit polls once per second using
 `GET /demo/agents/{agentId}/live/sessions/{handle}/updates?transcriptRevision=-1`.
-The response contains `status`, `transcriptRevision`, and `transcripts`. Send the
+The response contains `status`, `transcriptRevision`, `transcripts`, and optional
+`playbackCue`. A policy may opt in to execution after captured speech and local
+playback settling: the cue has `id`, nullable `segmentId` (pending capture), and
+`expiresAt`. The shared Live client observes received audio without rerouting it;
+after matching capture and continuous playable audio followed by quiet, it sends
+one `POST .../live/sessions/{handle}/playback-cues/{id}` with `{ "segmentId": "..." }`.
+The backend rechecks access, session/epoch, presence, expiry and the current cue
+under the turn lock. Policies consume it once through ordinary state actions.
+Interrupted, muted, stalled or unobserved audio cannot establish completion;
+applications must provide bounded recovery. This is no hardware audibility or
+physical motion guarantee. Normal agents have no cue and no audio observer.
+Accepted speech cues trigger one urgent context refresh; ordinary commits retain
+their five-second coalescing window. Send the
 returned revision on the next poll: unchanged ledgers return null transcripts and
 need only one scalar authorization query, with no agent/history entity load.
 Durable ledger commits increment the session revision; a concurrent commit is

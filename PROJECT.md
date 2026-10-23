@@ -82,6 +82,22 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Live playback-cue extension (2026-10-23): opt-in policy capture hook, nullable
+  pending cue in combined updates, scoped execution acknowledgement and local
+  received-track settling observer. Shared checks: 40 Java service/controller/
+  delivery tests and 65 initial JavaScript Live checks; additional interruption
+  regression recorded with the Gala integration evidence. No schema migration,
+  output rerouting, ordinary-agent observer or per-fragment graph refresh.
+  The application owns timeout/recovery; hardware audibility is unverified.
+
+- Live control-reply follow-up (2026-10-23): optional policy resolution admits a
+  short reply across a state-label change when current application facts resolve
+  its meaning and preceding same-session speech does not overlap it. Defaults,
+  ownership, complete-turn requirements and durable duplicate claims remain.
+  Verified three short-context units, three existing local ingress cases and two
+  application replay/reload cases on the agents integration tree. No database
+  schema or public request shape changed; pending unrecorded speech is not accepted
+  as confirmation.
 - GI-30 / Milestone 257: both Gala games now retain an expiring completed-round
   identity for explicit replay, require a completed current-session invitation
   for affirmative replay, and use separate selection counters. Completion guides
