@@ -1062,6 +1062,23 @@ package. Actual wording and gesture frequency/execution require a short robot
 trial. The user subsequently authorized commit/push on agents and verification
 of the resulting Heroku deployment; no standalone cockpit update is required.
 
+### GI-29 - Reception-only backup
+
+Add `GalaDinnerReceptionSingleState` alongside the full Gala definition with one
+reachable reception state. Share knowledge, identity, humour, gesture cadence,
+sensory admission and Live presence lifecycle. Remove game/task graph paths,
+advertising, operations and activity-specific output capabilities. Enforce the
+restriction before model-selected operations mutate storage, including after
+persistence and reset. Preserve full-agent prompts/reference and default behavior.
+
+Verify the single-state graph, both embodiments/instruction budget, all common
+facts, forbidden-operation recovery, shared sensing/gesture behavior and reset
+with focused units. Extend the local-database journey for creation/reload, ordinary
+conversation, activity requests, proactive weather and two-visitor isolation.
+Run neighboring full-agent regressions and packaging. Document catalog permission
+and fresh-instance setup; no cockpit change. The user subsequently authorized
+commit/push on agents. Provider wording and physical speech/gestures remain live checks.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |

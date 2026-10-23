@@ -152,5 +152,18 @@ class GalaDinnerReferenceUnitTest {
                 new GalaDinnerReference.Document("2026-10-20", List.of(source), List.of(unsourced))));
     }
 
+    @Test void capabilityVariantsShareFactsWithoutAdvertisingTheOtherVersionsActivities() {
+        var sources = List.of(new GalaDinnerReference.Source("owner", "Audit note", List.of()));
+        var section = new GalaDinnerReference.Section("gigi", "Gigi", List.of("owner"),
+                List.of("Shared origin."), "Games available.", "Reception only.");
+        var document = new GalaDinnerReference.Document("2026-10-23", sources, List.of(section));
+        assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Games available.", GalaDinnerReference.render(document));
+        assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Reception only.", GalaDinnerReference.render(document, false));
+        var incomplete = new GalaDinnerReference.Section("gigi", "Gigi", List.of("owner"),
+                List.of("Shared origin."), "Games available.", null);
+        assertThrows(IllegalArgumentException.class, () -> GalaDinnerReference.render(
+                new GalaDinnerReference.Document("2026-10-23", sources, List.of(incomplete)), false));
+    }
+
     private static int occurrences(String text, String value) { return text.split(java.util.regex.Pattern.quote(value), -1).length - 1; }
 }

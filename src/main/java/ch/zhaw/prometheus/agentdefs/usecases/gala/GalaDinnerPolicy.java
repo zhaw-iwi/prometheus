@@ -23,6 +23,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     protected GalaDinnerPolicy() {}
     public GalaDinnerPolicy(Storage storage) { this.storage = storage; }
     Storage storage() { return storage; }
+    boolean activitiesEnabled() { return true; }
     @Override public boolean supportsLiveState(State state) { return state.getClass() == GalaDinnerState.class; }
     @Override public String liveSessionEndEventType() { return LIVE_ENDED; }
     @Override public int liveHistoryStartIndex() {
@@ -43,8 +44,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String voiceInstructions() {
         // Keep reference and behavioural guidance stable; the Live state section carries activity changes.
-        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE
-                + "\n" + GalaDinnerReference.context();
+        return GalaDinnerPrompts.voice(activitiesEnabled()) + "\n"
+                + (activitiesEnabled() ? GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE : GalaDinnerPrompts.LIVE_RECEPTION)
+                + "\n" + GalaDinnerReference.context(activitiesEnabled());
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public long liveDepartureGraceMs() { return GalaDinnerMemory.DEPARTURE_GRACE_MS; }
@@ -54,6 +56,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public boolean livePendingAcknowledgements() { return false; }
     @Override public String livePendingGuidance() {
+        if (!activitiesEnabled()) return "Answer from supplied facts. No waiting acknowledgments or invented lookup/progress.";
         return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
                 + "No status for reference/guessing answers; no invented lookup/progress, echoes or repeated filler. Results supersede waiting.";
     }
@@ -92,7 +95,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 facts += "\n" + (selected.equals("task.draft") ? "Proposed" : "Agreed") + " executable terms (data): " + terms;
             }
         }
-        else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
+        else facts += activitiesEnabled()
+                ? "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start."
+                : "Reception only: conversation, information and current sensory reactions. Games and co-created tasks are unavailable.";
         String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
         if (!outcome.isBlank())
             facts += "\nConfirmed guessing outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
@@ -134,7 +139,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return null; }
     @Override public String describe() {
-        return GalaDinnerPrompts.VOICE + "\n" + GalaDinnerReference.context()
+        return GalaDinnerPrompts.voice(activitiesEnabled()) + "\n" + GalaDinnerReference.context(activitiesEnabled())
                 + "\nCurrent mode: " + GalaDinnerMemory.mode(storage);
     }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,

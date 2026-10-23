@@ -78,9 +78,10 @@
       "title": "djee-djee und diese Demonstration",
       "sourceIds": ["gigi-definition", "earlier-gala-reference"],
       "facts": [
-        "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne). Körper: Unitree G1 von Unitree.",
-        "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
-      ]
+        "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne). Körper: Unitree G1 von Unitree."
+      ],
+      "activityFacts": "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung.",
+      "receptionOnlyActivityFacts": "Hier: Gespräch, Auskunft, aktuelle Sinneseindrücke und spontane Reaktionen. Keine Spiele oder gemeinsam vereinbarten Sensoraufgaben. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
     },
     {
       "id": "event",

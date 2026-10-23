@@ -48,7 +48,10 @@ public class GalaDinnerAction extends Action {
         switch (galaOperation) {
             case "AMBIENT" -> GalaDinnerSensing.ambient(storage, events, runtime, now);
             case "FAIL_TASK" -> GalaDinnerTaskAction.uncertain(storage);
-            case "TURN" -> { turn(storage, events, runtime, now); if (!present(storage, now)) reply(storage, null); }
+            case "TURN", "RECEPTION_TURN" -> {
+                turn(storage, events, runtime, now, "TURN".equals(galaOperation));
+                if (!present(storage, now)) reply(storage, null);
+            }
             case "PRESENCE" -> {
                 presence(storage, events, runtime, now);
                 if ("TASK".equals(mode(storage)) && present(storage, now)) new GalaDinnerTaskAction(storage, true).execute(events, runtime);
@@ -69,7 +72,7 @@ public class GalaDinnerAction extends Action {
         }
     }
 
-    private static void turn(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
+    private static void turn(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now, boolean activities) {
         if (runtime.externalSpeech() == null || !runtime.taskContinuation().getAsBoolean() || !conversationPresent(storage, now)) return;
         String utterance = GalaDinnerInput.speech(events.toList().getLast().getPayload());
         // Keep the original transcript in history, but sound annotations do not authorize task control
@@ -118,7 +121,7 @@ public class GalaDinnerAction extends Action {
             traceControl(events, mode, "LOCAL", "WAIT", mode, "acknowledgement");
             return;
         }
-        if ("RECEPTION".equals(mode) && GalaDinnerInput.unspecifiedGame(utterance)) {
+        if (activities && "RECEPTION".equals(mode) && GalaDinnerInput.unspecifiedGame(utterance)) {
             return;
         }
         if ("TASK".equals(mode)) {
@@ -158,7 +161,7 @@ public class GalaDinnerAction extends Action {
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
-            String prompt = GalaDinnerPrompts.turn(mode, storage.containsKey(EXIT_REQUEST))
+            String prompt = GalaDinnerPrompts.turn(mode, storage.containsKey(EXIT_REQUEST), activities)
                     + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
                     + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
@@ -179,7 +182,7 @@ public class GalaDinnerAction extends Action {
             if (!EXPRESSIONS.contains(expression)) expression = "attentive";
             if (!GAZES.contains(gaze)) gaze = "toward_user";
             failureStage = "mode_operation";
-            if (!GalaDinnerPrompts.operations(mode, storage.containsKey(EXIT_REQUEST)).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            if (!GalaDinnerPrompts.operations(mode, storage.containsKey(EXIT_REQUEST), activities).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
             selected = operation;
             if (!storage.containsKey(EXIT_REQUEST) && Set.of("RPS", "GUESS").contains(mode)
                     && GalaDinnerInput.explicitReferenceQuestion(utterance)) operation = "CHECK_EXIT";
@@ -258,6 +261,13 @@ public class GalaDinnerAction extends Action {
                     failureStage, mode, failure.getClass().getSimpleName());
             for (String key : storage.toMap().keySet()) if (!before.containsKey(key)) remove(storage, key);
             before.forEach((key, value) -> { if (!storage.containsKey(key) || !value.equals(storage.get(key))) storage.put(key, value); });
+            if (!activities) {
+                // Optional embodiment/control failure must not manufacture an activity invitation.
+                // Live still owns the answer, including explaining unavailable activities.
+                reply(storage, null);
+                traceControl(events, mode, selected, "WAIT", mode(storage), "failed");
+                return;
+            }
             continueRequest(storage, "Requested activity control failed. Prior activity remains " + mode(storage)
                     + "; no new action was completed. No automatic start or retry is authorized. "
                     + "Briefly explain that the requested change did not happen. Ask whether the visitor wants to try again; "

@@ -33,6 +33,30 @@ einschieben, solange GIGI noch antwortet.
 
 ## Sprechskript
 
+### Empfangs-Backup ohne Spiele (GI-29)
+
+Für `usecases.gala_dinner_reception_single_state` den separaten Katalogeintrag
+freigeben und eine **neue** Instanz «GIGI - Gala Dinner Reception (Reception only)»
+erstellen. Dieselbe Kamera-/Live-Vorbereitung wie oben verwenden. Die folgenden
+Spiel-/Task-Skripte gelten weiterhin für die vollständige Gala-Version.
+
+1. Begrüssung abwarten; «Wer hat dich entwickelt?», «Was machen SML und IWI?» und
+   «Was ist heute Abend geplant?» fragen. SIRA-/Unitree-Zuordnung und Empfangszeit
+   17:30–18:30 bleiben gleich. Humor und gelegentliche passende Gesten beobachten.
+2. «Spielen wir Schere, Stein, Papier?», «Personenraten bitte» und
+   «Wenn ich lächle, erzähl mir einen Witz» probieren. Gigi erklärt die Einschränkung;
+   Zustand bleibt «Gala reception», kein Spielstart oder vereinbarter Task.
+   Ein direkt angefragter Witz bleibt möglich.
+3. Ausdruck, Personenzahl und frisches Wetter abfragen. Für freiwillige sensorische
+   Kommentare ausreichend Pause lassen: unverändert mindestens 25 Sekunden zwischen
+   solchen Kommentaren und acht Sekunden nach einer eigenen Äusserung. Eine stabile
+   Handform darf kommentiert werden, aber kein Spiel auslösen.
+4. «Bitte sei still» sagen, dann das Kamerabild länger als zwei Sekunden verlassen.
+   Zurückkehren: eine frische Begrüssung, weiterhin nur Empfang und kein Bezug auf
+   persönliche Gesprächsinhalte des vorherigen Besuchs.
+
+### Vollständige Gala-Version
+
 GI-26: Auch bei Proben ausserhalb 17:30-18:30 fragen: «Was steht heute Abend
 noch auf dem Programm?» Networking läuft; spätere Punkte stehen noch bevor.
 Beim RPS-Start soll Gigi zum Zeichen auffordern, ohne die eigene Wahl zu nennen.

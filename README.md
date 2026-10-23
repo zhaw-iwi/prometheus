@@ -306,6 +306,7 @@ experiment-specific application definitions as Spring beans via
 | Package/key prefix | Purpose |
 | --- | --- |
 | `usecases.gala_dinner_reception` | German GIGI reception for the Home of Innovation gala, with RPS, person guessing and co-created multimodal tasks over GPT-Live. |
+| `usecases.gala_dinner_reception_single_state` | Reception-only GIGI backup with the same knowledge, persona and sensing; no games or co-created tasks. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -318,6 +319,29 @@ These branch-specific definitions stay outside the generic main baseline
 catalog so `main` can remain the reusable PROMETHEUS framework line.
 
 ### Gala Dinner Reception
+
+The optional backup is `GalaDinnerReceptionSingleState`, catalog key
+`usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner
+Reception (Reception only)**. Allow that key for the access code and create a new
+instance; existing full Gala instances are not converted. Both embodiments retain
+GIGI's fixed identity. The setup below applies to both versions; game/task details
+apply only to the full definition.
+
+The backup has exactly one reception state, with self-transitions for conversation,
+presence, facial, weather and hand observations. It shares the full agent's persona,
+institutional/event reference, humour, gesture selection and spacing, bounded sensory
+comments, Live speech ownership and two-second departure grace. Hand observations
+remain available for perception, but no RPS round, guessing target or co-created
+task can be started. Requests for these activities receive a brief explanation
+that this version offers conversation and information. The backend rejects activity
+operations even if its classifier proposes one. Activity-specific hand-motion and
+display outputs are not advertised; ordinary nonverbal behaviour is retained.
+
+The persisted reception-only policy keeps this restriction across reload/reset.
+No new database column, frontend protocol or standalone Valerian cockpit change is
+needed. Both definitions read the same reference; only the explicit activity
+availability sentence differs. Spoken wording remains model-generated and needs
+a short listening check; this backup does not fix the open audio cut-off issue.
 
 `usecases.gala_dinner_reception` is the event-specific `GalaDinnerReception`
 definition under `agentdefs/usecases`, registered on `agents`. Its fixed persona
@@ -688,12 +712,15 @@ scripted model/voice responses:
 - The first visitor also exercises unknown facts, incomplete questions, a
   hypothetical give-up and an actual reveal, including replay of the committed
   give-up segment without another inference or announcement.
+- A separate reception-only journey verifies catalog creation, policy reload,
+  institution/event conversation, rejected game/task operations, a proactive
+  weather occasion, durable transcripts and isolation between two visitors.
 
 Run it with the existing offline acceptance harness and a configured **loopback
 MySQL administration connection** (Python `pymysql` required):
 
 ```bash
-python tests/gptlive/run_acceptance.py --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest
 ```
 
 The harness creates and removes a disposable schema/account and writes logs under

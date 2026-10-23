@@ -1813,3 +1813,71 @@ GI-28 check in tests/gptlive/GALA.md. The user subsequently authorized commit/pu
 on agents and verification of the resulting Heroku deployment, tracked by GitHub
 Actions. No standalone Valerian cockpit update is required. After deployment,
 start a fresh Live session; no new instance is required for these changes.
+
+## GI-29 - Reception-only Gala backup (2026-10-23)
+
+Base: 984de674 on agents, initially clean. User authorized implementing a separate
+`GalaDinnerReceptionSingleState` while retaining the current reception behavior.
+The user subsequently authorized commit/push on agents to initiate deployment.
+
+The new catalog key is `usecases.gala_dinner_reception_single_state`, displayed
+as GIGI - Gala Dinner Reception (Reception only). Its graph has exactly one state
+with self-transitions, no routing/game/task state. It shares the full definition's
+metadata/setup, identity, common voice rules, packaged knowledge, gesture logic,
+presence lifecycle and facial/social/weather/hand sensing handlers. Full-agent
+defaults and graph ordering are retained. The common reference is rendered once;
+only the activity-capability sentence differs between the variants. Institutional
+and event facts, SIRA authorship, programme perspective, humour, source metadata,
+pronunciation, freshness/cooldowns and speech ownership are shared.
+
+`GalaDinnerReceptionOnlyPolicy` is a persisted subtype; `RECEPTION_TURN` restricts
+the classifier and validates operations before mutation. Invalid activity output
+or malformed optional control output leaves conversation available without a
+competing backend utterance. No new schema column, poller, provider request type
+or frontend protocol. The backup does not advertise RPS hand-motion/display
+channels; ordinary expression, gaze, semantic gestures and hand perception remain.
+Games and task configuration are explicitly unavailable in Live guidance as well
+as backend control. New instances retain this restriction after reload/reset and
+across visitor sessions. Existing full Gala instances are not converted.
+
+Verification:
+
+- `mvnw.cmd -q -Dtest=GalaDinnerReceptionSingleStateUnitTest,GalaDinnerReceptionUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerGesturesUnitTest,GalaDinnerSensingUnitTest,GalaDinnerAmbientUnitTest,GalaDinnerHandSignsUnitTest,GalaDinnerTaskUnitTest package`:
+  141 passed and packaged. Includes 14 backup cases covering both embodiments,
+  one-state graph, shared knowledge, all forbidden activity operations, malformed
+  control recovery, gesture cadence, four sensory paths, silence/departure/reset.
+  Complete backup instructions: 12,379 bytes in both embodiments. Full maximum
+  remains 14,397 / 14,400 bytes; application limit is unchanged at 16,000.
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GalaDinnerReceptionJourneySmokeIntegrationTest,GalaDinnerReceptionIntegrationTest`:
+  nine existing cases passed. The new journey initially exposed two test-fixture
+  errors: changing a storage snapshot instead of actual persisted Storage, then
+  treating deliberately retained fresh weather as forbidden visitor evidence.
+  Corrected the fixture; the final isolated command below passed the new case.
+- `python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'GalaDinnerReceptionJourneySmokeIntegrationTest#receptionOnlyPersistsItsRestrictionsAndSharesSensorySpeechAndVisitorIsolation'`:
+  passed. Real scoped creation, new JPA policy reload, conversation/transcripts,
+  rejected RPS/task/guess starts, one weather commentary append, fresh second
+  session, rejected old-session input, durable history and visitor isolation are
+  covered. Fresh environmental weather remains available to the second visitor.
+  Scripted inference/provider responses; all disposable schemas/accounts removed
+  and owned applications stopped. Production database was not used.
+- Compiled a temporary copy of the base prompt class under `target/gala-full-compat`
+  and compared it with the current class: full-agent voice, Live, task and every
+  mode/confirmation turn prompt are byte-identical. Full reference rendering and
+  source audit metadata also match the base.
+- `git diff --check`: passed. An initial unit assertion used the wrong JSON shape
+  for a facial expression; corrected to the existing structured `type` contract.
+
+Artifacts: target/gala-single-state-verified.log (passing units/package),
+target/gala-single-state-unit.log and target/gala-single-state-unit-followup.log,
+target/gala-single-state-local-acceptance.log (3059f79d1d),
+target/gala-single-state-local-acceptance-final.log (a268984207), and
+target/gala-single-state-local-journey-verified.log (cca6e34091), with detailed Java
+logs under the corresponding target/gptlive-acceptance-* directories.
+
+README, context, plan, PROJECT and tests/gptlive/GALA.md cover the new catalog
+permission, fresh-instance setup and manual reception-only script. No cockpit
+changes/browser tests, paid provider trial, robot trial or deployment performed.
+Tests prove the supplied context and deterministic controls, not identical generated
+wording or physical gestures/audio. Existing audible cut-offs and the previously
+documented full-agent LiveDelivery timing assertion are outside this change; the
+latter was not rerun or its bound relaxed. No idle empty-room speech is introduced.

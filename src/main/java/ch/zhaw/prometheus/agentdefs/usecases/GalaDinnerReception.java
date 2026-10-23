@@ -41,30 +41,44 @@ public class GalaDinnerReception implements AgentDefinition {
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "GUESS"), guessing));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "TASK"), task));
         routing.addTransition(new Transition(reception));
-        for (var state : List.of(reception, rps, guessing, task)) {
-            state.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.LIVE_ENDED),
-                    new GalaDinnerAction(storage, "EXPIRE"), routing));
-            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                    new GalaDinnerAction(storage, "TURN"), routing));
-            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_SOCIAL_GROUPING),
-                    new GalaDinnerAction(storage, "PRESENCE"), routing));
-            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_FACE_EMOTION),
-                    new GalaDinnerAction(storage, "FACE"), routing));
-            state.addTransition(new Transition(new GalaDinnerDecision(storage, "EXPIRED"),
-                    new GalaDinnerAction(storage, "EXPIRE"), routing));
-        }
+        addReceptionTransitions(List.of(reception, rps, guessing, task), routing, storage, "TURN");
         rps.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                 new GalaDinnerAction(storage, "HAND"), routing));
-        for (String type : List.of(Event.TYPE_WEATHER_CURRENT, Event.TYPE_HAND_SIGN))
-            reception.addTransition(new Transition(new LatestEventTypeDecision(type),
-                    new GalaDinnerAction(storage, "AMBIENT"), routing));
+        addAmbientTransitions(reception, routing, storage);
         // The browser can submit human presence before grouping for the same camera sample.
         task.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE),
                 new GalaDinnerAction(storage, "PRESENCE"), routing));
         task.addTransition(new Transition(new TaskDecision(storage, "CUE"),
                 new GalaDinnerTaskAction(storage, true), routing));
-        var agent = new Agent("GIGI - Gala Dinner Reception",
-                "German GIGI reception for the Home of Innovation gala on 24 October 2026, with RPS, person guessing and co-created multimodal tasks.",
+        return completeAgent(reception, storage, true);
+    }
+
+    protected static void addReceptionTransitions(List<GalaDinnerState> states, GalaDinnerState target,
+            Storage storage, String turnOperation) {
+        for (var state : states) {
+            state.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.LIVE_ENDED),
+                    new GalaDinnerAction(storage, "EXPIRE"), target));
+            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                    new GalaDinnerAction(storage, turnOperation), target));
+            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_SOCIAL_GROUPING),
+                    new GalaDinnerAction(storage, "PRESENCE"), target));
+            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_FACE_EMOTION),
+                    new GalaDinnerAction(storage, "FACE"), target));
+            state.addTransition(new Transition(new GalaDinnerDecision(storage, "EXPIRED"),
+                    new GalaDinnerAction(storage, "EXPIRE"), target));
+        }
+    }
+
+    protected static void addAmbientTransitions(GalaDinnerState reception, GalaDinnerState target, Storage storage) {
+        for (String type : List.of(Event.TYPE_WEATHER_CURRENT, Event.TYPE_HAND_SIGN))
+            reception.addTransition(new Transition(new LatestEventTypeDecision(type),
+                    new GalaDinnerAction(storage, "AMBIENT"), target));
+    }
+
+    protected Agent completeAgent(GalaDinnerState reception, Storage storage, boolean activities) {
+        var agent = new Agent(activities ? "GIGI - Gala Dinner Reception" : "GIGI - Gala Dinner Reception (Reception only)",
+                activities ? "German GIGI reception for the Home of Innovation gala on 24 October 2026, with RPS, person guessing and co-created multimodal tasks."
+                        : "German GIGI gala reception with conversation, information and multimodal reactions; no games or co-created tasks.",
                 reception, storage);
         agent.setPersonaName("GIGI");
         agent.setInteractionProfile(AgentInteractionProfile.of(
@@ -76,7 +90,9 @@ public class GalaDinnerReception implements AgentDefinition {
                 List.of(AgentInteractionProfile.MODALITY_SPEECH, AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,
                         AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION,
                         AgentInteractionProfile.MODALITY_NONVERBAL_GAZE, AgentInteractionProfile.MODALITY_NONVERBAL_MOTION,
-                        AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN, AgentInteractionProfile.MODALITY_DISPLAY),
+                        AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN, AgentInteractionProfile.MODALITY_DISPLAY).stream()
+                        .filter(modality -> activities || !List.of(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,
+                                AgentInteractionProfile.MODALITY_DISPLAY).contains(modality)).toList(),
                 List.of("demo.gigi.gala_dinner", "demo.gigi.sira_lab")).withPresenceControlledLive(true));
         return applyDefinitionMetadata(agent);
     }

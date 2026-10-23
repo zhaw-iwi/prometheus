@@ -310,6 +310,13 @@ On the agents branch, the main conversational definitions, including Generic
 Multimodal Behaviour and its core Social Space variant, are opted in. Gala Dinner
 Reception also opts in; unadapted definitions (including scored RPS and Talk to Me)
 stay out.
+`GalaDinnerReceptionSingleState` is a separately registered reception-only backup
+(`usecases.gala_dinner_reception_single_state`). Its one-state graph and persisted
+policy subtype exclude games/tasks while sharing persona, reference, sensing,
+gestures and Live encounter lifecycle. Restricted turn validation enforces this
+before activity mutation; no stored mode flag can be lost on reset. Grant the new
+catalog key and create a new instance; no frontend change or graph migration.
+See README and GI-29 in GALAIMPROVEMENT_RESULTS for verification and limits.
 The existing per-agent embodiment assembler resolves authored Live voice and
 nonverbal prompts to the effective persona (including a persisted fixed-name
 override) without rewriting observation/dialogue content.

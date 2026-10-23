@@ -13,12 +13,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import com.google.gson.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
+import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionSingleState;
+import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerReceptionOnlyPolicy;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 import ch.zhaw.prometheus.controllers.dto.LiveSessionRequest;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
@@ -114,6 +117,92 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                 }
             };
         });
+    }
+
+    @Test
+    void receptionOnlyPersistsItsRestrictionsAndSharesSensorySpeechAndVisitorIsolation() {
+        code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReceptionSingleState.KEY));
+        id = demo.createAgent(code, GalaDinnerReceptionSingleState.KEY, "ROBOT").getID();
+        var first = arrive();
+        Encounter second = null;
+        try {
+            assertReceptionOnly();
+            String instructions = first.peer().startup.instructions();
+            for (String fact : List.of("SIRA Lab", "Theresa Schmiedel", "Reto Steiner", "Triple Crown",
+                    "17:30", "dry robot self-irony", "Games and co-created sensor tasks are unavailable"))
+                assertTrue(instructions.contains(fact), fact);
+            nativeSpeech(first, "Grüezi, ich bin djee-djee. Willkommen zum Gala Dinner!");
+            say(first, "Ich heisse " + FIRST_NAME + ". Wer hat dich entwickelt?", control("CHAT"));
+            nativeSpeech(first, "Meine Persönlichkeit entstand am SIRA Lab der ZHAW; mein Körper ist von Unitree.");
+            say(first, "Wann beginnt das Essen?", control("CHAT"));
+            nativeSpeech(first, "Laut Programm folgen nach dem Empfang das Seating und die Begrüssung.");
+            // The backend rejects a forbidden model operation after a real database reload.
+            say(first, "Spielen wir Schere Stein Papier?", control("START_RPS"));
+            assertReceptionOnly();
+            assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
+            nativeSpeech(first, "Diese Version bietet Gespräche und Auskünfte, aber keine Spiele.");
+            say(first, "Dann vereinbaren wir eine Aufgabe.", control("START_TASK"));
+            assertReceptionOnly();
+            nativeSpeech(first, "Aufgaben kann ich in dieser Version nicht vereinbaren. Über das Institut erzähle ich dir gerne etwas.");
+
+            // Advance only the persisted admission timestamps, without sleeping or extra sensor traffic.
+            var ready = loaded();
+            var memory = (ch.zhaw.prometheus.model.Storage) org.springframework.test.util.ReflectionTestUtils.getField(ready, "storage");
+            memory.put("gala.sensing.ambient_at", new JsonPrimitive(Instant.now().minusSeconds(40).toString()));
+            memory.put("gala.last_input", new JsonPrimitive(Instant.now().minusSeconds(10).toString()));
+            agents.saveAndFlush(ready);
+            observe(Event.TYPE_WEATHER_CURRENT, "{\"location_label\":\"Winterthur\",\"condition\":\"rain\",\"temperature_c\":9,\"observed_at\":\"" + Instant.now() + "\"}");
+            var occasion = contexts.snapshot(code, id).orElseThrow().activity().continuation();
+            assertNotNull(occasion);
+            assertTrue(occasion.facts().contains("Winterthur"));
+            await().atMost(Duration.ofSeconds(12)).untilAsserted(() -> assertEquals(1, first.peer().sent.stream().filter(event ->
+                    "session.commentary.append".equals(event.get("type").getAsString()) && event.toString().contains(occasion.id().toString())).count()));
+            nativeSpeech(first, "Für Winterthur ist gerade Regen gemeldet.");
+            assertReceptionOnly();
+            assertEquals(0, speechIntents(), "Live owns wording; backend only supplies the proactive occasion");
+
+            Segment late = receipt(first, "Noch eine Frage von " + FIRST_NAME);
+            var oldPath = loaded().getCurrentState().getActiveStatePath();
+            group(0);
+            assertTrue(live.close(code, id, first.owner().sessionId()).orElseThrow().finalized());
+            assertTrue(first.peer().closed);
+            var retainedIds = history().stream().map(Event::getId).collect(java.util.stream.Collectors.toSet());
+            // Fresh environmental weather deliberately survives encounters; visitor evidence does not.
+            var weatherIds = history().stream().filter(event -> Event.TYPE_WEATHER_CURRENT.equals(event.getType()))
+                    .map(Event::getId).collect(java.util.stream.Collectors.toSet());
+            firstEventIds = retainedIds.stream().filter(eventId -> !weatherIds.contains(eventId)).collect(java.util.stream.Collectors.toSet());
+            secondVisitor = true;
+            second = arrive();
+            assertNotEquals(first.owner().sessionId(), second.owner().sessionId());
+            assertNoFirstVisitor(second.peer().startup.instructions() + second.peer().startup.input());
+            assertCurrentContextIsolated();
+            assertTrue(contexts.snapshot(code, id).orElseThrow().items().stream()
+                    .flatMap(item -> item.sourceIds().stream()).anyMatch(weatherIds::contains));
+            assertReceptionOnly();
+            say(second, "Ich heisse " + SECOND_NAME + ". Personenraten bitte.", control("START_GUESS"));
+            assertReceptionOnly();
+            assertTrue(ingress.commit(id, first.owner(), late, oldPath).isEmpty());
+            say(second, "Was macht das SIRA Lab?", control("CHAT"));
+            nativeSpeech(second, "Das Labor erforscht sozial intelligente und verantwortungsvolle Agenten.");
+            assertTrue(history().stream().map(Event::getId).collect(java.util.stream.Collectors.toSet()).containsAll(retainedIds));
+            verifyNoInteractions(speech);
+        } finally {
+            if (second != null) live.close(code, id, second.owner().sessionId());
+            live.close(code, id, first.owner().sessionId());
+        }
+        assertReceptionOnly();
+    }
+
+    private void assertReceptionOnly() {
+        var agent = loaded();
+        assertEquals(1, agent.reachableStates().size());
+        assertInstanceOf(GalaDinnerReceptionOnlyPolicy.class, agent.getCurrentState().ownPolicy());
+        assertReception(); assertTaskCleared();
+        assertFalse(agent.getStorage().containsKey("gala.rps_capture_id"));
+        assertFalse(agent.getStorage().containsKey("gala.exit_request"));
+        assertTrue(contexts.snapshot(code, id).orElseThrow().instructions().contains("Games and co-created sensor tasks are unavailable"));
     }
 
     @ParameterizedTest

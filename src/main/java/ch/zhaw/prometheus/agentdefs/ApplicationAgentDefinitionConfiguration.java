@@ -11,6 +11,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition galaDinnerReceptionSingleState() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionSingleState();
+    }
+
+    @Bean
     AgentDefinition tdsrAishaInvestQatarQa() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha();
     }

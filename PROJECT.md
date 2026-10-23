@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-29 / Milestone 256: `GalaDinnerReceptionSingleState` is a separate one-state
+  reception backup. It shares identity, reference, humour, gestures, sensing and
+  Live lifecycle; games/tasks are omitted and their operations rejected before
+  mutation. Existing full-agent prompts/reference are unchanged. Passed 141 units,
+  nine existing local integration cases plus the new two-visitor backup journey,
+  and packaging. Instructions: backup 12,379 bytes; full maximum 14,397 bytes.
+  Enable the new catalog key and create a new instance; no cockpit update needed.
+  Commit/push on agents is now authorized. Generated speech and robot quality remain
+  a live check; see GI-29 results and tests/gptlive/GALA.md.
+
 - GI-28 / Milestone 255: Gigi's shared reference explicitly attributes its
   personality/social behaviour to ZHAW's SIRA Lab and its body to Unitree. Two
   gesture prompts encourage occasional meaningful movement; the 12-second spacing,
@@ -11234,6 +11244,23 @@ Verified 53 focused source-only units and packaging. Full instructions fit at
 14,397 / 14,400 bytes across states, task phases and embodiments. No provider,
 physical robot or database trial was run for this wording-only follow-up. Evidence:
 GI-28 in .agents/GALAIMPROVEMENT_RESULTS.md; manual checks: tests/gptlive/GALA.md.
+
+## Milestone 256 / GI-29 - Reception-only Gala backup
+
+Add `usecases.gala_dinner_reception_single_state` alongside the full definition.
+Exactly one reception state shares encounter lifecycle, knowledge, persona,
+humour, nonverbal cadence and sensory admission. A persisted restricted policy
+and turn operation omit game/task instructions and reject activity commands;
+reset/reload cannot re-enable them. No database columns or frontend contract change.
+
+Verified 141 units, nine existing local integration cases and one new persisted
+two-visitor backup journey, packaging and diff checks. Full-agent prompts and
+rendered reference match the published base byte for byte. Backup instructions
+use 12,379 bytes versus the existing full-agent maximum of 14,397. Tests use
+scripted model/voice responses and disposable local MySQL; no provider/physical
+trial or deployment. Details and corrected test fixtures: GI-29 in
+.agents/GALAIMPROVEMENT_RESULTS.md. Grant the new catalog key and create a fresh
+instance. The user subsequently authorized commit/push on agents for deployment.
 The user authorized commit/push on agents and Heroku deployment verification;
 the release is tracked by GitHub Actions. After deployment, use a fresh Live
 session; this follow-up needs no new instance or stored-graph migration.
