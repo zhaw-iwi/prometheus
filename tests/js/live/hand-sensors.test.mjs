@@ -71,6 +71,17 @@ function fixture() {
   };
 }
 
+test("a new spoken countdown closes leftover capture so ordinary sensing cannot submit the old capture ID", async () => {
+  const f = fixture();
+  f.context.updateHandCapture({awaitingUserSign: true, captureId: "old"});
+  f.context.updateHandCapture({awaitingUserSign: false, phase: "spoken_countdown", agentSign: "rock"});
+  assert.equal(f.context.camera.handCaptureOpen, false);
+  await f.frame(); await f.frame(); await f.frame(); assert.equal(f.requests.length, 1);
+  assert.equal(JSON.parse(JSON.parse(f.requests[0].body).payload).captureId, undefined);
+  f.context.updateHandCapture({awaitingUserSign: true, captureId: "new"});
+  await f.frame(); await f.frame(); await f.frame(); assert.equal(f.requests.length, 2);
+});
+
 test("camera rock, scissor and paper reach the scoped framework as timestamped observations", async () => {
   const f = fixture();
   for (const [gesture, sign] of [["Closed_Fist", "rock"], ["Victory", "scissor"], ["Open_Palm", "paper"]]) {

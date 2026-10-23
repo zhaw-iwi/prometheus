@@ -4,7 +4,7 @@ export class PlaybackSettlingGate {
   constructor(ready, now = () => performance.now(), wall = () => Date.now()) {
     Object.assign(this, {ready, now, wall}); this.done = new Set(); this.reset();
   }
-  reset() { this.cue = null; this.last = null; this.voice = null; this.quiet = null; this.media = null; }
+  reset() { this.cue = null; this.last = null; this.voice = null; this.quiet = null; this.media = null; this.progressAt = null; }
   update(cue) {
     if (!cue) { this.reset(); return; }
     if (this.cue?.id === cue.id && this.cue?.segmentId === cue.segmentId) return;
@@ -15,7 +15,10 @@ export class PlaybackSettlingGate {
   remember(id) { this.done.add(id); if (this.done.size > 64) this.done.delete(this.done.values().next().value); }
   sample({voiced, playable, mediaTime}) {
     const now = this.now(), gap = this.last === null || now - this.last > 250;
-    const progressing = Number.isFinite(mediaTime) && this.media !== null && mediaTime > this.media;
+    // HTML media time may be quantized. Require progress across a bounded window,
+    // not a different value on every 50 ms analyser sample.
+    if (Number.isFinite(mediaTime) && (this.media === null || mediaTime > this.media)) this.progressAt = now;
+    const progressing = Number.isFinite(mediaTime) && this.progressAt !== null && now - this.progressAt < 500;
     this.last = now; this.media = mediaTime;
     if (!playable || gap || !progressing) { this.voice = null; this.quiet = null; return; }
     if (voiced) { this.voice = now; this.quiet = null; return; }
