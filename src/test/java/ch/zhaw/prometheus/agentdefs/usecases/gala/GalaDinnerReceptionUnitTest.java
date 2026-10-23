@@ -242,7 +242,7 @@ class GalaDinnerReceptionUnitTest {
     @Test void decliningExitKeepsRpsChoiceAndRequiresANewObservationAfterResumption() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""), answer("CHECK_EXIT", ""));
         say("Schere Stein Papier bitte");
-        String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
+        String sign = text(memory, SIGN, ""), round = text(memory, GalaDinnerRounds.ID, "");
         String oldCapture = text(memory, CAPTURE_ID, "");
         say("Was ist das IWI?");
         Instant during = time(memory, STARTED);
@@ -251,7 +251,7 @@ class GalaDinnerReceptionUnitTest {
         clearInvocations(gateway);
         var resumed = BehaviourPlan.fromJson(say("Nein danke").getPayload());
         assertTrue(resumed.getDisplay().getAsJsonObject().get("awaitingUserSign").getAsBoolean());
-        assertEquals(sign, text(memory, SIGN, "")); assertEquals(round, text(memory, ROUND, ""));
+        assertEquals(sign, text(memory, SIGN, "")); assertEquals(round, text(memory, GalaDinnerRounds.ID, ""));
         assertFalse(memory.containsKey(EXIT_REQUEST));
         assertNotEquals(oldCapture, text(memory, CAPTURE_ID, ""));
         assertNull(hand("paper", Instant.now(), .99, oldCapture));
@@ -401,7 +401,7 @@ class GalaDinnerReceptionUnitTest {
             assertNull(say(request), request);
             assertEquals("RECEPTION", mode(memory));
             assertFalse(memory.containsKey(SIGN)); assertFalse(memory.containsKey(PERSON));
-            assertFalse(memory.containsKey(ROUND)); assertFalse(memory.containsKey(STARTED));
+            assertFalse(memory.containsKey(GalaDinnerRounds.ID)); assertFalse(memory.containsKey(STARTED));
         }
         verifyNoInteractions(gateway);
         // Other phrasings can use the same choice operation through normal language interpretation.

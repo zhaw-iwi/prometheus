@@ -35,6 +35,57 @@ class GalaDinnerReceptionIntegrationTest {
     @Autowired GenericTaskSessionLifecycleService taskLifecycle;
     @Autowired LiveTranscriptIngressService ingress;
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"RPS", "GUESS"})
+    void completedReplayInvitationSurvivesReloadAndOldStatePathWithoutDuplicateStart(String game) {
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
+        UUID id = demo.createAgent(code, GalaDinnerReception.KEY, AgentEmbodiment.ROBOT.name()).getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        var startup = contexts.claim(code, id, session).orElseThrow();
+        var owner = new ExternalSpeech(session, startup.epoch());
+        try {
+            when(language.infer(any())).thenReturn(answer("START_" + game, ""));
+            say(code, id, "RPS".equals(game) ? "Schere Stein Papier bitte" : "Personenraten bitte");
+            var playing = agents.findById(id).orElseThrow();
+            var oldPath = playing.getCurrentState().getActiveStatePath();
+            String round = playing.getStorage().get("gala.round_id").getAsString();
+            if ("GUESS".equals(game)) say(code, id, "Ich gebe auf");
+            else {
+                String capture = playing.getStorage().get("gala.rps_capture_id").getAsString();
+                demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", "observation",
+                        "{\"sign\":\"paper\",\"confidence\":1,\"source\":\"manual\",\"captureId\":\"" + capture
+                        + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
+            }
+            assertEquals("RECEPTION", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
+            var spoken = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("offer",
+                    ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.ASSISTANT,
+                    1000L, 1500L, System.currentTimeMillis(), 1, "Möchtest du noch eine Runde spielen?");
+            ingress.receipt(id, owner, spoken);
+            ingress.commit(id, owner, new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                    spoken.speaker(), List.of(spoken), ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", spoken.receivedMs(), spoken.receivedMs()), oldPath).orElseThrow();
+            var input = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("replay-yes",
+                    ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.USER,
+                    1600L, 1800L, System.currentTimeMillis(), 2, "Ja");
+            ingress.receipt(id, owner, input);
+            var segment = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                    input.speaker(), List.of(input), ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", input.receivedMs(), input.receivedMs());
+            clearInvocations(language);
+            var admitted = ingress.commit(id, owner, segment, oldPath).orElseThrow();
+            assertEquals("COMPLETE", admitted.status());
+            var replay = agents.findById(id).orElseThrow();
+            assertEquals(game, replay.getStorage().get("gala.mode").getAsString());
+            assertNotEquals(round, replay.getStorage().get("gala.round_id").getAsString());
+            assertEquals(admitted.eventId(), ingress.commit(id, owner, segment, oldPath).orElseThrow().eventId());
+            assertEquals(replay.getStorage().get("gala.round_id"), agents.findById(id).orElseThrow().getStorage().get("gala.round_id"));
+            verifyNoInteractions(language);
+        } finally { ownership.release(id, session); }
+    }
+
     @Test void receptionWeatherAndHandOccasionsSurviveReloadWithoutSpeechInference() {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);

@@ -562,6 +562,22 @@ The explicit graph contains reception, RPS, guessing, task co-creation and inter
   Hypothetical/negated give-up preserves the round. This trades the former model-side
   secrecy boundary for responsive conversation: premature disclosure is now a model
   instruction risk, covered by provider trials and the manual script.
+
+Both games keep an explicit completed-round identity when returning to reception.
+Live gives the result without automatically offering another round; it may ask an
+open-ended next-step question. A direct “Nochmal bitte” resolves to the completed
+game for 60 seconds, unless another topic or an encounter boundary supersedes it.
+A short “Ja” needs the latest completed, current-session replay invitation; an
+open-ended question or the result alone is insufficient. Each new round gets a
+fresh identity and clears the previous target/capture/result. RPS and guessing
+advance separate selection sequences, including when games are alternated.
+
+Real-provider acceptance (OpenAI charges; disposable **local** database only):
+`python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-gala`.
+This runs two reception/game/reception rounds of each game through real Live
+speech, backend inference, transcript admission and persistence. Synthetic visitor
+audio and manual sensor observations do not establish physical audibility, robot
+motion or prompt-only readiness compliance. Reports stay under `target/`.
 - Reception reports unconfirmed game readiness; Live must await a matching start
   before inviting signs or guessing questions. This is model guidance, not an
   enforced playback barrier. Unsupported optional expression labels use defaults;
@@ -1933,6 +1949,13 @@ Application-owned `ExternalVoicePolicy` implementations may return false from
 `livePendingAcknowledgements()` to request silent waiting in both shared voice
 and task guidance. The default is true and retains existing core instructions.
 This changes model guidance only; it does not mute audio or prove spoken silence.
+
+`liveResolvedControlReply(transcript, history, owner)` lets an application resolve
+a short control reply from its current facts and completed session dialogue.
+Ingress still requires preceding non-overlapping assistant evidence from the same
+session, current ownership and a complete user turn. Normal actions validate the
+decision again; durable duplicate claims remain unchanged. The default is false.
+This is separate from the strictly non-mutating acknowledgement exception.
 
 Application policies may opt into `liveFilterIsolatedInputActivity()` for backend
 user-turn capture. It ignores isolated 20-ms RMS spikes and requires 40 ms of

@@ -11,7 +11,7 @@ final class GalaDinnerMemory {
     static final long DEPARTURE_GRACE_MS = 2000;
     static final String PREFIX = "gala.";
     static final String MODE = PREFIX + "mode", REPLY = PREFIX + "reply", PERSON = PREFIX + "person",
-            SIGN = PREFIX + "sign", ROUND = PREFIX + "round", LAST_INPUT = PREFIX + "last_input",
+            SIGN = PREFIX + "sign", LAST_INPUT = PREFIX + "last_input",
             EXIT_REQUEST = PREFIX + "exit_request", CAPTURE_ID = PREFIX + "rps_capture_id",
             STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at", ABSENT_SINCE = PREFIX + "absent_since",
             CONTINUATION_ID = PREFIX + "continuation_id", CONTINUATION_FACTS = PREFIX + "continuation_facts",
@@ -70,6 +70,7 @@ final class GalaDinnerMemory {
         if (storage.containsKey(EXIT_REQUEST)) ch.zhaw.prometheus.logging.ActivityTrace.cue("confirmation_resolved", null);
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
+        GalaDinnerRounds.clear(storage);
         for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
                 OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, CONTINUATION_AMBIENT, TASK_FACTS)) remove(storage, key);
         GalaDinnerSensing.activityEnded(storage);

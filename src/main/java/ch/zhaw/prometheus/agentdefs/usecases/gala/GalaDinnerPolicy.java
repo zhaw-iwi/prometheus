@@ -54,6 +54,11 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public boolean liveNonMutatingAcknowledgement(String transcript) {
         return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
     }
+    @Override public boolean liveResolvedControlReply(String transcript, EventHistory history,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        return activitiesEnabled() && GalaDinnerRounds.replay(storage, history, owner,
+                GalaDinnerInput.speech(transcript), java.time.Instant.now()) != null;
+    }
     @Override public boolean livePendingAcknowledgements() { return false; }
     @Override public String livePendingGuidance() {
         if (!activitiesEnabled()) return "Answer from supplied facts. No waiting acknowledgments or invented lookup/progress.";
@@ -100,9 +105,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 : "Reception only: conversation, information and current sensory reactions. Games and co-created tasks are unavailable.";
         String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
         if (!outcome.isBlank())
-            facts += "\nConfirmed guessing outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
+            facts += "\nConfirmed outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
                     + ": " + outcome
-                    + " Answer the pending visitor request once; do not repeat an answer already spoken.";
+                    + GalaDinnerRounds.FINISH_GUIDANCE + " Do not repeat an answer already spoken.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerSensing.CORRECTED, "")))
             facts += " Visitor corrected expression: no unsolicited mood/expression claims this encounter. Direct answers use fresh evidence tentatively; accept their account.";

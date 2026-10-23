@@ -88,12 +88,12 @@ class GalaLiveFollowupUnitTest {
 
     @Test void dropoutBlocksHandResultsButKeepsRoundAndSpokenGiveUpAvailable() {
         say("START_RPS", "Schere Stein Papier bitte");
-        String sign = text(memory, SIGN, ""), round = text(memory, ROUND, "");
+        String sign = text(memory, SIGN, ""), round = text(memory, GalaDinnerRounds.ID, "");
         agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
                 "{\"humanCount\":0,\"ts\":\"" + Instant.now().plusMillis(1) + "\"}"), runtime);
         clearInvocations(gateway); hand();
         assertEquals("RPS", mode(memory)); assertEquals(sign, text(memory, SIGN, ""));
-        assertEquals(round, text(memory, ROUND, "")); assertNull(agent.generate(runtime)); verifyNoInteractions(gateway);
+        assertEquals(round, text(memory, GalaDinnerRounds.ID, "")); assertNull(agent.generate(runtime)); verifyNoInteractions(gateway);
         say("RETURN", "Stopp"); say("START_GUESS", "Personenraten bitte");
         String person = text(memory, PERSON, "");
         agent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor",
@@ -122,14 +122,14 @@ class GalaLiveFollowupUnitTest {
             say("RETURN", "Stop");
             say(start, "Ich möchte dieses Spiel spielen");
             String mode = mode(memory), person = text(memory, PERSON, ""), sign = text(memory, SIGN, "");
-            String round = text(memory, ROUND, ""), began = text(memory, STARTED, "");
+            String round = text(memory, GalaDinnerRounds.ID, ""), began = text(memory, STARTED, "");
             String occasion = text(memory, CONTINUATION_ID, ""), expiry = text(memory, CONTINUATION_EXPIRES, "");
             clearInvocations(gateway);
             for (String text : List.of("Ja, gerne.", "Okay!", "Alles klar", "Danke", "Sure", "Thank you")) {
                 say("RETURN", text);
                 assertEquals(mode, mode(memory));
                 assertEquals(person, text(memory, PERSON, "")); assertEquals(sign, text(memory, SIGN, ""));
-                assertEquals(round, text(memory, ROUND, "")); assertEquals(began, text(memory, STARTED, ""));
+                assertEquals(round, text(memory, GalaDinnerRounds.ID, "")); assertEquals(began, text(memory, STARTED, ""));
                 assertEquals(occasion, text(memory, CONTINUATION_ID, "")); assertEquals(expiry, text(memory, CONTINUATION_EXPIRES, ""));
                 assertNull(agent.generate(runtime));
             }
@@ -189,6 +189,7 @@ class GalaLiveFollowupUnitTest {
         verify(gateway, never()).infer(any()); assertEquals("RECEPTION", mode(memory));
         assertEquals(occasion, text(memory, CONTINUATION_ID, ""));
         put(memory, CONTINUATION_EXPIRES, Instant.now().minusSeconds(1).toString());
+        put(memory, OUTCOME_EXPIRES, Instant.now().minusSeconds(1).toString());
         assertFalse(policy.liveNonMutatingAcknowledgement("Okay"));
         put(memory, MODE, "TASK");
         assertFalse(policy.liveNonMutatingAcknowledgement("Okay"));
@@ -287,13 +288,13 @@ class GalaLiveFollowupUnitTest {
         String control = messages.getFirst().getContent();
         assertTrue(control.contains("\"operation\":\"" + String.join("|", GalaDinnerPrompts.operations("RECEPTION")) + "\""));
         assertFalse(GalaDinnerPrompts.operations("RECEPTION").contains("GIVE_UP"));
-        assertTrue(messages.stream().anyMatch(m -> m.getContent().startsWith("Recent completed guessing round")
+        assertTrue(messages.stream().anyMatch(m -> m.getContent().startsWith("Recent completed round")
                 && m.getContent().contains("Albert Einstein")));
         assertFalse(memory.containsKey(CONTINUATION_ID));
         put(memory, OUTCOME_EXPIRES, Instant.now().minusSeconds(1).toString());
         clearInvocations(gateway); say("CHAT", "Albert Einstein");
         verify(gateway).infer(request.capture());
-        assertTrue(request.getValue().messages().stream().noneMatch(m -> m.getContent().startsWith("Recent completed guessing round")));
+        assertTrue(request.getValue().messages().stream().noneMatch(m -> m.getContent().startsWith("Recent completed round")));
         assertFalse(memory.containsKey(CONTINUATION_ID));
     }
 
@@ -345,7 +346,7 @@ class GalaLiveFollowupUnitTest {
         say("START_RPS", "Wollen wir das nochmal spielen?"); export(fixture, "rpsReplay", delivery, gson);
         hand(); export(fixture, "rpsReplayEnd", delivery, gson);
         say("START_GUESS", "Personenraten bitte"); export(fixture, "guessStart", delivery, gson);
-        assertEquals("Charlie Chaplin", text(memory, PERSON, ""));
+        assertEquals("Albert Einstein", text(memory, PERSON, ""));
         say("WAIT", "Ich gebe auf"); export(fixture, "guessEnd", delivery, gson);
         assertNull(projection.project(agent).activity().continuation());
         Files.createDirectories(Path.of("target"));

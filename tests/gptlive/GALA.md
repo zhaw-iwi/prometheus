@@ -33,6 +33,18 @@ einschieben, solange GIGI noch antwortet.
 
 ## Sprechskript
 
+### Wiederholte Spielrunden (GI-30)
+
+Beide Spiele jeweils zweimal aus dem Empfang starten. Nach dem Ergebnis soll Gigi
+keine weitere Runde anbieten; eine offene Frage nach dem nächsten Wunsch ist okay.
+«Nochmal bitte» muss eine **neue Backend-Runde** desselben Spiels starten; im Cockpit
+Zustand und neue Rundendaten prüfen. Beim Personenraten wechselt die Zielperson.
+«Ja» nach einer offenen Frage darf kein Spiel auswählen. Falls Gigi trotzdem
+ausdrücklich eine Wiederholung anbietet, muss «Ja» zur neuen Backend-Runde führen.
+Nach «Stopp» oder einem Themenwechsel darf ein unbestimmtes «Nochmal» keine alte
+Runde wiederbeleben. Sprachliche Wiederholungen/frühe Einladungen getrennt von
+Backend-Übergängen notieren.
+
 ### Empfangs-Backup ohne Spiele (GI-29)
 
 Für `usecases.gala_dinner_reception_single_state` den separaten Katalogeintrag

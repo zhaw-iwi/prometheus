@@ -1,4 +1,4 @@
-"""Offline acceptance only. Requires local MySQL administration and Python pymysql.
+"""Isolated acceptance. Offline by default; --paid-gala explicitly permits OpenAI charges.
 
 Always provisions a random schema and restricted user. Never targets the configured
 application schema. Test provider endpoints exist solely on the test classpath.
@@ -24,9 +24,12 @@ def main():
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
+    parser.add_argument('--paid-gala', action='store_true', help='Opt in to real OpenAI audio/control journeys on the disposable local database')
     parser.add_argument('--database-properties', default='src/main/resources/application.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     args = parser.parse_args()
+    if args.paid_gala and args.browser:
+        parser.error('--paid-gala and mocked --browser acceptance are separate runs')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     props = {}
@@ -98,6 +101,44 @@ def main():
             # Every cached Spring context owns a pool. Bound aggregate local connections
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
+        if args.paid_gala:
+            # Read only the API credential; the production database configuration is never used.
+            provider_props = {}
+            for line in (root / 'src/main/resources/application.properties').read_text(encoding='utf-8-sig').splitlines():
+                if '=' in line and not line.lstrip().startswith('#'):
+                    key, value = line.split('=', 1)
+                    provider_props[key.strip()] = value.strip()
+            key = os.environ.get('OPENAI_API_KEY') or provider_props.get('openai.key')
+            if not key or key.startswith('${'):
+                raise RuntimeError('Set OPENAI_API_KEY for the explicitly paid journey.')
+            env.update(OPENAI_KEY=key.removeprefix('Bearer '), OPENAI_API_KEY=key.removeprefix('Bearer '),
+                OPENAI_OPENAIVSAZUREOPENAI='openai', OPENAI_URL='https://api.openai.com/v1/chat/completions',
+                PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
+                PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
+                PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            run([*maven, '-q', '-DskipTests', 'compile', 'dependency:build-classpath',
+                '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
+            classpath = os.pathsep.join([str(root / 'target/classes'), (artifacts / 'classpath.txt').read_text().strip()])
+            with socket.socket() as port_socket:
+                port_socket.bind(('127.0.0.1', 0))
+                port = port_socket.getsockname()[1]
+            env.update(SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(port), PROMETHEUS_BASE_URL=f'http://127.0.0.1:{port}')
+            with (artifacts / 'app-paid.log').open('w', encoding='utf-8') as log:
+                app = subprocess.Popen(['java', '-cp', classpath, 'ch.zhaw.prometheus.PrometheusApplication'], env=env,
+                    stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+                for attempt in range(180):
+                    if app.poll() is not None:
+                        raise RuntimeError('Isolated real-provider app exited; inspect artifact log.')
+                    try:
+                        with urlopen(env['PROMETHEUS_BASE_URL'] + '/valerian/', timeout=1) as response:
+                            if response.status == 200:
+                                break
+                    except Exception:
+                        time.sleep(0.5)
+                else:
+                    raise RuntimeError('Isolated real-provider app startup timed out.')
+                run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json')], 'paid-journey')
+                stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')

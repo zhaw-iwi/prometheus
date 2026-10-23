@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-30 / Milestone 257: both Gala games now retain an expiring completed-round
+  identity for explicit replay, require a completed current-session invitation
+  for affirmative replay, and use separate selection counters. Completion guides
+  Live to give the result without an unsolicited replay offer. Passed 93 focused
+  units, 15 local integration cases across focused runs, and real OpenAI journeys
+  with two successive rounds of each game. Early readiness chatter, a prior trial's
+  input/assistant caption misattribution and repeated names in spoken reveals
+  remain provider limitations; the passing trial proves control/result paths,
+  not flawless speech. GI-31 countdown coordination is next. See GI-30 results.
+
 - GI-29 / Milestone 256: `GalaDinnerReceptionSingleState` is a separate one-state
   reception backup. It shares identity, reference, humour, gestures, sensing and
   Live lifecycle; games/tasks are omitted and their operations rejected before

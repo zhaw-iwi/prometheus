@@ -1881,3 +1881,58 @@ Tests prove the supplied context and deterministic controls, not identical gener
 wording or physical gestures/audio. Existing audible cut-offs and the previously
 documented full-agent LiveDelivery timing assertion are outside this change; the
 latter was not rerun or its bound relaxed. No idle empty-room speech is introduced.
+
+
+## GI-30 / Milestone 257 ? Explicit completion and replay (2026-10-23)
+
+- Both games retain one expiring completed-round identity. Explicit replay resolves
+  to that game for 60 seconds; an affirmative needs a completed current-session
+  replay invitation after the result. Negated, alternative, foreign-session,
+  incomplete and expired offers cannot authorize replay. Topic/encounter changes
+  invalidate the referent. Every new round clears previous target/capture/outcome.
+- Separate RPS/guessing selection counters remove cross-game coupling. The shared
+  legacy counter previously meant that playing RPS changed the next guessing person.
+- Result facts guide Live to finish without offering replay by default. Live still
+  owns wording. The classifier dialogue window now counts spoken turns rather than
+  allowing silent behaviour plans to crowd an invitation out of the window.
+- Reusable opt-in `liveResolvedControlReply` admits a resolved short control reply
+  across a state-label change only with complete non-overlapping same-session
+  assistant evidence. Ownership and durable duplicate claims remain. Shared code
+  originated on feature/gptlive (310cfcf); Gala code remains on agents. No migration.
+
+Verification:
+
+- 93 units: GalaDinnerRoundsUnitTest (6), GalaDinnerReceptionUnitTest (42),
+  GalaLiveFollowupUnitTest (22), GalaDinnerReferenceUnitTest (6),
+  GalaDinnerReceptionSingleStateUnitTest (14), LiveShortReplyContextUnitTest (3).
+  Command: `./mvnw.cmd -q -Dtest=GalaDinnerRoundsUnitTest,GalaDinnerReceptionUnitTest,GalaLiveFollowupUnitTest,GalaDinnerReferenceUnitTest,GalaDinnerReceptionSingleStateUnitTest,LiveShortReplyContextUnitTest test`.
+- Disposable local MySQL: GalaDinnerReceptionIntegrationTest (7, including two new
+  replay/old-state/duplicate cases), LiveTranscriptIngressIntegrationTest (3), and
+  GalaDinnerReceptionJourneySmokeIntegrationTest (5). The first ten passed in
+  target/gptlive-acceptance-1db8cc5124; the five journey cases passed in
+  target/gptlive-acceptance-b2a1c482d7 after adapting independent sequence expectations.
+  One intermediate combined run failed an existing task-cue timing assertion at
+  line 414; the focused rerun passed without changing its readiness/timing checks.
+- Real provider: `python tests/gptlive/run_acceptance.py --database-properties
+  src/main/resources/application-test.properties --java-tests none --paid-gala`.
+  Passing evidence: target/gptlive-acceptance-bc5ef1f7f9/journey.json. Real scoped
+  sessions, sideband capture, control inference, local persistence, synthetic
+  visitor audio and manual signs; no mocked model or injected user transcript.
+  Two RPS rounds returned the correct user/robot winners and two guessing rounds
+  answered the woman question Nein/Ja and revealed Albert Einstein/Marie Curie.
+  All eight visitor segments were COMPLETE; each replay created a distinct round.
+  Post-run review also checked the guessing answers/roles (assertions now explicit).
+- Earlier probes remain in target: fd878a4c71 (synthetic-TTS timeout), 9f7ef6ff79
+  (harness access-code validation), 86998aca8a (harness had omitted microphone
+  admission/unmute), 0443e96b60/d82531e72e (valid result paraphrases not recognized by
+  the initial assertion), b2a1c482d7 (provider put ?Personenraten spielen? in assistant
+  captions and delivered only ?Ich m?chte spielen? to the backend). The successful
+  run used the established shorter ?Personenraten bitte?; no production workaround
+  fabricates the missing game choice. Every disposable schema/account was removed.
+
+Limitations: generated introductions still sometimes request redundant confirmation
+or speak early; the successful guessing reveals repeated each name in one response.
+These are not hidden as backend failures or declared fixed. Pending unrecorded
+invitation/fast-reply coordination needs GI-32. Physical audio/robot timing is not
+established. GI-31 changes the RPS countdown/reveal boundary next; reception-only
+backup, personality, reference and normal sensory behaviour remain unchanged.

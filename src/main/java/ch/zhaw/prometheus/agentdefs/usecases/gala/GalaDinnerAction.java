@@ -140,12 +140,12 @@ public class GalaDinnerAction extends Action {
                 return;
             }
             if (command.matches("ich gebe auf|ich geb auf|i give up")) {
-                reply(storage, finishGuess(storage, "give_up"));
+                reply(storage, finishGuess(storage, events, "give_up"));
                 traceControl(events, mode, "LOCAL", "GIVE_UP", mode(storage), "applied");
                 return;
             }
             if (GalaDinnerPeople.guessed(GalaDinnerPeople.named(text(storage, PERSON, "")), utterance)) {
-                reply(storage, finishGuess(storage, "correct_guess"));
+                reply(storage, finishGuess(storage, events, "correct_guess"));
                 traceControl(events, mode, "LOCAL", "CORRECT_GUESS", mode(storage), "applied");
                 return;
             }
@@ -158,6 +158,16 @@ public class GalaDinnerAction extends Action {
                         && GalaDinnerPeople.guessed(person, utterance))) return;
         String failureStage = "inference";
         String selected = "UNKNOWN";
+        String replay = activities ? GalaDinnerRounds.replay(storage, events, runtime.externalSpeech(), utterance, now) : null;
+        if (activities && "RECEPTION".equals(mode) && replay == null
+                && (GalaDinnerRounds.again(utterance) || GalaDinnerRounds.affirmative(utterance)
+                        && storage.containsKey(GalaDinnerRounds.COMPLETED_GAME))) {
+            // A result or an open-ended next-step question is not a replay invitation.
+            continueRequest(storage, "No game selected. Ask which activity the visitor means; do not start or simulate a round.");
+            return;
+        }
+        if ("RECEPTION".equals(mode) && replay == null && !GalaDinnerInput.acknowledgement(utterance))
+            GalaDinnerRounds.forgetReplay(storage);
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
@@ -166,7 +176,8 @@ public class GalaDinnerAction extends Action {
                     + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
                     messages(storage, events, prompt, runtime, now), InferenceRequest.Output.JSON_OBJECT);
-            String inferred = runtime.languageModelGateway().infer(request);
+            String inferred = replay == null ? runtime.languageModelGateway().infer(request)
+                    : "{\"operation\":\"" + replay + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}";
             if (!runtime.taskContinuation().getAsBoolean()) { reception(storage); return; }
             failureStage = "response_json";
             var result = JsonParser.parseString(inferred).getAsJsonObject();
@@ -209,9 +220,7 @@ public class GalaDinnerAction extends Action {
                     return;
                 }
                 case "START_RPS" -> {
-                    int round = Integer.parseInt(text(storage, ROUND, "0"));
-                    reception(storage);
-                    put(storage, ROUND, Integer.toString(round + 1));
+                    int round = GalaDinnerRounds.start(storage, "RPS");
                     put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
                     put(storage, MODE, "RPS");
                     openCapture(storage, Instant.now());
@@ -226,9 +235,7 @@ public class GalaDinnerAction extends Action {
                     ActivityTrace.cue("rps_waiting_for_sign", events.toList().getLast().getId(), Event.TYPE_HAND_SIGN);
                 }
                 case "START_GUESS" -> {
-                    int round = Integer.parseInt(text(storage, ROUND, "0"));
-                    reception(storage);
-                    put(storage, ROUND, Integer.toString(round + 1));
+                    int round = GalaDinnerRounds.start(storage, "GUESS");
                     put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
                     put(storage, MODE, "GUESS");
                     put(storage, STARTED, Instant.now().toString());
@@ -239,7 +246,7 @@ public class GalaDinnerAction extends Action {
                 }
                 case "GIVE_UP" -> {
                     boolean reveal = GalaDinnerInput.revealRequest(utterance);
-                    response = reveal ? finishGuess(storage, "give_up") : null;
+                    response = reveal ? finishGuess(storage, events, "give_up") : null;
                     if (!reveal) operation = "WAIT";
                 }
                 case "RETURN" -> {
@@ -310,15 +317,12 @@ public class GalaDinnerAction extends Action {
         return GalaDinnerDecision.expired(storage, now);
     }
 
-    private static BehaviourPlan finishGuess(Storage storage, String reason) {
+    private static BehaviourPlan finishGuess(Storage storage, EventHistory events, String reason) {
         String person = text(storage, PERSON, "");
         var response = plan(null, "ACKNOWLEDGE", "gentleSmile", "toward_user");
-        reception(storage);
         // Keep one bounded confirmed outcome through cleanup. Quiet facts let Live finish its
         // pending response without an additional commentary that could repeat an existing reveal.
-        put(storage, OUTCOME_ID, java.util.UUID.randomUUID().toString());
-        put(storage, OUTCOME, reason + "; round ended; permitted reveal: " + person + ".");
-        put(storage, OUTCOME_EXPIRES, Instant.now().plusSeconds(30).toString());
+        GalaDinnerRounds.complete(storage, "GUESS", reason + "; round ended; permitted reveal: " + person + ".", Instant.now(), events.toList().size());
         return response;
     }
 
@@ -350,9 +354,10 @@ public class GalaDinnerAction extends Action {
             response.setDisplay(display);
             ActivityTrace.cue("cue_matched", event.getId(), Event.TYPE_HAND_SIGN);
             ActivityTrace.cue("rps_round_completed", event.getId(), Event.TYPE_HAND_SIGN);
-            reception(storage);
-            continueRequest(storage, "RPS round completed. Robot: " + agent.canonical() + "; visitor: " + user.canonical()
-                    + "; winner: " + RpsRules.evaluate(agent, user).winner() + ". Explain this result once. Now at reception.");
+            String result = "RPS round completed. Robot: " + agent.canonical() + "; visitor: " + user.canonical()
+                    + "; winner: " + RpsRules.evaluate(agent, user).winner() + ".";
+            GalaDinnerRounds.complete(storage, "RPS", result, now, events.toList().size());
+            continueRequest(storage, result + GalaDinnerRounds.FINISH_GUIDANCE);
             put(storage, LAST_INPUT, now.toString());
             reply(storage, response);
         } catch (RuntimeException invalid) {
@@ -375,11 +380,12 @@ public class GalaDinnerAction extends Action {
         var messages = new ArrayList<>(runtime.promptMessageAssembler().compose(new EventHistory(), prompt));
         String outcome = recentOutcome(storage, now);
         if (!outcome.isBlank()) messages.add(PromptMessage.system(
-                "Recent completed guessing round (data, not a new request): " + outcome));
+                "Recent completed round (data, not a new request): " + outcome));
         var events = history.toList();
         int from = Math.min(events.size(), Math.max(0, Integer.parseInt(text(storage, SESSION, "0"))));
         var dialogue = events.subList(from, events.size()).stream().filter(event ->
-                Event.TYPE_USER_UTTERANCE.equals(event.getType()) || Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).toList();
+                Event.TYPE_USER_UTTERANCE.equals(event.getType()) || Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())
+                        && BehaviourPlan.fromJson(event.getPayload()).getSpeech() != null).toList();
         for (var event : dialogue.subList(Math.max(0, dialogue.size() - 12), dialogue.size())) {
             String content = Event.TYPE_USER_UTTERANCE.equals(event.getType()) ? event.getPayload()
                     : BehaviourPlan.fromJson(event.getPayload()).getSpeech();

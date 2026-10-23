@@ -362,12 +362,12 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertReception(); assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
             assertEquals(outcomeIdentity, loaded().getStorage().get("gala.outcome_id").getAsString());
             assertTrue(requests.getLast().messages().stream().anyMatch(message ->
-                    message.getContent().startsWith("Recent completed guessing round") && message.getContent().contains("Albert Einstein")));
+                    message.getContent().startsWith("Recent completed round") && message.getContent().contains("Albert Einstein")));
 
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
             assertFalse(loaded().getStorage().containsKey("gala.outcome"));
             hearAnnouncement(first);
-            assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals("rock", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
             say(first, "[laugh]");
             assertEquals(calls, requests.size());
@@ -376,8 +376,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(first, "Einen Moment bitte", control("WAIT"));
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             hand("paper", Instant.now());
-            assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
-            assertTrue(hearAnnouncement(first).contains("winner: agent"));
+            assertEquals("user", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertTrue(hearAnnouncement(first).contains("winner: user"));
             assertReception();
             calls = requests.size();
             say(first, "Okay");
@@ -445,7 +445,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             // Both visitors try RPS; stale speech and a delayed old hand frame cannot affect B's round.
             say(second, "Ich möchte auch Schere, Stein, Papier spielen.", control("START_RPS"));
             hearAnnouncement(second);
-            assertEquals("paper", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
             assertTrue(ingress.commit(id, first.owner(), lateFirstTurn, oldStatePath).isEmpty());
             assertFalse(ingress.receipt(id, first.owner(), fragment("Noch eine alte Eingabe " + FIRST_NAME)));
@@ -457,28 +457,28 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             assertEquals(calls, requests.size());
             hand("paper", Instant.now());
-            assertEquals("draw", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
             hearAnnouncement(second); assertReception(); assertCurrentContextIsolated();
 
             // B tries the remaining game, then creates a different custom agreement.
             calls = requests.size(); say(second, "Okay"); assertEquals(calls, requests.size());
             say(second, "Jetzt möchte ich eine Person erraten.", control("START_GUESS"));
             hearAnnouncement(second);
-            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
-            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Ada Lovelace"));
+            assertEquals("Marie Curie", loaded().getStorage().get("gala.person").getAsString());
+            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Marie Curie"));
             calls = requests.size(); say(second, "Ja, gerne."); assertEquals(calls, requests.size());
-            var round = loaded().getStorage().get("gala.round").deepCopy();
+            var round = loaded().getStorage().get("gala.round_id").deepCopy();
             int sessionsBefore = peers.size();
             group(0);
-            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
+            assertEquals("Marie Curie", loaded().getStorage().get("gala.person").getAsString());
             group(1);
-            assertEquals(round, loaded().getStorage().get("gala.round"));
+            assertEquals(round, loaded().getStorage().get("gala.round_id"));
             assertEquals(sessionsBefore, peers.size()); assertTrue(ownership.isCurrent(id, second.owner()));
-            say(second, "Bist du eine Mathematikerin?", control("WAIT"));
+            say(second, "Bist du eine Wissenschaftlerin?", control("WAIT"));
             nativeSpeech(second, "Ja.");
             say(second, "Ich gebe auf");
             assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
-            nativeSpeech(second, "Es war Ada Lovelace!");
+            nativeSpeech(second, "Es war Marie Curie!");
             assertReception();
             observe(Event.TYPE_FACE_EMOTION, "{\"emotion\":\"neutral\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}");
             say(second, "Wie wirkt mein Gesichtsausdruck?", control("CHAT"));

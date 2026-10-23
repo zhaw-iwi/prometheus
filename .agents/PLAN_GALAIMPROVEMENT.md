@@ -1079,6 +1079,35 @@ Run neighboring full-agent regressions and packaging. Document catalog permissio
 and fresh-instance setup; no cockpit change. The user subsequently authorized
 commit/push on agents. Provider wording and physical speech/gestures remain live checks.
 
+### GI-30 - Explicit completion and replay
+
+Keep one expiring completed-round record for either game. Resolve an explicit
+replay to that game; accept a short affirmative only for a current, completed
+replay invitation. Completion never advertises replay by default. Separate game
+selection counters and invalidate obsolete round data on entry/exit. Preserve
+Live wording ownership and the reception-only backup. Test repeated rounds,
+ambiguous yes, expired/foreign invitations, cancellation and persistence. Add
+opt-in real OpenAI reception/game/reception journeys for both games on an isolated
+local database; scripted model fixtures are not provider acceptance.
+
+### GI-31 - Countdown before robot reveal and capture
+
+Select and display the robot sign on entry, but keep motion and capture closed.
+Correlate the Live invitation/countdown to the current round; only its confirmed
+completion opens capture and requests the committed gesture once. No entry-time
+timer or exact physical-synchronisation claim. Reject early, stale and duplicate
+callbacks/hand observations. Preserve immediate Stop/access revocation. Update
+both cockpits where required and test cancellation, delayed delivery and replay.
+
+### GI-32 - Repeated-round acceptance
+
+Exercise reception -> game -> reception -> replay for both games with actual
+OpenAI responses, alongside deterministic tests for quick replies, alternating
+games, old capture IDs and session changes. Record caption/state/timing evidence
+separately from physical audibility/motion. Keep any unproven acoustic guarantee
+explicit. After each completed milestone commit/push and continue, as authorized
+on 2026-10-23; halt only for an unforeseen decision requiring the user.
+
 ## Coverage of the original agreed backlog
 
 | Improvement discussed | Milestones |
