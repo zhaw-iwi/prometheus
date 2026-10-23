@@ -5,8 +5,8 @@ import {PlaybackSettlingGate} from '../../../src/main/resources/public/live/play
 function fixture() {
   let now = 0; const seen = [], gate = new PlaybackSettlingGate(cue => seen.push(cue.id), () => now, () => now);
   const cue = {id: 'round-one', segmentId: null, expiresAt: new Date(30000).toISOString()};
-  const sample = (voiced, playable = true, jump = 50) => {
-    now += jump; gate.sample({voiced, playable, mediaTime: now / 1000});
+  const sample = (voiced, playable = true, jump = 50, mediaTime) => {
+    now += jump; gate.sample({voiced, playable, mediaTime: mediaTime ?? now / 1000});
   };
   const quiet = () => {for (let i = 0; i < 15; i++) sample(false);};
   return {gate, seen, cue, sample, quiet};
@@ -38,4 +38,11 @@ test('resuming after muted output cannot reuse pre-mute speech as a completed co
   const f = fixture(); f.gate.update({...f.cue, segmentId: 'countdown'});
   f.sample(true); f.sample(true); f.sample(false, false); f.quiet();
   assert.deepEqual(f.seen, []);
+});
+test('quantized but progressing HTML media time works; a genuinely stalled clock does not', () => {
+  for (const stalled of [false, true]) {
+    const f = fixture(); f.gate.update({...f.cue, segmentId: 'countdown'});
+    for (let i = 1; i <= 25; i++) f.sample(i <= 5, true, 50, stalled ? 0 : Math.floor(i / 5) / 4);
+    assert.deepEqual(f.seen, stalled ? [] : ['round-one']);
+  }
 });

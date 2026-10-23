@@ -2636,6 +2636,9 @@ function captureIdOf(display) {
 
 function updateHandCapture(display) {
   const id = captureIdOf(display);
+  if (display.phase === "spoken_countdown" && display.awaitingUserSign === false) {
+    camera.handCaptureOpen = false; resetCameraEmissionGate(); return;
+  }
   if (display.awaitingUserSign === true) {
     // Replayed opening plans must not restart stability, bypass cooldown or reopen a resolved capture.
     if (id && id === camera.handCaptureId) return;
