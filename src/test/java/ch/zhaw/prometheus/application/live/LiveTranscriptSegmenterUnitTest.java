@@ -25,6 +25,29 @@ class LiveTranscriptSegmenterUnitTest {
         assertTrue(segmenter.poll(4000).isEmpty()); quiet(Speaker.USER, 4000);
         assertEquals(Closure.INCOMPLETE, segmenter.poll(4800).getFirst().closure());
     }
+    @Test void aCompletedInvitationPrecedesItsQuickReplyWhenBothBecomeReadyTogether() {
+        segmenter.fragment(fragment("reply", Speaker.USER, 500, 700, 1000, "Ja"));
+        segmenter.fragment(fragment("offer", Speaker.ASSISTANT, 0, 400, 1000, "Möchtest du nochmal spielen?"));
+        quiet(Speaker.USER, 1000); quiet(Speaker.ASSISTANT, 1000);
+        var ready = segmenter.poll(1800);
+        assertEquals(2, ready.size());
+        assertEquals(Speaker.ASSISTANT, ready.getFirst().speaker());
+        assertEquals(Speaker.USER, ready.getLast().speaker());
+        assertTrue(ready.stream().allMatch(s -> s.closure() == Closure.COMPLETE));
+        assertTrue(segmenter.poll(1800).isEmpty());
+    }
+    @Test void incompleteOrOverlappingSpeechCannotBePromotedAheadOfAReply() {
+        for (boolean incomplete : new boolean[]{false, true}) {
+            var capture = new LiveTranscriptSegmenter(UUID.randomUUID());
+            capture.fragment(fragment("reply", Speaker.USER, 500, 700, 1000, "Ja"));
+            capture.fragment(fragment("offer", Speaker.ASSISTANT, 0, incomplete ? 400 : 550, 1000, "Nochmal?"));
+            if (incomplete) capture.uncertain(Speaker.ASSISTANT, "audio_coverage_gap");
+            for (Speaker speaker : Speaker.values()) for (int i = 1; i <= 8; i++) capture.audio(speaker, 2400, false, 1000 + i * 100);
+            var ready = capture.poll(1800);
+            assertEquals(Speaker.USER, ready.getFirst().speaker());
+            assertEquals(incomplete ? Closure.INCOMPLETE : Closure.COMPLETE, ready.getLast().closure());
+        }
+    }
     @Test void hesitationReorderingRepetitionAndTwoSpeakersKeepDistinctIdentity() {
         var later = fragment("later", Speaker.USER, 200, 300, 300, " again");
         segmenter.fragment(later); segmenter.fragment(later);
