@@ -27,6 +27,14 @@ public interface ExternalVoicePolicy {
     default boolean liveFilterIsolatedInputActivity() { return false; }
     /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */
     default boolean liveNonMutatingAcknowledgement(String transcript) { return false; }
+    /** Optional application-owned decision, evaluated under the agent lock and current speech owner. */
+    default LiveSpeech.Admission liveReplyAdmission(LiveSpeech speech, java.time.Instant now) { return LiveSpeech.Admission.DEFAULT; }
+    /** Recorded assistant evidence may establish an application-owned invitation; no speech is generated here. */
+    default void liveAssistantSpeech(LiveSpeech speech, java.time.Instant now) {}
+    default void liveUserSpeech(LiveSpeech speech) {}
+    /** Opt-in internal event for validated, session-scoped browser playback cues. */
+    default String liveSpeechCueEventType() { return null; }
+    default LiveSpeechCue liveSpeechCue() { return null; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }

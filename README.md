@@ -419,27 +419,58 @@ A separately registered clone, **GIGI - Gala Dinner Reception with RPS preparati
 (`usecases.gala_dinner_reception_rps_preparation`), adds a hand-sign check before
 RPS. Allow this key for the access code and create a new instance of the clone to
 use it. The original `usecases.gala_dinner_reception` keeps its direct RPS start.
-The clone shares Gala's reference, persona, conversation, guessing and task logic.
+The clone shares Gala's reference, persona and task logic, with explicit game-round control.
 The first RPS selection in a Live conversation enters **Gala rock-scissor-paper
 preparation**. Gigi introduces a short tutorial with light robot humour and
 explains that it checks recognition of all three hand signs before playing.
 It asks for rock, paper and scissor individually in any order.
-Only fresh accepted observations of all three distinct signs start the existing
-game; repeats and spoken completion claims do not advance preparation.
+Only fresh accepted observations of all three distinct signs enter the round's
+countdown; repeats and spoken completion claims do not advance preparation.
 Progress survives reload and a declined exit,
 and is cleared on leaving preparation. Once completed, the check is remembered
 for that Live conversation, including across game endings, activity changes,
-brief camera absence and idle cleanup. Later RPS selections start the game
-directly. A new Live conversation or an agent reset requires the check again;
+brief camera absence and idle cleanup. Later RPS selections skip the tutorial
+and enter a new countdown. A new Live conversation or an agent reset requires the check again;
 leaving an incomplete check does not count as completion. The game opens a fresh
 capture ID, so preparation frames cannot decide its result.
-Existing original Gala instances keep their saved graph and behaviour.
+Create a fresh clone after updating the backend and hard-refresh either cockpit;
+existing saved graphs are not migrated. Original Gala instances retain their game flow.
 
-RPS start/wait facts say only that Gigi's sign is committed; Live names its sign
-only with the confirmed result. The start still requests the chosen hand gesture,
-and result facts still contain both signs and the calculated winner.
-Ordinary reference answers need no
-lookup or delegation. The complete instructions, including two maximum task
+Each clone RPS round first commits Gigi's sign privately and enters
+**Gala rock-scissor-paper countdown**. Live invites the visitor and counts
+"eins, zwei, drei"; capture remains closed and no robot hand command is issued.
+The cockpit combines the expected transcript with observed output audio followed
+by 800 ms of quiet, rejecting input speech, playback failure and observation gaps.
+The scoped backend validates the current round/cue and durable transcript receipts.
+Only then does it request Gigi's hand gesture and open a fresh capture window.
+A held sign can qualify after three fresh stable camera frames; tutorial or earlier
+capture observations cannot decide the round. The display reveals Gigi's sign with
+the calculated result. This permits reacting to Gigi's visible hand, as before.
+It does not promise alignment with the audible word "drei" or confirm physical motion.
+An interrupted or unavailable countdown cancels when its cue arrives. An
+unconfirmed countdown has a 30-second deadline and is cancelled on the next Live
+context refresh, including when `prometheus.runtime.tick.enabled=false`. A new
+explicit game request is needed; there is no automatic retry. Both cockpits use
+the conversation-projected behaviour stream so live backend intents carry the
+provenance needed to arm countdown observation. History and replay events cannot
+arm it. Telemetry records `speech_cue_armed`, `speech_cue` and `speech_cue_ack`
+with cue and round identities.
+
+Both clone games retain a completed-round record separately from active secrets
+and capture state. Results should be spoken once, then Gigi listens without a
+routine replay question. "Noch einmal" replays the last completed game within
+five minutes; an explicit selection can start either game. A bare "Ja" can replay
+only through an identifiable invitation captured in the same conversation, valid
+for 20 seconds. A reply near completion may wait up to five seconds for that
+invitation's transcript to settle; later questions cannot authorize an earlier
+answer. New requests, Stop, departure and session replacement cancel pending replies.
+RPS and guessing use separate selection counters, reset on a new Live conversation.
+
+Both variants' RPS start/wait facts say only that Gigi's sign is committed; Live
+names its sign only with the confirmed result. The original agent requests the
+hand gesture at round start; the clone waits for countdown confirmation. Result
+facts contain both signs and the calculated winner. Ordinary reference answers
+need no lookup or delegation. The complete instructions, including two maximum task
 goals, remain within the shared 16,000-byte budget.
 
 Gala selects **2,000 ms of measured input quiet** before committing a visitor
@@ -2147,6 +2178,19 @@ sensor refresh alone does not cancel it. Clarification describes an uncertain
 choice, not broken audio; already-sent speech cannot be retracted.
 `GET /demo/agents/{agentId}/live/transcripts?sessionId={handle}` returns the last
 100 ledger outcomes under the same access scope, including incomplete/late text.
+Opt-in application policies can establish a bounded decision from recorded assistant
+speech through `liveAssistantSpeech` and `liveReplyAdmission`. The Gala clone uses
+`WAITING_CONTEXT` for a never-admitted replay reply; uncertain/failed actions are
+never retried, including after restart. Other policies retain existing admission.
+
+`POST /demo/agents/{agentId}/live/sessions/{handle}/speech-cues` accepts
+`{cueId, roundId, outcome, receiptIds}` for the current speech owner. It returns a
+boolean indicating whether the current cue was accepted, including cancellation (404 for unavailable scope/session).
+Only opted-in policies with a matching active expectation consume cues. Countdown
+completion requires matching current-session/epoch assistant receipts and no
+intervening user receipt; client evidence alone does not establish audible playback.
+Output-audio deltas are measured without requiring nonexistent audio timing fields;
+transcript timing and sample coverage remain separate.
 No raw audio is stored. Real continuous quiet-audio coverage remains a live-trial
 gate; if it is absent, capture fails conservatively rather than guessing silence.
 

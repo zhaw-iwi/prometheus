@@ -75,6 +75,12 @@ public class ScopedLiveSessionController {
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(service.close(code, agentId, handle));
     }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-cues")
+    public ResponseEntity<Boolean> speechCue(@PathVariable UUID agentId, @PathVariable UUID handle,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
+            @RequestBody ch.zhaw.prometheus.application.LiveSpeechCueService.Request request) {
+        return ResponseEntity.of(service.speechCue(code, agentId, handle, request));
+    }
     @ExceptionHandler(DemoAccessDeniedException.class) public ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }

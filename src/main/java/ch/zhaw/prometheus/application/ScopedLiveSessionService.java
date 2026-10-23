@@ -59,6 +59,8 @@ public class ScopedLiveSessionService {
     @Autowired void configureBridge(LiveContextBridgeService bridge) { this.bridge = bridge; }
     private LiveTranscriptIngressService ingress;
     @Autowired void configureIngress(LiveTranscriptIngressService ingress) { this.ingress = ingress; }
+    private LiveSpeechCueService speechCues;
+    @Autowired void configureSpeechCues(LiveSpeechCueService service) { this.speechCues = service; }
     private GenericTaskSessionLifecycleService taskLifecycle;
     @Autowired void configureTaskLifecycle(GenericTaskSessionLifecycleService lifecycle) { this.taskLifecycle = lifecycle; }
     @org.springframework.context.event.EventListener
@@ -175,6 +177,14 @@ public class ScopedLiveSessionService {
         }).or(() -> closedStatus(code, agentId, handle).map(status -> new UpdatesView(status, -1, null)));
     }
 
+    public Optional<Boolean> speechCue(String code, UUID agentId, UUID handle, LiveSpeechCueService.Request request) {
+        return owned(code, agentId, handle).map(lease -> {
+            if (lease.stopped.get() || lease.context == null) return false;
+            lease.clientSeen = clock.instant();
+            return speechCues.accept(agentId, new ch.zhaw.prometheus.model.policy.ExternalSpeech(handle, lease.context.epoch()), request);
+        });
+    }
+
     public Optional<StatusView> close(String code, UUID agentId, UUID handle) {
         Optional<Lease> owned = owned(code, agentId, handle);
         if (owned.isEmpty()) return closedStatus(code, agentId, handle);
@@ -238,6 +248,7 @@ public class ScopedLiveSessionService {
         boolean first = lease.stopped.compareAndSet(false, true);
         ownership.pauseInput(lease.agentId, lease.handle);
         if (lease.capture != null) lease.capture.inputMuted(true);
+        if (ingress != null && lease.context != null) ingress.stopped(new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()));
         lease.pending.values().forEach(value -> value.result.completeExceptionally(new LiveProviderException("Live session stopped")));
         if (lease.bridge != null) lease.bridge.close();
         if (first && graceful && lease.connection != null && lease.connection.isOpen()) {

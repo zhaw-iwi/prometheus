@@ -21,6 +21,9 @@ public class LiveAgentContextService {
     private LiveTaskResponseService taskResponses;
     @org.springframework.beans.factory.annotation.Autowired
     void taskResponses(LiveTaskResponseService service) { this.taskResponses = service; }
+    private LiveSpeechCueService speechCues;
+    @org.springframework.beans.factory.annotation.Autowired
+    void speechCues(LiveSpeechCueService service) { this.speechCues = service; }
     public LiveAgentContextService(ScopedDemoService demo, AgentApplicationService turns, AgentRepository agents,
             LiveContextProjection projection, PlatformTransactionManager transactions, ExternalSpeechOwnership ownership) {
         this.demo = demo; this.turns = turns; this.agents = agents; this.projection = projection;
@@ -93,6 +96,8 @@ public class LiveAgentContextService {
     public Optional<Update> refresh(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
         return turns.serialized(id, () -> transaction.execute(status -> agents.findById(id)
                 .filter(agent -> owner.equals(ownership.current(agent))).map(agent -> {
+                    // Voice deadlines also run when ordinary agent sys.tick events are disabled.
+                    if (speechCues != null) speechCues.expire(agent, owner);
                     if (taskResponses != null && taskResponses.expire(agent, owner)) agents.saveAndFlush(agent);
                     var narrations = agent.getEventHistory().toList().stream()
                             .filter(ch.zhaw.prometheus.model.event.ConversationProjection::isIntent)

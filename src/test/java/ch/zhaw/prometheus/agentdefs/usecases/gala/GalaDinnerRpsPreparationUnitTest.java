@@ -76,10 +76,14 @@ class GalaDinnerRpsPreparationUnitTest {
         assertEquals(occasion, text(memory, CONTINUATION_ID, ""), "Progress updates must not request repeated speech");
         assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("still needed: [paper]"));
         var start = BehaviourPlan.fromJson(hand("paper", Instant.now(), .99).getPayload());
-        assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
-        assertEquals("rock", start.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertEquals("Gala rock-scissor-paper countdown", agent.getCurrentState().getName());
+        assertNull(start.getMotion());
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNull(hand("paper", Instant.now(), .99, capture));
+        var captureStart = BehaviourPlan.fromJson(countdown().getPayload());
+        assertEquals("rock", captureStart.getMotion().getAsJsonObject().get("handSign").getAsString());
         assertFalse(start.getDisplay().getAsJsonObject().has("winner"));
-        assertEquals("1", text(memory, ROUND, ""));
+        assertEquals("1", text(memory, "gala.rps_round", ""));
         assertNotEquals(capture, text(memory, CAPTURE_ID, ""));
         assertFalse(memory.containsKey(RPS_RECOGNISED));
         assertNull(hand("paper", Instant.now(), .99, capture), "Preparation frames cannot decide the game");
@@ -87,11 +91,12 @@ class GalaDinnerRpsPreparationUnitTest {
         assertEquals("RECEPTION", mode(memory));
         assertEquals("true", text(memory, RPS_PREPARED, ""));
         var replay = BehaviourPlan.fromJson(say("Noch einmal bitte").getPayload());
-        assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
-        assertEquals("2", text(memory, ROUND, ""));
-        assertEquals("scissor", replay.getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertEquals("Gala rock-scissor-paper countdown", agent.getCurrentState().getName());
+        assertEquals("2", text(memory, "gala.rps_round", ""));
+        assertNull(replay.getMotion());
+        assertEquals("scissor", BehaviourPlan.fromJson(countdown().getPayload()).getMotion().getAsJsonObject().get("handSign").getAsString());
         assertFalse(replay.getDisplay().getAsJsonObject().has("remainingSigns"));
-        verify(gateway, times(2)).infer(any());
+        verify(gateway, times(1)).infer(any());
     }
 
     @Test void preparationRejectsBadEvidenceAndSpokenClaimsCannotSkipRecognition() {
@@ -184,8 +189,9 @@ class GalaDinnerRpsPreparationUnitTest {
         occupied();
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
         var replay = BehaviourPlan.fromJson(say("Noch einmal Schere Stein Papier bitte").getPayload());
-        assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
-        assertNotNull(replay.getMotion());
+        assertEquals("Gala rock-scissor-paper countdown", agent.getCurrentState().getName());
+        assertNull(replay.getMotion());
+        assertNotNull(BehaviourPlan.fromJson(countdown().getPayload()).getMotion());
         assertEquals("true", text(memory, RPS_PREPARED, ""));
     }
 
@@ -211,12 +217,19 @@ class GalaDinnerRpsPreparationUnitTest {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
         say("Schere Stein Papier bitte");
         for (String sign : List.of("rock", "paper", "scissor")) hand(sign, Instant.now(), .99);
+        countdown();
         assertEquals("RPS", mode(memory));
         assertEquals("true", text(memory, RPS_PREPARED, ""));
     }
 
     private Event say(String speech) {
         return agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, speech), runtime);
+    }
+    private Event countdown() {
+        var cue = new JsonObject(); cue.addProperty("cueId", text(memory, GalaDinnerRounds.CUE, ""));
+        cue.addProperty("roundId", text(memory, GalaDinnerRounds.ID, ""));
+        cue.addProperty("outcome", "complete"); cue.addProperty("verified", true);
+        return agent.acknowledge(new Event(GalaDinnerRounds.SPEECH_CUE, "system", Event.KIND_SYSTEM, cue.toString()), runtime);
     }
     private Event hand(String sign, Instant time, double confidence) {
         return hand(sign, time, confidence, text(memory, CAPTURE_ID, ""));

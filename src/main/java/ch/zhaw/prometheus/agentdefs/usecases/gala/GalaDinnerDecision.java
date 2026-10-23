@@ -18,6 +18,9 @@ public class GalaDinnerDecision extends Decision {
     }
     @Override public boolean decide(EventHistory events, PolicyRuntime runtime) {
         var storage = ((GalaDinnerPolicy) getPolicy()).storage();
+        if ("INTRO_EXPIRED".equals(galaCondition)) return "RPS_INTRO".equals(GalaDinnerMemory.mode(storage))
+                && !events.isEmpty() && Event.TYPE_SYSTEM_TICK.equals(events.toList().getLast().getType())
+                && !Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerRounds.CUE_AT).plusSeconds(30));
         if (!"EXPIRED".equals(galaCondition)) return galaCondition.equals(GalaDinnerMemory.mode(storage));
         return !events.isEmpty() && Event.TYPE_SYSTEM_TICK.equals(events.toList().getLast().getType())
                 && expired(storage, Instant.now());

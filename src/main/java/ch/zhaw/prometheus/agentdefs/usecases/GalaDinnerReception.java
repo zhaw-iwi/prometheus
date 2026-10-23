@@ -35,6 +35,7 @@ public class GalaDinnerReception implements AgentDefinition {
 
     protected Agent createAgent(boolean prepareRps) {
         Storage storage = new Storage();
+        if (prepareRps) ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRounds.enable(storage);
         var reception = new GalaDinnerState("Gala reception", storage, true);
         var rps = new GalaDinnerState("Gala rock-scissor-paper", storage, true);
         var guessing = new GalaDinnerState("Gala guess the person", storage, true);
@@ -49,6 +50,13 @@ public class GalaDinnerReception implements AgentDefinition {
             rpsSetup.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                     new GalaDinnerAction(storage, "HAND"), routing));
             activities.add(rpsSetup);
+            var introduction = new GalaDinnerState("Gala rock-scissor-paper countdown", storage, true);
+            routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_INTRO"), introduction));
+            introduction.addTransition(new Transition(new LatestEventTypeDecision(ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRounds.SPEECH_CUE),
+                    new GalaDinnerAction(storage, "SPEECH_CUE"), routing));
+            introduction.addTransition(new Transition(new GalaDinnerDecision(storage, "INTRO_EXPIRED"),
+                    new GalaDinnerAction(storage, "CANCEL_INTRO"), routing));
+            activities.add(introduction);
         }
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS"), rps));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "GUESS"), guessing));

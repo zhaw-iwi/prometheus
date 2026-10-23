@@ -269,12 +269,16 @@ Tutorial – auch Roboter brauchen ein Warm-up!» Danach fordert Gigi die drei
 Handzeichen einzeln an. **Stein**, nochmals **Stein**, **Papier**, **Schere** ruhig
 vor der Kamera zeigen, in beliebiger Reihenfolge. Wiederholungen zählen nur
 einmal; vor dem dritten unterschiedlichen erkannten Zeichen beginnt keine Runde.
-Danach die neue Spielaufforderung abwarten und **Schere** erneut zeigen. Das letzte
-Vorbereitungszeichen entscheidet die Spielrunde nicht. Gigi nennt die eigene Wahl
-erst beim Ergebnis; die Handgeste wird beim Rundenstart angefordert.
+Danach den neuen Countdown abwarten. Bis zu dessen bestätigtem Abschluss darf kein
+Roboter-Handbefehl und kein Spielergebnis entstehen. **Schere** ruhig weiter halten:
+Nach dem Countdown müssen frische stabile Bilder desselben Zeichens reichen;
+Absenken und erneutes Heben ist nicht nötig. Das letzte Vorbereitungsbild entscheidet
+die Spielrunde nicht. Gigi nennt die eigene Wahl erst beim Ergebnis; die Handgeste
+wird erst nach dem bestätigten Countdown angefordert. Die genaue Ausrichtung am
+hörbaren Wort «drei» und die tatsächliche Bewegung gesondert beurteilen.
 
 Nach erfolgreicher Vorbereitung muss eine weitere RPS-Auswahl im selben Gespräch
-direkt zur Spielrunde führen, auch nach Gespräch über ein anderes Thema oder
+direkt zum neuen Countdown führen, auch nach Gespräch über ein anderes Thema oder
 Personenraten. Danach die Live-Konversation beenden und eine neue starten
 (z. B. sichtbar weggehen, die bestätigte Abmeldung abwarten und zurückkommen):
 beim nächsten RPS-Start müssen wieder alle drei Zeichen geprüft werden.
@@ -283,3 +287,30 @@ sagen und RPS neu wählen: eine unvollständige Vorbereitung zählt nicht als
 abgeschlossen und beginnt ohne Fortschritt aus dem abgebrochenen Versuch.
 Physische Erkennung und hörbare Formulierung getrennt von den automatisierten
 Zustandsprüfungen beurteilen.
+
+## Wiederholte Runden im Klon
+
+Beide Cockpits hart neu laden und den aktualisierten Backend-Build notieren.
+
+1. Drei RPS-Runden im selben Gespräch spielen. Nach jedem Ergebnis «Noch einmal»
+   sagen; kein erneutes Tutorial, aber je ein neuer Countdown und genau ein Ergebnis.
+   Dasselbe Zeichen über den Rundenwechsel halten und die Erkennung beobachten.
+2. Zu Personenraten wechseln, auflösen und «Noch einmal» sagen: erneut Personenraten
+   mit neuem Ziel. Danach RPS ausdrücklich wählen; kein erneutes Tutorial.
+3. Standardfall: Gigi nennt das Ergebnis und hört zu. Falls Gigi doch «Noch eine Runde?»
+   fragt, sofort «Ja» antworten: genau eine neue Runde. Ein «Ja» ohne passende Einladung
+   darf keinen Spielstart verursachen. Untertitel und hörbare Frage getrennt notieren.
+4. Während des Countdowns eine Frage stellen oder «Stopp» sagen. Keine Handanforderung,
+   keine Erkennung und kein Ergebnis aus einem verspäteten alten Countdown. Die Runde
+   wird abgebrochen; zum erneuten Start ausdrücklich das Spiel verlangen.
+5. Audioausgabe oder Audio-Beobachtung unterbrechen: Abbruch statt automatischem
+   Spielstart. Ohne Cockpit-Signal muss die Runde nach der 30-Sekunden-Frist bei
+   der nächsten Live-Kontextaktualisierung abbrechen, auch mit
+   `prometheus.runtime.tick.enabled=false`. Fehlende letzte Wörter weiterhin protokollieren.
+6. Während Countdown und offener Erfassung jeweils weggehen. Nach bestätigter Abwesenheit
+   endet die Sitzung; spätere alte Signale dürfen keine neue Runde beeinflussen.
+7. Zurückkommen und neue Live-Konversation beginnen: Tutorial wieder erforderlich.
+
+Bei Abweichungen Telemetrie samt `speech_cue_armed`/`speech_cue`/`speech_cue_ack`, Rundenzustand,
+Uhrzeit, hörbarem Countdown und sichtbarer Roboterbewegung exportieren. Die automatische
+Abnahme simuliert Medien und beweist keine physische Audiowiedergabe oder Erkennung.

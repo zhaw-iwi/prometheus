@@ -82,7 +82,6 @@ public class LiveTranscriptCaptureService {
         private boolean closed, muted = true, failed;
         private long sequence;
         private long lastVoiceAt = -1;
-        private Long outputEnd;
         private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
         private long dropped;
         private int queueHighWater;
@@ -100,15 +99,8 @@ public class LiveTranscriptCaptureService {
                     completed(ready(now));
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
                     if (speaker == Speaker.USER && muted) return;
-                    if (speaker == Speaker.ASSISTANT) {
-                        Long start = number(event, "start_ms"), end = number(event, "end_ms");
-                        if (start == null || end == null || start < 0 || end < start)
-                            segmenter.uncertain(speaker, "missing_audio_timing");
-                        else {
-                            if (outputEnd != null && start > outputEnd + 500) segmenter.uncertain(speaker, "provider_audio_gap");
-                            outputEnd = end;
-                        }
-                    }
+                    // Live output-audio deltas have no provider timing fields. PCM sample
+                    // coverage establishes acoustic boundaries; transcript timing stays separate.
                     var pcm = Base64.getDecoder().decode(event.get(speaker == Speaker.USER ? "audio" : "delta").getAsString());
                     var activity = LivePcmActivity.measure(pcm);
                     if (activity.voiced()) lastVoiceAt = now;

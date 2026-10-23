@@ -82,6 +82,41 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Countdown recovery follow-up (2026-10-23): fixed the standalone cockpit's raw
+  SSE subscription, which omitted the backend-intent provenance required to arm
+  playback coordination. Both cockpits now restrict arming to live/acknowledged
+  intents; history and replay cannot arm a countdown. Browser timer defaults
+  retain the Window receiver, fixing `Illegal invocation` during arming/Stop.
+  Live context refresh expires overdue cues through the ordinary event pipeline,
+  with the cue deadline included in refresh scheduling, even when ordinary
+  runtime ticks are disabled. Telemetry includes `speech_cue_armed` identities.
+  Passed 78 focused Java unit/contract checks, 20 disposable-MySQL checks, 133
+  JavaScript checks and 29 browser checks across both cockpits, including three
+  countdown-to-capture rounds with native browser timer functions. Physical
+  audio/robot timing remains unverified. Restart the backend, hard-refresh the
+  cockpit and start a new Live conversation; this repair does not require a new
+  instance of an already updated lifecycle clone.
+
+- Clone game lifecycle (2026-10-23, `feature/gala-game-lifecycle`, based on
+  `feature/gala-rps-preparation`): fresh tutorial clones now separate the
+  once-per-conversation recognition check from every round's countdown and
+  capture. The sign is committed privately; a session/round/cue-bound browser
+  transcript/audio observation, checked against durable sideband receipts,
+  authorizes one hand command and fresh capture. Unconfirmed cues have a
+  30-second deadline and cancel during Live refresh without retry. Completed-round
+  records and identified replay invitations are separate from active secrets/capture IDs. Rapid replies
+  can wait up to five seconds for an invitation; obsolete replies never act.
+  RPS/guessing counters are independent and reset on a new Live conversation.
+  Both cockpits are updated; original Gala game flow is unchanged. Shared audio
+  capture no longer expects nonexistent output-audio timing fields. Passed 293
+  focused Java unit/contract checks, 22 isolated MySQL acceptance checks plus six
+  local gateway cases, 136 JavaScript cases across both repositories, packaging
+  and whitespace checks. Both definitions and embodiments fit at 14,376 / 14,400
+  instruction bytes. The previously documented base Live delivery timing test
+  remains excluded. Actual provider/device countdown timing and robot execution
+  remain unverified; the manual rehearsal is in tests/gptlive/GALA.md. Changes
+  require a fresh clone and hard-refreshing the cockpit; saved graphs are not migrated.
+
 - Gala RPS preparation clone (2026-10-23, `feature/gala-rps-preparation`):
   `usecases.gala_dinner_reception` retains its direct RPS start. The separate
   `usecases.gala_dinner_reception_rps_preparation` definition reuses Gala's
@@ -11255,3 +11290,97 @@ GI-28 in .agents/GALAIMPROVEMENT_RESULTS.md; manual checks: tests/gptlive/GALA.m
 The user authorized commit/push on agents and Heroku deployment verification;
 the release is tracked by GitHub Actions. After deployment, use a fresh Live
 session; this follow-up needs no new instance or stored-graph migration.
+
+
+## Gala clone game lifecycle and countdown coordination
+
+Date: 2026-10-23. Branch `feature/gala-game-lifecycle`, based on the committed
+tutorial clone. The clone opts into persisted round identity and phase, separate
+per-game selection counters, a recent completed-round record, and a transcript-
+identified replay invitation. The original definition retains direct RPS starts
+and its existing selection sequence. New Live conversations reset clone readiness,
+completed-round/replay context and selection counters; idle cleanup retains the
+recent completed game and completed tutorial within the same voice conversation.
+
+RPS uses introduction/countdown, capture and completion phases. Introduction
+commits the sign but publishes neither the sign nor a robot hand command. Both
+cockpits inspect existing WebRTC streams without recording PCM. One expected
+countdown transcript plus observed output and 800 ms of quiet can submit an
+identified cue. Input speech, playback failure, long sampling gaps, repeated or
+ambiguous counts and missing evidence cannot open capture. The scoped endpoint
+checks the current speech owner/epoch, active round/cue, durable transcript
+receipts and intervening input before the ordinary backend transition requests
+the hand command and opens a fresh capture ID. This is conservative coordination,
+not word-level alignment or a physical execution acknowledgement. Unconfirmed
+introductions cancel within 30 seconds and need a new explicit request.
+
+Completion retains confirmed facts independently of active secrets and capture.
+"Noch einmal"/"Again" deterministically selects the recent completed game;
+"Ja" only replays through a fresh, identified invitation. A never-admitted reply
+may wait for its transcript context, bounded to five seconds from first receipt.
+New requests, Stop, owner replacement and expiry supersede it; failed or uncertain
+actions are not retried. Later invitations cannot authorize earlier answers.
+The Live capture fix separates documented output-audio samples from transcript
+timing rather than treating missing audio timestamps as uncertain capture.
+
+Validation: 293 focused Java unit/contract checks, including both definitions'
+instruction bounds; 22 disposable-MySQL acceptance cases plus six local mock
+gateway cases; 136 Node cases across both cockpits, including seven countdown/
+playback cases in each repository; packaging and whitespace checks passed.
+Acceptance artifacts: target/gptlive-acceptance-122dc33eb4/java.log. The runner
+removed its random schema and account. Java compilation used JDK 26, with tests
+run on JDK 21 and the explicit Mockito agent. Unit logs are in
+/tmp/gala-lifecycle-unit-final.log and /tmp/gala-lifecycle-round-final.log;
+client evidence is /tmp/gala-lifecycle-js-final.log. No provider call, physical
+trial, deployment or new commit was performed. The known base delivery-timing
+failure remains outside the focused suite. Live rehearsal and limits are recorded
+in tests/gptlive/GALA.md; standalone cockpit operator guidance was updated while
+preserving its existing UI edits.
+
+## Gala countdown delivery and timeout repair
+
+Date: 2026-10-23. Goal: repair the reported countdown stall using the supplied
+telemetry and read-only database inspection, while retaining the original Gala
+agent and the clone's once-per-conversation tutorial.
+
+The session contained accepted tutorial signs and four spoken countdowns, but no
+persisted completion-cue event. Standalone Valerian subscribed to raw SSE while
+the countdown handler required projected backend-intent provenance. Browser
+regressions additionally exposed incorrectly bound native timer APIs: arming or
+cleanup could throw `Illegal invocation`, a failure hidden by the earlier timer
+mocks. Ordinary runtime ticks were disabled, so their timeout transition could
+not recover a missing browser signal.
+
+Standalone SSE now requests the conversation projection. Both cockpits coordinate
+playback only for current live/acknowledged backend intents; historical and replay
+plans cannot arm it. Timer defaults call `globalThis.setInterval/clearInterval`.
+`speech_cue_armed` telemetry retains the cue and round IDs before audio setup.
+The backend includes the cue deadline in Live activity refresh scheduling and
+cancels an overdue current cue through `sys.gala.speech_cue` during the existing
+serialized Live refresh. This adds no regular agent tick, provider call or
+periodic agent query. Stop and owner/round checks still fence obsolete callbacks.
+The local application properties and recorded application data were not changed.
+
+Validation: 78 focused Java unit/contract cases, 20 disposable-MySQL cases, 133
+Live JavaScript cases across both repositories and 29 browser cases (18 built-in,
+11 standalone) pass. The new browser regression follows three successive rounds
+through the real behaviour-stream handler, native browser timers, caption events,
+cue HTTP requests and fresh capture displays, with simulated media/backend
+boundaries. The integration regression proves that a missing cockpit cue expires
+without any `sys.tick`, cannot issue a hand command and cannot be revived by an
+old callback. It also checks that Live schedules the cue deadline explicitly.
+The isolated runner removed its schema/account. Logs: /tmp/gala-countdown-unit-final.log,
+/tmp/gala-countdown-integration-final.log, /tmp/gala-countdown-js-final.log,
+/tmp/gala-countdown-browser-final.log and /tmp/gala-countdown-root-browser.log;
+counts are retained in /tmp/gala-countdown-verification.json.
+Fresh `bash ./mvnw clean package -DskipTests` also passes, independently of the
+focused test runs. Eclipse's compiler builds all 597 Java sources with zero
+errors; warnings remain. Build logs: /tmp/gala-countdown-clean-package.log and
+/tmp/gala-countdown-ecj.log. Compilation uses the installed full JDK 26 with
+Java 21 release output; the focused Java tests run on the installed Java 21
+runtime with an explicit Mockito agent.
+
+Restart the backend, hard-refresh the cockpit and start a fresh Live conversation.
+No saved-graph migration is needed for an already updated lifecycle clone. Physical
+audibility, exact word alignment and robot execution still require rehearsal.
+No commit, deployment or production database mutation was performed.

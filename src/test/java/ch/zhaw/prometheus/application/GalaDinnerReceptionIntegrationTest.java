@@ -23,7 +23,6 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 import ch.zhaw.prometheus.model.task.TaskPolicy;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerTaskPolicy;
-import ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
@@ -37,6 +36,7 @@ class GalaDinnerReceptionIntegrationTest {
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired GenericTaskSessionLifecycleService taskLifecycle;
     @Autowired LiveTranscriptIngressService ingress;
+    @Autowired LiveSpeechCueService speechCues;
 
     @Test void receptionWeatherAndHandOccasionsSurviveReloadWithoutSpeechInference() {
         String code = UUID.randomUUID().toString().substring(0, 5);
@@ -222,6 +222,9 @@ class GalaDinnerReceptionIntegrationTest {
                 }
             }
             verifyNoInteractions(language);
+            reloaded = agents.findById(id).orElseThrow();
+            assertEquals("Gala rock-scissor-paper countdown", reloaded.getCurrentState().getName());
+            completeCountdown(code, id);
         }
         reloaded = agents.findById(id).orElseThrow();
         assertEquals("Gala rock-scissor-paper", reloaded.getCurrentState().getName());
@@ -236,7 +239,7 @@ class GalaDinnerReceptionIntegrationTest {
                 Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()) && event.getPayload().contains("handSign")));
 
         say(code, id, "Vorheriger Besucher"); group(code, id, 0);
-        assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
+        assertEquals(prepareRps ? "Gala rock-scissor-paper countdown" : "Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
         if (prepareRps) assertEquals("true", agents.findById(id).orElseThrow().getStorage().get("gala.rps_prepared").getAsString());
         contexts.closed(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, startup.epoch()));
         assertEquals("Gala reception", agents.findById(id).orElseThrow().getCurrentState().getName());
@@ -270,6 +273,15 @@ class GalaDinnerReceptionIntegrationTest {
     private void say(String code, UUID id, String speech) {
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, speech),
                 OutputProfile.FULL_PLAN);
+    }
+    private void completeCountdown(String code, UUID id) {
+        var agent = agents.findById(id).orElseThrow(); var memory = agent.getStorage();
+        var owner = ownership.current(agent);
+        String receipt = "count-" + UUID.randomUUID();
+        assertTrue(ingress.receipt(id, owner, new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment(receipt,
+                ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.ASSISTANT, 10000L, 12000L, Instant.now().toEpochMilli(), 1, "Eins, zwei, drei!")));
+        assertTrue(speechCues.accept(id, owner, new LiveSpeechCueService.Request(UUID.fromString(memory.get("gala.countdown_id").getAsString()),
+                UUID.fromString(memory.get("gala.round_id").getAsString()), "complete", List.of(receipt))));
     }
     private void group(String code, UUID id, int count) {
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_SOCIAL_GROUPING, "sensor", Event.KIND_OBSERVATION,

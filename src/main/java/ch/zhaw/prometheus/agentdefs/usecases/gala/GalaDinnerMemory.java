@@ -35,7 +35,7 @@ final class GalaDinnerMemory {
     }
     static void remove(Storage storage, String key) { if (storage.containsKey(key)) storage.remove(key); }
     static String mode(Storage storage) { return text(storage, MODE, "RECEPTION"); }
-    static boolean rpsActivity(Storage storage) { return List.of("RPS_SETUP", "RPS").contains(mode(storage)); }
+    static boolean rpsActivity(Storage storage) { return List.of("RPS_SETUP", "RPS_INTRO", "RPS").contains(mode(storage)); }
     static Instant time(Storage storage, String key) { return Instant.parse(text(storage, key, Instant.EPOCH.toString())); }
     static String recentOutcome(Storage storage, Instant now) {
         return storage.containsKey(OUTCOME) && now.isBefore(time(storage, OUTCOME_EXPIRES))
@@ -54,6 +54,8 @@ final class GalaDinnerMemory {
     }
     static void endEncounter(Storage storage, int historySize) {
         reception(storage); GalaDinnerSensing.clear(storage);
+        // Idle cleanup can occur inside one Live conversation; retain its recent completed game.
+        remove(storage, GalaDinnerRounds.INVITATION);
         // RPS_PREPARED belongs to the Live conversation: an idle cleanup is not a new Live start.
         for (String key : List.of(ABSENT_SINCE, LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED,
                 GalaDinnerGestures.HISTORY, REPLY, GalaDinnerGestures.REQUIRED, GalaDinnerDialogue.FACE_TOPIC_AT)) remove(storage, key);
@@ -74,6 +76,7 @@ final class GalaDinnerMemory {
         if (storage.containsKey(EXIT_REQUEST)) ch.zhaw.prometheus.logging.ActivityTrace.cue("confirmation_resolved", null);
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
+        GalaDinnerRounds.clearActive(storage);
         for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, RPS_RECOGNISED, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
                 OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, CONTINUATION_AMBIENT, TASK_FACTS)) remove(storage, key);
         GalaDinnerSensing.activityEnded(storage);
@@ -87,6 +90,6 @@ final class GalaDinnerMemory {
     }
     static void clear(Storage storage) {
         TaskMemory.clear(storage);
-        for (String key : storage.toMap().keySet()) if (key.startsWith(PREFIX)) storage.remove(key);
+        for (String key : storage.toMap().keySet()) if (key.startsWith(PREFIX) && !GalaDinnerRounds.ENABLED.equals(key)) storage.remove(key);
     }
 }

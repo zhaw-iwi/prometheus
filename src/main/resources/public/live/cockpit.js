@@ -118,8 +118,12 @@ export class LiveCockpit {
     $("gptlive_assistant_caption").textContent = values.ASSISTANT || "The assistant’s speech will appear here.";
   }
   setHistory(history) { this.history = Array.isArray(history) ? history : []; this.renderHistory(); }
-  event(event) {
+  event(event, { coordinatePlayback = false } = {}) {
     if (!event?.id) return;
+    if (coordinatePlayback && event.type === "resp.behaviour_plan" && event.provenance?.origin === "BACKEND_INTENT") {
+      try { this.client.observeBehaviour((typeof event.payload === "string" ? JSON.parse(event.payload) : event.payload)?.display); }
+      catch (_) { /* Invalid plans never arm playback coordination. */ }
+    }
     const index = this.history.findIndex(value => value.id === event.id);
     if (index >= 0) this.history[index] = event; else this.history.push(event);
     this.renderHistory();

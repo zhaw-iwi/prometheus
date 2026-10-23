@@ -11,6 +11,7 @@ import ch.zhaw.prometheus.model.event.LiveTranscriptReceipt;
 public interface LiveTranscriptReceiptRepository extends JpaRepository<LiveTranscriptReceipt, UUID> {
     Optional<LiveTranscriptReceipt> findBySessionIdAndProviderEventId(UUID sessionId, String providerEventId);
     List<LiveTranscriptReceipt> findAllBySessionIdAndProviderEventIdIn(UUID sessionId, List<String> providerEventIds);
+    boolean existsBySessionIdAndEpochAndSpeakerAndReceivedAtGreaterThanEqual(UUID sessionId, UUID epoch, String speaker, java.time.Instant receivedAt);
 
     @Modifying
     @Query("update LiveTranscriptReceipt r set r.segmentId = :segmentId "

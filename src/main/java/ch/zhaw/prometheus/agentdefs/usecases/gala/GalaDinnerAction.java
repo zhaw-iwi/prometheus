@@ -64,6 +64,11 @@ public class GalaDinnerAction extends Action {
                 if (runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean() && present(storage, now))
                     hand(storage, events, now);
             }
+            case "SPEECH_CUE" -> {
+                if (runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean() && present(storage, now))
+                    speechCue(storage, events.toList().getLast(), now);
+            }
+            case "CANCEL_INTRO" -> cancelIntroduction(storage);
             case "EXPIRE" -> {
                 if (rpsActivity(storage)) ActivityTrace.cue("rps_cancelled", null);
                 endEncounter(storage, events.toList().size());
@@ -113,6 +118,17 @@ public class GalaDinnerAction extends Action {
             return;
         }
         String mode = mode(storage);
+        if ("RPS_INTRO".equals(mode)) {
+            cancelIntroduction(storage);
+            return;
+        }
+        String replay = GalaDinnerRounds.request(storage, utterance, now);
+        if (replay != null) {
+            if ("RPS".equals(replay)) reply(storage, startRps(storage, now, events.toList().getLast().getId()));
+            else if ("GUESS".equals(replay)) reply(storage, startGuess(storage, now));
+            traceControl(events, mode, "LOCAL", "WAIT".equals(replay) ? "WAIT" : "START_" + replay, mode(storage), "replay_decision");
+            return;
+        }
         if (!storage.containsKey(EXIT_REQUEST) && !"TASK".equals(mode) && GalaDinnerInput.contextualFollowUp(utterance)) {
             traceControl(events, mode, "LOCAL", "WAIT", mode, "contextual_followup");
             return; // Live retains the conversational topic; this is neither acceptance nor a new activity.
@@ -219,18 +235,7 @@ public class GalaDinnerAction extends Action {
                         ActivityTrace.cue("rps_waiting_for_sign", events.toList().getLast().getId(), Event.TYPE_HAND_SIGN);
                     } else response = startRps(storage, Instant.now(), events.toList().getLast().getId());
                 }
-                case "START_GUESS" -> {
-                    int round = Integer.parseInt(text(storage, ROUND, "0"));
-                    reception(storage);
-                    put(storage, ROUND, Integer.toString(round + 1));
-                    put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
-                    put(storage, MODE, "GUESS");
-                    put(storage, STARTED, Instant.now().toString());
-                    continueRequest(storage, "Guessing round started. You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
-                            + "Invite their first question without revealing the person. Never ask the visitor to choose a person or guess yourself.");
-                    response = plan(null,
-                            "OPEN_QUESTION", "gentleSmile", "toward_user");
-                }
+                case "START_GUESS" -> response = startGuess(storage, Instant.now());
                 case "GIVE_UP" -> {
                     boolean reveal = GalaDinnerInput.revealRequest(utterance);
                     response = reveal ? finishGuess(storage, "give_up") : null;
@@ -287,6 +292,12 @@ public class GalaDinnerAction extends Action {
                 ? "Visitor declined ending preparation; recognised signs retained. " + GalaDinnerRpsPreparation.facts(storage)
                 : "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
         if (!rpsActivity(storage)) return null;
+        if ("RPS_INTRO".equals(mode(storage))) {
+            GalaDinnerRounds.introduction(storage, now);
+            var response = plan(null, "NONE", "attentive", "toward_user");
+            response.setDisplay(GalaDinnerRounds.introductionDisplay(storage));
+            return response;
+        }
         // Signs observed during confirmation cannot decide the resumed round.
         openCapture(storage, now);
         var response = plan(null, "NONE", "attentive", "toward_user");
@@ -302,6 +313,7 @@ public class GalaDinnerAction extends Action {
     private static BehaviourPlan finishGuess(Storage storage, String reason) {
         String person = text(storage, PERSON, "");
         var response = plan(null, "ACKNOWLEDGE", "gentleSmile", "toward_user");
+        GalaDinnerRounds.completed(storage, "GUESS", reason + "; permitted reveal: " + person, Instant.now());
         reception(storage);
         // Keep one bounded confirmed outcome through cleanup. Quiet facts let Live finish its
         // pending response without an additional commentary that could repeat an existing reveal.
@@ -314,16 +326,26 @@ public class GalaDinnerAction extends Action {
     private static void leave(Storage storage, EventHistory events, boolean quiet) {
         if (rpsActivity(storage)) ActivityTrace.cue("rps_cancelled", events.toList().getLast().getId());
         reception(storage);
+        GalaDinnerRounds.endEncounter(storage);
         remove(storage, LAST_INPUT);
         put(storage, SESSION, Integer.toString(events.toList().size()));
         if (quiet) put(storage, QUIET, "true");
     }
 
     private static BehaviourPlan startRps(Storage storage, Instant now, java.util.UUID sourceEventId) {
-        int round = Integer.parseInt(text(storage, ROUND, "0"));
+        boolean lifecycle = GalaDinnerRounds.enabled(storage);
+        int round = lifecycle ? GalaDinnerRounds.next(storage, "RPS") : Integer.parseInt(text(storage, ROUND, "0"));
         reception(storage);
-        put(storage, ROUND, Integer.toString(round + 1));
+        if (!lifecycle) put(storage, ROUND, Integer.toString(round + 1));
         put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
+        GalaDinnerRounds.begin(storage, "RPS");
+        if (lifecycle) {
+            GalaDinnerRounds.introduction(storage, now);
+            var response = plan(null, "NONE", "attentive", "toward_user");
+            response.setDisplay(GalaDinnerRounds.introductionDisplay(storage));
+            ActivityTrace.cue("rps_countdown_pending", sourceEventId);
+            return response;
+        }
         put(storage, MODE, "RPS");
         openCapture(storage, now);
         continueRequest(storage, "RPS round started. Invite the visitor to show rock, scissor or paper to the camera now. "
@@ -339,7 +361,7 @@ public class GalaDinnerAction extends Action {
     }
 
     private static void hand(Storage storage, EventHistory events, Instant now) {
-        if (!rpsActivity(storage) || storage.containsKey(EXIT_REQUEST)) return;
+        if (!Set.of("RPS_SETUP", "RPS").contains(mode(storage)) || storage.containsKey(EXIT_REQUEST)) return;
         Event event = events.toList().getLast();
         try {
             var payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
@@ -369,9 +391,12 @@ public class GalaDinnerAction extends Action {
             display.addProperty("agentSign", agent.canonical());
             display.addProperty("userSign", user.canonical());
             display.addProperty("winner", RpsRules.evaluate(agent, user).winner());
+            if (GalaDinnerRounds.enabled(storage)) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
             response.setDisplay(display);
             ActivityTrace.cue("cue_matched", event.getId(), Event.TYPE_HAND_SIGN);
             ActivityTrace.cue("rps_round_completed", event.getId(), Event.TYPE_HAND_SIGN);
+            GalaDinnerRounds.completed(storage, "RPS", "Robot: " + agent.canonical() + "; visitor: " + user.canonical()
+                    + "; winner: " + RpsRules.evaluate(agent, user).winner(), now);
             reception(storage);
             continueRequest(storage, "RPS round completed. Robot: " + agent.canonical() + "; visitor: " + user.canonical()
                     + "; winner: " + RpsRules.evaluate(agent, user).winner() + ". Explain this result once. Now at reception.");
@@ -381,6 +406,51 @@ public class GalaDinnerAction extends Action {
             ActivityTrace.cue("rps_invalid_sign", event.getId(), Event.TYPE_HAND_SIGN);
             // Invalid or stale observations cannot finish a round or cause a provider call.
         }
+    }
+
+    private static BehaviourPlan startGuess(Storage storage, Instant now) {
+        boolean lifecycle = GalaDinnerRounds.enabled(storage);
+        int round = lifecycle ? GalaDinnerRounds.next(storage, "GUESS") : Integer.parseInt(text(storage, ROUND, "0"));
+        reception(storage);
+        if (!lifecycle) put(storage, ROUND, Integer.toString(round + 1));
+        put(storage, PERSON, GalaDinnerPeople.PEOPLE.get(round % GalaDinnerPeople.PEOPLE.size()).name());
+        put(storage, MODE, "GUESS"); put(storage, STARTED, now.toString());
+        GalaDinnerRounds.begin(storage, "GUESS");
+        continueRequest(storage, "Guessing round started. You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
+                + "Invite their first question without revealing the person. Never ask the visitor to choose a person or guess yourself.");
+        return plan(null, "OPEN_QUESTION", "gentleSmile", "toward_user");
+    }
+
+    private static void speechCue(Storage storage, Event event, Instant now) {
+        if (!GalaDinnerRounds.enabled(storage) || !"RPS_INTRO".equals(mode(storage)) || storage.containsKey(EXIT_REQUEST)) return;
+        var cue = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+        if (!text(storage, GalaDinnerRounds.ID, "").equals(cue.get("roundId").getAsString())
+                || !text(storage, GalaDinnerRounds.CUE, "").equals(cue.get("cueId").getAsString())) return;
+        if (!now.isBefore(time(storage, GalaDinnerRounds.CUE_AT).plusSeconds(30))
+                || !"complete".equals(cue.get("outcome").getAsString()) || !cue.get("verified").getAsBoolean()) {
+            cancelIntroduction(storage); return;
+        }
+        put(storage, MODE, "RPS"); put(storage, GalaDinnerRounds.PHASE, "CAPTURE");
+        remove(storage, GalaDinnerRounds.CUE); remove(storage, GalaDinnerRounds.CUE_AT);
+        for (String key : List.of(CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES, CONTINUATION_OCCASION)) remove(storage, key);
+        openCapture(storage, now);
+        var response = plan(null, "NONE", "attentive", "toward_user");
+        response.setDisplay(captureDisplay(storage));
+        var motion = new JsonObject(); motion.addProperty("handSign", text(storage, SIGN, "")); response.setMotion(motion);
+        reply(storage, response);
+        ActivityTrace.cue("rps_waiting_for_sign", event.getId(), Event.TYPE_HAND_SIGN);
+    }
+
+    private static void cancelIntroduction(Storage storage) {
+        if (!"RPS_INTRO".equals(mode(storage))) return;
+        String round = text(storage, GalaDinnerRounds.ID, "");
+        reception(storage);
+        continueRequest(storage, "RPS countdown was interrupted, unavailable or unconfirmed. No hand command or game capture opened. "
+                + "The round is cancelled; answer any current visitor question, then await a new explicit game request. Do not retry automatically.");
+        var response = plan(null, "NONE", "attentive", "toward_user");
+        var display = display("game_cancelled", false); display.addProperty("roundId", round);
+        response.setDisplay(display); reply(storage, response);
+        ActivityTrace.cue("rps_countdown_cancelled", null);
     }
 
     private static void presence(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
@@ -467,6 +537,8 @@ public class GalaDinnerAction extends Action {
     private static JsonObject captureDisplay(Storage storage) {
         var display = display("game_countdown", true);
         display.addProperty("captureId", text(storage, CAPTURE_ID, ""));
+        if (GalaDinnerRounds.enabled(storage) && storage.containsKey(GalaDinnerRounds.ID))
+            display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
         if ("RPS_SETUP".equals(mode(storage))) GalaDinnerRpsPreparation.display(storage, display);
         return display;
     }

@@ -34,6 +34,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             throw new IllegalArgumentException("A fresh occupied reception observation is required");
         GalaDinnerMemory.put(storage, GalaDinnerMemory.SESSION, Integer.toString(history.toList().size()));
         GalaDinnerMemory.remove(storage, GalaDinnerMemory.RPS_PREPARED);
+        GalaDinnerRounds.newConversation(storage);
         GalaDinnerMemory.remove(storage, GalaDinnerGestures.HISTORY);
         GalaDinnerSensing.begin(storage, java.time.Instant.now());
     }
@@ -54,6 +55,26 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
     }
     @Override public boolean livePendingAcknowledgements() { return false; }
+    @Override public ch.zhaw.prometheus.model.policy.LiveSpeech.Admission liveReplyAdmission(ch.zhaw.prometheus.model.policy.LiveSpeech speech, java.time.Instant now) {
+        return GalaDinnerRounds.admission(storage, speech, now);
+    }
+    @Override public void liveAssistantSpeech(ch.zhaw.prometheus.model.policy.LiveSpeech speech, java.time.Instant now) {
+        GalaDinnerRounds.assistant(storage, speech, now);
+    }
+    @Override public void liveUserSpeech(ch.zhaw.prometheus.model.policy.LiveSpeech speech) {
+        if (GalaDinnerRounds.enabled(storage) && speech.endMs() != null)
+            GalaDinnerMemory.put(storage, GalaDinnerRounds.USER_END, Long.toString(speech.endMs()));
+    }
+    @Override public String liveSpeechCueEventType() { return GalaDinnerRounds.enabled(storage) ? GalaDinnerRounds.SPEECH_CUE : null; }
+    @Override public ch.zhaw.prometheus.model.policy.LiveSpeechCue liveSpeechCue() {
+        if (!GalaDinnerRounds.enabled(storage) || !"RPS_INTRO".equals(GalaDinnerMemory.mode(storage))
+                || !storage.containsKey(GalaDinnerRounds.CUE)) return null;
+        var started = GalaDinnerMemory.time(storage, GalaDinnerRounds.CUE_AT);
+        return new ch.zhaw.prometheus.model.policy.LiveSpeechCue(
+                java.util.UUID.fromString(GalaDinnerMemory.text(storage, GalaDinnerRounds.CUE, "")),
+                java.util.UUID.fromString(GalaDinnerMemory.text(storage, GalaDinnerRounds.ID, "")), started, started.plusSeconds(30),
+                Long.parseLong(GalaDinnerMemory.text(storage, GalaDinnerRounds.USER_END, "0")));
+    }
     @Override public String livePendingGuidance() {
         return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
                 + "No status for reference/guessing answers; no invented lookup/progress, echoes or repeated filler. Results supersede waiting.";
@@ -61,7 +82,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
-        if (java.util.Set.of("GUESS", "RPS_SETUP", "RPS").contains(mode))
+        if (java.util.Set.of("GUESS", "RPS_SETUP", "RPS_INTRO", "RPS").contains(mode))
             facts += "Game conversation rule: institution/programme questions require an exit choice FIRST, without a factual preface or research claim. ";
         if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST))
             facts += "EXIT CONFIRMATION PENDING: game retained, hand acceptance suspended. Ask whether to END it for the other request; "
@@ -78,6 +99,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         } else if ("RPS_SETUP".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS preparation paused for exit confirmation; recognised signs retained, hand acceptance suspended."
                 : GalaDinnerRpsPreparation.facts(storage);
+        else if ("RPS_INTRO".equals(mode)) facts += "Round confirmed; introduction/countdown pending. Hand capture CLOSED and no robot hand command issued.";
         else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";
@@ -98,6 +120,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         }
         else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
         String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
+        facts += GalaDinnerRounds.facts(storage, java.time.Instant.now());
         if (!outcome.isBlank())
             facts += "\nConfirmed guessing outcome " + GalaDinnerMemory.text(storage, GalaDinnerMemory.OUTCOME_ID, "")
                     + ": " + outcome
@@ -122,6 +145,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                             ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null,
                     "true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_AMBIENT, "")));
         var refresh = ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage);
+        var cue = liveSpeechCue();
+        if (cue != null && (refresh == null || cue.deadline().isBefore(refresh))) refresh = cue.deadline();
         var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
         if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
         return new LiveActivityContext(facts, continuation, refresh);

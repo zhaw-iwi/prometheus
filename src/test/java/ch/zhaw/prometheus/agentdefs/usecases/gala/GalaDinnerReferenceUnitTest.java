@@ -8,7 +8,6 @@ import java.util.List;
 import com.google.gson.JsonPrimitive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
 import ch.zhaw.prometheus.application.live.LiveContextProjection;
@@ -42,9 +41,13 @@ class GalaDinnerReferenceUnitTest {
         assertFalse(context.contains("17:30 arrival, welcome drink, seating"));
     }
 
-    @ParameterizedTest @EnumSource(AgentEmbodiment.class)
-    void everyStateHasOneReferenceAndFitsWithMaximumTaskGoals(AgentEmbodiment embodiment) {
-        var agent = new GalaDinnerReception().createAgent();
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> galaVariants() {
+        return java.util.Arrays.stream(AgentEmbodiment.values()).flatMap(embodiment -> java.util.stream.Stream.of(false, true)
+                .map(preparation -> org.junit.jupiter.params.provider.Arguments.of(embodiment, preparation)));
+    }
+    @ParameterizedTest @org.junit.jupiter.params.provider.MethodSource("galaVariants")
+    void everyStateHasOneReferenceAndFitsWithMaximumTaskGoals(AgentEmbodiment embodiment, boolean preparation) {
+        var agent = (preparation ? new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation() : new GalaDinnerReception()).createAgent();
         agent.setEmbodiment(embodiment);
         var memory = ((GalaDinnerPolicy) agent.getCurrentState().ownPolicy()).storage();
         // TaskSpec permits 400 UTF-16 characters; three-byte BMP text is the largest UTF-8 case.

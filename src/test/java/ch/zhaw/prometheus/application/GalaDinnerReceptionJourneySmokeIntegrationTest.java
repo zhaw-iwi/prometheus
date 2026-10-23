@@ -53,6 +53,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     @Autowired ScopedLiveSessionService live;
     @Autowired LiveAgentContextService contexts;
     @Autowired LiveTranscriptIngressService ingress;
+    @Autowired LiveSpeechCueService speechCues;
     @Autowired ExternalSpeechRecordingService recording;
     @Autowired ExternalSpeechOwnership ownership;
     @MockitoBean LanguageModelGateway language;
@@ -288,7 +289,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             prepareRps(first);
             assertFalse(loaded().getStorage().containsKey("gala.outcome"));
             hearAnnouncement(first);
-            assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals(rpsPreparation ? "rock" : "scissor", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
             say(first, "[laugh]");
             assertEquals(calls, requests.size());
@@ -297,8 +298,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(first, "Einen Moment bitte", control("WAIT"));
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             hand("paper", Instant.now());
-            assertEquals("agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
-            assertTrue(hearAnnouncement(first).contains("winner: agent"));
+            assertEquals(rpsPreparation ? "user" : "agent", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertTrue(hearAnnouncement(first).contains(rpsPreparation ? "winner: user" : "winner: agent"));
             assertReception();
             calls = requests.size();
             say(first, "Okay");
@@ -367,7 +368,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             say(second, "Ich möchte auch Schere, Stein, Papier spielen.", control("START_RPS"));
             prepareRps(second);
             hearAnnouncement(second);
-            assertEquals("paper", loaded().getStorage().get("gala.sign").getAsString());
+            assertEquals(rpsPreparation ? "rock" : "paper", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
             assertTrue(ingress.commit(id, first.owner(), lateFirstTurn, oldStatePath).isEmpty());
             assertFalse(ingress.receipt(id, first.owner(), fragment("Noch eine alte Eingabe " + FIRST_NAME)));
@@ -379,28 +380,30 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
             assertEquals(calls, requests.size());
             hand("paper", Instant.now());
-            assertEquals("draw", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
+            assertEquals(rpsPreparation ? "user" : "draw", lastPlan().getDisplay().getAsJsonObject().get("winner").getAsString());
             hearAnnouncement(second); assertReception(); assertCurrentContextIsolated();
 
             // B tries the remaining game, then creates a different custom agreement.
             calls = requests.size(); say(second, "Okay"); assertEquals(calls, requests.size());
             say(second, "Jetzt möchte ich eine Person erraten.", control("START_GUESS"));
             hearAnnouncement(second);
-            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
-            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains("Ada Lovelace"));
+            String secondPerson = rpsPreparation ? "Albert Einstein" : "Ada Lovelace";
+            assertEquals(secondPerson, loaded().getStorage().get("gala.person").getAsString());
+            assertFalse(contexts.snapshot(code, id).orElseThrow().instructions().contains(secondPerson));
             calls = requests.size(); say(second, "Ja, gerne."); assertEquals(calls, requests.size());
-            var round = loaded().getStorage().get("gala.round").deepCopy();
+            String roundKey = rpsPreparation ? "gala.guess_round" : "gala.round";
+            var round = loaded().getStorage().get(roundKey).deepCopy();
             int sessionsBefore = peers.size();
             group(0);
-            assertEquals("Ada Lovelace", loaded().getStorage().get("gala.person").getAsString());
+            assertEquals(secondPerson, loaded().getStorage().get("gala.person").getAsString());
             group(1);
-            assertEquals(round, loaded().getStorage().get("gala.round"));
+            assertEquals(round, loaded().getStorage().get(roundKey));
             assertEquals(sessionsBefore, peers.size()); assertTrue(ownership.isCurrent(id, second.owner()));
             say(second, "Bist du eine Mathematikerin?", control("WAIT"));
-            nativeSpeech(second, "Ja.");
+            nativeSpeech(second, rpsPreparation ? "Nein." : "Ja.");
             say(second, "Ich gebe auf");
             assertNull(contexts.snapshot(code, id).orElseThrow().activity().continuation());
-            nativeSpeech(second, "Es war Ada Lovelace!");
+            nativeSpeech(second, "Es war " + secondPerson + "!");
             assertReception();
             observe(Event.TYPE_FACE_EMOTION, "{\"emotion\":\"neutral\",\"confidence\":0.99,\"ts\":\"" + Instant.now() + "\"}");
             say(second, "Wie wirkt mein Gesichtsausdruck?", control("CHAT"));
@@ -502,6 +505,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
     private String hearAnnouncement(Encounter encounter) {
         var activity = contexts.snapshot(code, id).orElseThrow().activity();
+        if (rpsPreparation && loaded().getStorage().containsKey("gala.mode")
+                && "RPS".equals(loaded().getStorage().get("gala.mode").getAsString()) && activity.continuation() == null)
+            return activity.facts(); // The confirmed countdown already supplied the introduction.
         if (activity != null && activity.continuation() != null) {
             var occasion = activity.continuation();
             await().atMost(Duration.ofSeconds(12)).until(() -> encounter.peer().sent.stream().anyMatch(event ->
@@ -519,6 +525,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     : occasion.facts().contains("Guessing round started")
                     ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
                     : occasion.facts().contains("RPS preparation") ? "Zeigen Sie vor dem Spiel Stein, Papier und Schere einzeln."
+                    : occasion.facts().contains("RPS round confirmed") ? "Eins, zwei, drei!"
                     : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
             return occasion.facts() + "\n" + activity.facts();
         }
@@ -572,17 +579,23 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
     private void prepareRps(Encounter encounter) {
         if (!rpsPreparation) return;
-        if (rpsPrepared) {
-            assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
-            assertEquals("true", loaded().getStorage().get("gala.rps_prepared").getAsString());
-            return;
+        if (!rpsPrepared) {
+            assertEquals("Gala rock-scissor-paper preparation", loaded().getCurrentState().getName());
+            assertFalse(loaded().getStorage().containsKey("gala.sign"));
+            assertTrue(hearAnnouncement(encounter).contains("RPS preparation"));
+            int before = requests.size();
+            for (String sign : List.of("rock", "paper", "scissor")) hand(sign, Instant.now());
+            assertEquals(before, requests.size(), "Recognition must not call the model");
         }
-        assertEquals("Gala rock-scissor-paper preparation", loaded().getCurrentState().getName());
-        assertFalse(loaded().getStorage().containsKey("gala.sign"));
-        assertTrue(hearAnnouncement(encounter).contains("RPS preparation"));
-        int before = requests.size();
-        for (String sign : List.of("rock", "paper", "scissor")) hand(sign, Instant.now());
-        assertEquals(before, requests.size(), "Recognition must not call the model");
+        assertEquals("Gala rock-scissor-paper countdown", loaded().getCurrentState().getName());
+        assertTrue(hearAnnouncement(encounter).contains("RPS round confirmed"));
+        var memory = loaded().getStorage();
+        int sequence = ++receiptSequence;
+        String receipt = "count-" + sequence;
+        assertTrue(ingress.receipt(id, encounter.owner(), new Fragment(receipt, Speaker.ASSISTANT, sequence * 1000L,
+                sequence * 1000L + 500, Instant.now().toEpochMilli(), sequence, "Eins, zwei, drei!")));
+        assertTrue(speechCues.accept(id, encounter.owner(), new LiveSpeechCueService.Request(UUID.fromString(memory.get("gala.countdown_id").getAsString()),
+                UUID.fromString(memory.get("gala.round_id").getAsString()), "complete", List.of(receipt))));
         assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
         assertEquals("true", loaded().getStorage().get("gala.rps_prepared").getAsString());
         rpsPrepared = true;

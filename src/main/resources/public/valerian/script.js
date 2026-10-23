@@ -2126,7 +2126,9 @@ function handleBehaviourEnvelope(event, options = {}) {
     return;
   }
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
-  liveVoice.ui?.event({ ...event, id: event.id || options.eventId });
+  liveVoice.ui?.event({ ...event, id: event.id || options.eventId }, {
+    coordinatePlayback: !options.fromHistory && ["live", "acknowledgement"].includes(options.delivery),
+  });
   if (!liveVoice.ui?.busy && event.provenance?.origin !== "BACKEND_INTENT") queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))
@@ -2636,6 +2638,12 @@ function captureIdOf(display) {
 
 function updateHandCapture(display) {
   const id = captureIdOf(display);
+  if (display?.phase === "introduction" && display.roundId && display.awaitingUserSign === false) {
+    camera.handCaptureOpen = false;
+    camera.stableGestureKey = null; camera.stableGestureCount = 0;
+    resetCameraEmissionGate();
+    return;
+  }
   if (display.awaitingUserSign === true) {
     // Replayed opening plans must not restart stability, bypass cooldown or reopen a resolved capture.
     if (id && id === camera.handCaptureId) return;

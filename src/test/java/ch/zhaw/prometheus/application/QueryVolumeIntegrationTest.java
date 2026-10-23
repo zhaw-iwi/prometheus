@@ -468,6 +468,18 @@ class QueryVolumeIntegrationTest {
                                 "{\"sign\":\"" + sign + "\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"captureId\":\""
                                         + preparationCapture + "\",\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
                 }
+                if (prepareRps) {
+                    var cue = latestSpeechCue(stream.getResponse().getContentAsString());
+                    var owner = ownership.current(agents.findById(f.id()).orElseThrow());
+                    String receipt = "count-" + UUID.randomUUID();
+                    assertTrue(ingress.receipt(f.id(), owner, new Fragment(receipt, Speaker.ASSISTANT,
+                            round * 10000L, round * 10000L + 500, Instant.now().toEpochMilli(), round, "Eins, zwei, drei!")));
+                    mvc.perform(post("/demo/agents/" + f.id() + "/live/sessions/" + session.handle() + "/speech-cues")
+                            .header("X-Prometheus-Access-Code", f.code()).contentType(MediaType.APPLICATION_JSON)
+                            .content(json.writeValueAsString(Map.of("cueId", cue.path("id").asText(), "roundId", cue.path("roundId").asText(),
+                                    "outcome", "complete", "receiptIds", List.of(receipt)))))
+                            .andExpect(status().isOk()).andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string("true"));
+                }
                 assertEquals("Gala rock-scissor-paper", agents.findById(f.id()).orElseThrow().getCurrentState().getName());
                 long before = questions();
                 String capture = latestHandCapture(stream.getResponse().getContentAsString());
@@ -486,6 +498,17 @@ class QueryVolumeIntegrationTest {
         }
     }
 
+    private com.fasterxml.jackson.databind.JsonNode latestSpeechCue(String sse) throws Exception {
+        com.fasterxml.jackson.databind.JsonNode cue = null;
+        for (String line : sse.split("\\R")) {
+            if (!line.startsWith("data:")) continue;
+            var envelope = json.readTree(line.substring(5));
+            if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(envelope.path("type").asText())) continue;
+            var candidate = json.readTree(envelope.path("payload").asText()).path("display").path("speechCue");
+            if (candidate.isObject()) cue = candidate;
+        }
+        assertNotNull(cue); return cue;
+    }
     private String latestHandCapture(String sse) throws Exception {
         String capture = "";
         for (String line : sse.split("\\R")) {

@@ -19,6 +19,25 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @Test void documentedOutputAudioWithoutTimingCanCloseACompleteAssistantSegment() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var now = new AtomicLong(1000); var clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        try {
+            var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                    () -> List.of("reception"), reason -> fail(reason));
+            capture.receive(JsonParser.parseString("{\"type\":\"session.output_transcript.delta\",\"event_id\":\"invitation\",\"start_ms\":0,\"end_ms\":200,\"delta\":\"Noch eine Runde?\"}").getAsJsonObject());
+            var audio = new com.google.gson.JsonObject(); audio.addProperty("type", "session.output_audio.delta");
+            audio.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+            for (int i = 1; i <= 8; i++) { now.set(1000 + i * 100); capture.receive(audio); service.poll(); }
+            capture.close().get(3, TimeUnit.SECONDS);
+            var segment = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress).commit(any(), any(), segment.capture(), eq(List.of("reception")));
+            assertEquals(ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE, segment.getValue().closure());
+        } finally { service.shutdown(); }
+    }
     @Test void optInFilterSeparatesThreeNoisyTurnsAndKeepsEveryReceiptAndDuplicateRule() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class);
         when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());

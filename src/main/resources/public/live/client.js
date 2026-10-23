@@ -3,6 +3,7 @@ import { OutputLease } from "../speech/playback.js";
 import { captureSummary } from "../transcription/settings.js";
 import { LiveCaptions } from "./captions.js";
 import { LiveAudioMonitor } from "./audio-diagnostics.js";
+import { SpeechCuePlayback } from "./speech-cue.js";
 
 export class LiveClient {
   constructor({ audio, fetch = globalThis.fetch.bind(globalThis), createPeer = () => new RTCPeerConnection(),
@@ -15,6 +16,7 @@ export class LiveClient {
   }
   get active() { return !!this.current; }
   get busy() { return this.active || !!this.closing; }
+  observeBehaviour(display) { this.current?.speechCue?.arm(display); }
   status(state, detail = "", extra = {}) { this.state = state; this.onState({ state, detail, ...extra }); }
   check(run) { if (this.current !== run) throw new DOMException("Session stopped", "AbortError"); }
   diagnostic(run, value) {
@@ -75,6 +77,13 @@ export class LiveClient {
     const run = { agentId, accessCode, muted: false, generation: ++this.generation, captions: new LiveCaptions(), ledgerKey: "", stopped: false };
     this.current = run; this.status("Connecting", "Preparing microphone and speaker…"); this.onCaptions(run.captions.snapshot());
     run.audioMonitor = new LiveAudioMonitor(this.audio, value => this.diagnostic(run, { ...value, browserMs: performance.now() }));
+    run.speechCue = new SpeechCuePlayback(this.audio, value => {
+      if (this.current !== run || !run.handle) return;
+      this.diagnostic(run, { phase: "speech_cue", outcome: value.outcome, sourceId: value.cueId, roundId: value.roundId });
+      void this.api(run, `sessions/${run.handle}/speech-cues`, { method: "POST", body: JSON.stringify(value) })
+        .then(accepted => { if (this.current === run) this.diagnostic(run, { phase: "speech_cue_ack", outcome: accepted ? "accepted" : "rejected", sourceId: value.cueId, roundId: value.roundId }); })
+        .catch(() => { if (this.current === run) this.diagnostic(run, { phase: "speech_cue_ack", outcome: "unconfirmed", sourceId: value.cueId, roundId: value.roundId }); });
+    }, { onArm: cue => this.diagnostic(run, { phase: "speech_cue_armed", sourceId: cue.id, roundId: cue.roundId }) });
     try {
       const capability = await this.api(run, "capabilities"); this.check(run);
       if (!capability.enabled || !capability.eligible) throw new Error("This agent is not available for the GPT-Live pilot.");
@@ -95,6 +104,7 @@ export class LiveClient {
       run.peer.ontrack = event => {
         if (this.current !== run) return;
         this.audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+        run.speechCue.streams(this.audio.srcObject, run.media.stream);
         if (event.track) run.audioMonitor.track(event.track, "output");
         this.diagnostic(run, { phase: "output_track" });
         event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected", "output_track_ended"); });
@@ -109,6 +119,7 @@ export class LiveClient {
         if (this.current !== run) return;
         try {
           const event = JSON.parse(data);
+          run.speechCue.receive(event);
           if (event.type === "session.input_transcript.delta" || event.type === "session.output_transcript.delta")
             this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, direction: event.type === "session.output_transcript.delta" ? "output" : "input", providerStartMs: event.start_ms, providerEndMs: event.end_ms });
           if (event.type === "session.started") started();
@@ -184,6 +195,7 @@ export class LiveClient {
   stop(detail = "Voice stopped.", finalState = "Idle", reason = "operator_stop") {
     const run = this.current; if (!run) return this.closing || Promise.resolve();
     this.current = null; run.stopped = true;
+    run.speechCue.close();
     // Silence and release are synchronous, before any provider or backend response.
     this.audio.pause(); this.audio.muted = true; this.audio.srcObject = null;
     this.diagnostic(run, { phase: "output_end", reason });
