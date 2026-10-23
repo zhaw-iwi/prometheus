@@ -183,10 +183,15 @@ public class LiveTranscriptIngressService {
                 .map(Event::getCreatedDate).filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
         boolean activityOwned = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
                 && policy.liveActivityContext() != null;
+        var preceding = segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
+                .stream().filter(previous -> owner.sessionId().equals(previous.getSessionId())).toList();
+        if (!preceding.isEmpty() && segment.startMs() != null && preceding.getFirst().getEndMs() != null
+                && preceding.getFirst().getEndMs() < segment.startMs()
+                && leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
+                && policy.liveResolvedControlReply(segment.text(), agent.getEventHistory(), owner)) return false;
         if (!agent.getCurrentState().getActiveStatePath().equals(observedState)
                 || !activityOwned && latestAnnouncement != null) return true;
-        var spoken = segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
-                .stream().filter(previous -> owner.sessionId().equals(previous.getSessionId()))
+        var spoken = preceding.stream()
                 .map(previous -> new ch.zhaw.prometheus.application.live.LiveShortReplyContext.Spoken(
                         previous.getStatePath(), previous.getEndMs(), previous.getFirstReceivedAt(), previous.getRecordedAt())).toList();
         return ch.zhaw.prometheus.application.live.LiveShortReplyContext.ambiguous(observedState,
