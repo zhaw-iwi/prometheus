@@ -69,6 +69,20 @@ the right with the heartbeat button, choose an agent type, create an instance,
 connect to it, and reset or delete it when needed. The drawer's diagnostics tab
 shows runtime events and agent state.
 
+In **Diagnostics → State machine**, **Float state view** moves the current-state
+label and state list over the cockpit. Drag its title bar, or focus the title and
+use arrow keys, to move it. **Maximise / Restore** expands it within the tab;
+**Open state view in separate window** places it in a browser popup, where the
+normal window controls handle movement and maximisation. Popup permission may
+be required. **Dock state view** returns to Diagnostics; **Close** or Escape
+dismisses the detached view and leaves it available in Diagnostics.
+
+The view follows the original cockpit's selected connection and monitor updates,
+including nested current states, without another agent session or data stream.
+Disconnecting or switching agents clears the previous state. Logout, navigation
+or closing the original cockpit also closes its state popup. Refresh the cockpit
+after deployment to load the new controls.
+
 When creating an instance, select its embodiment: **Cockpit — Valerian** or
 **Robot — Gigi**. The choice is persisted with the agent, shown in the agent
 metadata, and used to resolve Valerian/Gigi identity references in system

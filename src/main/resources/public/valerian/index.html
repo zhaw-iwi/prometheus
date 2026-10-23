@@ -2644,15 +2644,40 @@
             </div>
             <div id="activity_log" class="mono-log is-wrapped" data-testid="activity-log"></div>
           </div>
-          <div class="mb-3">
-            <div class="metric-label">Current State</div>
-            <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
-              data-testid="diagnostics-current-state">Unknown</div>
-          </div>
-          <div class="mb-3">
-            <div class="metric-label">States</div>
-            <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
-              data-testid="diagnostics-state-list"></ul>
+          <div id="state_view_home" class="mb-3">
+            <div id="state_view_placeholder" hidden>
+              <p class="small text-body-secondary mb-2">State view is detached.</p>
+              <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="float">Show floating view</button>
+              <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="dock">Dock back</button>
+            </div>
+            <section id="state_view" class="state-view" data-state-mode="docked" aria-labelledby="state_view_title">
+              <div class="state-view-header">
+                <h6 id="state_view_title" class="state-view-title" data-state-drag>State machine</h6>
+                <div class="state-view-actions">
+                  <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="float"
+                    title="Float state view" aria-label="Float state view"><i class="bi bi-front"></i></button>
+                  <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="maximize"
+                    title="Maximise state view" aria-label="Maximise state view"><i class="bi bi-fullscreen"></i></button>
+                  <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="popup"
+                    title="Open state view in separate window" aria-label="Open state view in separate window"><i class="bi bi-box-arrow-up-right"></i></button>
+                  <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="dock"
+                    title="Dock state view" aria-label="Dock state view"><i class="bi bi-box-arrow-in-down-left"></i></button>
+                  <button type="button" class="btn btn-outline-ink btn-sm" data-state-action="close"
+                    title="Close state view" aria-label="Close state view"><i class="bi bi-x-lg"></i></button>
+                </div>
+              </div>
+              <div class="state-view-body">
+                <div class="mb-3">
+                  <div class="metric-label">Current State</div>
+                  <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
+                    data-testid="diagnostics-current-state" aria-live="polite">Unknown</div>
+                </div>
+                <div class="metric-label">States</div>
+                <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
+                  data-testid="diagnostics-state-list"></ul>
+              </div>
+              <div class="state-view-status" data-state-status role="status"></div>
+            </section>
           </div>
           <div>
             <div class="metric-label">Storage</div>
@@ -2674,6 +2699,8 @@
   <script type="module" src="/speech/browser-global.js"></script>
   <link rel="stylesheet" href="/performance/activity.css">
   <script type="module" src="/performance/panel.js"></script>
+  <link rel="stylesheet" href="/valerian/state-view.css">
+  <script src="/valerian/state-view.js"></script>
   <script src="script.js"></script>
 </body>
 

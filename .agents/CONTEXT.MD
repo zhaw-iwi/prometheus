@@ -127,6 +127,9 @@ PROMETHEUS currently provides:
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;
+- a detachable Diagnostics state view: a movable/maximisable floating panel or
+  cockpit-owned popup reuses the existing state rendering and monitor stream,
+  follows connection changes and returns to Diagnostics when dismissed;
 - persisted creation-time agent embodiments, with `COCKPIT` selecting the
   Valerian persona and `ROBOT` selecting Gigi; the selected persona is exposed
   in agent metadata and consistently resolves legacy identity references in

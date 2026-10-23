@@ -1,0 +1,35 @@
+.state-view { color: var(--ink); }
+.state-view-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.state-view-title { margin: 0; flex: 1; min-width: 0; font-size: .95rem; font-weight: 700; }
+.state-view-actions { display: flex; gap: .25rem; flex-shrink: 0; }
+.state-view-actions button { width: 30px; height: 30px; padding: 0; }
+.state-view-status:empty { display: none; }
+.state-view-status { font-size: .85rem; margin-top: .5rem; }
+.state-view [data-state-action="float"],
+.state-view [data-state-action="popup"] { display: inline-block; }
+.state-view[data-state-mode="docked"] [data-state-action="dock"],
+.state-view[data-state-mode="docked"] [data-state-action="maximize"],
+.state-view[data-state-mode="docked"] [data-state-action="close"],
+.state-view[data-state-mode="floating"] [data-state-action="float"],
+.state-view[data-state-mode="popup"] [data-state-action="float"],
+.state-view[data-state-mode="popup"] [data-state-action="popup"],
+.state-view[data-state-mode="popup"] [data-state-action="maximize"] { display: none; }
+.state-view[data-state-mode="floating"] {
+  position: fixed; z-index: 1035; width: 368px; max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 16px); display: flex; flex-direction: column;
+  padding: 1rem; border: 1px solid var(--demo-line); border-radius: 12px;
+  background: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+}
+[data-theme="dark"] .state-view[data-state-mode="floating"] { background: #121b1e; }
+.state-view[data-state-mode="floating"] .state-view-title { cursor: move; touch-action: none; user-select: none; }
+.state-view-title:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+.state-view[data-state-mode="floating"] .state-view-body { overflow: auto; min-height: 0; }
+.state-view[data-state-mode="floating"].is-maximized {
+  inset: 8px !important; width: auto; max-width: none; height: calc(100dvh - 16px);
+}
+.state-view[data-state-mode="floating"].is-maximized .state-view-title { cursor: default; }
+.state-view-header { flex-shrink: 0; }
+.state-view .state-list span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.state-view .state-list .badge { flex-shrink: 0; }
+.state-view-window { margin: 0; padding: 1rem; min-width: 0; background: var(--demo-panel); }
+.state-view-window .state-view { width: 100%; }

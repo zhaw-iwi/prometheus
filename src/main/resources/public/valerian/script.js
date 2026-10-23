@@ -264,6 +264,8 @@ const HAND_CONNECTIONS = [
   [0, 17],
 ];
 
+const stateView = window.PrometheusStateView.create();
+
 window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
@@ -927,6 +929,7 @@ async function clearAccessSession() {
 }
 
 function showCockpit(visible) {
+  if (!visible) stateView.dock();
   const accessScreen = document.getElementById("access_screen");
   const cockpitShell = document.getElementById("cockpit_shell");
   accessScreen.hidden = visible;
@@ -1582,7 +1585,7 @@ function resetStateView() {
   state.innerState = null;
   state.innerChain = [];
   state.availableStates = [];
-  setText("diagnostics_current_state", "Unknown");
+  stateView.current.textContent = "Unknown";
   renderStateList();
 }
 
@@ -1593,12 +1596,12 @@ function updateCurrentState(stateName, innerName, innerChain) {
   const innermost = state.innerChain.length
     ? state.innerChain[state.innerChain.length - 1]
     : innerName || stateName || "Unknown";
-  setText("diagnostics_current_state", innermost);
+  stateView.current.textContent = innermost;
   renderStateList();
 }
 
 function renderStateList() {
-  const list = document.getElementById("diagnostics_state_list");
+  const list = stateView.list;
   if (!list) {
     return;
   }
@@ -5782,7 +5785,7 @@ function setControlsEnabled(enabled) {
     "gptlive_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.classList.contains("btn-close") ||
+    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.classList.contains("btn-close") ||
       el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
       el.dataset.bsToggle === "collapse") {
       return;
@@ -5892,6 +5895,7 @@ function setCameraStatus(text, mode) {
 
 function cleanupAll() {
   state.isPageUnloading = true;
+  stateView.dock();
   void liveVoice.ui?.stop("Page closed.");
   void stopSpeechPlayback("page_unload", { reset: true, silent: true });
   releaseAllControlOwnership();

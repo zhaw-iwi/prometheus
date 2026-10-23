@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Detachable state view (2026-10-23): Diagnostics can move its existing current
+  state and state list into a draggable, maximisable panel or a separate browser
+  window. Close/dock, popup blocking, theme and connection lifecycle handling
+  retain one cockpit-owned view and the existing monitor stream. Main `11b4ba17`
+  is integrated locally into `agents`; the merged tree passed 62 focused Java
+  checks, 12 browser cases across both Live modes and packaging. Publication and
+  Heroku deployment remain pending. Evidence and limits are in the audit below.
+
 - GI-32 (2026-10-23): completed invitation/reply batches now preserve chronological
   order without additional waiting; overlapping/incomplete speech remains guarded.
   Added durable quick-yes/replay, late-offer, alternating-game and stale-capture
@@ -11317,3 +11325,55 @@ instance. The user subsequently authorized commit/push on agents for deployment.
 The user authorized commit/push on agents and Heroku deployment verification;
 the release is tracked by GitHub Actions. After deployment, use a fresh Live
 session; this follow-up needs no new instance or stored-graph migration.
+
+## Detachable cockpit state view (2026-10-23)
+
+### Goal and changes
+
+The Diagnostics current-state label and state list can move into a fixed-width
+floating panel or a separate browser window. The title supports pointer dragging
+and keyboard movement; maximise/restore, dock and close controls keep it reachable
+on small screens. Close dismisses the detached view without stopping the agent.
+
+One set of DOM nodes retains the existing renderer and monitor SSE updates.
+The popup is a same-origin display owned by the original cockpit, with no extra
+agent session, stream, polling or model request. It follows theme/connection
+changes; disconnect clears the view, and logout/navigation closes the popup.
+Blocked popups give inline guidance. README and the isolated acceptance runner
+document the controls and repeatable verification.
+
+### Verification
+
+- Existing `ValerianClientStaticResourceContractTest` (14) and
+  `LiveCockpitSmokeIntegrationTest` (2) passed using disposable local MySQL.
+  Evidence: `target/gptlive-acceptance-00f7edbe45/java.log` in the main worktree.
+- Final main acceptance passed 11 browser cases with Live enabled and seven with
+  Live disabled. This includes all six new state-view cases, real scoped HTTP /
+  MySQL / monitor SSE transition and reset, existing detached-column media
+  ownership, maximise and cockpit lifecycle checks. Evidence:
+  `target/gptlive-acceptance-44cade12c7` in the main worktree.
+- Inspected desktop light/dark floating, popup and maximised views plus narrow
+  mobile dark layouts. Visual review caught the blank-document stylesheet issue;
+  an explicit same-origin popup page and loaded-style checks resolve it. Initial
+  mock login failure was a missing transcription-capability fixture, corrected
+  before the final runs. No runtime authentication change was required.
+- JavaScript syntax checks, `git diff --check` and Maven packaging passed.
+  Every acceptance invocation removed its disposable schema/account and app.
+
+### Integration and limits
+
+Implemented on `main` for the user-authorised normal merge into `agents`.
+Browser checks use Chromium and scripted inference; no paid OpenAI requests or
+physical multi-monitor trials were needed. Native window placement/maximisation
+and popup permission remain browser/OS controls. No database schema or backend
+contract changes. Publishing and Heroku deployment remain a separate next step.
+
+Local agents integration: merged main `11b4ba17` after preserving deployment-only
+embodiment/Gala documentation in four additive documentation conflicts. Runtime
+files merged without conflicts. The merged tree passed 62 Java checks
+(`ValerianClientStaticResourceContractTest`, `AgentDefinitionRegistryUnitTest`,
+`GalaDinnerReceptionUnitTest`), all six state-view browser cases with Live enabled
+and again disabled, and Maven packaging. The packaged JAR includes all three
+new state-view assets. Evidence: `target/gptlive-acceptance-bee1e59f79`; its real
+HTTP/MySQL/SSE transition popup screenshot was inspected. The runner removed its
+owned app/schema/account. Neither branch was pushed; deployment is not initiated.
