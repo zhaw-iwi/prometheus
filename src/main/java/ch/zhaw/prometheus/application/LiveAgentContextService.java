@@ -90,6 +90,27 @@ public class LiveAgentContextService {
     }
 
     public record Update(LiveContextSnapshot context, java.util.List<ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration> narrations) {}
+    /** Revalidate under the ordinary turn lock; stale/duplicate/browser callbacks cannot select an event type. */
+    public boolean playbackSettled(String code, UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner,
+            UUID cueId, String segmentId) {
+        return turns.serialized(id, () -> {
+            String eventType = transaction.execute(status -> {
+                if (demo.getAgentInfo(code, id).isEmpty() || !ownership.taskWorkAllowed(id, owner)) return null;
+                var agent = agents.findById(id).orElse(null);
+                if (agent == null || !owner.equals(ownership.current(agent))) return null;
+                var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+                if (!(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)) return null;
+                var activity = policy.liveActivityContext();
+                var cue = activity == null ? null : activity.playbackCue();
+                return cue != null && cue.segmentId() != null && cue.id().equals(cueId) && cue.segmentId().equals(segmentId)
+                        && !cue.expired(java.time.Instant.now()) ? policy.livePlaybackCompletionEventType() : null;
+            });
+            if (eventType == null) return false;
+            turns.acknowledge(id, new ch.zhaw.prometheus.controllers.views.EventRequest(eventType, "system",
+                    ch.zhaw.prometheus.model.event.Event.KIND_SYSTEM, cueId.toString()));
+            return true;
+        });
+    }
     public Optional<Update> refresh(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
         return turns.serialized(id, () -> transaction.execute(status -> agents.findById(id)
                 .filter(agent -> owner.equals(ownership.current(agent))).map(agent -> {

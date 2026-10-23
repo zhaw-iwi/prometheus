@@ -44,6 +44,16 @@ class ScopedLiveSessionServiceUnitTest {
         service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @Test void playbackAcknowledgementRequiresTheOwnedActiveSessionAndValidatedSegmentIdentity() {
+        var session = start(); var cue = UUID.randomUUID();
+        when(contexts.playbackSettled(eq("ABCDE"), eq(agent), any(), eq(cue), eq("captured-1"))).thenReturn(true);
+        assertEquals(true, service.playbackSettled("ABCDE", agent, session.handle(), cue, "captured-1").orElseThrow());
+        assertTrue(service.playbackSettled("FGHIJ", agent, session.handle(), cue, "captured-1").isEmpty());
+        assertThrows(IllegalArgumentException.class, () -> service.playbackSettled("ABCDE", agent, session.handle(), cue, "bad segment"));
+        service.close("ABCDE", agent, session.handle());
+        assertTrue(service.playbackSettled("ABCDE", agent, session.handle(), cue, "captured-1").isEmpty());
+        verify(contexts, times(1)).playbackSettled(anyString(), any(), any(), any(), anyString());
+    }
     @Test void providerUsageAndSafeFailuresAreRetainedWithoutMessagesOrSummingUpdates() {
         var session = start();
         gateway.receiver.accept(com.google.gson.JsonParser.parseString("{\"type\":\"session.usage.updated\",\"usage\":{\"seconds\":12},\"context_window\":{\"usage_ratio\":0.4}}").getAsJsonObject());

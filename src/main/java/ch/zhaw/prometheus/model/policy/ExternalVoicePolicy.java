@@ -32,6 +32,11 @@ public interface ExternalVoicePolicy {
      * This does not authorize an action: ordinary acknowledgement/actions validate it again.
      */
     default boolean liveResolvedControlReply(String transcript, EventHistory history, ExternalSpeech owner) { return false; }
+    /** Called in the durable native-speech transaction. Bounded local validation/storage only; no inference or I/O. */
+    default void liveSpeechCaptured(ch.zhaw.prometheus.model.event.Event speech, ExternalSpeech owner,
+            java.time.Instant started, java.time.Instant now) {}
+    /** Internal event admitted only after a current application cue receives a scoped playback acknowledgement. */
+    default String livePlaybackCompletionEventType() { return null; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
     default int liveHistoryStartIndex() { return 0; }
     default String liveOpeningInstructions() { return ""; }
