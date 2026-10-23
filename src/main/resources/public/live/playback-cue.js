@@ -17,7 +17,7 @@ export class PlaybackSettlingGate {
     const now = this.now(), gap = this.last === null || now - this.last > 250;
     const progressing = Number.isFinite(mediaTime) && this.media !== null && mediaTime > this.media;
     this.last = now; this.media = mediaTime;
-    if (!playable || gap || !progressing) { this.quiet = null; return; }
+    if (!playable || gap || !progressing) { this.voice = null; this.quiet = null; return; }
     if (voiced) { this.voice = now; this.quiet = null; return; }
     this.quiet ??= now;
     const cue = this.cue;

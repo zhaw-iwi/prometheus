@@ -34,3 +34,8 @@ test('interruption and replacement cancel the old cue; a new round needs its own
   f.quiet(); assert.deepEqual(f.seen, []); f.sample(true); f.quiet(); assert.deepEqual(f.seen, ['round-two']);
   f.gate.update(null); f.quiet(); assert.deepEqual(f.seen, ['round-two']);
 });
+test('resuming after muted output cannot reuse pre-mute speech as a completed countdown', () => {
+  const f = fixture(); f.gate.update({...f.cue, segmentId: 'countdown'});
+  f.sample(true); f.sample(true); f.sample(false, false); f.quiet();
+  assert.deepEqual(f.seen, []);
+});
