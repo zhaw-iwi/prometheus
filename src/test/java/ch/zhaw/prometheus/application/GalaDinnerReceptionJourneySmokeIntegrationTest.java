@@ -80,6 +80,75 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
     private record Encounter(ExternalSpeech owner, Peer peer) {}
 
+    @ParameterizedTest @ValueSource(strings = {"RPS", "GUESS"})
+    void aQuickYesReceivedBeforeInvitationPersistenceReplaysTheCompletedGameOnce(String game) {
+        createFullAgent(); var encounter = arrive();
+        try {
+            List<String> previousState = completedGame(encounter, game);
+            String oldRound = loaded().getStorage().get("gala.completed_id").getAsString();
+            var offer = timedSegment(encounter, Speaker.ASSISTANT, "Möchtest du noch eine Runde spielen?", 10000, 10500, Closure.COMPLETE);
+            var yes = timedSegment(encounter, Speaker.USER, "Ja", 10600, 10800, Closure.COMPLETE);
+            // Both receipts are durable before the completed invitation is processed.
+            ingress.commit(id, encounter.owner(), offer, previousState).orElseThrow();
+            var result = ingress.commit(id, encounter.owner(), yes, previousState).orElseThrow();
+            assertEquals("COMPLETE", result.status());
+            var memory = loaded().getStorage();
+            assertEquals(game, memory.get("gala.mode").getAsString());
+            assertNotEquals(oldRound, memory.get("gala.round_id").getAsString());
+            String round = memory.get("gala.round_id").getAsString();
+            assertEquals(result.eventId(), ingress.commit(id, encounter.owner(), yes, previousState).orElseThrow().eventId());
+            assertEquals(round, loaded().getStorage().get("gala.round_id").getAsString());
+        } finally { live.close(code, id, encounter.owner().sessionId()); }
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"unrecorded", "overlap", "incomplete"})
+    void uncertainReplayOffersNeverStartFromYesAndExplicitReplayStillRecovers(String kind) {
+        createFullAgent(); var encounter = arrive();
+        try {
+            List<String> previousState = completedGame(encounter, "GUESS");
+            var offer = timedSegment(encounter, Speaker.ASSISTANT, "Möchtest du noch eine Runde spielen?", 10000, 10500,
+                    kind.equals("incomplete") ? Closure.INCOMPLETE : Closure.COMPLETE);
+            var yes = timedSegment(encounter, Speaker.USER, "Ja", kind.equals("overlap") ? 10400 : 10600, 10800, Closure.COMPLETE);
+            if (!kind.equals("unrecorded")) ingress.commit(id, encounter.owner(), offer, previousState).orElseThrow();
+            var result = ingress.commit(id, encounter.owner(), yes, previousState).orElseThrow();
+            assertEquals("CLARIFICATION", result.status()); assertReception();
+            if (kind.equals("unrecorded")) {
+                ingress.commit(id, encounter.owner(), offer, previousState).orElseThrow();
+                assertReception(); // A later invitation recording must not replay the old yes.
+            }
+            var again = timedSegment(encounter, Speaker.USER, "Nochmal bitte", 12000, 12500, Closure.COMPLETE);
+            assertEquals("COMPLETE", ingress.commit(id, encounter.owner(), again,
+                    loaded().getCurrentState().getActiveStatePath()).orElseThrow().status());
+            assertEquals("GUESS", loaded().getStorage().get("gala.mode").getAsString());
+            assertEquals("Marie Curie", loaded().getStorage().get("gala.person").getAsString());
+        } finally { live.close(code, id, encounter.owner().sessionId()); }
+    }
+
+    private void createFullAgent() {
+        code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
+        id = demo.createAgent(code, GalaDinnerReception.KEY, "ROBOT").getID();
+    }
+    private List<String> completedGame(Encounter encounter, String game) {
+        say(encounter, game.equals("RPS") ? "Schere Stein Papier bitte" : "Personenraten bitte", control("START_" + game));
+        var previousState = loaded().getCurrentState().getActiveStatePath();
+        if (game.equals("RPS")) {
+            nativeSpeech(encounter, "Zeig mir deine Hand. Eins, zwei, drei.");
+            var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+            assertTrue(contexts.playbackSettled(code, id, encounter.owner(), cue.id(), cue.segmentId()));
+            hand("paper", Instant.now());
+        } else say(encounter, "Ich gebe auf");
+        assertReception(); return previousState;
+    }
+    private Segment timedSegment(Encounter encounter, Speaker speaker, String text, long start, long end, Closure closure) {
+        int sequence = ++receiptSequence;
+        var part = new Fragment("quick-reply-" + sequence, speaker, start, end, Instant.now().toEpochMilli(), sequence, text);
+        assertTrue(ingress.receipt(id, encounter.owner(), part));
+        return new Segment(UUID.randomUUID(), speaker, List.of(part), closure,
+                closure == Closure.COMPLETE ? "observed_silence" : "audio_coverage_gap", part.receivedMs(), part.receivedMs());
+    }
+
     @BeforeEach void fixtures() {
         when(language.infer(any())).thenAnswer(call -> {
             InferenceRequest request = call.getArgument(0);

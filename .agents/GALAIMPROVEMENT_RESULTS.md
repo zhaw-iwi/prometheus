@@ -2124,3 +2124,74 @@ entry timer, timeout increase, audio buffering change or incomplete-speech bypas
 was added. Intermittent context_delivery_unconfirmed closures and provider echoes/
 waiting phrases remain visible limitations. Physical playback/robot timing and
 camera hand attribution still require device testing. GI-32 follows publication.
+
+Publication: Gala commit a09ed433, main integration/deployment commit 5e2bb851;
+shared feature/main 22246bd9; standalone feature/galadinnerupdate 550ee6c. The
+Valerian main branch was not merged. GitHub deployment run 39993288307 succeeded;
+Heroku release v150 is succeeded, health UP and /live/playback-cue.js is served.
+
+## GI-32 - Quick replies and repeated-round acceptance (2026-10-23)
+
+A deterministic regression exposed USER-before-ASSISTANT ordering when both
+tracks became complete in the same poll. A fully captured, non-overlapping
+invitation now precedes its later reply in that batch. It adds no wait, polling,
+database access, retroactive admission or weaker speech-completeness rule.
+Overlap/incomplete evidence retains conservative ordering and ingress guards.
+
+Verification so far:
+
+- Shared regression failed before the fix (expected ASSISTANT, got USER), then
+  all 20 segmentation/capture/short-context units passed.
+- 28 focused units on agents pass, including alternating completed RPS/guessing
+  rounds, independent counters, cleared targets, and rejection of an old capture.
+- Local MySQL suite target/gptlive-acceptance-ad7c6872eb passes 13 cases: ten
+  Gala journeys including five new quick-reply/uncertainty cases, plus three
+  durable ingress/restart/failure cases. Real receipts precede invitation commit;
+  replay works once for both games across prior game state paths. Duplicate yes
+  cannot start again. Unrecorded, overlapping and incomplete offers clarify;
+  late recording does not replay the old reply; explicit replay still works.
+- Existing two-visitor journey retains session/epoch and previous-encounter
+  rejection coverage. The change is backend-only; the GI-31 cockpit port suffices.
+
+Real-provider final-tree smoke and publication follow below.
+
+Final-tree provider regressions retained:
+
+- f8d55644ed completed two RPS rounds but the second result caption assigned
+  scissors to both parties while claiming a win. The assertion failed. Result
+  facts now explicitly distinguish `Your sign (Gigi)` and `human visitor's sign`,
+  and qualify the winner's role. Live still composes the utterance. The speaking
+  occasion remains within one 480-byte delivery chunk (419 bytes with its prefix).
+- 806dcb3fef completed round one, then captured a complete second countdown with
+  trailing waiting speech. The old end-anchored matcher rejected it. A fresh
+  complete countdown can now occur anywhere in its current-round captured text;
+  current owner/epoch, fragment boundary, completed speech, scoped playback and
+  one-time cue checks remain. A new regression ensures trailing speech cannot
+  open capture without the ACK. This uses the accepted approximate timing tolerance.
+- RPS caption checks now reject explicitly swapped sign ownership as well as
+  wrong winners/draws. The earlier failed artifacts are not relabelled as passes.
+
+`5d996009f5` passed final RPS/replay: two current countdown ACKs, correct distinct
+signs and winners, both reception returns, session attached. Its 61 focused Gala
+units also passed. `1d378dca0b` then hit a harness false timeout: raw deltas for
+`Ist die Person` and a later `Nein.` were concatenated into `PersonNein`, although
+the durable ledger had a separate complete correct answer. Test caption assembly
+now inserts a display-only separator across an 800-ms provider timestamp gap.
+Raw events and production segmentation/playback are unchanged; this is not a
+claimed provider turn-completion marker. The failed run remains recorded.
+
+### GI-32 completion
+
+Final GUESS/replay case `f12e61639a` passed on the final application tree: Einstein
+then Curie, correct Nein/Ja answers, both reveals, both reception returns, six
+COMPLETE user segments, and session attached. Together with RPS case `5d996009f5`
+this completes the requested real-provider happy paths with replay. These are
+separate fresh sessions, not a claim that the failed longer combined trial passed.
+
+The final source also includes the 20 shared/61 Gala unit and 13 MySQL case
+verification above. Provider setup/long-session disconnects, occasional echo or
+waiting wording, audible last-word issues and hardware synchronization remain
+outside the proven result. No actual robot movement or human-camera trial was
+performed. All owned acceptance apps and local schemas/accounts were cleaned.
+No additional standalone cockpit change is needed beyond GI-31's 550ee6c.
+Final `mvnw -q -DskipTests package` passed (target/gala-gi32-package.log).

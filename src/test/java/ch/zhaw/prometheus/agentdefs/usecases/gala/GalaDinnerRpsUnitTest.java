@@ -80,4 +80,11 @@ class GalaDinnerRpsUnitTest {
         assertNotEquals(old, text(memory, GalaDinnerRps.INTRO, "")); assertNull(played(old));
         assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
     }
+    @Test void aCompletedCountdownWithTrailingSpeechStillNeedsPlaybackAcknowledgement() {
+        start(); String intro = text(memory, GalaDinnerRps.INTRO, "");
+        assertTrue(capture("Halt eine Hand bereit. Eins, zwei, drei. Ich warte kurz.", true, owner, Instant.now()));
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNotNull(played(intro)); assertTrue(memory.containsKey(CAPTURE_ID));
+        assertNull(played(intro));
+    }
 }

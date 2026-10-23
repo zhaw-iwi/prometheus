@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-32 (2026-10-23): completed invitation/reply batches now preserve chronological
+  order without additional waiting; overlapping/incomplete speech remains guarded.
+  Added durable quick-yes/replay, late-offer, alternating-game and stale-capture
+  checks. RPS accepts a complete current countdown followed by extra speech, while
+  retaining playback/ownership gates; result facts explicitly assign both signs.
+  Passed 20 shared units, 61 focused Gala units, 13 local DB cases and real OpenAI
+  two-round/replay journeys for both games. No additional Valerian update is needed.
+  Provider echoes/intermittent context disconnects and physical timing remain
+  limitations. GI-30 through GI-32 are implemented; see results for evidence.
+
 - GI-31 (2026-10-23): RPS previews its committed sign on entry, then releases the
   gesture and fresh capture after a correlated countdown/playback acknowledgement.
   Approximate timing is accepted; no physical synchronization guarantee. Explicit

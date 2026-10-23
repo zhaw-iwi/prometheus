@@ -93,4 +93,30 @@ class GalaDinnerRoundsUnitTest {
         say("Nochmal bitte"); assertEquals("Marie Curie", text(memory, PERSON, ""));
         assertFalse(memory.containsKey(SIGN)); assertFalse(memory.containsKey(CAPTURE_ID));
     }
+    @Test void alternatingCompletedGamesKeepSeparateCountersAndRejectTheEarlierCapture() {
+        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""),
+                GalaDinnerReceptionUnitTest.answer("START_GUESS", ""), GalaDinnerReceptionUnitTest.answer("START_RPS", ""),
+                GalaDinnerReceptionUnitTest.answer("START_GUESS", ""));
+        String oldCapture = null;
+        for (int round = 0; round < 2; round++) {
+            say("Schere Stein Papier bitte"); assertEquals(round == 0 ? "rock" : "scissor", text(memory, SIGN, ""));
+            assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
+            String capture = text(memory, CAPTURE_ID, "");
+            if (oldCapture != null) {
+                hand(oldCapture); assertEquals("RPS", mode(memory)); assertNotEquals(oldCapture, capture);
+            }
+            hand(capture); assertEquals("RECEPTION", mode(memory));
+            assertFalse(memory.containsKey(SIGN)); assertFalse(memory.containsKey(CAPTURE_ID));
+            oldCapture = capture;
+            say("Personenraten bitte"); assertEquals(round == 0 ? "Albert Einstein" : "Marie Curie", text(memory, PERSON, ""));
+            say("Ich gebe auf"); assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(PERSON));
+        }
+        assertEquals("2", text(memory, GalaDinnerRounds.RPS_COUNT, ""));
+        assertEquals("2", text(memory, GalaDinnerRounds.GUESS_COUNT, ""));
+        verify(gateway, times(4)).infer(any());
+    }
+    void hand(String capture) {
+        agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor", "{\"sign\":\"paper\",\"confidence\":1,\"source\":\"manual\",\"captureId\":\""
+                + capture + "\",\"ts\":\"" + Instant.now() + "\"}"), runtime);
+    }
 }

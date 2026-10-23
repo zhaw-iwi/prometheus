@@ -1114,6 +1114,11 @@ a passing game smoke does not establish long-session transport reliability.
 
 ### GI-32 - Repeated-round acceptance
 
+Complete: deterministic quick-reply/uncertainty/alternation regressions and real
+OpenAI two-round RPS and guessing journeys pass. Failed provider trials remain in
+results, including transport disconnects and wording errors; physical acceptance
+and long-session reliability are not claimed.
+
 Exercise reception -> game -> reception -> replay for both games with actual
 OpenAI responses, alongside deterministic tests for quick replies, alternating
 games, old capture IDs and session changes. Record caption/state/timing evidence

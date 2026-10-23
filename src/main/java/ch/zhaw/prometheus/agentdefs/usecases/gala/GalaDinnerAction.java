@@ -361,8 +361,11 @@ public class GalaDinnerAction extends Action {
             response.setDisplay(display);
             ActivityTrace.cue("cue_matched", event.getId(), Event.TYPE_HAND_SIGN);
             ActivityTrace.cue("rps_round_completed", event.getId(), Event.TYPE_HAND_SIGN);
-            String result = "RPS round completed. Robot: " + agent.canonical() + "; visitor: " + user.canonical()
-                    + "; winner: " + RpsRules.evaluate(agent, user).winner() + ".";
+            String winner = RpsRules.evaluate(agent, user).winner();
+            String result = "RPS round completed. Your sign (Gigi): " + agent.canonical()
+                    + "; human visitor's sign: " + user.canonical() + "; winner: " + winner
+                    + switch (winner) { case "agent" -> " (you, Gigi)."; case "user" -> " (the human visitor)."; default -> " (equal signs)."; }
+                    + " Keep each sign assigned to its stated owner.";
             GalaDinnerRounds.complete(storage, "RPS", result, now, events.toList().size());
             continueRequest(storage, result + GalaDinnerRounds.FINISH_GUIDANCE);
             put(storage, LAST_INPUT, now.toString());

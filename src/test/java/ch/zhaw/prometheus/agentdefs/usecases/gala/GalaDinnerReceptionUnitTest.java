@@ -117,7 +117,7 @@ class GalaDinnerReceptionUnitTest {
         assertEquals("RPS", mode(memory));
         var result = BehaviourPlan.fromJson(hand("paper", Instant.now(), 0.95).getPayload());
         assertNull(result.getSpeech());
-        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Robot: rock; visitor: paper"));
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Your sign (Gigi): rock; human visitor's sign: paper"));
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("winner: user"));
         assertNull(result.getMotion(), "The result must not repeat the already requested gesture");
         assertEquals("rock", result.getDisplay().getAsJsonObject().get("agentSign").getAsString());

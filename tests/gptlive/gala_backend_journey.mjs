@@ -68,7 +68,17 @@ async function say(name) {
   }, {bytes: audio[name], name});
 }
 async function captionsFrom(index) {
-  return page.evaluate(index => logs.slice(index).filter(e => e.type === 'session.output_transcript.delta').map(e => e.delta || '').join(''), index);
+  return page.evaluate(index => {
+    let text = '', previous;
+    for (const event of logs.slice(index).filter(e => e.type === 'session.output_transcript.delta')) {
+      // A display-only separator avoids joining separate utterances into e.g. "PersonNein".
+      // Raw events remain intact; this is not a production turn/playback boundary.
+      if (previous && Number.isFinite(event.start_ms) && Number.isFinite(previous.end_ms)
+          && event.start_ms - previous.end_ms >= 800) text += '\n';
+      text += event.delta || ''; previous = event;
+    }
+    return text;
+  }, index);
 }
 async function settled(index, expected) {
   await until('assistant output' + (expected ? ' matching ' + expected : ''), async () => {
@@ -203,8 +213,17 @@ try {
       assert.doesNotMatch(entry.introduction, /(?:denk dir|denken Sie sich|such dir|wähle).{0,30}(?:Person|jemanden)/i, 'Reversed guessing roles');
     }
     else {
+      // Naming the winner is insufficient if the caption swaps the two signs.
+      const words = entry.result.toLowerCase().replace(/[–—]/g, ',');
+      const spokenSign = {rock: 'stein', scissor: 'schere', paper: 'papier'};
+      for (const [sign, word] of Object.entries(spokenSign)) {
+        if (sign !== entry.visitorSign) assert.doesNotMatch(words,
+          new RegExp(`\\b(?:(?:du|sie)(?:\\s+(?:hattest|hatten|warst|waren|hast|haben))?|dein(?:e[msn]?)?|ihr(?:e[msn]?)?)\\s+${word}\\b`), 'Incorrect visitor sign');
+        if (sign !== entry.robotSign) assert.doesNotMatch(words,
+          new RegExp(`\\b(?:ich(?:\\s+(?:hatte|war|habe|hab))?|mein(?:e[msn]?)?)\\s+${word}\\b`), 'Incorrect Gigi sign');
+      }
       assert.match(entry.result, entry.robotSign === 'rock' ? /dein(?:e[ms]?)? Papier.{0,30}(?:mein(?:en)? Stein|gewinnt|gewonnen)|du.{0,20}(?:gewinn|gewonn)/i
-        : /mein(?:e)? Schere.{0,30}(?:dein Papier|gewinnt)|ich.{0,20}(?:gewinn|gewonn)/i, 'Incorrect RPS resolution');
+        : /mein(?:e)? Schere.{0,30}(?:dein Papier|gewinnt)|ich.{0,50}(?:gewinn|gewonn)/i, 'Incorrect RPS resolution');
       assert.doesNotMatch(entry.result, /unentschieden|gleichstand/i, 'Contradictory RPS draw');
     }
     assert.doesNotMatch(entry.result, /(?:möchtest|willst|lust).{0,50}(?:nochmal|noch eine|weiterspielen)/i, 'Unrequested replay invitation');

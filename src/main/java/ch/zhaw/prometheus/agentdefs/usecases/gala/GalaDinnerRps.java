@@ -54,7 +54,9 @@ final class GalaDinnerRps {
                 .collect(java.util.stream.Collectors.joining());
         else if (started.isBefore(boundary)) return false;
         String words = text.toLowerCase(Locale.ROOT).replaceAll("[\\p{P}\\p{S}]+", " ").replaceAll("\\s+", " ").trim();
-        if (!words.matches(".*\\b(?:eins|one|1)\\s+(?:zwei|two|2)(?:\\s+(?:und|and))?\\s+(?:drei|three|3)(?:\\s+(?:los|go))?")) return false;
+        // Live may add a sentence after counting. The completed segment and client
+        // settling still gate motion; the countdown need not be its final words.
+        if (!words.matches(".*\\b(?:eins|one|1)\\s+(?:zwei|two|2)(?:\\s+(?:und|and))?\\s+(?:drei|three|3)\\b.*")) return false;
         put(storage, SEGMENT, provenance.segmentId()); put(storage, PHASE, "SPOKEN");
         return true;
     }
