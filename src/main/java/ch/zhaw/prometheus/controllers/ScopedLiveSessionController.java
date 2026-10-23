@@ -75,6 +75,18 @@ public class ScopedLiveSessionController {
             @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
         return ResponseEntity.of(service.close(code, agentId, handle));
     }
+    public record PlaybackAcknowledgement(String segmentId) {
+        @com.fasterxml.jackson.annotation.JsonAnySetter public void rejectUnknown(String name, Object value) {
+            throw new IllegalArgumentException("Unsupported playback acknowledgement field");
+        }
+    }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/playback-cues/{cueId}")
+    public ResponseEntity<Boolean> playback(@PathVariable UUID agentId, @PathVariable UUID handle, @PathVariable UUID cueId,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
+            @RequestBody PlaybackAcknowledgement request) {
+        if (request == null) throw new IllegalArgumentException("Missing playback acknowledgement");
+        return ResponseEntity.of(service.playbackSettled(code, agentId, handle, cueId, request.segmentId()));
+    }
     @ExceptionHandler(DemoAccessDeniedException.class) public ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }

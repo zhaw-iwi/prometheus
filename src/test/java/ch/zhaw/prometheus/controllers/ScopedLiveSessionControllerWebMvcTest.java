@@ -30,6 +30,21 @@ class ScopedLiveSessionControllerWebMvcTest {
         mvc.perform(get("/demo/live/capabilities")).andExpect(status().isUnauthorized());
     }
     String path() { return "/demo/agents/" + agent + "/live/sessions"; }
+    @Test void playbackCueUsesTypedScopedAcknowledgementAndRejectsClientInstructions() throws Exception {
+        UUID cue = UUID.randomUUID(); String route = path() + "/" + handle + "/playback-cues/" + cue;
+        when(service.playbackSettled("ABCDE", agent, handle, cue, "segment-one")).thenReturn(Optional.of(true));
+        mvc.perform(post(route).header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"segmentId\":\"segment-one\"}"))
+                .andExpect(status().isOk()).andExpect(content().string("true"));
+        clearInvocations(service);
+        mvc.perform(post(route).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"segmentId\":\"segment-one\",\"eventType\":\"caller-chosen\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
+        when(service.playbackSettled(null, agent, handle, cue, "segment-one")).thenThrow(new DemoAccessDeniedException());
+        mvc.perform(post(route).contentType(MediaType.APPLICATION_JSON).content("{\"segmentId\":\"segment-one\"}"))
+                .andExpect(status().isUnauthorized());
+    }
     @Test void combinedUpdatesHaveAnOptionalLedgerAndPreserveScopeErrors() throws Exception {
         when(service.updates("ABCDE", agent, handle, 7)).thenReturn(Optional.of(
                 new ScopedLiveSessionService.UpdatesView(null, 7, null)));

@@ -45,7 +45,12 @@ public class ScopedLiveSessionService {
     public record ProviderProblem(long serverMs, String code, String type, String clientEventId) {}
     public record ProviderTelemetry(Double usageSeconds, Double contextUsageRatio, String closeReason,
             List<ProviderProblem> problems, Map<String,Object> configuration) {}
-    public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {}
+    public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts,
+            ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue) {
+        public UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {
+            this(status, transcriptRevision, transcripts, null);
+        }
+    }
 
     private final ScopedDemoService demo;
     private final LiveSessionGateway gateway;
@@ -171,8 +176,15 @@ public class ScopedLiveSessionService {
             // Read before the ledger: a concurrent commit causes another read next poll.
             long revision = lease.transcriptRevision.get();
             return new UpdatesView(lease.status(), revision,
-                    revision == transcriptRevision ? null : ingress.history(agentId, handle));
+                    revision == transcriptRevision ? null : ingress.history(agentId, handle),
+                    lease.context.activity() == null ? null : lease.context.activity().playbackCue());
         }).or(() -> closedStatus(code, agentId, handle).map(status -> new UpdatesView(status, -1, null)));
+    }
+
+    public Optional<Boolean> playbackSettled(String code, UUID agentId, UUID handle, UUID cueId, String segmentId) {
+        if (segmentId == null || !segmentId.matches("[A-Za-z0-9._:-]{1,160}")) throw new IllegalArgumentException("Invalid segment");
+        return owned(code, agentId, handle).map(lease -> contexts.playbackSettled(code, agentId,
+                new ch.zhaw.prometheus.model.policy.ExternalSpeech(handle, lease.context.epoch()), cueId, segmentId));
     }
 
     public Optional<StatusView> close(String code, UUID agentId, UUID handle) {
