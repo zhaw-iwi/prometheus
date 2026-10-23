@@ -231,10 +231,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
 
             say(encounter, "Schere Stein Papier", control("START_RPS"));
             String chosen = loaded().getStorage().get("gala.sign").getAsString();
+            assertNull(lastPlan().getMotion());
+            hearAnnouncement(encounter);
             assertEquals(chosen, lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
             String initialCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
             assertEquals(initialCapture, loaded().getStorage().get("gala.rps_capture_id").getAsString());
-            hearAnnouncement(encounter);
             say(encounter, "Wann beginnt das Essen?", control("CHECK_EXIT"));
             hearAnnouncement(encounter);
             Instant paused = Instant.now(); hand("paper", paused);
@@ -260,8 +261,9 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals(outcome, loaded().getStorage().get("gala.continuation_id").getAsString());
 
             say(encounter, "Noch einmal Schere Stein Papier", control("START_RPS"));
+            hearAnnouncement(encounter);
             String nextCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
-            assertNotEquals(resumedCapture, nextCapture); hearAnnouncement(encounter);
+            assertNotEquals(resumedCapture, nextCapture);
             hand("paper", Instant.now(), resumedCapture);
             assertEquals("RPS", loaded().getStorage().get("gala.mode").getAsString());
             hand("paper", Instant.now(), nextCapture); assertReception();
@@ -594,7 +596,13 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                             + loaded().getStorage().get("gala.task_facts").getAsString()
                     : occasion.facts().contains("Guessing round started")
                     ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
-                    : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
+                    : occasion.facts().contains("RPS round confirmed") ? "Zeigen Sie Ihre Hand. Eins, zwei, drei." : "Die Runde ist beendet.");
+            if (occasion.facts().contains("RPS round confirmed")) {
+                var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+                assertNotNull(cue); assertNotNull(cue.segmentId());
+                assertTrue(contexts.playbackSettled(code, id, encounter.owner(), cue.id(), cue.segmentId()));
+                assertFalse(contexts.playbackSettled(code, id, encounter.owner(), cue.id(), cue.segmentId()));
+            }
             return occasion.facts() + "\n" + activity.facts();
         }
 

@@ -35,6 +35,17 @@ einschieben, solange GIGI noch antwortet.
 
 ### Wiederholte Spielrunden (GI-30)
 
+GI-31: Beim RPS-Start ist GIGIs gewähltes Zeichen im Cockpit sichtbar, aber die
+Roboterhand bleibt zunächst still. Einladung und «eins, zwei, drei» abwarten;
+erst danach soll die Handbewegung angefordert und eine neue Erfassung geöffnet
+werden. Ein vorher gesendetes Zeichen darf die Runde nicht beenden. Dasselbe
+in der zweiten Runde prüfen. Ein abgebrochener oder nicht bestätigter Countdown
+kehrt nach 30 Sekunden zum Empfang zurück; dann das Spiel ausdrücklich neu anfordern.
+Roboterausführung und gehörtes Ende getrennt von der Browser-Bestätigung notieren.
+Etwa eine Sekunde Abweichung zum gesprochenen «drei» ist akzeptabel; exakte
+Synchronisation ist kein Abnahmekriterium. Die älteren GI-23/24-Abschnitte unten
+beschreiben den früheren Sofortstart; für das Bewegungstiming gilt dieser GI-31-Check.
+
 Beide Spiele jeweils zweimal aus dem Empfang starten. Nach dem Ergebnis soll Gigi
 keine weitere Runde anbieten; eine offene Frage nach dem nächsten Wunsch ist okay.
 «Nochmal bitte» muss eine **neue Backend-Runde** desselben Spiels starten; im Cockpit

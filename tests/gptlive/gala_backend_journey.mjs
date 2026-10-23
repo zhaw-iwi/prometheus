@@ -7,12 +7,17 @@ import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 
 const [permission, output] = process.argv.slice(2);
+const connectionOnly = process.argv.includes('--connection-only');
+const selection = process.argv.find(value => value.startsWith('--game='))?.split('=')[1] || 'all';
+if (!['all', 'RPS', 'GUESS'].includes(selection)) throw Error('Invalid game selection');
+const games = selection === 'all' ? ['RPS', 'GUESS'] : [selection];
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !base || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname))
   throw Error('Run through run_acceptance.py --paid-gala with a local disposable database.');
 const key = process.env.OPENAI_API_KEY, token = process.env.PROMETHEUS_ADMIN_TOKEN;
 if (!key || !token) throw Error('Missing provider/admin environment credentials');
 const report = {startedAt: new Date().toISOString(), rounds: [], passed: false,
+  connectionOnly, selection,
   limitations: 'Synthetic audio and camera input. Captions/received media do not prove physical audibility or movement.'};
 const clips = {rps: 'Ich möchte Schere Stein Papier spielen.', guess: 'Personenraten bitte.',
   again: 'Nochmal bitte.', question: 'Ist die Person eine Frau?', giveUp: 'Ich gebe auf. Wer war es?',
@@ -65,8 +70,10 @@ async function say(name) {
 async function captionsFrom(index) {
   return page.evaluate(index => logs.slice(index).filter(e => e.type === 'session.output_transcript.delta').map(e => e.delta || '').join(''), index);
 }
-async function settled(index) {
-  await until('assistant output', async () => (await captionsFrom(index)).trim());
+async function settled(index, expected) {
+  await until('assistant output' + (expected ? ' matching ' + expected : ''), async () => {
+    const text = (await captionsFrom(index)).trim(); return text && (!expected || expected.test(text));
+  });
   // This is a test pacing heuristic, not a production audio-completion contract.
   await page.waitForFunction(() => performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
     {}, {timeout: 30000});
@@ -92,7 +99,7 @@ try {
     finally { heartbeatBusy = false; }
   }, 5000);
   page = await browser.newPage(); await page.goto(base + '/valerian/');
-  const offer = await page.evaluate(async () => {
+  const offer = await page.evaluate(async ({agentPath, code, connectionOnly}) => {
     window.logs = []; window.mark = (type, fields = {}) => logs.push({type, ...fields, at: performance.now()});
     window.ac = new AudioContext({sampleRate: 24000}); await ac.resume();
     window.destination = ac.createMediaStreamDestination();
@@ -100,9 +107,29 @@ try {
     oscillator.connect(gain).connect(destination); oscillator.start();
     window.pc = new RTCPeerConnection(); destination.stream.getTracks().forEach(track => pc.addTrack(track, destination.stream));
     const player = document.createElement('audio'); player.autoplay = true; document.body.append(player);
-    pc.ontrack = event => {player.srcObject = event.streams[0]; player.play().catch(() => {});};
+    window.player = player;
+    const LivePlaybackObserver = connectionOnly ? null : (await import('/live/playback-cue.js')).LivePlaybackObserver;
+    window.playback = LivePlaybackObserver && new LivePlaybackObserver(player, async cue => {
+      const response = await fetch(`${agentPath}/live/sessions/${window.liveHandle}/playback-cues/${cue.id}`, {
+        method: 'POST', headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code},
+        body: JSON.stringify({segmentId: cue.segmentId})
+      });
+      mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json()});
+    }, value => mark('trial.playback_diagnostic', value));
+    window.startPlaybackPoll = handle => {
+      window.liveHandle = handle; let busy = false;
+      window.playbackTimer = setInterval(async () => {
+        if (busy) return; busy = true;
+        try {
+          const response = await fetch(`${agentPath}/live/sessions/${handle}/updates`, {headers: {'X-Prometheus-Access-Code': code}});
+          if (response.ok) {const update = await response.json(); playback?.update(update.playbackCue);}
+        } finally {busy = false;}
+      }, 1000);
+    };
+    pc.ontrack = event => {player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
     window.dc = pc.createDataChannel('oai-events'); dc.onmessage = event => {
       const message = JSON.parse(event.data);
+      if (message.type === 'session.input_transcript.delta') playback?.interrupt();
       if (!message.type.includes('audio.')) mark(message.type, message.type === 'session.started' ? {} : message);
     };
     await pc.setLocalDescription(await pc.createOffer());
@@ -111,13 +138,28 @@ try {
       else {pc.onicegatheringstatechange = () => {if (pc.iceGatheringState === 'complete') resolve();}; setTimeout(resolve, 2000);}
     });
     return pc.localDescription.sdp;
-  });
+  }, {agentPath, code, connectionOnly});
   const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow'}); handle = session.handle;
   await page.evaluate(sdp => pc.setRemoteDescription({type: 'answer', sdp}), session.sdp);
   await page.waitForFunction(() => logs.some(e => e.type === 'session.started'), {}, {timeout: 20000});
   await api(`${agentPath}/live/sessions/${handle}/input?muted=false`, 'POST');
-  await settled(0);
-  for (const game of ['RPS', 'GUESS']) {
+  await page.evaluate(handle => startPlaybackPoll(handle), handle);
+  report.greeting = await settled(0);
+  if (connectionOnly) {
+    const start = await page.evaluate(() => logs.length);
+    await say('info'); report.answer = await settled(start, /SIRA|Agent|Intelligen|Forschung|Labor/i);
+    report.beforeContext = await api(`${agentPath}/live/sessions/${handle}`);
+    await observe('obs.social.grouping', {humanCount: 2, ts: new Date().toISOString()});
+    // Prevent the ordinary one-person heartbeat from overwriting this deliberate context update.
+    clearInterval(heartbeat); heartbeat = null;
+    await wait(7000);
+    report.afterContext = await api(`${agentPath}/live/sessions/${handle}`);
+    assert.equal(report.afterContext.state, 'attached');
+    assert.ok(report.afterContext.context.recent.some(e => e.phase === 'ack'
+      && e.serverMs > report.beforeContext.context.recent.at(-1).serverMs), 'Missing context update ACK');
+    assert.equal((await storage())['gala.mode'] || 'RECEPTION', 'RECEPTION');
+  }
+  for (const game of connectionOnly ? [] : games) {
     for (let round = 0; round < 2; round++) {
       assert.equal((await storage())['gala.mode'] || 'RECEPTION', 'RECEPTION');
       const entry = {game, round, before: await api(agentPath + '/state')}; report.rounds.push(entry);
@@ -131,35 +173,56 @@ try {
       const resultStart = await page.evaluate(() => logs.length);
       if (game === 'RPS') {
         entry.robotSign = active['gala.sign']; entry.visitorSign = 'paper';
+        assert.equal(active['gala.rps_phase'], 'INTRO'); assert.equal(active['gala.rps_capture_id'], undefined);
+        const ready = await until('countdown playback then RPS capture', async () => {
+          const s = await storage(); return s['gala.mode'] === 'RPS' && s['gala.rps_phase'] === 'WAITING' && s;
+        });
         await observe('obs.hand.sign', {sign: 'paper', confidence: 1, source: 'manual',
-          captureId: active['gala.rps_capture_id'], ts: new Date().toISOString()});
+          captureId: ready['gala.rps_capture_id'], ts: new Date().toISOString()});
       } else {
         entry.person = active['gala.person'];
-        await say('question'); entry.answer = await settled(resultStart);
+        await say('question'); entry.answer = await settled(resultStart, /\b(?:Ja|Nein)\b/i);
         entry.revealStart = await page.evaluate(() => logs.length); await say('giveUp');
       }
       await until('reception after result', async () => (await storage())['gala.mode'] === 'RECEPTION');
-      entry.result = await settled(entry.revealStart ?? resultStart);
+      entry.result = await settled(entry.revealStart ?? resultStart, game === 'GUESS' ? new RegExp(entry.person) : /schlägt|schlaegt|gewonn|gewinn|verlor|verlier|unentschieden/i);
       entry.after = await api(agentPath + '/state');
       console.log(`Completed ${game} round ${round + 1}`);
     }
   }
-  assert.equal(new Set(report.rounds.map(r => r.roundId)).size, 4);
-  assert.notEqual(report.rounds[2].person, report.rounds[3].person);
+  if (!connectionOnly) {
+    assert.equal(new Set(report.rounds.map(r => r.roundId)).size, games.length * 2);
+    const guessing = report.rounds.filter(r => r.game === 'GUESS');
+    if (guessing.length) assert.notEqual(guessing[0].person, guessing[1].person);
+  }
   for (const entry of report.rounds) {
     if (entry.game === 'GUESS') {
       assert.ok(entry.result.includes(entry.person), `Missing reveal: ${entry.result}`);
-      assert.match(entry.answer.trim(), entry.person === 'Marie Curie' ? /^Ja\b/i : /^Nein\b/i, 'Incorrect fact-card answer');
+      assert.match(entry.answer.trim(), entry.person === 'Marie Curie' ? /\bJa\b/i : /\bNein\b/i, 'Incorrect fact-card answer');
+      assert.doesNotMatch(entry.answer, entry.person === 'Marie Curie' ? /\bNein\b/i : /\bJa\b/i, 'Contradictory fact-card answer');
       assert.doesNotMatch(entry.introduction, /(?:denk dir|denken Sie sich|such dir|wähle).{0,30}(?:Person|jemanden)/i, 'Reversed guessing roles');
     }
-    else assert.match(entry.result, /gewonn|gewinn|unentschieden|verlor|verlier|schlägt|schlaegt|geht an (?:mich|dich)/i, 'Missing RPS resolution');
+    else {
+      assert.match(entry.result, entry.robotSign === 'rock' ? /dein(?:e[ms]?)? Papier.{0,30}(?:mein(?:en)? Stein|gewinnt|gewonnen)|du.{0,20}(?:gewinn|gewonn)/i
+        : /mein(?:e)? Schere.{0,30}(?:dein Papier|gewinnt)|ich.{0,20}(?:gewinn|gewonn)/i, 'Incorrect RPS resolution');
+      assert.doesNotMatch(entry.result, /unentschieden|gleichstand/i, 'Contradictory RPS draw');
+    }
     assert.doesNotMatch(entry.result, /(?:möchtest|willst|lust).{0,50}(?:nochmal|noch eine|weiterspielen)/i, 'Unrequested replay invitation');
   }
   report.passed = true;
 } catch (error) { report.error = error.message; process.exitCode = 1; }
 finally {
   clearInterval(heartbeat);
+  if (agentPath) report.finalStorage = await storage().catch(error => ({error: error.message}));
+  if (page) report.finalPlayback = await page.evaluate(() => {
+    const p = window.playback, g = p?.gate, a = p?.audio || window.player;
+    return {cue: g?.cue, last: g?.last, voice: g?.voice, quiet: g?.quiet, received: g?.received,
+      done: g ? [...g.done] : [], mediaTime: a?.currentTime, paused: a?.paused, muted: a?.muted,
+      context: p?.context?.state, hidden: document.hidden};
+  }).catch(() => null);
+  if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); window.playback?.close();}).catch(() => {});
   if (handle) {
+    report.finalStatus = await api(`${agentPath}/live/sessions/${handle}`).catch(error => ({error: error.message}));
     report.ledger = await api(`${agentPath}/live/transcripts?sessionId=${handle}`).catch(error => ({error: error.message}));
     report.conversation = await api(agentPath + '/live/history').catch(error => ({error: error.message}));
     await api(`${agentPath}/live/sessions/${handle}`, 'DELETE').catch(() => {});
@@ -167,5 +230,5 @@ finally {
   if (page) report.events = await page.evaluate(() => logs).catch(() => []);
   await browser.close();
   fs.mkdirSync(path.dirname(output), {recursive: true}); fs.writeFileSync(output, JSON.stringify(report, null, 2));
-  console.log(report.passed ? 'Both real-provider journeys passed.' : `Journey failed: ${report.error}`);
+  console.log(report.passed ? (connectionOnly ? 'Connection probe passed.' : `${games.join(' and ')} real-provider journeys passed.`) : `Journey failed: ${report.error}`);
 }

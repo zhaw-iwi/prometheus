@@ -82,6 +82,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GI-31 (2026-10-23): RPS previews its committed sign on entry, then releases the
+  gesture and fresh capture after a correlated countdown/playback acknowledgement.
+  Approximate timing is accepted; no physical synchronization guarantee. Explicit
+  named game choices survive a model-selected wait. Passed 145 focused Java tests,
+  packaging, 68 shared Live JS checks, 152 standalone JS checks, 23 standalone
+  browser checks, 12 Gala local DB cases and the integrated standalone DB journey.
+  Real OpenAI RPS and guessing/replay journeys passed with two rounds each in
+  separate sessions. Other trials had intermittent context-delivery disconnects;
+  longer-session reliability, speech echoes and hardware timing remain limitations.
+  Valerian colleague changes through f63f220 are preserved. GI-32 follows.
+
 - Live playback-cue extension (2026-10-23): opt-in policy capture hook, nullable
   pending cue in combined updates, scoped execution acknowledgement and local
   received-track settling observer. Shared checks: 40 Java service/controller/

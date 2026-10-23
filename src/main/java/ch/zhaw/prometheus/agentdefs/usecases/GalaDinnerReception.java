@@ -44,6 +44,10 @@ public class GalaDinnerReception implements AgentDefinition {
         addReceptionTransitions(List.of(reception, rps, guessing, task), routing, storage, "TURN");
         rps.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                 new GalaDinnerAction(storage, "HAND"), routing));
+        rps.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.COUNTDOWN_PLAYED),
+                new GalaDinnerAction(storage, "COUNTDOWN_PLAYED"), routing));
+        rps.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_PREP_TIMEOUT"),
+                new GalaDinnerAction(storage, "RPS_PREP_TIMEOUT"), routing));
         addAmbientTransitions(reception, routing, storage);
         // The browser can submit human presence before grouping for the same camera sample.
         task.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE),

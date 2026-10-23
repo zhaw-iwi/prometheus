@@ -1081,6 +1081,8 @@ commit/push on agents. Provider wording and physical speech/gestures remain live
 
 ### GI-30 - Explicit completion and replay
 
+Complete and deployed: `d994b890`. Verification and provider limits are in results.
+
 Keep one expiring completed-round record for either game. Resolve an explicit
 replay to that game; accept a short affirmative only for a current, completed
 replay invitation. Completion never advertises replay by default. Separate game
@@ -1092,12 +1094,23 @@ local database; scripted model fixtures are not provider acceptance.
 
 ### GI-31 - Countdown before robot reveal and capture
 
+Complete: local and real-provider acceptance passed, with two rounds per game in
+separate fresh sessions. Combined/other trials also exposed intermittent context
+delivery failures, retained as an explicit transport limitation in results.
+
 Select and display the robot sign on entry, but keep motion and capture closed.
 Correlate the Live invitation/countdown to the current round; only its confirmed
-completion opens capture and requests the committed gesture once. No entry-time
-timer or exact physical-synchronisation claim. Reject early, stale and duplicate
+completion opens capture and requests the committed gesture once. The user clarified
+on 2026-10-23 that approximate timing (about one second either side of the spoken
+countdown ending) is sufficient; a bounded delay is acceptable. Exact playback or
+robot synchronization is not an acceptance gate. Prefer a delay anchored to observed
+countdown speech over an entry-time timer, because context delivery may be late.
+Reject early, stale and duplicate
 callbacks/hand observations. Preserve immediate Stop/access revocation. Update
 both cockpits where required and test cancellation, delayed delivery and replay.
+Provider acceptance may use one fresh session per game, with two rounds and a
+return to reception in each case. Retain combined-session failures separately;
+a passing game smoke does not establish long-session transport reliability.
 
 ### GI-32 - Repeated-round acceptance
 

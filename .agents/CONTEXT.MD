@@ -338,7 +338,11 @@ game starts and RPS results use one identified continuation. Fresh facial estima
 support tentative expression/apparent-mood comments and visitor corrections.
 The configurable task engine retains its existing confirmed-speech/action contract.
 
-Gala RPS commits/shows its sign at start. New/resumed rounds persist an opaque
+Gala RPS commits and previews its sign at start; GI-31 defers robot motion and
+capture until the current countdown is captured and the cockpit acknowledges
+playback settling. Approximate timing is sufficient; this is not a physical
+speaker/robot synchronization guarantee. Preparation expires after 30 seconds.
+New/resumed rounds persist an opaque
 capture ID in the opening/result display; camera/manual observations must echo it.
 Resumption keeps the chosen sign but opens fresh capture. Timestamp, confidence
 and camera stability checks still apply; old IDs cannot affect observation ordering.

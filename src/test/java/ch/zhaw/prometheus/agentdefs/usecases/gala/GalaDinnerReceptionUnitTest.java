@@ -101,12 +101,14 @@ class GalaDinnerReceptionUnitTest {
         var countdown = BehaviourPlan.fromJson(say("Spielen wir Schere Stein Papier").getPayload());
         assertEquals("Gala rock-scissor-paper", agent.getCurrentState().getName());
         assertEquals("rock", text(memory, SIGN, ""));
-        assertEquals("rock", countdown.getMotion().getAsJsonObject().get("handSign").getAsString());
-        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Do not name your sign before the result"));
+        assertNull(countdown.getMotion());
+        assertTrue(text(memory, CONTINUATION_FACTS, "").contains("no naming your sign"));
         assertFalse(text(memory, CONTINUATION_FACTS, "").contains("Robot sign committed: rock"));
         assertFalse(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("rock"));
-        assertFalse(countdown.getDisplay().getAsJsonObject().has("agentSign"));
-        assertEquals(text(memory, CAPTURE_ID, ""), countdown.getDisplay().getAsJsonObject().get("captureId").getAsString());
+        assertEquals("rock", countdown.getDisplay().getAsJsonObject().get("agentSign").getAsString());
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNull(hand("paper", Instant.now(), .99));
+        assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
         Instant began = time(memory, STARTED);
         assertNull(hand("paper", began.minusSeconds(1), 1));
         assertNull(hand("paper", began.plusMillis(1), 0.2));
@@ -131,7 +133,9 @@ class GalaDinnerReceptionUnitTest {
         String previous = "previous-encounter";
         for (int round = 0; round < 2; round++) {
             var start = BehaviourPlan.fromJson(say("Schere Stein Papier bitte").getPayload());
-            String capture = start.getDisplay().getAsJsonObject().get("captureId").getAsString();
+            assertNull(start.getMotion());
+            GalaRpsTestFixture.countdownPlayed(agent, runtime);
+            String capture = text(memory, CAPTURE_ID, "");
             String chosen = text(memory, SIGN, "");
             assertNotEquals(previous, capture);
             assertNull(hand("paper", Instant.now().plusSeconds(1), .99, previous));
@@ -152,7 +156,7 @@ class GalaDinnerReceptionUnitTest {
 
     @Test void anAlreadyPersistedLegacyRoundKeepsItsTimestampBoundaryUntilItEnds() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
-        say("Schere Stein Papier bitte"); remove(memory, CAPTURE_ID);
+        say("Schere Stein Papier bitte"); GalaRpsTestFixture.countdownPlayed(agent, runtime); remove(memory, CAPTURE_ID);
         assertNull(hand("paper", time(memory, STARTED).minusMillis(1), .99, null));
         assertNotNull(hand("paper", Instant.now(), .99, null));
         say("Schere Stein Papier bitte");
@@ -166,7 +170,8 @@ class GalaDinnerReceptionUnitTest {
             assertNull(hand("paper", Instant.now(), .99));
             verify(sink).cue(eq("rps_not_started"), any(), eq(Event.TYPE_HAND_SIGN));
             when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
-            var start = BehaviourPlan.fromJson(say("Schere Stein Papier bitte").getPayload());
+            say("Schere Stein Papier bitte");
+            var start = BehaviourPlan.fromJson(GalaRpsTestFixture.countdownPlayed(agent, runtime).getPayload());
             assertEquals(.7, start.getDisplay().getAsJsonObject().get("minimumConfidence").getAsDouble());
             verify(sink).cue(eq("rps_waiting_for_sign"), any(), eq(Event.TYPE_HAND_SIGN));
             Instant at = time(memory, STARTED).plusMillis(10);
@@ -242,6 +247,7 @@ class GalaDinnerReceptionUnitTest {
     @Test void decliningExitKeepsRpsChoiceAndRequiresANewObservationAfterResumption() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""), answer("CHECK_EXIT", ""));
         say("Schere Stein Papier bitte");
+        GalaRpsTestFixture.countdownPlayed(agent, runtime);
         String sign = text(memory, SIGN, ""), round = text(memory, GalaDinnerRounds.ID, "");
         String oldCapture = text(memory, CAPTURE_ID, "");
         say("Was ist das IWI?");
@@ -430,7 +436,7 @@ class GalaDinnerReceptionUnitTest {
         when(gateway.infer(any())).thenReturn(answer("WAIT", ""));
         assertNull(say("Einen Moment bitte"));
         assertEquals(before.get(MODE), memory.get(MODE));
-        assertEquals(before.get(STARTED), memory.get(STARTED));
+        assertEquals(before.get(STARTED), memory.toMap().get(STARTED));
         assertEquals(before.get(SIGN), memory.toMap().get(SIGN));
         assertEquals(before.get(PERSON), memory.toMap().get(PERSON));
         clearInvocations(gateway);
@@ -446,6 +452,7 @@ class GalaDinnerReceptionUnitTest {
     @Test void laughterFollowedByFreshHandProducesExactlyOneResultWithoutInference() {
         when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
         say("Spielen wir Schere Stein Papier");
+        GalaRpsTestFixture.countdownPlayed(agent, runtime);
         when(gateway.infer(any())).thenReturn(answer("QUIET", ""));
         clearInvocations(gateway);
         assertNull(say("[laugh]"));

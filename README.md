@@ -527,22 +527,31 @@ journey checks result submission/recording, not real provider speech or audibili
 
 The explicit graph contains reception, RPS, guessing, task co-creation and internal routing:
 
-- RPS commits its sign and immediately emits `motion.handSign` with the start
-  invitation, then accepts the next fresh stable camera sign. It calculates the
-  result locally and returns to reception without repeating the gesture. This is
-  deliberately an early reveal: the visitor can see Gigi's choice before choosing.
-  There is no exact spoken countdown/capture synchronisation. The existing camera
-  reset clears cooldown; delayed older ACKs cannot restore it. Physical gesture
+In reception, unambiguous named game selections such as `Personenraten bitte`
+(including the ASR spelling `Personen raten`) retain their intended start operation
+even if control inference returns wait/chat. Questions, alternatives, negation and
+quoted examples are not covered by this narrow rule.
+
+- RPS selects its sign on entry and exposes `display.agentSign` for cockpit preview,
+  without `motion` or a capture ID. Live invites the visitor and counts one, two,
+  three. A completed, current-round native countdown plus the cockpit's scoped
+  playback-settling acknowledgement releases `motion.handSign` and opens capture
+  once. Early, duplicate, foreign-session and expired acknowledgements cannot
+  release it. Interrupted/unobserved countdowns time out to reception after 30
+  seconds; a new explicit game request is needed. This is observed received-audio
+  settling, not exact physical synchronisation or proof that the final word was
+  heard. The existing camera reset clears cooldown; delayed older ACKs cannot
+  restore it. Physical gesture
   execution, camera attribution and result latency still need device testing. Accepted
-  signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after round
-  entry; numeric confidence must be between 0.7 and 1. Camera samples require three
+  signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after capture
+  opening; numeric confidence must be between 0.7 and 1. Camera samples require three
   stable frames. Each newly started/resumed capture also requires the exact
   `captureId` from the opening display, even for manual observations. Wrong/missing
   IDs cannot finish the round or affect its observation ordering. Resumption keeps
   Gigi's chosen sign but issues a new ID. Results carry the accepted ID and close
-  capture. An already-persisted round without an ID retains its timestamp boundary
-  until completion/resumption. Refresh the cockpit before using this version;
-  external clients must echo the ID for new rounds. Spoken signs do not finish the
+  capture. Create a fresh Gala instance and refresh both cockpits for the new
+  countdown contract; old clients cannot release a new countdown. External
+  clients must acknowledge playback and echo capture IDs. Spoken signs do not finish the
   round. Live must wait for the backend result.
 - Guessing persists a person from four maintained fact cards and supplies the selected
   name/card to Live as quiet activity data. Live answers yes/no questions, distinguishes

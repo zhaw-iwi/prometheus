@@ -25,11 +25,15 @@ def main():
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--paid-gala', action='store_true', help='Opt in to real OpenAI audio/control journeys on the disposable local database')
+    parser.add_argument('--connection-only', action='store_true', help='With --paid-gala, probe greeting/question/context update without games')
+    parser.add_argument('--game', choices=['all', 'RPS', 'GUESS'], default='all', help='Paid journey selection; each game includes two rounds/replay')
     parser.add_argument('--database-properties', default='src/main/resources/application.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     args = parser.parse_args()
     if args.paid_gala and args.browser:
         parser.error('--paid-gala and mocked --browser acceptance are separate runs')
+    if args.connection_only and not args.paid_gala:
+        parser.error('--connection-only requires --paid-gala')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     props = {}
@@ -137,7 +141,8 @@ def main():
                         time.sleep(0.5)
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
-                run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json')], 'paid-journey')
+                run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
+                    '--game=' + args.game, *(['--connection-only'] if args.connection_only else [])], 'paid-journey')
                 stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',

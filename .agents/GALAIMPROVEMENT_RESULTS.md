@@ -1936,3 +1936,191 @@ These are not hidden as backend failures or declared fixed. Pending unrecorded
 invitation/fast-reply coordination needs GI-32. Physical audio/robot timing is not
 established. GI-31 changes the RPS countdown/reveal boundary next; reception-only
 backup, personality, reference and normal sensory behaviour remain unchanged.
+
+## GI-31 - Countdown preparation and playback coordination (2026-10-23)
+
+Implementation under acceptance; do not treat the provider gate as passed until
+the final result below is recorded.
+
+- RPS selects/previews its sign on entry, without motion or capture. A new
+  persisted introduction identity owns INTRO -> SPOKEN -> WAITING. Only a captured
+  current-round countdown followed by a scoped browser playback acknowledgement
+  emits one motion plan and opens a new capture ID. Results never repeat motion.
+- Captured native speech is checked locally in its existing transaction. Trusted
+  fragment receipt times separate a current countdown from an earlier echoed
+  request in the same segment. Old, partial, foreign-session and interrupted
+  speech cannot authorize execution. No model call or extra fragment query.
+- The shared opt-in cue travels in existing combined updates. One accepted
+  countdown bypasses ordinary five-second context coalescing; other commits keep
+  the existing read budget. The scoped ACK rechecks access, owner/epoch, current
+  cue, presence and expiry under the turn lock. Stop/revocation stay immediate.
+- Browser analysis observes received audio without changing audible routing or
+  recording it. Quiet after playable audio and matching capture is required;
+  duplicate, interrupted, muted, stalled, expired or unobserved cues fail closed.
+  Media-clock progress is checked over a bounded window to tolerate quantized
+  HTML timestamps. This is not a physical speaker/robot synchronization guarantee.
+- Unconfirmed preparation times out to reception after 30 seconds. Exit-confirmation
+  resume during preparation creates a new intro; resume after reveal keeps the
+  sign and opens a fresh capture without repeating motion. Both cockpits close
+  leftover capture when a new countdown preview arrives.
+- Standalone Valerian port preserves host-scoped ownership and its robot routing;
+  no robot-server changes. Use a fresh Gala instance and hard-refresh clients.
+
+Verified locally:
+
+- 144 Java units in target/gala-gi31-final-units.log: Gala lifecycle/rounds/reference/
+  backup, shared Live scope/controller/delivery/capture and short replies. All pass.
+- 68 shared Live JavaScript checks; standalone 146 JavaScript checks and focused
+  canonical-preview/gesture browser test pass.
+- Local MySQL: 12 Gala integration/journey cases pass in
+  target/gptlive-acceptance-bf19a5392d; after fragment correlation, seven Gala plus
+  three ingress cases pass in target/gptlive-acceptance-02ccebec97.
+- Standalone real local DB/HTTP/SSE journey passes in Valerian
+  .tmp/gala-acceptance-1cdf831f62. Provider/media boundaries are simulated;
+  the production gate, scoped ACK, persistence and SSE dispatch are real.
+  Desktop render inspected. Earlier assertion failure was a reveal phrase split
+  across context chunks; the test now joins chunks, without production changes.
+- Final packaging passed: `./mvnw.cmd -q -DskipTests package`,
+  target/gala-gi31-package-final.log. Provider outcome remains pending as below.
+
+Real-provider probes (all disposable local schemas/accounts cleaned):
+
+- 03b30e730e: both RPS countdowns completed; harness advanced after a guessing
+  filler before the actual answer/reveal. Also captured a contradictory draw/win
+  utterance. Assertions now wait for requested semantic answers and reject draws
+  when signs differ; no provider failure is counted as a pass.
+- 67ab89d6b7: second RPS countdown shared a segment with an earlier echo and was
+  rejected by the old segment-start boundary. Fragment correlation fixes that
+  specific case with a deterministic regression.
+- 02ccebec97: second countdown marked INCOMPLETE/audio_coverage_gap; gate stayed
+  closed. This remains intentional. b9f0c0e015 had a completed second countdown
+  but no ACK; client timing diagnostics were then added. A quantized-clock gate
+  defect was identified separately and fixed with a regression; causation for
+  that older probe is not established.
+- 73290171ae: provider stream stopped progressing around initial input, before
+  backend game entry. e0a012e859: setup/input-unmute returned HTTP 502 with
+  context_delivery_unconfirmed. Neither is a gameplay acceptance result.
+
+Physical audible countdown, robot latency and camera attribution remain unverified.
+
+### Earlier acceptance handoff (superseded by completion below)
+
+The final `3a8c13d0ca` trial also failed before game entry. Its status trace shows
+one context append acknowledged after about 8.7 seconds, then a subsequent append
+without confirmation; the session closed with `context_delivery_unconfirmed`.
+The user-turn ledger stayed empty and backend state remained RECEPTION. Do not
+attribute this to countdown logic or call it a successful gameplay trial. There
+is no claim that OpenAI has a general outage. No further paid retries were run.
+
+Current verification: 144 Java cases pass in target/gala-gi31-final-units.log;
+shared Live JS 68 and standalone JS 146 pass after the media-clock and leftover
+capture corrections. The full real-provider two-game/two-round journey has NOT
+passed on the final GI-31 tree. The initial trial's two RPS completions are useful
+evidence but not a substitute for final acceptance. Both-games provider acceptance
+of the published GI-30 remains separately documented above.
+
+Resume here:
+
+1. Preserve current uncommitted Gala/tests/docs and standalone cockpit edits.
+   Shared local commits originate on feature/gptlive in the database-query
+   worktree: 665357e, ea5cd17, 32c0fe3, 779546a, 22246bd; cherry-picked to agents.
+   None of these GI-31 commits is pushed. Main is still at published f56f0f36.
+2. Rerun `python tests/gptlive/run_acceptance.py --database-properties
+   src/main/resources/application-test.properties --java-tests none --paid-gala`
+   when a healthy Live connection is available. Run serially without another
+   heavyweight build/browser runner. This uses real OpenAI and only a disposable
+   loopback database. Inspect rounds, finalStorage, finalPlayback, finalStatus,
+   ledger and events in journey.json. All failed probes remain available.
+3. For a complete captured countdown without release, inspect pending cue,
+   segment identity, expiry, gate voice/quiet/progress and done IDs. Never bypass
+   incomplete speech, scope checks or the gate simply to obtain a passing test.
+   Incomplete capture still intentionally requires a new attempt after timeout.
+   The runner disables automatic ticks; timeout itself is covered by a direct
+   deterministic state-machine test, not these failed provider traces.
+4. Once both real journeys pass, update these results and PROJECT, complete GI-31,
+   commit the Gala and Valerian changes, integrate shared work to main, then push
+   feature/gptlive/main/agents and Valerian feature/galadinnerupdate as authorized.
+   Check deployment before GI-32. Do not merge Valerian's feature into main.
+5. GI-32 remains: quick affirmative before assistant recording settles, ambiguous/
+   overlapping/unrecorded invitation handling, alternating games/session changes,
+   final repeated-round acceptance. No speculative speech admission was added.
+
+The published agents tip is d994b890 (GI-30), with successful Heroku Actions run
+39973760171. The reception-only backup and stable persona/reference remain intact.
+
+### GI-31 resumed: timing tolerance and connection comparison (2026-10-23)
+
+The user accepts approximate countdown/gesture timing (about one second either
+side) and a bounded delay. Exact physical synchronization is no longer an
+acceptance condition. Round identity, one gesture/capture opening, cancellation,
+scope and repeat-round correctness remain required.
+
+Added `--paid-gala --connection-only` to the isolated acceptance runner. It uses
+the same Willow WebRTC setup, greeting, SIRA question and a changed social context;
+it checks the session remains attached and the context update is acknowledged.
+No game or playback cue is involved. Both sequential comparisons passed:
+
+- Current GI-31: target/gptlive-acceptance-131e74b060/journey.json, six context
+  acknowledgements, 739,200 received output samples.
+- Unchanged GI-30 application d994b890 in a detached local worktree:
+  target/gi30-connection-baseline/target/gptlive-acceptance-01c732c9e2/journey.json,
+  nine context acknowledgements, 926,400 received output samples. Only the probe
+  scripts differ in that worktree; application code is unchanged.
+
+This does not establish the cause of the earlier setup failures or a general
+provider outage. Both disposable schemas/accounts and owned app processes were
+removed. Full current-tree game acceptance follows separately.
+
+The next full run, `48c9809e4d`, completed both RPS rounds with separate cues and
+correct spoken winners. The following fully captured `Personenraten bitte` was
+acknowledged but did not start the guessing game. Added a narrow, reception-only
+whole-utterance game-choice validator after structured control validation, matching
+the existing explicit-reference-question pattern. It overrides a valid but wrong
+model-selected wait/chat operation; quotes, negation, hypotheticals, alternatives
+and unspecified game requests do not match. It does not change the backup agent,
+active-game exit confirmation, response wording or inference error handling.
+The focused 89 units and 12 local-database integration/journey cases pass. The
+paid portion of `ddb82f6c76` then failed during initial input unmute (HTTP 502,
+`context_delivery_unconfirmed`) before gameplay; its local tests still passed.
+
+`75edaccab1` again completed both RPS rounds, then captured `Personen raten` as
+two words. The explicit-choice rule now accepts this ordinary ASR variant too;
+the 89 focused units pass. `e95d75409b` then completed both RPS rounds, one guessing
+round and the second guessing start/answer, before context delivery stalled and
+the session closed. Its final give-up was never fully admitted. This combined
+session is a failed transport trial, not a passed four-round journey.
+
+The runner now supports `--game RPS` or `--game GUESS`, each exercising two rounds
+in a single fresh session; default `all` retains the longer combined trial.
+`de9179848c` passed the real-provider GUESS journey: all six user segments complete,
+Albert Einstein/Marie Curie selected separately, correct Nein/Ja answers, both
+reveals and reception returns. Session remained attached. Echoes and unnecessary
+waiting wording still occurred; those are existing provider-guidance limitations.
+No claims about acoustic cut-offs or physical robot movement follow from this.
+
+Standalone Valerian fetched colleague commits through f63f220, preserving the
+demo view, weather controls and reception fixes. The countdown changes applied
+without conflicts; all 152 JavaScript tests pass on the integrated tree.
+
+### GI-31 completion
+
+Final separate real-provider RPS case `4a96970142` passed: two distinct rounds,
+two accepted countdown playback acknowledgements, fresh capture IDs, correct
+visitor-win/robot-win speech, and reception after each result. Both user segments
+were COMPLETE and the session stayed attached. Together with GUESS case
+`de9179848c`, this satisfies both-game happy-path/replay acceptance. The prior
+RPS-only `d090cedf79` failed during greeting/context delivery, before gameplay;
+it remains failed evidence, as do the combined-session trials above.
+
+Final verification: 145 Java tests in target/gala-gi31-publish-units.log, packaging
+in target/gala-gi31-publish-package.log, the 12 local DB cases in ddb82f6c76,
+and the previously verified unchanged shared 68 JS tests. Standalone integration
+passed 152 JS and 23 browser cases plus local DB/HTTP/SSE journey
+`.tmp/gala-acceptance-01481d8fb9` (34.9 s); desktop/mobile captures inspected.
+All runners cleaned their owned apps, schemas and accounts.
+
+The accepted relaxation concerns approximate motion timing only. No arbitrary
+entry timer, timeout increase, audio buffering change or incomplete-speech bypass
+was added. Intermittent context_delivery_unconfirmed closures and provider echoes/
+waiting phrases remain visible limitations. Physical playback/robot timing and
+camera hand attribution still require device testing. GI-32 follows publication.

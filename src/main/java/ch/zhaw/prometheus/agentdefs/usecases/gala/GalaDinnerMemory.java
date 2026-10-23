@@ -71,6 +71,7 @@ final class GalaDinnerMemory {
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
         GalaDinnerRounds.clear(storage);
+        GalaDinnerRps.clear(storage);
         for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
                 OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, CONTINUATION_AMBIENT, TASK_FACTS)) remove(storage, key);
         GalaDinnerSensing.activityEnded(storage);

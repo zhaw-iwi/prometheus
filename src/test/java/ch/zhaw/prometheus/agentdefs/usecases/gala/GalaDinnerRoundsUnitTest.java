@@ -46,6 +46,18 @@ class GalaDinnerRoundsUnitTest {
         assertNotNull(new GalaDinnerPolicy(memory).liveActivityContext().continuation());
         verifyNoInteractions(gateway);
     }
+    @Test void explicitGameChoiceAfterResultCannotBecomeModelSelectedWaiting() {
+        completed("RPS"); spoken("Ich hatte Schere, Sie Papier, diese Runde gewinne ich.", true, owner);
+        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("WAIT", ""));
+        say("Personenraten bitte");
+        assertEquals("GUESS", mode(memory)); assertEquals("Albert Einstein", text(memory, PERSON, ""));
+        assertFalse(memory.containsKey(OUTCOME)); assertFalse(memory.containsKey(GalaDinnerRounds.COMPLETED_GAME));
+        assertEquals("START_RPS", GalaDinnerInput.explicitGameChoice("Ich möchte Schere, Stein, Papier spielen."));
+        assertEquals("START_GUESS", GalaDinnerInput.explicitGameChoice("Personen raten"));
+        for (String words : List.of("Kein Personenraten bitte", "Was ist Personenraten?", "Wenn wir Personenraten spielen",
+                "Personenraten oder Schere Stein Papier?", "\"Personenraten bitte\"", "Ja", "Spielen wir etwas?"))
+            assertNull(GalaDinnerInput.explicitGameChoice(words), words);
+    }
     @ParameterizedTest @ValueSource(strings = {"RPS", "GUESS"})
     void yesToACompletedReplayOfferStartsTheBackendExactlyOnce(String game) {
         completed(game); spoken("Möchtest du noch eine Runde spielen?", true, owner);

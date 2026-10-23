@@ -29,6 +29,16 @@ final class GalaDinnerInput {
 
     static boolean unspecifiedGame(String speech) { return PLAY.matcher(normalize(speech)).matches(); }
 
+    static String explicitGameChoice(String speech) {
+        if (speech.matches(".*[\"“”„«»].*")) return null;
+        String value = normalize(speech);
+        String request = "(?:bitte )?(?:(?:ich möchte|ich moechte|ich will|lass uns) (?:bitte )?)?";
+        String ending = "(?: spielen)?(?: bitte)?";
+        if (value.matches(request + "(?:personen ?raten|das ratespiel|das personenratespiel)" + ending)) return "START_GUESS";
+        if (value.matches(request + "(?:schere stein papier|stein schere papier)" + ending)) return "START_RPS";
+        return null;
+    }
+
     static boolean contextualFollowUp(String speech) {
         return java.util.Set.of("und jetzt", "und nun", "and now", "what about now").contains(normalize(speech));
     }

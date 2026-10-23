@@ -34,6 +34,17 @@ class GalaDinnerReceptionIntegrationTest {
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired GenericTaskSessionLifecycleService taskLifecycle;
     @Autowired LiveTranscriptIngressService ingress;
+    @Autowired ExternalSpeechRecordingService recording;
+
+    private void countdownPlayed(String code, UUID id, ExternalSpeech owner) {
+        String segment = UUID.randomUUID().toString();
+        assertTrue(recording.record(id, owner, segment, "Zeig mir deine Hand. Eins, zwei, drei.", List.of(),
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
+        var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+        assertNotNull(cue); assertEquals(segment, cue.segmentId());
+        assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+        assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+    }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"RPS", "GUESS"})
@@ -54,7 +65,8 @@ class GalaDinnerReceptionIntegrationTest {
             String round = playing.getStorage().get("gala.round_id").getAsString();
             if ("GUESS".equals(game)) say(code, id, "Ich gebe auf");
             else {
-                String capture = playing.getStorage().get("gala.rps_capture_id").getAsString();
+                countdownPlayed(code, id, owner);
+                String capture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
                 demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", "observation",
                         "{\"sign\":\"paper\",\"confidence\":1,\"source\":\"manual\",\"captureId\":\"" + capture
                         + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
@@ -250,6 +262,7 @@ class GalaDinnerReceptionIntegrationTest {
         when(language.infer(any())).thenReturn(answer("START_RPS", ""));
         say(code, id, "Schere Stein Papier bitte");
         assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
+        countdownPlayed(code, id, new ExternalSpeech(session, startup.epoch()));
         String captureId = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"captureId\":\"" + captureId + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);

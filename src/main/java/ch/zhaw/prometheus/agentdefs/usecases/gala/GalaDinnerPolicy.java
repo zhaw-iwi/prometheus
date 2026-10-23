@@ -18,6 +18,7 @@ import jakarta.persistence.ManyToOne;
 @Entity
 public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     public static final String LIVE_ENDED = "sys.gala.live_closed";
+    public static final String COUNTDOWN_PLAYED = "sys.gala.countdown_played";
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Storage storage;
     protected GalaDinnerPolicy() {}
@@ -60,6 +61,12 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 GalaDinnerInput.speech(transcript), java.time.Instant.now()) != null;
     }
     @Override public boolean livePendingAcknowledgements() { return false; }
+    @Override public String livePlaybackCompletionEventType() { return activitiesEnabled() ? COUNTDOWN_PLAYED : null; }
+    @Override public boolean liveSpeechCaptured(ch.zhaw.prometheus.model.event.Event speech,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech owner, java.time.Instant started, java.time.Instant now,
+            java.util.List<ch.zhaw.prometheus.model.policy.LiveSpeechPart> parts) {
+        return activitiesEnabled() && GalaDinnerRps.captured(storage, speech, owner, started, now, parts);
+    }
     @Override public String livePendingGuidance() {
         if (!activitiesEnabled()) return "Answer from supplied facts. No waiting acknowledgments or invented lookup/progress.";
         return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
@@ -84,7 +91,11 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     + "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
         } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
-                : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";
+                : "WAITING".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
+                ? "Countdown playback acknowledged; gesture requested once, physical execution unconfirmed. Awaiting a fresh camera hand sign; no result yet."
+                : "SPOKEN".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
+                ? "Countdown captured; waiting for local playback acknowledgement. Stay silent; do not repeat the countdown. No gesture/capture yet."
+                : "RPS introduction: sign selected, no gesture/capture yet. Invite a hand and count one, two, three once on the confirmed occasion, then listen.";
         else if ("TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                 + "; revision: " + GalaDinnerMemory.text(storage, ch.zhaw.prometheus.model.task.TaskMemory.REVISION, "0")
@@ -130,7 +141,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         var refresh = ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage);
         var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
         if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
-        return new LiveActivityContext(facts, continuation, refresh);
+        var playback = activitiesEnabled() ? GalaDinnerRps.cue(storage, java.time.Instant.now()) : null;
+        if (playback != null && (refresh == null || playback.expiresAt().isBefore(refresh))) refresh = playback.expiresAt();
+        return new LiveActivityContext(facts, continuation, refresh, playback);
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) {

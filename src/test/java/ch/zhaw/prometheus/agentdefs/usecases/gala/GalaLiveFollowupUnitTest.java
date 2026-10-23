@@ -37,6 +37,7 @@ class GalaLiveFollowupUnitTest {
     }
 
     private void hand() {
+        if ("INTRO".equals(text(memory, GalaDinnerRps.PHASE, ""))) GalaRpsTestFixture.countdownPlayed(agent, runtime);
         agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor",
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"captureId\":\"" + text(memory, CAPTURE_ID, "") + "\",\"ts\":\"" + Instant.now() + "\"}"), runtime);
     }
@@ -237,7 +238,7 @@ class GalaLiveFollowupUnitTest {
             });
             agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, request), runtime);
             assertEquals("RPS", mode(memory));
-            assertTrue(projection.project(agent).activity().continuation().facts().contains("round started"));
+            assertTrue(projection.project(agent).activity().continuation().facts().contains("round confirmed"));
             hand(); assertEquals("RECEPTION", mode(memory));
         }
         verify(gateway, times(2)).infer(any());
