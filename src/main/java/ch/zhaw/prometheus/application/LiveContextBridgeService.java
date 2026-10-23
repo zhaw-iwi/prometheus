@@ -49,6 +49,13 @@ public class LiveContextBridgeService {
             else session.request();
         });
     }
+    @EventListener public void playbackReady(ExternalSpeechRecordingService.PlaybackReady event) {
+        Session session = sessions.get(event.owner().sessionId());
+        if (session == null || !session.owner.equals(event.owner()) || !session.agent.equals(event.agentId())) return;
+        session.urgent.set(true);
+        session.trace("playback_cue_ready", null);
+        session.request();
+    }
     @EventListener public void captured(LiveTranscriptCaptureService.Committed event) {
         Session session = sessions.get(event.owner().sessionId());
         if (session == null || !session.owner.equals(event.owner()) || !session.agent.equals(event.agentId())) return;

@@ -18,6 +18,8 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 /** Trusted adapter boundary only. There is no client-authored assistant event endpoint. */
 @Service
 public class ExternalSpeechRecordingService {
+    /** Content-free, emitted once when an opted-in policy accepts captured speech for execution. */
+    public record PlaybackReady(UUID agentId, ExternalSpeech owner) {}
     private final AgentApplicationService turns;
     private final AgentRepository agents;
     private final ExternalSpeechOwnership ownership;
@@ -45,6 +47,7 @@ public class ExternalSpeechRecordingService {
         if (segmentId == null || !segmentId.matches("[A-Za-z0-9._:-]{1,160}")) throw new IllegalArgumentException("Invalid speech segment identity");
         return turns.serialized(id, () -> {
             boolean[] created = {false};
+            boolean[] playbackReady = {false};
             Optional<Event> result = transaction.execute(status -> {
                 var agent = agents.findById(id).orElse(null);
                 if (agent == null || !owner.equals(ownership.current(agent))) return Optional.empty();
@@ -67,7 +70,7 @@ public class ExternalSpeechRecordingService {
                 if (taskResponses != null) taskResponses.prepare(agent, owner, nativeSpeech, started);
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
                 if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)
-                    policy.liveSpeechCaptured(nativeSpeech, owner, started, java.time.Instant.now());
+                    playbackReady[0] = policy.liveSpeechCaptured(nativeSpeech, owner, started, java.time.Instant.now());
                 var saved = agents.saveAndFlush(agent); created[0] = true;
                 // Cascade merge may replace a newly appended event; return/publish its persisted identity.
                 return saved.getEventHistory().toList().stream().filter(event -> event.speechProvenance() != null
@@ -77,6 +80,7 @@ public class ExternalSpeechRecordingService {
             if (created[0]) {
                 AfterCommit.run(() -> {
                     if (events != null) events.publishEvent(new AgentCommitted(id, owner.epoch()));
+                    if (events != null && playbackReady[0]) events.publishEvent(new PlaybackReady(id, owner));
                     result.ifPresent(event -> behaviour.publish(id, event));
                     agents.findById(id).ifPresent(monitor::publish);
                 });

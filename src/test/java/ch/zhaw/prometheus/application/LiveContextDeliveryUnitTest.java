@@ -176,6 +176,24 @@ class LiveContextDeliveryUnitTest {
             assertEquals(1, sent.stream().filter(c -> c.type().equals("session.commentary.append")).count());
         } finally { bridge.shutdown(); }
     }
+    @Test void acceptedPlaybackCueBypassesCoalescingOnlyForItsCurrentOwner() {
+        var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
+        Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
+        var initial = snapshot("r1", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(initial, List.of())));
+        var applied = new AtomicInteger(); var bridge = new LiveContextBridgeService(contexts, clock);
+        var session = bridge.open(initial, owner, c -> {}, c -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            now.set(1000);
+            bridge.playbackReady(new ExternalSpeechRecordingService.PlaybackReady(AGENT, new ExternalSpeech(owner.sessionId(), UUID.randomUUID())));
+            for (int i = 0; i < 100; i++) bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            verify(contexts, times(1)).refresh(AGENT, owner);
+            bridge.playbackReady(new ExternalSpeechRecordingService.PlaybackReady(AGENT, owner));
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            verify(contexts, times(2)).refresh(AGENT, owner);
+        } finally { bridge.shutdown(); }
+    }
     @Test void pendingDelegationStillWakesAtItsFiveSecondDeadline() {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
         Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());
