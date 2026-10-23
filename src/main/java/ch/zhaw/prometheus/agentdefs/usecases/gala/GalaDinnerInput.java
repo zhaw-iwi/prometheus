@@ -44,7 +44,7 @@ final class GalaDinnerInput {
         if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)) return false;
         if (!acknowledgement(speech)) return false;
         String mode = GalaDinnerMemory.mode(storage);
-        if (java.util.Set.of("GUESS", "RPS").contains(mode)) return true;
+        if (java.util.Set.of("GUESS", "RPS_SETUP", "RPS").contains(mode)) return true;
         // An affirmative acceptance can still select the next game/task. Only neutral
         // receipt/thanks forms qualify after a completed round in reception.
         if (!"RECEPTION".equals(mode) || !java.util.Set.of("ok", "okay", "alles klar", "verstanden",

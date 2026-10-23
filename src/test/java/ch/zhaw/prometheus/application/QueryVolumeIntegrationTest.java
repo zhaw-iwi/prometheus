@@ -444,8 +444,11 @@ class QueryVolumeIntegrationTest {
         }
     }
 
-    @Test void galaRoundCaptureComesFromExistingBehaviourStreamWithoutADatabaseLookup() throws Exception {
-        var f = fixture(new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception().createAgent());
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void galaRoundCaptureComesFromExistingBehaviourStreamWithoutADatabaseLookup(boolean prepareRps) throws Exception {
+        var definition = prepareRps ? new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation()
+                : new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception();
+        var f = fixture(definition.createAgent());
         demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_SOCIAL_GROUPING,
                 "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
         var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
@@ -457,8 +460,18 @@ class QueryVolumeIntegrationTest {
             for (int round = 0; round < 2; round++) {
                 demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_USER_UTTERANCE, "Schere Stein Papier bitte"),
                         ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                String preparationCapture = null;
+                if (prepareRps && round == 0) {
+                    preparationCapture = latestHandCapture(stream.getResponse().getContentAsString());
+                    for (String sign : List.of("rock", "paper", "scissor"))
+                        demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_HAND_SIGN,
+                                "{\"sign\":\"" + sign + "\",\"confidence\":0.9,\"source\":\"valerian.hand.camera\",\"stabilityFrames\":3,\"captureId\":\""
+                                        + preparationCapture + "\",\"ts\":\"" + Instant.now() + "\"}"), ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                }
+                assertEquals("Gala rock-scissor-paper", agents.findById(f.id()).orElseThrow().getCurrentState().getName());
                 long before = questions();
                 String capture = latestHandCapture(stream.getResponse().getContentAsString());
+                if (prepareRps && round == 0) assertNotEquals(preparationCapture, capture);
                 assertEquals(0, questions() - before - 1);
                 assertFalse(capture.isBlank()); assertNotEquals(previous, capture);
                 demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_HAND_SIGN,

@@ -8,10 +8,13 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
+import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.event.Event;
@@ -169,12 +172,14 @@ class GalaDinnerReceptionIntegrationTest {
         } finally { ownership.release(id, session); }
     }
 
-    @Test void scopedCatalogCreationGamesReloadAndResetPreserveTheEventDefinition() {
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void scopedCatalogCreationGamesReloadAndResetPreserveTheEventDefinition(boolean prepareRps) {
+        String definitionKey = prepareRps ? GalaDinnerReceptionRpsPreparation.KEY : GalaDinnerReception.KEY;
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
-        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
-        assertTrue(demo.listAgentTypes(code).stream().anyMatch(type -> GalaDinnerReception.KEY.equals(type.getKey())));
-        var created = demo.createAgent(code, GalaDinnerReception.KEY, AgentEmbodiment.ROBOT.name());
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(definitionKey));
+        assertTrue(demo.listAgentTypes(code).stream().anyMatch(type -> definitionKey.equals(type.getKey())));
+        var created = demo.createAgent(code, definitionKey, AgentEmbodiment.ROBOT.name());
         UUID id = created.getID();
         assertEquals("GIGI", created.getPersonaName());
         verifyNoInteractions(language);
@@ -198,8 +203,30 @@ class GalaDinnerReceptionIntegrationTest {
 
         when(language.infer(any())).thenReturn(answer("START_RPS", ""));
         say(code, id, "Schere Stein Papier bitte");
-        assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
-        String captureId = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
+        assertEquals(prepareRps ? "Gala rock-scissor-paper preparation" : "Gala rock-scissor-paper",
+                agents.findById(id).orElseThrow().getCurrentState().getName());
+        String preparationCapture = null;
+        if (prepareRps) {
+            preparationCapture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
+            clearInvocations(language);
+            int recognised = 0;
+            for (String sign : List.of("paper", "scissor", "rock")) {
+                demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
+                        "{\"sign\":\"" + sign + "\",\"confidence\":0.99,\"captureId\":\"" + preparationCapture
+                                + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
+                reloaded = agents.findById(id).orElseThrow();
+                if (++recognised < 3) {
+                    assertEquals("Gala rock-scissor-paper preparation", reloaded.getCurrentState().getName());
+                    assertEquals(recognised, reloaded.getStorage().get("gala.rps_recognised_signs").getAsJsonArray().size());
+                    assertFalse(reloaded.getStorage().containsKey("gala.sign"));
+                }
+            }
+            verifyNoInteractions(language);
+        }
+        reloaded = agents.findById(id).orElseThrow();
+        assertEquals("Gala rock-scissor-paper", reloaded.getCurrentState().getName());
+        String captureId = reloaded.getStorage().get("gala.rps_capture_id").getAsString();
+        if (prepareRps) assertNotEquals(preparationCapture, captureId);
         demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
                 "{\"sign\":\"paper\",\"confidence\":0.99,\"captureId\":\"" + captureId + "\",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
         reloaded = agents.findById(id).orElseThrow();
@@ -210,12 +237,19 @@ class GalaDinnerReceptionIntegrationTest {
 
         say(code, id, "Vorheriger Besucher"); group(code, id, 0);
         assertEquals("Gala rock-scissor-paper", agents.findById(id).orElseThrow().getCurrentState().getName());
+        if (prepareRps) assertEquals("true", agents.findById(id).orElseThrow().getStorage().get("gala.rps_prepared").getAsString());
         contexts.closed(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, startup.epoch()));
         assertEquals("Gala reception", agents.findById(id).orElseThrow().getCurrentState().getName());
         ownership.release(id, session); group(code, id, 1);
         UUID nextSession = UUID.randomUUID();
         var next = contexts.claim(code, id, nextSession).orElseThrow();
         assertFalse(next.startupInput().toString().contains("Vorheriger Besucher"));
+        assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_prepared"));
+        when(language.infer(any())).thenReturn(answer("START_RPS", ""));
+        say(code, id, "Schere Stein Papier bitte");
+        assertEquals(prepareRps ? "Gala rock-scissor-paper preparation" : "Gala rock-scissor-paper",
+                agents.findById(id).orElseThrow().getCurrentState().getName());
+        say(code, id, "Stopp");
         when(language.infer(any())).thenReturn(answer("START_GUESS", ""));
         say(code, id, "Noch ein Ratespiel");
         contexts.closed(id, new ch.zhaw.prometheus.model.policy.ExternalSpeech(session, startup.epoch()));

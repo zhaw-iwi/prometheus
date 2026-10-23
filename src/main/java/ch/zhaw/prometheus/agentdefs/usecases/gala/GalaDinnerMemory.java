@@ -13,6 +13,8 @@ final class GalaDinnerMemory {
     static final String MODE = PREFIX + "mode", REPLY = PREFIX + "reply", PERSON = PREFIX + "person",
             SIGN = PREFIX + "sign", ROUND = PREFIX + "round", LAST_INPUT = PREFIX + "last_input",
             EXIT_REQUEST = PREFIX + "exit_request", CAPTURE_ID = PREFIX + "rps_capture_id",
+            RPS_RECOGNISED = PREFIX + "rps_recognised_signs",
+            RPS_PREPARED = PREFIX + "rps_prepared",
             STARTED = PREFIX + "started", SEEN = PREFIX + "seen_at", ABSENT_SINCE = PREFIX + "absent_since",
             CONTINUATION_ID = PREFIX + "continuation_id", CONTINUATION_FACTS = PREFIX + "continuation_facts",
             CONTINUATION_EXPIRES = PREFIX + "continuation_expires",
@@ -33,6 +35,7 @@ final class GalaDinnerMemory {
     }
     static void remove(Storage storage, String key) { if (storage.containsKey(key)) storage.remove(key); }
     static String mode(Storage storage) { return text(storage, MODE, "RECEPTION"); }
+    static boolean rpsActivity(Storage storage) { return List.of("RPS_SETUP", "RPS").contains(mode(storage)); }
     static Instant time(Storage storage, String key) { return Instant.parse(text(storage, key, Instant.EPOCH.toString())); }
     static String recentOutcome(Storage storage, Instant now) {
         return storage.containsKey(OUTCOME) && now.isBefore(time(storage, OUTCOME_EXPIRES))
@@ -51,6 +54,7 @@ final class GalaDinnerMemory {
     }
     static void endEncounter(Storage storage, int historySize) {
         reception(storage); GalaDinnerSensing.clear(storage);
+        // RPS_PREPARED belongs to the Live conversation: an idle cleanup is not a new Live start.
         for (String key : List.of(ABSENT_SINCE, LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED,
                 GalaDinnerGestures.HISTORY, REPLY, GalaDinnerGestures.REQUIRED, GalaDinnerDialogue.FACE_TOPIC_AT)) remove(storage, key);
         put(storage, SESSION, Integer.toString(historySize));
@@ -70,7 +74,7 @@ final class GalaDinnerMemory {
         if (storage.containsKey(EXIT_REQUEST)) ch.zhaw.prometheus.logging.ActivityTrace.cue("confirmation_resolved", null);
         TaskMemory.clear(storage);
         put(storage, MODE, "RECEPTION");
-        for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
+        for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, RPS_RECOGNISED, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
                 OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, CONTINUATION_AMBIENT, TASK_FACTS)) remove(storage, key);
         GalaDinnerSensing.activityEnded(storage);
     }

@@ -254,3 +254,32 @@ Cockpit hart neu laden. Gigi zeigt zuerst; die Besucherwahl darf darauf reagiere
 
 Gigis Hand ausserhalb des Erkennungsbereichs halten. Die Kennung ordnet Messungen
 einer Erfassungsphase zu; sie identifiziert nicht die Person hinter der Hand.
+
+## Separater Klon mit RPS-Vorbereitung
+
+Für diesen Zusatztest **GIGI - Gala Dinner Reception with RPS preparation**
+(`usecases.gala_dinner_reception_rps_preparation`) freigeben und eine neue Instanz
+anlegen. Der ursprüngliche Gala-Agent bleibt beim direkten RPS-Start; das
+Sprechskript oben gilt unverändert für ihn.
+
+Im Klon «Schere, Stein, Papier bitte» sagen. Gigi erklärt kurz und mit etwas
+Roboter-Selbstironie, dass zuerst ein kleines Tutorial folgt: Wir prüfen, ob Gigi
+alle drei Handzeichen erkennt, bevor das Spiel beginnt. Beispiel: «Erst ein kurzes
+Tutorial – auch Roboter brauchen ein Warm-up!» Danach fordert Gigi die drei
+Handzeichen einzeln an. **Stein**, nochmals **Stein**, **Papier**, **Schere** ruhig
+vor der Kamera zeigen, in beliebiger Reihenfolge. Wiederholungen zählen nur
+einmal; vor dem dritten unterschiedlichen erkannten Zeichen beginnt keine Runde.
+Danach die neue Spielaufforderung abwarten und **Schere** erneut zeigen. Das letzte
+Vorbereitungszeichen entscheidet die Spielrunde nicht. Gigi nennt die eigene Wahl
+erst beim Ergebnis; die Handgeste wird beim Rundenstart angefordert.
+
+Nach erfolgreicher Vorbereitung muss eine weitere RPS-Auswahl im selben Gespräch
+direkt zur Spielrunde führen, auch nach Gespräch über ein anderes Thema oder
+Personenraten. Danach die Live-Konversation beenden und eine neue starten
+(z. B. sichtbar weggehen, die bestätigte Abmeldung abwarten und zurückkommen):
+beim nächsten RPS-Start müssen wieder alle drei Zeichen geprüft werden.
+Zusätzlich in einer frischen Konversation nach einem erkannten Zeichen «Stopp»
+sagen und RPS neu wählen: eine unvollständige Vorbereitung zählt nicht als
+abgeschlossen und beginnt ohne Fortschritt aus dem abgebrochenen Versuch.
+Physische Erkennung und hörbare Formulierung getrennt von den automatisierten
+Zustandsprüfungen beurteilen.

@@ -95,6 +95,25 @@ test("camera rock, scissor and paper reach the scoped framework as timestamped o
 const opening = captureId => ({ motion: { handSign: "rock" }, display: { awaitingUserSign: true, captureId } });
 const payload = request => JSON.parse(JSON.parse(request.body).payload);
 
+test("preparation captures all three signs and the game requires fresh stable frames even for the same last sign", async () => {
+  const f = fixture();
+  const preparation = { display: { mode: "game_setup", phase: "recognise_all_signs", awaitingUserSign: true,
+    captureId: "preparation", remainingSigns: ["rock", "paper", "scissor"] } };
+  f.context.renderBehaviourPlan(preparation);
+  for (const gesture of ["Closed_Fist", "Open_Palm", "Victory"]) {
+    await f.frame(gesture); await f.frame(gesture); await f.frame(gesture);
+    f.context.renderBehaviourPlan(preparation); // Progress displays keep the same capture.
+    f.advance(2500);
+  }
+  assert.deepEqual(f.requests.map(request => payload(request).sign), ["rock", "paper", "scissor"]);
+  assert.ok(f.requests.every(request => payload(request).captureId === "preparation"));
+  f.context.renderBehaviourPlan(opening("game"));
+  await f.frame("Victory"); await f.frame("Victory"); assert.equal(f.requests.length, 3);
+  await f.frame("Victory");
+  assert.equal(payload(f.requests[3]).captureId, "game");
+  assert.equal(payload(f.requests[3]).sign, "scissor");
+});
+
 test("duplicate opening plans preserve fresh-frame progress and cooldown; next capture accepts the same sign", async () => {
   const f = fixture();
   await f.frame(); await f.frame(); // Pre-opening frames cannot count toward the new capture.

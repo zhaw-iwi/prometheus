@@ -113,7 +113,8 @@ class GalaDinnerReceptionUnitTest {
         assertNull(hand("lizard", began.plusMillis(1), 1));
         assertNull(agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor", "{}"), runtime));
         assertEquals("RPS", mode(memory));
-        var result = BehaviourPlan.fromJson(hand("paper", Instant.now(), 0.95).getPayload());
+        // Keep this frame newer than the deliberately future-dated rejected frames above.
+        var result = BehaviourPlan.fromJson(hand("paper", Instant.now().plusMillis(2), 0.95).getPayload());
         assertNull(result.getSpeech());
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("Robot: rock; visitor: paper"));
         assertTrue(text(memory, CONTINUATION_FACTS, "").contains("winner: user"));

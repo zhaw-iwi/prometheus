@@ -16,6 +16,19 @@ import ch.zhaw.prometheus.model.Agent;
 
 class AgentDefinitionRegistryUnitTest {
     @Test
+    void applicationCatalogRegistersOriginalGalaAndPreparationCloneSeparately() {
+        var configuration = new ApplicationAgentDefinitionConfiguration();
+        var original = configuration.galaDinnerReception();
+        var clone = configuration.galaDinnerReceptionRpsPreparation();
+        var registry = new AgentDefinitionRegistry(List.of(original, clone));
+        assertEquals(2, registry.list().size());
+        assertEquals(original, registry.findByKey("usecases.gala_dinner_reception").orElseThrow());
+        assertEquals(clone, registry.findByKey("usecases.gala_dinner_reception_rps_preparation").orElseThrow());
+        assertFalse(original.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+        assertTrue(clone.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+    }
+
+    @Test
     void onlyCoreDefinitionsOptInToCapabilityAwareness() {
         for (AgentDefinition definition : registryWithBuiltIns().list()) {
             boolean core = definition.key().startsWith("core.");

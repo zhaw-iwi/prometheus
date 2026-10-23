@@ -414,6 +414,27 @@ reception, and the start invitation and active card repeat it. Gigi must not ask
 visitors to choose the person or become the guesser itself. Game starts
 and computed RPS results carry one persisted user-request continuation: facts first,
 then an invitation for Live to express the result. Routine sensing does not speak.
+
+A separately registered clone, **GIGI - Gala Dinner Reception with RPS preparation**
+(`usecases.gala_dinner_reception_rps_preparation`), adds a hand-sign check before
+RPS. Allow this key for the access code and create a new instance of the clone to
+use it. The original `usecases.gala_dinner_reception` keeps its direct RPS start.
+The clone shares Gala's reference, persona, conversation, guessing and task logic.
+The first RPS selection in a Live conversation enters **Gala rock-scissor-paper
+preparation**. Gigi introduces a short tutorial with light robot humour and
+explains that it checks recognition of all three hand signs before playing.
+It asks for rock, paper and scissor individually in any order.
+Only fresh accepted observations of all three distinct signs start the existing
+game; repeats and spoken completion claims do not advance preparation.
+Progress survives reload and a declined exit,
+and is cleared on leaving preparation. Once completed, the check is remembered
+for that Live conversation, including across game endings, activity changes,
+brief camera absence and idle cleanup. Later RPS selections start the game
+directly. A new Live conversation or an agent reset requires the check again;
+leaving an incomplete check does not count as completion. The game opens a fresh
+capture ID, so preparation frames cannot decide its result.
+Existing original Gala instances keep their saved graph and behaviour.
+
 RPS start/wait facts say only that Gigi's sign is committed; Live names its sign
 only with the confirmed result. The start still requests the chosen hand gesture,
 and result facts still contain both signs and the calculated winner.

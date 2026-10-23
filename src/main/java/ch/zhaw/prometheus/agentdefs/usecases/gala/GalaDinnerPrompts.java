@@ -65,7 +65,7 @@ final class GalaDinnerPrompts {
     static java.util.List<String> operations(String mode, boolean confirmingExit) {
         var operations = new java.util.ArrayList<>(switch (mode) {
             case "RECEPTION" -> java.util.List.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET", "CORRECT_FACE");
-            case "RPS" -> java.util.List.of("WAIT", "CLARIFY", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
+            case "RPS_SETUP", "RPS" -> java.util.List.of("WAIT", "CLARIFY", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
             case "GUESS" -> java.util.List.of("WAIT", "GIVE_UP", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
             default -> throw new IllegalArgumentException("Invalid Gala control mode");
         });
@@ -82,6 +82,11 @@ final class GalaDinnerPrompts {
                     Asking how to play, mentioning a game or an unfinished request is not a start.
                     Unspecified play uses CHOOSE_GAME, never a default game. START_TASK only for a clear
                     custom interaction request or acceptance; hypothetical examples stay CHAT.
+                    """;
+            case "RPS_SETUP" -> """
+                    RPS_SETUP: WAIT for game questions, hand-sign explanations, claims of completion or hesitations.
+                    Recognition of all three distinct signs alone starts the round; speech cannot bypass preparation.
+                    An unrelated question or another activity request uses CHECK_EXIT, preserving progress pending confirmation.
                     """;
             case "RPS" -> """
                     RPS: WAIT for game questions or hesitations. Hand signs/results are deterministic.

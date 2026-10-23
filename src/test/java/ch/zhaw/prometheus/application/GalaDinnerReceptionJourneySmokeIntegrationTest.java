@@ -14,11 +14,12 @@ import java.util.function.Consumer;
 import com.google.gson.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
+import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 import ch.zhaw.prometheus.controllers.dto.LiveSessionRequest;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
@@ -67,6 +68,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private Set<UUID> firstEventIds = Set.of();
     private boolean secondVisitor;
     private boolean compact;
+    private boolean rpsPreparation;
+    private boolean rpsPrepared;
 
     private static final class Peer {
         final String providerId = "gala_journey_" + UUID.randomUUID();
@@ -117,13 +120,15 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void exitConfirmationSurvivesReloadAndBareRepliesKeepOrEndTheCorrectGame(boolean compact) {
+    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    void exitConfirmationSurvivesReloadAndBareRepliesKeepOrEndTheCorrectGame(boolean compact, boolean rpsPreparation) {
         this.compact = compact;
+        this.rpsPreparation = rpsPreparation;
         code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
-        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
-        id = demo.createAgent(code, GalaDinnerReception.KEY, "ROBOT").getID();
+        String definitionKey = rpsPreparation ? GalaDinnerReceptionRpsPreparation.KEY : GalaDinnerReception.KEY;
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(definitionKey));
+        id = demo.createAgent(code, definitionKey, "ROBOT").getID();
         var encounter = arrive();
         try {
             say(encounter, "Personenraten bitte", control("START_GUESS")); hearAnnouncement(encounter);
@@ -141,6 +146,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             hearAnnouncement(encounter);
 
             say(encounter, "Schere Stein Papier", control("START_RPS"));
+            prepareRps(encounter);
             String chosen = loaded().getStorage().get("gala.sign").getAsString();
             assertEquals(chosen, lastPlan().getMotion().getAsJsonObject().get("handSign").getAsString());
             String initialCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
@@ -171,6 +177,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertEquals(outcome, loaded().getStorage().get("gala.continuation_id").getAsString());
 
             say(encounter, "Noch einmal Schere Stein Papier", control("START_RPS"));
+            prepareRps(encounter);
             String nextCapture = lastPlan().getDisplay().getAsJsonObject().get("captureId").getAsString();
             assertNotEquals(resumedCapture, nextCapture); hearAnnouncement(encounter);
             hand("paper", Instant.now(), resumedCapture);
@@ -183,13 +190,15 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void twoVisitorsExploreGamesAndTasksWithoutInheritingConversationOrAnUnfinishedAgreement(boolean compact) {
+    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    void twoVisitorsExploreGamesAndTasksWithoutInheritingConversationOrAnUnfinishedAgreement(boolean compact, boolean rpsPreparation) {
         this.compact = compact;
+        this.rpsPreparation = rpsPreparation;
         code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
-        admin.replaceAllowedAgentTypes(access.getId(), List.of(GalaDinnerReception.KEY));
-        id = demo.createAgent(code, GalaDinnerReception.KEY, "ROBOT").getID();
+        String definitionKey = rpsPreparation ? GalaDinnerReceptionRpsPreparation.KEY : GalaDinnerReception.KEY;
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(definitionKey));
+        id = demo.createAgent(code, definitionKey, "ROBOT").getID();
         assertEquals("GIGI", loaded().getPersonaName());
         assertTrue(history().isEmpty(), "Creation must not greet an empty entrance");
         Encounter first = null, second = null;
@@ -276,6 +285,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     message.getContent().startsWith("Recent completed guessing round") && message.getContent().contains("Albert Einstein")));
 
             say(first, "Spielen wir Schere, Stein, Papier.", control("START_RPS"));
+            prepareRps(first);
             assertFalse(loaded().getStorage().containsKey("gala.outcome"));
             hearAnnouncement(first);
             assertEquals("scissor", loaded().getStorage().get("gala.sign").getAsString());
@@ -355,6 +365,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
 
             // Both visitors try RPS; stale speech and a delayed old hand frame cannot affect B's round.
             say(second, "Ich möchte auch Schere, Stein, Papier spielen.", control("START_RPS"));
+            prepareRps(second);
             hearAnnouncement(second);
             assertEquals("paper", loaded().getStorage().get("gala.sign").getAsString());
             calls = requests.size();
@@ -455,6 +466,8 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private Encounter arrive() {
         group(1); group(1);
         var session = live.create(code, id, new LiveSessionRequest("v=0 synthetic-offer", "marin")).orElseThrow();
+        rpsPrepared = false;
+        assertFalse(loaded().getStorage().containsKey("gala.rps_prepared"));
         assertEquals(2000, live.capabilities(code, id).orElseThrow().departureGraceMs());
         assertEquals(2000L, live.status(code, id, session.handle()).orElseThrow()
                 .providerTelemetry().configuration().get("userSilenceMs"));
@@ -505,6 +518,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                             + loaded().getStorage().get("gala.task_facts").getAsString()
                     : occasion.facts().contains("Guessing round started")
                     ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
+                    : occasion.facts().contains("RPS preparation") ? "Zeigen Sie vor dem Spiel Stein, Papier und Schere einzeln."
                     : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
             return occasion.facts() + "\n" + activity.facts();
         }
@@ -556,6 +570,24 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             return status != null && status.responseCaptured() && status.nextCueInMs() == 0;
         });
     }
+    private void prepareRps(Encounter encounter) {
+        if (!rpsPreparation) return;
+        if (rpsPrepared) {
+            assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
+            assertEquals("true", loaded().getStorage().get("gala.rps_prepared").getAsString());
+            return;
+        }
+        assertEquals("Gala rock-scissor-paper preparation", loaded().getCurrentState().getName());
+        assertFalse(loaded().getStorage().containsKey("gala.sign"));
+        assertTrue(hearAnnouncement(encounter).contains("RPS preparation"));
+        int before = requests.size();
+        for (String sign : List.of("rock", "paper", "scissor")) hand(sign, Instant.now());
+        assertEquals(before, requests.size(), "Recognition must not call the model");
+        assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());
+        assertEquals("true", loaded().getStorage().get("gala.rps_prepared").getAsString());
+        rpsPrepared = true;
+    }
+
     private void hand(String sign, Instant time) {
         var capture = loaded().getStorage().get("gala.rps_capture_id");
         hand(sign, time, capture == null ? "" : capture.getAsString());

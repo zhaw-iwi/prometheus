@@ -33,6 +33,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 || !"RECEPTION".equals(GalaDinnerMemory.mode(storage)))
             throw new IllegalArgumentException("A fresh occupied reception observation is required");
         GalaDinnerMemory.put(storage, GalaDinnerMemory.SESSION, Integer.toString(history.toList().size()));
+        GalaDinnerMemory.remove(storage, GalaDinnerMemory.RPS_PREPARED);
         GalaDinnerMemory.remove(storage, GalaDinnerGestures.HISTORY);
         GalaDinnerSensing.begin(storage, java.time.Instant.now());
     }
@@ -60,7 +61,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
-        if (java.util.Set.of("GUESS", "RPS").contains(mode))
+        if (java.util.Set.of("GUESS", "RPS_SETUP", "RPS").contains(mode))
             facts += "Game conversation rule: institution/programme questions require an exit choice FIRST, without a factual preface or research claim. ";
         if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST))
             facts += "EXIT CONFIRMATION PENDING: game retained, hand acceptance suspended. Ask whether to END it for the other request; "
@@ -74,7 +75,10 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             facts += "You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
                     + "Answer from this card; never ask the visitor to choose a person or guess yourself. "
                     + "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
-        } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+        } else if ("RPS_SETUP".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+                ? "RPS preparation paused for exit confirmation; recognised signs retained, hand acceptance suspended."
+                : GalaDinnerRpsPreparation.facts(storage);
+        else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";
         else if ("TASK".equals(mode)) {

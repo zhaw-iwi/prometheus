@@ -82,6 +82,24 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala RPS preparation clone (2026-10-23, `feature/gala-rps-preparation`):
+  `usecases.gala_dinner_reception` retains its direct RPS start. The separate
+  `usecases.gala_dinner_reception_rps_preparation` definition reuses Gala's
+  reference, persona and other activities and adds a persisted three-sign check
+  once per Live conversation. Its entry guidance introduces a short tutorial
+  with robot humour and explains the recognition check. Three distinct accepted
+  signs in any order open the existing game with a fresh capture ID.
+  Completed preparation survives round endings, activity changes and idle
+  cleanup; a new Live conversation or reset requires it again. Partial progress
+  survives reload and a declined exit, but is discarded on leaving preparation.
+  Original saved graphs are unchanged. Passed 175 focused Gala/catalog units,
+  16 isolated MySQL integration/journey/capture checks across both definitions,
+  12 hand-sensor JavaScript tests and packaging. Maximum Live instructions are
+  14,376 / 14,400 bytes. The previously confirmed base Live delivery timing
+  failure remains excluded from the focused suite. The manual rehearsal path
+  distinguishes both variants; physical recognition and wording remain a live
+  check.
+
 - GI-28 / Milestone 255: Gigi's shared reference explicitly attributes its
   personality/social behaviour to ZHAW's SIRA Lab and its body to Unitree. Two
   gesture prompts encourage occasional meaningful movement; the 12-second spacing,
