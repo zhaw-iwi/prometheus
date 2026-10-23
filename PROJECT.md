@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Live control-reply follow-up (2026-10-23): optional policy resolution admits a
+  short reply across a state-label change when current application facts resolve
+  its meaning and preceding same-session speech does not overlap it. Defaults,
+  ownership, complete-turn requirements and durable duplicate claims remain.
+  Verified three short-context units, three existing local ingress cases and two
+  application replay/reload cases on the agents integration tree. No database
+  schema or public request shape changed; pending unrecorded speech is not accepted
+  as confirmation.
+
 - Valerian sensing UI follow-up (2026-10-22): corrected missing dark-mode surfaces
   for hand/weather reports. Weather fetch/send status is visible beside the controls
   and in the report, including failures and an explicit preview-only state. Five

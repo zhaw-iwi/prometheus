@@ -1426,6 +1426,13 @@ Application-owned `ExternalVoicePolicy` implementations may return false from
 task guidance. The default is true and preserves current core instructions.
 This changes model guidance only; it does not mute audio or establish silence.
 
+`liveResolvedControlReply(transcript, history, owner)` lets an application resolve
+a short control reply from its current facts and completed session dialogue.
+Ingress still requires preceding non-overlapping assistant evidence from the same
+session, current ownership and a complete user turn. Normal actions validate the
+decision again; durable duplicate claims remain unchanged. The default is false.
+This is separate from the strictly non-mutating acknowledgement exception.
+
 Application policies may opt into `liveFilterIsolatedInputActivity()` for backend
 user-turn capture. It ignores isolated 20-ms RMS spikes and requires 40 ms of
 consecutive activity at the existing threshold before resetting measured quiet.
