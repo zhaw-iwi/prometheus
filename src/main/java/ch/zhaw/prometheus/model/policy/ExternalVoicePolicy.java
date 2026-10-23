@@ -34,7 +34,11 @@ public interface ExternalVoicePolicy {
     default boolean liveResolvedControlReply(String transcript, EventHistory history, ExternalSpeech owner) { return false; }
     /** Called in the durable native-speech transaction. Bounded local validation/storage only; no inference or I/O. */
     default boolean liveSpeechCaptured(ch.zhaw.prometheus.model.event.Event speech, ExternalSpeech owner,
-            java.time.Instant started, java.time.Instant now) { return false; }
+            java.time.Instant started, java.time.Instant now) {
+        return liveSpeechCaptured(speech, owner, started, now, java.util.List.of());
+    }
+    default boolean liveSpeechCaptured(ch.zhaw.prometheus.model.event.Event speech, ExternalSpeech owner,
+            java.time.Instant started, java.time.Instant now, java.util.List<LiveSpeechPart> parts) { return false; }
     /** Internal event admitted only after a current application cue receives a scoped playback acknowledgement. */
     default String livePlaybackCompletionEventType() { return null; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
