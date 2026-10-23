@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Live quick-reply ordering (2026-10-23): when both complete tracks become ready
+  together, persist an earlier non-overlapping invitation before its reply.
+  No additional buffering, delay, database request or relaxed completeness rule.
+  Regression reproduced before the fix; 20 capture/segmentation/short-context
+  units pass. Gala integration evidence is maintained in its results on agents.
+
 - Live playback-cue extension (2026-10-23): opt-in policy capture hook, nullable
   pending cue in combined updates, scoped execution acknowledgement and local
   received-track settling observer. Shared checks: 40 Java service/controller/

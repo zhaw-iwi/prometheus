@@ -1445,6 +1445,11 @@ session, current ownership and a complete user turn. Normal actions validate the
 decision again; durable duplicate claims remain unchanged. The default is false.
 This is separate from the strictly non-mutating acknowledgement exception.
 
+When complete assistant and user segments become ready in the same capture poll,
+an earlier, non-overlapping assistant segment is processed first. This adds no
+waiting window. Incomplete, overlapping or not-yet-recorded speech cannot become
+an invitation by this ordering rule; ordinary ownership and ingress checks remain.
+
 Application policies may opt into `liveFilterIsolatedInputActivity()` for backend
 user-turn capture. It ignores isolated 20-ms RMS spikes and requires 40 ms of
 consecutive activity at the existing threshold before resetting measured quiet.
