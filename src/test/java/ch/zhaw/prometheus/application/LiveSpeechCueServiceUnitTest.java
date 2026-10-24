@@ -46,7 +46,7 @@ class LiveSpeechCueServiceUnitTest {
         when(external.liveSpeechCue()).thenReturn(cue); when(external.liveSpeechCueEventType()).thenReturn("sys.test.cue");
         when(receipts.findAllBySessionIdAndProviderEventIdIn(owner.sessionId(), List.of("count"))).thenReturn(List.of(
                 new LiveTranscriptReceipt(agent, owner.sessionId(), owner.epoch(), "count", "ASSISTANT", 600L, 1000L,
-                        Instant.now().minusMillis(100), 1, "Bereit? Eins, zwei, drei!")));
+                        Instant.now().minusMillis(100), 1, "Bereit? Schere, Stein, Papier!")));
     }
     @Test void currentCueRequiresDurableSessionEvidenceAndEmitsOneValidatedInternalEvent() {
         assertTrue(service.accept(id, owner, request()));
@@ -68,12 +68,16 @@ class LiveSpeechCueServiceUnitTest {
         when(ownership.current(agent)).thenReturn(new ExternalSpeech(UUID.randomUUID(), owner.epoch()));
         assertFalse(service.accept(id, owner, request())); verifyNoInteractions(receipts);
     }
-    @Test void countdownRecognitionRejectsQuotesRepeatedExplanationAndTrailingSpeech() {
-        assertTrue(LiveSpeechCueService.countdown("Los: eins, zwei, drei!"));
-        assertFalse(LiveSpeechCueService.countdown("Eins, zwei"));
-        assertFalse(LiveSpeechCueService.countdown("Ich sage \"eins, zwei, drei\"."));
-        assertFalse(LiveSpeechCueService.countdown("Eins, zwei, drei. Warte noch."));
-        assertFalse(LiveSpeechCueService.countdown("Eins, zwei, drei. Eins, zwei, drei!"));
+    @Test void finalCountdownAllowsEarlierMentionsButRejectsQuotesIncompleteAndTrailingSpeech() {
+        assertTrue(LiveSpeechCueService.countdown("Los: Schere, Stein, Papier!"));
+        assertTrue(LiveSpeechCueService.countdown("Nach meinem Countdown Schere, Stein, Papier – Schere, Stein, Papier!"));
+        assertTrue(LiveSpeechCueService.countdown("Schere, Stein, Papier. SCHERE, STEIN, PAPIER!"));
+        assertFalse(LiveSpeechCueService.countdown("Schere, Stein"));
+        assertFalse(LiveSpeechCueService.countdown("Eins, zwei, drei!"));
+        assertFalse(LiveSpeechCueService.countdown("Stein, Schere, Papier!"));
+        assertFalse(LiveSpeechCueService.countdown("Ich sage \"Schere, Stein, Papier\"."));
+        assertFalse(LiveSpeechCueService.countdown("Schere, Stein, Papier. Warte noch."));
+        assertFalse(LiveSpeechCueService.countdown("Schere, Stein, Papier. Schere, Stein"));
         assertThrows(IllegalArgumentException.class, () -> new LiveSpeechCueService.Request(cue.id(), cue.roundId(), null, List.of()));
     }
     @Test void liveRefreshCancelsOnlyAnExpiredCurrentCueWithoutBrowserEvidence() {

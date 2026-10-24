@@ -17,6 +17,7 @@ public final class GalaDinnerRounds {
             PHASE = "gala.round_phase", CUE = "gala.countdown_id", CUE_AT = "gala.countdown_at",
             COMPLETED = "gala.completed_round", INVITATION = "gala.replay_invitation", USER_END = "gala.user_end_ms";
     public static final String SPEECH_CUE = "sys.gala.speech_cue";
+    public static final String COUNTDOWN = "Schere, Stein, Papier.";
     private GalaDinnerRounds() {}
     public static void enable(Storage storage) { put(storage, ENABLED, "true"); }
     static boolean enabled(Storage storage) { return "true".equals(text(storage, ENABLED, "")); }
@@ -39,21 +40,26 @@ public final class GalaDinnerRounds {
         put(storage, CUE, UUID.randomUUID().toString());
         put(storage, CUE_AT, now.toString());
         remove(storage, CAPTURE_ID);
-        continueRequest(storage, "RPS round confirmed, introduction only; hand capture CLOSED. Invite the visitor to hold one sign after your countdown. "
-                + "Count aloud once in German: eins, zwei, drei. Then stop speaking and wait for backend capture confirmation. "
-                + "Do not name your sign, invent a result or promise exact synchronisation. No robot hand command has been issued.");
+        continueRequest(storage, "RPS round confirmed: NEW round " + text(storage, ID, "")
+                + ". COUNTDOWN required now, including on replay. Capture CLOSED; no result exists for this round. "
+                + "Say the required countdown, not a promise to count or a request for confirmation. Then listen. "
+                + "Older results do not belong to this round. No robot hand command has been issued.");
+        put(storage, CONTINUATION_ID, text(storage, CUE, ""));
+        put(storage, CONTINUATION_EXPIRES, now.plusSeconds(30).toString());
     }
     static JsonObject introductionDisplay(Storage storage) {
         var display = new JsonObject();
         display.addProperty("mode", "game_countdown");
         display.addProperty("phase", "introduction");
         display.addProperty("awaitingUserSign", false);
+        display.addProperty("instruction", COUNTDOWN);
         display.addProperty("roundId", text(storage, ID, ""));
         var cue = new JsonObject();
         cue.addProperty("id", text(storage, CUE, ""));
         cue.addProperty("roundId", text(storage, ID, ""));
         cue.addProperty("timeoutMs", 30000);
         cue.addProperty("minimumStartMs", Long.parseLong(text(storage, USER_END, "0")));
+        cue.addProperty("utterance", COUNTDOWN);
         display.add("speechCue", cue);
         return display;
     }
@@ -150,10 +156,11 @@ public final class GalaDinnerRounds {
     static String facts(Storage storage, Instant now) {
         if (!enabled(storage)) return "";
         String facts = "\nRound " + text(storage, ID, "none") + "; phase " + text(storage, PHASE, "none") + ". ";
-        if ("RPS_INTRO".equals(mode(storage))) facts += "Capture CLOSED; await the current countdown playback cue. Never invite a new round or claim a result. ";
+        if ("RPS_INTRO".equals(mode(storage))) facts += "COUNTDOWN: say the required cue for this NEW round, then wait. Capture CLOSED; no current result. ";
         if ("RECEPTION".equals(mode(storage))) {
             var result = completed(storage, now);
-            if (result != null) facts += "Completed " + result + ". Announce the result once, then listen. Do not routinely ask for another round. "
+            if (result != null) facts += "Replay history only: last completed game " + result.get("game").getAsString()
+                    + ", round " + result.get("id").getAsString() + ". This is not a current result or permission to announce one. "
                     + "Replay requires backend confirmation; a bare yes needs an identifiable fresh replay invitation. ";
         }
         return facts;

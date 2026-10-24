@@ -269,13 +269,13 @@ Tutorial – auch Roboter brauchen ein Warm-up!» Danach fordert Gigi die drei
 Handzeichen einzeln an. **Stein**, nochmals **Stein**, **Papier**, **Schere** ruhig
 vor der Kamera zeigen, in beliebiger Reihenfolge. Wiederholungen zählen nur
 einmal; vor dem dritten unterschiedlichen erkannten Zeichen beginnt keine Runde.
-Danach den neuen Countdown abwarten. Bis zu dessen bestätigtem Abschluss darf kein
+Danach den neuen Countdown «Schere, Stein, Papier» abwarten. Bis zu dessen bestätigtem Abschluss darf kein
 Roboter-Handbefehl und kein Spielergebnis entstehen. **Schere** ruhig weiter halten:
 Nach dem Countdown müssen frische stabile Bilder desselben Zeichens reichen;
 Absenken und erneutes Heben ist nicht nötig. Das letzte Vorbereitungsbild entscheidet
 die Spielrunde nicht. Gigi nennt die eigene Wahl erst beim Ergebnis; die Handgeste
 wird erst nach dem bestätigten Countdown angefordert. Die genaue Ausrichtung am
-hörbaren Wort «drei» und die tatsächliche Bewegung gesondert beurteilen.
+hörbaren Wort «Papier» und die tatsächliche Bewegung gesondert beurteilen.
 
 Nach erfolgreicher Vorbereitung muss eine weitere RPS-Auswahl im selben Gespräch
 direkt zum neuen Countdown führen, auch nach Gespräch über ein anderes Thema oder
@@ -292,9 +292,15 @@ Zustandsprüfungen beurteilen.
 
 Beide Cockpits hart neu laden und den aktualisierten Backend-Build notieren.
 
-1. Drei RPS-Runden im selben Gespräch spielen. Nach jedem Ergebnis «Noch einmal»
+1. Drei RPS-Runden im selben Gespräch spielen. Gigi zählt «Schere, Stein, Papier»;
+   eine Erwähnung dieser Wörter in der Einladung oder ein wiederholter Countdown
+   darf die Runde nicht abbrechen. Nach der letzten vollständigen Folge und 800 ms
+   Audio-Ruhe öffnet sich die Erfassung. Nach jedem Ergebnis «Noch einmal»
    sagen; kein erneutes Tutorial, aber je ein neuer Countdown und genau ein Ergebnis.
    Dasselbe Zeichen über den Rundenwechsel halten und die Erkennung beobachten.
+   «Ich zähle gleich» allein genügt nicht: Die drei Wörter müssen im Countdown-
+   Zustand tatsächlich hörbar sein. Nach einer abgebrochenen Runde darf kein
+   früherer Sieger als neues Ergebnis angesagt werden.
 2. Zu Personenraten wechseln, auflösen und «Noch einmal» sagen: erneut Personenraten
    mit neuem Ziel. Danach RPS ausdrücklich wählen; kein erneutes Tutorial.
 3. Standardfall: Gigi nennt das Ergebnis und hört zu. Falls Gigi doch «Noch eine Runde?»

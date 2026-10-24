@@ -525,7 +525,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
                     : occasion.facts().contains("Guessing round started")
                     ? "Ich denke an eine bekannte Person. Stellen Sie mir Ja-Nein-Fragen."
                     : occasion.facts().contains("RPS preparation") ? "Zeigen Sie vor dem Spiel Stein, Papier und Schere einzeln."
-                    : occasion.facts().contains("RPS round confirmed") ? "Eins, zwei, drei!"
+                    : occasion.facts().contains("RPS round confirmed") ? "Schere, Stein, Papier!"
                     : occasion.facts().contains("RPS round started") ? "Zeigen Sie jetzt Ihr Zeichen." : "Die Runde ist beendet.");
             return occasion.facts() + "\n" + activity.facts();
         }
@@ -593,7 +593,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         int sequence = ++receiptSequence;
         String receipt = "count-" + sequence;
         assertTrue(ingress.receipt(id, encounter.owner(), new Fragment(receipt, Speaker.ASSISTANT, sequence * 1000L,
-                sequence * 1000L + 500, Instant.now().toEpochMilli(), sequence, "Eins, zwei, drei!")));
+                sequence * 1000L + 500, Instant.now().toEpochMilli(), sequence, "Schere, Stein, Papier!")));
         assertTrue(speechCues.accept(id, encounter.owner(), new LiveSpeechCueService.Request(UUID.fromString(memory.get("gala.countdown_id").getAsString()),
                 UUID.fromString(memory.get("gala.round_id").getAsString()), "complete", List.of(receipt))));
         assertEquals("Gala rock-scissor-paper", loaded().getCurrentState().getName());

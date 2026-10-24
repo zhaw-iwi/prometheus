@@ -10,13 +10,20 @@ public record LiveActivityContext(String facts, Continuation continuation, Insta
     public LiveActivityContext(String facts, Continuation continuation) { this(facts, continuation, null); }
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
-    /** A persisted identity authorizes one speaking occasion; facts are not a scripted utterance. */
-    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible) {
+    /** One speaking occasion, optionally requiring a short exact utterance for an application phase. */
+    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, String requiredSpeech) {
+        public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible) {
+            this(id, occasion, facts, expiresAt, interruptible, null);
+        }
         public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt) { this(id, occasion, facts, expiresAt, false); }
         public Continuation(UUID id, Occasion occasion, String facts) { this(id, occasion, facts, null, false); }
         public Continuation {
             Objects.requireNonNull(id); Objects.requireNonNull(occasion); bounded(facts, 1000);
             if (interruptible && occasion != Occasion.PROACTIVE) throw new IllegalArgumentException("Only proactive comments may be interruptible");
+            if (requiredSpeech != null) {
+                bounded(requiredSpeech, 160);
+                if (occasion != Occasion.USER_REQUEST) throw new IllegalArgumentException("Required speech needs a user-request occasion");
+            }
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
         @Override public String toString() { return "LiveContinuation[id=" + id + ",occasion=" + occasion + "]"; }

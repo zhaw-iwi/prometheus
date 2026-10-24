@@ -92,4 +92,28 @@ class LiveActivityContextUnitTest {
         assertEquals(List.of("session.instructions.append", "session.commentary.append"), batch.commands().stream().map(LiveContextDelivery.Command::type).toList());
         assertTrue(batch.commands().getLast().content().contains("Confirmed backend announcement"));
     }
+    @Test void everyNewRoundDeliversItsRequiredWordsOnceInsteadOfAPromiseOrGenericParaphrase() {
+        var initial = snapshot("reception", new LiveActivityContext("No current result", null));
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var identities = new HashSet<UUID>();
+        for (int round = 0; round < 3; round++) {
+            var cue = new Continuation(UUID.randomUUID(), Occasion.USER_REQUEST, "New round confirmed; capture closed.",
+                    Instant.EPOCH.plusSeconds(30), false, "Schere, Stein, Papier.");
+            identities.add(cue.id());
+            var current = snapshot("countdown", new LiveActivityContext("Countdown for new round; no current result", cue));
+            var batch = delivery.plan(current, List.of());
+            var commands = batch.commands().stream().filter(c -> c.type().equals("session.commentary.append")).toList();
+            assertEquals(1, commands.size());
+            var command = commands.getFirst();
+            assertTrue(command.content().contains("say exactly NOW: Schere, Stein, Papier."));
+            assertTrue(command.content().contains("even if spoken in an earlier round"));
+            assertFalse(command.content().contains("in your own words"));
+            assertEquals(cue.id(), command.sourceId()); assertTrue(command.currentOnly());
+            delivery.acknowledged(batch);
+            assertTrue(delivery.plan(current, List.of()).commands().isEmpty());
+        }
+        assertEquals(3, identities.size());
+        assertThrows(IllegalArgumentException.class, () -> new Continuation(UUID.randomUUID(), Occasion.USER_REQUEST,
+                "New round", null, false, "x".repeat(161)));
+    }
 }

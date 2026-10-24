@@ -36,6 +36,11 @@ class GalaDinnerRoundsUnitTest {
             var opening = plan(say(i == 0 ? "Schere Stein Papier bitte" : "Noch einmal"));
             assertNull(opening.getMotion()); assertFalse(opening.getDisplay().getAsJsonObject().has("agentSign"));
             assertEquals("RPS_INTRO", mode(storage)); assertFalse(storage.containsKey(CAPTURE_ID));
+            var occasion = policy.liveActivityContext().continuation();
+            assertEquals(GalaDinnerRounds.COUNTDOWN, occasion.requiredSpeech());
+            assertEquals(text(storage, GalaDinnerRounds.CUE, ""), occasion.id().toString());
+            assertEquals(GalaDinnerRounds.COUNTDOWN, opening.getDisplay().getAsJsonObject().get("speechCue")
+                    .getAsJsonObject().get("utterance").getAsString());
             assertTrue(rounds.add(text(storage, GalaDinnerRounds.ID, "")));
             assertNull(hand(previousCapture));
             String cue = text(storage, GalaDinnerRounds.CUE, ""), round = text(storage, GalaDinnerRounds.ID, "");
@@ -70,6 +75,24 @@ class GalaDinnerRoundsUnitTest {
         say("Schere Stein Papier"); cue = text(storage, GalaDinnerRounds.CUE, ""); round = text(storage, GalaDinnerRounds.ID, "");
         say("Stopp"); assertNull(cue(cue, round, true)); assertFalse(storage.containsKey(SIGN));
         assertFalse(storage.containsKey(GalaDinnerRounds.COMPLETED));
+    }
+    @Test void aCancelledReplayCannotExposeOrAnnounceThePreviousResultAsCurrent() {
+        say("Schere Stein Papier"); finishRps();
+        assertTrue(storage.get(GalaDinnerRounds.COMPLETED).toString().contains("winner"));
+        assertTrue(policy.liveActivityContext().continuation().facts().contains("winner"));
+        assertFalse(policy.liveActivityContext().facts().contains("winner"));
+        say("Noch einmal");
+        var current = policy.liveActivityContext();
+        assertEquals(GalaDinnerRounds.COUNTDOWN, current.continuation().requiredSpeech());
+        assertFalse(current.facts().contains("winner"));
+        assertFalse(current.continuation().facts().contains("winner"));
+        cue(text(storage, GalaDinnerRounds.CUE, ""), text(storage, GalaDinnerRounds.ID, ""), false);
+        assertEquals("RECEPTION", mode(storage));
+        assertNull(policy.liveActivityContext().continuation().requiredSpeech());
+        assertTrue(policy.liveActivityContext().facts().contains("Replay history only"));
+        assertFalse(policy.liveActivityContext().facts().contains("winner"));
+        assertFalse(policy.liveActivityContext().facts().contains("Robot:"));
+        assertTrue(storage.containsKey(GalaDinnerRounds.COMPLETED));
     }
     @Test void aRapidYesWaitsForTheInvitationAndCannotConsentToAnInvitationSpokenLater() {
         say("Schere Stein Papier"); finishRps();

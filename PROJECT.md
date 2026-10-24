@@ -82,6 +82,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala countdown and round-speech repair (2026-10-24): every countdown now
+  requests exactly "Schere, Stein, Papier." for its current cue, including on
+  replay. Validation accepts earlier mentions/repetition and still requires
+  observed output and 800 ms of quiet. Superseded speech is withdrawn during
+  provider delivery; older results remain replay history, outside current facts.
+  Both cockpits preserve a newer countdown when an old-round display arrives.
+  Passed 120 Java cases (30 on disposable MySQL), 141 Live JavaScript cases,
+  two mocked RPS browser cases and packaging. Restart the backend, hard-refresh
+  the cockpit and start a new Live conversation. Updated lifecycle clones need
+  no migration; actual provider/device rehearsal remains open.
+
 - Countdown recovery follow-up (2026-10-23): fixed the standalone cockpit's raw
   SSE subscription, which omitted the backend-intent provenance required to arm
   playback coordination. Both cockpits now restrict arming to live/acknowledged
@@ -11384,3 +11395,43 @@ Restart the backend, hard-refresh the cockpit and start a fresh Live conversatio
 No saved-graph migration is needed for an already updated lifecycle clone. Physical
 audibility, exact word alignment and robot execution still require rehearsal.
 No commit, deployment or production database mutation was performed.
+
+## Gala countdown and round-speech repair
+
+Date: 2026-10-24. Two telemetry exports and read-only database inspection exposed
+related failures. The first session completed preparation but cancelled all three
+countdowns when the transcript repeated "eins, zwei, drei". The next session
+completed two of seven rounds; other attempts promised to count without saying
+the words and sometimes presented an earlier result after cancellation.
+
+The clone now requests exactly "Schere, Stein, Papier." for each new countdown.
+A bounded optional `requiredSpeech` in the shared Live continuation contract
+makes this an exact utterance instead of an invitation to paraphrase instructions.
+The speaking identity matches the current cue and expires with it. Every fresh
+identity permits the countdown again. Queued continuation facts and speech are
+withdrawn if their activity changes during provider acknowledgements; scoped
+commands are kept separate from unrelated context. Other continuations retain
+ordinary wording and optional ambient behavior.
+
+Both clients and durable backend verification accept a final complete countdown
+after an earlier mention or repetition. Observed output, 800 ms of quiet,
+interruption/playback checks, receipt bounds, current ownership and the 30-second
+deadline remain. Older-round displays cannot clear a newer countdown. Completed
+results remain available for explicit replay selection; signs and winners are
+omitted from quiet replay-history facts. Only the current completion occasion
+supplies a result.
+
+Validation: 90 focused Java unit/prompt/context cases and 30 disposable-MySQL
+cases covering Gala lifecycle/reception/journeys, query budgets, Generic tasks,
+Social Space journeys and the Live cockpit; 75 built-in and 66 standalone Live
+JavaScript cases; two mocked RPS browser cases, including three successive
+countdown/capture rounds. All passed, as did the package build. Playwright used
+installed Chrome; compilation used JDK 26 with Java 21 release output, and tests
+ran on Java 21 with an explicit Mockito agent. The disposable schema used the
+existing local connection without account or grant changes; cleanup completed.
+The recorded application database was only read. No paid provider or physical
+audio/robot trial was performed.
+
+Restart the backend, hard-refresh the cockpit and start a new Live conversation.
+Existing updated lifecycle clones need no saved-graph migration. The user
+authorized final cleanup, commit and push of both repositories on 2026-10-24.

@@ -473,7 +473,7 @@ class QueryVolumeIntegrationTest {
                     var owner = ownership.current(agents.findById(f.id()).orElseThrow());
                     String receipt = "count-" + UUID.randomUUID();
                     assertTrue(ingress.receipt(f.id(), owner, new Fragment(receipt, Speaker.ASSISTANT,
-                            round * 10000L, round * 10000L + 500, Instant.now().toEpochMilli(), round, "Eins, zwei, drei!")));
+                            round * 10000L, round * 10000L + 500, Instant.now().toEpochMilli(), round, "Schere, Stein, Papier!")));
                     mvc.perform(post("/demo/agents/" + f.id() + "/live/sessions/" + session.handle() + "/speech-cues")
                             .header("X-Prometheus-Access-Code", f.code()).contentType(MediaType.APPLICATION_JSON)
                             .content(json.writeValueAsString(Map.of("cueId", cue.path("id").asText(), "roundId", cue.path("roundId").asText(),

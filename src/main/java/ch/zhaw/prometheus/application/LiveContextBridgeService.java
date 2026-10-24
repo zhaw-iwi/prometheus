@@ -202,6 +202,16 @@ public class LiveContextBridgeService {
                     return deferred;
                 }
                 Command command = queue.removeFirst();
+                if (command.currentOnly() && !command.interruptible()
+                        && !Objects.equals(command.sourceId(), currentOccasion.get().id())) {
+                    if (suppressed.add(command.sourceId())) {
+                        trace("occasion_superseded", command);
+                        transmit(new Command("session.thinking.append", "Speaking occasion " + command.sourceId()
+                                + " is withdrawn because the activity changed. Do not speak its pending words or result.",
+                                null, command.sourceId(), command.revision()));
+                    }
+                    continue;
+                }
                 if (command.interruptible() && (suppressed.contains(command.sourceId())
                         || !Objects.equals(command.sourceId(), currentOccasion.get().id())
                         || transcripts != null && transcripts.conversationallyBusy(owner))) {
@@ -221,14 +231,15 @@ public class LiveContextBridgeService {
                 if (command.sourceId() != null) sources.add(command.sourceId());
                 // Pack compatible factual updates just before transmission. Never carry a
                 // freshness decision across an ACK wait or merge announcements/instructions.
-                while (!queue.isEmpty() && !command.interruptible() && command.type().equals("session.thinking.append")) {
+                while (!queue.isEmpty() && !command.currentOnly() && !command.interruptible()
+                        && command.type().equals("session.thinking.append")) {
                     var next = queue.getFirst();
                     // Packing must not carry another obsolete observation across this boundary.
                     if (replacementDue() && next.evidenceType() != null
                             && !Objects.equals(previousEvidence, next.evidenceType())
                             && queue.stream().allMatch(value -> value.evidenceType() != null)) break;
                     String content = command.content() + "\n" + next.content();
-                    if (next.interruptible() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
+                    if (next.currentOnly() || next.interruptible() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
                             || !next.revision().equals(command.revision()) || next.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
                             || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > LiveContextDelivery.MAX_APPEND_BYTES) break;
                     queue.removeFirst(); previousEvidence = next.evidenceType(); if (next.sourceId() != null) sources.add(next.sourceId());

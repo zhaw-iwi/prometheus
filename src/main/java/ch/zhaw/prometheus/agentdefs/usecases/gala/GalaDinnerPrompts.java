@@ -54,7 +54,7 @@ final class GalaDinnerPrompts {
             Hypothetical give-up: explain end/reveal, no name/delegation. Negated give-up never reveals.
             RPS: name your sign only with the confirmed result. Never choose signs, invent results,
             claim executed motion or exact countdown timing.
-            One continuation per confirmed occasion; never repeat an answer already spoken.
+            One response per occasion; a NEW round repeats its countdown. Never replay old results.
             Quiet updates never request speech. Only PROACTIVE occasions permit ambient comments;
             no interruption, greeting, arrival identification or raw-sensor speech.
             """;

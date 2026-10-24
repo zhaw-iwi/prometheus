@@ -279,7 +279,7 @@ class GalaDinnerReceptionIntegrationTest {
         var owner = ownership.current(agent);
         String receipt = "count-" + UUID.randomUUID();
         assertTrue(ingress.receipt(id, owner, new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment(receipt,
-                ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.ASSISTANT, 10000L, 12000L, Instant.now().toEpochMilli(), 1, "Eins, zwei, drei!")));
+                ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.ASSISTANT, 10000L, 12000L, Instant.now().toEpochMilli(), 1, "Schere, Stein, Papier!")));
         assertTrue(speechCues.accept(id, owner, new LiveSpeechCueService.Request(UUID.fromString(memory.get("gala.countdown_id").getAsString()),
                 UUID.fromString(memory.get("gala.round_id").getAsString()), "complete", List.of(receipt))));
     }

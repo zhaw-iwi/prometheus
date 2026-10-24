@@ -87,10 +87,8 @@ public class LiveSpeechCueService {
     }
     static boolean countdown(String text) {
         if (text.length() > 4000 || text.matches("(?s).*[\"“”„«»].*")) return false;
-        var match = java.util.regex.Pattern.compile("\\b(?:eins|1)[\\s,;.!…–-]+(?:zwei|2)[\\s,;.!…–-]+(?:drei|3)\\b")
-                .matcher(text.toLowerCase(Locale.ROOT));
-        if (!match.find()) return false;
-        int end = match.end();
-        return !match.find() && text.substring(end).matches("[\\s.!?…]*");
+        // Match the final countdown, allowing earlier mentions in the invitation.
+        return java.util.regex.Pattern.compile("\\bschere[\\s,;.!…–-]+stein[\\s,;.!…–-]+papier\\b[\\s.!?…]*$")
+                .matcher(text.toLowerCase(Locale.ROOT)).find();
     }
 }

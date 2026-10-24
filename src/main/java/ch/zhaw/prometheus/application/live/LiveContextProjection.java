@@ -109,7 +109,8 @@ public class LiveContextProjection {
             var activity = external.liveActivityContext();
             basis.append(activity.facts());
             if (activity.continuation() != null) basis.append(activity.continuation().id())
-                    .append(activity.continuation().occasion()).append(activity.continuation().facts());
+                    .append(activity.continuation().occasion()).append(activity.continuation().facts())
+                    .append(activity.continuation().requiredSpeech());
         }
         return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted), guidance);
     }

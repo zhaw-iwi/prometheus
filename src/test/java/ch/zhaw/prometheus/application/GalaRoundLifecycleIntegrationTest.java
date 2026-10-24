@@ -103,12 +103,23 @@ class GalaRoundLifecycleIntegrationTest {
         assertTrue(events.stream().filter(e -> e.getType().equals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN))
                 .noneMatch(e -> e.getPayload().contains("handSign")));
     }
-    private void finishRound() {
+    @Test void explanatoryMentionAndRepeatedCountdownStillOpenCaptureAndCompleteOneRound() {
+        finishRound("Nach meinem Countdown Schere, Stein, Papier – Schere, Stein, Papier!");
+        assertEquals("RECEPTION", mode());
+        assertEquals(1, loaded().getEventHistory().toList().stream()
+                .filter(e -> e.getType().equals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN) && e.getPayload().contains("handSign")).count());
+    }
+    private void finishRound() { finishRound("Schere, Stein, Papier!"); }
+    private void finishRound(String countdown) {
         turns.acknowledge(id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Schere Stein Papier bitte"), OutputProfile.FULL_PLAN);
         assertEquals("RPS_INTRO", mode());
         var memory = loaded().getStorage();
+        var activity = contexts.refresh(id, owner).orElseThrow().context().activity();
+        assertEquals("Schere, Stein, Papier.", activity.continuation().requiredSpeech());
+        assertEquals(memory.get("gala.countdown_id").getAsString(), activity.continuation().id().toString());
+        assertFalse(activity.facts().contains("winner"));
         String receipt = "count-" + UUID.randomUUID();
-        assertTrue(ingress.receipt(id, owner, new Fragment(receipt, Speaker.ASSISTANT, 100L, 500L, Instant.now().toEpochMilli(), 1, "Eins, zwei, drei!")));
+        assertTrue(ingress.receipt(id, owner, new Fragment(receipt, Speaker.ASSISTANT, 100L, 500L, Instant.now().toEpochMilli(), 1, countdown)));
         var request = new LiveSpeechCueService.Request(UUID.fromString(memory.get("gala.countdown_id").getAsString()),
                 UUID.fromString(memory.get("gala.round_id").getAsString()), "complete", List.of(receipt));
         assertTrue(cues.accept(id, owner, request)); assertEquals("RPS", mode());

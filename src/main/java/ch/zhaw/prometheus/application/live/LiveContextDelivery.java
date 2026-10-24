@@ -9,7 +9,11 @@ public final class LiveContextDelivery {
     public static final int MAX_APPEND_BYTES = 480; // Conservatively below the provider's 500-token limit.
     public record Narration(UUID sourceId, String text) {}
     public record Command(String type, String content, String delegationId, UUID sourceId, String revision,
-            String evidenceType, Instant expiresAt, boolean interruptible) {
+            String evidenceType, Instant expiresAt, boolean interruptible, boolean currentOnly) {
+        public Command(String type, String content, String delegationId, UUID sourceId, String revision,
+                String evidenceType, Instant expiresAt, boolean interruptible) {
+            this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, interruptible, false);
+        }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision,
                 String evidenceType, Instant expiresAt) { this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, false); }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision) {
@@ -71,13 +75,22 @@ public final class LiveContextDelivery {
             String label = "Confirmed speaking occasion " + continuation.id() + " (" + continuation.occasion() + "): ";
             if (!continuation.expiredAt(current.builtAt())) {
                 add(occasion, "thinking", label + continuation.facts(), null, continuation.id(), revision);
-                add(occasion, "commentary", "Use the confirmed facts for speaking occasion " + continuation.id()
-                        + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
-                                ? ". Continue the visitor's pending request once, in your own words."
-                                : ". Make the authorized proactive comment once, in your own words.")
-                        + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+                String speech;
+                if (continuation.requiredSpeech() != null) {
+                    speech = "Current speaking occasion " + continuation.id()
+                            + ": say exactly NOW: " + continuation.requiredSpeech()
+                            + " Then stop and listen. This new occasion requires these words again even if spoken in an earlier round."
+                            + " No promise, question, previous result or extra speech.";
+                } else {
+                    speech = "Use the confirmed facts for speaking occasion " + continuation.id()
+                            + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
+                                    ? ". Continue the visitor's pending request once, in your own words."
+                                    : ". Make the authorized proactive comment once, in your own words.")
+                            + " Do not repeat an answer already spoken or read metadata aloud.";
+                }
+                add(occasion, "commentary", speech, null, continuation.id(), revision);
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
-                        continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible()));
+                        continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible(), true));
             }
         }
         // Legacy backend speech intents retain their existing delivery contract.

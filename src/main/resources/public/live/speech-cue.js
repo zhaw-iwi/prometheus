@@ -1,5 +1,5 @@
 const uuid = value => typeof value === "string" && /^[a-f0-9-]{36}$/i.test(value);
-const countdown = /\b(?:eins|1)[\s,;.!…–-]+(?:zwei|2)[\s,;.!…–-]+(?:drei|3)\b/gi;
+const countdown = /\bschere[\s,;.!…–-]+stein[\s,;.!…–-]+papier\b[\s.!?…]*$/i;
 
 /** Conservative local cue, not a provider response-done event or word-aligned clock. */
 export class CountdownCue {
@@ -20,9 +20,8 @@ export class CountdownCue {
       || event.start_ms < 0 || event.end_ms < event.start_ms || typeof event.delta !== "string") { this.finish("unavailable"); return; }
     cue.seen.add(event.event_id); cue.receipts.push(event.event_id); cue.text += event.delta;
     if (cue.receipts.length > 32 || cue.text.length > 4000 || /["“”„«»]/.test(cue.text)) { this.finish("unavailable"); return; }
-    const matches = [...cue.text.matchAll(countdown)];
-    if (matches.length > 1) { this.finish("unavailable"); return; }
-    cue.matched = matches.length === 1 && /^[\s.!?…]*$/.test(cue.text.slice(matches[0].index + matches[0][0].length)) ? this.now() : null;
+    // An explanation may mention the words too; only the final countdown can complete the cue.
+    cue.matched = countdown.test(cue.text) ? this.now() : null;
   }
   sample({ output, input, playing }) {
     const cue = this.pending; if (!cue) return;
@@ -60,7 +59,9 @@ export class SpeechCuePlayback {
   streams(output, input) { this.output = output; this.input = input; }
   arm(display) {
     if (!display?.speechCue) {
-      if (display?.roundId && display.phase !== "introduction") { this.gate.clear(); this.cancel(this.timer); this.timer = null; }
+      if (display?.roundId && display.roundId === this.gate.pending?.roundId && display.phase !== "introduction") {
+        this.gate.clear(); this.cancel(this.timer); this.timer = null;
+      }
       return;
     }
     if (!this.gate.arm(display.speechCue)) return;

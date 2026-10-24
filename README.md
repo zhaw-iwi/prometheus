@@ -437,8 +437,13 @@ Create a fresh clone after updating the backend and hard-refresh either cockpit;
 existing saved graphs are not migrated. Original Gala instances retain their game flow.
 
 Each clone RPS round first commits Gigi's sign privately and enters
-**Gala rock-scissor-paper countdown**. Live invites the visitor and counts
-"eins, zwei, drei"; capture remains closed and no robot hand command is issued.
+**Gala rock-scissor-paper countdown**. Each entry, including replay, authorizes one
+round-bound exact utterance: **"Schere, Stein, Papier."** Live must say those words
+now, then listen; promising to count, asking for another start confirmation or
+reciting an older result does not satisfy this phase. Capture remains closed and
+no robot hand command is issued. An earlier mention or repeated countdown does
+not cancel the round: validation uses the final complete
+"Schere, Stein, Papier" with no trailing speech.
 The cockpit combines the expected transcript with observed output audio followed
 by 800 ms of quiet, rejecting input speech, playback failure and observation gaps.
 The scoped backend validates the current round/cue and durable transcript receipts.
@@ -446,7 +451,7 @@ Only then does it request Gigi's hand gesture and open a fresh capture window.
 A held sign can qualify after three fresh stable camera frames; tutorial or earlier
 capture observations cannot decide the round. The display reveals Gigi's sign with
 the calculated result. This permits reacting to Gigi's visible hand, as before.
-It does not promise alignment with the audible word "drei" or confirm physical motion.
+It does not promise alignment with the audible word "Papier" or confirm physical motion.
 An interrupted or unavailable countdown cancels when its cue arrives. An
 unconfirmed countdown has a 30-second deadline and is cancelled on the next Live
 context refresh, including when `prometheus.runtime.tick.enabled=false`. A new
@@ -465,6 +470,10 @@ for 20 seconds. A reply near completion may wait up to five seconds for that
 invitation's transcript to settle; later questions cannot authorize an earlier
 answer. New requests, Stop, departure and session replacement cancel pending replies.
 RPS and guessing use separate selection counters, reset on a new Live conversation.
+The completed-round record is replay history, not a current result. Quiet activity
+facts omit its signs/winner; only the current completion's speaking occasion carries
+the result. A cancelled attempt cannot reannounce that earlier result. Late display
+updates from an older round cannot clear the current countdown observation.
 
 Both variants' RPS start/wait facts say only that Gigi's sign is committed; Live
 names its sign only with the confirmed result. The original agent requests the
@@ -2755,6 +2764,11 @@ An optional continuation expiry is checked before dispatch and again after slow
 provider waits; expired commentary becomes a quiet cancellation, not speech.
 Gala uses a 30-second continuation lifetime (60 seconds for a full task proposal)
 and clears it with the activity.
+An optional `requiredSpeech` (at most 160 UTF-8 bytes) requests a short exact
+utterance for a user-request occasion, such as a phase-bound countdown, instead of
+the ordinary paraphrase instruction. Each new identity permits the words again.
+Queued continuation facts and speech are withdrawn if their identity is superseded
+during provider acknowledgements; they are not packed with unrelated context.
 Its consolidated instructions fit within the 14,400-byte working limit in both embodiments,
 including maximum task goals in separately bounded activity data. Context delivery
 and expiry are not proof that speech was heard or that the model obeyed secrecy.

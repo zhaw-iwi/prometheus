@@ -99,7 +99,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         } else if ("RPS_SETUP".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS preparation paused for exit confirmation; recognised signs retained, hand acceptance suspended."
                 : GalaDinnerRpsPreparation.facts(storage);
-        else if ("RPS_INTRO".equals(mode)) facts += "Round confirmed; introduction/countdown pending. Hand capture CLOSED and no robot hand command issued.";
+        else if ("RPS_INTRO".equals(mode)) facts += "NEW round confirmed: COUNTDOWN now, not a promise or confirmation question. Hand capture CLOSED; no current result.";
         else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "One round started; awaiting a fresh camera hand sign. Robot sign committed; gesture requested, execution unconfirmed. Result not yet computed.";
@@ -135,6 +135,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         if (storage.containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY))
             facts += "\nResponse association: " + ch.zhaw.prometheus.model.task.TaskResponse.status(storage)
                     + ". This status never proves physical playback.";
+        var cue = liveSpeechCue();
         LiveActivityContext.Continuation continuation = null;
         if (storage.containsKey(GalaDinnerMemory.CONTINUATION_ID))
             continuation = new LiveActivityContext.Continuation(
@@ -143,9 +144,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                     GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, ""),
                     storage.containsKey(GalaDinnerMemory.CONTINUATION_EXPIRES)
                             ? GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES) : null,
-                    "true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_AMBIENT, "")));
+                    "true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_AMBIENT, "")),
+                    cue != null && !storage.containsKey(GalaDinnerMemory.EXIT_REQUEST) ? GalaDinnerRounds.COUNTDOWN : null);
         var refresh = ch.zhaw.prometheus.model.task.TaskResponse.deadline(storage);
-        var cue = liveSpeechCue();
         if (cue != null && (refresh == null || cue.deadline().isBefore(refresh))) refresh = cue.deadline();
         var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
         if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
