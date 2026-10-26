@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-02 (2026-10-26): new Generic, Social Space and Live
+  Multimodal instances enforce bounded decorative gesture cadence with explicit
+  request/task-action exemptions. Reload/reset and unchanged-channel tests pass;
+  real OpenAI Live acceptance passes. Saved instances remain opt-out. See README
+  for the nullable embodiment-storage schema addition and
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md` for evidence and physical limits.
+
 - Core-agent improvements CA-01 (2026-10-26): baseline and paid real-app acceptance
   harness complete on feature/gptlive. Passed 45 Java/local-MySQL checks, three
   runner boundary tests and the Live Multimodal provider journey. No production

@@ -18,6 +18,26 @@ import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.*;
 
 class GenericMultimodalTaskUnitTest {
+    @Test void cadenceExemptsValidatedActionsAndCurrentRequestsButNotOrdinaryReplies() {
+        String beat = "{\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}";
+        String keep = "{\"operation\":\"KEEP\",\"task\":null,\"reply\":" + beat + "}";
+        when(gateway.infer(any())).thenReturn(keep);
+        assertEquals("ACKNOWLEDGE", gesture(say("Hello")));
+        assertEquals("NONE", gesture(say("Tell me about the lab")));
+        assertEquals("ACKNOWLEDGE", gesture(say("Please show that gesture again")));
+        assertEquals("NONE", gesture(say("Thanks")));
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"ACTIVATE\",\"task\":" + SPEC + ",\"reply\":" + beat + "}");
+        assertEquals("ACKNOWLEDGE", gesture(say("Start the agreed task")));
+        Instant time = Instant.now().minusSeconds(2); arm(time);
+        when(gateway.infer(any())).thenReturn(beat);
+        assertNull(face(time.plusMillis(10), -0.8, 1, runtime));
+        assertEquals("ACKNOWLEDGE", gesture(face(time.plusMillis(20), -0.8, 1, runtime)));
+        assertFalse(memory().containsKey(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.REQUIRED));
+        agent.reset(); assertFalse(memory().containsKey(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.HISTORY));
+        assertTrue(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.enabled(memory()));
+    }
+    private static String gesture(Event event) { return BehaviourPlan.fromJson(event.getPayload()).getNonVerbal().getAsJsonObject().get("gesture").getAsString(); }
+
     @Test void applicationContractExtensionPreservesTheExistingGenericPromptFingerprint() throws Exception {
         // Existing saved-policy recognition depends on the exact built-in prompt, including whitespace.
         var bytes = GenericMultimodalBehaviour.builtInPrompts().get("configure")

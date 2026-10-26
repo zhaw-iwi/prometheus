@@ -265,6 +265,7 @@ public class State extends PersistedNode {
             return;
         }
         this.requireSharedEventHistory().clearStateEvents(this.name);
+        if (this.ownPolicy() != null) this.ownPolicy().reset();
         statesAlreadyReseted.add(this);
         for (Transition current : this.transitions) {
             current.getSubsequentState().reset(statesAlreadyReseted);

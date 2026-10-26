@@ -70,7 +70,7 @@ public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition 
         var agent = GenericMultimodalBehaviour.createTaskAgent(
                 "Generic Multimodal Behaviour at Social Space",
                 "English core Valerian social-space agent with concise conversation, arrival/departure reactions and persistent configurable multimodal tasks.",
-                VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour", "demo.valerian.social_space"));
+                VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour", "demo.valerian.social_space"), true);
         var storage = ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
         for (var state : agent.reachableStates()) {
             // Routing already has an unconditional fallback; ambient replies belong to conversational states.

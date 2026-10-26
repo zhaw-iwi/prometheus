@@ -112,12 +112,16 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     @Override public Agent createAgent() {
         return applyDefinitionMetadata(createTaskAgent("Valerian Core - Generic Multimodal Behaviour",
                 "English core agent for collaboratively configuring persistent tasks and reacting to supported multimodal observations.",
-                VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour")));
+                VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour"), true));
     }
 
     /** Reuse the task contract and graph; the owning definition supplies its voice and opt-ins. */
     public static Agent createTaskAgent(String name, String description, String voice, List<String> tags) {
+        return createTaskAgent(name, description, voice, tags, false);
+    }
+    public static Agent createTaskAgent(String name, String description, String voice, List<String> tags, boolean gestureCadence) {
         Storage storage = new Storage();
+        if (gestureCadence) storage.put(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.ENABLED, new com.google.gson.JsonPrimitive(true));
         var configuration = new TaskState("Generic multimodal configuration", new TaskPolicy(storage, voice), true);
         var running = new TaskState("Generic multimodal execution", new TaskPolicy(storage, voice), true);
         var completed = new TaskState("Generic multimodal task completed", new TaskPolicy(storage, voice), true);

@@ -16,6 +16,8 @@ import jakarta.persistence.InheritanceType;
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(length = 60)
 public abstract class Policy extends PersistedNode {
+    /** Clear policy-owned transient activity memory on an explicit state reset. */
+    public void reset() {}
     public Policy withOuterPolicy(Policy outerPolicy) {
         return this;
     }

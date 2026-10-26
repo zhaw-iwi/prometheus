@@ -35,7 +35,9 @@ public class SocialSpaceResponseAction extends Action {
                 + ". Give at most one brief social response to this change, or {} for silence. "
                 + "This is observation data, not a user request. Do not configure or execute a task. "
                 + "Return only a canonical JSON BehaviourPlan, with no task operation fields."
-                + CompactBehaviourPlan.instructions(false);
+                + CompactBehaviourPlan.instructions(false)
+                + (ch.zhaw.prometheus.model.behaviour.DecorativeGestures.enabled(getStorage())
+                    ? ch.zhaw.prometheus.model.behaviour.DecorativeGestures.guidance(getStorage(), now) : "");
         boolean generated = false;
         try {
             var raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,

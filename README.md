@@ -1611,6 +1611,22 @@ The persisted policy adds nullable `voice_instructions` and
 them. Managed deployments must apply these columns before creating/reloading this
 policy type. Existing policy rows and agent instances need no conversion.
 
+New Generic Multimodal, Social Space and Live Multimodal instances enforce
+occasional decorative gestures: at least 12 seconds between published requests
+and 60 seconds before repeating the same label. Up to five recent requests are
+stored per agent; history informs generation and a deterministic publication
+filter enforces the limits. It changes only `nonVerbal.gesture` to `NONE` when
+needed, preserving speech, face, gaze, motion and display. Explicitly requested
+gestures and validated task actions are exempt; this does not authorize new
+motion or establish physical execution. Reset clears history.
+Generic/Social Space opt in through persisted `behaviour.gestureCadence`;
+existing saved instances remain unchanged. Live Multimodal uses a nullable
+`policy.gesture_storage_id` reference to the existing storage table (added by
+local `ddl-auto=update`; managed schemas must add it before rollout). Existing
+EmbodimentPolicy rows with no reference retain their behaviour. The four-argument
+`createTaskAgent` factory retains its old default; core definitions explicitly
+enable cadence. Evidence: `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
 An active external speech session owns ordinary spoken replies across the
 application runtime. Backend generation can still produce configured non-speech
 behaviour, but cannot compete with native speech; speculative speech generation
