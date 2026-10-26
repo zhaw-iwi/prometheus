@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-03 (2026-10-26): new Social Space and face/social
+  demos distinguish stable meaningful changes from evidence refresh. Expiring
+  Live occasions retain Live wording; conversation, corrections and tasks take
+  priority. Local persistence/regression and all three real OpenAI journeys pass.
+  Saved-instance semantics remain unchanged; README describes timing, schema and
+  the committed-transcript priority limitation. Evidence: COREAGENTIMPROVEMENT_RESULTS.
+
 - Core-agent improvements CA-02 (2026-10-26): new Generic, Social Space and Live
   Multimodal instances enforce bounded decorative gesture cadence with explicit
   request/task-action exemptions. Reload/reset and unchanged-channel tests pass;

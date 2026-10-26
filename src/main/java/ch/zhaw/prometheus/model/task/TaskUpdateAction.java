@@ -27,6 +27,8 @@ public class TaskUpdateAction extends Action {
     private void update(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
         if (cancelled(storage, runtime)) return;
+        if (ch.zhaw.prometheus.model.behaviour.SensoryRemarks.enabled(storage))
+            ch.zhaw.prometheus.model.behaviour.SensoryRemarks.userTurn(storage, events);
         if (DecorativeGestures.enabled(storage)) {
             if (storage.containsKey(DecorativeGestures.REQUIRED)) storage.remove(DecorativeGestures.REQUIRED);
             if (!taskCue && DecorativeGestures.requested(events)) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));

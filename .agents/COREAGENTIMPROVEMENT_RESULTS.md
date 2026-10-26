@@ -2,8 +2,9 @@
 
 ## Current status
 
-CA-01 complete and pushed as 55738757. CA-02 complete.
-CA-03 through CA-08 not implemented.
+CA-01 complete and pushed as 55738757. CA-02 complete and pushed as d30196ff.
+CA-03 implementation/local verification complete; paid sensory trials pending.
+CA-04 through CA-08 not implemented.
 Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
 No main, agents or standalone Valerian runtime changes in this series yet.
 
@@ -68,3 +69,43 @@ Verified so far:
 - Shared reset/policy regression passes (`target/ca02-reset-regression.log`),
   covering oblivious history clearing, transitions, regulation reset, nested/outer
   routing and PromptPolicy. Physical movement remains unverified.
+
+## CA-03 — meaningful sensory remarks
+
+New Social Space instances opt into stable 2s counts, 4s conversation priority
+and 15s remark cooldown. Face/social demos use 1s stability, 2s conversation
+priority and 8s cooldown. Source order/15s freshness remains independent of receipt
+refresh. A suppressed crossing is dropped, not queued. Rich social signatures
+ignore tracker IDs and confidence jitter but retain confident movement/attention.
+Explicit facial corrections/opt-outs suppress automatic interpretation until
+resumed/reset; ordinary direct questions remain available.
+
+Live uses expiring, interruptible PROACTIVE occasions and owns wording; these
+sensor turns make no language-model call in the backend. Different/invalid newer
+evidence or a user turn cancels a pending comment. Text/Continuous generate a
+validated plan, discarded if its source expires or continuation is cancelled.
+Existing saved Social Space and generic Multimodal Behaviour semantics are retained;
+new opt-in policy classes/nullable storage association require a new instance.
+
+- 41 Java/local MySQL checks pass in `target/gptlive-acceptance-9ebcf402e6`:
+  helper rules, new agent graphs, existing saved-instance contracts, legacy
+  canonical/compact Social Space journeys, Generic task regressions, gesture and
+  sensory storage reload. Core sensory persistence covers all three definitions.
+- Initial integrated run `b848ece2c7` failed due test fixtures mutating the read-only
+  Agent storage projection and counting gateway configuration reads as inference.
+  Corrected the fixtures/verification without loosening behavioural assertions.
+- Eight focused helper/agent checks also cover conversation priority, source expiry
+  and the quiet context after an occasion expires (`target/ca03-final-units.log`).
+- Paid face `40e3471bf4`, social `dad7800a17` and Social Space `249b50d7f1`
+  journeys pass: ordinary questions, direct current sensing, one stable-change
+  comment, retained state and attached session. Face also persists a correction
+  and withdraws its pending comment.
+- Social trial `42e873c98a` failed an overly narrow test wording check: Live said
+  "a second pops in", correctly describing the supplied second visitor. Added
+  that semantic alternative and reran; no production behaviour changed for it.
+
+Conversation priority uses committed dialogue timestamps. A just-starting user
+utterance can overlap an already admitted remark before its transcript arrives;
+the face trial exhibited this at the first question. This is no hard audio gate.
+No physical audio/movement or UI rendering change is claimed. All paid runs used
+disposable local databases and cleaned up their app/schema/account.

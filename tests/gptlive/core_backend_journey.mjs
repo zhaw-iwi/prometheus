@@ -6,9 +6,11 @@ import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
+const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
+  social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space'};
 const connectionOnly = true;
 const base = process.env.PROMETHEUS_BASE_URL;
-if (permission !== '--allow-paid-provider' || !output || selection !== 'live' || !base
+if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
     || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname))
   throw Error('Use run_acceptance.py --paid-core live with its disposable local database.');
 const key = process.env.OPENAI_API_KEY, token = process.env.PROMETHEUS_ADMIN_TOKEN;
@@ -16,7 +18,9 @@ if (!key || !token) throw Error('Missing provider/admin environment credentials'
 const report = {startedAt: new Date().toISOString(), selection, passed: false, turns: [],
   limitations: 'Synthetic audio/sensors; captions and received media do not prove physical audibility or movement.'};
 const clips = {info: 'Hello Valerian. What is the SIRA Lab?',
-  sense: 'How many people can you currently see?', gesture: 'Please show me the paper hand sign.'};
+  sense: selection === 'face' ? 'How does my facial expression look?' : 'How many people can you currently see?',
+  ...(selection === 'live' ? {gesture: 'Please show me the paper hand sign.'} : {}),
+  ...(selection === 'face' ? {correction: 'I am not happy. Please stop commenting on my face.'} : {})};
 const audio = {};
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 for (const [name, input] of Object.entries(clips)) {
@@ -32,6 +36,9 @@ for (const [name, input] of Object.entries(clips)) {
 }
 const browser = await chromium.launch({headless: true, args: ['--autoplay-policy=no-user-gesture-required']});
 let page, agentPath, handle, heartbeat, scoped;
+let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 'neutral', confidence: .95, facePresent: true}}
+  : {type: selection === 'social' ? 'obs.social.context' : 'obs.social.grouping', data: {humanCount: 1, groupCount: 0, largestGroupSize: 1}};
+async function freshSense() { return observe(sensing.type, {...sensing.data, ts: new Date().toISOString()}); }
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function api(route, method = 'GET', body, headers = scoped) {
   const response = await fetch(base + route, {method, headers: {...headers, 'Content-Type': 'application/json'},
@@ -91,17 +98,17 @@ try {
   const admin = {'X-Prometheus-Admin-Token': token};
   const code = ('G' + Math.random().toString(36).slice(2, 6)).toUpperCase();
   const access = await api('/admin/access-codes', 'POST', {code, enabled: true}, admin);
-  await api(`/admin/access-codes/${access.id}/agent-types`, 'PUT', {agentTypeKeys: ['core.live_multimodal']}, admin);
+  await api(`/admin/access-codes/${access.id}/agent-types`, 'PUT', {agentTypeKeys: [definitions[selection]]}, admin);
   scoped = {'X-Prometheus-Access-Code': code};
-  const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: 'core.live_multimodal'});
+  const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  await observe('obs.social.grouping', {humanCount: 1, ts: new Date().toISOString()});
+  await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
     if (heartbeatBusy) return;
     heartbeatBusy = true;
     try {
-      await observe('obs.social.grouping', {humanCount: 1, ts: new Date().toISOString()});
+      await freshSense();
       if (handle) await api(`${agentPath}/live/sessions/${handle}`);
     } catch (error) { report.heartbeatError = error.message; }
     finally { heartbeatBusy = false; }
@@ -154,22 +161,34 @@ try {
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
   // LiveMultimodal intentionally has no unsolicited opening. Start with a user turn.
   const initial = await api(agentPath + '/state');
-  for (const [name, expected] of [['info', /SIRA|social|responsib|research|agent/i], ['sense', /one|1|single/i]]) {
+  for (const [name, expected] of [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]]) {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
     report.turns.push({name, text});
     assert.deepEqual(await api(agentPath + '/state'), initial, 'Ordinary requests must retain the interaction state');
   }
-  // The existing voice contract explicitly stays silent for gesture-only requests.
-  // Require a persisted executable plan, not a redundant spoken acknowledgement.
-  await say('gesture');
-  await until('persisted paper hand-sign plan', async () => {
-    const history = await api(agentPath + '/eventhistory');
-    const plans = history.filter(event => event.type === 'resp.behaviour_plan')
-      .map(event => JSON.parse(event.payload));
-    return plans.some(plan => plan.motion?.handSign === 'paper') && (report.history = history);
-  });
+  if (selection === 'live') {
+    // Gesture-only requests intentionally require no spoken acknowledgement.
+    await say('gesture');
+    await until('persisted paper hand-sign plan', async () => {
+      const history = await api(agentPath + '/eventhistory');
+      const plans = history.filter(event => event.type === 'resp.behaviour_plan').map(event => JSON.parse(event.payload));
+      return plans.some(plan => plan.motion?.handSign === 'paper') && (report.history = history);
+    });
+  } else {
+    await wait(selection === 'space' ? 16000 : 9000);
+    const index = await page.evaluate(() => logs.length);
+    if (selection === 'face') sensing.data.emotion = 'happy'; else sensing.data.humanCount = 2;
+    await freshSense(); await wait(selection === 'space' ? 2200 : 1200); await freshSense();
+    report.proactive = await settled(index, selection === 'face' ? /happy|happier|smil|cheer|bright/i : /two|2|second|another|one more|pair|duo|joined|company/i);
+    assert.ok((await storage())['sensing.remarks.pending'], 'No persisted speaking occasion');
+    if (selection === 'face') {
+      await say('correction');
+      await until('durable correction', async () => (await storage())['sensing.remarks.correction'] === true);
+      assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
+    }
+  }
   assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');

@@ -26,6 +26,10 @@ public class SocialSpaceResponseAction extends Action {
     }
 
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
+        if (ch.zhaw.prometheus.model.behaviour.SensoryRemarks.enabled(getStorage())) {
+            new SensoryReactionAction(getStorage(), getPolicy().describe(), 2000, 4000, 15000).execute(events, runtime);
+            return;
+        }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         var now = Instant.now();
         var change = SocialSpacePresenceDecision.change(events, now).orElse(null);

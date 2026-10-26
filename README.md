@@ -1942,12 +1942,41 @@ Capability awareness and GPT-Live are explicitly enabled. Creation emits a
 short welcome without calling a provider.
 
 Outside a running, waiting or paused task, a local guard compares fresh
-`obs.social.grouping` human counts. An initially occupied view or count change
-can produce one ambient reply. Empty initial views, unchanged counts,
+`obs.social.grouping` human counts. New instances require two seconds of stable
+source evidence, four seconds of conversation quiet, and fifteen seconds between
+remarks. An initially occupied view or stable count change can produce one
+ambient reply. Empty initial views, unchanged counts,
 movement/regrouping, repeated or out-of-order samples, stale/invalid samples,
 other sensor frames and derived social-change events stay quiet. Generation
 failure stays silent without retrying on unchanged visibility; the model may
 also choose silence. Ambient remarks preserve drafts, agreements and budgets.
+
+New Facial Expression Sensitivity and Social Context Sensitivity demos distinguish
+meaningful changes from refreshes too, with shorter one-second stability,
+two-second conversation quiet and eight-second cooldown. Face evidence needs at
+least 0.65 confidence; explicit absence is distinct from uncertain interpretation.
+Social changes include counts, group size and confident movement/attention labels,
+not tracker IDs or tiny confidence changes. Explicit corrections such as “I am
+not sad” or requests to stop facial commentary suppress automatic interpretation
+until the user asks to resume it or resets. Direct questions remain available,
+and explicit user statements take precedence over estimates.
+
+Live owns these comments' wording, using one interruptible speaking occasion
+that expires within six seconds and never outlives the source's fifteen-second
+freshness window. New contradictory/invalid evidence or a user turn withdraws
+it. Suppressed changes are dropped, not replayed later. Backend sensor turns do
+not call a language model during Live. Text/Continuous still produce backend
+plans and discard results if the source expires during generation. The quiet
+period uses committed dialogue; speech just beginning to be captured can overlap
+an already admitted comment. This is not hard audio gating.
+
+Saved instances retain their original policies and Social Space opt-out.
+Create new instances for the new behaviour; ordinary Multimodal Behaviour is
+unchanged. The new SensoryPolicy adds nullable `policy.sensory_storage_id` and
+SensoryReactionAction stores its timing parameters on the action table;
+`ddl-auto=update` adds these locally. Managed deployments must apply the additive
+mapping before rollout. No existing records are rewritten. Evidence is in
+`.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
 
 An active or paused task owns sensor reactions through its existing agreement.
 Counts describe the camera view only: replacing one person with another at the

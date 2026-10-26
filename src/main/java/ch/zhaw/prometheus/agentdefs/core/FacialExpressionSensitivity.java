@@ -104,7 +104,7 @@ public class FacialExpressionSensitivity implements AgentDefinition {
                 "Valerian Core facial expression sensitivity",
                 "Valerian Core facial expression sensitivity complete",
                 ValerianCoreAgentFactory.facialExpressionProfile(),
-                List.of(Event.TYPE_FACE_EMOTION));
+                List.of(Event.TYPE_FACE_EMOTION), true);
     }
 
     @Override

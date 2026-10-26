@@ -72,6 +72,7 @@ public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition 
                 "English core Valerian social-space agent with concise conversation, arrival/departure reactions and persistent configurable multimodal tasks.",
                 VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour", "demo.valerian.social_space"), true);
         var storage = ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+        storage.put(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED, new com.google.gson.JsonPrimitive(true));
         for (var state : agent.reachableStates()) {
             // Routing already has an unconditional fallback; ambient replies belong to conversational states.
             if (!state.isStarting()) continue;

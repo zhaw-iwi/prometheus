@@ -48,18 +48,29 @@ final class ValerianCoreAgentFactory {
     static Agent singleStateSignalDemo(SignalDemoPrompts prompts, String agentName, String agentDescription,
             String stateName, String finalStateName, AgentInteractionProfile interactionProfile,
             List<String> reactionEventTypes) {
+        return singleStateSignalDemo(prompts, agentName, agentDescription, stateName, finalStateName, interactionProfile, reactionEventTypes, false);
+    }
+    static Agent singleStateSignalDemo(SignalDemoPrompts prompts, String agentName, String agentDescription,
+            String stateName, String finalStateName, AgentInteractionProfile interactionProfile,
+            List<String> reactionEventTypes, boolean meaningfulSensing) {
         Storage storage = new Storage();
         State sessionFinal = new Final(finalStateName, prompts.finalPrompt(), ValerianCorePrompts.FINAL_STARTER);
         sessionFinal.setEventSelectorSpec(EventSelectorSpec.any());
 
-        PromptPolicy interactionPolicy = corePromptPolicy(prompts.state(), prompts.starter());
+        PromptPolicy interactionPolicy = meaningfulSensing ? new SensoryPolicy(prompts.state(), prompts.starter(), storage)
+                : corePromptPolicy(prompts.state(), prompts.starter());
         State interactionState = new State(stateName, interactionPolicy, List.of());
 
         Transition innerToFinal = finalTransition(prompts.toFinal(), prompts.outcomeExtraction(), storage,
                 sessionFinal);
         interactionState.addTransition(innerToFinal);
         for (String eventType : reactionEventTypes == null ? List.<String>of() : reactionEventTypes) {
-            interactionState.addTransition(new Transition(new LatestEventTypeDecision(eventType), interactionState));
+            // Derived summaries refresh context but cannot duplicate the richer source reaction.
+            if (meaningfulSensing) {
+                if (Event.TYPE_SOCIAL_SITUATION_CHANGE.equals(eventType)) continue;
+                interactionState.addTransition(new Transition(new LatestEventTypeDecision(eventType),
+                        new SensoryReactionAction(storage, prompts.state(), 1000, 2000, 8000), interactionState));
+            } else interactionState.addTransition(new Transition(new LatestEventTypeDecision(eventType), interactionState));
         }
 
         Transition outerToFinal = new Transition(

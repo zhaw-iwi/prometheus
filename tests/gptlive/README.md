@@ -55,6 +55,9 @@ Offline remains the default. To explicitly permit paid OpenAI calls:
 
 ```powershell
 python tests/gptlive/run_acceptance.py --java-tests none --paid-core live
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core face
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core social
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core space
 ```
 
 This launches the production app against a disposable local schema and uses its
@@ -63,7 +66,9 @@ audio. The first baseline covers Live Multimodal: SIRA conversation, a person-co
 question grounded in supplied sensing, and a requested paper hand sign persisted
 as a behaviour plan. It checks state retention and semantic captions. It does not
 use a replacement prompt or scripted provider. Later milestones extend the
-journey selection. `OPENAI_API_KEY` takes precedence over the ignored local
+journey selection. Face/social/space now cover a grounded perception answer and
+an unsolicited comment after a stable change. Face also verifies persisted user
+correction and cancellation of the pending comment. `OPENAI_API_KEY` takes precedence over the ignored local
 `openai.properties`/`application.properties` API key; their database URL is never
 used for paid-provider configuration. Configure `openai.model` or `OPENAI_MODEL`
 as for an ordinary local app; the runner rejects missing configuration before

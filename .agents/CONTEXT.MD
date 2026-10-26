@@ -293,10 +293,13 @@ policies retain existing behavior. Context data is model-visible, not a secrecy 
 ## Conversational Task Configuration
 
 The core Social Space variant reuses the Generic task graph with brief English
-Valerian conversation. Outside active/waiting/paused tasks, a local guard admits
-one ambient reply for a fresh visible-human-count change. Stable visibility,
-regrouping and derived-event duplicates stay quiet; task agreements retain their
-sensor semantics. The main-branch port uses the existing creation API without
+Valerian conversation. New instances require stable visible-human-count changes,
+conversation quiet and a cooldown outside active/waiting/paused tasks. Face/social
+demonstration agents use shorter thresholds and respect explicit corrections.
+Live composes expiring sensory occasions; refreshed readings and derived-event
+duplicates alone stay quiet. Saved Social Space instances retain their original
+fresh-count guard; task agreements retain their sensor semantics. The main-branch
+port uses the existing creation API without
 the deployment-only embodiment/persona layer. Setup and limits are in README.
 
 `GenericMultimodalBehaviour` is a separate core definition with the existing

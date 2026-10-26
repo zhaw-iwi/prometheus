@@ -122,10 +122,10 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     public static Agent createTaskAgent(String name, String description, String voice, List<String> tags, boolean gestureCadence) {
         Storage storage = new Storage();
         if (gestureCadence) storage.put(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.ENABLED, new com.google.gson.JsonPrimitive(true));
-        var configuration = new TaskState("Generic multimodal configuration", new TaskPolicy(storage, voice), true);
-        var running = new TaskState("Generic multimodal execution", new TaskPolicy(storage, voice), true);
-        var completed = new TaskState("Generic multimodal task completed", new TaskPolicy(storage, voice), true);
-        var dispatch = new TaskState("Generic multimodal task routing", new TaskPolicy(storage, voice), false);
+        var configuration = new TaskState("Generic multimodal configuration", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
+        var running = new TaskState("Generic multimodal execution", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
+        var completed = new TaskState("Generic multimodal task completed", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
+        var dispatch = new TaskState("Generic multimodal task routing", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), false);
         dispatch.addTransition(new Transition(new TaskDecision(storage, "RUNNING"), running));
         dispatch.addTransition(new Transition(new TaskDecision(storage, "COMPLETED"), completed));
         dispatch.addTransition(new Transition(configuration));

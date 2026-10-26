@@ -24,6 +24,8 @@ public class SocialSpacePresenceDecision extends Decision {
     @Override public boolean decide(EventHistory events, PolicyRuntime runtime) {
         var storage = ((TaskPolicy) getPolicy()).storage();
         if (TaskMemory.active(storage) || "PAUSED".equals(TaskMemory.phase(storage))) return false;
+        if (ch.zhaw.prometheus.model.behaviour.SensoryRemarks.enabled(storage))
+            return !events.isEmpty() && Event.TYPE_SOCIAL_GROUPING.equals(events.toList().getLast().getType());
         return change(events, Instant.now()).isPresent();
     }
 
