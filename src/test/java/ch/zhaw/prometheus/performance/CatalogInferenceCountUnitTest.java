@@ -53,8 +53,9 @@ class CatalogInferenceCountUnitTest {
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "DB", true);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_SOCIAL_SITUATION_CHANGE, false, "D", false);
     check(new SingleStateSmartGoalCoaching(), Event.TYPE_WEATHER_CURRENT, false, "");
-    check(new FacialExpressionSensitivity(), Event.TYPE_FACE_EMOTION, false, "B");
-    check(new SocialContextSensitivity(), Event.TYPE_SOCIAL_CONTEXT, false, "B");
+    // The generic hand-sign payload is not fresh, stable facial/social evidence.
+    check(new FacialExpressionSensitivity(), Event.TYPE_FACE_EMOTION, false, "");
+    check(new SocialContextSensitivity(), Event.TYPE_SOCIAL_CONTEXT, false, "");
     check(new RockScissorPaper(), Event.TYPE_HAND_SIGN, false, "");
     Gateway g = new Gateway(); PolicyRuntime rt = new PolicyRuntime(new PromptMessageAssembler(), g);
     Agent a = new SingleStateSmartGoalCoaching().createAgent(); a.start(rt); g.reset(); g.invalidNonverbal = true;

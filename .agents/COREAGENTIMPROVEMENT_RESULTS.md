@@ -3,10 +3,50 @@
 ## Current status
 
 CA-01 complete and pushed as 55738757. CA-02 complete and pushed as d30196ff.
-CA-03 implementation/local verification complete; paid sensory trials pending.
-CA-04 through CA-08 not implemented.
+CA-03 complete and pushed as 4f11b1ae; CA-04 complete and pushed as 35fcfc21.
+CA-05 complete. CA-06 through CA-08 not implemented.
 Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
 No main, agents or standalone Valerian runtime changes in this series yet.
+
+## CA-05 — round identity and coordinated capture
+
+New core RPS graphs retain Start/Reveal/Result/Final and their replay route while
+persisting a fresh round ID, source-time capture boundary, owner/session/epoch,
+preparation deadline and bounded results. Selection/result computation use existing
+deterministic RPS rules. Old captures, low confidence, stale/future/out-of-order
+observations and unstable camera signs cannot finish a round. Live starts capture
+and requests its gesture only after the existing captured-countdown/playback cue;
+Text/Continuous retain their speech/motion plan. Timeout/session closure aborts
+without a winner, allowing a fresh attempt. No new continuous sensor traffic or
+provider call is needed for sign acceptance or result calculation.
+
+Verification so far: `d7cbf162bb` passes 37 Java/local-MySQL checks, including
+two-round reloads at every boundary, legacy rule/prompt checks and reset. The
+initial unit runs exposed a decision-mock mismatch, an overly broad no-interaction
+assertion counting options reads, and an old sensor fixture expecting a reaction
+to malformed evidence. Corrected fixtures preserve the stricter production rules.
+All 17 hand-sensor/playback Node checks pass (`target/ca05-node.log`). Local browser
+run `131da2ad3a` passes with Live enabled and disabled, including real manual-sign
+capture, persisted result, monitor popup, screenshot and reset. Result screenshot
+was visually inspected; no rendering issue found.
+
+The initial paid run `d7cbf162bb` completed both rounds with correct results, but
+caption review found an early duplicate countdown and invented sign before the
+first backend selection. It is **not** accepted as a behavioural pass. The initial
+state now uses explicit no-round facts and the same application voice policy as
+the active round; the provider harness rejects repeated countdowns and announced
+own signs. The follow-up evidence is recorded below when complete. Real-provider
+speech remains probabilistic; these checks do not prove physical audibility,
+robot gesture timing or camera exclusion of the robot's own hand.
+
+Follow-up `b7d9616207` passes 11 unit/persistence checks and both paid rounds with
+one countdown each and no invented sign, but its English results copy German
+labels from the old diagnostic `reason`. Live facts now omit that redundant field;
+durable results and Text/Continuous are unchanged. Final `01ad02d8a6` passes all
+five round unit checks and the tightened paid journey: one countdown, no premature
+own-sign announcement, correct English draw/win, two motion requests, new capture
+identity and old-capture rejection. All owned local apps/databases were removed.
+CA-05 is accepted. Prompt wording still cannot guarantee hard speech timing.
 
 ## CA-01 — baseline and acceptance harness
 

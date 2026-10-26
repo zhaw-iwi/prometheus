@@ -8,9 +8,10 @@ const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
 const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
   social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space',
-  task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space'};
+  task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space', rps: 'core.rock_scissor_paper'};
 const taskJourney = selection === 'task' || selection === 'space-task';
-const connectionOnly = true;
+const rpsJourney = selection === 'rps';
+const connectionOnly = !rpsJourney;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
     || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname))
@@ -28,6 +29,10 @@ if (taskJourney) Object.assign(clips, {
   accept: 'Yes, please.', acknowledge: 'Okay.'
 });
 const audio = {};
+if (rpsJourney) {
+  for (const key of Object.keys(clips)) delete clips[key];
+  Object.assign(clips, {ready: 'I am ready to play rock scissors paper.', replay: 'Yes, another round please.'});
+}
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 for (const [name, input] of Object.entries(clips)) {
   const body = JSON.stringify({model: 'gpt-4o-mini-tts', voice: 'alloy', input, response_format: 'pcm'});
@@ -108,13 +113,13 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  await freshSense();
+  if (!rpsJourney) await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
     if (heartbeatBusy) return;
     heartbeatBusy = true;
     try {
-      await freshSense();
+      if (!rpsJourney) await freshSense();
       if (handle) await api(`${agentPath}/live/sessions/${handle}`);
     } catch (error) { report.heartbeatError = error.message; }
     finally { heartbeatBusy = false; }
@@ -167,7 +172,7 @@ try {
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
   // LiveMultimodal intentionally has no unsolicited opening. Start with a user turn.
   const initial = await api(agentPath + '/state');
-  for (const [name, expected] of [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]]) {
+  for (const [name, expected] of (rpsJourney ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
@@ -175,7 +180,39 @@ try {
     report.turns.push({name, text});
     assert.deepEqual(await api(agentPath + '/state'), initial, 'Ordinary requests must retain the interaction state');
   }
-  if (taskJourney) {
+  if (rpsJourney) {
+    let previous;
+    for (const name of ['ready', 'replay']) {
+      let index = await page.evaluate(() => logs.length); await say(name);
+      const round = await until('fresh round open after playback', async () => {
+        const r = (await storage())['core.rps.round'];
+        return r?.phase === 'WAITING' && r.id !== previous && r;
+      });
+      const preparation = await settled(index, /one.{0,20}two.{0,20}three|1.{0,20}2.{0,20}3/is);
+      report.turns.push({name, text: preparation, round});
+      assert.doesNotMatch(preparation, /I (?:go|chose|choose|picked|pick|have|am|['’]m).{0,15}(?:rock|paper|scissor)/i,
+        'Live must not invent or announce a selected sign before the result');
+      assert.equal((preparation.match(/one[\s,!.—-]+two[\s,!.—-]+three|1[\s,!.—-]+2[\s,!.—-]+3/gi) || []).length, 1,
+        'The round must have one countdown');
+      if (previous) {
+        await observe('obs.hand.sign', {captureId: previous, sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+        assert.equal((await storage())['core.rps.round'].phase, 'WAITING', 'Old capture must not finish a replay');
+      }
+      index = await page.evaluate(() => logs.length);
+      await observe('obs.hand.sign', {captureId: round.id, sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+      await until('deterministic round result', async () => (await storage())['core.rps.round']?.phase === 'RESULT');
+      const memory = await storage(); const result = memory['rps_last_round'];
+      assert.ok(result, 'Missing persisted result');
+      const expected = result.winner === 'draw' ? /draw|tie/i : result.winner === 'user' ? /you win|you won|your win|you beat/i : /I win|I won|my win|I beat/i;
+      const text = await settled(index, expected);
+      assert.doesNotMatch(text, /\bStein\b|\bSchere\b|\bPapier\b/i, 'Legacy German diagnostic labels must not leak into English speech');
+      report.turns.push({name: name + '-result', result, text});
+      assert.equal(memory['core.rps.completed'], previous ? 2 : 1);
+      previous = round.id;
+    }
+    report.history = await api(agentPath + '/eventhistory');
+    assert.equal(report.history.filter(e => e.type === 'resp.behaviour_plan' && JSON.parse(e.payload).motion?.handSign).length, 2);
+  } else if (taskJourney) {
     let index = await page.evaluate(() => logs.length); await say('proposal');
     await until('persisted draft', async () => (await storage())['task.draft']);
     report.proposal = await settled(index, /start|activate|ready|shall|begin/i);
@@ -226,7 +263,7 @@ try {
       assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
     }
   }
-  if (!taskJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
+  if (!taskJourney && !rpsJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;

@@ -144,6 +144,13 @@ catalog keys into new context documents.
 
 ## Capability Awareness
 
+New core RPS instances persist round identity and validate fresh, confident,
+round-specific observations before deterministic results. Optional Live countdown
+uses the shared playback-cue contract with bounded recovery; result/replay states
+remain. Existing saved graphs and Text/Continuous timing retain their semantics.
+README documents capture, schema and configuration; core-agent results record
+local/provider evidence and physical limitations.
+
 Definitions opt in through `AgentDefinition.capabilityAwareness()` (default false).
 Core definitions opt in explicitly; other definitions, including those reusing
 core factories, remain out. The setting persists in the instance interaction

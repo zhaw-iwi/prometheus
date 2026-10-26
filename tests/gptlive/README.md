@@ -115,6 +115,12 @@ The lower-level boundary checks are `TaskBehaviourEncodingUnitTest`,
 
 ## Detachable state view
 
+Core RPS: `python tests/gptlive/run_acceptance.py --java-tests CoreRpsRoundUnitTest,CoreRpsPersistenceIntegrationTest --paid-core rps`
+uses the actual browser playback observer, two rounds, an old-capture rejection,
+deterministic results and semantic caption checks. It is explicitly paid and uses
+only the disposable local database. The browser state-view journey also exercises
+manual capture and the rendered result, with Live enabled and disabled.
+
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest,LiveCockpitSmokeIntegrationTest --browser --browser-grep 'state view|Valerian columns follow|Valerian cockpit opens connected|Valerian camera and microphone controls|Valerian cockpit columns expand|real scoped cockpit'
 ```

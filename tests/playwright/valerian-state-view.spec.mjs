@@ -207,6 +207,15 @@ test("state view tracks a persisted transition through real local HTTP and monit
     await expect(popup.locator("#state_view")).toBeVisible();
     await popup.evaluate(() => document.fonts.ready);
     await popup.screenshot({ path: info.outputPath("real-db-transition-popup.png") });
+    // Exercise the actual manual-sensor emitter, including its round capture ID.
+    await page.evaluate(() => submitHandSign("rock"));
+    await expect(popup.getByTestId("diagnostics-current-state")).toContainText("Round Result");
+    const stored = Object.fromEntries((await (await request.get(`/demo/agents/${agent.id}/storage`, { headers })).json())
+      .map(entry => [entry.key, JSON.parse(entry.value)]));
+    expect(stored["core.rps.round"].phase).toBe("RESULT");
+    expect(stored["core.rps.completed"]).toBe(1);
+    expect(stored.rps_last_round.winner).toBe("draw");
+    await page.screenshot({ path: info.outputPath("real-db-rps-result.png") });
     // Reset produces another committed monitor snapshot while the nodes live in the popup.
     expect((await request.delete(`/demo/agents/${agent.id}/reset`, { headers })).ok()).toBe(true);
     await expect(popup.getByTestId("diagnostics-current-state")).toHaveText(initial);

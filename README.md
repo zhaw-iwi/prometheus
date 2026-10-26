@@ -1611,6 +1611,24 @@ The persisted policy adds nullable `voice_instructions` and
 them. Managed deployments must apply these columns before creating/reloading this
 policy type. Existing policy rows and agent instances need no conversion.
 
+New Core Rock Scissor Paper instances persist a unique round/capture ID and keep
+their dedicated result/replay states. Observations must echo `display.captureId`,
+have a fresh source timestamp at or after capture opening (15-second TTL,
+two-second future skew), and confidence at least 0.7. Camera observations also
+require three stable frames. Old/malformed/duplicate rounds never decide a winner.
+The existing cockpit attaches IDs to camera and manual signs and resets the
+held-sign cooldown once per opening. The last 16 results are retained; reset clears
+rounds and counters. Existing saved RPS graphs retain their previous semantics.
+`prometheus.core.rps.live-countdown=true` enables countdown/playback coordination
+for newly created instances: select, Live countdown, observed playback settling,
+then one gesture request and capture. Preparation expires after 30 seconds into a
+recoverable result/replay state with no winner. Disabling this setting shows the
+sign immediately. Text/Continuous retain their existing countdown/motion plan.
+This does not prove physical movement, audibility or separation of the robot's
+hand from the visitor's hand. New persisted policy/action/decision subtypes reuse
+Storage and add nullable `action.rps_operation` and `decision.rps_condition`
+columns; local `ddl-auto=update` creates them, managed schemas must add them.
+
 New Generic Multimodal, Social Space and Live Multimodal instances enforce
 occasional decorative gestures: at least 12 seconds between published requests
 and 60 seconds before repeating the same label. Up to five recent requests are

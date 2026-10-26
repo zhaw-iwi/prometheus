@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-05 (2026-10-26): new core RPS rounds own unique capture
+  IDs, freshness/confidence/stability checks and bounded history. Optional Live
+  countdown/playback precedes the gesture and capture; result/replay states remain.
+  Java/local persistence, 17 Node checks, browser/manual-capture checks and two
+  real OpenAI rounds pass. Failed speech trials and fixes are recorded in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`; physical timing remains unverified.
+
 - Core-agent improvements CA-04 (2026-10-26): new Generic/Social Space instances
   provide confirmed task facts while Live composes speech. Text/Continuous and
   saved opt-out contracts remain; short acceptance requires a current invitation,
