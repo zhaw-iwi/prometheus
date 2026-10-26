@@ -15,6 +15,7 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
+import ch.zhaw.prometheus.model.guessing.*;
 
 final class ValerianCoreAgentFactory {
     private static final String TAG_VALERIAN_CORE = "demo.valerian.core";
@@ -159,18 +160,19 @@ final class ValerianCoreAgentFactory {
     static Agent roleClarificationGuessingGame(RoleClarificationPrompts prompts, String agentName,
             String agentDescription) {
         Storage storage = new Storage();
+        GuessingMemory.initialize(storage, GuessingMemory.Role.UNDECIDED);
         State finalState = new Final("Valerian Core role clarification guessing game complete",
                 prompts.finalPrompt(),
                 ValerianCorePrompts.FINAL_STARTER);
         finalState.setEventSelectorSpec(EventSelectorSpec.any());
-
+        finalState.setPolicy(guessingPolicy(storage, prompts.finalPrompt(), ValerianCorePrompts.FINAL_STARTER));
         State valerianGuessesState = new State(
                 "Valerian Core guessing game - Valerian guesses",
-                corePromptPolicy(prompts.valerianGuessesState(), prompts.valerianGuessesStarter()),
+                guessingPolicy(storage, prompts.valerianGuessesState(), prompts.valerianGuessesStarter()),
                 List.of());
         State userGuessesState = new State(
                 "Valerian Core guessing game - user guesses",
-                corePromptPolicy(prompts.userGuessesState(), prompts.userGuessesStarter()),
+                guessingPolicy(storage, prompts.userGuessesState(), prompts.userGuessesStarter()),
                 List.of());
         State roleClarificationState = new State(
                 "Valerian Core guessing game role clarification",
@@ -181,19 +183,22 @@ final class ValerianCoreAgentFactory {
                 finalTransition(prompts.toFinal(), prompts.outcomeExtraction(), storage, finalState));
         userGuessesState.addTransition(
                 finalTransition(prompts.toFinal(), prompts.outcomeExtraction(), storage, finalState));
+        for (var game : List.of(valerianGuessesState, userGuessesState))
+            game.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                    new GuessingAction(storage, GuessingAction.Mode.UPDATE), game));
         roleClarificationState.addTransition(
                 finalTransition(prompts.toFinal(), prompts.outcomeExtraction(), storage, finalState));
         roleClarificationState.addTransition(new Transition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
                         new StaticDecision(prompts.roleToValerianGuesses())),
-                List.of(),
+                List.of(new GuessingAction(storage, GuessingAction.Mode.AGENT_ROLE)),
                 valerianGuessesState));
         roleClarificationState.addTransition(new Transition(
                 List.of(
                         new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
                         new StaticDecision(prompts.roleToUserGuesses())),
-                List.of(),
+                List.of(new GuessingAction(storage, GuessingAction.Mode.USER_ROLE)),
                 userGuessesState));
 
         State outerState = coreOuterState(finalState, prompts.toFinal(), prompts.outcomeExtraction(), storage,
@@ -290,12 +295,12 @@ final class ValerianCoreAgentFactory {
 
     private static Transition finalTransition(String toFinalPrompt, String outcomeExtractionPrompt, Storage storage,
             State finalState) {
+        var actions = new java.util.ArrayList<ch.zhaw.prometheus.model.Action>();
+        if (storage.containsKey(GuessingMemory.CONFIG)) actions.add(new GuessingAction(storage, GuessingAction.Mode.CLOSE));
+        actions.add(new StaticExtractionAction(outcomeExtractionPrompt, storage, "outcome"));
         return new Transition(
-                List.of(
-                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                        new StaticDecision(toFinalPrompt)),
-                List.of(
-                        new StaticExtractionAction(outcomeExtractionPrompt, storage, "outcome")),
+                exitDecisions(storage, toFinalPrompt),
+                actions,
                 finalState);
     }
 
@@ -315,12 +320,11 @@ final class ValerianCoreAgentFactory {
     private static State coreOuterState(State finalState, String toFinalPrompt, String outcomeExtractionPrompt,
             Storage storage, State initialState, List<ch.zhaw.prometheus.model.Action> finalActions) {
         List<ch.zhaw.prometheus.model.Action> actions = new java.util.ArrayList<>(finalActions);
+        if (storage.containsKey(GuessingMemory.CONFIG)) actions.add(new GuessingAction(storage, GuessingAction.Mode.CLOSE));
         if (outcomeExtractionPrompt != null) actions.add(new StaticExtractionAction(outcomeExtractionPrompt, storage, "outcome"));
-        Transition outerToFinal = new Transition(
-                List.of(
-                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                        new StaticDecision(ValerianCorePrompts.OUTER_STATE_TO_FINAL),
-                        new StaticDecision(toFinalPrompt)),
+        var decisions = new java.util.ArrayList<>(exitDecisions(storage, toFinalPrompt));
+        decisions.add(decisions.size() - 1, new StaticDecision(ValerianCorePrompts.OUTER_STATE_TO_FINAL));
+        Transition outerToFinal = new Transition(decisions,
                 actions,
                 finalState);
         return new OuterState(
@@ -338,6 +342,18 @@ final class ValerianCoreAgentFactory {
                 AgentInteractionProfile.MODALITY_NONVERBAL_GAZE,
                 AgentInteractionProfile.MODALITY_NONVERBAL_MOTION,
                 AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN);
+    }
+    private static List<ch.zhaw.prometheus.model.Decision> exitDecisions(Storage storage, String prompt) {
+        var decisions = new java.util.ArrayList<ch.zhaw.prometheus.model.Decision>();
+        decisions.add(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE));
+        if (storage.containsKey(GuessingMemory.CONFIG)) {
+            decisions.add(new GuessingExitDecision(storage));
+            prompt += "\nGiving up and asking for the answer ends the round, not the conversation: return false for that.";
+        }
+        decisions.add(new StaticDecision(prompt)); return decisions;
+    }
+    private static GuessingPolicy guessingPolicy(Storage storage, String prompt, String starter) {
+        return new GuessingPolicy(storage, ValerianCorePrompts.OUTER_STATE + "\n" + prompt, starter, ValerianCorePrompts.NONVERBAL_PLAN);
     }
 
     private static List<String> physicalBehaviourModalitiesWithDisplay() {

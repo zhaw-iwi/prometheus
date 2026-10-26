@@ -487,6 +487,12 @@ unit tests for RPS and social derivation; and
 `ZurichRegulationSystemUnitTest` for regulation work. Always inspect neighboring
 tests for the actual task rather than relying only on this list.
 
+New core role-clarification and healthcare user-guesses definitions use
+`model/guessing` for persisted roles, curated secret cards and explicit
+reveal/solved/new-round control. The human's unspoken secret is never stored.
+Live phrases answers from these facts; Text/Continuous retain backend plans.
+Saved graphs are not rewritten. See the core-agent plan/results for acceptance.
+
 ## Do Not
 
 - Treat PROMETHEUS as a speech-only or chatbot-only framework.

@@ -4,9 +4,124 @@
 
 CA-01 complete and pushed as 55738757. CA-02 complete and pushed as d30196ff.
 CA-03 complete and pushed as 4f11b1ae; CA-04 complete and pushed as 35fcfc21.
-CA-05 complete. CA-06 through CA-08 not implemented.
+CA-05 complete and pushed as 677dd15a. CA-06 complete; CA-07/08 not implemented.
 Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
 No main, agents or standalone Valerian runtime changes in this series yet.
+
+## CA-06 — persisted guessing roles and secrets
+
+Core role negotiation remains playful; healthcare keeps its care-center tone,
+engagement and closing protocol. New graphs persist a role/phase/round record.
+The agent selects from five familiar curated cards; the human's unspoken item is
+never invented or persisted. Give-up reveals without closing the conversation;
+fresh rounds replace the record. Control inference uses at most 30 current-round
+events while durable transcripts remain intact. Unknown details and ambiguous
+questions have different wording guidance. Live owns wording; Text/Continuous
+resolve the same card through the existing storage-backed PromptPolicy formatter.
+
+Common harmless replies/give-up use local checks. A pure local exit guard prevents
+binary answers from closing active games; the allowlisted guard participates in
+existing combined model-check preparation rather than breaking batching. Other
+substantive game turns add one compact operation classification. Inference-budget
+tests explicitly account for that call. Wrong names cannot be marked solved even
+if control inference says SOLVED; selected role/secret cannot be replaced by model
+output. No sensor-driven inference or new database polling is added.
+
+Initial units caught fixture restubbing/canonical-plan mistakes, the guard-batching
+regression, and incorrect syntax for the existing storage placeholder. These were
+fixed before provider acceptance. `b4b444785b` failed only the unresolved-placeholder
+check and made no provider calls. `c864bd6d1c` passes 20 Java/local persistence/
+prompt/batching checks, but its paid journey answered “No, not blue” for an
+unspecified colour; it is a behavioural failure. Guidance now explicitly states
+that unknown is not false, and removes conflicting unconditional yes/no wording.
+The current-round context edit initially failed compilation (`95157a6ded`, no paid
+calls); it now uses the repository's EventSelector.of factory. Subsequent provider
+and final regression evidence follows below. All runner-owned apps/schemas/accounts
+are removed on exit; no Heroku database is used.
+
+`c95669d897` passes 14 focused Java/local checks and the full user-guesses paid
+journey: known nonliving answer, explicit unspecified colour, comparative
+clarification, teacup reveal, fresh dog round and correct guess. Final-source
+unit/persistence/prompt/batching checks pass (21 in `ac1f95f3a6`, six in
+`c0da5ef681`). The agent-guesses run `ac1f95f3a6` completed its guess and persisted
+a fresh second human-secret round, but the harness missed the valid new-round
+question “Is your new item alive?”; its assertion now accepts that wording.
+Healthcare run `c0da5ef681` similarly stopped on a narrow assertion: “I haven't
+pinned down any color yet” correctly expressed uncertainty. The harness now
+accepts that paraphrase and separately rejects a claimed positive/negative colour.
+These unsuccessful runs are retained; full reruns remain required before acceptance.
+Three acceptance-runner boundary tests pass. Unchanged KEEP records avoid redundant
+storage writes. Live can still add waiting remarks or repeat an invitation before
+updated facts arrive; prompt guidance is not an audio gate.
+
+Healthcare `0240d32cfd` then exposed a real comparative error: answering
+"Is it bigger?" as though the visitor had asked "Is it big?". The shared guidance
+now requires a comparison reference. `9668035fee` passes five units but the paid
+run received only "Blue" for the synthetic "Is it blue?" and produced no answer;
+this is not a behavioural pass or evidence that the full question was understood.
+The next bounded probe uses a fuller colour question and retains all raw input
+captions. No production audio settings were changed to accommodate the test.
+
+`26c0ed36e9` also fails the colour step, but investigation found that its generated
+TTS fixture actually omitted the final question. A separate gpt-transcribe check
+of the cached PCM confirms only "My next question is about color" was present
+(2.6 seconds). `target/ca06-audio-validation.json` retains that diagnostic.
+The replacement is one complete colour question. Independent transcription of it,
+the comparison, reveal/replay and opposite-role clips confirms their intended
+content (`target/ca06-audio-validation-followup.json`). The earlier short "Is it
+blue?" PCM was complete, so its partial Live recognition remains unexplained.
+
+`43d06c9044` passes six focused Java/local persistence checks and the complete
+healthcare paid journey with the verified input: "I have not specified a color",
+"Bigger than what?", teacup reveal, fresh dog round and confirmed correct guess.
+It also demonstrates the retained limitation: "One second" before the reveal and
+more than one readiness phrase. These are recorded, not treated as proof of
+perfect prompt adherence. The backend phase/secret/role checks all pass.
+
+Opposite-role `59b3c0a8e6` guessed dog and persisted SOLVED without a secret, but
+the assertion required another mention of dog/correct. Actual speech was "Nice!
+Digitally wagging my tail here ... Well played." Confirmation now requires spoken
+output, rejects a contradiction, and checks the authoritative SOLVED phase rather
+than requiring the visitor's answer to be repeated. Final rerun follows.
+
+`1326421150` retained the correct AGENT_GUESSES role and asked whether the animal
+lived indoors with people, a valid follow-up. The harness incorrectly demanded an
+immediate dog guess from a clue alone. Its visitor now explicitly requests a guess
+after supplying the clue; the replacement PCM was independently transcribed and
+verified (`target/ca06-audio-validation-guess-request.json`). No production prompt
+was changed to force immediate guessing. The opening caption also ends at "First
+overly precise"; caption/audio completeness remains the separate cutoff follow-up.
+
+`f8cd10cb01` exposes a real shared-prompt ambiguity: in AGENT_GUESSES, Live applied
+the user-guesses fact-card uncertainty rule to the human's clue ("I haven't
+specified a sound"). The rules now explicitly scope card-based answers and
+clarification to USER_GUESSES. AGENT_GUESSES may make tentative guesses from human
+clues without a backend card; only confirmation needs SOLVED. This fixes the
+role conflict instead of forcing a particular guessed item.
+
+`6e93666b76` passes 21 unit/local-persistence/prompt/inference-budget/guard batching
+checks and the automatic journey assertions, but caption review rejects the paid
+run: after the persisted fresh AGENT_GUESSES round, Live says it is still on the
+previous item. It is NOT accepted as a behavioural pass. Current facts now state
+explicitly that START confirms a new round and the human selects a new secret;
+absence of a backend card is intentional. The runner now rejects that misleading
+old-item claim. All owned test processes, schemas and accounts were removed.
+
+`287e5169dc` passes five units and the new-round assertions, with correct fresh
+human-secret wording. Review found that the harness advanced after a waiting
+remark ("I'm checking for the official okay first") at the solved turn. It now
+waits for a substantive acknowledgment/closing invitation before replay, accepting
+natural paraphrases such as "Nice", "Well played" and "lucky". This run is retained
+as incomplete speech acceptance, not a complete happy-path pass.
+
+Final `74c19c0eec` passes the tightened AGENT_GUESSES paid journey: correct role,
+"A dog?", substantive success acknowledgment, and "Think of a new item, please"
+on replay, with a new persisted round and no stored human secret. Caption review
+accepts these outcomes; a repeated initial question remains the documented
+prompt-only duplication limitation. Final facts have five passing unit checks
+(`287e5169dc`); the preceding 21-test local/prompt/batching suite also passes.
+Together with `c95669d897` (core USER_GUESSES) and `43d06c9044` (healthcare), all
+three paid happy paths have been exercised successfully. CA-06 is accepted.
 
 ## CA-05 — round identity and coordinated capture
 

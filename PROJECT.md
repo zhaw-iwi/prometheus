@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-06 (2026-10-26): new core
+  role-clarification and healthcare user-guesses graphs persist roles, curated
+  secret cards, reveal/solved phases and fresh round identities. Live phrases
+  replies; Text/Continuous use the same facts through existing prompt storage.
+  Saved graphs retain their old policies. Local reload/control checks and all
+  three paid role/healthcare journeys pass; evidence, failed trials and retained
+  speech limitations are in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
 - Core-agent improvements CA-05 (2026-10-26): new core RPS rounds own unique capture
   IDs, freshness/confidence/stability checks and bounded history. Optional Live
   countdown/playback precedes the gesture and capture; result/replay states remain.

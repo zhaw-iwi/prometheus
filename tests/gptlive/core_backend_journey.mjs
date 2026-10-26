@@ -8,9 +8,12 @@ const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
 const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
   social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space',
-  task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space', rps: 'core.rock_scissor_paper'};
+  task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space', rps: 'core.rock_scissor_paper',
+  'user-guess': 'core.role_clarification_guessing_game', 'agent-guess': 'core.role_clarification_guessing_game', 'care-guess': 'usecases.healthcare.guessing_game_user_guess'};
 const taskJourney = selection === 'task' || selection === 'space-task';
 const rpsJourney = selection === 'rps';
+const guessingJourney = selection?.endsWith('-guess');
+const gameJourney = rpsJourney || guessingJourney;
 const connectionOnly = !rpsJourney;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
@@ -32,6 +35,18 @@ const audio = {};
 if (rpsJourney) {
   for (const key of Object.keys(clips)) delete clips[key];
   Object.assign(clips, {ready: 'I am ready to play rock scissors paper.', replay: 'Yes, another round please.'});
+}
+if (guessingJourney) {
+  for (const key of Object.keys(clips)) delete clips[key];
+  Object.assign(clips, selection === 'agent-guess' ? {
+    choose: 'I will choose a secret item. You ask me yes or no questions and try to guess it. Start now.',
+    hint: 'The animal I chose has four legs and barks. Please make a guess now.', solved: 'Yes, it is a dog. You guessed correctly.',
+    replay: 'Let us play another round with the same roles.'
+  } : {
+    choose: selection === 'care-guess' ? 'Yes, I want to play. You choose an item and I ask questions.' : 'You choose a secret item. I ask yes or no questions and try to guess it. Start now.',
+    binary: 'Is it alive?', unknown: 'Does the item you picked have a blue colour?', unclear: 'Is it bigger?', giveup: 'I give up. Please tell me the answer.',
+    replay: 'Let us play another round with the same roles.', solved: 'Is it a dog?'
+  });
 }
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 for (const [name, input] of Object.entries(clips)) {
@@ -113,13 +128,13 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  if (!rpsJourney) await freshSense();
+  if (!gameJourney) await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
     if (heartbeatBusy) return;
     heartbeatBusy = true;
     try {
-      if (!rpsJourney) await freshSense();
+      if (!gameJourney) await freshSense();
       if (handle) await api(`${agentPath}/live/sessions/${handle}`);
     } catch (error) { report.heartbeatError = error.message; }
     finally { heartbeatBusy = false; }
@@ -172,7 +187,7 @@ try {
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
   // LiveMultimodal intentionally has no unsolicited opening. Start with a user turn.
   const initial = await api(agentPath + '/state');
-  for (const [name, expected] of (rpsJourney ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
+  for (const [name, expected] of (gameJourney ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
@@ -180,7 +195,47 @@ try {
     report.turns.push({name, text});
     assert.deepEqual(await api(agentPath + '/state'), initial, 'Ordinary requests must retain the interaction state');
   }
-  if (rpsJourney) {
+  if (guessingJourney) {
+    const human = selection !== 'agent-guess';
+    async function turn(name, expected) {
+      const index = await page.evaluate(() => logs.length); await say(name);
+      try { const text = await settled(index, expected); report.turns.push({name, text}); return text; }
+      catch (error) { report.turns.push({name, text: await captionsFrom(index), failed: true}); throw error; }
+    }
+    const opening = await turn('choose', human ? /chosen|choose|ask|question|ready/i : /ready|think|chosen|question|guess/i);
+    await until('active selected role', async () => (await storage())['guessing_round']?.phase === 'ACTIVE');
+    const first = (await storage())['guessing_round'];
+    assert.equal(first.role, human ? 'USER_GUESSES' : 'AGENT_GUESSES');
+    if (human) {
+      assert.equal(first.secret.name, 'teacup'); assert.doesNotMatch(opening, /\b(?:tea\s*cup|cup)\b/i, 'Opening leaked the secret');
+      assert.doesNotMatch(opening, /you (?:think of|choose|pick)|I(?: will|['’]ll) (?:ask|guess)/i, 'Reversed guessing roles');
+      const answer = await turn('binary', /\bno\b|not alive|not living/i); assert.doesNotMatch(answer, /\b(?:tea\s*cup|cup)\b/i);
+      const unknown = await turn('unknown', /not (?:specified|known|defined)|haven['’]t.{0,40}(?:specified|assigned|chosen|colo)|don['’]t (?:know|have)|can['’]t (?:tell|say)|unspecified|no (?:particular|specific|fixed) colo/i);
+      assert.doesNotMatch(unknown, /not blue|yes.{0,10}blue/i, 'Unspecified colour must not become a positive or negative fact');
+      assert.doesNotMatch(unknown, /rephrase|ask.{0,20}yes.{0,10}no/i, 'Clear unknown fact must not be blamed on question wording');
+      await turn('unclear', /than what|compared|bigger than|compare/i);
+      assert.equal((await storage())['guessing_round'].id, first.id);
+      await turn('giveup', /\b(?:tea\s*cup|cup)\b/i);
+      await until('persisted reveal', async () => (await storage())['guessing_round']?.phase === 'REVEALED');
+    } else {
+      assert.equal(first.secret, undefined);
+      await turn('hint', /dog/i);
+      const confirmation = await turn('solved', /dog|got it|guessed|correct|nice|well played|lucky|leave it|another round/i);
+      assert.doesNotMatch(confirmation, /wrong guess|not (?:a dog|correct|right)/i, 'Must not contradict the human confirmation');
+      await until('human confirms guess', async () => (await storage())['guessing_round']?.phase === 'SOLVED');
+      assert.equal((await storage())['guessing_round'].secret, undefined);
+    }
+    const replay = await turn('replay', human ? /chosen|question|ask|ready/i : /ready|choose|think|question|is (?:it|your)|does (?:it|your)|can (?:it|your)/i);
+    assert.doesNotMatch(replay, /still (?:on|playing|guessing).{0,35}(?:one|item|secret)|I (?:don't|do not) have a new secret/i,
+      'A confirmed fresh round must not be described as the old item or the agent choosing the human secret');
+    await until('fresh round', async () => {const r = (await storage())['guessing_round']; return r?.phase === 'ACTIVE' && r.id !== first.id;});
+    if (human) {
+      assert.equal((await storage())['guessing_round'].secret.name, 'dog');
+      await turn('solved', /yes|correct|dog/i);
+      await until('correct guess persisted', async () => (await storage())['guessing_round']?.phase === 'SOLVED');
+    } else assert.equal((await storage())['guessing_round'].secret, undefined);
+    report.history = await api(agentPath + '/eventhistory');
+  } else if (rpsJourney) {
     let previous;
     for (const name of ['ready', 'replay']) {
       let index = await page.evaluate(() => logs.length); await say(name);
@@ -263,7 +318,7 @@ try {
       assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
     }
   }
-  if (!taskJourney && !rpsJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
+  if (!taskJourney && !gameJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;

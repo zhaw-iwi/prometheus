@@ -43,7 +43,7 @@ class CatalogInferenceCountUnitTest {
       assertEquals(def instanceof TalkToMe ? 0 : 1, g.calls.size(), def.key() + " startup");
       g.reset(); Event event = a.acknowledge(input(Event.TYPE_USER_UTTERANCE), rt);
       if (event == null) a.generate(rt);
-      int expected = def instanceof TalkToMe ? 0 : 2;
+      int expected = def instanceof TalkToMe ? 0 : def instanceof SingleStateGuessingGameUserGuess ? 3 : 2;
       assertEquals(expected, g.calls.size(), def.key());
     }
   }

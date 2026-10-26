@@ -1629,6 +1629,22 @@ hand from the visitor's hand. New persisted policy/action/decision subtypes reus
 Storage and add nullable `action.rps_operation` and `decision.rps_condition`
 columns; local `ddl-auto=update` creates them, managed schemas must add them.
 
+New Role Clarification Guessing Game and healthcare User Is Guessing instances
+persist `guessing_round`: role, phase, round identity and the agent's selected
+fact card. The five familiar cards rotate between rounds (teacup, dog, book,
+bicycle, sunflower); a human-selected secret stays unknown to the backend.
+The core's playful role negotiation and the healthcare engagement/closing style
+remain. Give-up reveals the selected item without ending conversation; a fresh
+confirmed round replaces the old secret and control context. Unknown details
+are distinct from ambiguous questions. Live composes wording from these facts;
+Text/Continuous use the same record in ordinary behaviour generation.
+Game control adds one bounded classification to substantive active-game turns;
+common give-up and harmless acknowledgment paths are local. Existing closing/role
+guards remain batched. No sensing-triggered classification or extra database
+polling is introduced. Saved instances keep their old graphs. New nullable columns
+are `policy.guessing_storage_id`, `decision.guessing_storage_id` and
+`action.guessing_mode`; managed schemas must add them before rollout.
+
 New Generic Multimodal, Social Space and Live Multimodal instances enforce
 occasional decorative gestures: at least 12 seconds between published requests
 and 60 seconds before repeating the same label. Up to five recent requests are

@@ -121,6 +121,15 @@ deterministic results and semantic caption checks. It is explicitly paid and use
 only the disposable local database. The browser state-view journey also exercises
 manual capture and the rendered result, with Live enabled and disabled.
 
+Guessing: `--paid-core user-guess`, `agent-guess` and `care-guess` run real Live
+journeys for both role directions and the healthcare variant. The person-guessing
+paths check known/unknown/ambiguous questions, give-up/reveal, a fresh second secret
+and a correct guess. The agent-guessing path checks a human-confirmed guess and
+new round without inventing/storing the human's secret. Pair with
+`--java-tests GuessingGameUnitTest,GuessingGamePersistenceIntegrationTest` for
+deterministic rules and local reload checks. Captions are reviewed for semantic
+failures; provider success is not physical speech verification.
+
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest,LiveCockpitSmokeIntegrationTest --browser --browser-grep 'state view|Valerian columns follow|Valerian cockpit opens connected|Valerian camera and microphone controls|Valerian cockpit columns expand|real scoped cockpit'
 ```

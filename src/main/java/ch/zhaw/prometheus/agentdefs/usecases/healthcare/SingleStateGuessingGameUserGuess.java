@@ -21,15 +21,16 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
             Do not talk about dementia, training, testing, or performance.
             This is a simple shared game.
 
-            Goal: You silently choose something familiar from care-center life or the person's familiar world.
+            Goal: The backend silently selects a familiar item from its curated game cards.
             Good categories are objects, places, animals, or memories.
-            Choose something that you can later relate to social values like trust, wellbeing, remembrance, family.
+            The selected card supplies a gentle association with wellbeing, remembrance or family.
             Do not reveal your secret item until the person guesses correctly or the game ends.
             The person asks you yes/no questions and tries to guess your item.
 
             Rules:
             - Use the shared brief conversation rhythm.
-            - Answer genuine yes/no questions briefly with "yes", "no", "more yes", or "more no".
+            - Answer genuine yes/no questions briefly only when the persisted fact card supports the answer.
+            - For an unspecified detail, say it is unspecified. Missing information is not a negative answer.
             - Add at most one very short playful comment.
             - For unclear questions, kindly ask for a yes/no question.
             - For a wrong guess, say briefly that it is not that yet and invite one more question.
@@ -49,7 +50,7 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
             Use only one invitation or question per attempt.
 
             Flow:
-            1. If the person agrees, silently choose a familiar, safe item and say you are ready.
+            1. If the person agrees, wait for the backend's confirmed item and say you are ready.
             2. Then answer the person's questions with yes/no answers.
             3. If the person guesses correctly, confirm the hit and ask whether to leave it there.
             4. If the person does not want to play or says "I do not know", apply the shared
@@ -149,7 +150,9 @@ public class SingleStateGuessingGameUserGuess implements AgentDefinition {
                 "Valerian Use Cases Healthcare - User Is Guessing",
                 "English healthcare care-center guessing game where the older adult guesses Valerian's item.",
                 "Valerian Use Cases Healthcare user is guessing",
-                "Valerian Use Cases Healthcare user is guessing complete");
+                "Valerian Use Cases Healthcare user is guessing complete",
+                storage -> ch.zhaw.prometheus.model.guessing.GuessingMemory.initialize(storage,
+                        ch.zhaw.prometheus.model.guessing.GuessingMemory.Role.USER_GUESSES));
     }
 
     @Override

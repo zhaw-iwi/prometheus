@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
+import ch.zhaw.prometheus.model.guessing.GuessingExitDecision;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
@@ -69,7 +70,7 @@ public final class GuardEvaluation {
                 // Known local filters can reject a pure conjunction without invoking any model.
                 for (Decision decision : transition.getDecisions()) {
                     EventHistory selected = selected(state, decision);
-                    if (decision.getClass() == LatestEventTypeDecision.class && !decision.decide(selected, runtime)) {
+                    if (local(decision) && !decision.decide(selected, runtime)) {
                         rejected = true; break;
                     }
                     if (decision.getClass() == StaticDecision.class && decision.getPolicy().describe().isBlank()) {
@@ -98,8 +99,11 @@ public final class GuardEvaluation {
     }
 
     private static boolean pure(Decision decision) {
-        return decision.getClass() == LatestEventTypeDecision.class || (decision.getClass() == StaticDecision.class
+        return local(decision) || (decision.getClass() == StaticDecision.class
                 && decision.getPolicy().getClass() == PromptPolicy.class);
+    }
+    private static boolean local(Decision decision) {
+        return decision.getClass() == LatestEventTypeDecision.class || decision.getClass() == GuessingExitDecision.class;
     }
 
     private static EventHistory selected(State state, Decision decision) {
