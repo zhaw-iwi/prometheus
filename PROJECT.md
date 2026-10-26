@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Shared Live backport (2026-10-26): telemetry exports retain the backend-provided
+  `userSilenceMs`. Existing regression checks now also cover preserving this
+  setting through context updates and Generic's configuration-prompt fingerprint.
+  Six diagnostics JavaScript tests and 41 focused Java tests pass; the telemetry
+  regression failed before the fix. PLAN_CUTOFFINSPECTION.md is copied unchanged
+  from `agents` as an unimplemented shared follow-up. This selective integration
+  into `main` contains no Gala runtime or deployment changes; audit below.
+
 - Detachable state view (2026-10-23): Diagnostics can move its existing current
   state and state list into a draggable, maximisable panel or a separate browser
   window. Close/dock, popup blocking, theme and connection lifecycle handling
@@ -9329,3 +9337,43 @@ Browser checks use Chromium and scripted inference; no paid OpenAI requests or
 physical multi-monitor trials were needed. Native window placement/maximisation
 and popup permission remain browser/OS controls. No database schema or backend
 contract changes. Publishing and Heroku deployment remain a separate next step.
+
+## Shared Live telemetry and regression backport (2026-10-26)
+
+### Goal and changes
+
+Selectively bring three user-requested items from `agents` into `main`, using
+the existing clean main worktree. This is not a whole-branch merge of the Gala
+catalog, persona selection or deployment configuration.
+
+- Add the already supplied `userSilenceMs` to the browser telemetry allowlist,
+  with the existing export/privacy regression from `tests/js/live/diagnostics.test.mjs`.
+- Extend `LiveContextDeliveryUnitTest` with the existing assertion that a partial
+  context acknowledgement preserves the user silence window. Bring over only
+  Generic's configuration-prompt fingerprint test from `GenericMultimodalTaskUnitTest`.
+- Copy `.agents/PLAN_CUTOFFINSPECTION.md` byte-for-byte as a planned shared
+  diagnostic handoff. Recording and cut-off diagnosis remain unimplemented.
+  README distinguishes this plan from the existing content-free telemetry.
+
+The runtime/export and context-test source is the Gala follow-up in `a5736186`;
+the Generic prompt guard comes from `e9312a23`. Selected source files and the plan
+were read from `agents` at `e63cf885`. User requested integration directly into
+`main`; no feature-branch or `agents` deployment integration is part of this task.
+
+### Verification
+
+- `node --test tests/js/live/diagnostics.test.mjs`: six passed. Before changing
+  the allowlist, the imported assertion failed with undefined instead of 2000;
+  the other five cases passed. Existing private-field exclusion remains covered.
+- `.\mvnw.cmd -Dtest=LiveContextDeliveryUnitTest,GenericMultimodalTaskUnitTest test`:
+  41 passed (25 context-delivery, 16 Generic task), zero failures/errors/skips.
+  Evidence: `target/shared-live-backport-tests.log` in the main worktree.
+- Checked the copied plan against its source and ran `git diff --check`.
+
+### Limits and next step
+
+No database, paid provider, browser UI or physical audio trial was needed for this
+allowlist/test/documentation backport. Backend timing, audio playback and prompts
+are unchanged. The recording plan still requires a separate implementation task;
+its original Gala-specific trial files remain on `agents`. No standalone Valerian
+repository change or Heroku redeployment is included.

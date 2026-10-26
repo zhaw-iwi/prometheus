@@ -18,6 +18,14 @@ import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.*;
 
 class GenericMultimodalTaskUnitTest {
+    @Test void applicationContractExtensionPreservesTheExistingGenericPromptFingerprint() throws Exception {
+        // Existing saved-policy recognition depends on the exact built-in prompt, including whitespace.
+        var bytes = GenericMultimodalBehaviour.builtInPrompts().get("configure")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals("1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8",
+                HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)));
+    }
+
     private final LanguageModelGateway gateway = mock(LanguageModelGateway.class);
     private final PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
     private final Agent agent = new GenericMultimodalBehaviour().createAgent();

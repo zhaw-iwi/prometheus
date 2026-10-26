@@ -721,7 +721,8 @@ cues. Markers contain timestamps and active operation identities, never free tex
 their association to audio is approximate. JSON now includes `activity` journals,
 coverage and markers, and Live requested/applied capture settings, cumulative
 provider usage, context utilisation and safe error codes. Live configuration includes
-the existing silence/lateness/open-segment/audio-gap limits, request deadline and
+the existing silence/lateness/open-segment/audio-gap limits, including the separate
+user silence window (`userSilenceMs`), request deadline and
 Heroku build identity when the platform supplies it. Missing evidence remains
 unknown. Existing turn fields and ordinary-turn CSV remain compatible; filenames
 now begin `prometheus-telemetry-`. Browser activity retention is 16 recordings,
@@ -2218,3 +2219,8 @@ audibility. Context updates alone do not detach or mute output; explicit stop an
 lifecycle failures still silence synchronously. No speculative buffering, VAD or
 playback timing change is included. Audible last-word clipping remains OPEN until
 a specific occurrence can be correlated with this evidence and physical listening.
+
+[Received-audio inspection plan](.agents/PLAN_CUTOFFINSPECTION.md) describes a
+future opt-in browser-local recording paired with this event trace. It is planned,
+not implemented; current telemetry contains no audio recording. The plan retains
+its original Gala trial evidence and references to files on the `agents` branch.

@@ -51,11 +51,12 @@ test("Live usage remains cumulative and export retains safe capture/configuratio
   const diagnostics = new LiveDiagnostics();
   diagnostics.record({ handle: "s", phase: "capture", capture: { requested: { echoCancellation: true, deviceId: "private" }, applied: { echoCancellation: false } } });
   for (const usageSeconds of [12, 15]) diagnostics.record({ handle: "s", phase: "status", status: { providerTelemetry: {
-    usageSeconds, contextUsageRatio: .4, closeReason: "ended", configuration: { model: "gpt-live-1", voice: "marin", requestTimeoutMs: 1000, key: "private" },
+    usageSeconds, contextUsageRatio: .4, closeReason: "ended", configuration: { model: "gpt-live-1", voice: "marin", requestTimeoutMs: 1000, userSilenceMs: 2000, key: "private" },
     problems: [{ code: "invalid_request", type: "error", clientEventId: "event1", message: "private" }] } } });
   const session = diagnostics.snapshot().sessions[0];
   assert.equal(session.provider.usageSeconds, 15); assert.equal(session.provider.contextUsageRatio, .4);
   assert.equal(session.captureConfiguration.applied.echoCancellation, false);
+  assert.equal(session.provider.configuration.userSilenceMs, 2000);
   assert.equal(session.provider.problems[0].code, "invalid_request");
   assert.equal(session.coverage.usage, "cumulative_latest"); assert.equal(JSON.stringify(session).includes("private"), false);
 });

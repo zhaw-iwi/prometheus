@@ -314,9 +314,12 @@ class LiveContextDeliveryUnitTest {
         var old = evidence("summary.face", "Previous", 15000);
         var next = evidence("summary.face", "Replacement", 15000);
         var delivery = new LiveContextDelivery(snapshot("r0", "Guide", old)); delivery.ready();
-        var batch = delivery.plan(snapshot("r1", "New state", next), List.of());
+        var nextSnapshot = snapshot("r1", "New state", next);
+        var batch = delivery.plan(new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH,
+                nextSnapshot.statePath(), nextSnapshot.instructions(), nextSnapshot.items(), 0, nextSnapshot.guidance(), 2000), List.of());
         var applied = delivery.acknowledged(batch, Set.of("summary.face"));
         assertEquals(List.of(old), applied.items()); assertEquals("New state", applied.instructions());
+        assertEquals(2000, applied.userSilenceMs());
         var removal = delivery.plan(snapshot("r2", "New state"), List.of());
         assertTrue(removal.commands().getFirst().content().contains("removed from selected context"));
     }
