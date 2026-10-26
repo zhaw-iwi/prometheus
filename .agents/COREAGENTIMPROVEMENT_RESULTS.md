@@ -4,9 +4,63 @@
 
 CA-01 complete and pushed as 55738757. CA-02 complete and pushed as d30196ff.
 CA-03 complete and pushed as 4f11b1ae; CA-04 complete and pushed as 35fcfc21.
-CA-05 complete and pushed as 677dd15a; CA-06 as 6a48fc33. CA-07 complete; CA-08 pending.
+CA-05 complete and pushed as 677dd15a; CA-06 as 6a48fc33; CA-07 as b6060f86.
+CA-08 combined acceptance is complete; the series is accepted for main integration.
 Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
-No main, agents or standalone Valerian runtime changes in this series yet.
+Implemented on feature/gptlive for main. No agents deployment-catalog or standalone
+Valerian runtime changes are included in this series.
+
+## CA-08 — combined acceptance and handoff
+
+Combined review found a mode-switch bug: a completed RPS round retained its Live
+flag, suppressing a later Text result even after Live ownership ended. Result
+generation now lets the current runtime owner suppress speech; both Text fallback
+and Live silence are covered by the same unit journey. The real scoped RPS smoke
+now acknowledges its captured countdown and submits a fresh correlated sign.
+The test provider supplies facts-based task speech and semantic capture association;
+scripted media acknowledges playback explicitly, while the CA-05 paid journey
+exercises the actual observer. These are test-only fixture adaptations.
+
+Initial full Java run `140fcbb18a` found two test failures: a speech-only suppressed
+Live result returns no event (rather than a plan with null speech), and the old
+voice-default test used new Generic as a legacy baseline. Assertions now reflect
+the empty event and construct the unchanged legacy task factory explicitly.
+Final full run `5da01feb53`: **658 tests, zero failures/errors/skips**, on disposable
+local MySQL; owned schema/account and app removed. Node checks: **68 Live plus
+50 transcription/speech**, all pass (`target/ca08-node.log`,
+`target/ca08-legacy-node.log`). All three Python runner-isolation checks pass.
+
+Initial broad browser run `87d58c92ae`: 60 pass, three fail. RPS and Generic
+fixtures missed activity facts packed with state updates or split into context
+parts; the scripted provider now assembles those facts before acknowledging them.
+The mobile timing-export test emitted synthetic SSE before history hydration had
+created its EventSource; its helper now waits for that boundary instead of
+dereferencing an absent source. Production transport/playback code is unchanged.
+Final targeted run `454f9bc361` passes the scoped Java smoke, all six selected
+Live-enabled browser cases and both applicable Live-disabled cases (two Live-only
+cases correctly skipped). Thus all three initial failures have passing targeted
+verification; the other 60 broad cases retain their passing evidence. Reviewed
+screenshots cover reception, held activation, the RPS result and mobile timing
+export. No layout defects were observed in those views. Owned local resources
+were removed after both runs. `git diff --check` passes.
+
+Paid happy-path acceptance is retained from the relevant milestones, including
+Generic/Social Space tasks, Live Multimodal, both sensing demos, two RPS rounds,
+both core guessing roles and healthcare guessing. All failures and reasons for
+targeted reruns are recorded below; successful runs do not erase them. CA-08 changes
+no provider wording. CA-07's optional encounter opening was checked with scripted
+provider/browser boundaries; its physical greeting quality remains an operator
+check. Repeated paid trials solely to obtain another pass are unnecessary.
+Waiting remarks, duplicate questions and
+premature wording remain prompt-only limitations. No claim is made to have fixed
+physical audio cut-offs, camera accuracy or actual robot execution.
+
+[CORE_AGENTS.md](../tests/gptlive/CORE_AGENTS.md) provides a concise physical
+operator script, fresh-instance/schema guidance and client integration handoff.
+Standalone Valerian `feature/galadinnerupdate` at `398f410` was inspected read-only:
+it already handles capture IDs, duplicate openings, scoped playback cues and
+optional presence reception. No new client contract is required; no standalone
+hardware acceptance or merge/deployment was performed by this milestone.
 
 ## CA-07 — optional Social Space reception
 

@@ -85,7 +85,7 @@ public class CoreRpsActivityPolicy extends Policy implements ExternalVoicePolicy
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) {
         if (CoreRpsRound.phase(storage).isEmpty()) return startPolicy().onRespond(state, events, assembler, gateway);
         if (!events.isEmpty() && Event.TYPE_USER_UTTERANCE.equals(events.toList().getLast().getType())
-                && "RESULT".equals(CoreRpsRound.phase(storage)) && !CoreRpsRound.live(CoreRpsRound.round(storage)))
+                && "RESULT".equals(CoreRpsRound.phase(storage)))
             return new CoreRpsResultPolicy(storage).onRespond(state, events, assembler, gateway);
         return null;
     }

@@ -149,6 +149,12 @@ tasks pause; explicitly autonomous tasks retain authority only after confirmed p
 responses. The existing client supplies departure grace; Stop/revocation remain
 immediate. Generic and saved profiles keep their lifecycle.
 
+Core-agent improvements CA-01–08 have completed combined local/provider acceptance.
+The evidence record `.agents/COREAGENTIMPROVEMENT_RESULTS.md` includes failed trials
+and remaining prompt-only speech limitations. `tests/gptlive/CORE_AGENTS.md` is the
+operator and integration handoff; physical audio/camera/robot behavior remains a
+manual check. New instances are required; saved graphs are not rewritten.
+
 ## Capability Awareness
 
 New core RPS instances persist round identity and validate fresh, confident,

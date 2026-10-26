@@ -69,7 +69,10 @@ class LiveVoiceAcknowledgementUnitTest {
     @Test void applicationMayDisableBothPermissionsWhileDefaultGuidanceRemainsIdentical() {
         var adapter = new LiveVoicePolicyAdapter();
         var core = new GenericMultimodalBehaviour().createAgent();
-        var baseline = adapter.sections(core);
+        // New Generic instances opt into activity-owned wording; saved legacy tasks retain the defaults.
+        var legacy = GenericMultimodalBehaviour.createTaskAgent("legacy", "", GenericMultimodalBehaviour.VOICE, List.of());
+        legacy.setInteractionProfile(core.getInteractionProfile());
+        var baseline = adapter.sections(legacy);
         for (Boolean allowed : java.util.Arrays.asList(null, true, false)) {
             var agent = new Agent("application", "", new State("task", new ApplicationPolicy(allowed), List.of()));
             agent.setInteractionProfile(core.getInteractionProfile());

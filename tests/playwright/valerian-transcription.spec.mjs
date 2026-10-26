@@ -857,6 +857,9 @@ async function emitProviderEvent(page, event) {
 }
 
 async function emitBehaviourSse(page, eventName, eventId, event) {
+  // History hydration can finish after transcription connects, especially on mobile.
+  await page.waitForFunction(() => window.__eventSources?.some(candidate => candidate.url.includes("/behaviour/stream")),
+    null, { timeout: 10000 });
   await page.evaluate(({ eventName: name, eventId: id, envelope }) => {
     const source = window.__eventSources.findLast((candidate) => candidate.url.includes("/behaviour/stream"));
     source.emit(name, envelope, id);

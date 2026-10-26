@@ -133,6 +133,10 @@ class CoreRpsRoundUnitTest {
         assertEquals("RESULT", CoreRpsRound.phase(storage));
         assertFalse(policy.liveActivityContext().facts().contains("Stein"));
         assertDoesNotThrow(() -> new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(agent));
+        var textRuntime = new PolicyRuntime(new PromptMessageAssembler(), mock(LanguageModelGateway.class));
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Explain the result"), textRuntime);
+        assertNotNull(BehaviourPlan.fromJson(agent.generate(textRuntime).getPayload()).getSpeech(), "Text fallback after Live must retain the result");
+        assertNull(agent.generate(runtime), "The current Live owner suppresses a speech-only backend result");
         agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Again"), runtime);
         assertEquals("INTRO", CoreRpsRound.phase(storage)); assertFalse(storage.containsKey(RpsStorageKeys.LAST_ROUND));
         assertNull(agent.acknowledge(sign(id, Instant.now(), 1), runtime));

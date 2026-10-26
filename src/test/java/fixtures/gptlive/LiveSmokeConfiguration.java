@@ -29,6 +29,13 @@ public class LiveSmokeConfiguration {
                 }
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Determine whether the captured assistant speech fulfils")) {
+                    var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+                    var result = new JsonObject();
+                    for (var field : List.of("responseId", "revision", "segmentId")) result.add(field, data.get(field));
+                    result.addProperty("verdict", data.get("capturedSpeech").getAsString().equals("First fixture observation.") ? "MATCH" : "UNRELATED");
+                    return result.toString();
+                }
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields:")) return """
                         {"operation":"ACTIVATE","task":{"goal":"React to agreed facial feedback","maxActions":5,"rules":[
                          {"eventType":"obs.emotion.face","field":"valence","operator":"lt","value":-0.25,
@@ -88,10 +95,20 @@ public class LiveSmokeConfiguration {
                     call.sent.add(event.deepCopy()); String type = event.get("type").getAsString();
                     var ack = new JsonObject(); ack.addProperty("type", type.equals("session.close") ? "session.closed"
                         : type.endsWith(".append") ? type + "ed" : type + "d");
-                    if (event.has("event_id")) ack.add("client_event_id", event.get("event_id")); receive.accept(ack);
+                    if (event.has("event_id")) ack.add("client_event_id", event.get("event_id"));
+                    if (type.equals("session.thinking.append")) {
+                        // The bridge splits large facts and packs small compatible updates.
+                        String content = event.get("content").getAsString().replaceAll("Context part \\d+/\\d+:\\n", "");
+                        int activity = content.indexOf("CURRENT ACTIVITY DATA");
+                        call.activity = activity >= 0 ? content.substring(activity) : call.activity + content;
+                        if (call.activity.length() > 8192) call.activity = call.activity.substring(call.activity.length() - 8192);
+                    }
+                    receive.accept(ack);
                     if (type.equals("session.commentary.append")) {
                         String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
-                                ? "First fixture observation." : "The round is ready.";
+                                || call.activity.contains("Task accepted. Perform the agreed initial verbal action") && call.activity.contains("React to agreed facial feedback")
+                                ? "First fixture observation." : call.activity.contains("Confirmed RPS phase: INTRO")
+                                ? "Show one hand. One, two, three." : "The round is ready.";
                         audio.schedule(() -> speak(id, "ASSISTANT", spoken, null), 50, TimeUnit.MILLISECONDS);
                     }
                 }
@@ -122,6 +139,7 @@ public class LiveSmokeConfiguration {
             public volatile Consumer<JsonObject> receive;
             public volatile boolean closed;
             public Request request;
+            public volatile String activity = "";
             public final List<JsonObject> sent = new CopyOnWriteArrayList<>();
             final AtomicInteger sequence = new AtomicInteger();
         }

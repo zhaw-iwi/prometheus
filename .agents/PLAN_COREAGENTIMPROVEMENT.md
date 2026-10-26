@@ -58,6 +58,7 @@ when new instances are required.
 
 Evidence and milestone status: [COREAGENTIMPROVEMENT_RESULTS.md](COREAGENTIMPROVEMENT_RESULTS.md).
 
-CA-01 through CA-07 are implemented and accepted. Continue with CA-08; the final
-combined acceptance remains CA-08. The results record provider failures and the
-remaining prompt-only speech limitations as well as successful checks.
+CA-01 through CA-08 are implemented and accepted for main integration. The results
+record initial failures, targeted fixes and passing checks, including paid-provider
+journeys. Remaining prompt-only speech limitations and physical operator checks
+are explicit; use `tests/gptlive/CORE_AGENTS.md` for the final hardware check.

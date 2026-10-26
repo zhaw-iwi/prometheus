@@ -110,9 +110,16 @@ class LiveCockpitSmokeIntegrationTest {
         });
         // A duplicate provider identity cannot run the action twice.
         provider.speak(providerId, "USER", "I am ready to start a round", "unique_user");
+        provider.speak(providerId, "ASSISTANT", "Show one hand. One, two, three.", "countdown_one");
+        await().atMost(Duration.ofSeconds(10)).until(() -> contexts.snapshot(code, id).orElseThrow().activity().playbackCue().segmentId() != null);
+        var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+        postJson(path + "/live/sessions/" + handle + "/playback-cues/" + cue.id(), Map.of("segmentId", cue.segmentId()));
         postJson(path + "/acknowledge", Map.of("type", "obs.weather.current", "actor", "sensor", "kind", "observation", "payload", "{\"temperature\":17,\"condition\":\"rain\"}"));
         await().atMost(Duration.ofSeconds(10)).until(() -> provider.calls.get(providerId).sent.stream().anyMatch(event -> event.toString().contains("obs.weather.current")));
-        postJson(path + "/acknowledge", Map.of("type", "obs.hand.sign", "actor", "sensor", "kind", "observation", "payload", "{\"sign\":\"rock\",\"confidence\":1}"));
+        var round = agents.findById(id).orElseThrow().getStorage().get("core.rps.round").getAsJsonObject();
+        assertEquals("WAITING", round.get("phase").getAsString());
+        postJson(path + "/acknowledge", Map.of("type", "obs.hand.sign", "actor", "sensor", "kind", "observation", "payload",
+                "{\"sign\":\"rock\",\"confidence\":1,\"captureId\":\"" + round.get("id").getAsString() + "\",\"ts\":\"" + java.time.Instant.now() + "\"}"));
         await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
             var fresh = agents.findById(id).orElseThrow();
             assertEquals(1, fresh.getStorage().get(RpsStorageKeys.ROUNDS).getAsJsonArray().size());

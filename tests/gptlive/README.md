@@ -113,7 +113,7 @@ The lower-level boundary checks are `TaskBehaviourEncodingUnitTest`,
 `CompactBehaviourPlanUnitTest`, `GenericMultimodalTaskUnitTest`,
 `TaskLifecycleUnitTest` and `SocialSpaceAgentUnitTest`.
 
-## Detachable state view
+## Core games and reception
 
 Core RPS: `python tests/gptlive/run_acceptance.py --java-tests CoreRpsRoundUnitTest,CoreRpsPersistenceIntegrationTest --paid-core rps`
 uses the actual browser playback observer, two rounds, an old-capture rejection,
@@ -122,7 +122,7 @@ only the disposable local database. The browser state-view journey also exercise
 manual capture and the rendered result, with Live enabled and disabled.
 
 Guessing: `--paid-core user-guess`, `agent-guess` and `care-guess` run real Live
-journeys for both role directions and the healthcare variant. The person-guessing
+journeys for both role directions and the healthcare variant. The human-guessing
 paths check known/unknown/ambiguous questions, give-up/reveal, a fresh second secret
 and a correct guess. The agent-guessing path checks a human-confirmed guess and
 new round without inventing/storing the human's secret. Pair with
@@ -137,6 +137,12 @@ durable history and Stop alongside the existing client regression. Pair with
 `--java-tests CoreReceptionUnitTest,CoreReceptionIntegrationTest` for task retention,
 autonomous response gates, source freshness/order and immediate access revocation.
 Ordinary and paid app runs retain the production default (reception disabled).
+
+For final hardware acceptance and deployment handoff, follow
+[CORE_AGENTS.md](CORE_AGENTS.md). The automated journeys use synthetic input and
+cannot establish physical audibility, camera accuracy or robot execution.
+
+## Detachable state view
 
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest,LiveCockpitSmokeIntegrationTest --browser --browser-grep 'state view|Valerian columns follow|Valerian cockpit opens connected|Valerian camera and microphone controls|Valerian cockpit columns expand|real scoped cockpit'

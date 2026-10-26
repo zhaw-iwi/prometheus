@@ -75,12 +75,21 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-01–08 accepted (2026-10-26): bounded decorative
+  gestures, meaningful sensing, Live task facts, persisted RPS/guessing rounds and
+  optional Social Space reception are implemented for new instances. All 658 Java
+  checks, 118 Node checks, local database/browser journeys and milestone-specific
+  paid OpenAI journeys have passing evidence. Combined acceptance also fixed RPS
+  Text fallback after Live. See `.agents/COREAGENTIMPROVEMENT_RESULTS.md` for failed
+  trials and retained speech limitations, and `tests/gptlive/CORE_AGENTS.md` for
+  schema/client handoff and the remaining physical operator check.
+
 - Core-agent improvements CA-07 (2026-10-26): new Social Space instances can opt
   into presence-controlled Live reception, fresh encounter dialogue and the existing
   two-second departure/audio grace. Task agreements and transcripts survive;
   session-bound tasks pause and uncertain responses do not authorize continuation.
   Default/saved profiles and Generic remain unchanged. Local persistence/access,
-  browser lifecycle and client checks pass; CA-08 combined acceptance is next.
+  browser lifecycle and client checks pass; CA-08 combined acceptance is complete.
 
 - Core-agent improvements CA-06 (2026-10-26): new core
   role-clarification and healthcare user-guesses graphs persist roles, curated

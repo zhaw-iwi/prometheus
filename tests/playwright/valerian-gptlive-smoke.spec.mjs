@@ -52,7 +52,17 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     expect((await request.post(`/__live-fixture/speak/${provider.providerId}`, { data: { speaker: "USER", text: "I am ready to start a round", receipt: "browser_user_one" } })).ok()).toBe(true);
     await expect(page.getByTestId("round-value")).toHaveText("1");
     await expect(page.getByTestId("gptlive-history")).toContainText("I am ready to start a round");
-    await expect(page.getByTestId("gptlive-history")).toContainText("The round is ready.");
+    await expect(page.getByTestId("gptlive-history")).toContainText("One, two, three.");
+    // Synthetic media has no real playback clock. Exercise the scoped acknowledgement
+    // explicitly here; the paid RPS journey exercises the real playback observer.
+    let cue;
+    await expect.poll(async () => {
+      cue = (await (await request.get(`${path}/live/sessions/${session.handle}/updates`, { headers: scoped })).json()).playbackCue;
+      return !!cue?.segmentId;
+    }).toBe(true);
+    expect((await request.post(`${path}/live/sessions/${session.handle}/playback-cues/${cue.id}`, {
+      headers: scoped, data: { segmentId: cue.segmentId },
+    })).ok()).toBe(true);
     await expect.poll(async () => page.evaluate(async () => {
       const { liveDiagnostics } = await import("/live/diagnostics.js");
       return liveDiagnostics.snapshot().sessions.some(session => session.media.some(value => value.concealedSamples === 960));
@@ -61,12 +71,15 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
       data: { type, actor: "sensor", kind: "observation", payload: JSON.stringify(payload) } })).ok()).toBe(true);
     await acknowledge("obs.weather.current", { condition: "rain", temperature: 17 });
     await expect.poll(async () => JSON.stringify((await (await request.get("/__live-fixture/latest")).json()).commands)).toContain("obs.weather.current");
-    await acknowledge("obs.hand.sign", { sign: "rock", confidence: 1 });
+    const round = JSON.parse((await (await request.get(path + "/storage", { headers: scoped })).json())
+      .find(value => value.key === "core.rps.round").value);
+    expect(round.phase).toBe("WAITING");
+    await acknowledge("obs.hand.sign", { sign: "rock", confidence: 1, captureId: round.id, ts: new Date().toISOString() });
     await expect(page.getByTestId("display-value")).toContainText('"winner"');
     await expect.poll(async () => (await page.evaluate(() => window.__smokeEvents)).filter(event => event.provenance?.origin === "NATIVE").length).toBeGreaterThan(0);
     const history = await (await request.get(path + "/live/history", { headers: scoped })).json();
     expect(history.filter(event => event.type === "obs.user_utterance")).toHaveLength(1);
-    expect(history.some(event => event.provenance?.origin === "BACKEND_INTENT" && event.plannedSpeech)).toBe(true);
+    expect(history.some(event => event.provenance?.origin === "BACKEND_INTENT" && event.plannedSpeech)).toBe(false);
     expect(history.some(event => event.provenance?.origin === "NATIVE" && event.provenance.segmentId)).toBe(true);
     const ledger = await (await request.get(`${path}/live/transcripts?sessionId=${session.handle}`, { headers: scoped })).json();
     expect(ledger.some(value => value.speaker === "USER" && value.status === "COMPLETE" && value.receiptIds.includes("browser_user_one"))).toBe(true);
