@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-07 (2026-10-26): new Social Space instances can opt
+  into presence-controlled Live reception, fresh encounter dialogue and the existing
+  two-second departure/audio grace. Task agreements and transcripts survive;
+  session-bound tasks pause and uncertain responses do not authorize continuation.
+  Default/saved profiles and Generic remain unchanged. Local persistence/access,
+  browser lifecycle and client checks pass; CA-08 combined acceptance is next.
+
 - Core-agent improvements CA-06 (2026-10-26): new core
   role-clarification and healthcare user-guesses graphs persist roles, curated
   secret cards, reveal/solved phases and fresh round identities. Live phrases

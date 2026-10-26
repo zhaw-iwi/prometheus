@@ -14,6 +14,16 @@ public class CoreTaskPolicy extends TaskPolicy implements ExternalVoicePolicy {
     public CoreTaskPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public boolean supportsLiveState(State state) { return state instanceof TaskState; }
     @Override public boolean livePendingAcknowledgements() { return !CoreTaskVoice.enabled(storage()); }
+    @Override public long liveDepartureGraceMs() { return CoreReception.enabled(storage()) ? 2000 : 0; }
+    @Override public int liveHistoryStartIndex() { return CoreReception.start(storage()); }
+    @Override public void beginLiveConversation(ch.zhaw.prometheus.model.event.EventHistory history) {
+        CoreReception.begin(storage(), history, Instant.now());
+    }
+    @Override public String liveOpeningInstructions() {
+        return CoreReception.enabled(storage()) ? "A new reception encounter has started. Briefly greet once as Valerian and invite the visitor to speak. "
+                + "Do not assume their identity or refer to a previous visitor. Preserve stored task agreements; an arrival never activates or resumes a task. "
+                + "After this opening, wait for conversation or a backend-confirmed occasion." : "";
+    }
     @Override public String voiceInstructions() {
         if (!CoreTaskVoice.enabled(storage())) return super.voiceInstructions();
         return configuredInstructions() + "\nSIRA stands for " + ValerianCorePrompts.SIRA_NAME
@@ -47,5 +57,5 @@ public class CoreTaskPolicy extends TaskPolicy implements ExternalVoicePolicy {
         if (pending == null || task.continuation() != null || CoreTaskVoice.bytes(task.facts() + pending.facts()) > 4000) return task;
         return new LiveActivityContext(task.facts() + pending.facts(), pending.continuation(), pending.refreshAt());
     }
-    @Override public void reset() { super.reset(); SensoryRemarks.reset(storage()); CoreTaskVoice.clear(storage()); }
+    @Override public void reset() { super.reset(); SensoryRemarks.reset(storage()); CoreTaskVoice.clear(storage()); CoreReception.reset(storage()); }
 }

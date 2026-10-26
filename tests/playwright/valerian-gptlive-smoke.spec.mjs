@@ -220,6 +220,66 @@ test("Generic activation telemetry follows real pending work, cue waiting, failu
   }
 });
 
+test("Social Space opt-in reception uses real scopes and fresh encounters", async ({ page, context, request }, info) => {
+  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Requires the isolated Live-enabled app.");
+  const admin = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post("/admin/access-codes", { headers: admin, data: { code, enabled: true } })).json();
+  expect((await request.put(`/admin/access-codes/${access.id}/agent-types`, { headers: admin,
+    data: { agentTypeKeys: ["core.generic_multimodal_behaviour_at_social_space"] } })).ok()).toBe(true);
+  const scoped = { "X-Prometheus-Access-Code": code };
+  const agent = await (await request.post("/demo/agents", { headers: scoped,
+    data: { agentDefinitionKey: "core.generic_multimodal_behaviour_at_social_space" } })).json();
+  const path = `/demo/agents/${agent.id}`;
+  expect(agent.interactionProfile.presenceControlledLive).toBe(true);
+  expect((await (await request.get(path + "/live/capabilities", { headers: scoped })).json()).departureGraceMs).toBe(2000);
+  await hardware(context);
+  const sessions = [];
+  page.on("response", async response => {
+    if (response.url().endsWith("/live/sessions") && response.status() === 201) sessions.push(await response.json());
+  });
+  try {
+    await page.goto(`/valerian/?agentId=${agent.id}`);
+    await page.getByTestId("access-code-input").fill(code); await page.getByTestId("submit-access-code").click();
+    await expect(page.getByTestId("gptlive-start")).toBeEnabled(); await page.getByTestId("gptlive-tab").click();
+    await expect(page.getByTestId("gptlive-start")).toHaveText("Start reception");
+    await page.evaluate(() => {
+      state.cameraRunning = true; camera.socialDetectorReady = true;
+      document.getElementById("sensor_social_enabled").checked = true;
+      document.getElementById("sensor_emit_enabled").checked = true;
+      window.__sampleVisitors = count => maybeEmitSocial({ humanCount: count, groupCount: 0,
+        singletonCount: count, largestGroupSize: 0, groups: [] },
+        Array.from({ length: count }, (_, i) => ({ id: i + 1, score: .99 })));
+    });
+    await page.getByTestId("gptlive-start").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Waiting");
+    expect(sessions).toHaveLength(0);
+    await page.evaluate(() => window.__sampleVisitors(1)); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    await expect.poll(() => sessions.length).toBe(1);
+    const provider = await (await request.get("/__live-fixture/latest")).json();
+    await request.post(`/__live-fixture/speak/${provider.providerId}`, { data: {
+      speaker: "ASSISTANT", text: "Prior encounter private dialogue", receipt: "space_first_encounter",
+    } });
+    await expect(page.getByTestId("gptlive-history")).toContainText("Prior encounter private dialogue");
+    await page.evaluate(() => window.__sampleVisitors(0));
+    expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject !== null)).toBe(true);
+    await expect.poll(() => page.evaluate(() => !!camera.receptionSocialPending)).toBe(false);
+    await page.evaluate(() => window.__sampleVisitors(1)); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    expect(sessions).toHaveLength(1);
+    await page.evaluate(() => window.__sampleVisitors(0)); await expect(page.getByTestId("gptlive-status")).toHaveText("Waiting");
+    expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject)).toBeNull();
+    await expect.poll(() => page.evaluate(() => !!camera.receptionSocialPending)).toBe(false);
+    await page.evaluate(() => window.__sampleVisitors(1)); await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
+    await expect.poll(() => sessions.length).toBe(2); expect(sessions[0].handle).not.toBe(sessions[1].handle);
+    const next = await (await request.get("/__live-fixture/latest")).json();
+    expect(next.input).not.toContain("Prior encounter private dialogue"); expect(next.input).toContain("new reception encounter");
+    expect(JSON.stringify(await (await request.get(path + "/live/history", { headers: scoped })).json())).toContain("Prior encounter private dialogue");
+    await page.getByTestId("gptlive-panel").screenshot({ path: info.outputPath("social-space-fresh-encounter.png") });
+    await page.getByTestId("gptlive-stop").click(); await expect(page.getByTestId("gptlive-status")).toHaveText("Idle");
+    await page.evaluate(() => window.__sampleVisitors(1)); expect(sessions).toHaveLength(2);
+    expect(await page.evaluate(() => document.getElementById("gptlive_audio").srcObject)).toBeNull();
+  } finally { await request.delete(path, { headers: scoped }); }
+});
+
 async function hardware(context) {
   await context.addInitScript(() => {
     window.__smokeCaptures = 0;

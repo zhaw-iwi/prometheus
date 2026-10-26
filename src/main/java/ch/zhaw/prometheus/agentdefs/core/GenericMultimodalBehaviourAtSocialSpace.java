@@ -16,6 +16,8 @@ import ch.zhaw.prometheus.model.task.TaskPolicy;
 @Component
 public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition {
     public static final String KEY = "core.generic_multimodal_behaviour_at_social_space";
+    @org.springframework.beans.factory.annotation.Value("${prometheus.core.social-space.reception:false}")
+    private boolean reception;
     static final String VOICE = GenericMultimodalBehaviour.VOICE + """
 
             You are in a shared social space. Your name is Valerian. When a user addresses you
@@ -67,11 +69,16 @@ public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition 
     @Override public boolean externalRealtimeSpeech() { return true; }
 
     @Override public Agent createAgent() {
+        return createAgent(reception);
+    }
+    /** Applies only to a newly created graph; existing saved instances are not rewritten. */
+    public Agent createAgent(boolean presenceReception) {
         var agent = GenericMultimodalBehaviour.createTaskAgent(
                 "Generic Multimodal Behaviour at Social Space",
                 "English core Valerian social-space agent with concise conversation, arrival/departure reactions and persistent configurable multimodal tasks.",
                 VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour", "demo.valerian.social_space"), true);
         var storage = ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+        if (presenceReception) storage.put(CoreReception.ENABLED, new com.google.gson.JsonPrimitive(true));
         storage.put(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED, new com.google.gson.JsonPrimitive(true));
         for (var state : agent.reachableStates()) {
             // Routing already has an unconditional fallback; ambient replies belong to conversational states.
@@ -79,7 +86,9 @@ public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition 
             state.addTransition(new Transition(new SocialSpacePresenceDecision(storage),
                     new SocialSpaceResponseAction(storage, GenericMultimodalBehaviour.behaviourInstructions(VOICE)), state));
         }
-        return applyDefinitionMetadata(agent);
+        agent = applyDefinitionMetadata(agent);
+        agent.setInteractionProfile(agent.getInteractionProfile().withPresenceControlledLive(presenceReception));
+        return agent;
     }
 
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

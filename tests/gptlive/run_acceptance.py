@@ -178,7 +178,8 @@ def main():
                 env.update(SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(port), PROMETHEUS_BASE_URL=f'http://127.0.0.1:{port}',
                     PROMETHEUS_LIVE_ENABLED=enabled, PROMETHEUS_LIVE_EXPECT_ENABLED=enabled)
                 with (artifacts / ('app-' + enabled + '.log')).open('w', encoding='utf-8') as log:
-                    app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.gptlive.LiveSmokeApplication'], env=env,
+                    app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.gptlive.LiveSmokeApplication',
+                        '--prometheus.core.social-space.reception=true'], env=env,
                         stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
                     for attempt in range(180):
                         if app.poll() is not None:

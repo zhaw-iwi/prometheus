@@ -4,9 +4,38 @@
 
 CA-01 complete and pushed as 55738757. CA-02 complete and pushed as d30196ff.
 CA-03 complete and pushed as 4f11b1ae; CA-04 complete and pushed as 35fcfc21.
-CA-05 complete and pushed as 677dd15a. CA-06 complete; CA-07/08 not implemented.
+CA-05 complete and pushed as 677dd15a; CA-06 as 6a48fc33. CA-07 complete; CA-08 pending.
 Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
 No main, agents or standalone Valerian runtime changes in this series yet.
+
+## CA-07 — optional Social Space reception
+
+New Social Space definitions opt in with `prometheus.core.social-space.reception`
+(default false). The persisted profile and existing ExternalVoicePolicy hooks reuse
+the cockpit's presence lifecycle and two-second audio/departure grace. Fresh,
+source-ordered occupancy is required before a claim; prior dialogue/invitations/
+sensory occasions are excluded from new Live context without deleting transcripts.
+Weather retains its source expiry. Agreements, drafts and action counts survive.
+Session-bound tasks pause; confirmed autonomous tasks retire the previous session's
+caption gate and continue. Pending, uncertain or wrong-revision responses cannot
+silently authorize continuation. Generic, saved profiles and Text/Continuous keep
+their lifecycle. No new HTTP contract, schema or polling is added.
+
+Verified: 25 focused unit/local-MySQL checks in `6dcc325d20`, covering scoped claims,
+JPA reload, transcript retention, task pause and access revocation. An initial unit
+fixture populated RUNNING storage while leaving the graph in configuration; it now
+sets the matching execution state. Four final reception units pass, including a
+stale response revision (`target/ca07-final-unit.log`). All 13 existing client
+reception tests pass (`target/ca07-node.log`). Browser `8a1301113d` passes the real
+scoped Social Space journey and existing dropout regression: no-person waiting,
+arrival, brief absence with audio intact, departure closure, new session/history
+boundary and explicit Stop. Live-disabled variant is correctly skipped. Screenshot
+of the new encounter was visually inspected; durable old conversation remains
+visible in the recording while excluded from provider startup context.
+
+The fixture app alone enables the new mode; ordinary/paid apps retain the default.
+All owned local test resources were removed. Physical camera/robot/audio behavior
+is not established by synthetic browser media and still needs the final operator check.
 
 ## CA-06 — persisted guessing roles and secrets
 

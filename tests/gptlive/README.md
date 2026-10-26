@@ -130,6 +130,14 @@ new round without inventing/storing the human's secret. Pair with
 deterministic rules and local reload checks. Captions are reviewed for semantic
 failures; provider success is not physical speech verification.
 
+The browser fixture app explicitly enables Social Space reception for newly created
+instances. `--browser --live-only --browser-grep 'Social Space opt-in reception|presence reception preserves'`
+checks real scoped start/close, two-second dropout grace, new encounter context,
+durable history and Stop alongside the existing client regression. Pair with
+`--java-tests CoreReceptionUnitTest,CoreReceptionIntegrationTest` for task retention,
+autonomous response gates, source freshness/order and immediate access revocation.
+Ordinary and paid app runs retain the production default (reception disabled).
+
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest,LiveCockpitSmokeIntegrationTest --browser --browser-grep 'state view|Valerian columns follow|Valerian cockpit opens connected|Valerian camera and microphone controls|Valerian cockpit columns expand|real scoped cockpit'
 ```

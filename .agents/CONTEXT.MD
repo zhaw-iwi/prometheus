@@ -142,6 +142,13 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
+New Social Space instances can explicitly opt into the existing presence-controlled
+Live lifecycle with `prometheus.core.social-space.reception=true` (default false).
+Fresh encounter dialogue does not erase transcripts or task agreements. Session-bound
+tasks pause; explicitly autonomous tasks retain authority only after confirmed prior
+responses. The existing client supplies departure grace; Stop/revocation remain
+immediate. Generic and saved profiles keep their lifecycle.
+
 ## Capability Awareness
 
 New core RPS instances persist round identity and validate fresh, confident,

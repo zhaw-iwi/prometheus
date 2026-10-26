@@ -44,6 +44,9 @@ prometheus.live.session-lifetime-seconds=900
 prometheus.live.client-idle-seconds=30
 prometheus.live.capacity=16
 
+# New Social Space instances may use unattended reception; Generic and saved graphs stay unchanged.
+prometheus.core.social-space.reception=false
+
 # cross-origin browser clients, for example an external Valerian cockpit
 prometheus.cors.allowed-origins=
 prometheus.cors.allowed-origin-patterns=

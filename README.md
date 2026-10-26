@@ -1486,6 +1486,18 @@ Re-entry after closure gets a new session; Stop, camera loss and voice failure r
 immediate. This is an encounter boundary, not person recognition. Browser diagnostics
 retain pending/resumed/confirmed outcomes with effective grace and duration.
 
+For new **Social Space** instances, set `prometheus.core.social-space.reception=true`
+to use that existing cockpit mode (default false). It requires fresh acknowledged
+occupancy before claiming Live and uses a two-second departure grace, including
+audio. Each encounter starts fresh dialogue and one brief greeting; durable history
+remains recorded and fresh weather keeps its original source age. Prior-visitor
+invitations and sensory remarks do not carry over. Session-bound tasks pause and
+require explicit resume; specifications, drafts and action counts remain. Explicit
+autonomous tasks continue only when their prior response was confirmed; uncertain
+responses pause rather than being silently accepted. Stop and access revocation
+retain their existing immediate controls. Generic, Text/Continuous and existing
+saved profiles are unchanged. No schema addition or new sensor polling is needed.
+
 Configurable-task applications can reuse
 `GenericMultimodalBehaviour.configurationInstructions(voice)` and specialize
 `TaskUpdateAction.validateTaskUpdate` / `failureMessage` to enforce extra constraints
