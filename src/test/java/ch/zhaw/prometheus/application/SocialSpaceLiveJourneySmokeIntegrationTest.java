@@ -58,6 +58,7 @@ class SocialSpaceLiveJourneySmokeIntegrationTest {
         id = demo.createAgent(code, GenericMultimodalBehaviourAtSocialSpace.KEY).getID();
         var legacy = loaded(); ((ch.zhaw.prometheus.model.task.TaskPolicy) legacy.getCurrentState().ownPolicy()).storage()
                 .remove(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED);
+        ((TaskPolicy) legacy.getCurrentState().ownPolicy()).storage().remove("core.task.liveWording");
         agents.saveAndFlush(legacy);
         assertTrue(new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(loaded()).contains("Your name is Valerian"));
         verifyNoInteractions(language);

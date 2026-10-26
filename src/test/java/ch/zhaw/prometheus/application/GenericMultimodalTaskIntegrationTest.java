@@ -161,13 +161,15 @@ class GenericMultimodalTaskIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void scopedCreationReloadLiveTranscriptSensorNarrationAndStopShareOneDurableTask(boolean compact) {
+    void legacyScopedCreationReloadLiveTranscriptSensorNarrationAndStopShareOneDurableTask(boolean compact) {
         String code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(GenericMultimodalBehaviour.KEY));
         UUID id = demo.createAgent(code, GenericMultimodalBehaviour.KEY).getID();
         assertTrue(demo.listAgentTypes(code).stream().anyMatch(type -> type.getKey().equals(GenericMultimodalBehaviour.KEY)));
         var loaded = agents.findById(id).orElseThrow();
+        ((TaskPolicy) loaded.getCurrentState().ownPolicy()).storage().remove("core.task.liveWording");
+        agents.saveAndFlush(loaded);
         assertInstanceOf(TaskState.class, loaded.getCurrentState());
         assertInstanceOf(TaskPolicy.class, loaded.getCurrentState().ownPolicy());
         verifyNoInteractions(language);

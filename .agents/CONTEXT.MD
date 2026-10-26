@@ -311,8 +311,13 @@ reaction. Reset clears task configuration. Task and ambient replies accept compa
 provider JSON and expand it before unchanged canonical task validation. Encoding
 guidance is appended at inference time, preserving saved prompts and state control.
 Canonical/compact Live journeys cover both core variants; integration evidence is
-in `.agents/NEEDFORSPEED_RESULTS.md`. Live explicitly supports the task state/policy and speaks committed
-announcements; current perception is also supplied directly to task-turn inference.
+in `.agents/NEEDFORSPEED_RESULTS.md`. New Generic/Social Space instances opt into
+CoreTaskPolicy facts and Live-owned wording; legacy instances keep committed
+announcements. Spoken task actions use bounded response confirmation, silent
+gestures do not wait for captions, and short assent needs a current completed
+proposal invitation. Text/Continuous retain backend speech. Current perception is
+also supplied directly to task-turn inference. CA evidence and limits are in
+`.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
 See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
 verification and pending physical/provider trials. This work starts on
 `feature/gptlive`; user-authorized integration into `main`, then `agents` and

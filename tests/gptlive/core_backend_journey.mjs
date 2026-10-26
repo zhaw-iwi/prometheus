@@ -7,7 +7,9 @@ import {chromium} from '@playwright/test';
 const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
 const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
-  social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space'};
+  social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space',
+  task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space'};
+const taskJourney = selection === 'task' || selection === 'space-task';
 const connectionOnly = true;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
@@ -21,6 +23,10 @@ const clips = {info: 'Hello Valerian. What is the SIRA Lab?',
   sense: selection === 'face' ? 'How does my facial expression look?' : 'How many people can you currently see?',
   ...(selection === 'live' ? {gesture: 'Please show me the paper hand sign.'} : {}),
   ...(selection === 'face' ? {correction: 'I am not happy. Please stop commenting on my face.'} : {})};
+if (taskJourney) Object.assign(clips, {
+  proposal: "Please propose, but don't start, a task that waits for one rock hand sign, then shows paper silently once and finishes.",
+  accept: 'Yes, please.', acknowledge: 'Okay.'
+});
 const audio = {};
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 for (const [name, input] of Object.entries(clips)) {
@@ -165,10 +171,41 @@ try {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
+    if (name === 'info') assert.doesNotMatch(text, /Service Innovation and Robotics/i, 'Invented SIRA expansion');
     report.turns.push({name, text});
     assert.deepEqual(await api(agentPath + '/state'), initial, 'Ordinary requests must retain the interaction state');
   }
-  if (selection === 'live') {
+  if (taskJourney) {
+    let index = await page.evaluate(() => logs.length); await say('proposal');
+    await until('persisted draft', async () => (await storage())['task.draft']);
+    report.proposal = await settled(index, /start|activate|ready|shall|begin/i);
+    await until('completed proposal invitation', async () => (await storage())['core.task.spokenPrompt']);
+    let memory = await storage(); assert.equal(memory['task.phase'], 'CONFIGURATION');
+    assert.equal(memory['task.draft'].firstAction, 'ON_CUE'); assert.equal(memory['task.draft'].maxActions, 1);
+    index = await page.evaluate(() => logs.length); await say('accept');
+    await until('confirmed activation response', async () => (await storage())['task.response']?.status === 'CAPTURED');
+    report.responseAssociation = (await storage())['task.response'];
+    report.activation = await settled(index, /wait|ready|armed|active|rock/i);
+    assert.doesNotMatch(report.activation, /activation.{0,20}pending|not (yet )?active|want.{0,20}start|shall.{0,20}start/i,
+      'Live contradicted confirmed activation or asked for redundant acceptance');
+    memory = await storage(); assert.equal(memory['task.phase'], 'RUNNING'); assert.equal(memory['task.actions'], 0);
+    if (selection === 'space-task') {
+      sensing.data.humanCount = 2; await freshSense(); await wait(2200); await freshSense();
+      memory = await storage(); assert.equal(memory['task.phase'], 'RUNNING'); assert.equal(memory['task.actions'], 0);
+    }
+    await wait(3500); index = await page.evaluate(() => logs.length);
+    await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+    await until('completed task', async () => (await storage())['task.phase'] === 'COMPLETED');
+    report.completion = await settled(index, /complet|finish|done|paper/i);
+    assert.doesNotMatch(report.completion, /hey there.{0,15}welcome|hello.{0,15}welcome|try a quick demo/i,
+      'A task result must not be interrupted by an obsolete arrival greeting');
+    report.history = await api(agentPath + '/eventhistory');
+    assert.ok(report.history.filter(e => e.type === 'resp.behaviour_plan').some(e => JSON.parse(e.payload).motion?.handSign === 'paper'));
+    assert.equal((await storage())['task.actions'], 1);
+    await say('acknowledge'); await wait(4000);
+    assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
+    report.finalState = await api(agentPath + '/state');
+  } else if (selection === 'live') {
     // Gesture-only requests intentionally require no spoken acknowledgement.
     await say('gesture');
     await until('persisted paper hand-sign plan', async () => {
@@ -189,7 +226,7 @@ try {
       assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
     }
   }
-  assert.deepEqual(await api(agentPath + '/state'), initial);
+  if (!taskJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;

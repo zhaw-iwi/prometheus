@@ -95,7 +95,7 @@ public class LiveTaskResponseService {
         var policy = (TaskPolicy) agent.getCurrentState().ownPolicy();
         TaskResponse.uncertain(policy.storage());
         String type = policy.liveResponseFailureEventType();
-        if (type == null) TaskMemory.pauseForSession(policy.storage(), reason);
+        if (type == null) TaskMemory.pauseForResponse(policy.storage(), reason);
         else agent.acknowledge(new Event(type, "system", Event.KIND_SYSTEM, reason), turns.runtime().withExternalSpeech(owner));
     }
 }

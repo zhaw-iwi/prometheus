@@ -155,6 +155,8 @@ public class Event {
     public Instant getCreatedDate() {
         return createdDate;
     }
+    /** Preserve the source timestamp in a detached selection; append still creates a new event. */
+    void recordedAt(Instant value) { createdDate = value; }
 
     public List<String> getStatePath() {
         if (this.statePath == null) {

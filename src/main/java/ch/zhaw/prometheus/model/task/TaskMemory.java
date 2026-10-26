@@ -25,6 +25,11 @@ public final class TaskMemory {
     }
     public static boolean pauseForSession(Storage storage, String reason) {
         if (!active(storage) || !sessionBound(storage)) return false;
+        return pauseForResponse(storage, reason);
+    }
+    /** A failed response is not permission to continue, including explicitly autonomous agreements. */
+    public static boolean pauseForResponse(Storage storage, String reason) {
+        if (!active(storage)) return false;
         put(storage, PHASE, "PAUSED"); put(storage, PAUSE_REASON, reason); revise(storage);
         if (storage.containsKey(REPLY)) storage.remove(REPLY);
         return true;

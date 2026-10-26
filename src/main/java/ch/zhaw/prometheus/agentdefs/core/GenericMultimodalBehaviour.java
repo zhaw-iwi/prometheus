@@ -122,6 +122,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     public static Agent createTaskAgent(String name, String description, String voice, List<String> tags, boolean gestureCadence) {
         Storage storage = new Storage();
         if (gestureCadence) storage.put(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.ENABLED, new com.google.gson.JsonPrimitive(true));
+        if (gestureCadence) storage.put(CoreTaskVoice.ENABLED, new com.google.gson.JsonPrimitive(true));
         var configuration = new TaskState("Generic multimodal configuration", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
         var running = new TaskState("Generic multimodal execution", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
         var completed = new TaskState("Generic multimodal task completed", gestureCadence ? new CoreTaskPolicy(storage, voice) : new TaskPolicy(storage, voice), true);
@@ -131,10 +132,12 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
         dispatch.addTransition(new Transition(configuration));
         for (var state : List.of(configuration, running, completed)) {
             state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                    new TaskUpdateAction(storage, configurationInstructions(voice), false), dispatch));
+                    gestureCadence ? new CoreTaskUpdateAction(storage, configurationInstructions(voice), false)
+                            : new TaskUpdateAction(storage, configurationInstructions(voice), false), dispatch));
         }
         running.addTransition(new Transition(new TaskDecision(storage, "CUE"),
-                new TaskUpdateAction(storage, behaviourInstructions(voice), true), dispatch));
+                gestureCadence ? new CoreTaskUpdateAction(storage, behaviourInstructions(voice), true)
+                        : new TaskUpdateAction(storage, behaviourInstructions(voice), true), dispatch));
         var agent = new Agent(name, description, configuration, storage);
         var base = ValerianCoreAgentFactory.multimodalBehaviourProfile();
         agent.setInteractionProfile(AgentInteractionProfile.of(base.getSupportedObservations(), base.getSupportedBehaviourModalities(),

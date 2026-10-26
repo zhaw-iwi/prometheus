@@ -57,3 +57,7 @@ when new instances are required.
   rather than bypass. Gala's provider runner is a reference, not a dependency.
 
 Evidence and milestone status: [COREAGENTIMPROVEMENT_RESULTS.md](COREAGENTIMPROVEMENT_RESULTS.md).
+
+CA-01 through CA-04 are implemented and accepted. Continue with CA-05; the final
+combined acceptance remains CA-08. The results record provider failures and the
+remaining prompt-only speech limitations as well as successful checks.

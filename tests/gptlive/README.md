@@ -58,6 +58,8 @@ python tests/gptlive/run_acceptance.py --java-tests none --paid-core live
 python tests/gptlive/run_acceptance.py --java-tests none --paid-core face
 python tests/gptlive/run_acceptance.py --java-tests none --paid-core social
 python tests/gptlive/run_acceptance.py --java-tests none --paid-core space
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core task
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core space-task
 ```
 
 This launches the production app against a disposable local schema and uses its
@@ -68,7 +70,11 @@ as a behaviour plan. It checks state retention and semantic captions. It does no
 use a replacement prompt or scripted provider. Later milestones extend the
 journey selection. Face/social/space now cover a grounded perception answer and
 an unsolicited comment after a stable change. Face also verifies persisted user
-correction and cancellation of the pending comment. `OPENAI_API_KEY` takes precedence over the ignored local
+correction and cancellation of the pending comment. Task/space-task cover a stored
+proposal, completed invitation, short acceptance, confirmed activation, a silent
+paper gesture on a rock cue, completion and harmless acknowledgment. Social Space
+also checks that an arrival cannot override the active task.
+`OPENAI_API_KEY` takes precedence over the ignored local
 `openai.properties`/`application.properties` API key; their database URL is never
 used for paid-provider configuration. Configure `openai.model` or `OPENAI_MODEL`
 as for an ordinary local app; the runner rejects missing configuration before
@@ -79,6 +85,17 @@ No automatic provider retries are performed by the harness. Cached synthetic
 speech stays under ignored `target/core-provider-audio`. Never commit artifacts
 containing transcripts or credentials. Do not run heavy browser/build jobs during
 paid audio trials. Physical playback and robot execution still need manual tests.
+
+For a control-schema failure, `fixtures.live.CoreTaskProviderProbe` is an explicitly
+paid diagnostic main in the test classes. It uses the production core task action
+and configured gateway for exactly one synthetic proposal, without starting Spring
+or a database. Run with `--allow-paid-provider target/<artifact>.json` on the test
+classpath. Its artifact contains the synthetic prompt/response, never credentials;
+keep it ignored. Optional third argument `--confirmation-cases` adds six bounded
+control requests: activation as a question or offer, an unrelated question or
+statement, revision and future activation. It verifies the persisted outcome, including deterministic rejection
+when a model misclassifies a deferred question. This diagnostic does not replace
+the full paid Live journey.
 
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceAgentIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest

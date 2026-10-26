@@ -69,7 +69,8 @@ class SocialSpaceAgentUnitTest {
         assertTrue(live.contains("Your name is Valerian"));
         assertTrue(live.contains("including just \"Valerian\""));
         assertTrue(live.replaceAll("\\s+", " ").contains("do not call for another greeting"));
-        assertTrue(live.contains("deliver the backend's spoken response faithfully"));
+        assertTrue(live.contains("Live owns the wording of replies"));
+        assertFalse(live.contains("deliver the backend's spoken response faithfully"));
         verifyNoInteractions(gateway);
     }
 

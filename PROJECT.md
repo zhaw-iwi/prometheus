@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-04 (2026-10-26): new Generic/Social Space instances
+  provide confirmed task facts while Live composes speech. Text/Continuous and
+  saved opt-out contracts remain; short acceptance requires a current invitation,
+  harmless acknowledgements preserve tasks, and silent actions need no caption.
+  Selected event views now retain timestamps, correcting CA-03 conversation priority.
+  Local unit/persistence/legacy checks and both real OpenAI task journeys pass;
+  contextual acceptance reuses the existing control request and validates the unchanged draft.
+  failed provider trials, fixes and speech limitations are recorded in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`. No main/agents deployment in this step.
+
 - Core-agent improvements CA-03 (2026-10-26): new Social Space and face/social
   demos distinguish stable meaningful changes from evidence refresh. Expiring
   Live occasions retain Live wording; conversation, corrections and tasks take

@@ -109,3 +109,126 @@ utterance can overlap an already admitted remark before its transcript arrives;
 the face trial exhibited this at the first question. This is no hard audio gate.
 No physical audio/movement or UI rendering change is claimed. All paid runs used
 disposable local databases and cleaned up their app/schema/account.
+
+## CA-04 — task facts and contextual short replies
+
+New core instances opt into Live wording, confirmed task facts and identified
+speaking occasions; ordinary KEEP answers remain quiet to avoid duplicate replies.
+Text/Continuous and saved opt-out contracts retain backend speech. Bare assent
+requires a current completed invitation and the unchanged proposal; harmless
+acknowledgements preserve control without another model request. Spoken actions
+use the existing bounded TaskResponse check; silent gesture actions never wait for
+captions. Explicit autonomous tasks can proceed after voice ownership ends.
+
+During invitation testing, found that EventHistory.select discarded source
+createdDate. Preserving it in detached selections fixes invitation timing and
+CA-03 conversation priority. The earlier CA-03 helper tests bypassed selection;
+the added selection regression explicitly protects that missing path.
+
+Initial tests exposed old-contract assertions that needed explicit legacy opt-out,
+one test using EventSelector as a functional interface, and a wall-clock unit
+fixture with a one-nanosecond future start. Corrected fixtures; retained artifacts.
+Integrated attempt `0cc03a255a`: 50 checks passed, one clock-fixture error (no
+provider requests). `601f1f2cf1` passed 60 checks with one obsolete new-instance
+voice assertion; updated it to check Live ownership and absence of legacy narration.
+`b6592ed9f3` passes all 61 selected Java/local-MySQL checks, including new persisted
+Generic/Social Space invitation acceptance, legacy scripted journeys, autonomous
+continuation, timestamped selection and reset.
+
+Paid attempt `1dcabaca6f` failed: invitation recognition missed "Want me to start
+it?", and a split request ending in "finishes" produced a replacement proposal
+without ON_CUE timing. Added the invitation form, runtime firstAction guidance
+outside the unchanged configuration prompt, preservation guidance for fragments,
+and rejection of IMMEDIATE for an explicit waiting request. The trial also showed
+unsolicited waiting acknowledgements despite silent-wait guidance; prompt-only
+speech coordination remains a limitation, not a claimed fix. No global capture
+interval or media interruption changed.
+
+`5b489b3846` passed the new task checks; three lexical-boundary tests still assumed
+the old voice contract and now explicitly exercise legacy opt-out. `5920679f60`
+passes all 43 selected local checks, but its paid journey rejected the proposal.
+An explicitly paid, single-request synthetic control probe reproduced the cause:
+the model used COMPLETE for "show once and finish". COMPLETE performs no action,
+so ON_CUE correctly rejected it. Added guidance to use ACT plus maxActions=1 and
+a rejection regression; `target/ca04-control-probe.json` retains the failed raw
+synthetic response. The fixture starts no app/database and requires paid opt-in.
+Post-fix synthetic control probe passes (`target/ca04-control-probe-fixed.json`);
+36 final focused tests pass (`target/ca04-final-units.log`).
+
+Paid Generic `0541648618` passes: ordinary
+conversation/perception, ON_CUE one-action proposal, current completed invitation,
+short acceptance, semantically confirmed activation, fresh rock cue, persisted
+paper motion, completed phase and harmless acknowledgment. Social Space
+`af78a01d8c` passed state assertions, but transcript review found contradictory
+"activation is still pending" wording and a late arrival greeting before completion.
+Do not count that as full behavioural acceptance. "Yes, please" split into Yes
+and a polite tail; KEEP then cleared the still-owed activation facts. Polite tails
+now preserve pending confirmations without inference, as do ordinary KEEP updates.
+Strengthened smoke assertions to reject pending/repeated-acceptance wording and
+an obsolete greeting during the result. `66028ea493` passes the 10 focused
+unit/persistence checks, but its paid run exposed a conservative invitation
+recognition miss for "Want me to start that?". Added the demonstrative-pronoun
+case and regression; no task was activated by the unrecognized invitation.
+`a421ebdc9a` again passes the 10 local checks but its paid invitation was
+"Want me to start this when you say so?". That conflates accepting/arming now
+with future activation, and remains deliberately unrecognized. Clarified this
+distinction in the proposal facts and voice guidance; added a rejection test.
+`d1b6c72c83` passes nine focused checks. The paid provider used the unambiguous
+but shortened "Activate it now?", exposing another conservative recognition miss.
+Made the modal invitation prefix optional and added the exact completed-segment
+regression; conditional future invitations and unrelated questions remain rejected.
+`b4e03658d0` passes nine focused checks but reveals an invitation timing defect:
+the full speech segment began before the final proposal fragment committed,
+whereas its final "Start it?" question arrived afterward. The invitation check
+now uses existing timestamped speech parts to require that the question itself
+starts after the current proposal; older/overlapping questions remain rejected.
+No capture interval or additional provider check is introduced. `4ca54483f0`
+passes 11 unit/persistence checks; its paid invitation adds the explicit
+"and start waiting now" clause. Added that bounded conjunct to recognition and
+the regression cases, preserving rejection of future activation and changes to
+the proposal. `fc96ea1719` again passes focused checks but misses a natural
+"activate that waiting rule now" invitation. These accumulating lexical misses
+showed that a wording whitelist conflicts with Live wording ownership.
+
+The final approach records a current completed question, then reuses the existing
+control inference to interpret assent. Deterministic validation permits only KEEP
+or activation of the unchanged draft; it additionally rejects deferred wording
+without explicit current activation. No extra invitation inference is added.
+`target/ca04-contextual-units.log` exposed a Mockito restubbing fixture error;
+the corrected fixture and all 38 selected unit regressions pass in
+`target/ca04-contextual-final-units.log`. Synthetic paid probe
+`target/ca04-confirmation-probe.json` correctly handled activation/unrelated/revision
+but misclassified future activation. The added deterministic guard rejects that
+same response; all four persisted outcomes now pass in
+`target/ca04-confirmation-probe-guarded.json` (five bounded provider requests total,
+including one proposal). This does not claim infallible model intent recognition.
+`92917226ba` stopped before provider execution: the question unit fixture could
+capture and propose in the same clock tick. It now pins the proposal boundary
+explicitly; production strict ordering is unchanged. `d3ebd9cc27` passes all 12
+selected unit/local-persistence checks and the full paid Social Space journey:
+proposal, short acceptance of "activate that waiting rule now", captured substantive
+activation, no ambient arrival remark during the task, one fresh rock/paper action,
+completion and harmless acknowledgment. The recorded response association points
+to "It's active now and waiting for that rock sign", not its preceding "Okay".
+Three Python runner-boundary checks and JavaScript syntax also pass. Generic recheck
+`e1675bc70d` failed before the task: Live invented "Service Innovation and Robotics"
+as SIRA's expansion. The compact Generic policy omitted the correct definition
+already present in the shared core prompt. It now includes that same shared name
+and brief lab facts; the configuration prompt is untouched. Added instruction/budget
+and negative provider-output checks. `cac7126402` passes core prompt/unit checks
+and answers the lab question correctly, but offers activation in a statement
+rather than a question. The completed-context admission now supports statements
+as well as questions; meaning is still checked by ordinary task control, with
+unchanged-draft/deferral validation. All 38 focused regressions pass in
+`target/ca04-prompt-units.log`; six paid confirmation cases pass in
+`target/ca04-confirmation-offers.json` (one proposal plus six control requests).
+Final Generic Live recheck `da1e9c2233` passes: correct lab/perception answers,
+proposal/lifecycle explanation, short acceptance, captured activation, one fresh
+rock cue, paper motion, completion and harmless acknowledgment. Together with
+Social Space `d3ebd9cc27`, the required task journeys pass. `cac7126402` also
+passed the core prompt/unit checks, including the unchanged configuration prompt
+and Live instruction budget. CA-04 is complete; CA-05 is next.
+All owned apps/databases/accounts were
+removed. No Heroku database was used. Live sometimes adds acknowledgments or
+technical lifecycle wording despite guidance; physical speech/movement and hard
+audio-turn coordination are not established by these tests.

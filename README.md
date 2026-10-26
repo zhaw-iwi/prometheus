@@ -1894,7 +1894,33 @@ association. One completed captured response receives at most one semantic check
 on the existing bounded action workers. Only a matching current response releases
 fresh subsequent cues; a 45-second deadline or uncertain result stops automatic
 progression. This adds a model round trip at task boundaries and does not prove
-physical playback. Ordinary Generic tasks retain their default contract.
+physical playback. New Generic and Social Space instances opt into this contract
+through persisted `core.task.liveWording`; saved instances without the flag retain
+their original announcement contract. The original configuration prompt is unchanged.
+
+For these new instances, `CoreTaskUpdateAction` commits validated decisions and
+nonverbal/motion output while `CoreTaskPolicy` supplies bounded task facts for Live
+to phrase. Ordinary questions use quiet facts, not a second answer announcement.
+Proposal, activation, pause/resume, completion and failure updates have identified
+speaking occasions. Text/Continuous retain backend speech. Harmless acknowledgements
+preserve the agreement; a bare yes accepts only the current unchanged proposal
+after a relevant completed invitation from the current session. Timestamped speech
+parts fence the final invitation, even if its preamble began before the proposal.
+The existing control inference interprets a short answer against that captured
+question or offer; deterministic validation permits only KEEP or accepting the unchanged
+draft, and blocks deferred activation wording without explicit current activation.
+This adds no separate invitation model request. Full explicit requests still follow
+ordinary task validation. Ambiguous assent requests clarification; interpretation
+is model-based, not a guarantee of perfect natural-language intent recognition.
+
+Activation/resume and agreed spoken actions use `TaskResponse` confirmation before
+another cue. Silent gesture-only actions do not wait for a nonexistent transcript.
+Explicit autonomous agreements can continue when voice ownership ends; session-bound
+agreements retain pause-on-close. No response check proves audibility or movement.
+Live facts keep executable rules within 4,000 UTF-8 bytes, omitting the redundant
+goal only if necessary. Exceptionally long multilingual rule text exceeding 3,200
+bytes is rejected before a Live agreement change; existing task data is preserved.
+No new HTTP contract or schema field is introduced by this task-voice milestone.
 
 Task configurations default to `sessionBound: true`. An associated Live stop or
 disconnect pauses the task, preserves the agreement/action count, and discards
@@ -1919,7 +1945,7 @@ meaning is never silently converted. Activating an incompatible saved draft asks
 for a rule correction without requesting the whole task again. There is no
 automatic startup migration.
 
-The representative Generic and Social Space Live journeys run with both
+The legacy Generic and Social Space Live journeys run with both
 canonical and compact scripted responses. They cover real scoped creation,
 persistence, Live transcript admission, activation, sensor cues, canonical
 announcement delivery and stop. Social Space also covers arrival, name address,

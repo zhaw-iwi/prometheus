@@ -34,9 +34,9 @@ class CoreSensoryReactionUnitTest {
         storage.get(SensoryRemarks.PENDING).getAsJsonObject().addProperty("expires", now.minusSeconds(1).toString());
         var expired = ((ExternalVoicePolicy) agent.getCurrentState().ownPolicy()).liveActivityContext();
         assertNotNull(expired); assertNull(expired.continuation());
-        assertTrue(expired.facts().contains("No automatic sensory comment"));
+        assertTrue(expired.facts().contains("No new task action"));
         agent.acknowledge(observation(Event.TYPE_SOCIAL_GROUPING, 2, now.plusMillis(1)), live);
-        assertNull(((ExternalVoicePolicy) agent.getCurrentState().ownPolicy()).liveActivityContext());
+        assertNull(((ExternalVoicePolicy) agent.getCurrentState().ownPolicy()).liveActivityContext().continuation());
         ((ch.zhaw.prometheus.model.task.TaskPolicy) agent.getCurrentState().ownPolicy()).storage().put(TaskMemory.PHASE, new JsonPrimitive("RUNNING"));
         agent.acknowledge(observation(Event.TYPE_SOCIAL_GROUPING, 3, now.plusMillis(2)), live);
         verifyNoInteractions(gateway);

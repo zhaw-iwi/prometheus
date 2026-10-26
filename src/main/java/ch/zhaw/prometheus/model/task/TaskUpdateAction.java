@@ -77,6 +77,7 @@ public class TaskUpdateAction extends Action {
             String instruction = completed ? "The task is now complete. Briefly acknowledge completion; do not perform another task step."
                     : "Perform exactly this agreed action now: " + rule.action();
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
+                    + inferenceGuidance(runtime)
                     + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields."
                     + CompactBehaviourPlan.instructions(false);
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
@@ -109,6 +110,7 @@ public class TaskUpdateAction extends Action {
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
+                + inferenceGuidance(runtime)
                 + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true)
                 + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "");
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
@@ -200,6 +202,8 @@ public class TaskUpdateAction extends Action {
     }
     /** Additional application constraints, checked before storage or output is changed. */
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
+    /** Opt-in wording ownership; the configured prompt and legacy actions remain unchanged. */
+    protected String inferenceGuidance(PolicyRuntime runtime) { return ""; }
 
     /** Called only after validated state and output are committed to turn-local storage. */
     protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule,

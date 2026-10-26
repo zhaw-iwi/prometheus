@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     args = parser.parse_args()
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')

@@ -25,7 +25,7 @@ class GenericMultimodalTaskUnitTest {
         assertEquals("ACKNOWLEDGE", gesture(say("Hello")));
         assertEquals("NONE", gesture(say("Tell me about the lab")));
         assertEquals("ACKNOWLEDGE", gesture(say("Please show that gesture again")));
-        assertEquals("NONE", gesture(say("Thanks")));
+        assertNull(BehaviourPlan.fromJson(say("Thanks").getPayload()).getNonVerbal());
         when(gateway.infer(any())).thenReturn("{\"operation\":\"ACTIVATE\",\"task\":" + SPEC + ",\"reply\":" + beat + "}");
         assertEquals("ACKNOWLEDGE", gesture(say("Start the agreed task")));
         Instant time = Instant.now().minusSeconds(2); arm(time);
@@ -94,7 +94,8 @@ class GenericMultimodalTaskUnitTest {
         assertTrue(instructions.contains("not active and awaits acceptance"));
         assertFalse(new LiveVoicePolicyAdapter().instructions(agent).toLowerCase().contains("joke"));
     }
-    @Test void liveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
+    @Test void legacyLiveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
+        memory().remove("core.task.liveWording");
         var projection = new ch.zhaw.prometheus.application.live.LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
         var initial = projection.project(agent);
         var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
@@ -227,7 +228,8 @@ class GenericMultimodalTaskUnitTest {
         String prompt = request.getValue().messages().stream().map(PromptMessage::getContent).reduce("", String::concat);
         assertTrue(prompt.contains("obs.hand.sign: observed=")); assertTrue(prompt.contains("\"sign\":\"paper\""));
     }
-    @Test void liveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
+    @Test void legacyLiveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
+        memory().remove("core.task.liveWording");
         var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()); var live = runtime.withExternalSpeech(owner);
         when(gateway.infer(any())).thenReturn(update("ACTIVATE", SPEC, "First joke."));
         agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Start now."), live);
