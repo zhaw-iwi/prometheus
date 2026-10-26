@@ -1,4 +1,4 @@
-# Offline GPT-Live acceptance
+# GPT-Live acceptance
 
 Run `npm ci` to install the locked test dependencies, including the exact Bootstrap
 5.3.3 and Bootstrap Icons 1.11.3 versions used by the cockpit. The acceptance
@@ -8,7 +8,7 @@ remain synthetic, and optional external fonts may use browser fallbacks.
 
 Run from a configured checkout with Java/Maven, Node/Playwright, Python and
 `pymysql` available. MySQL must be on localhost. The runner reads administrative
-credentials from ignored `src/main/resources/application.properties`, or from
+credentials from ignored `src/main/resources/application-test.properties`, or from
 `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
 `GPTLIVE_MYSQL_ADMIN_PASSWORD`. Do not put credentials in command arguments.
 
@@ -48,6 +48,32 @@ each OS/device/noise result separately in the results record. Do not mark unrun
 trials as passing.
 
 ## Core task journeys with canonical and compact responses
+
+Core improvements are tracked in
+[PLAN_COREAGENTIMPROVEMENT.md](../../.agents/PLAN_COREAGENTIMPROVEMENT.md).
+Offline remains the default. To explicitly permit paid OpenAI calls:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core live
+```
+
+This launches the production app against a disposable local schema and uses its
+real policies, scoped HTTP, persistence and Live sideband with synthetic visitor
+audio. The first baseline covers Live Multimodal: SIRA conversation, a person-count
+question grounded in supplied sensing, and a requested paper hand sign persisted
+as a behaviour plan. It checks state retention and semantic captions. It does not
+use a replacement prompt or scripted provider. Later milestones extend the
+journey selection. `OPENAI_API_KEY` takes precedence over the ignored local
+`openai.properties`/`application.properties` API key; their database URL is never
+used for paid-provider configuration. Configure `openai.model` or `OPENAI_MODEL`
+as for an ordinary local app; the runner rejects missing configuration before
+billing. Run its isolation checks with `python -B tests/gptlive/test_acceptance_runner.py`.
+The runner limits the paid child to seven minutes, each request/wait is bounded,
+and failures return nonzero with artifacts under the owned acceptance directory.
+No automatic provider retries are performed by the harness. Cached synthetic
+speech stays under ignored `target/core-provider-audio`. Never commit artifacts
+containing transcripts or credentials. Do not run heavy browser/build jobs during
+paid audio trials. Physical playback and robot execution still need manual tests.
 
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceAgentIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest

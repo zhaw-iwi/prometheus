@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent improvements CA-01 (2026-10-26): baseline and paid real-app acceptance
+  harness complete on feature/gptlive. Passed 45 Java/local-MySQL checks, three
+  runner boundary tests and the Live Multimodal provider journey. No production
+  agent behaviour changed. Eight consecutive milestones and their compatibility
+  gates are tracked in `.agents/PLAN_COREAGENTIMPROVEMENT.md`; actual failures,
+  evidence and remaining physical limits in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
 - Shared Live backport (2026-10-26): telemetry exports retain the backend-provided
   `userSilenceMs`. Existing regression checks now also cover preserving this
   setting through context updates and Generic's configuration-prompt fingerprint.
