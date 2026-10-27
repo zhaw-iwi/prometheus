@@ -86,13 +86,16 @@ class GenericMultimodalTaskUnitTest {
         var captured = ArgumentCaptor.forClass(InferenceRequest.class);
         verify(gateway).infer(captured.capture());
         String instructions = captured.getValue().messages().getFirst().getContent();
-        assertFalse(instructions.toLowerCase().contains("joke"));
+        // The shared conversational tone must not become a preset joke-telling task.
+        assertTrue(instructions.contains(ConversationalHumour.GUIDANCE));
+        assertFalse(instructions.replace(ConversationalHumour.GUIDANCE, "").toLowerCase().contains("joke"));
         assertTrue(instructions.contains("Let the user choose the goal"));
         assertTrue(instructions.contains("Never output schema placeholders"));
         assertTrue(instructions.contains("Default lightweight interactions to one matching sample"));
         assertTrue(instructions.contains("Do not ask for another confirmation when already authorized"));
         assertTrue(instructions.contains("not active and awaits acceptance"));
-        assertFalse(new LiveVoicePolicyAdapter().instructions(agent).toLowerCase().contains("joke"));
+        assertFalse(new LiveVoicePolicyAdapter().instructions(agent)
+                .replace(ConversationalHumour.GUIDANCE, "").toLowerCase().contains("joke"));
     }
     @Test void legacyLiveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
         memory().remove("core.task.liveWording");

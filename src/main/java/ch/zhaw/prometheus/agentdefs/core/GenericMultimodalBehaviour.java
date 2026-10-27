@@ -112,7 +112,9 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     @Override public Agent createAgent() {
         return applyDefinitionMetadata(createTaskAgent("Valerian Core - Generic Multimodal Behaviour",
                 "English core agent for collaboratively configuring persistent tasks and reacting to supported multimodal observations.",
-                VOICE, List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour"), true));
+                // Keep VOICE/CONFIGURE unchanged for recognition of saved task prompts.
+                VOICE + ValerianPersona.context() + ConversationalHumour.GUIDANCE,
+                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour"), true));
     }
 
     /** Reuse the task contract and graph; the owning definition supplies its voice and opt-ins. */

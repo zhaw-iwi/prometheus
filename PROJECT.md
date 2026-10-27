@@ -75,6 +75,24 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Shared core reference/persona follow-up (2026-10-27): the eight conversational
+  core definitions share sourced SIRA/IWI/team facts and a separate fictional
+  Valerian/Laureline backstory with mild grumpiness. SML, Reto and event knowledge
+  are omitted; care personas and Talk to Me remain separate. The packaged reference
+  follows Gala's facts-only rendering pattern, without runtime lookups or schema
+  changes. Unit/contract tests cover all activity contexts, instruction budgets,
+  provenance validation and existing task/game boundaries. Actual character delivery
+  remains a live listening check; evidence is in COREAGENTIMPROVEMENT_RESULTS.
+
+- Conversational humour follow-up (2026-10-27): all fourteen conversational main
+  definitions include the same restrained recurring self-irony guidance as Gala,
+  adapted to their digital-agent identity and existing care/task boundaries.
+  Changes are confined to prompt composition; exact-text output and explicit
+  closings remain unchanged. Seventy-two focused checks pass across corrected
+  runs, including full Live instruction budgets and Generic's legacy prompt
+  fingerprints. No provider or physical tone trial was run. Details are in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
 - Core-agent improvements CA-01–08 accepted (2026-10-26): bounded decorative
   gestures, meaningful sensing, Live task facts, persisted RPS/guessing rounds and
   optional Social Space reception are implemented for new instances. All 658 Java

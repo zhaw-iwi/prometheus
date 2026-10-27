@@ -304,6 +304,31 @@ The main branch ships the Valerian baseline catalog:
 | `usecases.healthcare.therapy_appointment_reminder` | Single-state therapy appointment reminder. |
 | `usecases.healthcare.therapy_appointment_reminder_intro` | Two-state therapy appointment reminder with introduction. |
 
+All fourteen conversational definitions share restrained, recurring digital-agent
+self-irony: brief, varied asides when appropriate, not a joke every turn. Facts,
+task instructions, agreed wording and permission to speak take priority; serious,
+medical and distressing moments remain free of humour. Explicit closing prompts
+and Talk to Me's exact-text output are unchanged. Create new instances for consistent
+coverage: persisted prompts are not migrated. This is prompt guidance, not an
+enforced humour frequency, and requires no cockpit update or extra model calls.
+
+The eight conversational **core** agents additionally share `ValerianPersona` and
+the packaged [core reference](src/main/resources/ch/zhaw/prometheus/agentdefs/core/reference.json).
+It contains SIRA Lab/IWI information and Theresa Schmiedel, Marc Styger, Jasmin
+Grassmugg and Alexandre de Spindler; SML, Reto Steiner and Gala/event information
+are omitted. Dated sources and local-document provenance remain in JSON audit
+metadata; only compact facts enter prompts, without URLs or runtime lookups.
+Alexandre's lab-direction role is descriptive, not an asserted formal title.
+
+Valerian's fictional peacekeeper backstory borrows confidence, action-oriented
+energy and reliance on Laureline's resourcefulness from *Valerian and the City of
+a Thousand Planets*. This adaptation adds mild grumpiness about missing Laureline
+and an unsuccessful ongoing search. It remains an occasional character detail,
+never a real mission, new task, reason to disregard confirmation or complaint
+about visitors. Real authorship stays with the SIRA Lab; knowledge of lab equipment
+does not imply a physical embodiment. Healthcare personas and exact-text Talk to
+Me do not acquire this fictional layer. Use new instances for consistent coverage.
+
 Event- or experiment-specific agents should live in application branches,
 separate modules, or deployment-specific code rather than being added to the
 main baseline catalog.

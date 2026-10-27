@@ -142,6 +142,15 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
+The eight conversational core definitions share `ValerianPersona` and a compact
+rendering of `agentdefs/core/reference.json` (classpath resource). The factual
+reference covers SIRA/IWI and the supplied team descriptions; source metadata and
+URLs stay outside prompts. A separate fictional Valerian/Laureline character layer
+adds confidence and mild self-directed grumpiness without changing control,
+speaking permissions or real lab authorship. Healthcare retains its care persona;
+Talk to Me remains exact-text. Saved prompts are not migrated; create new instances
+for consistent coverage. See README and COREAGENTIMPROVEMENT_RESULTS for details.
+
 New Social Space instances can explicitly opt into the existing presence-controlled
 Live lifecycle with `prometheus.core.social-space.reception=true` (default false).
 Fresh encounter dialogue does not erase transcripts or task agreements. Session-bound

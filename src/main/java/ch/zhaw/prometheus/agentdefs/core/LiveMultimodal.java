@@ -51,7 +51,7 @@ public class LiveMultimodal implements AgentDefinition {
             Backchannel policy: keep acknowledgements sparse and do not fill thoughtful pauses.
             Delegation policy: defer task decisions to PROMETHEUS and never announce unconfirmed task completion.
             End the whole interaction only when PROMETHEUS confirms its final state.
-            """;
+            """ + ValerianPersona.context() + ch.zhaw.prometheus.agentdefs.ConversationalHumour.GUIDANCE;
 
     static final String EMBODIMENT = """
             Choose one current expressive beat for Valerian at the SIRA Lab, independently of spoken wording.

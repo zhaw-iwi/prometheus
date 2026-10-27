@@ -10,6 +10,76 @@ Baseline: main 19d2d51c, clean feature/gptlive fast-forwarded on 2026-10-26.
 Implemented on feature/gptlive for main. No agents deployment-catalog or standalone
 Valerian runtime changes are included in this series.
 
+## Shared core knowledge and Valerian persona — 2026-10-27
+
+The eight conversational core agents now share a packaged
+`agentdefs/core/reference.json`, following Gala's validated sources/sections/facts
+pattern. It carries the supplied IWI/SIRA knowledge and Theresa Schmiedel's dated
+leadership briefing, Marc Styger's lab-code responsibility, Jasmin Grassmugg's
+operator/show-design role and a compact Alexandre de Spindler profile from the
+owner's `markdowns/persons/ALEXANDREDESPINDLER.md`. His direction role is informal,
+not a newly asserted formal Director title. The reference omits SML, Reto Steiner
+and all Gala/event knowledge. Source descriptions, URLs and the local document
+reference are auditable JSON metadata and never rendered into model context.
+These are owner-supplied facts, not newly verified institutional information.
+
+`ValerianPersona` separates real SIRA Lab authorship from the requested fictional
+peacekeeper character, confidence/luck, dependence on Laureline's resourcefulness
+and mild grumpiness about an unsuccessful search for her. It explicitly keeps this
+occasional and self-directed: no repeated lament, visitor blame, new search task,
+real-mission claim or change to task/game/consent/silence rules. Lab equipment facts
+are not embodiment claims. Healthcare keeps its care identity and earlier humour;
+Talk to Me and brief explicit closing prompts remain unchanged.
+
+All active core contexts receive this shared block once, including Live and
+applicable Text/Continuous. Previous duplicate lab exposition was consolidated
+into the resource; Generic's saved-prompt recognition baseline remains unchanged.
+No state transitions, schema, client contracts, sensing cadence or extra model/
+database/network calls are introduced. Saved prompt text is not migrated; use new
+instances for consistent behaviour. The earlier humour work is included.
+
+Verified 74 focused unit/contract checks with zero failures, errors or skips:
+packaged reference coverage and provenance validation, shared context once in every
+active core activity, complete Live instruction budgets, core/healthcare contracts,
+Generic/task/game regressions and Talk to Me verbatim output. Evidence:
+`target/core-persona-reference-tests.log`; the final persona wording was rechecked
+with the reference/catalog tests in `target/core-persona-reference-final.log`.
+`git diff --check` passes. No provider, database or browser trial was run for this
+prompt/resource change; factual answers and the intended tone still need a live
+listening check. The user authorized publication through `feature/gptlive`, `main`
+and the `agents` deployment branch on 2026-10-27; merged deployment verification
+is recorded separately on that branch.
+
+## Restrained humour follow-up — 2026-10-27
+
+Most main personas already allowed warm micro-humour; Generic lacked explicit
+guidance and others did not consistently include Gala's recurring self-irony.
+One small `ConversationalHumour` prompt fragment now reaches all fourteen
+conversational definitions through their existing persona composition. It uses
+the main catalog's digital-agent identity, with short varied asides rather than
+every-turn jokes. Facts, tasks, agreed wording, silence and permission to speak
+take priority. Existing healthcare limits, explicit closing prompts and Talk to
+Me's exact-text utility remain. No state, sensing, gesture, transport or database
+behaviour changes; no extra inference. Persisted prompt text is not rewritten;
+create new instances for consistent coverage.
+
+Generic's saved `VOICE`/`CONFIGURE` recognition baseline and fingerprint remain
+byte-for-byte unchanged; only new definition construction adds the tone fragment.
+The explicit legacy policy upgrader therefore treats those new tone variants as
+custom and preserves them, rather than downgrading their prompts to the baseline.
+
+Verified 72 focused unit/contract checks across corrected runs: catalog coverage
+in every non-final activity for Live and applicable Text/Continuous, complete
+Live instruction budgets, core/healthcare persona contracts, Generic/task/game
+regressions and Talk to Me verbatim output. Initial checks exposed an overbroad
+ban on the word "joke" in Generic's no-preset-task assertion, closing-state
+exceptions, and catalog-test outer-state/whitespace handling. Those tests now
+check the intended boundaries while retaining their prior safeguards. All 66
+other checks passed in `target/core-humour-tests-verified.log`; the six catalog
+checks pass in `target/core-humour-catalog.log`. `git diff --check` passes.
+No paid provider, database or browser trial was needed for this prompt-only edit;
+actual humour frequency and delivery have not been assessed with a live listener.
+
 ## CA-08 — combined acceptance and handoff
 
 Combined review found a mode-switch bug: a completed RPS round retained its Live

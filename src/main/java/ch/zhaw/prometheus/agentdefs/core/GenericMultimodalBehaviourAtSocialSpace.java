@@ -61,7 +61,7 @@ public class GenericMultimodalBehaviourAtSocialSpace implements AgentDefinition 
               Silence is appropriate when a social remark would be intrusive.
             - Ambient remarks never activate, revise, resume or spend a task action. While a task is
               running, waiting or paused, its existing agreement and explicit user requests take priority.
-            """;
+            """ + ValerianPersona.context() + ch.zhaw.prometheus.agentdefs.ConversationalHumour.GUIDANCE;
 
     @Override public String key() { return KEY; }
     @Override public String languageCode() { return LANGUAGE_ENGLISH; }
