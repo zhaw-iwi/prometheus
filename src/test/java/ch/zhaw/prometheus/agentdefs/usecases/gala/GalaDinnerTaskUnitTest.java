@@ -83,7 +83,7 @@ class GalaDinnerTaskUnitTest {
         assertNull(hand("rock", .99, Instant.now()));
         verifyNoInteractions(gateway);
         when(gateway.infer(any())).thenReturn("{\"speech\":\"Mein Humor hat heute keine Ladepause.\"}");
-        Event result = hand("paper", .99, Instant.now());
+        Event result = hand("paper", .99, Instant.now().plusMillis(1)); // Strictly after the response-capture boundary.
         assertNoSpeech(result);
         assertTrue(facts().contains("final allowed action"));
         assertTrue(facts().contains("Sage einen kurzen Roboterwitz"));
@@ -305,7 +305,7 @@ class GalaDinnerTaskUnitTest {
         capture("Die bestehende Vereinbarung bleibt erhalten. Soll ich es noch einmal versuchen?");
         assertTrue(TaskCueStatus.of(agent, Instant.now()).responseCaptured());
         doReturn("{\"speech\":\"Ein letzter Witz.\"}").when(gateway).infer(any());
-        assertNoSpeech(hand("paper", .99, Instant.now()));
+        assertNoSpeech(hand("paper", .99, Instant.now().plusMillis(1)));
         assertHome();
     }
 

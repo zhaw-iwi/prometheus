@@ -17,6 +17,7 @@ import ch.zhaw.prometheus.model.event.EventSelectorSpec;
 import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.PromptValueShape;
+import ch.zhaw.prometheus.model.guessing.*;
 
 final class HealthcareAgentFactory {
     private static final String TAG_VALERIAN_USECASES = "demo.valerian.usecases";
@@ -93,6 +94,8 @@ final class HealthcareAgentFactory {
         }
         State sessionFinal = new Final(finalStateName, prompts.finalPrompt(), finalStarterPrompt);
         sessionFinal.setEventSelectorSpec(EventSelectorSpec.any());
+        boolean guessing = storage.containsKey(GuessingMemory.CONFIG);
+        if (guessing) sessionFinal.setPolicy(new GuessingPolicy(storage, outerStatePrompt + "\n" + prompts.finalPrompt(), finalStarterPrompt, nonVerbalPlanPrompt));
 
         PromptPolicy interactionPolicy = stateStorageKeysFrom == null || stateStorageKeysFrom.isEmpty()
                 ? new PromptPolicy(
@@ -108,18 +111,13 @@ final class HealthcareAgentFactory {
                         PromptValueShape.OBJECT);
         interactionPolicy.setNonVerbalPlanPrompt(nonVerbalPlanPrompt);
         interactionPolicy.setNonVerbalGesturePrompt(PromptPolicy.DEFAULT_NONVERBAL_GESTURE_PROMPT);
+        if (guessing) interactionPolicy = new GuessingPolicy(storage, outerStatePrompt + "\n" + prompts.state(), prompts.starter(), nonVerbalPlanPrompt);
 
         State interactionState = new State(stateName, interactionPolicy, List.of());
 
         Transition innerToFinal = new Transition(
-                List.of(
-                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                        new StaticDecision(prompts.toFinal())),
-                List.of(
-                        new StaticExtractionAction(
-                                prompts.outcomeExtraction(),
-                                storage,
-                                "outcome")),
+                closingDecisions(storage, prompts.toFinal(), guessing),
+                closingActions(storage, prompts.outcomeExtraction(), guessing),
                 sessionFinal);
         Transition reactToSocialContextChange = new Transition(
                 List.of(
@@ -129,16 +127,12 @@ final class HealthcareAgentFactory {
                 interactionState);
         interactionState.addTransition(innerToFinal);
         interactionState.addTransition(reactToSocialContextChange);
+        if (guessing) interactionState.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
+                new GuessingAction(storage, GuessingAction.Mode.UPDATE), interactionState));
 
         Transition outerToFinal = new Transition(
-                List.of(
-                        new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
-                        new StaticDecision(outerToFinalPrompt)),
-                List.of(
-                        new StaticExtractionAction(
-                                prompts.outcomeExtraction(),
-                                storage,
-                                "outcome")),
+                closingDecisions(storage, outerToFinalPrompt, guessing),
+                closingActions(storage, prompts.outcomeExtraction(), guessing),
                 sessionFinal);
 
         State outerState = new OuterState(
@@ -169,6 +163,17 @@ final class HealthcareAgentFactory {
                         AgentInteractionProfile.MODALITY_NONVERBAL_MOTION,
                         AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN),
                 List.of(TAG_VALERIAN_USECASES, TAG_VALERIAN_HEALTHCARE, TAG_VALERIAN_CARE_CENTER));
+    }
+    private static List<ch.zhaw.prometheus.model.Action> closingActions(Storage storage, String prompt, boolean guessing) {
+        var actions = new java.util.ArrayList<ch.zhaw.prometheus.model.Action>();
+        if (guessing) actions.add(new GuessingAction(storage, GuessingAction.Mode.CLOSE));
+        actions.add(new StaticExtractionAction(prompt, storage, "outcome")); return actions;
+    }
+    private static List<ch.zhaw.prometheus.model.Decision> closingDecisions(Storage storage, String prompt, boolean guessing) {
+        var decisions = new java.util.ArrayList<ch.zhaw.prometheus.model.Decision>();
+        decisions.add(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE));
+        if (guessing) { decisions.add(new GuessingExitDecision(storage)); prompt += "\nGiving up and asking for the answer ends the round, not the conversation: return false for that."; }
+        decisions.add(new StaticDecision(prompt)); return decisions;
     }
 
     static AgentInteractionProfile healthcareGeneralProfile() {

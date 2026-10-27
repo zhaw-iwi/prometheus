@@ -188,6 +188,7 @@ public class PromptPolicy extends Policy {
         return resolvePrompt();
     }
     public String promptTemplate() { return promptTemplate; }
+    public String starterPrompt() { return starterPrompt; }
     public void setPromptTemplate(String template) { this.promptTemplate = template; }
 
     private BehaviourPlan producePlan(List<PromptMessage> messages, PromptMessageAssembler assembler,

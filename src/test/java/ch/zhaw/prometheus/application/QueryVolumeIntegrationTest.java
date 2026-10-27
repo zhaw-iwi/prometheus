@@ -55,6 +55,7 @@ class QueryVolumeIntegrationTest {
     @Autowired AccessCodeRepository codes;
     @Autowired AccessCodeAgentRepository links;
     @Autowired LiveAgentContextService contexts;
+    @Autowired ExternalSpeechRecordingService recording;
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired ScopedDemoService demo;
     @Autowired LiveTranscriptIngressService ingress;
@@ -457,6 +458,11 @@ class QueryVolumeIntegrationTest {
             for (int round = 0; round < 2; round++) {
                 demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_USER_UTTERANCE, "Schere Stein Papier bitte"),
                         ch.zhaw.prometheus.model.policy.OutputProfile.FULL_PLAN);
+                var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
+                assertTrue(recording.record(f.id(), owner, "countdown-" + round, "Zeig mir deine Hand. Eins, zwei, drei.",
+                        List.of(), ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
+                var cue = contexts.snapshot(f.code(), f.id()).orElseThrow().activity().playbackCue();
+                assertTrue(contexts.playbackSettled(f.code(), f.id(), owner, cue.id(), cue.segmentId()));
                 long before = questions();
                 String capture = latestHandCapture(stream.getResponse().getContentAsString());
                 assertEquals(0, questions() - before - 1);

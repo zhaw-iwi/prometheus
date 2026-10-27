@@ -51,12 +51,17 @@ class SocialSpaceLiveJourneySmokeIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void arrivalConversationProposalActivationCueStopAndDeparture(boolean compact) {
+    void legacyArrivalConversationProposalActivationCueStopAndDeparture(boolean compact) {
         code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(GenericMultimodalBehaviourAtSocialSpace.KEY));
         id = demo.createAgent(code, GenericMultimodalBehaviourAtSocialSpace.KEY, "ROBOT").getID();
         assertEquals("Valerian", loaded().getPersonaName());
+        var legacy = loaded(); ((ch.zhaw.prometheus.model.task.TaskPolicy) legacy.getCurrentState().ownPolicy()).storage()
+                .remove(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED);
+        ((TaskPolicy) legacy.getCurrentState().ownPolicy()).storage().remove("core.task.liveWording");
+        agents.saveAndFlush(legacy);
+        assertTrue(new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(loaded()).contains("Your name is Valerian"));
         verifyNoInteractions(language);
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("social_" + id, "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {

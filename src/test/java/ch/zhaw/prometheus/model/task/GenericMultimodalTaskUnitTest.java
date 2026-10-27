@@ -18,6 +18,26 @@ import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.*;
 
 class GenericMultimodalTaskUnitTest {
+    @Test void cadenceExemptsValidatedActionsAndCurrentRequestsButNotOrdinaryReplies() {
+        String beat = "{\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}";
+        String keep = "{\"operation\":\"KEEP\",\"task\":null,\"reply\":" + beat + "}";
+        when(gateway.infer(any())).thenReturn(keep);
+        assertEquals("ACKNOWLEDGE", gesture(say("Hello")));
+        assertEquals("NONE", gesture(say("Tell me about the lab")));
+        assertEquals("ACKNOWLEDGE", gesture(say("Please show that gesture again")));
+        assertNull(BehaviourPlan.fromJson(say("Thanks").getPayload()).getNonVerbal());
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"ACTIVATE\",\"task\":" + SPEC + ",\"reply\":" + beat + "}");
+        assertEquals("ACKNOWLEDGE", gesture(say("Start the agreed task")));
+        Instant time = Instant.now().minusSeconds(2); arm(time);
+        when(gateway.infer(any())).thenReturn(beat);
+        assertNull(face(time.plusMillis(10), -0.8, 1, runtime));
+        assertEquals("ACKNOWLEDGE", gesture(face(time.plusMillis(20), -0.8, 1, runtime)));
+        assertFalse(memory().containsKey(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.REQUIRED));
+        agent.reset(); assertFalse(memory().containsKey(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.HISTORY));
+        assertTrue(ch.zhaw.prometheus.model.behaviour.DecorativeGestures.enabled(memory()));
+    }
+    private static String gesture(Event event) { return BehaviourPlan.fromJson(event.getPayload()).getNonVerbal().getAsJsonObject().get("gesture").getAsString(); }
+
     @Test void applicationContractExtensionPreservesTheExistingGenericPromptFingerprint() throws Exception {
         // Existing saved-policy recognition depends on the exact built-in prompt, including whitespace.
         var bytes = GenericMultimodalBehaviour.builtInPrompts().get("configure")
@@ -80,15 +100,19 @@ class GenericMultimodalTaskUnitTest {
         var captured = ArgumentCaptor.forClass(InferenceRequest.class);
         verify(gateway).infer(captured.capture());
         String instructions = captured.getValue().messages().getFirst().getContent();
-        assertFalse(instructions.toLowerCase().contains("joke"));
+        // The shared conversational tone must not become a preset joke-telling task.
+        assertTrue(instructions.contains(ConversationalHumour.GUIDANCE));
+        assertFalse(instructions.replace(ConversationalHumour.GUIDANCE, "").toLowerCase().contains("joke"));
         assertTrue(instructions.contains("Let the user choose the goal"));
         assertTrue(instructions.contains("Never output schema placeholders"));
         assertTrue(instructions.contains("Default lightweight interactions to one matching sample"));
         assertTrue(instructions.contains("Do not ask for another confirmation when already authorized"));
         assertTrue(instructions.contains("not active and awaits acceptance"));
-        assertFalse(new LiveVoicePolicyAdapter().instructions(agent).toLowerCase().contains("joke"));
+        assertFalse(new LiveVoicePolicyAdapter().instructions(agent)
+                .replace(ConversationalHumour.GUIDANCE, "").toLowerCase().contains("joke"));
     }
-    @Test void liveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
+    @Test void legacyLiveActivationSendsCompactStateAndAnnouncementWithoutRepeatingStableInstructions() {
+        memory().remove("core.task.liveWording");
         var projection = new ch.zhaw.prometheus.application.live.LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter());
         var initial = projection.project(agent);
         var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
@@ -221,7 +245,8 @@ class GenericMultimodalTaskUnitTest {
         String prompt = request.getValue().messages().stream().map(PromptMessage::getContent).reduce("", String::concat);
         assertTrue(prompt.contains("obs.hand.sign: observed=")); assertTrue(prompt.contains("\"sign\":\"paper\""));
     }
-    @Test void liveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
+    @Test void legacyLiveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
+        memory().remove("core.task.liveWording");
         var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()); var live = runtime.withExternalSpeech(owner);
         when(gateway.infer(any())).thenReturn(update("ACTIVATE", SPEC, "First joke."));
         agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Start now."), live);

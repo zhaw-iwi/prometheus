@@ -122,7 +122,7 @@ public class SocialContextSensitivity implements AgentDefinition {
                 ValerianCoreAgentFactory.socialContextProfile(),
                 List.of(
                         Event.TYPE_SOCIAL_CONTEXT,
-                        Event.TYPE_SOCIAL_SITUATION_CHANGE));
+                        Event.TYPE_SOCIAL_SITUATION_CHANGE), true);
     }
 
     @Override

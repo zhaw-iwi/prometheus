@@ -1,0 +1,76 @@
+{
+  "recordedOn": "2026-10-27",
+  "sources": [
+    {
+      "id": "iwi-briefing",
+      "description": "IWI and Theresa Schmiedel briefing supplied by the project owner on 2026-10-20 and adopted from the Gala reference on 2026-10-27. Leadership is a dated briefing, not independently reverified.",
+      "urls": ["https://www.zhaw.ch/de/ueber-uns/person/shhd"]
+    },
+    {
+      "id": "sira-briefing",
+      "description": "SIRA Lab description supplied by the project owner on 2026-10-20; duplicate interaction-axes wording consolidated. PROMETHEUS background retained from the existing core persona.",
+      "urls": []
+    },
+    {
+      "id": "team-briefing",
+      "description": "Project owner's 2026-10-27 descriptions of Marc Styger, Jasmin Grassmugg and Alexandre de Spindler. Alexandre's direction role is informal, not a verified formal Director title. Marc's responsibility refers to the lab's code, not Unitree's manufacturer software.",
+      "urls": []
+    },
+    {
+      "id": "alexandre-background",
+      "description": "Owner-supplied ALEXANDREDESPINDLER.md, read 2026-10-27: research profile and short bio. A proposal-context document, not a verified CV; formal titles, individual project roles, budgets and publication status were not newly verified.",
+      "document": "markdowns/persons/ALEXANDREDESPINDLER.md",
+      "urls": []
+    }
+  ],
+  "sections": [
+    {
+      "id": "iwi",
+      "title": "ZHAW Institute of Information Systems (IWI)",
+      "sourceIds": ["iwi-briefing"],
+      "facts": [
+        "Combines business administration and computer science to integrate AI and digital technologies responsibly into organisations with clear added value.",
+        "Expertise includes data science, data-driven business models, process science and automation, information-system design, human-centred cybersecurity, IT management, digital strategies, virtual reality and social robotics. Applied research, continuing education and knowledge transfer connect academia and industry."
+      ]
+    },
+    {
+      "id": "sira",
+      "title": "Socially Intelligent and Responsible Agents (SIRA) Lab",
+      "sourceIds": ["sira-briefing"],
+      "facts": [
+        "Part of ZHAW's IWI. Studies how digital agents perceive social signals, structure behaviour transparently and create responsible value for individuals and groups through human-AI collaboration.",
+        "Investigates embodiment, perception/behaviour, social topology, temporal structure, participating actors and depth of social modelling; combinations are experimentally evaluated for social adaptation, responsibility and usefulness.",
+        "The lab develops PROMETHEUS for rapid prototyping and experimental validation of multimodal digital agents, including avatars and physical embodiments, using explicit interaction control and structured behaviour plans."
+      ]
+    },
+    {
+      "id": "theresa",
+      "title": "Prof. Dr. Theresa Schmiedel",
+      "sourceIds": ["iwi-briefing"],
+      "facts": ["Head of ZHAW's Institute of Information Systems (IWI), according to the 20 October 2026 briefing."]
+    },
+    {
+      "id": "marc",
+      "title": "Marc Styger",
+      "sourceIds": ["team-briefing"],
+      "facts": ["The SIRA Lab computer scientist responsible for all code the lab develops for its Unitree G1 robot."]
+    },
+    {
+      "id": "jasmin",
+      "title": "Jasmin Grassmugg",
+      "sourceIds": ["team-briefing"],
+      "facts": ["The SIRA Lab Robot Operator & Robot Show Designer."]
+    },
+    {
+      "id": "alexandre",
+      "title": "Alexandre de Spindler",
+      "sourceIds": ["team-briefing", "alexandre-background"],
+      "facts": [
+        "Helps direct the SIRA Lab; this describes his role, not a confirmed formal Director title.",
+        "An applied researcher and interactive-system designer with over two decades of experience in information systems, human-computer interaction, human-AI collaboration and applied innovation.",
+        "His work includes PROMISE (stateful prompt orchestration), Social Behaviour Regulation (socially adaptive tone, timing and participation) and PROMETHEUS (structured multimodal interaction). Methods include participatory design, prototyping and real-world evaluation with implementation partners.",
+        "Since 2010 he has led or co-led applied projects supported by Innosuisse, DIZH, the EU AAL programme and other Swiss funds, including healthcare, education, teamwork and digital services."
+      ]
+    }
+  ]
+}

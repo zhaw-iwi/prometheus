@@ -159,7 +159,36 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
+The eight conversational core definitions share `ValerianPersona` and a compact
+rendering of `agentdefs/core/reference.json` (classpath resource). The factual
+reference covers SIRA/IWI and the supplied team descriptions; source metadata and
+URLs stay outside prompts. A separate fictional Valerian/Laureline character layer
+adds confidence and mild self-directed grumpiness without changing control,
+speaking permissions or real lab authorship. Healthcare retains its care persona;
+Talk to Me remains exact-text. Saved prompts are not migrated; create new instances
+for consistent coverage. See README and COREAGENTIMPROVEMENT_RESULTS for details.
+
+New Social Space instances can explicitly opt into the existing presence-controlled
+Live lifecycle with `prometheus.core.social-space.reception=true` (default false).
+Fresh encounter dialogue does not erase transcripts or task agreements. Session-bound
+tasks pause; explicitly autonomous tasks retain authority only after confirmed prior
+responses. The existing client supplies departure grace; Stop/revocation remain
+immediate. Generic and saved profiles keep their lifecycle.
+
+Core-agent improvements CA-01–08 have completed combined local/provider acceptance.
+The evidence record `.agents/COREAGENTIMPROVEMENT_RESULTS.md` includes failed trials
+and remaining prompt-only speech limitations. `tests/gptlive/CORE_AGENTS.md` is the
+operator and integration handoff; physical audio/camera/robot behavior remains a
+manual check. New instances are required; saved graphs are not rewritten.
+
 ## Capability Awareness
+
+New core RPS instances persist round identity and validate fresh, confident,
+round-specific observations before deterministic results. Optional Live countdown
+uses the shared playback-cue contract with bounded recovery; result/replay states
+remain. Existing saved graphs and Text/Continuous timing retain their semantics.
+README documents capture, schema and configuration; core-agent results record
+local/provider evidence and physical limitations.
 
 Definitions opt in through `AgentDefinition.capabilityAwareness()` (default false).
 Core definitions and the event-specific Gala Dinner Reception opt in explicitly;
@@ -477,27 +506,30 @@ Gala voice guidance suppresses question echoes and pending-work acknowledgments.
 The third trial's durable input receipts themselves omit some final words; this
 policy follow-up does not establish a general transcription or acoustic fix.
 
-The core Social Space variant reuses the Generic task graph and full
-task contract with brief English conversation and a fixed Valerian identity.
-Outside active/waiting/paused tasks, a local guard compares consecutive fresh
-grouping human counts before requesting one validated ambient reply. Stable
-visibility, movement/regrouping and derived-event duplicates stay silent. Task
-agreements retain their original sensor semantics. Catalog key, setup, nullable
-persona-name schema addition and sensing limits are documented in README.
+The core Social Space variant reuses the Generic task graph with brief English
+Valerian conversation. New instances require stable visible-human-count changes,
+conversation quiet and a cooldown outside active/waiting/paused tasks. Face/social
+demonstration agents use shorter thresholds and respect explicit corrections.
+Live composes expiring sensory occasions; refreshed readings and derived-event
+duplicates alone stay quiet. Saved Social Space instances retain their original
+fresh-count guard; task agreements retain their sensor semantics. The deployment variant retains its embodiment selection and fixed Valerian name. Setup and limits are in README.
 
 `GenericMultimodalBehaviour` is a separate core definition with the existing
 Multimodal Behaviour observation/output set. Its explicit task phases, transitions
 and blocking actions negotiate and persist bounded reaction rules in ordinary
 Storage. User-turn inference produces a validated task operation plus a canonical
 behaviour plan; sensor guards run locally and call inference only for a qualifying
-reaction. Reset clears task configuration. Task and ambient model replies use the
-shared compact behaviour codec,
-expanded before the existing task validation; canonical replies remain accepted.
-Encoding guidance is appended at inference time, preserving saved prompts,
-task rules, state control and the published plan contract. Paired canonical/compact
-Live journeys for Generic, Social Space and Gala are documented in README.
-Live explicitly supports the task state/policy and speaks committed
-announcements; current perception is also supplied directly to task-turn inference.
+reaction. Reset clears task configuration. Task and ambient replies accept compact
+provider JSON and expand it before unchanged canonical task validation. Encoding
+guidance is appended at inference time, preserving saved prompts and state control.
+Canonical/compact Live journeys cover both core variants; integration evidence is
+in `.agents/NEEDFORSPEED_RESULTS.md`. New Generic/Social Space instances opt into
+CoreTaskPolicy facts and Live-owned wording; legacy instances keep committed
+announcements. Spoken task actions use bounded response confirmation, silent
+gestures do not wait for captions, and short assent needs a current completed
+proposal invitation. Text/Continuous retain backend speech. Current perception is
+also supplied directly to task-turn inference. CA evidence and limits are in
+`.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
 See README and `.agents/GENERIC_MULTIMODAL_RESULTS.md` for bounds, schema additions,
 verification and pending physical/provider trials. This work starts on
 `feature/gptlive`; user-authorized integration into `main`, then `agents` and
@@ -666,6 +698,12 @@ unit tests for RPS and social derivation; and
 `AgentRegulationIntegrationUnitTest`, `RegulationSystemPersistenceUnitTest`, and
 `ZurichRegulationSystemUnitTest` for regulation work. Always inspect neighboring
 tests for the actual task rather than relying only on this list.
+
+New core role-clarification and healthcare user-guesses definitions use
+`model/guessing` for persisted roles, curated secret cards and explicit
+reveal/solved/new-round control. The human's unspoken secret is never stored.
+Live phrases answers from these facts; Text/Continuous retain backend plans.
+Saved graphs are not rewritten. See the core-agent plan/results for acceptance.
 
 ## Do Not
 

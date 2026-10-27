@@ -39,6 +39,7 @@ public class EventHistory {
                 Event copy = new Event(current.getType(), current.getActor(), current.getKind(), current.getPayload());
                 copy.setStatePath(current.getStatePath());
                 copy.speechProvenance(current.speechProvenance());
+                copy.recordedAt(current.getCreatedDate());
                 copy.setEventHistory(selected);
                 selected.eventList.add(copy);
             }

@@ -31,7 +31,7 @@ class SocialSpaceAgentIntegrationTest {
     @Autowired AgentApplicationService application;
     @MockitoBean LanguageModelGateway language;
 
-    @Test void scopedRegistrationReloadPresenceTaskAndResetRetainTheSocialSpaceDefinition() {
+    @Test void legacyScopedRegistrationReloadPresenceTaskAndResetRetainTheSocialSpaceDefinition() {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         String key = GenericMultimodalBehaviourAtSocialSpace.KEY;
@@ -46,6 +46,12 @@ class SocialSpaceAgentIntegrationTest {
         assertEquals(AgentEmbodiment.ROBOT, reloaded.getEmbodiment());
         assertEquals("Valerian", application.getAgentInfo(id).orElseThrow().getPersonaName());
         assertEquals("Valerian", demo.getAgentInfo(code, id).orElseThrow().getPersonaName());
+        // Saved pre-CA-03 instances have no opt-in; keep their arrival semantics covered.
+        ((ch.zhaw.prometheus.model.task.TaskPolicy) reloaded.getCurrentState().ownPolicy()).storage()
+                .remove(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED);
+        agents.saveAndFlush(reloaded);
+        assertEquals(created.getName(), application.getAgentInfo(id).orElseThrow().getName());
+        assertEquals(created.getName(), demo.getAgentInfo(code, id).orElseThrow().getName());
         assertTrue(new LiveVoicePolicyAdapter().instructions(reloaded).contains("Your name is Valerian"));
         verifyNoInteractions(language);
 

@@ -390,8 +390,10 @@ class ScopedDemoControllerIntegrationTest {
         assertNotNull(responsePlan);
         assertNotNull(responsePlan.getSpeech());
         assertNotNull(responsePlan.getNonVerbal());
-        // Core countdown deliberately withholds the chosen hand sign until user input.
-        assertNull(responsePlan.getMotion());
+        // Text/Continuous retains its explicit phrase-end hand motion; Live waits for playback.
+        assertNotNull(responsePlan.getMotion());
+        assertEquals("phrase_end", responsePlan.getMotion().getAsJsonObject()
+                .getAsJsonObject("timing").get("revealAt").getAsString());
         assertNotNull(responsePlan.getDisplay());
 
         List<Event> history = this.agents.findById(agentId).orElseThrow().getEventHistory().toList();
@@ -408,7 +410,7 @@ class ScopedDemoControllerIntegrationTest {
         BehaviourPlan persistedPlan = BehaviourPlan.fromJson(generatedPlans.get(0).getPayload());
         assertNotNull(persistedPlan.getSpeech());
         assertNotNull(persistedPlan.getNonVerbal());
-        assertNull(persistedPlan.getMotion());
+        assertEquals(responsePlan.getMotion(), persistedPlan.getMotion());
         assertNotNull(persistedPlan.getDisplay());
 
         Event persistedEvent = generatedPlans.get(0);

@@ -9,6 +9,8 @@ import ch.zhaw.prometheus.model.Agent;
 
 @Component
 public class RockScissorPaper implements AgentDefinition {
+    @org.springframework.beans.factory.annotation.Value("${prometheus.core.rps.live-countdown:true}")
+    private boolean liveCountdown = true;
     @Override
     public boolean capabilityAwareness() {
         return true;
@@ -45,7 +47,9 @@ public class RockScissorPaper implements AgentDefinition {
             Flow:
             - Explain the game very briefly.
             - Ask the person to say "ready" when their hand is prepared.
-            - When ready, the deterministic reveal state shows Valerian's sign.
+            - When ready, the backend selects a sign. In Live, wait for confirmed preparation
+              before counting one, two, three; the hand gesture and capture open afterward.
+              If Live countdown coordination is disabled, the sign is shown immediately.
             - Then wait for the detected or manual obs.hand.sign event.
             - After the result, ask whether to play again.
             - The interaction ends only if the person clearly says that Valerian should stop,
@@ -130,6 +134,9 @@ public class RockScissorPaper implements AgentDefinition {
     public static final String KEY = "core.rock_scissor_paper";
 
     public static Agent createAgentDefinition() {
+        return createAgentDefinition(true);
+    }
+    public static Agent createAgentDefinition(boolean liveCountdown) {
         return ValerianCoreAgentFactory.rockScissorPaper(
                 new ValerianCoreAgentFactory.RpsPrompts(
                         PROMPT_START,
@@ -139,7 +146,7 @@ public class RockScissorPaper implements AgentDefinition {
                         PROMPT_TO_FINAL,
                         PROMPT_FINAL),
                 "Valerian Core - Rock, Scissor, Paper",
-                "English Core RPS agent with deterministic hand-sign motion, display state, and humorous reactions.");
+                "English Core RPS agent with deterministic hand-sign motion, display state, and humorous reactions.", liveCountdown);
     }
 
     @Override
@@ -154,7 +161,7 @@ public class RockScissorPaper implements AgentDefinition {
 
     @Override
     public Agent createAgent() {
-        return this.applyDefinitionMetadata(createAgentDefinition());
+        return this.applyDefinitionMetadata(createAgentDefinition(liveCountdown));
     }
 
     @Override

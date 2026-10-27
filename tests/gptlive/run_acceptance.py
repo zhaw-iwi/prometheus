@@ -1,4 +1,4 @@
-"""Isolated acceptance. Offline by default; --paid-gala explicitly permits OpenAI charges.
+"""Isolated acceptance. Offline unless --paid-core or --paid-gala is selected. Requires local MySQL administration.
 
 Always provisions a random schema and restricted user. Never targets the configured
 application schema. Test provider endpoints exist solely on the test classpath.
@@ -27,15 +27,34 @@ def main():
     parser.add_argument('--paid-gala', action='store_true', help='Opt in to real OpenAI audio/control journeys on the disposable local database')
     parser.add_argument('--connection-only', action='store_true', help='With --paid-gala, probe greeting/question/context update without games')
     parser.add_argument('--game', choices=['all', 'RPS', 'GUESS'], default='all', help='Paid journey selection; each game includes two rounds/replay')
-    parser.add_argument('--database-properties', default='src/main/resources/application.properties',
+    parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     args = parser.parse_args()
     if args.paid_gala and args.browser:
         parser.error('--paid-gala and mocked --browser acceptance are separate runs')
     if args.connection_only and not args.paid_gala:
         parser.error('--connection-only requires --paid-gala')
+    if args.paid_core and args.browser:
+        parser.error('--paid-core and mocked --browser acceptance must run separately')
+    if args.paid_gala and args.paid_core:
+        parser.error('--paid-gala and --paid-core must run separately')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
+    provider_props = {}
+    if args.paid_core or args.paid_gala:
+        # Preflight before provisioning or billing: a worktree may lack ignored local config.
+        for name in ('openai.properties', 'application.properties'):
+            config = root / 'src/main/resources' / name
+            if config.exists():
+                for line in config.read_text(encoding='utf-8-sig').splitlines():
+                    if '=' in line and not line.lstrip().startswith('#'):
+                        key, value = line.split('=', 1)
+                        provider_props[key.strip()] = value.strip()
+        key = os.environ.get('OPENAI_API_KEY') or provider_props.get('openai.key')
+        model = os.environ.get('OPENAI_MODEL') or provider_props.get('openai.model', '')
+        if not key or key.startswith('${') or args.paid_core and not re.fullmatch(r'[a-zA-Z0-9._:-]{1,128}', model):
+            raise SystemExit('Paid core acceptance requires an API key and configured openai.model (or OPENAI_MODEL).' if args.paid_core else 'Paid Gala acceptance requires an API key.')
     props = {}
     local = root / args.database_properties
     if local.exists():
@@ -70,10 +89,24 @@ def main():
 
     def run(command, name):
         with (artifacts / (name + '.log')).open('w', encoding='utf-8') as log:
-            result = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
-        print(f'{name}: exit {result.returncode}', flush=True)
-        if result.returncode:
-            raise SystemExit(result.returncode)
+            child = subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT,
+                                     start_new_session=os.name != 'nt')
+            try:
+                code = child.wait(timeout=420 if name == 'paid-journey' else 1800)
+            except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                # Stop the owned browser/JVM descendants as well as their launcher.
+                if os.name == 'nt':
+                    subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
+                else:
+                    import signal
+                    os.killpg(child.pid, signal.SIGKILL)
+                child.wait(timeout=15)
+                raise
+        print(f'{name}: exit {code}', flush=True)
+        if code:
+            raise SystemExit(code)
 
     def stop():
         nonlocal app
@@ -105,17 +138,10 @@ def main():
             # Every cached Spring context owns a pool. Bound aggregate local connections
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
-        if args.paid_gala:
-            # Read only the API credential; the production database configuration is never used.
-            provider_props = {}
-            for line in (root / 'src/main/resources/application.properties').read_text(encoding='utf-8-sig').splitlines():
-                if '=' in line and not line.lstrip().startswith('#'):
-                    key, value = line.split('=', 1)
-                    provider_props[key.strip()] = value.strip()
+        if args.paid_core or args.paid_gala:
             key = os.environ.get('OPENAI_API_KEY') or provider_props.get('openai.key')
-            if not key or key.startswith('${'):
-                raise RuntimeError('Set OPENAI_API_KEY for the explicitly paid journey.')
             env.update(OPENAI_KEY=key.removeprefix('Bearer '), OPENAI_API_KEY=key.removeprefix('Bearer '),
+                **({"OPENAI_MODEL": model} if args.paid_core else {}),
                 OPENAI_OPENAIVSAZUREOPENAI='openai', OPENAI_URL='https://api.openai.com/v1/chat/completions',
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
@@ -141,8 +167,12 @@ def main():
                         time.sleep(0.5)
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
-                run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
-                    '--game=' + args.game, *(['--connection-only'] if args.connection_only else [])], 'paid-journey')
+                if args.paid_gala:
+                    run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
+                        '--game=' + args.game, *(['--connection-only'] if args.connection_only else [])], 'paid-journey')
+                else:
+                    run(['node', 'tests/gptlive/core_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
+                        '--agent=' + args.paid_core], 'paid-journey')
                 stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
@@ -161,7 +191,8 @@ def main():
                 env.update(SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(port), PROMETHEUS_BASE_URL=f'http://127.0.0.1:{port}',
                     PROMETHEUS_LIVE_ENABLED=enabled, PROMETHEUS_LIVE_EXPECT_ENABLED=enabled)
                 with (artifacts / ('app-' + enabled + '.log')).open('w', encoding='utf-8') as log:
-                    app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.gptlive.LiveSmokeApplication'], env=env,
+                    app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.gptlive.LiveSmokeApplication',
+                        '--prometheus.core.social-space.reception=true'], env=env,
                         stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
                     for attempt in range(180):
                         if app.poll() is not None:

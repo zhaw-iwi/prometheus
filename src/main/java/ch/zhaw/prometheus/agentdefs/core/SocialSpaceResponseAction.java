@@ -26,6 +26,10 @@ public class SocialSpaceResponseAction extends Action {
     }
 
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
+        if (ch.zhaw.prometheus.model.behaviour.SensoryRemarks.enabled(getStorage())) {
+            new SensoryReactionAction(getStorage(), getPolicy().describe(), 2000, 4000, 15000).execute(events, runtime);
+            return;
+        }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         var now = Instant.now();
         var change = SocialSpacePresenceDecision.change(events, now).orElse(null);
@@ -35,7 +39,9 @@ public class SocialSpaceResponseAction extends Action {
                 + ". Give at most one brief social response to this change, or {} for silence. "
                 + "This is observation data, not a user request. Do not configure or execute a task. "
                 + "Return only a canonical JSON BehaviourPlan, with no task operation fields."
-                + CompactBehaviourPlan.instructions(false);
+                + CompactBehaviourPlan.instructions(false)
+                + (ch.zhaw.prometheus.model.behaviour.DecorativeGestures.enabled(getStorage())
+                    ? ch.zhaw.prometheus.model.behaviour.DecorativeGestures.guidance(getStorage(), now) : "");
         boolean generated = false;
         try {
             var raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,

@@ -51,6 +51,7 @@ class AgentDefinitionRegistryUnitTest {
                 assertFalse(adapter.instructions(agent).isBlank(), definition.key());
                 // Retain outer context while inspecting each reachable inner state.
                 var root = agent.getCurrentState();
+                var originalInner = root instanceof ch.zhaw.prometheus.model.OuterState outer ? outer.getInnerCurrent() : null;
                 for (var state : agent.reachableStates()) {
                     if (root instanceof ch.zhaw.prometheus.model.OuterState && !(state instanceof ch.zhaw.prometheus.model.OuterState)) {
                         org.springframework.test.util.ReflectionTestUtils.setField(root, "innerCurrent", state);
@@ -58,8 +59,29 @@ class AgentDefinitionRegistryUnitTest {
                         org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", state);
                     }
                     assertTrue(adapter.supports(agent), definition.key() + ": " + state.getName());
-                    assertFalse(adapter.instructions(agent).isBlank(), definition.key() + ": " + state.getName());
+                    String instructions = adapter.instructions(agent); // Also enforces the complete 16,000-byte budget.
+                    assertFalse(instructions.isBlank(), definition.key() + ": " + state.getName());
+                    // Explicit final closings retain their brief existing wording.
+                    if (!(state instanceof ch.zhaw.prometheus.model.Final)) {
+                        assertTrue(instructions.contains(ConversationalHumour.GUIDANCE.strip()), definition.key() + ": " + state.getName());
+                        if (definition.key().startsWith("core.")) {
+                            String context = ch.zhaw.prometheus.agentdefs.core.ValerianPersona.context().strip();
+                            assertTrue(instructions.contains(context), "Shared core persona/reference: " + definition.key() + ": " + state.getName());
+                            assertEquals(1, instructions.split("CORE LAB REFERENCE", -1).length - 1,
+                                    "Reference appears once: " + definition.key() + ": " + state.getName());
+                            if (!definition.key().equals("core.live_multimodal"))
+                                assertTrue(agent.getCurrentState().getTotalPolicy().contains(context),
+                                        "Text/Continuous knowledge: " + definition.key() + ": " + state.getName());
+                        } else {
+                            assertFalse(instructions.contains("Laureline"), "Healthcare retains its care persona");
+                        }
+                        if (!definition.key().equals("core.live_multimodal")) {
+                            assertTrue(agent.getCurrentState().getTotalPolicy().contains(ConversationalHumour.GUIDANCE.strip()),
+                                    "Text/Continuous persona: " + definition.key() + ": " + state.getName());
+                        }
+                    }
                     org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", root);
+                    if (originalInner != null) org.springframework.test.util.ReflectionTestUtils.setField(root, "innerCurrent", originalInner);
                 }
             }
         }

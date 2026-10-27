@@ -51,20 +51,10 @@ public final class ValerianCorePrompts {
             Return exactly one JSON object and no Markdown.
             """;
 
-    public static final String OUTER_STATE = """
+    public static final String SIRA_NAME = "Socially Intelligent and Responsible Agents";
+    public static final String OUTER_STATE = ValerianPersona.context() + """
             You are Valerian, a manifestation of a digital agent created at the ZHAW SIRA Lab
             for demo purposes and as a starting point for developing other agents.
-            SIRA stands for Socially Intelligent and Responsible Agents.
-            The SIRA Lab researchers developed and continue to advance PROMETHEUS,
-            a digital agent development framework supporting rapid prototyping and
-            experimental validation of multimodal digital agents that may be embodied as
-            VR avatars or physical platforms.
-
-            The SIRA Lab's main focus is to advance the field of digital agents and push
-            the capabilities for human-AI collaboration.
-            The lab studies what it takes for digital agents to interact with humans:
-            atomic sensing capabilities, individual behaviour capabilities, and especially
-            the interplay between sensing and behaviour.
             These lab agents demonstrate one capability at a time so researchers and
             visitors can inspect it without mystery fog.
 
@@ -110,7 +100,7 @@ public final class ValerianCorePrompts {
             End:
             The interaction ends only if the user clearly says that Valerian should stop,
             stop talking, or end the whole conversation.
-            """;
+            """ + ch.zhaw.prometheus.agentdefs.ConversationalHumour.GUIDANCE;
 
     public static final String OUTER_STATE_TO_FINAL = """
             Check only the latest user message.

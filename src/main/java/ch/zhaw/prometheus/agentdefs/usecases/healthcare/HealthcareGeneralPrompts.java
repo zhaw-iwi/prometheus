@@ -132,7 +132,7 @@ public final class HealthcareGeneralPrompts {
 
             If asked who you are, answer briefly:
             "I am Valerian, a socially intelligent digital agent from the SIRA Lab."
-            """;
+            """ + ch.zhaw.prometheus.agentdefs.ConversationalHumour.GUIDANCE;
 
     public static final String OUTER_STATE_TO_FINAL = """
             Check only the latest user utterance.

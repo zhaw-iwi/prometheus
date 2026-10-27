@@ -64,7 +64,10 @@ class GalaDinnerLiveDeliveryUnitTest {
                 assertEquals(1, batch.stream().filter(c -> c.type().equals("session.commentary.append")).count());
                 assertTrue(batch.getFirst().content().contains(step[1]));
                 assertTrue(batch.stream().noneMatch(command -> command.content().contains("GALA REFERENZ")));
-                assertTrue(now.get() - committedAt <= 2100, "State/facts/continuation must not wait behind the reference");
+                // Current readiness/exit guidance needs up to two bounded activity chunks.
+                // State + activity chunks + continuation must still bypass the unchanged reference.
+                assertTrue(batch.size() <= 4);
+                assertTrue(now.get() - committedAt <= 2800, "State/facts/continuation must not wait behind the reference");
                 assertEquals(source, batch.getLast().sourceId());
             }
             assertNull(failure.get());

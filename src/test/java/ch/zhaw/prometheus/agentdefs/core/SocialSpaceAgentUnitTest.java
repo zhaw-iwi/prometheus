@@ -35,7 +35,12 @@ class SocialSpaceAgentUnitTest {
     private final LanguageModelGateway gateway = mock(LanguageModelGateway.class);
     private final PolicyRuntime runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway);
     private final GenericMultimodalBehaviourAtSocialSpace definition = new GenericMultimodalBehaviourAtSocialSpace();
-    private final Agent agent = definition.createAgent();
+    // Preserve the saved-instance contract; new-instance admission is covered by CoreSensoryReactionUnitTest.
+    private final Agent agent = legacyAgent();
+    private Agent legacyAgent() {
+        var value = definition.createAgent(); ((TaskPolicy) value.getCurrentState().ownPolicy()).storage()
+                .remove(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.ENABLED); return value;
+    }
     private final Instant baseline = Instant.now().minusSeconds(10);
     private int sample;
     private static final String SPEC = """
@@ -70,7 +75,8 @@ class SocialSpaceAgentUnitTest {
             assertTrue(live.contains("Your name is Valerian"));
             assertTrue(live.contains("including just \"Valerian\""));
             assertTrue(live.replaceAll("\\s+", " ").contains("do not call for another greeting"));
-            assertTrue(live.contains("deliver the backend's spoken response faithfully"));
+            assertTrue(live.contains("Live owns the wording of replies"));
+            assertFalse(live.contains("deliver the backend's spoken response faithfully"));
             assertFalse(live.contains("Gigi"));
         }
         verifyNoInteractions(gateway);
@@ -127,7 +133,7 @@ class SocialSpaceAgentUnitTest {
 
     @Test void malformedStaleFutureDuplicateAndOutOfOrderSamplesCannotTrigger() {
         for (String payload : List.of("{}", "not json", "{\"humanCount\":-1}", "{\"humanCount\":1.5}", "{\"humanCount\":\"1\"}")) {
-            var freshAgent = definition.createAgent();
+            var freshAgent = legacyAgent();
             String input = payload.endsWith("}") ? payload.substring(0, payload.length() - 1)
                     + (payload.equals("{}") ? "" : ",") + "\"ts\":\"" + Instant.now() + "\"}" : payload;
             assertNull(freshAgent.acknowledge(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor", input), runtime));
@@ -182,7 +188,7 @@ class SocialSpaceAgentUnitTest {
 
     @Test void failedOrInvalidSocialOutputStaysSilentAndDoesNotRetryOnContinuedVisibility() {
         for (String response : List.of("provider failure", "{\"operation\":\"ACTIVATE\"}", "{}")) {
-            var freshAgent = definition.createAgent();
+            var freshAgent = legacyAgent();
             reset(gateway);
             if (response.equals("provider failure")) when(gateway.infer(any())).thenThrow(new IllegalStateException("offline"));
             else when(gateway.infer(any())).thenReturn(response);

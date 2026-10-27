@@ -82,6 +82,104 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core-agent deployment integration (2026-10-27): main `35dae71b` (CA-01–08,
+  shared lab reference, Valerian persona and restrained humour) merged into
+  `agents`, preserving the deployment catalog, embodiment handling, Gala and
+  scored RPS match. The merged tree has 994 passing Java checks plus one opt-in
+  soak skip, 68 Live Node checks, four runner checks and five applicable real-app
+  browser smoke checks. Branch-specific RPS helper integration and corrected
+  fixtures are recorded in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`. New instances
+  receive the policies; no saved graphs/history are migrated. Deployment is
+  triggered by the authorized `agents` push; physical tone/robot checks remain.
+
+- Shared core reference/persona follow-up (2026-10-27): the eight conversational
+  core definitions share sourced SIRA/IWI/team facts and a separate fictional
+  Valerian/Laureline backstory with mild grumpiness. SML, Reto and event knowledge
+  are omitted; care personas and Talk to Me remain separate. The packaged reference
+  follows Gala's facts-only rendering pattern, without runtime lookups or schema
+  changes. Unit/contract tests cover all activity contexts, instruction budgets,
+  provenance validation and existing task/game boundaries. Actual character delivery
+  remains a live listening check; evidence is in COREAGENTIMPROVEMENT_RESULTS.
+
+- Conversational humour follow-up (2026-10-27): all fourteen conversational main
+  definitions include the same restrained recurring self-irony guidance as Gala,
+  adapted to their digital-agent identity and existing care/task boundaries.
+  Changes are confined to prompt composition; exact-text output and explicit
+  closings remain unchanged. Seventy-two focused checks pass across corrected
+  runs, including full Live instruction budgets and Generic's legacy prompt
+  fingerprints. No provider or physical tone trial was run. Details are in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
+- Core-agent improvements CA-01–08 accepted (2026-10-26): bounded decorative
+  gestures, meaningful sensing, Live task facts, persisted RPS/guessing rounds and
+  optional Social Space reception are implemented for new instances. All 658 Java
+  checks, 118 Node checks, local database/browser journeys and milestone-specific
+  paid OpenAI journeys have passing evidence. Combined acceptance also fixed RPS
+  Text fallback after Live. See `.agents/COREAGENTIMPROVEMENT_RESULTS.md` for failed
+  trials and retained speech limitations, and `tests/gptlive/CORE_AGENTS.md` for
+  schema/client handoff and the remaining physical operator check.
+
+- Core-agent improvements CA-07 (2026-10-26): new Social Space instances can opt
+  into presence-controlled Live reception, fresh encounter dialogue and the existing
+  two-second departure/audio grace. Task agreements and transcripts survive;
+  session-bound tasks pause and uncertain responses do not authorize continuation.
+  Default/saved profiles and Generic remain unchanged. Local persistence/access,
+  browser lifecycle and client checks pass; CA-08 combined acceptance is complete.
+
+- Core-agent improvements CA-06 (2026-10-26): new core
+  role-clarification and healthcare user-guesses graphs persist roles, curated
+  secret cards, reveal/solved phases and fresh round identities. Live phrases
+  replies; Text/Continuous use the same facts through existing prompt storage.
+  Saved graphs retain their old policies. Local reload/control checks and all
+  three paid role/healthcare journeys pass; evidence, failed trials and retained
+  speech limitations are in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
+- Core-agent improvements CA-05 (2026-10-26): new core RPS rounds own unique capture
+  IDs, freshness/confidence/stability checks and bounded history. Optional Live
+  countdown/playback precedes the gesture and capture; result/replay states remain.
+  Java/local persistence, 17 Node checks, browser/manual-capture checks and two
+  real OpenAI rounds pass. Failed speech trials and fixes are recorded in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`; physical timing remains unverified.
+
+- Core-agent improvements CA-04 (2026-10-26): new Generic/Social Space instances
+  provide confirmed task facts while Live composes speech. Text/Continuous and
+  saved opt-out contracts remain; short acceptance requires a current invitation,
+  harmless acknowledgements preserve tasks, and silent actions need no caption.
+  Selected event views now retain timestamps, correcting CA-03 conversation priority.
+  Local unit/persistence/legacy checks and both real OpenAI task journeys pass;
+  contextual acceptance reuses the existing control request and validates the unchanged draft.
+  failed provider trials, fixes and speech limitations are recorded in
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md`. No main/agents deployment in this step.
+
+- Core-agent improvements CA-03 (2026-10-26): new Social Space and face/social
+  demos distinguish stable meaningful changes from evidence refresh. Expiring
+  Live occasions retain Live wording; conversation, corrections and tasks take
+  priority. Local persistence/regression and all three real OpenAI journeys pass.
+  Saved-instance semantics remain unchanged; README describes timing, schema and
+  the committed-transcript priority limitation. Evidence: COREAGENTIMPROVEMENT_RESULTS.
+
+- Core-agent improvements CA-02 (2026-10-26): new Generic, Social Space and Live
+  Multimodal instances enforce bounded decorative gesture cadence with explicit
+  request/task-action exemptions. Reload/reset and unchanged-channel tests pass;
+  real OpenAI Live acceptance passes. Saved instances remain opt-out. See README
+  for the nullable embodiment-storage schema addition and
+  `.agents/COREAGENTIMPROVEMENT_RESULTS.md` for evidence and physical limits.
+
+- Core-agent improvements CA-01 (2026-10-26): baseline and paid real-app acceptance
+  harness complete on feature/gptlive. Passed 45 Java/local-MySQL checks, three
+  runner boundary tests and the Live Multimodal provider journey. No production
+  agent behaviour changed. Eight consecutive milestones and their compatibility
+  gates are tracked in `.agents/PLAN_COREAGENTIMPROVEMENT.md`; actual failures,
+  evidence and remaining physical limits in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
+- Shared Live backport (2026-10-26): telemetry exports retain the backend-provided
+  `userSilenceMs`. Existing regression checks now also cover preserving this
+  setting through context updates and Generic's configuration-prompt fingerprint.
+  Six diagnostics JavaScript tests and 41 focused Java tests pass; the telemetry
+  regression failed before the fix. PLAN_CUTOFFINSPECTION.md is copied unchanged
+  from `agents` as an unimplemented shared follow-up. This selective integration
+  into `main` contains no Gala runtime or deployment changes; audit below.
+
 - Detachable state view (2026-10-23): Diagnostics can move its existing current
   state and state list into a draggable, maximisable panel or a separate browser
   window. Close/dock, popup blocking, theme and connection lifecycle handling
@@ -11377,3 +11475,43 @@ and again disabled, and Maven packaging. The packaged JAR includes all three
 new state-view assets. Evidence: `target/gptlive-acceptance-bee1e59f79`; its real
 HTTP/MySQL/SSE transition popup screenshot was inspected. The runner removed its
 owned app/schema/account. Neither branch was pushed; deployment is not initiated.
+
+## Shared Live telemetry and regression backport (2026-10-26)
+
+### Goal and changes
+
+Selectively bring three user-requested items from `agents` into `main`, using
+the existing clean main worktree. This is not a whole-branch merge of the Gala
+catalog, persona selection or deployment configuration.
+
+- Add the already supplied `userSilenceMs` to the browser telemetry allowlist,
+  with the existing export/privacy regression from `tests/js/live/diagnostics.test.mjs`.
+- Extend `LiveContextDeliveryUnitTest` with the existing assertion that a partial
+  context acknowledgement preserves the user silence window. Bring over only
+  Generic's configuration-prompt fingerprint test from `GenericMultimodalTaskUnitTest`.
+- Copy `.agents/PLAN_CUTOFFINSPECTION.md` byte-for-byte as a planned shared
+  diagnostic handoff. Recording and cut-off diagnosis remain unimplemented.
+  README distinguishes this plan from the existing content-free telemetry.
+
+The runtime/export and context-test source is the Gala follow-up in `a5736186`;
+the Generic prompt guard comes from `e9312a23`. Selected source files and the plan
+were read from `agents` at `e63cf885`. User requested integration directly into
+`main`; no feature-branch or `agents` deployment integration is part of this task.
+
+### Verification
+
+- `node --test tests/js/live/diagnostics.test.mjs`: six passed. Before changing
+  the allowlist, the imported assertion failed with undefined instead of 2000;
+  the other five cases passed. Existing private-field exclusion remains covered.
+- `.\mvnw.cmd -Dtest=LiveContextDeliveryUnitTest,GenericMultimodalTaskUnitTest test`:
+  41 passed (25 context-delivery, 16 Generic task), zero failures/errors/skips.
+  Evidence: `target/shared-live-backport-tests.log` in the main worktree.
+- Checked the copied plan against its source and ran `git diff --check`.
+
+### Limits and next step
+
+No database, paid provider, browser UI or physical audio trial was needed for this
+allowlist/test/documentation backport. Backend timing, audio playback and prompts
+are unchanged. The recording plan still requires a separate implementation task;
+its original Gala-specific trial files remain on `agents`. No standalone Valerian
+repository change or Heroku redeployment is included.

@@ -77,7 +77,8 @@ class TaskLifecycleUnitTest {
         when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("KEEP", "null", "I can receive supported cues."));
         say("What can you observe?"); assertEquals(after, storage().get(TaskMemory.AFTER).getAsString());
     }
-    @Test void monitorReadinessUsesTheSameResponseBoundaryAndHasNoTaskContent() {
+    @Test void legacyMonitorReadinessUsesTheSameResponseBoundaryAndHasNoTaskContent() {
+        storage().remove("core.task.liveWording");
         activate(); var status = TaskCueStatus.of(agent, Instant.now());
         assertTrue(status.responseCaptured()); assertEquals(0, status.nextCueInMs());
         assertEquals("RUNNING", status.phase());
@@ -92,7 +93,8 @@ class TaskLifecycleUnitTest {
         String encoded = new Gson().toJson(TaskCueStatus.of(agent, Instant.now()));
         assertFalse(encoded.contains("confirmed response")); assertFalse(encoded.contains("Offer an agreed"));
     }
-    @Test void acknowledgmentsIncompleteAndUnrelatedCaptionsDoNotReleaseTheResponseBoundary() {
+    @Test void legacyAcknowledgmentsIncompleteAndUnrelatedCaptionsDoNotReleaseTheResponseBoundary() {
+        storage().remove("core.task.liveWording");
         var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
         when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", SPEC, "The first observation is now ready for you."));
         agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Activate"), runtime.withExternalSpeech(owner));
@@ -145,7 +147,8 @@ class TaskLifecycleUnitTest {
             assertFalse(new Gson().toJson(activity.snapshot(agent.getId())).contains("private"));
         } finally { activity.close(); }
     }
-    @Test void aCapturedSubstantiveOpeningCanReleaseTheBoundaryWhenLiveShortensTrailingGuidance() {
+    @Test void legacyCapturedSubstantiveOpeningCanReleaseTheBoundaryWhenLiveShortensTrailingGuidance() {
+        storage().remove("core.task.liveWording");
         var owner = new ExternalSpeech(java.util.UUID.randomUUID(), agent.executionEpoch());
         when(gateway.infer(any())).thenReturn(GenericMultimodalTaskUnitTest.update("ACTIVATE", SPEC,
                 "What keeps the mural bright? Fresh pigments reflect the light. I will wait for the next agreed cue before continuing."));

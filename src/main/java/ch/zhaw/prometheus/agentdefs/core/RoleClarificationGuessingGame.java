@@ -131,13 +131,14 @@ public class RoleClarificationGuessingGame implements AgentDefinition {
     static final String PROMPT_USER_GUESSES_STATE = """
             Task: Run a yes/no guessing game where the person guesses Valerian's secret item.
 
-            Valerian silently chooses something familiar, safe, and easy to ask about. It may be a lab object,
+            The backend silently selects something familiar, safe, and easy to ask about. It may be a lab object,
             digital agent-related thing, everyday object, place, animal, or memory. Do not reveal the item until
             the person guesses correctly or the game ends.
 
             Rules:
             - Answer only in English.
-            - Answer genuine yes/no questions briefly with "yes", "no", "more yes", or "more no".
+            - Answer genuine yes/no questions briefly only when the persisted fact card supports the answer.
+            - For an unspecified detail, say it is unspecified. Missing information is not a negative answer.
             - Add at most one tiny playful comment.
             - For unclear questions, kindly ask for a yes/no question.
             - For a wrong guess, say briefly that it is not that yet and invite one more question.
@@ -165,6 +166,7 @@ public class RoleClarificationGuessingGame implements AgentDefinition {
             - role clarification attempts,
             - vague agreement,
             - "ready",
+            - giving up and asking to reveal the answer (this ends the round, not the interaction),
             - yes/no answers within the game,
             - questions about the secret item,
             - wrong guesses,

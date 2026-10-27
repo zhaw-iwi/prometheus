@@ -51,7 +51,7 @@ public class LiveMultimodal implements AgentDefinition {
             Backchannel policy: keep acknowledgements sparse and do not fill thoughtful pauses.
             Delegation policy: defer task decisions to PROMETHEUS and never announce unconfirmed task completion.
             End the whole interaction only when PROMETHEUS confirms its final state.
-            """;
+            """ + ValerianPersona.context() + ch.zhaw.prometheus.agentdefs.ConversationalHumour.GUIDANCE;
 
     static final String EMBODIMENT = """
             Choose one current expressive beat for Valerian at the SIRA Lab, independently of spoken wording.
@@ -91,12 +91,13 @@ public class LiveMultimodal implements AgentDefinition {
 
     @Override
     public Agent createAgent() {
+        var gestureStorage = new ch.zhaw.prometheus.model.Storage();
         State finished = new Final("Valerian Live interaction complete");
         finished.setPolicy(new EmbodimentPolicy(VOICE + "\nPROMETHEUS confirms the interaction is complete. "
                 + "Ask no further questions; do not restart the interaction. Wait for a new session.",
-                EMBODIMENT + "\nThe interaction has ended. Choose a neutral, still closing posture, with gesture NONE."));
+                EMBODIMENT + "\nThe interaction has ended. Choose a neutral, still closing posture, with gesture NONE.", gestureStorage));
         finished.setEventSelectorSpec(EventSelectorSpec.any());
-        State interaction = new State("Valerian Live multimodal interaction", new EmbodimentPolicy(VOICE, EMBODIMENT), List.of());
+        State interaction = new State("Valerian Live multimodal interaction", new EmbodimentPolicy(VOICE, EMBODIMENT, gestureStorage), List.of());
         interaction.setEventSelectorSpec(EventSelectorSpec.any());
         interaction.addTransition(new Transition(List.of(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE),
                 new StaticDecision(END_DECISION)), List.of(), finished));
@@ -104,7 +105,7 @@ public class LiveMultimodal implements AgentDefinition {
         interaction.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_SOCIAL_SITUATION_CHANGE), interaction));
         Agent agent = new Agent("Valerian Core - Live Multimodal",
                 "English core agent for GPT-Live conversation with all supported observations and independent full embodiment; speech requires an active Live session.",
-                interaction);
+                interaction, gestureStorage);
         var observations = ValerianCoreAgentFactory.multimodalBehaviourProfile().getSupportedObservations();
         agent.setInteractionProfile(AgentInteractionProfile.of(observations, List.of(
                 AgentInteractionProfile.MODALITY_SPEECH, AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE,

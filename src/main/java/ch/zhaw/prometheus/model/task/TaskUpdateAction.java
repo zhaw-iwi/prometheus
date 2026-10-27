@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.Set;
 import com.google.gson.*;
 import ch.zhaw.prometheus.model.*;
+import ch.zhaw.prometheus.model.behaviour.DecorativeGestures;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.*;
@@ -26,6 +27,12 @@ public class TaskUpdateAction extends Action {
     private void update(EventHistory events, PolicyRuntime runtime) {
         Storage storage = getStorage(); Instant now = Instant.now();
         if (cancelled(storage, runtime)) return;
+        if (ch.zhaw.prometheus.model.behaviour.SensoryRemarks.enabled(storage))
+            ch.zhaw.prometheus.model.behaviour.SensoryRemarks.userTurn(storage, events);
+        if (DecorativeGestures.enabled(storage)) {
+            if (storage.containsKey(DecorativeGestures.REQUIRED)) storage.remove(DecorativeGestures.REQUIRED);
+            if (!taskCue && DecorativeGestures.requested(events)) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
+        }
         if (!taskCue && !events.isEmpty() && events.toList().getLast().getPayload().trim().matches(
                 "(?i)(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?[.!]?")) {
             String command = events.toList().getLast().getPayload().trim().toLowerCase(java.util.Locale.ROOT).replaceFirst("^please ", "");
@@ -70,6 +77,7 @@ public class TaskUpdateAction extends Action {
             String instruction = completed ? "The task is now complete. Briefly acknowledge completion; do not perform another task step."
                     : "Perform exactly this agreed action now: " + rule.action();
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
+                    + inferenceGuidance(runtime)
                     + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields."
                     + CompactBehaviourPlan.instructions(false);
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
@@ -91,6 +99,7 @@ public class TaskUpdateAction extends Action {
                 return;
             }
             storage.put(TaskMemory.REPLY, plan.toJsonObject());
+            if (!completed && DecorativeGestures.enabled(storage)) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
             if ("WAITING".equals(TaskMemory.phase(storage))) { TaskMemory.put(storage, TaskMemory.PHASE, "RUNNING"); TaskMemory.revise(storage); }
             storage.put(TaskMemory.ACTIONS, new JsonPrimitive(count + (completed ? 0 : 1)));
             TaskMemory.put(storage, TaskMemory.AFTER, Instant.now().plusSeconds(rule.cooldownSeconds()).toString());
@@ -101,7 +110,9 @@ public class TaskUpdateAction extends Action {
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
-                + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true);
+                + inferenceGuidance(runtime)
+                + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true)
+                + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "");
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
         String raw;
@@ -181,6 +192,8 @@ public class TaskUpdateAction extends Action {
                 TaskMemory.phase(storage).equals("COMPLETED") ? "task_completed" : "task_configuration", null);
         }
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
+        if (operation.equals("ACTIVATE") && task.firstAction() == TaskSpec.FirstAction.IMMEDIATE && DecorativeGestures.enabled(storage))
+            storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         TaskMemory.bindSession(storage, runtime.externalSpeech());
         // Only observations captured after this response/cooldown can advance the task.
         if (operation.equals("ACTIVATE") || operation.equals("RESUME"))
@@ -189,6 +202,8 @@ public class TaskUpdateAction extends Action {
     }
     /** Additional application constraints, checked before storage or output is changed. */
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
+    /** Opt-in wording ownership; the configured prompt and legacy actions remain unchanged. */
+    protected String inferenceGuidance(PolicyRuntime runtime) { return ""; }
 
     /** Called only after validated state and output are committed to turn-local storage. */
     protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule,

@@ -2,6 +2,7 @@ package ch.zhaw.prometheus.model.task;
 
 import ch.zhaw.prometheus.model.*;
 import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
+import ch.zhaw.prometheus.model.behaviour.DecorativeGestures;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
@@ -34,8 +35,14 @@ public class TaskPolicy extends Policy {
     }
     @Override public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) {
         if (!storage.containsKey(TaskMemory.REPLY)) return null;
-        var plan = TaskMemory.plan(storage.get(TaskMemory.REPLY)); storage.remove(TaskMemory.REPLY); return plan;
+        var plan = TaskMemory.plan(storage.get(TaskMemory.REPLY)); storage.remove(TaskMemory.REPLY);
+        if (!DecorativeGestures.enabled(storage)) return plan;
+        boolean required = storage.containsKey(DecorativeGestures.REQUIRED)
+                && storage.get(DecorativeGestures.REQUIRED).getAsBoolean();
+        if (storage.containsKey(DecorativeGestures.REQUIRED)) storage.remove(DecorativeGestures.REQUIRED);
+        return DecorativeGestures.publish(storage, plan, required, java.time.Instant.now());
     }
+    @Override public void reset() { if (DecorativeGestures.enabled(storage)) DecorativeGestures.clear(storage); }
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return null; }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return TaskMemory.description(storage); }
 }

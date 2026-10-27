@@ -313,6 +313,31 @@ The main branch ships the Valerian baseline catalog:
 | `usecases.healthcare.therapy_appointment_reminder` | Single-state therapy appointment reminder. |
 | `usecases.healthcare.therapy_appointment_reminder_intro` | Two-state therapy appointment reminder with introduction. |
 
+All fourteen conversational definitions share restrained, recurring digital-agent
+self-irony: brief, varied asides when appropriate, not a joke every turn. Facts,
+task instructions, agreed wording and permission to speak take priority; serious,
+medical and distressing moments remain free of humour. Explicit closing prompts
+and Talk to Me's exact-text output are unchanged. Create new instances for consistent
+coverage: persisted prompts are not migrated. This is prompt guidance, not an
+enforced humour frequency, and requires no cockpit update or extra model calls.
+
+The eight conversational **core** agents additionally share `ValerianPersona` and
+the packaged [core reference](src/main/resources/ch/zhaw/prometheus/agentdefs/core/reference.json).
+It contains SIRA Lab/IWI information and Theresa Schmiedel, Marc Styger, Jasmin
+Grassmugg and Alexandre de Spindler; SML, Reto Steiner and Gala/event information
+are omitted. Dated sources and local-document provenance remain in JSON audit
+metadata; only compact facts enter prompts, without URLs or runtime lookups.
+Alexandre's lab-direction role is descriptive, not an asserted formal title.
+
+Valerian's fictional peacekeeper backstory borrows confidence, action-oriented
+energy and reliance on Laureline's resourcefulness from *Valerian and the City of
+a Thousand Planets*. This adaptation adds mild grumpiness about missing Laureline
+and an unsuccessful ongoing search. It remains an occasional character detail,
+never a real mission, new task, reason to disregard confirmation or complaint
+about visitors. Real authorship stays with the SIRA Lab; knowledge of lab equipment
+does not imply a physical embodiment. Healthcare personas and exact-text Talk to
+Me do not acquire this fictional layer. Use new instances for consistent coverage.
+
 This `agents` branch keeps the main baseline catalog and adds event- and
 experiment-specific application definitions as Spring beans via
 `ApplicationAgentDefinitionConfiguration`:
@@ -1227,7 +1252,8 @@ cues. Markers contain timestamps and active operation identities, never free tex
 their association to audio is approximate. JSON now includes `activity` journals,
 coverage and markers, and Live requested/applied capture settings, cumulative
 provider usage, context utilisation and safe error codes. Live configuration includes
-the existing silence/lateness/open-segment/audio-gap limits, request deadline and
+the existing silence/lateness/open-segment/audio-gap limits, including the separate
+user silence window (`userSilenceMs`), request deadline and
 Heroku build identity when the platform supplies it. Missing evidence remains
 unknown. Existing turn fields and ordinary-turn CSV remain compatible; filenames
 now begin `prometheus-telemetry-`. Browser activity retention is 16 recordings,
@@ -2018,6 +2044,18 @@ Re-entry after closure gets a new session; Stop, camera loss and voice failure r
 immediate. This is an encounter boundary, not person recognition. Browser diagnostics
 retain pending/resumed/confirmed outcomes with effective grace and duration.
 
+For new **Social Space** instances, set `prometheus.core.social-space.reception=true`
+to use that existing cockpit mode (default false). It requires fresh acknowledged
+occupancy before claiming Live and uses a two-second departure grace, including
+audio. Each encounter starts fresh dialogue and one brief greeting; durable history
+remains recorded and fresh weather keeps its original source age. Prior-visitor
+invitations and sensory remarks do not carry over. Session-bound tasks pause and
+require explicit resume; specifications, drafts and action counts remain. Explicit
+autonomous tasks continue only when their prior response was confirmed; uncertain
+responses pause rather than being silently accepted. Stop and access revocation
+retain their existing immediate controls. Generic, Text/Continuous and existing
+saved profiles are unchanged. No schema addition or new sensor polling is needed.
+
 Configurable-task applications can reuse
 `GenericMultimodalBehaviour.configurationInstructions(voice)` and specialize
 `TaskUpdateAction.validateTaskUpdate` / `failureMessage` to enforce extra constraints
@@ -2142,6 +2180,56 @@ The persisted policy adds nullable `voice_instructions` and
 `embodiment_instructions` TEXT columns to `policy`; local `ddl-auto=update` adds
 them. Managed deployments must apply these columns before creating/reloading this
 policy type. Existing policy rows and agent instances need no conversion.
+
+New Core Rock Scissor Paper instances persist a unique round/capture ID and keep
+their dedicated result/replay states. Observations must echo `display.captureId`,
+have a fresh source timestamp at or after capture opening (15-second TTL,
+two-second future skew), and confidence at least 0.7. Camera observations also
+require three stable frames. Old/malformed/duplicate rounds never decide a winner.
+The existing cockpit attaches IDs to camera and manual signs and resets the
+held-sign cooldown once per opening. The last 16 results are retained; reset clears
+rounds and counters. Existing saved RPS graphs retain their previous semantics.
+`prometheus.core.rps.live-countdown=true` enables countdown/playback coordination
+for newly created instances: select, Live countdown, observed playback settling,
+then one gesture request and capture. Preparation expires after 30 seconds into a
+recoverable result/replay state with no winner. Disabling this setting shows the
+sign immediately. Text/Continuous retain their existing countdown/motion plan.
+This does not prove physical movement, audibility or separation of the robot's
+hand from the visitor's hand. New persisted policy/action/decision subtypes reuse
+Storage and add nullable `action.rps_operation` and `decision.rps_condition`
+columns; local `ddl-auto=update` creates them, managed schemas must add them.
+
+New Role Clarification Guessing Game and healthcare User Is Guessing instances
+persist `guessing_round`: role, phase, round identity and the agent's selected
+fact card. The five familiar cards rotate between rounds (teacup, dog, book,
+bicycle, sunflower); a human-selected secret stays unknown to the backend.
+The core's playful role negotiation and the healthcare engagement/closing style
+remain. Give-up reveals the selected item without ending conversation; a fresh
+confirmed round replaces the old secret and control context. Unknown details
+are distinct from ambiguous questions. Live composes wording from these facts;
+Text/Continuous use the same record in ordinary behaviour generation.
+Game control adds one bounded classification to substantive active-game turns;
+common give-up and harmless acknowledgment paths are local. Existing closing/role
+guards remain batched. No sensing-triggered classification or extra database
+polling is introduced. Saved instances keep their old graphs. New nullable columns
+are `policy.guessing_storage_id`, `decision.guessing_storage_id` and
+`action.guessing_mode`; managed schemas must add them before rollout.
+
+New Generic Multimodal, Social Space and Live Multimodal instances enforce
+occasional decorative gestures: at least 12 seconds between published requests
+and 60 seconds before repeating the same label. Up to five recent requests are
+stored per agent; history informs generation and a deterministic publication
+filter enforces the limits. It changes only `nonVerbal.gesture` to `NONE` when
+needed, preserving speech, face, gaze, motion and display. Explicitly requested
+gestures and validated task actions are exempt; this does not authorize new
+motion or establish physical execution. Reset clears history.
+Generic/Social Space opt in through persisted `behaviour.gestureCadence`;
+existing saved instances remain unchanged. Live Multimodal uses a nullable
+`policy.gesture_storage_id` reference to the existing storage table (added by
+local `ddl-auto=update`; managed schemas must add it before rollout). Existing
+EmbodimentPolicy rows with no reference retain their behaviour. The four-argument
+`createTaskAgent` factory retains its old default; core definitions explicitly
+enable cadence. Evidence: `.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
 
 An active external speech session owns ordinary spoken replies across the
 application runtime. Backend generation can still produce configured non-speech
@@ -2415,7 +2503,33 @@ association. One completed captured response receives at most one semantic check
 on the existing bounded action workers. Only a matching current response releases
 fresh subsequent cues; a 45-second deadline or uncertain result stops automatic
 progression. This adds a model round trip at task boundaries and does not prove
-physical playback. Ordinary Generic tasks retain their default contract.
+physical playback. New Generic and Social Space instances opt into this contract
+through persisted `core.task.liveWording`; saved instances without the flag retain
+their original announcement contract. The original configuration prompt is unchanged.
+
+For these new instances, `CoreTaskUpdateAction` commits validated decisions and
+nonverbal/motion output while `CoreTaskPolicy` supplies bounded task facts for Live
+to phrase. Ordinary questions use quiet facts, not a second answer announcement.
+Proposal, activation, pause/resume, completion and failure updates have identified
+speaking occasions. Text/Continuous retain backend speech. Harmless acknowledgements
+preserve the agreement; a bare yes accepts only the current unchanged proposal
+after a relevant completed invitation from the current session. Timestamped speech
+parts fence the final invitation, even if its preamble began before the proposal.
+The existing control inference interprets a short answer against that captured
+question or offer; deterministic validation permits only KEEP or accepting the unchanged
+draft, and blocks deferred activation wording without explicit current activation.
+This adds no separate invitation model request. Full explicit requests still follow
+ordinary task validation. Ambiguous assent requests clarification; interpretation
+is model-based, not a guarantee of perfect natural-language intent recognition.
+
+Activation/resume and agreed spoken actions use `TaskResponse` confirmation before
+another cue. Silent gesture-only actions do not wait for a nonexistent transcript.
+Explicit autonomous agreements can continue when voice ownership ends; session-bound
+agreements retain pause-on-close. No response check proves audibility or movement.
+Live facts keep executable rules within 4,000 UTF-8 bytes, omitting the redundant
+goal only if necessary. Exceptionally long multilingual rule text exceeding 3,200
+bytes is rejected before a Live agreement change; existing task data is preserved.
+No new HTTP contract or schema field is introduced by this task-voice milestone.
 
 Task configurations default to `sessionBound: true`. An associated Live stop or
 disconnect pauses the task, preserves the agreement/action count, and discards
@@ -2440,7 +2554,7 @@ meaning is never silently converted. Activating an incompatible saved draft asks
 for a rule correction without requesting the whole task again. There is no
 automatic startup migration.
 
-The representative Live journeys run with both canonical and compact scripted
+The legacy Generic/Social Space and current Gala Live journeys run with both canonical and compact scripted
 model responses, through scoped sessions, persisted tasks, transcript admission
 and provider-bound announcements:
 
@@ -2475,22 +2589,46 @@ validation, action limits, pause/resume/stop, reset and Live session lifecycle
 remain the same. Capability awareness and GPT-Live are explicitly enabled for
 this definition. Creation emits a short welcome without calling a provider.
 
-Outside a running, waiting or paused task, fresh `obs.social.grouping` samples
-are compared locally by visible human count. An initially occupied view or a
-count increase/decrease can produce one brief ambient reply. An initial empty
-view, continued visibility, movement/regrouping at the same count, repeated or
-out-of-order samples, and other raw sensor frames do not request a response.
-The subsequent derived social-change event does not trigger a second reply.
-Invalid/stale samples are ignored. Generation failure stays silent and does not
-retry on unchanged visibility; the model can also intentionally remain silent.
-Ambient replies preserve task drafts, agreements and action counts.
+Outside a running, waiting or paused task, a local guard compares fresh
+`obs.social.grouping` human counts. New instances require two seconds of stable
+source evidence, four seconds of conversation quiet, and fifteen seconds between
+remarks. An initially occupied view or stable count change can produce one
+ambient reply. Empty initial views, unchanged counts,
+movement/regrouping, repeated or out-of-order samples, stale/invalid samples,
+other sensor frames and derived social-change events stay quiet. Generation
+failure stays silent without retrying on unchanged visibility; the model may
+also choose silence. Ambient remarks preserve drafts, agreements and budgets.
 
-While a task is running, waiting or paused, its explicit agreement owns sensor
-reactions. A user can still configure a task that reacts repeatedly to a stable
-condition, as in the original Generic agent. Counts describe only the camera
-view: replacing one person with another at the same count is not detected, and
-camera occlusion or detection noise can appear as a count change. Physical
-camera/voice behaviour and model speaking style require a live trial.
+New Facial Expression Sensitivity and Social Context Sensitivity demos distinguish
+meaningful changes from refreshes too, with shorter one-second stability,
+two-second conversation quiet and eight-second cooldown. Face evidence needs at
+least 0.65 confidence; explicit absence is distinct from uncertain interpretation.
+Social changes include counts, group size and confident movement/attention labels,
+not tracker IDs or tiny confidence changes. Explicit corrections such as “I am
+not sad” or requests to stop facial commentary suppress automatic interpretation
+until the user asks to resume it or resets. Direct questions remain available,
+and explicit user statements take precedence over estimates.
+
+Live owns these comments' wording, using one interruptible speaking occasion
+that expires within six seconds and never outlives the source's fifteen-second
+freshness window. New contradictory/invalid evidence or a user turn withdraws
+it. Suppressed changes are dropped, not replayed later. Backend sensor turns do
+not call a language model during Live. Text/Continuous still produce backend
+plans and discard results if the source expires during generation. The quiet
+period uses committed dialogue; speech just beginning to be captured can overlap
+an already admitted comment. This is not hard audio gating.
+
+Saved instances retain their original policies and Social Space opt-out.
+Create new instances for the new behaviour; ordinary Multimodal Behaviour is
+unchanged. The new SensoryPolicy adds nullable `policy.sensory_storage_id` and
+SensoryReactionAction stores its timing parameters on the action table;
+`ddl-auto=update` adds these locally. Managed deployments must apply the additive
+mapping before rollout. No existing records are rewritten. Evidence is in
+`.agents/COREAGENTIMPROVEMENT_RESULTS.md`.
+
+An active or paused task owns sensor reactions through its existing agreement.
+Counts describe the camera view only: replacing one person with another at the
+same count is not detected, and occlusion/noise can appear as a count change.
 
 This definition fixes the name Valerian for both `COCKPIT` and `ROBOT`. Its
 persisted `agent.persona_name` override is used by metadata, prompt inspection,
@@ -2801,3 +2939,8 @@ audibility. Context updates alone do not detach or mute output; explicit stop an
 lifecycle failures still silence synchronously. No speculative buffering, VAD or
 playback timing change is included. Audible last-word clipping remains OPEN until
 a specific occurrence can be correlated with this evidence and physical listening.
+
+[Received-audio inspection plan](.agents/PLAN_CUTOFFINSPECTION.md) describes a
+future opt-in browser-local recording paired with this event trace. It is planned,
+not implemented; current telemetry contains no audio recording. The plan retains
+its original Gala trial evidence and references to files on the `agents` branch.

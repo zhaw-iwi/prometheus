@@ -44,3 +44,6 @@ eclipse-formatter.xml
 .web/participate/.tmp/
 .web/participate/database/brainkick_seed.sql
 .web/participate/database/e93ud_siralab.sql
+
+# Local Python acceptance-runner bytecode
+tests/gptlive/__pycache__/
