@@ -346,6 +346,7 @@ experiment-specific application definitions as Spring beans via
 | --- | --- |
 | `usecases.gala_dinner_reception` | German GIGI reception for the Home of Innovation gala, with RPS, person guessing and co-created multimodal tasks over GPT-Live. |
 | `usecases.gala_dinner_reception_single_state` | Reception-only GIGI backup with the same knowledge, persona and sensing; no games or co-created tasks. |
+| `usecases.gala_dinner_reception_rps_preparation` | Full Gala agent with a three-sign RPS recognition tutorial once per Live conversation. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -358,6 +359,26 @@ These branch-specific definitions stay outside the generic main baseline
 catalog so `main` can remain the reusable PROMETHEUS framework line.
 
 ### Gala Dinner Reception
+
+The separately registered **GIGI - Gala Dinner Reception with RPS preparation**
+(`usecases.gala_dinner_reception_rps_preparation`) checks rock, paper and scissor
+in any order before its first RPS round. Progress and remaining signs survive
+reload and a declined exit. Completed preparation is retained for the same Live
+conversation; a new session or reset requires the tutorial again. Allow this key
+for the access code and create a fresh instance; saved graphs are not migrated.
+
+Every tutorial-variant round has a new identity and a private selected sign. Live
+is asked to say exactly "Schere, Stein, Papier."; matching complete native speech
+and the shared client playback acknowledgement release one gesture and a fresh
+camera capture. Tutorial observations and old-round results cannot decide the new
+round. Missing playback expires after 30 seconds, including when scheduled ticks
+are disabled. This is software coordination evidence, not physical audibility or
+robot execution confirmation. The original and reception-only definitions remain
+separately available, with the original's existing countdown flow.
+
+A clear game choice already gives consent. Live may say one brief pending status,
+then waits for backend-confirmed starting facts without another readiness question.
+Proposal acceptance remains specific to co-created tasks.
 
 The optional backup is `GalaDinnerReceptionSingleState`, catalog key
 `usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner

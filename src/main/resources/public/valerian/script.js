@@ -128,6 +128,7 @@ const camera = {
   stableGestureKey: null,
   stableGestureCount: 0,
   handCaptureId: null,
+  handRoundId: null,
   handCaptureOpen: false,
   lastCameraEmitKey: null,
   lastCameraEmitAt: 0,
@@ -2510,6 +2511,8 @@ function renderBehaviourPlan(plan, options = {}) {
   if (!plan || typeof plan !== "object") {
     return;
   }
+  if (plan.display?.mode === "game_result" && plan.display.roundId && camera.handRoundId
+      && plan.display.roundId !== camera.handRoundId) return;
   if (!options.preserveNonSpeech) resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
@@ -2640,12 +2643,14 @@ function captureIdOf(display) {
 function updateHandCapture(display) {
   const id = captureIdOf(display);
   if (display.phase === "spoken_countdown" && display.awaitingUserSign === false) {
+    camera.handRoundId = display.roundId || null;
     camera.handCaptureOpen = false; resetCameraEmissionGate(); return;
   }
   if (display.awaitingUserSign === true) {
     // Replayed opening plans must not restart stability, bypass cooldown or reopen a resolved capture.
     if (id && id === camera.handCaptureId) return;
     camera.handCaptureId = id;
+    camera.handRoundId = display.roundId || null;
     camera.handCaptureOpen = !!id;
     camera.stableGestureKey = null;
     camera.stableGestureCount = 0;
@@ -5702,6 +5707,7 @@ function resetSensingState() {
   camera.stableGestureKey = null;
   camera.stableGestureCount = 0;
   camera.handCaptureId = null;
+  camera.handRoundId = null;
   camera.handCaptureOpen = false;
   resetCameraEmissionGate();
   setCameraStatus("Camera Idle", "idle");

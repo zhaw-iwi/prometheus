@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala lifecycle integration (2026-10-28): reconciled `feature/gala-game-lifecycle`
+  with the current `agents` runtime. All three Gala definitions remain registered:
+  original, reception-only and the tutorial variant. The tutorial uses existing
+  captured-speech/playback coordination; no parallel speech-cue service or client
+  protocol is added. Conversation-scoped preparation, independent game counters,
+  private countdown signs and stale-result protection are covered by 216 passing
+  Gala/catalog checks. Reusable audio capture and playback-expiry fixes are isolated
+  on the main-based `feature/live-playback-readiness` branch. Further persistence
+  and browser verification is recorded below when complete.
+
 - Core-agent deployment integration (2026-10-27): main `35dae71b` (CA-01–08,
   shared lab reference, Valerian persona and restrained humour) merged into
   `agents`, preserving the deployment catalog, embodiment handling, Gala and

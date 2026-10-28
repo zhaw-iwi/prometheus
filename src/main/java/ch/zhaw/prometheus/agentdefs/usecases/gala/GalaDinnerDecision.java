@@ -20,6 +20,8 @@ public class GalaDinnerDecision extends Decision {
         var storage = ((GalaDinnerPolicy) getPolicy()).storage();
         if ("RPS_PREP_TIMEOUT".equals(galaCondition)) return !events.isEmpty()
                 && Event.TYPE_SYSTEM_TICK.equals(events.toList().getLast().getType()) && GalaDinnerRps.expired(storage, Instant.now());
+        if ("RPS_INTRO".equals(galaCondition)) return "RPS".equals(GalaDinnerMemory.mode(storage))
+                && java.util.Set.of("INTRO", "SPOKEN").contains(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""));
         if (!"EXPIRED".equals(galaCondition)) return galaCondition.equals(GalaDinnerMemory.mode(storage));
         return !events.isEmpty() && Event.TYPE_SYSTEM_TICK.equals(events.toList().getLast().getType())
                 && expired(storage, Instant.now());

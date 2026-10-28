@@ -14,7 +14,8 @@ final class GalaRpsTestFixture {
     static Event countdownPlayed(Agent agent, PolicyRuntime runtime) {
         var policy = (GalaDinnerPolicy) agent.getCurrentState().ownPolicy();
         var storage = policy.storage(); var owner = runtime.externalSpeech();
-        var speech = agent.recordExternalSpeech("Zeig mir deine Hand. Eins, zwei, drei.",
+        var speech = agent.recordExternalSpeech(GalaDinnerRpsPreparation.enabled(storage)
+                ? "Schere, Stein, Papier." : "Zeig mir deine Hand. Eins, zwei, drei.",
                 new SpeechProvenance(SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
                         UUID.randomUUID().toString(), SpeechProvenance.Association.NONE, List.of(), true));
         policy.liveSpeechCaptured(speech, owner, Instant.now(), Instant.now());

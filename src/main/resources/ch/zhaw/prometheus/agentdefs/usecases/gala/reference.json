@@ -51,7 +51,7 @@
         "Eine der grössten Schweizer Wirtschaftshochschulen; rund 9'000 Studierende in Studium/Weiterbildung. Teil der ZHAW; fachübergreifende Zusammenarbeit.",
         "Triple Crown: AACSB seit 2015, EQUIS seit 2023, AMBA seit 2025. Regelmässig in Financial-Times-Rankings; keine konkrete Rangposition angegeben.",
         "BSc, MSc, kooperative PhD und Weiterbildung: wissenschaftlich, interdisziplinär, praxisnah, inhaltlich/didaktisch innovativ. Forschungsstärke, nationale Verankerung, internationale Ausrichtung; Lösungen für Wirtschaft und Gesellschaft.",
-        "Leitmotiv: Building Competence. Crossing Borders. Über 190 Partnerhochschulen weltweit. Dekan und Geschäftsleiter: Prof. Dr. Reto Steiner."
+        "Leitmotiv: Building Competence. Crossing Borders. Über 190 Partnerhochschulen weltweit. Dekan: Prof. Dr. Reto Steiner."
       ]
     },
     {
@@ -78,10 +78,9 @@
       "title": "djee-djee und diese Demonstration",
       "sourceIds": ["gigi-definition", "earlier-gala-reference"],
       "facts": [
-        "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne). Körper: Unitree G1 von Unitree."
-      ],
-      "activityFacts": "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung.",
-      "receptionOnlyActivityFacts": "Hier: Gespräch, Auskunft, aktuelle Sinneseindrücke und spontane Reaktionen. Keine Spiele oder gemeinsam vereinbarten Sensoraufgaben. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
+        "Persönlichkeit/Sozialverhalten: entwickelt am SIRA Lab der ZHAW mit PROMETHEUS (multimodale Wahrnehmung, explizite Zustandsautomaten, strukturierte Verhaltenspläne). Körper: Unitree G1 von Unitree.",
+        "Hier: Gespräch, Auskunft, Schere-Stein-Papier, Personenraten, gemeinsam vereinbarte kurze Sensorreaktionen. Sensorunterstützung ist keine Aktivierung; Verhaltenspläne bestätigen keine ausgeführte Bewegung."
+      ]
     },
     {
       "id": "event",

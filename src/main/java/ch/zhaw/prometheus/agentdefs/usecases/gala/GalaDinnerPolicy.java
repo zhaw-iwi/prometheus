@@ -36,6 +36,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             throw new IllegalArgumentException("A fresh occupied reception observation is required");
         GalaDinnerMemory.put(storage, GalaDinnerMemory.SESSION, Integer.toString(history.toList().size()));
         GalaDinnerMemory.remove(storage, GalaDinnerGestures.HISTORY);
+        GalaDinnerRpsPreparation.beginConversation(storage);
         GalaDinnerSensing.begin(storage, java.time.Instant.now());
     }
     @Override public String liveOpeningInstructions() {
@@ -69,13 +70,14 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String livePendingGuidance() {
         if (!activitiesEnabled()) return "Answer from supplied facts. No waiting acknowledgments or invented lookup/progress.";
-        return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
-                + "No status for reference/guessing answers; no invented lookup/progress, echoes or repeated filler. Results supersede waiting.";
+        return "Pending game choice: e.g. 'Einen Moment bitte.' once; await introduction silently. "
+                + "Other delays: one brief status. No status for reference/guessing answers; "
+                + "no invented progress/filler. Results end waiting.";
     }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
         String facts = "Gala activity: " + mode + ". ";
-        if (java.util.Set.of("GUESS", "RPS").contains(mode))
+        if (java.util.Set.of("GUESS", "RPS", "RPS_SETUP").contains(mode))
             facts += "Game conversation rule: institution/programme questions require an exit choice FIRST, without a factual preface or research claim. ";
         if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST))
             facts += "EXIT CONFIRMATION PENDING: game retained, hand acceptance suspended. Ask whether to END it for the other request; "
@@ -89,12 +91,17 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             facts += "You hold the backend-selected person; the visitor asks yes/no questions and guesses. "
                     + "Answer from this card; never ask the visitor to choose a person or guess yourself. "
                     + "Secret target (never introduce it): " + person.name() + ". Fact card: " + person.facts();
-        } else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+        } else if ("RPS_SETUP".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+                ? "RPS preparation paused for exit confirmation; recognised signs retained."
+                : GalaDinnerRpsPreparation.facts(storage);
+        else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "WAITING".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
                 ? "Countdown playback acknowledged; gesture requested once, physical execution unconfirmed. Awaiting a fresh camera hand sign; no result yet."
                 : "SPOKEN".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
                 ? "Countdown captured; waiting for local playback acknowledgement. Stay silent; do not repeat the countdown. No gesture/capture yet."
+                : GalaDinnerRpsPreparation.enabled(storage)
+                ? "RPS introduction: sign selected privately, no gesture/capture yet. Say exactly Schere, Stein, Papier. once, then listen."
                 : "RPS introduction: sign selected, no gesture/capture yet. Invite a hand and count one, two, three once on the confirmed occasion, then listen.";
         else if ("TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
@@ -112,7 +119,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
             }
         }
         else facts += activitiesEnabled()
-                ? "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start."
+                ? "Game readiness: NOT_CONFIRMED by backend. No active guessing target or pending RPS round. Await backend start facts; no further visitor consent needed."
                 : "Reception only: conversation, information and current sensory reactions. Games and co-created tasks are unavailable.";
         String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
         if (!outcome.isBlank())

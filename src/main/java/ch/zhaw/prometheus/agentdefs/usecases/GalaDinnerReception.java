@@ -1,6 +1,7 @@
 package ch.zhaw.prometheus.agentdefs.usecases;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
@@ -29,7 +30,12 @@ public class GalaDinnerReception implements AgentDefinition {
     @Override public boolean externalRealtimeSpeech() { return true; }
 
     @Override public Agent createAgent() {
+        return createAgent(false);
+    }
+
+    protected Agent createAgent(boolean prepareRps) {
         Storage storage = new Storage();
+        if (prepareRps) ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRpsPreparation.enable(storage);
         var reception = new GalaDinnerState("Gala reception", storage, true);
         var rps = new GalaDinnerState("Gala rock-scissor-paper", storage, true);
         var guessing = new GalaDinnerState("Gala guess the person", storage, true);
@@ -37,11 +43,26 @@ public class GalaDinnerReception implements AgentDefinition {
         var routing = new GalaDinnerState("Gala routing", storage, false);
         task.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN),
                 new GalaDinnerAction(storage, "FAIL_TASK"), routing));
+        var activities = new ArrayList<>(List.of(reception, rps, guessing, task));
+        if (prepareRps) {
+            var preparation = new GalaDinnerState("Gala rock-scissor-paper preparation", storage, true);
+            var countdown = new GalaDinnerState("Gala rock-scissor-paper countdown", storage, true);
+            routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_SETUP"), preparation));
+            routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_INTRO"), countdown));
+            preparation.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
+                    new GalaDinnerAction(storage, "HAND"), routing));
+            countdown.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.COUNTDOWN_PLAYED),
+                    new GalaDinnerAction(storage, "COUNTDOWN_PLAYED"), routing));
+            countdown.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_PREP_TIMEOUT"),
+                    new GalaDinnerAction(storage, "RPS_PREP_TIMEOUT"), routing));
+            activities.add(preparation);
+            activities.add(countdown);
+        }
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS"), rps));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "GUESS"), guessing));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "TASK"), task));
         routing.addTransition(new Transition(reception));
-        addReceptionTransitions(List.of(reception, rps, guessing, task), routing, storage, "TURN");
+        addReceptionTransitions(activities, routing, storage, "TURN");
         rps.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                 new GalaDinnerAction(storage, "HAND"), routing));
         rps.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.COUNTDOWN_PLAYED),
@@ -80,7 +101,9 @@ public class GalaDinnerReception implements AgentDefinition {
     }
 
     protected Agent completeAgent(GalaDinnerState reception, Storage storage, boolean activities) {
-        var agent = new Agent(activities ? "GIGI - Gala Dinner Reception" : "GIGI - Gala Dinner Reception (Reception only)",
+        boolean preparation = ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRpsPreparation.enabled(storage);
+        var agent = new Agent(preparation ? "GIGI - Gala Dinner Reception with RPS preparation"
+                        : activities ? "GIGI - Gala Dinner Reception" : "GIGI - Gala Dinner Reception (Reception only)",
                 activities ? "German GIGI reception for the Home of Innovation gala on 24 October 2026, with RPS, person guessing and co-created multimodal tasks."
                         : "German GIGI gala reception with conversation, information and multimodal reactions; no games or co-created tasks.",
                 reception, storage);

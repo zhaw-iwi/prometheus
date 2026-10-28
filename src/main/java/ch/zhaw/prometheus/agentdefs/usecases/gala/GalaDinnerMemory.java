@@ -10,6 +10,7 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 final class GalaDinnerMemory {
     static final long DEPARTURE_GRACE_MS = 2000;
     static final String PREFIX = "gala.";
+    static final String RPS_PREPARED = PREFIX + "rps_prepared", RPS_RECOGNISED = PREFIX + "rps_recognised";
     static final String MODE = PREFIX + "mode", REPLY = PREFIX + "reply", PERSON = PREFIX + "person",
             SIGN = PREFIX + "sign", LAST_INPUT = PREFIX + "last_input",
             EXIT_REQUEST = PREFIX + "exit_request", CAPTURE_ID = PREFIX + "rps_capture_id",
@@ -72,6 +73,7 @@ final class GalaDinnerMemory {
         put(storage, MODE, "RECEPTION");
         GalaDinnerRounds.clear(storage);
         GalaDinnerRps.clear(storage);
+        remove(storage, RPS_RECOGNISED);
         for (String key : List.of(PERSON, SIGN, STARTED, CAPTURE_ID, EXIT_REQUEST, CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES,
                 OUTCOME, OUTCOME_ID, OUTCOME_EXPIRES, CONTINUATION_OCCASION, CONTINUATION_AMBIENT, TASK_FACTS)) remove(storage, key);
         GalaDinnerSensing.activityEnded(storage);
@@ -84,7 +86,9 @@ final class GalaDinnerMemory {
         put(storage, CONTINUATION_OCCASION, "USER_REQUEST");
     }
     static void clear(Storage storage) {
+        boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
         TaskMemory.clear(storage);
         for (String key : storage.toMap().keySet()) if (key.startsWith(PREFIX)) storage.remove(key);
+        if (preparation) GalaDinnerRpsPreparation.enable(storage);
     }
 }

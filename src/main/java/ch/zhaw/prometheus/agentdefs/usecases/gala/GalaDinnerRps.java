@@ -25,13 +25,21 @@ final class GalaDinnerRps {
         put(storage, INTRO_AT, now.toString()); put(storage, DEADLINE, now.plusSeconds(30).toString());
         put(storage, SESSION_ID, owner.sessionId().toString()); put(storage, EPOCH, owner.epoch().toString());
         remove(storage, SEGMENT); remove(storage, CAPTURE_ID);
-        continueRequest(storage, "RPS round confirmed. Your sign is selected but NOT executed. "
+        boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
+        continueRequest(storage, preparation
+                ? "RPS round confirmed: " + text(storage, GalaDinnerRounds.ID, "")
+                    + ". Capture CLOSED; no result exists for this round. Say exactly: Schere, Stein, Papier. "
+                    + "Only this countdown, including on replay; then listen. No promise, consent question, hand command or old result."
+                : "RPS round confirmed. Your sign is selected but NOT executed. "
                 + "Ask the visitor to prepare/show one hand, then count aloud ONE, TWO, THREE in their language and stop speaking. "
                 + "No extra confirmation question, no naming your sign, no result. The cockpit waits for this countdown's playback before motion/capture.");
+        if (preparation) put(storage, CONTINUATION_ID, text(storage, INTRO, ""));
         var response = GalaDinnerAction.plan(null, "NONE", "attentive", "toward_user");
         var display = new JsonObject(); display.addProperty("mode", "game_countdown");
         display.addProperty("title", "Schere, Stein, Papier"); display.addProperty("phase", "spoken_countdown");
-        display.addProperty("awaitingUserSign", false); display.addProperty("agentSign", text(storage, SIGN, ""));
+        display.addProperty("awaitingUserSign", false);
+        if (preparation) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
+        else display.addProperty("agentSign", text(storage, SIGN, ""));
         response.setDisplay(display);
         return response;
     }
@@ -56,13 +64,16 @@ final class GalaDinnerRps {
         String words = text.toLowerCase(Locale.ROOT).replaceAll("[\\p{P}\\p{S}]+", " ").replaceAll("\\s+", " ").trim();
         // Live may add a sentence after counting. The completed segment and client
         // settling still gate motion; the countdown need not be its final words.
-        if (!words.matches(".*\\b(?:eins|one|1)\\s+(?:zwei|two|2)(?:\\s+(?:und|and))?\\s+(?:drei|three|3)\\b.*")) return false;
+        boolean countdown = GalaDinnerRpsPreparation.enabled(storage)
+                ? words.matches("(?:.*\\s)?schere stein papier")
+                : words.matches(".*\\b(?:eins|one|1)\\s+(?:zwei|two|2)(?:\\s+(?:und|and))?\\s+(?:drei|three|3)\\b.*");
+        if (!countdown) return false;
         put(storage, SEGMENT, provenance.segmentId()); put(storage, PHASE, "SPOKEN");
         return true;
     }
     static LivePlaybackCue cue(Storage storage, Instant now) {
         if (!"RPS".equals(mode(storage)) || !List.of("INTRO", "SPOKEN").contains(text(storage, PHASE, ""))
-                || storage.containsKey(EXIT_REQUEST) || expired(storage, now) || !present(storage, now)) return null;
+                || storage.containsKey(EXIT_REQUEST) || !present(storage, now)) return null;
         return new LivePlaybackCue(UUID.fromString(text(storage, INTRO, "")),
                 storage.containsKey(SEGMENT) ? text(storage, SEGMENT, "") : null, time(storage, DEADLINE));
     }

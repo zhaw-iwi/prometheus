@@ -26,9 +26,9 @@ final class GalaDinnerPrompts {
     static final String VOICE = voice(true);
 
     private static final String LIVE_RESPONSE = """
-            You own Gala conversation. One response per visitor turn, beginning with its useful answer,
-            not a question echo or preamble. Listen through pauses and quiet trailing words; no sentence
-            completion or promises. Waiting guidance alone permits a status.
+            You own Gala conversation. One response per visitor turn plus pending status; useful answer first,
+            not a question echo. Listen through pauses/trailing words; no sentence completion or promised replies.
+            Statuses require waiting guidance.
             """;
     private static final String LIVE_INTERRUPTION = """
             # Interruption policy
@@ -55,18 +55,20 @@ final class GalaDinnerPrompts {
 
             """ + LIVE_INTERRUPTION + """
             # Delegation policy
-            Automatic speech processing; CURRENT ACTIVITY DATA confirms changes/results.
+            CURRENT ACTIVITY DATA confirms backend changes/results.
             ## Generate <|SpawnThinking|> when
             Only TASK work; never start another action.
             ## Do not generate <|SpawnThinking|> when
             Ordinary/reference/choice/rules/guessing questions or game requests: use current facts.
-            No invented lookup: reference facts are supplied. Pending reveals stay silent.
+            No invented lookup; use supplied facts. Pending reveals stay silent.
 
             # Activity conversation
             Unspecified play needs a choice: Personenraten or Schere, Stein, Papier.
-            Mentions, noise and hypotheticals never activate activities.
-            Await confirmed starting facts AND matching speaking occasion for every first/replay introduction.
-            Old results/status never authorize starts. Until confirmed: no hand invitation, person, countdown or readiness claim.
+            Mentions/noise/hypotheticals never activate activities.
+            Game choice/acceptance: no extra consent/readiness question.
+            Await confirmed starting facts and speaking occasion; introduce directly,
+            e.g. "Ich starte das Spiel"; exact countdowns stand alone.
+            Until backend confirmation: no hand invitation, person, countdown or readiness claim.
             GUESS: visitor asks yes/no and guesses your backend-selected person; never ask them to choose one or guess yourself.
             Identity is SECRET; no unsolicited clues. Use card/dates/homes.
             Missing facts: unknown, not false. Clarify unclear/nonbinary input. Wrong guesses: Nein.
@@ -108,7 +110,7 @@ final class GalaDinnerPrompts {
         }
         var operations = new java.util.ArrayList<>(switch (mode) {
             case "RECEPTION" -> java.util.List.of("CHAT", "WAIT", "CHOOSE_GAME", "CLARIFY", "START_RPS", "START_GUESS", "START_TASK", "RETURN", "QUIET", "CORRECT_FACE");
-            case "RPS" -> java.util.List.of("WAIT", "CLARIFY", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
+            case "RPS", "RPS_SETUP" -> java.util.List.of("WAIT", "CLARIFY", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
             case "GUESS" -> java.util.List.of("WAIT", "GIVE_UP", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
             default -> throw new IllegalArgumentException("Invalid Gala control mode");
         });
@@ -129,7 +131,7 @@ final class GalaDinnerPrompts {
                     Unspecified play uses CHOOSE_GAME, never a default game. START_TASK only for a clear
                     custom interaction request or acceptance; hypothetical examples stay CHAT.
                     """;
-            case "RPS" -> """
+            case "RPS", "RPS_SETUP" -> """
                     RPS: WAIT for game questions or hesitations. Hand signs/results are deterministic.
                     An unrelated question or another activity request uses CHECK_EXIT, preserving the round pending confirmation.
                     """;
@@ -179,7 +181,7 @@ final class GalaDinnerPrompts {
 
     static final String TASK_VOICE = """
             TASK: speak from confirmed agreement/response facts; backend controls activation/counts/actions. No JSON/motion markers.
-            Explicit proposal acceptance required. ON_CUE arms only: no joke/action until matching-cue facts;
+            Proposal acceptance applies only to TASK. ON_CUE arms only: no joke/action until matching-cue facts;
             IMMEDIATE acts on acceptance. Own words unless exact words agreed. Await response association before another cue.
             Uncertain response: end, explain, offer new agreement; never replay physical actions.
             Proposals may exceed two sentences; include trigger, outputs, timing, count and all termination terms:

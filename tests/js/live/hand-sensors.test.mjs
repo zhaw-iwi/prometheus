@@ -82,6 +82,18 @@ test("a new spoken countdown closes leftover capture so ordinary sensing cannot 
   await f.frame(); await f.frame(); await f.frame(); assert.equal(f.requests.length, 2);
 });
 
+test("a delayed result cannot replace the next round's countdown or capture", () => {
+  const f = fixture();
+  f.context.updateHandCapture({phase: "spoken_countdown", roundId: "new", awaitingUserSign: false});
+  f.context.renderBehaviourPlan({display: {mode: "game_result", roundId: "old", captureId: "old-capture", awaitingUserSign: false}});
+  assert.equal(f.context.camera.handRoundId, "new");
+  assert.equal(f.context.camera.handCaptureOpen, false);
+  f.context.updateHandCapture({roundId: "new", awaitingUserSign: true, captureId: "new-capture"});
+  f.context.renderBehaviourPlan({display: {mode: "game_result", roundId: "old", captureId: "old-capture", awaitingUserSign: false}});
+  assert.equal(f.context.camera.handCaptureId, "new-capture");
+  assert.equal(f.context.camera.handCaptureOpen, true);
+});
+
 test("camera rock, scissor and paper reach the scoped framework as timestamped observations", async () => {
   const f = fixture();
   for (const [gesture, sign] of [["Closed_Fist", "rock"], ["Victory", "scissor"], ["Open_Palm", "paper"]]) {

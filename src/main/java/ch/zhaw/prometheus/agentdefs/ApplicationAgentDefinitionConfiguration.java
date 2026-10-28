@@ -16,6 +16,11 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition galaDinnerReceptionRpsPreparation() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation();
+    }
+
+    @Bean
     AgentDefinition tdsrAishaInvestQatarQa() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha();
     }

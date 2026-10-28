@@ -62,7 +62,7 @@ public class GalaDinnerAction extends Action {
             }
             case "HAND" -> {
                 if (runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean() && present(storage, now))
-                    hand(storage, events, now);
+                    hand(storage, events, now, runtime.externalSpeech());
             }
             case "COUNTDOWN_PLAYED" -> reply(storage, GalaDinnerRps.reveal(storage, runtime.externalSpeech(),
                     events.toList().getLast().getPayload(), now));
@@ -76,6 +76,8 @@ public class GalaDinnerAction extends Action {
             case "EXPIRE" -> {
                 if ("RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", null);
                 endEncounter(storage, events.toList().size());
+                if (GalaDinnerPolicy.LIVE_ENDED.equals(events.toList().getLast().getType()))
+                    GalaDinnerRpsPreparation.beginConversation(storage);
             }
             default -> throw new IllegalStateException("Unknown gala action");
         }
@@ -207,7 +209,7 @@ public class GalaDinnerAction extends Action {
             selected = operation;
             String explicitGame = activities && "RECEPTION".equals(mode) ? GalaDinnerInput.explicitGameChoice(utterance) : null;
             if (explicitGame != null) operation = explicitGame;
-            if (!storage.containsKey(EXIT_REQUEST) && Set.of("RPS", "GUESS").contains(mode)
+            if (!storage.containsKey(EXIT_REQUEST) && Set.of("RPS_SETUP", "RPS", "GUESS").contains(mode)
                     && GalaDinnerInput.explicitReferenceQuestion(utterance)) operation = "CHECK_EXIT";
             failureStage = "apply_operation";
             BehaviourPlan response = plan(null, gesture, expression, gaze);
@@ -232,10 +234,14 @@ public class GalaDinnerAction extends Action {
                     return;
                 }
                 case "START_RPS" -> {
-                    int round = GalaDinnerRounds.start(storage, "RPS");
-                    put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
-                    put(storage, MODE, "RPS");
-                    response = GalaDinnerRps.introduce(storage, runtime.externalSpeech(), Instant.now());
+                    if (GalaDinnerRpsPreparation.enabled(storage) && !"true".equals(text(storage, RPS_PREPARED, ""))) {
+                        reception(storage);
+                        put(storage, MODE, "RPS_SETUP");
+                        openCapture(storage, Instant.now());
+                        continueRequest(storage, GalaDinnerRpsPreparation.introduction(storage));
+                        response = plan(null, "NONE", "attentive", "toward_user");
+                        response.setDisplay(captureDisplay(storage));
+                    } else response = startRps(storage, runtime.externalSpeech(), Instant.now());
                     ActivityTrace.cue("awaiting_confirmation", events.toList().getLast().getId());
                 }
                 case "START_GUESS" -> {
@@ -308,9 +314,12 @@ public class GalaDinnerAction extends Action {
             return null;
         }
         remove(storage, EXIT_REQUEST);
-        continueRequest(storage, "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
-        if (!"RPS".equals(mode(storage))) return null;
-        if (!"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return GalaDinnerRps.introduce(storage, owner, now);
+        boolean preparation = "RPS_SETUP".equals(mode(storage));
+        continueRequest(storage, preparation
+                ? "Visitor declined ending preparation; recognised signs retained. " + GalaDinnerRpsPreparation.facts(storage)
+                : "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
+        if (!preparation && !"RPS".equals(mode(storage))) return null;
+        if (!preparation && !"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return GalaDinnerRps.introduce(storage, owner, now);
         // Signs observed during confirmation cannot decide the resumed round.
         openCapture(storage, now);
         var response = plan(null, "NONE", "attentive", "toward_user");
@@ -340,9 +349,18 @@ public class GalaDinnerAction extends Action {
         if (quiet) put(storage, QUIET, "true");
     }
 
-    private static void hand(Storage storage, EventHistory events, Instant now) {
-        if (!"RPS".equals(mode(storage)) || storage.containsKey(EXIT_REQUEST)
-                || !"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return;
+    private static BehaviourPlan startRps(Storage storage, ch.zhaw.prometheus.model.policy.ExternalSpeech owner, Instant now) {
+        int round = GalaDinnerRounds.start(storage, "RPS");
+        put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
+        put(storage, MODE, "RPS");
+        return GalaDinnerRps.introduce(storage, owner, now);
+    }
+
+    private static void hand(Storage storage, EventHistory events, Instant now,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        boolean preparation = "RPS_SETUP".equals(mode(storage));
+        if ((!preparation && !"RPS".equals(mode(storage))) || storage.containsKey(EXIT_REQUEST)
+                || !preparation && !"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return;
         Event event = events.toList().getLast();
         try {
             var payload = JsonParser.parseString(event.getPayload()).getAsJsonObject();
@@ -351,9 +369,23 @@ public class GalaDinnerAction extends Action {
                     GalaDinnerHandSigns.newestPrior(events, captureId, time(storage, STARTED), now));
             if (rejection != null) { ActivityTrace.cue(rejection, event.getId(), Event.TYPE_HAND_SIGN); return; }
             String rawSign = payload.get("sign").getAsString();
+            if (preparation) {
+                if (!GalaDinnerRpsPreparation.recognise(storage, RpsSign.parse(rawSign).canonical())) return;
+                BehaviourPlan response;
+                if (GalaDinnerRpsPreparation.remaining(storage).isEmpty()) {
+                    put(storage, RPS_PREPARED, "true");
+                    response = startRps(storage, owner, now);
+                } else {
+                    response = plan(null, "NONE", "attentive", "toward_user");
+                    response.setDisplay(captureDisplay(storage));
+                }
+                reply(storage, response);
+                return;
+            }
             RpsSign agent = RpsSign.parse(text(storage, SIGN, "")), user = RpsSign.parse(rawSign);
             var response = plan(null, "NONE", "gentleSmile", "toward_user");
             var display = display("game_result", false);
+            if (GalaDinnerRpsPreparation.enabled(storage)) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
             if (!captureId.isEmpty()) display.addProperty("captureId", captureId);
             display.addProperty("agentSign", agent.canonical());
             display.addProperty("userSign", user.canonical());
@@ -461,6 +493,8 @@ public class GalaDinnerAction extends Action {
     static JsonObject captureDisplay(Storage storage) {
         var display = display("game_countdown", true);
         display.addProperty("captureId", text(storage, CAPTURE_ID, ""));
+        if ("RPS_SETUP".equals(mode(storage))) GalaDinnerRpsPreparation.display(storage, display);
+        if (GalaDinnerRpsPreparation.enabled(storage)) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
         return display;
     }
     private static JsonObject display(String mode, boolean awaiting) {

@@ -16,6 +16,21 @@ import ch.zhaw.prometheus.model.Agent;
 
 class AgentDefinitionRegistryUnitTest {
     @Test
+    void allThreeGalaDefinitionsRemainIndependentlyRegistered() {
+        var configuration = new ApplicationAgentDefinitionConfiguration();
+        var original = configuration.galaDinnerReception();
+        var receptionOnly = configuration.galaDinnerReceptionSingleState();
+        var tutorial = configuration.galaDinnerReceptionRpsPreparation();
+        var registry = new AgentDefinitionRegistry(List.of(original, receptionOnly, tutorial));
+        assertEquals(3, registry.list().size());
+        for (var definition : List.of(original, receptionOnly, tutorial))
+            assertEquals(definition, registry.findByKey(definition.key()).orElseThrow());
+        assertFalse(original.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+        assertTrue(tutorial.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+        assertFalse(receptionOnly.createAgent().listStates().contains("Gala rock-scissor-paper"));
+    }
+
+    @Test
     void onlyCoreDefinitionsOptInToCapabilityAwareness() {
         for (AgentDefinition definition : registryWithBuiltIns().list()) {
             boolean core = definition.key().startsWith("core.");
