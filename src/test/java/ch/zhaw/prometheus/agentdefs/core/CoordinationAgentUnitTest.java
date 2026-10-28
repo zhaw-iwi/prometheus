@@ -188,7 +188,7 @@ class CoordinationAgentUnitTest {
         hear("Shall I start the proposal now?", true, Instant.now()); assertTrue(policy().liveResolvedControlReply("yes", agent.getEventHistory(), owner));
         var reply = turn("START", null, "yes", live); assertTrue(TaskMemory.active(storage()));
         assertTrue(reply == null || BehaviourPlan.fromJson(reply.getPayload()).getSpeech() == null);
-        assertNotNull(policy().liveActivityContext().continuation()); assertFalse(storage().containsKey(TaskResponse.KEY));
+        assertNotNull(policy().liveActivityContext().continuation()); assertEquals("PENDING", TaskResponse.status(storage()));
         assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
         assertTrue(TaskMemory.pauseForSession(storage(), "live_session_ended"));
         assertEquals("PAUSED", CoordinationMemory.stage(storage()));

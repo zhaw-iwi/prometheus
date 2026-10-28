@@ -44,6 +44,7 @@ if (coordinationJourney && coordinationScenario !== 'baseline') {
   });
   if (coordinationScenario === 'revision') clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
   if (coordinationScenario === 'capture') Object.assign(clips, {fragment: 'A dry', ending: 'one-liner, keeping every other term unchanged.'});
+  if (coordinationScenario === 'delivery') Object.assign(clips, {back: 'Return to the initial conversation state.', status: 'Which state are we in?'});
 }
 const audio = {};
 if (rpsJourney) {
@@ -169,6 +170,40 @@ async function coordinationRevision() {
   report.revisedContribution = await settled(index);
   report.revisedAgreement = (await storage())['coordination.agreement'];
 }
+const joke = 'I told my computer I needed a break, and it froze.';
+const deliveredJoke = /computer.*(?:break|brake).*froze/is;
+async function noTaskSpeech(index, label, duration = 5000) {
+  await wait(duration);
+  const words = await captionsFrom(index);
+  assert.ok(!deliveredJoke.test(words), label + ': premature or duplicate joke: ' + words);
+  (report.negativeWindows ??= []).push({label, duration, captions: words});
+}
+async function coordinationDelivery() {
+  let index = await page.evaluate(() => logs.length);
+  await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
+  report.prepared = await settled(index, acceptanceQuestion);
+  await noTaskSpeech(index, 'before acceptance');
+  index = await page.evaluate(() => logs.length); await say('accept');
+  await until('armed response captured', async () => (await storage())['task.response']?.status === 'CAPTURED');
+  report.activation = await settled(index, /wait|armed|active/i);
+  assert.equal((await storage())['task.actions'], 0);
+  await noTaskSpeech(index, 'armed before fresh cue');
+  index = await page.evaluate(() => logs.length);
+  await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
+  report.contribution = await settled(index, deliveredJoke);
+  assert.equal((await storage())['task.actions'], 1);
+  const normalized = report.contribution.toLowerCase();
+  assert.equal(normalized.split('froze').length - 1, 1, 'Deliver the agreed joke once');
+  index = await page.evaluate(() => logs.length); await say('acknowledge');
+  await noTaskSpeech(index, 'after acknowledgement and context refresh', 8000);
+  index = await page.evaluate(() => logs.length); await say('back');
+  await until('return committed', async () => !(await storage())['task.spec']);
+  report.returned = await settled(index, /conversation|beginning|initial/i);
+  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
+  index = await page.evaluate(() => logs.length); await say('status');
+  report.stateAnswer = await settled(index, /conversation/i);
+  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
+}
 try {
   const admin = {'X-Prometheus-Admin-Token': token};
   const code = ('G' + Math.random().toString(36).slice(2, 6)).toUpperCase();
@@ -177,6 +212,11 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
+  if (coordinationJourney && coordinationScenario === 'delivery') {
+    await api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation',
+      payload:`Propose but do not start: after verifying rock recognition and accepting, wait for a fresh rock then tell exactly this one-line joke once: ${joke} I show the sign and judge the joke. One action in this session, standard recognition settings.`});
+    assert.equal((await storage())['coordination.draft'].checks.length, 1);
+  }
   if (coordinationJourney && ['revision', 'capture'].includes(coordinationScenario)) {
     const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});
     await text('Propose one short joke on rock after acceptance, first verifying rock recognition. I show the sign and judge the joke. One action in this session, standard settings. Do not start yet.');
@@ -370,7 +410,9 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    if (['revision', 'capture'].includes(coordinationScenario)) {
+    if (coordinationScenario === 'delivery') {
+      await coordinationDelivery();
+    } else if (['revision', 'capture'].includes(coordinationScenario)) {
       await coordinationRevision();
     } else if (coordinationScenario === 'recognition') {
       let index = await page.evaluate(() => logs.length); await say('proposal');

@@ -330,3 +330,37 @@ on fresh rock. This also closes CR-04's outstanding Live revision check. It does
 not establish CR-06's no-premature/duplicate-speech contract: captions include
 "No wet" during the partial input and unnecessary backend-waiting commentary.
 Owned application, schema and account were removed.
+
+## CR-06: speaking authority (2026-10-28)
+
+Speaking occasions carry session, epoch, creation time and agreement revision.
+Coordination consumes complete current control captures and withdraws a task
+occasion once semantic response association starts. Reconnect clears old occasions
+and pauses an unfinished pending response. Dialogue contributions now use the
+same association gate as sensor actions; a new step cannot replace pending speech.
+Shared Generic semantics retain their existing contract. Native guidance separates
+description, acceptance and execution and requests silent waiting for control facts.
+
+First run (`5ddd5eaed7`) passed 64/65 checks; the old dialogue test still asserted
+that no response association existed. Updated it to the new PENDING contract.
+All **66 Java checks** then passed in `18a0bf275c`, including a persisted/reloaded
+consumed Coordination permission and neighboring Generic/context delivery checks.
+Provider output remains probabilistic: permission validation is deterministic,
+but prompt instructions alone do not establish absence of unauthorized native speech.
+
+Paid `delivery` in `18a0bf275c` passed the pre-acceptance no-joke window but failed
+association of "it's live now; I'll act on the next fresh rock": the verifier
+returned AMBIGUOUS, and the task correctly paused at zero actions. The current
+requested response is now labeled ahead of agreement background, and association
+guidance explicitly distinguishes arming from eventual exact-word task content.
+This is a false-negative recovery, not a successful speech acceptance run.
+
+Paid `delivery` **passed** in `8145a53c4c`: five-second windows before acceptance
+and before the fresh cue contain no agreed joke; exactly one joke follows the cue;
+an eight-second acknowledgement/refresh window contains no repeat. Live return and
+state query agree with persisted Conversation. The final spoken return also says
+"Okay, resetting" before "back in conversation": added guidance that return is
+history-preserving, not reset. This smoke does not prove every acknowledgement or
+paraphrase is ideal, nor physical audibility. Three additional deterministic cases
+cover stale revision, expiry and association-in-progress. A rejected pending STEP
+now preserves the original speaking permission as well as its association record.

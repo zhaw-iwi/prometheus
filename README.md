@@ -1948,6 +1948,13 @@ It does not change provider speech generation. Clearly unfinished requests ask
 for completion without changing the agreement; gaps, late data and interrupted
 capture retain their conservative handling.
 
+Live response permissions belong to one session and agreement revision. Captured
+control replies are consumed, and a spoken task contribution must be associated
+with its expected response before another dialogue contribution can run. Opening
+a new Live session clears old speaking permissions; pending task speech requires
+explicit recovery. Ordinary questions remain available. Native wording is still
+provider-generated and needs the paid behavioral checks described in the results.
+
 Two execution forms are supported:
 
 - **Dialogue:** no sensor rule is required. For example, agree who supplies lab

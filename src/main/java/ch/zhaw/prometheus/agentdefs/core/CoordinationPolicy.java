@@ -9,6 +9,7 @@ import ch.zhaw.prometheus.model.coordination.CoordinationMemory;
 import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.model.task.TaskMemory;
+import ch.zhaw.prometheus.model.task.TaskResponse;
 import jakarta.persistence.Entity;
 
 /** The same persona in every phase; backend agreements and sensory occasions remain authoritative. */
@@ -27,6 +28,11 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Answer ordinary conversation and capability/perception questions naturally from current facts. "
                 + "Task proposals, preparation, acceptance, actions, completion and revisions require backend confirmation. "
                 + "Wait silently for confirmed task updates, then phrase the requested response once. "
+                + "Do not answer a partial task request, supply a sample joke, or make a playful task-content preview. "
+                + "Describe a proposed contribution without performing it. Only the current identified speaking occasion permits that contribution. "
+                + "Never say checking, waiting for the backend, done, started, restarted or returned before confirmed control facts. "
+                + "Keep implementation details out of spoken replies. Ordinary unrelated questions and explicitly requested capability examples remain welcome. "
+                + "Returning to Conversation preserves history; never describe it as resetting or erasing the agent. "
                 + "A complete proposal still needs acceptance. Required preparation is verified from observations, never a verbal claim. "
                 + "Explain what remains unresolved or unrecognised. Successful preparation authorizes no task action by itself. "
                 + "In an active dialogue task, wait for the backend's confirmed next contribution before delivering that task step. "
@@ -42,8 +48,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     @Override public void beginLiveConversation(EventHistory history) {
         super.beginLiveConversation(history);
         SensoryRemarks.cancel(storage());
+        CoreTaskVoice.clear(storage());
+        if (TaskMemory.active(storage()) && java.util.Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage())))
+            TaskMemory.pauseForResponse(storage(), "live_session_replaced");
         if (hasDraft()) {
-            CoreTaskVoice.clear(storage());
             CoordinationMemory.resetPreparation(storage(), Instant.now()); CoordinationMemory.revise(storage());
         }
     }
@@ -54,12 +62,28 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return CoreTaskVoice.assent(text) && CoreTaskVoice.prompt(storage(), history, owner, CoordinationMemory.DRAFT) != null;
     }
     @Override public boolean liveSpeechCaptured(Event event, ExternalSpeech owner, Instant started, Instant now, List<LiveSpeechPart> parts) {
-        CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT); return false;
+        boolean changed = CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT);
+        if (!storage().containsKey(CoreTaskVoice.RESPONSE)) return changed;
+        var response = storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+        var source = event.speechProvenance();
+        // Task content has a separate semantic association. An unrelated complete segment cannot consume it.
+        if (storage().containsKey(TaskResponse.KEY) && response.get("id").equals(storage().get(TaskResponse.KEY).getAsJsonObject().get("id"))) return changed;
+        if (source == null || !source.complete() || source.origin() != SpeechProvenance.Origin.NATIVE || owner == null
+                || !owner.sessionId().equals(source.sessionId()) || !owner.epoch().equals(source.epoch())
+                || !response.has("session") || !owner.sessionId().toString().equals(response.get("session").getAsString())
+                || !owner.epoch().toString().equals(response.get("epoch").getAsString())
+                || !TaskMemory.text(storage(), TaskMemory.REVISION, "0").equals(response.get("revision").getAsString())
+                || started == null || !started.isAfter(Instant.parse(response.get("created").getAsString())) || started.isAfter(now)
+                || !now.isBefore(Instant.parse(response.get("expires").getAsString()))) return changed;
+        response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
     @Override public LiveActivityContext liveActivityContext() {
         var storage = storage(); Instant now = Instant.now();
         var response = storage.containsKey(CoreTaskVoice.RESPONSE) ? storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject() : null;
         boolean current = response != null && response.get("revision").getAsString().equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))
+                && !response.has("consumed")
+                && !(storage.containsKey(TaskResponse.KEY) && response.get("id").equals(storage.get(TaskResponse.KEY).getAsJsonObject().get("id"))
+                    && !"PENDING".equals(TaskResponse.status(storage)))
                 && now.isBefore(Instant.parse(response.get("expires").getAsString()));
         String facts = CoordinationMemory.facts(storage);
         if (current) {

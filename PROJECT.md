@@ -86,7 +86,10 @@ and regulation diagnostics remain future work.
   wording remains CR-06 work.
   The related startup ordering fix passed 43 neighboring Java checks. Storage
   values require additive widening to varchar(8192). Capture and speech work
-  continues through CR-06 to CR-09 in
+  CR-06 adds session/revision-bound speaking occasions and dialogue response
+  association; 66 Java checks and paid Live negative speech windows/return passed.
+  Final provider phrasing remains a combined-journey check. Delivery work
+  continues through CR-07 to CR-09 in
   `.agents/PLAN_COORDINATION_REFINEMENT.md`; evidence is in COORDINATION_RESULTS.
 
 - Coordination release preparation (2026-10-28): implementation `293c987` and

@@ -17,6 +17,7 @@ import jakarta.persistence.Entity;
 public class CoordinationUpdateAction extends Action {
     private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     private static final class UnexpectedTerms extends IllegalArgumentException {}
+    private static final class PendingResponse extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -88,6 +89,10 @@ public class CoordinationUpdateAction extends Action {
                 throw new IllegalArgumentException("Coordination speech intent too long");
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) return;
+            if (failure instanceof PendingResponse && runtime.externalSpeech() != null) {
+                // Keep the one existing speaking permission; do not replace it with another announcement.
+                storage.put(TaskMemory.REPLY, new JsonObject()); return;
+            }
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination update rejected; agreement and preparation preserved");
             answer(failure instanceof UnexpectedTerms
@@ -117,6 +122,8 @@ public class CoordinationUpdateAction extends Action {
             case "STEP" -> {
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
+                if (storage.containsKey(TaskResponse.KEY) && !"CAPTURED".equals(TaskResponse.status(storage)))
+                    throw new PendingResponse();
             }
             case "COMPLETE" -> { if (!TaskMemory.active(storage)) throw new IllegalArgumentException(); }
             case "PAUSE" -> { if (!TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException(); }
@@ -248,7 +255,8 @@ public class CoordinationUpdateAction extends Action {
             default -> throw new IllegalStateException("Unsupported coordination continuation");
         };
         if (action && "COMPLETED".equals(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
-        CoreTaskVoice.response(storage, facts, false, gate, runtime, CoordinationMemory.facts(storage) + "\n" + facts);
+        CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime,
+                "CURRENT requested response: " + facts + "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage));
     }
     private static String intent(String speech) { return speech == null ? "No spoken task action was requested." : "Required contribution: " + speech.substring(0, Math.min(350, speech.length())); }
     private static BehaviourPlan controlReply(String operation, JsonElement raw) {

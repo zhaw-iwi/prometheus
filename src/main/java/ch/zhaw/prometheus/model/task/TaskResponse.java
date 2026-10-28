@@ -31,6 +31,9 @@ public final class TaskResponse {
                     An acknowledgment, promise to answer later, unrelated speech, contradiction, or incomplete response is not MATCH.
                     Exception: an explicitly requested exact word (even "Okay") fulfils that literal content requirement.
                     For ON_CUE activation, speech must establish that the task is armed and waiting, without doing the future action.
+                    Judge the CURRENT requested response, not eventual fulfilment of the whole agreement.
+                    "It's active now; I'll act on the next fresh rock" is a substantive armed/waiting confirmation.
+                    For that confirmation, do not require the future joke, exact-word action, success report, or a recital of all terms.
                     For IMMEDIATE activation, the agreed initial verbal action must be performed.
                     Do not require narration of a physical gesture, and never infer physical execution or audibility.
                     Choose AMBIGUOUS when evidence is insufficient. Do not generate an answer or authorize any action.
