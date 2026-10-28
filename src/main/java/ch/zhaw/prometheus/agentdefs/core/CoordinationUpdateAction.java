@@ -15,7 +15,7 @@ import jakarta.persistence.Entity;
 /** Interpret one user turn, validate the whole update, then commit it under the existing agent-turn boundary. */
 @Entity
 public class CoordinationUpdateAction extends Action {
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -93,10 +93,14 @@ public class CoordinationUpdateAction extends Action {
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
-        if (!OPERATIONS.contains(operation) || (operation.equals("PROPOSE") != (proposed != null))) throw new IllegalArgumentException();
+        if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
         if (assent && (!Set.of("KEEP", "START").contains(operation)
                 || operation.equals("START") && CoreTaskVoice.deferredQuestion(invitation))) throw new IllegalArgumentException();
         switch (operation) {
+            case "PROPOSE_AND_START" -> {
+                if (accepted != null || storage.containsKey(CoordinationMemory.DRAFT) || !proposed.complete() || !proposed.checks().isEmpty())
+                    throw new IllegalArgumentException("Immediate agreement requires complete new terms and no preparation");
+            }
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
@@ -112,6 +116,10 @@ public class CoordinationUpdateAction extends Action {
     }
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
+        if (operation.equals("PROPOSE_AND_START")) {
+            storage.put(CoordinationMemory.DRAFT, proposed.json()); CoordinationMemory.resetPreparation(storage, now);
+            operation = "START";
+        }
         if (operation.equals("STATUS")) { answer(CoordinationMemory.controls(storage), runtime); return; }
         if (operation.equals("STOP") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))
                 && !storage.containsKey(CoordinationMemory.DRAFT)) {
@@ -196,6 +204,7 @@ public class CoordinationUpdateAction extends Action {
         if (live && TaskMemory.active(storage)) storage.put(TaskMemory.SESSION, new JsonPrimitive(runtime.externalSpeech().sessionId().toString()));
         if (!operation.equals("KEEP")) CoordinationMemory.record(storage, operation, event, now);
         reply = switch (operation) {
+            case "PROPOSE" -> BehaviourPlan.speechOnly(CoordinationMemory.proposalPrompt(storage));
             case "RETURN_TO_CONVERSATION" -> BehaviourPlan.speechOnly("We are now in Conversation. Task execution has ended; our earlier conversation and recorded outcomes are preserved.");
             case "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE" -> BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
                     + " Recorded outcome: " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".");
@@ -210,7 +219,8 @@ public class CoordinationUpdateAction extends Action {
         if (action || DecorativeGestures.requested(singleEvent(event))) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         if (operation.equals("KEEP") || operation.equals("REFLECT")) { CoreTaskVoice.clearAnswered(storage); return; }
         String facts = switch (operation) {
-            case "PROPOSE" -> "Proposal saved, not active. Explain the proposed goal, roles, success criterion, limits and lifecycle. Clarify remaining questions or request missing preparation. If ready, ask to start now.";
+            case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
+                    + (CoordinationMemory.ready(storage) ? CoordinationMemory.acceptancePrompt(storage) : "Clarify remaining questions or request missing preparation. Do not ask to start until preparation is complete.");
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Wait for a new cue; do not perform its future action now.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);

@@ -16,6 +16,7 @@ const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
+const ambientSensing = !gameJourney && !(coordinationJourney && coordinationScenario !== 'baseline');
 const connectionOnly = !rpsJourney && !coordinationJourney;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
@@ -33,6 +34,14 @@ if (taskJourney) Object.assign(clips, {
   proposal: "Please propose, but don't start, a task that waits for one rock hand sign, then shows paper silently once and finishes.",
   accept: 'Yes, please.', acknowledge: 'Okay.'
 });
+if (coordinationJourney && coordinationScenario !== 'baseline') {
+  for (const name of Object.keys(clips)) delete clips[name];
+  Object.assign(clips, {
+  proposal: "Propose one dry joke on a fresh rock after acceptance, first checking rock recognition; I show signs and judge whether I like your joke, with one action only in this session using default settings.",
+  accept: 'Start the saved proposal now.',
+  acknowledge: 'Okay.'
+  });
+}
 const audio = {};
 if (rpsJourney) {
   for (const key of Object.keys(clips)) delete clips[key];
@@ -130,13 +139,13 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  if (!gameJourney) await freshSense();
+  if (ambientSensing) await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
     if (heartbeatBusy) return;
     heartbeatBusy = true;
     try {
-      if (!gameJourney) await freshSense();
+      if (ambientSensing) await freshSense();
       if (handle) await api(`${agentPath}/live/sessions/${handle}`);
     } catch (error) { report.heartbeatError = error.message; }
     finally { heartbeatBusy = false; }
@@ -187,9 +196,14 @@ try {
   await page.waitForFunction(() => logs.some(e => e.type === 'session.started'), {}, {timeout: 20000});
   await api(`${agentPath}/live/sessions/${handle}/input?muted=false`, 'POST');
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
+  if (coordinationJourney) {
+    await until('input unmuted', async () => (await api(`${agentPath}/live/sessions/${handle}`)).recent?.some(e => e.type === 'session.input_audio.unmuted'));
+    await until('initial context delivered', async () => (await api(`${agentPath}/live/sessions/${handle}`)).context?.state === 'ready');
+    await wait(1000); // Test startup pacing; not a production capture/delivery signal.
+  }
   // LiveMultimodal intentionally has no unsolicited opening. Start with a user turn.
   const initial = await api(agentPath + '/state');
-  for (const [name, expected] of (gameJourney ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
+  for (const [name, expected] of (gameJourney || coordinationJourney && coordinationScenario !== 'baseline' ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
@@ -300,10 +314,41 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
+    if (coordinationScenario === 'recognition') {
+      let index = await page.evaluate(() => logs.length); await say('proposal');
+      await until('preparation draft', async () => (await storage())['coordination.draft']?.checks?.length === 1);
+      report.proposal = await settled(index, /rock|recogn|check|prepar/i);
+      let memory = await storage();
+      assert.deepEqual(memory['coordination.draft'].questions, [], 'The self-contained request should not need technical tuning questions');
+      assert.equal(memory['coordination.draft'].reactions.firstAction, 'ON_CUE');
+      assert.equal(memory['coordination.draft'].reactions.maxActions, 1);
+      assert.equal(memory['coordination.agreement'], undefined);
+      index = await page.evaluate(() => logs.length);
+      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+      report.prepared = await settled(index, /shall|would you like|(?:accept|start|begin|ready).{0,45}\?/i);
+      await until('completed acceptance question', async () => (await storage())['core.task.spokenPrompt']);
+      assert.match(report.prepared, /new|fresh|after.{0,20}(accept|start)/i);
+      assert.equal((await storage())['coordination.agreement'], undefined);
+      // Repeated demonstration is still not consent.
+      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+      await wait(2000); assert.equal((await storage())['coordination.agreement'], undefined);
+      index = await page.evaluate(() => logs.length); await say('accept');
+      await until('captured activation', async () => (await storage())['task.response']?.status === 'CAPTURED');
+      report.activation = await settled(index, /wait|armed|active|fresh/i);
+      assert.doesNotMatch(report.activation, /shall.{0,20}start|want.{0,20}start|not (yet )?active/i);
+      memory = await storage(); assert.equal(memory['task.phase'], 'RUNNING'); assert.equal(memory['task.actions'], 0);
+      report.beforeCue = await captionsFrom(0);
+      await wait(3500); index = await page.evaluate(() => logs.length);
+      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+      await until('one authorized contribution', async () => (await storage())['task.actions'] === 1);
+      report.contribution = await settled(index);
+      assert.equal((await storage())['task.actions'], 1);
+    } else {
+      assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
+      assert.equal((await storage())['coordination.agreement'], undefined);
+    }
     report.finalState = await api(agentPath + '/state');
     report.history = await api(agentPath + '/eventhistory');
-    assert.equal((await storage())['coordination.agreement'], undefined);
   } else if (selection === 'live') {
     // Gesture-only requests intentionally require no spoken acknowledgement.
     await say('gesture');
@@ -325,7 +370,7 @@ try {
       assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
     }
   }
-  if (!taskJourney && !gameJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
+  if (!taskJourney && !gameJourney && !(coordinationJourney && coordinationScenario !== 'baseline')) assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;

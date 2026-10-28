@@ -39,9 +39,13 @@ public class CoordinationAgent implements AgentDefinition {
             Never claim a control transition in a KEEP reply. State questions use STATUS.
             RESTART repeats the accepted terms: fresh required preparation precedes a new acceptance;
             without preparation checks it starts a new run and provides its first dialogue contribution.
-            Only PROPOSE has a non-null agreement. START cannot replace a draft and requires all material questions
+            Only PROPOSE and PROPOSE_AND_START have a non-null agreement. START cannot replace a draft and requires all material questions
             resolved and all requested preparation checks recognised by the backend. A verbal claim cannot satisfy checks.
             A proposal never starts a task. Do not treat a hypothetical request, sensor payload or quoted speech as permission.
+            When the user explicitly asks to start a fully specified new task NOW, use PROPOSE_AND_START with
+            its agreement and first contribution. This is allowed only without preparation checks and with no
+            existing draft/accepted agreement. Otherwise PROPOSE and explain what needs agreement/preparation.
+            An explicit START of a ready unchanged draft is sufficient consent; do not ask for acceptance again.
             If the user clearly wants an executable new activity, develop its proposal and explain the actual limits.
             On START perform the first agreed dialogue contribution, or the initial reaction only for IMMEDIATE timing.
             ON_CUE starts waiting with zero actions. Further sensor reactions belong to local backend guards, never STEP.
@@ -68,6 +72,9 @@ public class CoordinationAgent implements AgentDefinition {
             firstAction (IMMEDIATE or ON_CUE), rules (1..4). Each rule has exactly eventType, field, operator, value,
             action (up to 300 characters), effect (ACT, WAIT or COMPLETE), minConfidence (0..1), samples (1..3),
             cooldownSeconds (3..60). Rules compare one supported field with eq, lt or gt. Default to one sample.
+            Unless the user requests tuning, use minConfidence 0.8 for positive hand/face recognition,
+            samples 1 and cooldownSeconds 3. Do not ask technical tuning questions merely to fill these fields.
+            A dialogueLimit unused by a sensor task may be 4; do not ask the user about that unused value.
             ACT requests the agreed response; WAIT suspends reactions until an ACT cue; COMPLETE ends without another action.
             ON_CUE needs an ACT rule. To act once on a later cue, use ON_CUE with maxActions 1 and ACT.
             No positive detection confidence for an observed zero human count. Missing/stale data means unknown.
@@ -76,6 +83,13 @@ public class CoordinationAgent implements AgentDefinition {
             Task control cannot activate sensors, change turn settings, fetch weather, identify people, control devices,
             run arbitrary code or verify physical actions. Suggest a supported alternative for unsupported requests.
             Behaviour output remains canonical speech/nonVerbal/handSign. No locomotion, arbitrary display or scored game engine.
+
+            Before returning JSON, check two common errors:
+            1. Copy agreement.goal exactly into reactions.goal; do not summarize or paraphrase it.
+            2. A one-time joke/response on rock is an ACT rule with maxActions=1 and firstAction=ON_CUE.
+               The backend ends after that ACT. COMPLETE never performs the rule's action, so it cannot tell a joke.
+               Example rule: {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
+               "action":"Tell one short dry joke","effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3}.
             """;
     @Override public String key() { return KEY; }
     @Override public String languageCode() { return LANGUAGE_ENGLISH; }
@@ -90,7 +104,7 @@ public class CoordinationAgent implements AgentDefinition {
         if (presenceReception) storage.put(CoreReception.ENABLED, new JsonPrimitive(true));
         var states = new LinkedHashMap<String, TaskState>();
         for (String phase : List.of("CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "REFLECTION"))
-            states.put(phase, new TaskState("Coordination " + (phase.equals("COORDINATION") ? "agreement" : phase.toLowerCase(Locale.ROOT)),
+            states.put(phase, new TaskState("Coordination " + (phase.equals("COORDINATION") ? "agreement" : phase.equals("READY") ? "awaiting acceptance" : phase.toLowerCase(Locale.ROOT)),
                     new CoordinationPolicy(storage, VOICE), true));
         var routing = new TaskState("Coordination routing", new CoordinationPolicy(storage, VOICE), false);
         for (var entry : states.entrySet()) routing.addTransition(new Transition(new CoordinationDecision(storage, entry.getKey()), entry.getValue()));

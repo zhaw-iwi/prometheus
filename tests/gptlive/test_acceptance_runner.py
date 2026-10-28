@@ -38,6 +38,9 @@ class AcceptanceRunnerTest(unittest.TestCase):
                           {'OPENAI_MODEL': 'invalid model', 'OPENAI_API_KEY': 'not-a-real-key'},
                           'requires an API key and configured openai.model')
 
+    def test_browser_mode_cannot_be_ignored(self):
+        self.run_rejected(['--browser-mode', 'enabled'], {}, 'requires --browser')
+
 
 if __name__ == '__main__':
     unittest.main()

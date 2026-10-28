@@ -68,7 +68,7 @@ for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
     await open(page); await page.evaluate(theme => setTheme(theme), theme);
     await page.evaluate(() => {
       const source = window.__live.sources.find(source => source.url.includes("/monitor/stream"));
-      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "CONFIGURATION", draft: true } }) }));
+      source.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({ task: { phase: "READY", draft: true } }) }));
     });
     await expect(page.getByTestId("activity-label")).toHaveText("Awaiting your acceptance");
     await page.evaluate(() => {

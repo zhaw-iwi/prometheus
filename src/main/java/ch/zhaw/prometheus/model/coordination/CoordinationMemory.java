@@ -31,6 +31,22 @@ public final class CoordinationMemory {
         var draft = agreement(storage, DRAFT);
         return draft != null && draft.complete() && evidence(storage).size() == draft.checks().size();
     }
+    public static String acceptancePrompt(Storage storage) {
+        var draft = agreement(storage, DRAFT);
+        return "The proposal is awaiting your acceptance and is not active."
+                + (draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
+                    ? " After you accept, show a fresh matching cue; preparation signs do not count as task actions." : "")
+                + " Shall we start it now?";
+    }
+    public static String proposalPrompt(Storage storage) {
+        var draft = agreement(storage, DRAFT);
+        if (ready(storage)) return "Proposed task: " + draft.goal() + ". " + acceptancePrompt(storage);
+        if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
+                ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
+        return "Proposed task: " + draft.goal() + ". Before acceptance, we need fresh recognition evidence for: "
+                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + ". The task is not active. I will ask to start after those checks are recognised.";
+    }
     public static JsonObject evidence(Storage storage) {
         return storage.containsKey(EVIDENCE) ? storage.get(EVIDENCE).getAsJsonObject().deepCopy() : new JsonObject();
     }

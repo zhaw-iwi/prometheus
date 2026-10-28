@@ -1924,6 +1924,11 @@ The backend persists partial proposals containing the goal, human/agent roles,
 success criterion and unresolved questions. Diagnostics shows conversation,
 agreement clarification, preparation, readiness, execution, pause and reflection;
 the shared activity footer distinguishes clarification/preparation from acceptance.
+Ready means **Awaiting your acceptance**. The last preparation check explicitly
+asks to start; an ON_CUE task then waits for a fresh sign. A fully specified new
+task explicitly requested to start now needs no second confirmation when it has
+no preparation checks. An unfinished agreement, recognition evidence alone or a
+casual acknowledgement cannot authorize execution.
 The agreement must be complete before it can start, and acceptance applies to the
 saved proposal unchanged. Changing a proposal suspends earlier execution and clears
 its preparation evidence. Discarding the replacement preserves an unfinished

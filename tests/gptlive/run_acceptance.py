@@ -23,6 +23,7 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
+    parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
@@ -31,6 +32,8 @@ def main():
     args = parser.parse_args()
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')
+    if args.browser_mode != 'both' and not args.browser:
+        parser.error('--browser-mode requires --browser')
     if args.coordination_scenario != 'baseline' and args.paid_core not in ('coordination', 'coordination-text'):
         parser.error('--coordination-scenario requires a paid Coordination journey')
     root = Path(__file__).resolve().parents[2]
@@ -140,15 +143,21 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
-            run([*maven, '-q', '-DskipTests', 'compile', 'dependency:build-classpath',
+            run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
-            classpath = os.pathsep.join([str(root / 'target/classes'), (artifacts / 'classpath.txt').read_text().strip()])
+            fixture_root = artifacts / 'provider-classes'
+            fixtures = fixture_root / 'fixtures' / 'provider'
+            fixtures.mkdir(parents=True)
+            for source in (root / 'target/test-classes/fixtures/provider').glob('*.class'):
+                shutil.copy2(source, fixtures / source.name)
+            classpath = os.pathsep.join([str(root / 'target/classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
+            env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
                 port = port_socket.getsockname()[1]
             env.update(SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(port), PROMETHEUS_BASE_URL=f'http://127.0.0.1:{port}')
             with (artifacts / 'app-paid.log').open('w', encoding='utf-8') as log:
-                app = subprocess.Popen(['java', '-cp', classpath, 'ch.zhaw.prometheus.PrometheusApplication'], env=env,
+                app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.provider.ProviderCaptureApplication'], env=env,
                     stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
                 for attempt in range(180):
                     if app.poll() is not None:
@@ -175,7 +184,7 @@ def main():
                 shutil.copy2(source, fixtures / source.name)
             classpath = os.pathsep.join([str(root / 'target/classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
-            for enabled in ('true', 'false'):
+            for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:
                     port_socket.bind(('127.0.0.1', 0))
                     port = port_socket.getsockname()[1]

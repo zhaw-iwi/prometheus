@@ -101,7 +101,7 @@ class CoordinationAgentUnitTest {
         propose(partial, text); assertEquals("Coordination agreement", agent.getCurrentState().getName());
         assertEquals("COORDINATION", TaskCueStatus.of(agent, Instant.now()).phase());
         start(text); assertFalse(storage().containsKey(CoordinationMemory.AGREEMENT)); assertEquals(partial, storage().get(CoordinationMemory.DRAFT));
-        propose(dialogue(), text); assertEquals("Coordination ready", agent.getCurrentState().getName());
+        propose(dialogue(), text); assertEquals("Coordination awaiting acceptance", agent.getCurrentState().getName());
         assertTrue(TaskCueStatus.of(agent, Instant.now()).draft());
         start(text); assertEquals("Coordination execution", agent.getCurrentState().getName()); assertFalse(storage().containsKey(TaskMemory.SPEC));
         turn("STEP", null, "Audience: students. Demonstration: the lab robot. Time: Friday at two", text);

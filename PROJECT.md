@@ -75,11 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Coordination refinement (2026-10-28): CR-01 baseline/harness and CR-02 lifecycle
-  controls are complete on feature/gptlive. Latest checks: 36 focused Java tests
-  and real OpenAI Text state/return/restart smoke passed against disposable MySQL;
-  the baseline Live conversation also passed. Revision and speech work continues
-  through CR-03 to CR-09 in
+- Coordination refinement (2026-10-28): CR-01 through CR-03 are complete on
+  feature/gptlive. Latest checks: 27 focused Java tests, eight Node tests, six
+  runner checks, one footer browser check and real OpenAI Live preparation/start/
+  fresh-cue smoke passed against disposable MySQL. Text return/restart also passed.
+  Failed provider attempts and remaining fragmented-turn effects are recorded.
+  Revision and speech work continues through CR-04 to CR-09 in
   `.agents/PLAN_COORDINATION_REFINEMENT.md`; evidence is in COORDINATION_RESULTS.
 
 - Coordination release preparation (2026-10-28): implementation `293c987` and

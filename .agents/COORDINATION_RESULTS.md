@@ -204,3 +204,48 @@ and persisted history/outcomes are covered. Paid `coordination-text` scenario
 interpreted state query, restart and return phrasings. Both owned schemas/accounts
 were removed. New instances are required for updated saved prompts; no schema
 change. Live wording and final delivery remain CR-06/07 acceptance work.
+
+## CR-03: acceptance clarity (2026-10-28)
+
+Ready is displayed as awaiting acceptance. Preparation and ready-proposal replies
+end with an explicit current acceptance question, after explaining the fresh-cue
+requirement. This ordering matters because short assent is associated with the
+last completed sentence. An explicitly requested, complete new activity can start
+in one turn without preparation; partial terms/checks and casual acknowledgements
+cannot bypass consent. Added a one-shot ACT example after provider evidence showed
+invalid COMPLETE rules and mismatched duplicate goal fields; validators remain strict.
+
+Passed **27 Java tests**, **8 activity Node tests**, **6 runner tests**, and the
+focused desktop footer Playwright check. Java artifacts: `gptlive-acceptance-dbad383537`
+and (after prompt correction) `gptlive-acceptance-539304687f`. Browser initial run
+passed the enabled fixture but failed because the same title did not exist in
+the disabled selection. Added explicit `--browser-mode`; enabled rerun passed
+in `gptlive-acceptance-69a9c5a39d`.
+
+Paid Live attempts retained locally:
+
+- `eeaeb50468`: rejected generated proposal; no raw provider artifact yet.
+- `232d3c6dd7`: added test-classpath-only provider request/result capture and a
+  60-inference limit. The long task request fragmented, briefly revising the earlier
+  camera question; final proposal had unequal goal fields and a COMPLETE-only
+  ON_CUE task. Rejected correctly. Fragment admission remains CR-05 work.
+- `539304687f`: corrected prompt and concise independent input; received input
+  audio but no transcript, so no inference occurred. No acceptance claim.
+- `86e9b13e17`: startup probe incorrectly waited for an audio event in the browser
+  log, which deliberately filters audio events; fixed to use server status.
+
+Each failed attempt stopped its owned application and removed its schema/account.
+The harness now starts independent Coordination scenarios without ambient greeting
+events and waits for server unmute/context readiness. Synthetic provider artifacts
+remain under ignored target; the recorder is absent from production classpaths.
+
+Two further attempts: `f70ebf72e1` reached Ready and asked the valid paraphrase
+"Want to accept it and move on?" but the test regex was too narrow; expanded it.
+`f7663e0982` passed 27 Java checks, but Live's proposal asked an unnecessary
+confidence-tuning question; made ordinary recognition defaults explicit.
+Final paid recognition journey **passed** in `gptlive-acceptance-38f18f7f5b`:
+preparation -> explicit acceptance question -> start -> captured armed response,
+zero actions -> fresh rock -> one dry joke/action. Inspection of its pre-cue
+captions found no delivered joke. Fragmented wording and an extraneous failed-update
+clarification remain visible and are assigned to CR-05/06, not claimed fixed here.
+No additive schema change. New instances receive updated prompts/state labels.
