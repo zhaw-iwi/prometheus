@@ -83,6 +83,11 @@ inside that string so event history stays inspectable.
 
 PROMETHEUS currently provides:
 
+- a new Coordination Agent with persisted partial/accepted dialogue or sensor
+  agreements, observation-based preparation, explicit execution/reflection and
+  revision; it reuses the Generic/Social Space persona, knowledge, perception
+  admission and task controls. Both Generic variants remain available. See README
+  and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;
 - multimodal behaviour generation and behaviour persistence;
@@ -159,7 +164,7 @@ The current registered main-branch agent catalog is authoritative in
 `agentdefs/core`, `agentdefs/usecases/healthcare`, and `README.md`. Do not copy
 catalog keys into new context documents.
 
-The eight conversational core definitions share `ValerianPersona` and a compact
+The conversational core definitions share `ValerianPersona` and a compact
 rendering of `agentdefs/core/reference.json` (classpath resource). The factual
 reference covers SIRA/IWI and the supplied team descriptions; source metadata and
 URLs stay outside prompts. A separate fictional Valerian/Laureline character layer

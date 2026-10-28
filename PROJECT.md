@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination deployment integration (2026-10-28): published main `38b32d8`
+  merged into current agents, retaining Gala/catalog additions and preserving
+  the selected embodiment with Coordination's Valerian identity. The merged tree
+  passed 152 focused Java tests, eight activity-footer Node tests and packaging
+  on isolated local fixtures. The authorized push triggers Heroku deployment;
+  baseline is v156, health UP and 38 saved agents. Evidence and release-check
+  boundaries are in `.agents/COORDINATION_RESULTS.md`.
+
 - Gala lifecycle integration (2026-10-28): reconciled `feature/gala-game-lifecycle`
   with the current `agents` runtime. All three Gala definitions remain registered:
   original, reception-only and the tutorial variant. The tutorial uses existing
@@ -106,6 +114,24 @@ and regulation diagnostics remain future work.
   fixtures are recorded in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`. New instances
   receive the policies; no saved graphs/history are migrated. Deployment is
   triggered by the authorized `agents` push; physical tone/robot checks remain.
+
+- Coordination release preparation (2026-10-28): implementation `293c987` and
+  upstream Live playback readiness are combined in main. Fresh isolated builds
+  passed 71 focused Java tests, eight activity-footer Node tests and packaging.
+  The owner authorized main publication followed by main-to-agents integration
+  and its deployment push. Evidence and remaining acceptance limits are in
+  `.agents/COORDINATION_RESULTS.md`; deployment verification follows on agents.
+
+- Coordination Agent foundation (2026-10-27): new `core.coordination` preserves
+  the shared Valerian persona, lab/team facts, humour and Social Space presence
+  remarks. Persisted dialogue/sensor agreements support clarification, bounded
+  observation preparation, acceptance, execution, reflection and revision.
+  Both Generic variants and saved instances remain available. Verification,
+  additive schema requirements and remaining provider/physical limits are in
+  `.agents/COORDINATION_RESULTS.md`. Full Java regression passed 673 cases;
+  the final focused rerun passed 58 and the activity footer passed eight Node
+  cases. Packaging passed; no provider, physical or deployment trial was run.
+
 - Live playback readiness (2026-10-28): output-audio deltas use PCM sample
   coverage rather than nonexistent provider timing fields. An expired,
   application-approved playback cue wakes ordinary runtime evaluation during
@@ -11537,3 +11563,28 @@ allowlist/test/documentation backport. Backend timing, audio playback and prompt
 are unchanged. The recording plan still requires a separate implementation task;
 its original Gala-specific trial files remain on `agents`. No standalone Valerian
 repository change or Heroku redeployment is included.
+
+## Coordination Agent foundation (2026-10-27)
+
+The owner requested a new `CoordinationAgent.java` as the eventual successor to
+both Generic variants while retaining persona, knowledge, humour and perception
+behaviour. `core.coordination` adds persisted partial/accepted agreements for
+dialogue and sensor tasks, bounded observation preparation, explicit acceptance,
+execution, pause, reflection and revision. Generic definitions and saved graphs
+remain intact. Shared Valerian/SIRA/IWI/team context and Social Space admission
+are reused; no application-specific identity or event knowledge enters main.
+
+The existing task engine still validates and executes sensor rules. Dialogue
+tasks need no invented rule. Preparation cannot be satisfied by verbal claims;
+acceptance and action remain separate from recognising a demonstration. Completed
+tasks stay completed when a proposed replacement is discarded. Accepted evidence,
+last matched rule and bounded operation history support reflection without
+claiming physical execution or subjective success.
+
+Verification passed 673 full Java cases on an isolated build/local MySQL setup,
+58 final focused cases after review fixes, eight Node activity-footer cases,
+packaging and whitespace checks. The results file records initial failures,
+fixture corrections, commands and artifact paths. The new decision discriminator
+field requires an additive schema update. Provider/classroom/physical quality and
+production capacity remain unverified. No commit, push or deployment was made;
+see `.agents/COORDINATION_RESULTS.md` for the review handoff.

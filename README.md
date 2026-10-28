@@ -296,6 +296,7 @@ The main branch ships the Valerian baseline catalog:
 
 | Key | Purpose |
 | --- | --- |
+| `core.coordination` | Coordinate dialogue and sensor tasks through persisted agreements, preparation, execution and reflection. |
 | `core.facial_expression_sensitivity` | Core demo for facial-expression observations. |
 | `core.multimodal_behaviour` | Core demo for coordinated multimodal output. |
 | `core.generic_multimodal_behaviour` | Collaboratively configure a persistent task and react to multimodal cues. |
@@ -313,7 +314,7 @@ The main branch ships the Valerian baseline catalog:
 | `usecases.healthcare.therapy_appointment_reminder` | Single-state therapy appointment reminder. |
 | `usecases.healthcare.therapy_appointment_reminder_intro` | Two-state therapy appointment reminder with introduction. |
 
-All fourteen conversational definitions share restrained, recurring digital-agent
+Conversational definitions share restrained, recurring digital-agent
 self-irony: brief, varied asides when appropriate, not a joke every turn. Facts,
 task instructions, agreed wording and permission to speak take priority; serious,
 medical and distressing moments remain free of humour. Explicit closing prompts
@@ -321,7 +322,7 @@ and Talk to Me's exact-text output are unchanged. Create new instances for consi
 coverage: persisted prompts are not migrated. This is prompt guidance, not an
 enforced humour frequency, and requires no cockpit update or extra model calls.
 
-The eight conversational **core** agents additionally share `ValerianPersona` and
+Conversational **core** agents additionally share `ValerianPersona` and
 the packaged [core reference](src/main/resources/ch/zhaw/prometheus/agentdefs/core/reference.json).
 It contains SIRA Lab/IWI information and Theresa Schmiedel, Marc Styger, Jasmin
 Grassmugg and Alexandre de Spindler; SML, Reto Steiner and Gala/event information
@@ -2458,6 +2459,88 @@ tests/playwright    Browser-level Valerian, Talk to Me, and API Workbench smoke 
 Prefer clear replacement over compatibility shims while the framework remains
 prototype-oriented.
 
+
+### Coordination Agent
+
+Assign `core.coordination` to an access code, create **Valerian Core - Coordination
+Agent**, and connect through the existing cockpit. This is a new definition; both
+Generic variants remain available and saved graphs are not migrated. Text,
+Continuous and GPT-Live use the same backend agreement. The observation and output
+profile matches Generic: speech, supported nonverbal expression and hand poses.
+On the deployment branch, creation preserves the selected Cockpit/Robot embodiment
+while retaining this definition's Valerian identity in both modes.
+
+The agent reuses Social Space's complete voice and shared `ValerianPersona` /
+`CoreAgentReference`: SIRA Lab, IWI, Theresa, Marc, Jasmin and Alexandre, the fictional
+Valerian/Laureline character, restrained humour, short conversational steps and
+respectful uncertainty about perception. Stable arrival/departure remarks retain
+the existing two-second evidence stability, four-second conversation quiet and
+fifteen-second cooldown. Routine refreshes stay quiet; active or paused tasks take
+priority. Direct questions can use all supported fresh observations. Automatic
+facial commentary is not enabled by this definition; facial cues can be discussed
+or explicitly agreed as task rules.
+
+Start with a goal, ask about capabilities, or invite an achievable suggestion.
+The backend persists partial proposals containing the goal, human/agent roles,
+success criterion and unresolved questions. Diagnostics shows conversation,
+agreement clarification, preparation, readiness, execution, pause and reflection;
+the shared activity footer distinguishes clarification/preparation from acceptance.
+The agreement must be complete before it can start, and acceptance applies to the
+saved proposal unchanged. Changing a proposal suspends earlier execution and clears
+its preparation evidence. Discarding the replacement preserves an unfinished
+previous agreement, paused for explicit resume; a completed task stays completed.
+Ordinary questions preserve task progress.
+
+Two execution forms are supported:
+
+- **Dialogue:** no sensor rule is required. For example, agree who supplies lab
+  visit details and who edits a two-sentence invitation. The model interprets each
+  user turn; the backend validates the operation and counts agreed contributions.
+  The agreed limit is 1–50 contributions, including the initial response. Roles,
+  constraints and result quality still require human/provider acceptance testing.
+- **Sensor reactions:** reuse Generic's validated 1–4 rules, confidence/sample
+  checks, cooldown, action limit, `ACT`/`WAIT`/`COMPLETE` effects and
+  `IMMEDIATE`/`ON_CUE` timing. Spoken Live actions retain response-capture gating;
+  silent actions do not wait for captions. Instructions cannot enable sensors or
+  alter microphone/turn settings.
+
+A proposal may additionally request up to three **recognition demonstrations**,
+each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
+threshold. For example, show rock and paper separately before agreeing to use them
+as commands. Only fresh observations after the proposal satisfy those checks;
+repeated evidence or “I showed them” cannot supply a missing demonstration.
+Progress is persisted and updated without model calls. When all checks are met,
+the agent invites acceptance; the demonstration itself performs no task action.
+Evidence records a past recognition, not enduring sensor availability, identity
+or physical success. A revised proposal or a new Live conversation clears pending
+preparation evidence. Accepted tasks retain their existing execution lifecycle.
+
+Pause/resume preserves the agreement and budget. Stop ends the task. Completion
+by an agreed cue, a user completion report, cancellation and an exhausted budget
+remain distinct recorded outcomes. Reflection can use the bounded operation log,
+durable event history and the user's account; it does not turn generated output
+into proof of human understanding or physical execution. A revision needs renewed
+acceptance. Reset clears agreements, preparation, progress and reflection.
+
+Dialogue tasks pause on associated Live session loss. Sensor tasks retain Generic's
+explicit `sessionBound` choice. Optional `prometheus.core.coordination.reception=true`
+enables the existing presence-controlled Live lifecycle for **new instances**,
+including fresh encounter dialogue and departure grace; the default is false.
+Knowledge of a channel does not establish active input or rendered output.
+
+The agreement JSON is bounded to 3,000 UTF-8 bytes and reuses `TaskSpec` for its
+optional `reactions` object; state lives in ordinary `coordination.*` / `task.*`
+Storage. New entity discriminators and nullable
+`decision.coordination_condition varchar(255)` require the current application
+and an additive schema update before creation (`ddl-auto=update` handles this
+locally). No saved instance is rewritten. Monitor `task.phase` has additional
+coordination labels; existing task phases retain their meaning.
+
+This first version does not generate arbitrary workflows, supply a scored game
+engine, identify participants, fetch weather, control devices or verify physical
+actions. Preparation covers observation demonstrations, not arbitrary prerequisite
+logic. Operator trials and natural-language quality remain separate from scripted
+tests. See [coordination implementation evidence](.agents/COORDINATION_RESULTS.md).
 
 ### Generic Multimodal Behaviour
 

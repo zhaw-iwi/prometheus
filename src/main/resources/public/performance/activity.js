@@ -110,9 +110,11 @@ export class InteractionActivity {
         : { label: labels[entry.stage], busy: true, tone: "active", elapsed };
     }
     if (accepted) return { label: "Cue accepted", detail: accepted, busy: false, tone: "live", elapsed: null };
-    const taskLabel = this.task?.phase === "CONFIGURATION" ? (this.task.draft ? "Awaiting your acceptance" : "Ready to configure")
+    const coordinationLabel = { CONVERSATION: "Ready to explore", COORDINATION: "Clarifying the agreement",
+      PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", REFLECTION: "Reflecting on the task" }[this.task?.phase];
+    const taskLabel = coordinationLabel || (this.task?.phase === "CONFIGURATION" ? (this.task.draft ? "Awaiting your acceptance" : "Ready to configure")
       : this.task?.phase === "PAUSED" ? "Task paused" : this.task?.phase === "COMPLETED" ? "Task completed"
-      : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null;
+      : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null);
     if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
     if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
       return { label: "Waiting for response capture", detail: "Captions have not yet confirmed the response content.", busy: false, tone: "idle", elapsed: null };

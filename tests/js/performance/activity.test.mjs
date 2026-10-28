@@ -2,6 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { InteractionActivity } from "../../../src/main/resources/public/performance/activity.js";
 
+test("coordination distinguishes unresolved agreements and preparation from permission to start", () => {
+  const activity = new InteractionActivity({ now: () => 0 }); activity.scope("agent");
+  for (const [phase, label] of Object.entries({ CONVERSATION: "Ready to explore", COORDINATION: "Clarifying the agreement",
+    PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", REFLECTION: "Reflecting on the task" })) {
+    activity.taskStatus({ epoch: "epoch", phase, draft: true });
+    assert.equal(activity.view().label, label); assert.equal(activity.view().busy, false);
+  }
+  activity.scope(null); assert.equal(activity.view().label, "Connect an agent to begin");
+});
+
 test("confirmation replaces hand readiness and its completion expires", () => {
   let now = 0; const activity = new InteractionActivity({ now: () => now }); activity.scope("agent");
   for (const [revision, reason, label] of [[1, "rps_waiting_for_sign", "Show one steady hand sign"],
