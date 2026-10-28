@@ -427,3 +427,33 @@ preceded the browser's accepted playback acknowledgement, and only then did the
 agent enter Reflection. Pre-acceptance/pre-cue and post-acknowledgement windows
 contained no premature/repeated joke. Return and state query both confirmed
 Conversation. This demonstrates received-media evidence, not hardware audibility.
+
+## CR-08: explain control and capture evidence (2026-10-28)
+
+Control journals now retain stable source history positions through detached event
+selection, before/after stage, run/revision, actions and explicit outcome. The
+ordinary application turn binds its persisted input ID to the same activity
+operation after save, using loaded history without another database read. The
+storage journal is bounded by 12 entries and 6000 UTF-8 bytes with a dropped counter;
+monitor/export metadata is explicitly allowlisted. Sensor outcomes are recorded
+after setting the outcome. Footer copy explains acceptance, armed/fresh-cue waiting,
+finishing and uncertain delivery without implying physical execution.
+
+Live diagnostics retain the original trace and distinguish observed
+session_closed_during_delivery from active context_delivery_unconfirmed. A failed
+delivery near operator Stop is labeled as unconfirmed, with no cross-clock causal
+claim. Controlled capture cases distinguish a delayed chunk containing full sample
+coverage from a genuine coverage gap. Existing silence, interruption and late-input
+rules remain conservative. Each of the three original assistant audio_coverage_gap
+segments remains **incomplete capture with unresolved physical cause**: the stored
+metadata cannot establish whether speech was clipped at the speaker. No capture
+classification was relaxed and no audio-clipping fix is claimed.
+
+Verification: `c41b32fdb3` passed the focused Coordination, activity, event-order,
+capture and context Java suites plus one real-app browser/SSE footer and exported
+timeline smoke. The two Node suites passed **16 tests**. Follow-up `aa5f0b5f1a`
+found a test setup mistake: unchanged context generated no command, so its teardown
+latch could never open. Supplying an actual synthetic narration exercises the
+intended close-during-acknowledgement path. `b738112776` then passed **39 capture and
+context tests**, including that teardown case and full-sample versus missing-sample
+coverage. All disposable resources were cleaned up.

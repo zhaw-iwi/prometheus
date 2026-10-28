@@ -10,6 +10,22 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.logging.*;
 
 class AgentActivityServiceUnitTest {
+    @Test void coordinationMetadataIsAllowlistedAndKeepsOperationCorrelation() {
+        var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class)); var id = UUID.randomUUID();
+        try {
+            service.call(id, "turn", true, () -> {
+                ActivityTrace.task("FINISHING", 2);
+                ActivityTrace.coordination(Map.of("operation", "START", "beforePhase", "READY", "phase", "FINISHING",
+                        "run", "private transcript", "prompt", "private", "taskOutcome", "LIMIT_REACHED"), 4L, 2, 1, 3);
+                return null;
+            });
+            var entries = service.snapshot(id).recent();
+            var change = entries.stream().filter(e -> e.stage().equals("coordination")).findFirst().orElseThrow();
+            assertEquals(4L, change.details().get("sourcePosition")); assertEquals(3, change.details().get("logDropped"));
+            assertEquals(change.operationId(), entries.getLast().operationId());
+            assertFalse(new com.google.gson.Gson().toJson(entries).contains("private"));
+        } finally { service.close(); }
+    }
     @Test void taskRevisionsAndCueSourcesRemainContentFreeAndCaughtFailuresAreStillFailures() {
         var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class)); UUID id = UUID.randomUUID(), sample = UUID.randomUUID();
         try {

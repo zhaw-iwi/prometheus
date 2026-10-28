@@ -67,6 +67,7 @@ final class CoordinationDelivery {
     }
     static void apply(Storage storage, Event event, PolicyRuntime runtime, Instant now) {
         if (!matches(storage, event, runtime, now)) return;
+        String before = CoordinationMemory.stage(storage);
         if (PLAYED.equals(event.getType())) {
             var delivery = storage.get(KEY).getAsJsonObject().deepCopy();
             delivery.addProperty("status", "PLAYBACK_CONFIRMED"); delivery.addProperty("ended", now.toString());
@@ -77,6 +78,6 @@ final class CoordinationDelivery {
         else if (ENDED.equals(event.getType())) TaskMemory.pauseForSession(storage, "live_session_ended");
         else TaskMemory.pauseForResponse(storage, "response_uncertain");
         storage.put(TaskMemory.REPLY, new JsonObject());
-        CoordinationMemory.record(storage, "DELIVERY_" + TaskMemory.phase(storage), event, now);
+        CoordinationMemory.record(storage, "DELIVERY_" + TaskMemory.phase(storage), before, event, now);
     }
 }

@@ -1967,6 +1967,17 @@ publication, and silent actions do not wait for speech. These boundaries do not
 prove physical audibility or robot motion. Saved graphs need a fresh instance to
 receive Finishing/Uncertain transitions; deployment does not rewrite them.
 
+The activity footer distinguishes acceptance, fresh-cue waiting, finishing and
+uncertain delivery. Telemetry's content-free `coordination` entries carry the
+operation, before/after phase, run, revision, action count, outcome and source
+history position; the enclosing operation links to the persisted input ID.
+The storage journal retains at most 12 entries/6000 UTF-8 bytes and exposes its
+dropped count. Live diagnostics distinguish observed delivery teardown from an
+active failure; a failure near operator Stop retains an uncertain timing label.
+`audio_coverage_gap` means capture evidence is incomplete, not that audible clipping
+has been proved or repaired. The original three gaps still have no established
+physical cause.
+
 Two execution forms are supported:
 
 - **Dialogue:** no sensor rule is required. For example, agree who supplies lab

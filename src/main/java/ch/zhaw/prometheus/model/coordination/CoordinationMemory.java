@@ -13,7 +13,7 @@ public final class CoordinationMemory {
             PREPARED_AFTER = "coordination.preparedAfter", EVIDENCE = "coordination.evidence",
             ACCEPTED_EVIDENCE = "coordination.acceptedEvidence", PREVIOUS_PHASE = "coordination.previousPhase",
             OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue",
-            RUN = "coordination.run", OUTCOMES = "coordination.outcomes";
+            RUN = "coordination.run", OUTCOMES = "coordination.outcomes", LOG_DROPPED = "coordination.logDropped";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
@@ -102,20 +102,32 @@ public final class CoordinationMemory {
             default -> "Reflect, revise or explicitly restart the same task.";
         } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";
     }
-    public static void record(Storage storage, String operation, Event event, Instant now) {
+    public static void record(Storage storage, String operation, String before, Event event, Instant now) {
         var log = storage.containsKey(LOG) ? storage.get(LOG).getAsJsonArray().deepCopy() : new JsonArray();
         var entry = new JsonObject(); entry.addProperty("operation", operation); entry.addProperty("at", now.toString());
+        var facts = Map.of("operation", operation, "beforePhase", before, "phase", stage(storage),
+                "run", TaskMemory.text(storage, RUN, "none"), "taskOutcome", TaskMemory.text(storage, OUTCOME, "not_established"));
+        facts.forEach(entry::addProperty);
         entry.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
         entry.addProperty("actions", TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
-        entry.addProperty("source", event == null || event.getId() == null ? "unpersisted" : event.getId().toString());
+        Long position = event == null ? null : event.sourcePosition();
+        entry.addProperty("source", event != null && event.getId() != null ? event.getId().toString()
+                : position == null ? "unavailable" : "history:" + position);
+        if (position != null) entry.addProperty("sourcePosition", position);
         if (event != null) {
             entry.addProperty("eventType", event.getType());
             var observed = TaskMemory.observed(event);
             if (observed != null) entry.addProperty("observed", observed.toString());
         }
-        if (Set.of("SENSOR_RUNNING", "SENSOR_COMPLETED").contains(operation) && storage.containsKey(LAST_CUE))
+        if (Set.of("SENSOR_RUNNING", "SENSOR_COMPLETED", "SENSOR_FINISHING").contains(operation) && storage.containsKey(LAST_CUE))
             entry.add("cue", storage.get(LAST_CUE).deepCopy());
-        log.add(entry); while (log.size() > 12) log.remove(0); storage.put(LOG, log);
+        int dropped = Integer.parseInt(TaskMemory.text(storage, LOG_DROPPED, "0"));
+        log.add(entry);
+        while (log.size() > 12 || log.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 6000) { log.remove(0); dropped++; }
+        storage.put(LOG, log); storage.put(LOG_DROPPED, new JsonPrimitive(dropped));
+        ch.zhaw.prometheus.logging.ActivityTrace.coordination(facts, position,
+                Integer.parseInt(TaskMemory.text(storage, TaskMemory.REVISION, "0")),
+                Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0")), dropped);
     }
     public static String facts(Storage storage) {
         String prefix = controls(storage) + " Coordination stage: " + stage(storage) + "; actions: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
@@ -129,5 +141,5 @@ public final class CoordinationMemory {
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, REVIEW, LAST_CUE, RUN, OUTCOMES); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES); }
 }

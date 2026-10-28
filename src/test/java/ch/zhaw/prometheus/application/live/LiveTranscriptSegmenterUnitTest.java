@@ -80,6 +80,19 @@ class LiveTranscriptSegmenterUnitTest {
         segmenter.fragment(fragment("large", Speaker.USER, 4000, 4100, 33000, "x".repeat(2800)));
         assertThrows(IllegalStateException.class, () -> segmenter.fragment(fragment("overflow", Speaker.USER, 4101, 4200, 33100, "x")));
     }
+    @Test void delayedAudioWithFullSampleCoverageDiffersFromAnActualCaptureGap() {
+        for (boolean fullCoverage : new boolean[]{true, false}) {
+            var capture = new LiveTranscriptSegmenter(UUID.randomUUID());
+            capture.fragment(fragment("output", Speaker.ASSISTANT, 0, 100, 100, "Synthetic final response"));
+            capture.audio(Speaker.ASSISTANT, 2400, true, 100);
+            // Same 800ms delivery interval: one chunk covers it, the other leaves 700ms unobserved.
+            capture.audio(Speaker.ASSISTANT, fullCoverage ? 19200 : 2400, true, 900);
+            for (int i = 1; i <= 8; i++) capture.audio(Speaker.ASSISTANT, 2400, false, 900 + i * 100);
+            var result = capture.poll(1700).getFirst();
+            assertEquals(fullCoverage ? Closure.COMPLETE : Closure.INCOMPLETE, result.closure());
+            if (!fullCoverage) assertEquals("audio_coverage_gap", result.reason());
+        }
+    }
 
     @ParameterizedTest
     @CsvSource({"770,Ist die Person männlich oder,weiblich", "1200,Ist die Person schon lange,verstorben", "1708,Etwas,spielen"})

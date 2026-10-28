@@ -140,10 +140,24 @@ public class AgentActivityService {
         }
         @Override public void task(String phase, int revision) {
             synchronized (AgentActivityService.this) {
-                if (!current() || !Set.of("CONFIGURATION", "RUNNING", "WAITING", "PAUSED", "COMPLETED").contains(phase) || revision < 0) return;
+                if (!current() || !Set.of("CONFIGURATION", "RUNNING", "WAITING", "PAUSED", "COMPLETED", "CONVERSATION",
+                        "COORDINATION", "PREPARATION", "READY", "FINISHING", "REFLECTION", "UNCERTAIN").contains(phase) || revision < 0) return;
                 if (phase.equals(journal.taskPhase) && revision == journal.taskRevision) return;
                 journal.taskPhase = phase; journal.taskRevision = revision;
                 record(null, "task", "observed", null, Map.of("phase", phase, "taskRevision", revision));
+            }
+        }
+        @Override public void coordination(Map<String, String> facts, Long sourcePosition, int revision, int actions, int dropped) {
+            synchronized (AgentActivityService.this) {
+                if (!current()) return;
+                var details = new LinkedHashMap<String,Object>();
+                for (String key : List.of("operation", "beforePhase", "phase", "run", "taskOutcome"))
+                    if (safe(facts.get(key)) != null) details.put(key, safe(facts.get(key)));
+                if (sourcePosition != null && sourcePosition >= 0) details.put("sourcePosition", sourcePosition);
+                details.put("taskRevision", Math.max(0, revision)); details.put("actions", Math.max(0, actions));
+                details.put("logDropped", Math.max(0, dropped)); visible = true;
+                // The enclosing operation's final result establishes whether application work succeeded.
+                record(null, "coordination", "applied", null, details);
             }
         }
         @Override public void event(UUID event) { synchronized (AgentActivityService.this) {

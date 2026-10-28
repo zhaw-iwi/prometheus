@@ -59,7 +59,9 @@ export class InteractionActivity {
     for (const entry of (value.recent || []).slice(-128)) {
       if (number(entry.sequence) === null) continue;
       entries.set(entry.sequence, { ...fields(entry, ["operationId", "traceId", "sessionId", "sourceId", "eventId", "spanId", "stage", "outcome"],
-        ["sequence", "serverMs", "durationMs"]), details: fields(entry.details || {}, ["requestId", "purpose", "model", "effort", "kind", "reason", "phase"], ["inputTokens", "outputTokens", "providerRequests", "taskRevision"]) });
+        ["sequence", "serverMs", "durationMs"]), details: fields(entry.details || {},
+          ["requestId", "purpose", "model", "effort", "kind", "reason", "phase", "operation", "beforePhase", "run", "taskOutcome"],
+          ["inputTokens", "outputTokens", "providerRequests", "taskRevision", "sourcePosition", "actions", "logDropped"]) });
     }
     journal.retainedDropped += Math.max(0, entries.size - 1024); journal.recent = [...entries.values()].slice(-1024);
     Object.assign(journal, fields(value, [], ["revision", "serverMs", "dropped", "omittedOperations"]));
@@ -116,7 +118,10 @@ export class InteractionActivity {
     const taskLabel = coordinationLabel || (this.task?.phase === "CONFIGURATION" ? (this.task.draft ? "Awaiting your acceptance" : "Ready to configure")
       : this.task?.phase === "PAUSED" ? "Task paused" : this.task?.phase === "COMPLETED" ? "Task completed"
       : this.task?.phase === "WAITING" ? "Waiting for the condition to change" : null);
-    if (taskLabel) return { label: taskLabel, busy: false, tone: "idle", elapsed: null };
+    if (taskLabel) return { label: taskLabel, busy: false, tone: this.task?.phase === "UNCERTAIN" ? "warning" : "idle", elapsed: null,
+      detail: { READY: "Accept the proposal to start. Preparation alone does not start it.",
+        FINISHING: "Waiting for response capture and playback confirmation.",
+        UNCERTAIN: "Delivery could not be confirmed. It will not repeat automatically." }[this.task?.phase] || "" };
     if (this.task?.phase === "RUNNING" && !this.task.responseCaptured)
       return { label: "Waiting for response capture", detail: "Captions have not yet confirmed the response content.", busy: false, tone: "idle", elapsed: null };
     const reason = this.backend?.cue?.reason;
@@ -124,6 +129,8 @@ export class InteractionActivity {
     const cueAge = now - this.received + Math.max(0, this.backend?.serverMs - this.backend?.cue?.serverMs);
     const cue = terminalHandCue && cueAge >= 10000 ? null : cues[reason];
     if (cue) return { label: cue, busy: false, tone: "idle", elapsed: null };
+    if (this.task?.phase === "RUNNING" && this.task.responseCaptured)
+      return { label: "Waiting for a fresh cue", busy: false, tone: "idle", elapsed: null };
     if (!this.connected && this.received !== null) return { label: "Reconnecting progress", busy: false, tone: "warning", elapsed: null };
     return { label: this.listening ? "Listening" : "Ready", busy: false, tone: "idle", elapsed: null };
   }

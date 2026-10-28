@@ -28,6 +28,7 @@ class CoordinationDeliveryIntegrationTest {
     @Autowired LiveAgentContextService contexts;
     @Autowired ExternalSpeechRecordingService recording;
     @Autowired ExternalSpeechOwnership ownership;
+    @Autowired AgentActivityService activity;
     @MockitoBean LanguageModelGateway gateway;
     record Scope(String code, UUID id, ExternalSpeech owner) {}
     Storage memory(Scope scope) { return ((TaskPolicy) agents.findById(scope.id()).orElseThrow().getCurrentState().ownPolicy()).storage(); }
@@ -57,6 +58,17 @@ class CoordinationDeliveryIntegrationTest {
     @Test void finishingReloadsAndOnlyScopedAssociatedPlaybackCompletesIt() throws Exception {
         var scope = start();
         try {
+            var journal = memory(scope).get(CoordinationMemory.LOG).getAsJsonArray();
+            var log = journal.get(journal.size()-1).getAsJsonObject();
+            assertEquals("READY", log.get("beforePhase").getAsString()); assertEquals("FINISHING", log.get("phase").getAsString());
+            assertEquals("LIMIT_REACHED", log.get("taskOutcome").getAsString());
+            long position = log.get("sourcePosition").getAsLong();
+            var persisted = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                    .filter(e -> Long.valueOf(position).equals(e.sourcePosition())).findFirst().orElseThrow();
+            var entries = activity.snapshot(scope.id()).recent();
+            var operation = entries.stream().filter(e -> e.stage().equals("coordination")
+                    && Long.valueOf(position).equals(e.details().get("sourcePosition"))).findFirst().orElseThrow();
+            assertTrue(entries.stream().anyMatch(e -> operation.operationId().equals(e.operationId()) && persisted.getId().equals(e.sourceId())));
             var pending = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
             assertNotNull(pending); assertNull(pending.segmentId());
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "final-contribution"));

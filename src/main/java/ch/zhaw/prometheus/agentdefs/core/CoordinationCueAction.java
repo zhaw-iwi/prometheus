@@ -36,14 +36,15 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
     }
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         String phase = TaskMemory.phase(getStorage()), count = TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0");
+        String before = CoordinationMemory.stage(getStorage());
         super.execute(events, runtime);
         if (!phase.equals(TaskMemory.phase(getStorage())) || !count.equals(TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0"))) {
-            CoordinationMemory.record(getStorage(), "SENSOR_" + TaskMemory.phase(getStorage()), events.toList().getLast(), Instant.now());
             if (java.util.Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(getStorage()))) {
                 var spec = TaskSpec.parse(getStorage().get(TaskMemory.SPEC));
                 getStorage().put(CoordinationMemory.OUTCOME, new JsonPrimitive(Integer.parseInt(TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0"))
                         >= spec.maxActions() ? "LIMIT_REACHED" : "COMPLETION_CUE"));
             }
+            CoordinationMemory.record(getStorage(), "SENSOR_" + TaskMemory.phase(getStorage()), before, events.toList().getLast(), Instant.now());
         }
     }
 }

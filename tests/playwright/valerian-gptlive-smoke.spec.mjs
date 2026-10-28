@@ -35,6 +35,12 @@ test("Coordination finishing persists until a delayed scoped playback acknowledg
       {headers:scoped, data:{segmentId:cue.segmentId}});
     expect(await acknowledgement.json()).toBe(true);
     await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
+    await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
+      e => e.stage === 'coordination' && e.details.beforePhase === 'READY' && e.details.phase === 'FINISHING'
+        || e.stage === 'coordination' && e.details.phase === 'FINISHING' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
+    const timeline = await page.evaluate(() => window.PrometheusActivity.snapshot());
+    expect(JSON.stringify(timeline)).not.toContain('Start one fixture observation contribution now');
+    expect(timeline.coverage.physicalAudibility).toBe('not_measured');
     await page.getByTestId('gptlive-stop').click();
   } finally { await request.delete(path, {headers:scoped}); }
 });

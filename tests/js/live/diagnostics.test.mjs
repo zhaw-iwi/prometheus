@@ -2,6 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveDiagnostics } from "../../../src/main/resources/public/live/diagnostics.js";
 
+test("context diagnostics distinguish observed teardown from active failure without erasing either", () => {
+  for (const stopFirst of [true, false]) {
+    const d = new LiveDiagnostics();
+    const stop = () => d.record({handle: "s", phase: "output_end", reason: "operator_stop"});
+    const failed = () => d.record({handle: "s", phase: "status", status: {context: {state: "context_delivery_unconfirmed",
+      recent: [{sequence: 1, phase: "failed", serverMs: 30}]}}});
+    if (stopFirst) stop(); failed();
+    if (!stopFirst) { assert.equal(d.snapshot().sessions[0].contextAssessment.classification, "active_delivery_failure"); stop(); }
+    let s = d.snapshot().sessions[0];
+    assert.equal(s.contextAssessment.classification, "unconfirmed_delivery_near_operator_stop");
+    assert.equal(s.server.context.recent[0].phase, "failed");
+    d.record({handle: "s", phase: "status", status: {context: {state: "closed",
+      recent: [{sequence: 2, phase: "session_closed_during_delivery", serverMs: 31}]}}});
+    s = d.snapshot().sessions[0]; assert.equal(s.contextAssessment.classification, "expected_teardown");
+    assert.equal(s.server.context.recent.length, 2);
+    assert.match(s.coverage.captureGaps, /not_proof/);
+  }
+});
+
 test("presence grace metadata is session-scoped without observation payloads", () => {
   const diagnostics = new LiveDiagnostics();
   diagnostics.record({ handle: "session", phase: "presence", outcome: "presence_resumed", graceMs: 2000, durationMs: 1500, text: "private" });

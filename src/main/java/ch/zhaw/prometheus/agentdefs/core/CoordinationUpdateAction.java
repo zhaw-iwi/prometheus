@@ -137,10 +137,11 @@ public class CoordinationUpdateAction extends Action {
     }
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
+        String before = CoordinationMemory.stage(storage);
         if (CoordinationDelivery.finishing(storage) && Set.of("STOP", "RETURN_TO_CONVERSATION", "RESTART", "PROPOSE", "REPLACE").contains(operation)) {
             CoordinationDelivery.uncertain(storage, "user_" + operation.toLowerCase(java.util.Locale.ROOT), now);
             if (operation.equals("STOP")) {
-                CoordinationMemory.record(storage, "STOP", event, now); answer(CoordinationMemory.controls(storage), runtime); return;
+                CoordinationMemory.record(storage, "STOP", before, event, now); answer(CoordinationMemory.controls(storage), runtime); return;
             }
         }
         if (operation.equals("PROPOSE_AND_START")) {
@@ -232,7 +233,7 @@ public class CoordinationUpdateAction extends Action {
         }
         // A task begun in Text becomes associated with Live when a user continues it there.
         if (live && TaskMemory.active(storage)) storage.put(TaskMemory.SESSION, new JsonPrimitive(runtime.externalSpeech().sessionId().toString()));
-        if (!operation.equals("KEEP")) CoordinationMemory.record(storage, operation, event, now);
+        if (!operation.equals("KEEP")) CoordinationMemory.record(storage, operation, before, event, Instant.now());
         reply = switch (operation) {
             case "PROPOSE" -> BehaviourPlan.speechOnly(CoordinationMemory.proposalPrompt(storage));
             case "REPLACE" -> BehaviourPlan.speechOnly("This is a replacement proposal; the earlier task is not executing. " + CoordinationMemory.proposalPrompt(storage));

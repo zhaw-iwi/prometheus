@@ -16,6 +16,8 @@ class EventSelectionTimingUnitTest {
         var selected = history.select(EventSelector.any());
         assertNotSame(user, selected.toList().getFirst()); assertNull(selected.toList().getFirst().getId());
         assertEquals(user.getCreatedDate(), selected.toList().getFirst().getCreatedDate());
+        assertEquals(user.sourcePosition(), selected.toList().getFirst().sourcePosition());
+        assertEquals(user.sourcePosition(), selected.select(EventSelector.any()).toList().getFirst().sourcePosition());
         assertTrue(SensoryRemarks.change(selected, new Storage(), now, 2000, 4000, 15000).isEmpty());
         assertTrue(SensoryRemarks.change(selected, new Storage(), now, 2000, 0, 15000).isPresent());
     }

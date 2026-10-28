@@ -40,6 +40,7 @@ public class EventHistory {
                 copy.setStatePath(current.getStatePath());
                 copy.speechProvenance(current.speechProvenance());
                 copy.recordedAt(current.getCreatedDate());
+                if (current.historyPosition() != null) copy.historyPosition(current.historyPosition());
                 copy.setEventHistory(selected);
                 selected.eventList.add(copy);
             }
@@ -49,14 +50,17 @@ public class EventHistory {
 
     public Event appendEvent(Event event) {
         Event copy = new Event(event.getType(), event.getActor(), event.getKind(), event.getPayload());
-        long previous = this.eventList.stream().map(Event::historyPosition).filter(java.util.Objects::nonNull)
-                .mapToLong(Long::longValue).max().orElse(-1L);
-        copy.historyPosition(Math.addExact(previous, 1L));
+        copy.historyPosition(nextPosition());
         copy.setStatePath(event.getStatePath());
         copy.speechProvenance(event.speechProvenance());
         copy.setEventHistory(this);
         this.eventList.add(copy);
         return copy;
+    }
+
+    public long nextPosition() {
+        return Math.addExact(this.eventList.stream().map(Event::historyPosition).filter(java.util.Objects::nonNull)
+                .mapToLong(Long::longValue).max().orElse(-1L), 1L);
     }
 
     public Event removeLast(EventSelector selector) {
