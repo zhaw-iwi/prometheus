@@ -85,6 +85,14 @@ and regulation diagnostics remain future work.
   the final focused rerun passed 58 and the activity footer passed eight Node
   cases. Packaging passed; no provider, physical or deployment trial was run.
 
+- Live playback readiness (2026-10-28): output-audio deltas use PCM sample
+  coverage rather than nonexistent provider timing fields. An expired,
+  application-approved playback cue wakes ordinary runtime evaluation during
+  Live refresh, including when scheduled ticks are disabled; stale owners and
+  revoked task work cannot trigger this evaluation. Passed 23 focused capture,
+  segmenter and refresh tests after fresh compilation. Prepared on a separate
+  main-based feature branch for the Gala integration; no physical audio trial.
+
 - Shared core reference/persona follow-up (2026-10-27): the eight conversational
   core definitions share sourced SIRA/IWI/team facts and a separate fictional
   Valerian/Laureline backstory with mild grumpiness. SML, Reto and event knowledge

@@ -1414,6 +1414,10 @@ under the turn lock. Policies consume it once through ordinary state actions.
 Interrupted, muted, stalled or unobserved audio cannot establish completion;
 applications must provide bounded recovery. This is no hardware audibility or
 physical motion guarantee. Normal agents have no cue and no audio observer.
+Output-audio deltas use PCM coverage; they do not require provider timing fields.
+Keep an expired cue in activity data until runtime evaluation cancels it. Live
+refresh evaluates expired cues through the ordinary tick path even when scheduled
+ticks are disabled, while retaining session ownership and task-work checks.
 Accepted speech cues trigger one urgent context refresh; ordinary commits retain
 their five-second coalescing window. Send the
 returned revision on the next poll: unchanged ledgers return null transcripts and
