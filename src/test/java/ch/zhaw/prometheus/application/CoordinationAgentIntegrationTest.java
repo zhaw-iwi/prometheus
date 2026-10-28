@@ -99,4 +99,20 @@ class CoordinationAgentIntegrationTest {
         turn(scope, "PROPOSE", proposal.toString(), "Revise the proposal to clarify references");
         assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope))); assertEquals(0, CoordinationMemory.evidence(memory(scope)).size());
     }
+    @Test void returnAndRestartReloadWithHistoryAndEarlierOutcomesPreserved() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose an invitation task");
+        turn(scope, "START", "null", "Start now");
+        String run = memory(scope).get(CoordinationMemory.RUN).getAsString();
+        turn(scope, "COMPLETE", "null", "The invitation is accepted; complete the task");
+        int history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
+        turn(scope, "RETURN_TO_CONVERSATION", "null", "Go back to the beginning state");
+        assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+        assertEquals("USER_REPORTED_COMPLETION", memory(scope).get(CoordinationMemory.OUTCOME).getAsString());
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size() > history);
+        turn(scope, "RESTART", "null", "Restart the same task");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertNotEquals(run, memory(scope).get(CoordinationMemory.RUN).getAsString());
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(1, memory(scope).get(CoordinationMemory.OUTCOMES).getAsJsonArray().size());
+    }
 }

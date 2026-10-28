@@ -1959,7 +1959,15 @@ by an agreed cue, a user completion report, cancellation and an exhausted budget
 remain distinct recorded outcomes. Reflection can use the bounded operation log,
 durable event history and the user's account; it does not turn generated output
 into proof of human understanding or physical execution. A revision needs renewed
-acceptance. Reset clears agreements, preparation, progress and reflection.
+acceptance. Ask "Where are we?" for the actual state and available controls.
+"Go back to the beginning state" returns to Conversation, revokes pending task
+authority and preserves dialogue history and completed outcomes. "Restart the same
+task" creates a fresh run and budget; required preparation must be demonstrated
+again before accepting. Without preparation checks, an explicit restart begins
+immediately. Ambiguous "start over" asks which of these you mean. Stop after
+completion preserves the recorded outcome. The last eight run outcomes are kept
+in ordinary Storage; the full conversation remains in history. Reset, by contrast,
+clears agreements, preparation, progress and reflection.
 
 Dialogue tasks pause on associated Live session loss. Sensor tasks retain Generic's
 explicit `sessionBound` choice. Optional `prometheus.core.coordination.reception=true`

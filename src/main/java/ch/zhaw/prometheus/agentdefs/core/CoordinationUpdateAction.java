@@ -15,7 +15,7 @@ import jakarta.persistence.Entity;
 /** Interpret one user turn, validate the whole update, then commit it under the existing agent-turn boundary. */
 @Entity
 public class CoordinationUpdateAction extends Action {
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT");
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -24,6 +24,7 @@ public class CoordinationUpdateAction extends Action {
         var storage = getStorage();
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
+        String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
         String invitation = CoreTaskVoice.prompt(storage, events, runtime.externalSpeech(), CoordinationMemory.DRAFT);
@@ -42,7 +43,14 @@ public class CoordinationUpdateAction extends Action {
         boolean inferred = false;
         try {
             String command = CoreTaskVoice.normalize(text);
-            if (command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
+            if (command.matches("(please )?(go |get |take us )?back to (the )?(beginning|initial|first|conversation)( state)?")
+                    || command.matches("(please )?return to (general )?conversation")) {
+                operation = "RETURN_TO_CONVERSATION"; reply = BehaviourPlan.speechOnly("Returned to Conversation.");
+            } else if (command.matches("(please )?(start|let s start)( all)? over( again)?")) {
+                answer("Do you mean return to Conversation, or restart the same agreed task? The state is unchanged.", runtime); return;
+            } else if (command.matches("(what is (our|your|the) (current )?state|where are we|which state are we in)")) {
+                operation = "STATUS"; reply = BehaviourPlan.speechOnly(CoordinationMemory.controls(storage));
+            } else if (command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
                 operation = command.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
                 if (operation.equals("CANCEL")) operation = "STOP";
                 reply = BehaviourPlan.speechOnly(switch (operation) {
@@ -62,7 +70,7 @@ public class CoordinationUpdateAction extends Action {
                         + DecorativeGestures.guidance(storage, now);
                 String raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.EXTRACTION,
                         TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
-                if (!runtime.taskContinuation().getAsBoolean()) return;
+                if (!runtime.taskContinuation().getAsBoolean() || !revision.equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return;
                 inferred = true;
                 var update = JsonParser.parseString(raw).getAsJsonObject();
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
@@ -98,11 +106,25 @@ public class CoordinationUpdateAction extends Action {
             case "PAUSE" -> { if (!TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException(); }
             case "RESUME" -> { if (!"PAUSED".equals(TaskMemory.phase(storage)) || accepted == null || storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException(); }
             case "DISCARD" -> { if (!storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException(); }
+            case "RESTART" -> { if (accepted == null || storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException("No accepted task to restart"); }
             default -> { }
         }
     }
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
+        if (operation.equals("STATUS")) { answer(CoordinationMemory.controls(storage), runtime); return; }
+        if (operation.equals("STOP") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))
+                && !storage.containsKey(CoordinationMemory.DRAFT)) {
+            answer("No task is running. " + CoordinationMemory.controls(storage) + " The earlier outcome is preserved.", runtime); return;
+        }
+        if (operation.equals("RESTART")) {
+            CoordinationMemory.archive(storage);
+            var restart = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
+            storage.put(CoordinationMemory.DRAFT, restart.json()); CoordinationMemory.resetPreparation(storage, now);
+            CoordinationMemory.phase(storage, "CONFIGURATION");
+            if (CoordinationMemory.ready(storage)) operation = "START";
+            else { operation = "PROPOSE"; proposed = restart; }
+        }
         boolean action = operation.equals("STEP"), gate = false;
         switch (operation) {
             case "PROPOSE" -> {
@@ -111,6 +133,8 @@ public class CoordinationUpdateAction extends Action {
                 CoordinationMemory.resetPreparation(storage, now);
             }
             case "START" -> {
+                CoordinationMemory.archive(storage);
+                storage.put(CoordinationMemory.RUN, new JsonPrimitive(java.util.UUID.randomUUID().toString()));
                 var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
                 storage.put(CoordinationMemory.AGREEMENT, accepted.json());
                 storage.put(CoordinationMemory.ACCEPTED_EVIDENCE, CoordinationMemory.evidence(storage));
@@ -128,8 +152,17 @@ public class CoordinationUpdateAction extends Action {
             case "RESUME" -> { CoordinationMemory.phase(storage, "RUNNING"); gate = storage.containsKey(TaskMemory.SPEC); CoordinationMemory.remove(storage, TaskMemory.PAUSE_REASON); }
             case "STOP", "COMPLETE" -> {
                 CoordinationMemory.phase(storage, "COMPLETED");
-                storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive(operation.equals("STOP") ? "CANCELLED" : "USER_REPORTED_COMPLETION"));
+                if (!storage.containsKey(CoordinationMemory.OUTCOME)) storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive(operation.equals("STOP") ? "CANCELLED" : "USER_REPORTED_COMPLETION"));
                 CoordinationMemory.remove(storage, CoordinationMemory.DRAFT, CoordinationMemory.PREVIOUS_PHASE);
+            }
+            case "RETURN_TO_CONVERSATION" -> {
+                if (TaskMemory.active(storage) || "PAUSED".equals(TaskMemory.phase(storage)))
+                    storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive("RETURNED_TO_CONVERSATION"));
+                CoordinationMemory.archive(storage); CoordinationMemory.phase(storage, "CONFIGURATION");
+                CoordinationMemory.remove(storage, CoordinationMemory.DRAFT, CoordinationMemory.PREVIOUS_PHASE,
+                        CoordinationMemory.EVIDENCE, CoordinationMemory.PREPARED_AFTER, CoordinationMemory.LAST_CUE,
+                        TaskMemory.SPEC, TaskMemory.ACTIONS, TaskMemory.AFTER, TaskMemory.SESSION, TaskMemory.PAUSE_REASON);
+                SensoryRemarks.cancel(storage);
             }
             case "DISCARD" -> {
                 String previous = TaskMemory.text(storage, CoordinationMemory.PREVIOUS_PHASE, "CONFIGURATION");
@@ -162,6 +195,12 @@ public class CoordinationUpdateAction extends Action {
         // A task begun in Text becomes associated with Live when a user continues it there.
         if (live && TaskMemory.active(storage)) storage.put(TaskMemory.SESSION, new JsonPrimitive(runtime.externalSpeech().sessionId().toString()));
         if (!operation.equals("KEEP")) CoordinationMemory.record(storage, operation, event, now);
+        reply = switch (operation) {
+            case "RETURN_TO_CONVERSATION" -> BehaviourPlan.speechOnly("We are now in Conversation. Task execution has ended; our earlier conversation and recorded outcomes are preserved.");
+            case "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE" -> BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
+                    + " Recorded outcome: " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".");
+            default -> reply;
+        };
         String speech = reply.getSpeech();
         if (!action && !operation.equals("KEEP")) {
             var json = reply.toJsonObject(); json.remove("motion"); reply = BehaviourPlan.fromJson(json.toString());
@@ -176,7 +215,8 @@ public class CoordinationUpdateAction extends Action {
                     : "Task accepted and armed. Wait for a new cue; do not perform its future action now.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
-            case "STOP" -> "The task was cancelled. No further task actions are authorized. Conversation and reflection remain available.";
+            case "STOP" -> "No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
+            case "RETURN_TO_CONVERSATION" -> "We are now in Conversation. Previous history and recorded outcomes are preserved. No task action is authorized.";
             case "PAUSE" -> "The task is paused; agreement and budget are preserved. Explicit resume is required.";
             case "RESUME" -> "The task is resumed with its existing agreement and remaining budget. No extra task action was performed.";
             case "DISCARD" -> "The draft was discarded. The previous agreement retains its recorded outcome; only an unfinished, paused task can resume.";

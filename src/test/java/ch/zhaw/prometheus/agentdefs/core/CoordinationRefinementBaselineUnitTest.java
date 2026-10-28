@@ -9,15 +9,6 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 class CoordinationRefinementBaselineUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
 
-    @Test void baselineStopAfterCompletionOverwritesOutcomeAndCannotReturnToConversation() {
-        var agreement = f.dialogue(); agreement.addProperty("dialogueLimit", 1);
-        f.propose(agreement, f.text); f.start(f.text);
-        assertEquals("LIMIT_REACHED", f.storage().get(CoordinationMemory.OUTCOME).getAsString());
-        f.say("Stop", f.text);
-        assertEquals("CANCELLED", f.storage().get(CoordinationMemory.OUTCOME).getAsString());
-        assertEquals("REFLECTION", CoordinationMemory.stage(f.storage()));
-    }
-
     @Test void baselineStyleRevisionCanReplaceTheSensorContract() {
         f.propose(f.sensor(false), f.text); f.start(f.text);
         f.turn("PROPOSE", f.dialogue(), "Make the response a dry one-liner", f.text);

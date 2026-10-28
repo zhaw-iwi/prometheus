@@ -12,7 +12,8 @@ public final class CoordinationMemory {
     public static final String DRAFT = "coordination.draft", AGREEMENT = "coordination.agreement",
             PREPARED_AFTER = "coordination.preparedAfter", EVIDENCE = "coordination.evidence",
             ACCEPTED_EVIDENCE = "coordination.acceptedEvidence", PREVIOUS_PHASE = "coordination.previousPhase",
-            OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue";
+            OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue",
+            RUN = "coordination.run", OUTCOMES = "coordination.outcomes";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
@@ -59,6 +60,28 @@ public final class CoordinationMemory {
     }
     public static void phase(Storage storage, String phase) { storage.put(TaskMemory.PHASE, new JsonPrimitive(phase)); }
     public static void remove(Storage storage, String... keys) { for (String key : keys) if (storage.containsKey(key)) storage.remove(key); }
+    /** Retain completed run outcomes independently of the next task's mutable control. */
+    public static void archive(Storage storage) {
+        if (!storage.containsKey(OUTCOME)) return;
+        var entries = storage.containsKey(OUTCOMES) ? storage.get(OUTCOMES).getAsJsonArray().deepCopy() : new JsonArray();
+        String run = TaskMemory.text(storage, RUN, "legacy");
+        for (var item : entries) if (item.getAsJsonObject().get("run").getAsString().equals(run)) return;
+        var entry = new JsonObject(); entry.addProperty("run", run);
+        entry.addProperty("outcome", TaskMemory.text(storage, OUTCOME, "unknown"));
+        entry.addProperty("actions", TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
+        entries.add(entry); while (entries.size() > 8) entries.remove(0); storage.put(OUTCOMES, entries);
+    }
+    public static String controls(Storage storage) {
+        return "Initial state: CONVERSATION. Current state: " + stage(storage) + ". " + switch (stage(storage)) {
+            case "CONVERSATION" -> "Explore or propose a task.";
+            case "COORDINATION" -> "Clarify missing terms; execution is unavailable.";
+            case "PREPARATION" -> "Demonstrate the remaining checks; execution is unavailable.";
+            case "READY" -> "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
+            case "EXECUTION" -> "Pause, stop, revise, or report completion.";
+            case "PAUSED" -> "Explicitly resume, revise or stop.";
+            default -> "Reflect, revise or explicitly restart the same task.";
+        } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";
+    }
     public static void record(Storage storage, String operation, Event event, Instant now) {
         var log = storage.containsKey(LOG) ? storage.get(LOG).getAsJsonArray().deepCopy() : new JsonArray();
         var entry = new JsonObject(); entry.addProperty("operation", operation); entry.addProperty("at", now.toString());
@@ -75,16 +98,16 @@ public final class CoordinationMemory {
         log.add(entry); while (log.size() > 12) log.remove(0); storage.put(LOG, log);
     }
     public static String facts(Storage storage) {
-        String prefix = "Coordination stage: " + stage(storage) + "; actions: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
+        String prefix = controls(storage) + " Coordination stage: " + stage(storage) + "; actions: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
                 + "; outcome: " + TaskMemory.text(storage, OUTCOME, "not established") + ". ";
         String key = storage.containsKey(DRAFT) ? DRAFT : AGREEMENT;
         var agreement = agreement(storage, key);
-        if (agreement == null) return prefix + "No task agreed. Explore capabilities and possible useful activities.";
+        if (agreement == null || "CONVERSATION".equals(stage(storage))) return prefix + "No active task. Explore capabilities and possible useful activities.";
         String cue = !key.equals(DRAFT) && storage.containsKey(LAST_CUE)
                 ? "Last accepted cue: rule " + storage.get(LAST_CUE).getAsJsonObject().get("rule").getAsInt()
                     + "; output requests do not prove physical execution. " : "";
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, REVIEW, LAST_CUE); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, REVIEW, LAST_CUE, RUN, OUTCOMES); }
 }

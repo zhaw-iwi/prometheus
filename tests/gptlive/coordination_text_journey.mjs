@@ -36,10 +36,30 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: 'core.coordination'});
   agentPath = '/demo/agents/' + (agent.id || agent.ID);
-  assert.equal(scenario, 'baseline', 'Scenario is not implemented yet');
   const result = await say('Who are you, and what can we do together?');
   assert.match(JSON.stringify(result.response), /Valerian/i);
   assert.equal(result.memory['coordination.agreement'], undefined);
+  if (scenario === 'lifecycle') {
+    const proposal = await say('Propose but do not start a dialogue task: you give me one short welcome sentence for lab visitors, I judge it. Success means I accept it. Limit one contribution; no sensors or preparation checks.');
+    assert.ok(proposal.memory['coordination.draft']);
+    const started = await say('I accept that proposal. Start the task now.');
+    assert.equal(started.memory['task.phase'], 'COMPLETED');
+    const run = started.memory['coordination.run'];
+    const queried = await say('What state are you in now?');
+    assert.match(JSON.stringify(queried.response), /REFLECTION/i);
+    const ambiguous = await say('Start all over again');
+    assert.match(JSON.stringify(ambiguous.response), /restart the same agreed task/i);
+    assert.equal(ambiguous.memory['coordination.run'], run);
+    const restarted = await say('Explicitly restart the same agreed task with a fresh contribution.');
+    assert.notEqual(restarted.memory['coordination.run'], run);
+    assert.equal(restarted.memory['task.actions'], 1);
+    const returned = await say('Could you take us back to the initial conversation state?');
+    assert.equal(returned.memory['task.phase'], 'CONFIGURATION');
+    assert.match(JSON.stringify(returned.response), /now in Conversation/i);
+    const state = await say('Where are we?');
+    assert.match(JSON.stringify(state.response), /Current state: CONVERSATION/i);
+    assert.ok(state.memory['coordination.outcomes'].length >= 2);
+  } else assert.equal(scenario, 'baseline', 'Scenario is not implemented yet');
   report.passed = true;
 } catch (error) {report.error = error.message; process.exitCode = 1;}
 finally {

@@ -184,3 +184,23 @@ The runner stopped both owned applications and removed their schemas/accounts.
 Provider journeys have a 420-second process deadline; the Text journey additionally
 bounds itself to 300 seconds and 12 turns. Future scenario names are reserved and
 fail explicitly until implemented. This baseline makes no physical-device claim.
+
+## CR-02: authoritative lifecycle controls (2026-10-28)
+
+Added RETURN_TO_CONVERSATION, RESTART and STATUS to Coordination's existing update
+protocol. Committed state supplies control replies and current/initial state plus
+prerequisites. Return clears task authority and pending response work, retaining
+history and up to eight completed run summaries. Restart creates a fresh run UUID
+and budget; required preparation is refreshed and cannot be bypassed. Ambiguous
+start-over asks which operation is intended. Terminal Stop preserves the previous
+outcome. Model results from an earlier revision cannot commit.
+
+Passed **36 Java tests** (CoordinationAgentUnitTest, CoordinationLifecycleUnitTest,
+CoordinationRefinementBaselineUnitTest, CoordinationAgentIntegrationTest and
+CoreTaskVoiceUnitTest) using disposable MySQL; artifact `gptlive-acceptance-7639ce4869`.
+The seven-phase return matrix, terminal idempotence, stale revision, guarded restart
+and persisted history/outcomes are covered. Paid `coordination-text` scenario
+`lifecycle` passed (`gptlive-acceptance-d8f93fd58d/journey.json`), including provider-
+interpreted state query, restart and return phrasings. Both owned schemas/accounts
+were removed. New instances are required for updated saved prompts; no schema
+change. Live wording and final delivery remain CR-06/07 acceptance work.
