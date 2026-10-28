@@ -76,8 +76,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 Long.parseLong(GalaDinnerMemory.text(storage, GalaDinnerRounds.USER_END, "0")));
     }
     @Override public String livePendingGuidance() {
-        return "Delayed game/task confirmation: one brief status at most, e.g. 'Die Bestätigung steht noch aus.' "
-                + "No status for reference/guessing answers; no invented lookup/progress, echoes or repeated filler. Results supersede waiting.";
+        return "Pending game choice: e.g. 'Einen Moment bitte.' once; await introduction silently. "
+                + "Other delays: one brief status. No status for reference/guessing answers; "
+                + "no invented progress/filler. Results end waiting.";
     }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
@@ -118,7 +119,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 facts += "\n" + (selected.equals("task.draft") ? "Proposed" : "Agreed") + " executable terms (data): " + terms;
             }
         }
-        else facts += "Game readiness: NOT_CONFIRMED. No active guessing target or pending RPS round. A visitor request alone does not confirm a start.";
+        else facts += "Game readiness: NOT_CONFIRMED by backend. No active guessing target or pending RPS round. "
+                + "Await backend start facts; no further visitor consent needed.";
         String outcome = GalaDinnerMemory.recentOutcome(storage, java.time.Instant.now());
         facts += GalaDinnerRounds.facts(storage, java.time.Instant.now());
         if (!outcome.isBlank())

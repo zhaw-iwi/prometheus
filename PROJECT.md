@@ -82,6 +82,20 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala game-start transition wording and branch cleanup (2026-10-28): a clear game choice or
+  acceptance needs no second consent/readiness question. Live receives one brief
+  pending-start phrase, such as "Einen Moment bitte.", then proceeds to the
+  confirmed introduction. "Ich starte das Spiel" may accompany that introduction;
+  exact countdowns remain standalone. Proposal acceptance applies only to
+  co-created tasks. Passed 97 focused Java checks; maximum assembled instructions
+  are 14,385 bytes under the existing 14,400-byte test budget. Restart the backend
+  and start a fresh Live session; provider/device wording remains unverified.
+  Fresh-source compilation and packaging also passed. The broader 198-test
+  selection passed 197 checks; its known Live delivery timing failure also
+  reproduces on unchanged `bae5f09`. Incomplete German-agent edits and API
+  removals were saved locally and excluded from the Gala change; the complete
+  German-agent work remains on `feature/german-agents` at `1081278`.
+
 - Gala countdown and round-speech repair (2026-10-24): every countdown now
   requests exactly "Schere, Stein, Papier." for its current cue, including on
   replay. Validation accepts earlier mentions/repetition and still requires
@@ -11435,3 +11449,32 @@ audio/robot trial was performed.
 Restart the backend, hard-refresh the cockpit and start a new Live conversation.
 Existing updated lifecycle clones need no saved-graph migration. The user
 authorized final cleanup, commit and push of both repositories on 2026-10-24.
+
+## Gala game-start transition wording
+
+Prepared 2026-10-24; cleaned and revalidated 2026-10-28. Gala distinguishes the visitor's consent from backend start
+confirmation. A clear game choice or accepted invitation authorizes the start
+without another consent/readiness question. Pending guidance supplies one short
+phrase, such as "Einen Moment bitte.", then silent waiting for the confirmed
+introduction. That introduction may begin "Ich starte das Spiel"; exact RPS
+countdowns remain standalone. Task proposal acceptance is explicitly limited to
+co-created tasks. State transitions and speech-cue validation are unchanged.
+
+Passed 97 existing focused Java checks across Gala reception, preparation,
+rounds, Live follow-up and reference/prompt assembly. Both embodiments and both
+Gala variants fit the existing 14,400-byte test budget, at a maximum of 14,385
+bytes. Fresh-source verification used offline Maven, JDK 26 compilation targeting
+Java 21 and Java 21 test execution with an explicit Mockito agent. The broader
+selection ran 198 tests: 197 passed, and the previously documented
+`GalaDinnerLiveDeliveryUnitTest` timing assertion failed at line 67. That same
+failure was reproduced on an independently compiled, unchanged `bae5f09` snapshot.
+Production packaging passed. Logs and recovery patches are under
+`/tmp/prometheus-gala-cleanup-20261028/`.
+
+Cleanup restored existing `PromptPolicy` APIs and the shared decorative-gesture
+constant used by current consumers. Partial German RPS/healthcare edits were
+preserved in a recovery patch and excluded; their complete implementation is
+already committed on `feature/german-agents` at `1081278`. This commit contains
+only the Gala start wording and its documentation.
+No provider or physical audio trial was performed. Restart the backend and start
+a fresh Live session to load the revised wording; no graph migration is needed.

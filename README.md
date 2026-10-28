@@ -415,6 +415,14 @@ visitors to choose the person or become the guesser itself. Game starts
 and computed RPS results carry one persisted user-request continuation: facts first,
 then an invitation for Live to express the result. Routine sensing does not speak.
 
+A clear game choice or acceptance already gives consent. While backend start
+confirmation is pending, Live is instructed to say one short transition, such as
+"Einen Moment bitte.", then waits silently without asking for consent or readiness again.
+Once the start is confirmed, it proceeds directly to the tutorial, first guessing
+question or countdown; "Ich starte das Spiel" may accompany a confirmed tutorial
+or guessing introduction. The exact RPS countdown remains the sole utterance for
+its speaking occasion. Proposal acceptance remains specific to co-created tasks.
+
 A separately registered clone, **GIGI - Gala Dinner Reception with RPS preparation**
 (`usecases.gala_dinner_reception_rps_preparation`), adds a hand-sign check before
 RPS. Allow this key for the access code and create a new instance of the clone to
