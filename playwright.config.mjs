@@ -18,6 +18,7 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL,
+    channel: process.env.PROMETHEUS_BROWSER_CHANNEL || undefined,
     viewport: { width: 1440, height: 1000 },
     actionTimeout: 15_000,
     navigationTimeout: 30_000,

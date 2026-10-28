@@ -56,7 +56,9 @@ class GalaDinnerRpsUnitTest {
         assertTrue(capture("one, two, three", true, owner, Instant.now()));
         say("Stop"); assertNull(played(old)); assertEquals("RECEPTION", mode(memory));
         start(); assertNotEquals(old, text(memory, GalaDinnerRps.INTRO, "")); assertNull(played(old));
+        assertTrue(capture("one, two, three", true, owner, Instant.now()));
         put(memory, GalaDinnerRps.DEADLINE, Instant.now().minusSeconds(1).toString());
+        assertNull(played(text(memory, GalaDinnerRps.INTRO, "")), "Expiry cannot release a hand while waiting for runtime evaluation");
         agent.acknowledge(new Event("sys.tick", "system", Event.KIND_SYSTEM, ""), runtime);
         assertEquals("RECEPTION", mode(memory)); assertFalse(memory.containsKey(CAPTURE_ID));
         assertFalse(memory.containsKey(GalaDinnerRps.INTRO));

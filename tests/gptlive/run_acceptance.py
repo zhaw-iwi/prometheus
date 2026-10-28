@@ -66,7 +66,7 @@ def main():
     if url.hostname not in ('localhost', '127.0.0.1', '::1'):
         raise SystemExit('Local MySQL administration URL required; no remote database is permitted.')
     suffix = uuid.uuid4().hex[:10]
-    schema, username, password = 'prometheus_gptlive_' + suffix, 'gptlive_' + suffix, secrets.token_hex(24)
+    schema, username, password = 'prometheus_gptlive_' + suffix, 'gptlive_' + suffix, 'Aa1!' + secrets.token_hex(24)
     assert re.fullmatch(r'prometheus_gptlive_[0-9a-f]{10}', schema)
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)

@@ -79,7 +79,7 @@ final class GalaDinnerRps {
     }
     static BehaviourPlan reveal(Storage storage, ExternalSpeech owner, String intro, Instant now) {
         var cue = cue(storage, now);
-        if (cue == null || cue.segmentId() == null || !cue.id().toString().equals(intro) || !owned(storage, owner)) return null;
+        if (cue == null || cue.expired(now) || cue.segmentId() == null || !cue.id().toString().equals(intro) || !owned(storage, owner)) return null;
         put(storage, PHASE, "WAITING"); remove(storage, SEGMENT);
         GalaDinnerAction.openCapture(storage, now);
         // Same speaking occasion already counted. No second invitation or repeated countdown.

@@ -12,6 +12,10 @@ credentials from ignored `src/main/resources/application-test.properties`, or fr
 `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
 `GPTLIVE_MYSQL_ADMIN_PASSWORD`. Do not put credentials in command arguments.
 
+Generated temporary passwords contain mixed character classes for local MySQL
+password policies. To use installed Chrome instead of Playwright's bundled
+Chromium, set `PROMETHEUS_BROWSER_CHANNEL=chrome`; other channels remain optional.
+
 ```powershell
 python tests/gptlive/run_acceptance.py --browser
 python tests/gptlive/run_acceptance.py --java-tests all

@@ -89,8 +89,13 @@ and regulation diagnostics remain future work.
   protocol is added. Conversation-scoped preparation, independent game counters,
   private countdown signs and stale-result protection are covered by 216 passing
   Gala/catalog checks. Reusable audio capture and playback-expiry fixes are isolated
-  on the main-based `feature/live-playback-readiness` branch. Further persistence
-  and browser verification is recorded below when complete.
+  in main-based commit `3454fcb` and merged into this integration branch.
+  Combined verification passed 291 selected Java checks, 22 isolated MySQL cases
+  (the two new expiry cases rerun after fixing their setup), 69 Live JavaScript
+  cases, 15 Chrome browser checks with Live enabled/disabled and four acceptance
+  runner checks. Both Gala variants/embodiments fit at 14,377 / 14,400 instruction
+  bytes. All disposable schemas/accounts were removed. No real-provider or robot
+  trial was performed. Create a fresh tutorial instance; saved graphs are unchanged.
 
 - Core-agent deployment integration (2026-10-27): main `35dae71b` (CA-01–08,
   shared lab reference, Valerian persona and restrained humour) merged into
@@ -101,6 +106,13 @@ and regulation diagnostics remain future work.
   fixtures are recorded in `.agents/COREAGENTIMPROVEMENT_RESULTS.md`. New instances
   receive the policies; no saved graphs/history are migrated. Deployment is
   triggered by the authorized `agents` push; physical tone/robot checks remain.
+- Live playback readiness (2026-10-28): output-audio deltas use PCM sample
+  coverage rather than nonexistent provider timing fields. An expired,
+  application-approved playback cue wakes ordinary runtime evaluation during
+  Live refresh, including when scheduled ticks are disabled; stale owners and
+  revoked task work cannot trigger this evaluation. Passed 23 focused capture,
+  segmenter and refresh tests after fresh compilation. Prepared on a separate
+  main-based feature branch for the Gala integration; no physical audio trial.
 
 - Shared core reference/persona follow-up (2026-10-27): the eight conversational
   core definitions share sourced SIRA/IWI/team facts and a separate fictional

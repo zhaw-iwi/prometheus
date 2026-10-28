@@ -26,6 +26,70 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest(properties = "prometheus.runtime.tick.enabled=false")
 class GalaDinnerReceptionIntegrationTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ROBOT", "COCKPIT"})
+    void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String embodiment) {
+        String key = ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation.KEY;
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
+        UUID id = demo.createAgent(code, key, embodiment).getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        var startup = contexts.claim(code, id, session).orElseThrow();
+        var owner = new ExternalSpeech(session, startup.epoch());
+        try {
+            when(language.infer(any())).thenReturn(answer("START_RPS", ""));
+            say(code, id, "Schere Stein Papier bitte");
+            String preparationCapture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
+            for (String sign : List.of("rock", "paper", "scissor")) {
+                hand(code, id, sign, preparationCapture);
+                if (!sign.equals("scissor"))
+                    assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.sign"));
+            }
+            var prepared = agents.findById(id).orElseThrow();
+            assertEquals("Gala rock-scissor-paper countdown", prepared.getCurrentState().getName());
+            assertTrue(prepared.getStorage().get("gala.rps_prepared").getAsBoolean());
+            assertFalse(prepared.getStorage().containsKey("gala.rps_capture_id"));
+            String segment = UUID.randomUUID().toString();
+            assertTrue(recording.record(id, owner, segment, "Schere, Stein, Papier.", List.of(),
+                    ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
+            var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+            assertEquals(segment, cue.segmentId());
+            assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+            assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+            String capture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
+            assertNotEquals(preparationCapture, capture);
+            hand(code, id, "paper", preparationCapture);
+            assertEquals("RPS", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
+            hand(code, id, "paper", capture);
+            assertEquals("RECEPTION", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
+            say(code, id, "Noch einmal bitte");
+            assertEquals("Gala rock-scissor-paper countdown", agents.findById(id).orElseThrow().getCurrentState().getName());
+            assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_capture_id"));
+            assertFalse(contexts.snapshot(code, id).orElseThrow().activity().facts().contains("winner:"));
+
+            var overdue = agents.findById(id).orElseThrow();
+            var memory = (ch.zhaw.prometheus.model.Storage) org.springframework.test.util.ReflectionTestUtils.getField(overdue, "storage");
+            memory.put("gala.rps_intro_deadline", new com.google.gson.JsonPrimitive(Instant.now().minusSeconds(1).toString()));
+            agents.saveAndFlush(overdue);
+            assertTrue(contexts.snapshot(code, id).orElseThrow().activity().playbackCue().expired(Instant.now()));
+            assertTrue(ownership.taskWorkAllowed(id, owner));
+            contexts.refresh(id, owner).orElseThrow();
+            assertEquals("RECEPTION", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
+            contexts.closed(id, owner);
+            assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_prepared"));
+        } finally { ownership.release(id, session); }
+    }
+
+    private void hand(String code, UUID id, String sign, String capture) {
+        var payload = new com.google.gson.JsonObject();
+        payload.addProperty("sign", sign); payload.addProperty("confidence", .99);
+        payload.addProperty("captureId", capture); payload.addProperty("ts", Instant.now().toString());
+        demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
+                payload.toString()), OutputProfile.FULL_PLAN);
+    }
+
     @Autowired AgentRepository agents;
     @Autowired AccessCodeAdminService admin;
     @Autowired ScopedDemoService demo;

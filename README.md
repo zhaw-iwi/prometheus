@@ -384,8 +384,8 @@ The optional backup is `GalaDinnerReceptionSingleState`, catalog key
 `usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner
 Reception (Reception only)**. Allow that key for the access code and create a new
 instance; existing full Gala instances are not converted. Both embodiments retain
-GIGI's fixed identity. The setup below applies to both versions; game/task details
-apply only to the full definition.
+GIGI's fixed identity. The setup below applies to all three variants; game/task
+details apply to the original and tutorial definitions.
 
 The backup has exactly one reception state, with self-transitions for conversation,
 presence, facial, weather and hand observations. It shares the full agent's persona,
@@ -399,7 +399,7 @@ display outputs are not advertised; ordinary nonverbal behaviour is retained.
 
 The persisted reception-only policy keeps this restriction across reload/reset.
 No new database column, frontend protocol or standalone Valerian cockpit change is
-needed. Both definitions read the same reference; only the explicit activity
+needed. All three definitions read the same reference; only the explicit activity
 availability sentence differs. Spoken wording remains model-generated and needs
 a short listening check; this backup does not fix the open audio cut-off issue.
 
@@ -1950,6 +1950,10 @@ under the turn lock. Policies consume it once through ordinary state actions.
 Interrupted, muted, stalled or unobserved audio cannot establish completion;
 applications must provide bounded recovery. This is no hardware audibility or
 physical motion guarantee. Normal agents have no cue and no audio observer.
+Output-audio deltas use PCM coverage; they do not require provider timing fields.
+Keep an expired cue in activity data until runtime evaluation cancels it. Live
+refresh evaluates expired cues through the ordinary tick path even when scheduled
+ticks are disabled, while retaining session ownership and task-work checks.
 Accepted speech cues trigger one urgent context refresh; ordinary commits retain
 their five-second coalescing window. Send the
 returned revision on the next poll: unchanged ledgers return null transcripts and

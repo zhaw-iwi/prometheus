@@ -112,7 +112,21 @@ public class LiveAgentContextService {
         });
     }
     public Optional<Update> refresh(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
-        return turns.serialized(id, () -> transaction.execute(status -> agents.findById(id)
+        return turns.serialized(id, () -> {
+            var update = readUpdate(id, owner);
+            var activity = update.map(value -> value.context().activity()).orElse(null);
+            if (activity != null && activity.playbackCue() != null
+                    && activity.playbackCue().expired(java.time.Instant.now()) && ownership.taskWorkAllowed(id, owner)) {
+                // Re-evaluate through the ordinary event pipeline, even when scheduled ticks are disabled.
+                // Only an expired application-approved playback cue opts into this wake-up.
+                turns.tick(id);
+                return readUpdate(id, owner);
+            }
+            return update;
+        });
+    }
+    private Optional<Update> readUpdate(UUID id, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        return transaction.execute(status -> agents.findById(id)
                 .filter(agent -> owner.equals(ownership.current(agent))).map(agent -> {
                     if (taskResponses != null && taskResponses.expire(agent, owner)) agents.saveAndFlush(agent);
                     var narrations = agent.getEventHistory().toList().stream()
@@ -122,6 +136,6 @@ public class LiveAgentContextService {
                                     ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech()))
                             .filter(value -> value.sourceId() != null && value.text() != null && !value.text().isBlank()).toList();
                     return new Update(projection.project(agent), narrations);
-                })));
+                }));
     }
 }
