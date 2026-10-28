@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination release preparation (2026-10-28): implementation `293c987` and
+  upstream Live playback readiness are combined in main. Fresh isolated builds
+  passed 71 focused Java tests, eight activity-footer Node tests and packaging.
+  The owner authorized main publication followed by main-to-agents integration
+  and its deployment push. Evidence and remaining acceptance limits are in
+  `.agents/COORDINATION_RESULTS.md`; deployment verification follows on agents.
+
 - Coordination Agent foundation (2026-10-27): new `core.coordination` preserves
   the shared Valerian persona, lab/team facts, humour and Social Space presence
   remarks. Persisted dialogue/sensor agreements support clarification, bounded

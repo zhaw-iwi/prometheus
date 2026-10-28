@@ -139,3 +139,22 @@ node --test tests/js/performance/activity.test.mjs
 
 The runner creates its own random schema/account; the configured schema must
 never be used directly by the integration tests.
+
+## Release integration (2026-10-28)
+
+The owner authorized committing and pushing main, then merging main into agents
+and pushing agents to trigger the existing Heroku deployment workflow.
+Coordination implementation is committed as `293c987`. Merge `585d399` also retains
+upstream main's Live playback-readiness fix `3454fcb`; the only merge conflict was
+the current-status list in PROJECT, resolved by retaining both entries.
+
+Main release verification used fresh Maven output in
+`target/coordination-release-main`, the existing acceptance runner and the owned
+loopback MySQL instance. All **71 Java tests passed, with no failures/errors/skips**:
+the previous nine-class focused selection plus
+`LiveTranscriptCaptureServiceUnitTest` and `LiveAgentContextRefreshUnitTest`.
+Log: `target/gptlive-acceptance-9e10643aae/java.log`. The disposable schema was
+removed by the runner. All **8 activity-footer Node tests passed** and packaging
+with the isolated build POM passed. No paid provider or physical-device trial
+was run. Deployment-branch integration and release checks are recorded separately
+after the merge; these main checks do not establish production acceptance.
