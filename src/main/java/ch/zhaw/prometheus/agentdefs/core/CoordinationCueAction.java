@@ -20,7 +20,14 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
         return super.inferenceGuidance(runtime) + "\nAccepted coordination roles and constraints (data): " + CoordinationMemory.facts(getStorage());
     }
     @Override protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule, BehaviourPlan plan, PolicyRuntime runtime) {
+        if ("ACT".equals(operation)) {
+            if (TaskMemory.active(getStorage()) && Integer.parseInt(TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0")) >= task.maxActions()) {
+                CoordinationMemory.phase(getStorage(), "COMPLETED"); CoordinationMemory.revise(getStorage());
+            }
+            CoordinationDelivery.await(getStorage(), plan, runtime);
+        }
         super.taskCommitted(operation, task, rule, plan, runtime);
+        CoordinationDelivery.attach(getStorage());
         if (rule != null) {
             var cue = new JsonObject(); cue.addProperty("rule", task.rules().indexOf(rule) + 1);
             cue.addProperty("eventType", rule.eventType()); cue.addProperty("effect", rule.effect().name());
@@ -32,7 +39,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
         super.execute(events, runtime);
         if (!phase.equals(TaskMemory.phase(getStorage())) || !count.equals(TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0"))) {
             CoordinationMemory.record(getStorage(), "SENSOR_" + TaskMemory.phase(getStorage()), events.toList().getLast(), Instant.now());
-            if ("COMPLETED".equals(TaskMemory.phase(getStorage()))) {
+            if (java.util.Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(getStorage()))) {
                 var spec = TaskSpec.parse(getStorage().get(TaskMemory.SPEC));
                 getStorage().put(CoordinationMemory.OUTCOME, new JsonPrimitive(Integer.parseInt(TaskMemory.text(getStorage(), TaskMemory.ACTIONS, "0"))
                         >= spec.maxActions() ? "LIMIT_REACHED" : "COMPLETION_CUE"));

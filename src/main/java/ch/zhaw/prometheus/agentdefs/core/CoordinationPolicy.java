@@ -18,6 +18,11 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
+    @Override public String livePlaybackCompletionEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.PLAYED : null; }
+    @Override public String liveSessionEndEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.ENDED : null; }
+    @Override public String liveSessionClaimEventType() { return CoordinationDelivery.finishing(storage()) ? CoordinationDelivery.ENDED : null; }
+    @Override public String liveResponseFailureEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.FAILED : null; }
+    @Override public boolean liveIncompleteResponseIsFailure() { return CoordinationDelivery.enabled(storage()); }
     @Override public boolean hasDraft() { return storage().containsKey(CoordinationMemory.DRAFT); }
     @Override public String statusPhase() {
         String stage = CoordinationMemory.stage(storage());
@@ -39,6 +44,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "ON_CUE activation waits for a fresh subsequent cue. Describe recognition limits and action bounds in ordinary language. "
                 + "A reflection is an account of evidence and the person's experience, not proof of learning, feelings or physical execution. "
                 + "An exhausted budget or cancellation is not achieved success. Revisions need a new agreement. "
+                + "FINISHING permits only the final identified contribution, then silence until delivery is confirmed. "
+                + "Do not append a reflection question, acknowledgement, invitation or aside to that contribution. "
+                + "An agreed exact sentence must be spoken verbatim, with no preface or added words. "
+                + "UNCERTAIN means delivery could not be confirmed; never repeat it automatically or claim success. "
                 + "Automatic perception remarks require a current backend occasion; task work takes priority. "
                 + (storage().containsKey(SensoryRemarks.CORRECTION) ? "The user declined/corrected facial interpretation; respect that correction. " : "");
     }
@@ -53,6 +62,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
             TaskMemory.pauseForResponse(storage(), "live_session_replaced");
         if (hasDraft()) {
             CoordinationMemory.resetPreparation(storage(), Instant.now()); CoordinationMemory.revise(storage());
+            if (CoordinationMemory.ready(storage())) storage().put(CoreTaskVoice.INVITATION, new com.google.gson.JsonPrimitive(Instant.now().toString()));
         }
     }
     @Override public boolean liveNonMutatingAcknowledgement(String text) {
@@ -77,7 +87,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 || !now.isBefore(Instant.parse(response.get("expires").getAsString()))) return changed;
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
-    @Override public LiveActivityContext liveActivityContext() {
+    @Override public LiveActivityContext liveActivityContext() { return CoordinationDelivery.withPlayback(storage(), speechContext()); }
+    private LiveActivityContext speechContext() {
         var storage = storage(); Instant now = Instant.now();
         var response = storage.containsKey(CoreTaskVoice.RESPONSE) ? storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject() : null;
         boolean current = response != null && response.get("revision").getAsString().equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))
@@ -93,10 +104,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                             response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,
                             "Respond once to this confirmed coordination update using the current facts.", expires), expires);
         }
-        var sensory = !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage)) ? SensoryRemarks.context(storage, now) : null;
+        var sensory = !TaskMemory.active(storage) && !java.util.Set.of("PAUSED", "FINISHING", "UNCERTAIN").contains(TaskMemory.phase(storage)) ? SensoryRemarks.context(storage, now) : null;
         if (sensory != null && CoreTaskVoice.bytes(facts + "\n" + sensory.facts()) <= 4000)
             return new LiveActivityContext(facts + "\n" + sensory.facts(), sensory.continuation(), sensory.refreshAt());
         return new LiveActivityContext(facts + "\nNo new task action is authorized. Answer direct questions; do not repeat earlier actions.", null);
     }
-    @Override public void reset() { super.reset(); CoordinationMemory.clear(storage()); }
+    @Override public void reset() { super.reset(); CoordinationMemory.clear(storage()); CoordinationMemory.remove(storage(), CoordinationDelivery.KEY); }
 }

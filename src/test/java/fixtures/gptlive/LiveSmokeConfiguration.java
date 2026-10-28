@@ -44,6 +44,12 @@ public class LiveSmokeConfiguration {
                           "action":"Finish the agreed task","effect":"COMPLETE","minConfidence":0.6,"samples":1,"cooldownSeconds":3}]},
                          "reply":{"speech":"First fixture observation."}}
                         """;
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")) return """
+                        {"operation":"PROPOSE_AND_START","agreement":{"goal":"Offer one fixture observation",
+                         "humanRole":"Listen and judge usefulness","agentRole":"Offer one observation",
+                         "success":"The visitor finds it useful","questions":[],"checks":[],"dialogueLimit":1,"reactions":null},
+                         "reply":{"speech":"Offer one fixture observation"}}
+                        """;
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
@@ -88,6 +94,7 @@ public class LiveSmokeConfiguration {
         }
         public Connection attach(String id, Consumer<JsonObject> receive, Runnable disconnected) {
             Call call = calls.get(id); call.receive = receive;
+            var started = new JsonObject(); started.addProperty("type", "session.started"); receive.accept(started);
             return new Connection() {
                 public boolean isOpen() { return !call.closed; }
                 public void close() { call.closed = true; }
@@ -107,6 +114,7 @@ public class LiveSmokeConfiguration {
                     if (type.equals("session.commentary.append")) {
                         String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
                                 || call.activity.contains("Task accepted. Perform the agreed initial verbal action") && call.activity.contains("React to agreed facial feedback")
+                                || call.activity.contains("Coordination stage: FINISHING")
                                 ? "First fixture observation." : call.activity.contains("Confirmed RPS phase: INTRO")
                                 ? "Show one hand. One, two, three." : "The round is ready.";
                         audio.schedule(() -> speak(id, "ASSISTANT", spoken, null), 50, TimeUnit.MILLISECONDS);

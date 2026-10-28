@@ -5,7 +5,8 @@ import { InteractionActivity } from "../../../src/main/resources/public/performa
 test("coordination distinguishes unresolved agreements and preparation from permission to start", () => {
   const activity = new InteractionActivity({ now: () => 0 }); activity.scope("agent");
   for (const [phase, label] of Object.entries({ CONVERSATION: "Ready to explore", COORDINATION: "Clarifying the agreement",
-    PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", REFLECTION: "Reflecting on the task" })) {
+    PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", FINISHING: "Finishing the response",
+    UNCERTAIN: "Response delivery uncertain", REFLECTION: "Reflecting on the task" })) {
     activity.taskStatus({ epoch: "epoch", phase, draft: true });
     assert.equal(activity.view().label, label); assert.equal(activity.view().busy, false);
   }

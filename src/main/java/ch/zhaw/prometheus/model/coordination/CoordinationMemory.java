@@ -19,6 +19,7 @@ public final class CoordinationMemory {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
     }
     public static String stage(Storage storage) {
+        if (Set.of("FINISHING", "UNCERTAIN").contains(TaskMemory.phase(storage))) return TaskMemory.phase(storage);
         if ("PAUSED".equals(TaskMemory.phase(storage))) return "PAUSED";
         if ("COMPLETED".equals(TaskMemory.phase(storage))) return "REFLECTION";
         if (TaskMemory.active(storage)) return "EXECUTION";
@@ -85,6 +86,7 @@ public final class CoordinationMemory {
         var entry = new JsonObject(); entry.addProperty("run", run);
         entry.addProperty("outcome", TaskMemory.text(storage, OUTCOME, "unknown"));
         entry.addProperty("actions", TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
+        if (storage.containsKey("coordination.delivery")) entry.add("delivery", storage.get("coordination.delivery").deepCopy());
         entries.add(entry); while (entries.size() > 8) entries.remove(0); storage.put(OUTCOMES, entries);
     }
     public static String controls(Storage storage) {
@@ -95,6 +97,8 @@ public final class CoordinationMemory {
             case "READY" -> "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
             case "EXECUTION" -> "Pause, stop, revise, or report completion.";
             case "PAUSED" -> "Explicitly resume, revise or stop.";
+            case "FINISHING" -> "No further action is allowed. Waiting for final response association and client playback; delivery is not yet confirmed.";
+            case "UNCERTAIN" -> "Final delivery is uncertain. No automatic repeat. Reflect, revise, return, or explicitly restart with a fresh budget.";
             default -> "Reflect, revise or explicitly restart the same task.";
         } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";
     }

@@ -21,7 +21,7 @@ class CoordinationVoiceUnitTest {
         else {
             Instant start = Instant.parse(response.get("created").getAsString()).plusNanos(1);
             var speech = f.hear("One agreed contribution", true, start);
-            assertTrue(TaskResponse.claim(f.storage(), f.owner, speech, start, Instant.now()).isPresent());
+            assertTrue(TaskResponse.claim(f.storage(), f.owner, speech, start, start.plusMillis(1)).isPresent());
         }
         assertNull(f.policy().liveActivityContext().continuation());
         assertFalse(f.policy().liveActivityContext().facts().contains("Give its first agreed contribution now"));
@@ -56,8 +56,8 @@ class CoordinationVoiceUnitTest {
         assertEquals(response.get("id").getAsString(), f.policy().liveActivityContext().continuation().id().toString());
         var created = Instant.parse(response.get("created").getAsString());
         var event = f.hear("One agreed contribution", true, created.plusNanos(1));
-        var check = TaskResponse.claim(f.storage(), f.owner, event, created.plusNanos(1), Instant.now()).orElseThrow();
-        assertTrue(TaskResponse.finish(f.storage(), f.owner, check, true, Instant.now()));
+        var check = TaskResponse.claim(f.storage(), f.owner, event, created.plusNanos(1), created.plusMillis(1)).orElseThrow();
+        assertTrue(TaskResponse.finish(f.storage(), f.owner, check, true, created.plusMillis(2)));
         f.turn("STEP", null, "Continue with the next part", f.live);
         assertEquals(2, f.storage().get(TaskMemory.ACTIONS).getAsInt());
         assertNotEquals(response.get("id"), f.storage().get(TaskResponse.KEY).getAsJsonObject().get("id"));

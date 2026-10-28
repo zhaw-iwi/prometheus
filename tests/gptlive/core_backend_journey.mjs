@@ -13,7 +13,8 @@ const definitions = {coordination: 'core.coordination', live: 'core.live_multimo
 const taskJourney = selection === 'task' || selection === 'space-task';
 const coordinationJourney = selection === 'coordination';
 const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))?.split('=')[1] || 'baseline';
-const acceptanceQuestion = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?/i;
+// A direct question or an explicit acceptance instruction tells the visitor what to do; "ready" alone does not.
+const acceptanceQuestion = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?|\bsay\s+["']?start["']?\s+to\s+accept\b/i;
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
@@ -180,8 +181,6 @@ async function noTaskSpeech(index, label, duration = 5000) {
 }
 async function coordinationDelivery() {
   let index = await page.evaluate(() => logs.length);
-  await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
-  report.prepared = await settled(index, acceptanceQuestion);
   await noTaskSpeech(index, 'before acceptance');
   index = await page.evaluate(() => logs.length); await say('accept');
   await until('armed response captured', async () => (await storage())['task.response']?.status === 'CAPTURED');
@@ -190,7 +189,14 @@ async function coordinationDelivery() {
   await noTaskSpeech(index, 'armed before fresh cue');
   index = await page.evaluate(() => logs.length);
   await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
+  report.deliveryPending = await storage();
+  assert.equal(report.deliveryPending['task.phase'], 'FINISHING');
+  assert.equal(report.deliveryPending['task.response']?.status, 'PENDING');
   report.contribution = await settled(index, deliveredJoke);
+  await until('associated final playback confirmed', async () => (await storage())['task.phase'] === 'COMPLETED');
+  report.deliveryCompleted = (await storage())['coordination.delivery'];
+  assert.equal(report.deliveryCompleted.status, 'PLAYBACK_CONFIRMED');
+  assert.ok(await page.evaluate(() => logs.some(e => e.type === 'trial.playback_ack' && e.accepted === true)));
   assert.equal((await storage())['task.actions'], 1);
   const normalized = report.contribution.toLowerCase();
   assert.equal(normalized.split('froze').length - 1, 1, 'Deliver the agreed joke once');
@@ -214,8 +220,9 @@ try {
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
   if (coordinationJourney && coordinationScenario === 'delivery') {
     await api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation',
-      payload:`Propose but do not start: after verifying rock recognition and accepting, wait for a fresh rock then tell exactly this one-line joke once: ${joke} I show the sign and judge the joke. One action in this session, standard recognition settings.`});
-    assert.equal((await storage())['coordination.draft'].checks.length, 1);
+      payload:`Propose but do not start: after acceptance, wait for a fresh rock then tell exactly this one-line joke once: ${joke} I show the sign and judge the joke; success means I accept it. One action in this session, standard recognition settings. No preparation checks.`});
+    assert.deepEqual((await storage())['coordination.draft'].questions, [], 'Complete supplied terms need no additional preference question');
+    assert.equal((await storage())['coordination.draft'].checks.length, 0);
   }
   if (coordinationJourney && ['revision', 'capture'].includes(coordinationScenario)) {
     const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});

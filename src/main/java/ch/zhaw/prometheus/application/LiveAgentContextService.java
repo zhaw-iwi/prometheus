@@ -60,6 +60,9 @@ public class LiveAgentContextService {
                     if (!projection.supports(agent)) throw new IllegalArgumentException("Unsupported Live policy");
                     var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
                     if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) {
+                        String recovery = external.liveSessionClaimEventType();
+                        if (recovery != null) agent.acknowledge(new ch.zhaw.prometheus.model.event.Event(recovery, "system",
+                                ch.zhaw.prometheus.model.event.Event.KIND_SYSTEM, "fresh_live_session"), turns.runtime());
                         external.beginLiveConversation(agent.getEventHistory());
                         agents.save(agent);
                     }

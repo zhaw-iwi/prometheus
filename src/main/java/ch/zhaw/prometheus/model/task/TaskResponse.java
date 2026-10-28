@@ -53,7 +53,7 @@ public final class TaskResponse {
         @Override public String toString() { return "TaskResponseCheck[" + id + ",revision=" + revision + "]"; }
     }
     public static void expect(Storage storage, ExternalSpeech owner, UUID id, String facts, Instant now) {
-        if (owner == null || facts == null || facts.isBlank() || facts.length() > 3000) throw new IllegalArgumentException("Invalid task response facts");
+        if (owner == null || facts == null || facts.isBlank() || facts.length() > 4500) throw new IllegalArgumentException("Invalid task response facts");
         var value = new JsonObject();
         value.addProperty("id", id.toString()); value.addProperty("session", owner.sessionId().toString());
         value.addProperty("epoch", owner.epoch().toString()); value.addProperty("revision", revision(storage));
@@ -81,7 +81,7 @@ public final class TaskResponse {
         }
     }
     public static Optional<Check> claim(Storage storage, ExternalSpeech owner, Event event, Instant started, Instant now) {
-        if (!current(storage, owner) || !TaskMemory.active(storage) || !"PENDING".equals(status(storage)) || expired(storage, now)) return Optional.empty();
+        if (!current(storage, owner) || !accepting(storage) || !"PENDING".equals(status(storage)) || expired(storage, now)) return Optional.empty();
         var v = value(storage); var source = event.speechProvenance();
         if (source == null || source.origin() != SpeechProvenance.Origin.NATIVE || !source.complete()
                 || source.segmentId() == null
@@ -111,6 +111,14 @@ public final class TaskResponse {
         return true;
     }
     public static boolean captured(Storage storage, ExternalSpeech owner) { return current(storage, owner) && "CAPTURED".equals(status(storage)); }
+    public static boolean accepting(Storage storage) { return TaskMemory.active(storage) || "FINISHING".equals(TaskMemory.phase(storage)); }
+    public static boolean incomplete(Storage storage, ExternalSpeech owner, Event event, Instant started, Instant now) {
+        if (!current(storage, owner) || !accepting(storage) || !"PENDING".equals(status(storage)) || expired(storage, now)) return false;
+        var source = event.speechProvenance();
+        return source != null && source.origin() == SpeechProvenance.Origin.NATIVE && !source.complete()
+                && owner.sessionId().equals(source.sessionId()) && owner.epoch().equals(source.epoch())
+                && started != null && started.isAfter(Instant.parse(value(storage).get("created").getAsString())) && !started.isAfter(now);
+    }
     public static ExternalSpeech owner(Storage storage) {
         var v = value(storage); return new ExternalSpeech(UUID.fromString(v.get("session").getAsString()), UUID.fromString(v.get("epoch").getAsString()));
     }

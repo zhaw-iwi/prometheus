@@ -46,6 +46,8 @@ public interface ExternalVoicePolicy {
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */
     default String liveSessionEndEventType() { return null; }
+    /** Optional ordinary transition before a fresh session claim, for unresolved work from a lost owner. */
+    default String liveSessionClaimEventType() { return null; }
     /** Called under the agent turn lock, before claiming a new voice session. */
     default void beginLiveConversation(EventHistory history) {}
 }

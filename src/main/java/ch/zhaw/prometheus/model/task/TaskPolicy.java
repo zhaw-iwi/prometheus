@@ -23,6 +23,7 @@ public class TaskPolicy extends Policy {
     public String statusPhase() { return TaskMemory.phase(storage); }
     /** Recovery transition for an explicitly tracked response; null uses the standard paused phase. */
     public String liveResponseFailureEventType() { return null; }
+    public boolean liveIncompleteResponseIsFailure() { return false; }
     public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }
     @Override public String describe() {
         return voiceInstructions() + "\n" + TaskMemory.description(storage);

@@ -1955,6 +1955,18 @@ a new Live session clears old speaking permissions; pending task speech requires
 explicit recovery. Ordinary questions remain available. Native wording is still
 provider-generated and needs the paid behavioral checks described in the results.
 
+For new Coordination instances, a final spoken Live contribution enters
+**Finishing** as soon as its budget is spent. Further task actions are blocked.
+Reflection follows only after the matching speech is captured and the current
+client acknowledges playback settling. Capture has a 45-second deadline; the
+complete capture/playback boundary is bounded by 60 seconds. Stop, incomplete
+capture, lost ownership or deadline expiry leaves **Response delivery uncertain**,
+preserving the budget outcome without automatically repeating the response.
+An explicit restart creates a new run. Text/Continuous complete at canonical
+publication, and silent actions do not wait for speech. These boundaries do not
+prove physical audibility or robot motion. Saved graphs need a fresh instance to
+receive Finishing/Uncertain transitions; deployment does not rewrite them.
+
 Two execution forms are supported:
 
 - **Dialogue:** no sensor rule is required. For example, agree who supplies lab

@@ -43,6 +43,9 @@ public class LiveTaskResponseService {
     void prepare(Agent agent, ExternalSpeech owner, Event speech, Instant started) {
         if (!(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy) || !policy.storage().containsKey(TaskResponse.KEY)) return;
         if (expire(agent, owner)) return;
+        if (policy.liveIncompleteResponseIsFailure() && TaskResponse.incomplete(policy.storage(), owner, speech, started, clock.instant())) {
+            recover(agent, owner, "response_capture_incomplete"); return;
+        }
         var candidate = TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant());
         if (candidate.isEmpty()) return;
         var check = candidate.get();

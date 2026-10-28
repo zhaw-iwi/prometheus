@@ -120,6 +120,8 @@ public class CoordinationUpdateAction extends Action {
             }
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
+                if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage)))
+                    throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
                 if (storage.containsKey(TaskResponse.KEY) && !"CAPTURED".equals(TaskResponse.status(storage)))
@@ -135,6 +137,12 @@ public class CoordinationUpdateAction extends Action {
     }
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
+        if (CoordinationDelivery.finishing(storage) && Set.of("STOP", "RETURN_TO_CONVERSATION", "RESTART", "PROPOSE", "REPLACE").contains(operation)) {
+            CoordinationDelivery.uncertain(storage, "user_" + operation.toLowerCase(java.util.Locale.ROOT), now);
+            if (operation.equals("STOP")) {
+                CoordinationMemory.record(storage, "STOP", event, now); answer(CoordinationMemory.controls(storage), runtime); return;
+            }
+        }
         if (operation.equals("PROPOSE_AND_START")) {
             storage.put(CoordinationMemory.DRAFT, proposed.json()); CoordinationMemory.resetPreparation(storage, now);
             operation = "START";
@@ -162,6 +170,7 @@ public class CoordinationUpdateAction extends Action {
             }
             case "START" -> {
                 CoordinationMemory.archive(storage);
+                CoordinationMemory.remove(storage, CoordinationDelivery.KEY);
                 storage.put(CoordinationMemory.RUN, new JsonPrimitive(java.util.UUID.randomUUID().toString()));
                 var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
                 storage.put(CoordinationMemory.AGREEMENT, accepted.json());
@@ -196,7 +205,7 @@ public class CoordinationUpdateAction extends Action {
                 String previous = TaskMemory.text(storage, CoordinationMemory.PREVIOUS_PHASE, "CONFIGURATION");
                 CoordinationMemory.remove(storage, CoordinationMemory.DRAFT);
                 CoordinationMemory.phase(storage, !storage.containsKey(CoordinationMemory.AGREEMENT) ? "CONFIGURATION"
-                        : previous.equals("COMPLETED") ? "COMPLETED" : "PAUSED");
+                        : Set.of("COMPLETED", "UNCERTAIN").contains(previous) ? previous : "PAUSED");
                 CoordinationMemory.remove(storage, CoordinationMemory.PREVIOUS_PHASE);
                 CoordinationMemory.resetPreparation(storage, now);
             }
@@ -207,9 +216,10 @@ public class CoordinationUpdateAction extends Action {
             default -> { }
         }
         var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
-        if (action && accepted != null && accepted.reactions() == null
-                && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0")) >= accepted.dialogueLimit()) {
+        if (action && accepted != null && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))
+                >= (accepted.reactions() == null ? accepted.dialogueLimit() : accepted.reactions().maxActions())) {
             CoordinationMemory.phase(storage, "COMPLETED"); storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive("LIMIT_REACHED"));
+            CoordinationDelivery.await(storage, reply, runtime);
         }
         if (!operation.equals("KEEP") && !operation.equals("REFLECT")) {
             CoordinationMemory.revise(storage);
@@ -254,9 +264,10 @@ public class CoordinationUpdateAction extends Action {
             case "DISCARD" -> "The draft was discarded. The previous agreement retains its recorded outcome; only an unfinished, paused task can resume.";
             default -> throw new IllegalStateException("Unsupported coordination continuation");
         };
-        if (action && "COMPLETED".equals(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
+        if (action && Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime,
                 "CURRENT requested response: " + facts + "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage));
+        if (action) CoordinationDelivery.attach(storage);
     }
     private static String intent(String speech) { return speech == null ? "No spoken task action was requested." : "Required contribution: " + speech.substring(0, Math.min(350, speech.length())); }
     private static BehaviourPlan controlReply(String operation, JsonElement raw) {

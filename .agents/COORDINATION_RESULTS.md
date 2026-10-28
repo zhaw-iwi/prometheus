@@ -364,3 +364,66 @@ history-preserving, not reset. This smoke does not prove every acknowledgement o
 paraphrase is ideal, nor physical audibility. Three additional deterministic cases
 cover stale revision, expiry and association-in-progress. A rejected pending STEP
 now preserves the original speaking permission as well as its association record.
+
+Final CR-06 rerun: **18 Java tests** passed in `2a4f198975` after the pending-STEP
+permission preservation change.
+
+## CR-07: final delivery before reflection (2026-10-28)
+
+New graphs opt into FINISHING/UNCERTAIN routing. A final spoken dialogue, immediate
+reaction or cue response spends its budget once, then waits for TaskResponse
+association and the existing scoped LivePlaybackCue acknowledgement. No further
+action is admitted. Text/Continuous publication and silent output keep their
+existing boundary. Capture expires at 45 seconds; playback at 60 seconds. Explicit
+Stop, incomplete capture, session loss or timeout preserves LIMIT_REACHED while
+recording uncertain delivery. An explicit restart archives that evidence and
+creates a new budget. A fresh-session hook routes abandoned finishing work through
+ordinary recovery before claiming ownership. Existing saved graphs lack the
+opt-in marker and are not silently rewritten. No new database column is required.
+
+Initial `457b94b95b` found two fake-capture tests comparing a synthetic timestamp
+one nanosecond after creation against the same real-clock tick. Corrected their
+controlled claim/finish times. **75 Java tests passed** in `226ed02a62`, including
+real local DB reload, delayed/wrong-owner/wrong-segment/duplicate acknowledgement,
+incomplete capture and fresh-session recovery, plus Generic and Live neighbors.
+The existing playback and footer Node suites passed **13 tests**; the footer matrix
+now also includes the new phases. Synthetic browser provider startup now emits
+session.started to match the startup ordering contract introduced in CR-04.
+
+The real-app browser check **passed** in `959c244731`: held acknowledgement after
+capture leaves the footer on Finishing, then the scoped acknowledgement changes
+it to Reflection. All 13 Node checks passed again with the expanded footer matrix.
+Paid attempt `64574326b8` stopped at the acceptance wording assertion: it said
+"Say START to accept then a fresh rock will cue the joke" rather than a question.
+That is actionable acceptance guidance, so the assertion now accepts this explicit
+instruction as well as a direct question; a bare "ready" still fails. This run did
+not reach the final-response acceptance gate. Owned resources were cleaned up.
+
+`8f1333c76b` also stopped before delivery: real proposal extraction left a question
+about the recognition demonstration, so the harness's sign could not prepare it.
+The scenario now checks completeness first and permits one ordinary, explicit
+clarification of the already supplied demonstration/roles/defaults. It still fails
+if questions remain; it does not bypass preparation or mutate stored data directly.
+
+`8ddc8fb565` failed that setup assertion: extraction introduced another optional
+question about saying ready versus waiting silently. Guidance now states that
+recognition confirmation/acceptance mechanics are fixed by the backend and are
+not missing user preferences. To isolate CR-07, its paid `delivery` scenario now
+uses a complete real Text proposal explicitly requesting no preparation checks,
+then real Live acceptance/cue/association/playback. CR-09 still requires the full
+recognition and revision journey; the earlier CR-06 preparation/no-speech evidence
+remains separately recorded. No failed setup is counted as delivery acceptance.
+
+`f5adf7af63` reached FINISHING but Live appended "How'd it land?" to the exact
+requested sentence. Association rejected the extra wording and routed to UNCERTAIN,
+preserving LIMIT_REACHED. Final-contribution guidance now forbids added reflection
+questions/asides and explicitly preserves exact wording; the verifier remains strict.
+Fresh Live claims also create a new acceptance boundary for complete drafts with no
+checks, so an old invitation cannot be mistaken for a current one.
+
+Final `d29858158d` passed **21 Java tests and the paid Live delivery journey**:
+FINISHING persisted while response/cue were pending, native response association
+preceded the browser's accepted playback acknowledgement, and only then did the
+agent enter Reflection. Pre-acceptance/pre-cue and post-acknowledgement windows
+contained no premature/repeated joke. Return and state query both confirmed
+Conversation. This demonstrates received-media evidence, not hardware audibility.

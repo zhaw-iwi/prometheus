@@ -71,7 +71,12 @@ public class CoordinationAgent implements AgentDefinition {
             reactions: null for dialogue tasks, otherwise the executable sensor task below; its goal equals agreement.goal.
             checks: up to three optional recognition demonstrations, each exactly eventType, field, operator, value,
             minConfidence. Use only supported sensor fields and eq/lt/gt with their actual value types.
-            Checks require fresh observations after this proposal; each is recognised once. No checks are needed merely
+            Checks require fresh observations after this proposal; each is recognised once.
+            Do not ask whether to confirm recognition, say ready or wait for START:
+            the backend always confirms completed checks and invites acceptance before execution. Optional wording
+            preferences are not unresolved material questions. When the goal, roles, success and rules are supplied,
+            use questions: [] rather than inventing another confirmation of these fixed workflow mechanics.
+            No checks are needed merely
             to have a conversation. These demonstrate recognition, not personal identity, intent, enduring sensor availability
             or physical-action success. Preparation may precede acceptance; it never authorizes a task action.
             Keep the entire agreement below 3000 UTF-8 bytes. Do not remove a material constraint to fit; simplify with the user.
@@ -106,18 +111,20 @@ public class CoordinationAgent implements AgentDefinition {
     @Override public Agent createAgent() { return createAgent(reception); }
     public Agent createAgent(boolean presenceReception) {
         var storage = new Storage();
+        storage.put(CoordinationDelivery.ENABLED, new JsonPrimitive(true));
         storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(true));
         storage.put(CoreTaskVoice.ENABLED, new JsonPrimitive(true));
         storage.put(SensoryRemarks.ENABLED, new JsonPrimitive(true));
         if (presenceReception) storage.put(CoreReception.ENABLED, new JsonPrimitive(true));
         var states = new LinkedHashMap<String, TaskState>();
-        for (String phase : List.of("CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "REFLECTION"))
+        for (String phase : List.of("CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "FINISHING", "UNCERTAIN", "REFLECTION"))
             states.put(phase, new TaskState("Coordination " + (phase.equals("COORDINATION") ? "agreement" : phase.equals("READY") ? "awaiting acceptance" : phase.toLowerCase(Locale.ROOT)),
                     new CoordinationPolicy(storage, VOICE), true));
         var routing = new TaskState("Coordination routing", new CoordinationPolicy(storage, VOICE), false);
         for (var entry : states.entrySet()) routing.addTransition(new Transition(new CoordinationDecision(storage, entry.getKey()), entry.getValue()));
         routing.addTransition(new Transition(states.get("CONVERSATION")));
         for (var state : states.values()) {
+            state.addTransition(new Transition(new CoordinationDecision(storage, "DELIVERY"), new CoordinationDeliveryAction(storage), routing));
             state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE), new CoordinationUpdateAction(storage, CONFIGURE), routing));
             state.addTransition(new Transition(new CoordinationDecision(storage, "OBSERVE_PREPARATION"), new CoordinationPreparationAction(storage), routing));
             state.addTransition(new Transition(new SocialSpacePresenceDecision(storage), new SocialSpaceResponseAction(storage,

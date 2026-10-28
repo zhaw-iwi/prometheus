@@ -1,6 +1,6 @@
 # Coordination workflow refinement
 
-Prepared: 2026-10-28. Status: CR-01 through CR-06 implemented and checked; CR-07 next.
+Prepared: 2026-10-28. Status: CR-01 through CR-07 implemented and checked; CR-08 next.
 Evidence: COORDINATION_RESULTS.md.
 
 This plan covers the observed Coordination trial and its subsequent ordinary
@@ -162,7 +162,8 @@ request with all prerequisites already satisfied activates once.
 **Checks:** unit tests for incomplete preparation, stale/duplicate signs, current
 invitation/short replies and explicit authorization; local DB smoke with reload
 between preparation and acceptance; footer unit test and one focused browser
-check. Paid Live smoke verifies an explicit acceptance question, truthful waiting
+check. Paid Live smoke verifies an explicit acceptance invitation (a direct question
+or an instruction such as "say start to accept"), truthful waiting
 guidance and absence of task content before authorization.
 
 ### CR-04 — Revisions preserve unchanged agreement terms
