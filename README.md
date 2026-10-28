@@ -1941,6 +1941,13 @@ agreement. To change those terms deliberately, request a replacement (for exampl
 "Instead replace this sensor task with a dialogue task"); review and accept the
 new proposal. Revisions require fresh preparation evidence where checks exist.
 
+Coordination Live capture allows two seconds of measured user silence before
+admitting a turn (other agents keep their existing policy). This adds up to 1.2
+seconds compared with the default and can keep a short hesitation in one request.
+It does not change provider speech generation. Clearly unfinished requests ask
+for completion without changing the agreement; gaps, late data and interrupted
+capture retain their conservative handling.
+
 Two execution forms are supported:
 
 - **Dialogue:** no sensor rule is required. For example, agree who supplies lab

@@ -26,6 +26,10 @@ public class CoordinationUpdateAction extends Action {
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
+        // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
+        if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?")) {
+            answer("Please finish that request; the agreement and state are unchanged.", runtime); return;
+        }
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
         String invitation = CoreTaskVoice.prompt(storage, events, runtime.externalSpeech(), CoordinationMemory.DRAFT);

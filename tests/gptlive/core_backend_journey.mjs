@@ -43,6 +43,7 @@ if (coordinationJourney && coordinationScenario !== 'baseline') {
   acknowledge: 'Okay.'
   });
   if (coordinationScenario === 'revision') clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
+  if (coordinationScenario === 'capture') Object.assign(clips, {fragment: 'A dry', ending: 'one-liner, keeping every other term unchanged.'});
 }
 const audio = {};
 if (rpsJourney) {
@@ -73,6 +74,7 @@ for (const [name, input] of Object.entries(clips)) {
   }
   audio[name] = [...fs.readFileSync(file)];
 }
+if (coordinationScenario === 'capture') audio.revision = [...audio.fragment, ...new Uint8Array(24000 * 2 * 1.2), ...audio.ending];
 const browser = await chromium.launch({headless: true, args: ['--autoplay-policy=no-user-gesture-required']});
 let page, agentPath, handle, heartbeat, scoped;
 let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 'neutral', confidence: .95, facePresent: true}}
@@ -145,6 +147,13 @@ async function coordinationRevision() {
   };
   assert.ok(revised.reactions); assert.deepEqual(protectedTerms(revised), protectedTerms(original));
   report.revision = await settled(index, /one.liner|dry|rock|check/i);
+  if (coordinationScenario === 'capture') {
+    const history = await api(agentPath + '/live/history');
+    report.captureHistory = history;
+    const inputs = history.filter(e => e.type === 'obs.user_utterance' && /dry|liner/i.test(e.payload));
+    assert.equal(inputs.length, 1, 'Paused request must be admitted once');
+    assert.match(inputs[0].payload, /dry.*one.liner/i);
+  }
   assert.equal(Object.keys((await storage())['coordination.evidence']).length, 0);
   index = await page.evaluate(() => logs.length);
   await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
@@ -168,7 +177,7 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  if (coordinationJourney && coordinationScenario === 'revision') {
+  if (coordinationJourney && ['revision', 'capture'].includes(coordinationScenario)) {
     const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});
     await text('Propose one short joke on rock after acceptance, first verifying rock recognition. I show the sign and judge the joke. One action in this session, standard settings. Do not start yet.');
     let memory = await storage();
@@ -361,7 +370,7 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    if (coordinationScenario === 'revision') {
+    if (['revision', 'capture'].includes(coordinationScenario)) {
       await coordinationRevision();
     } else if (coordinationScenario === 'recognition') {
       let index = await page.evaluate(() => logs.length); await say('proposal');

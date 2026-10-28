@@ -37,6 +37,8 @@ public class CoordinationAgent implements AgentDefinition {
             RESTART (explicitly repeat the same accepted task with a fresh budget), STATUS (describe current state).
             Ambiguous 'start over' means KEEP and ask whether to return to conversation or restart the same task.
             Never claim a control transition in a KEEP reply. State questions use STATUS.
+            An unfinished phrase is not a new task or a revision. Use KEEP and ask the user to finish it.
+            Do not complete missing intent from an earlier conversation, or interpret "A dry" as a whole change.
             RESTART repeats the accepted terms: fresh required preparation precedes a new acceptance;
             without preparation checks it starts a new run and provides its first dialogue contribution.
             Only PROPOSE, REPLACE and PROPOSE_AND_START have a non-null agreement. START cannot replace a draft and requires all material questions

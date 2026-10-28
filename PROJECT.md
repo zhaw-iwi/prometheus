@@ -80,11 +80,13 @@ and regulation diagnostics remain future work.
   runner checks, one footer browser check and real OpenAI Live preparation/start/
   fresh-cue smoke passed against disposable MySQL. Text return/restart also passed.
   Failed provider attempts and remaining fragmented-turn effects are recorded.
-  CR-04 now preserves protected revision terms (49 Java checks and paid Text
-  revision passed); its Live acceptance is outstanding after startup failures.
+  CR-04 preserves protected revision terms (49 Java checks and paid Text
+  revision passed). CR-05's 32 capture/ingress checks and paid paused-input Live
+  revision passed, also closing CR-04 Live acceptance. Native premature/waiting
+  wording remains CR-06 work.
   The related startup ordering fix passed 43 neighboring Java checks. Storage
   values require additive widening to varchar(8192). Capture and speech work
-  continues through CR-05 to CR-09 in
+  continues through CR-06 to CR-09 in
   `.agents/PLAN_COORDINATION_REFINEMENT.md`; evidence is in COORDINATION_RESULTS.
 
 - Coordination release preparation (2026-10-28): implementation `293c987` and

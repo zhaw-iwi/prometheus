@@ -16,6 +16,7 @@ import jakarta.persistence.Entity;
 public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
+    @Override public long liveUserSilenceMs() { return 2000; }
     @Override public boolean hasDraft() { return storage().containsKey(CoordinationMemory.DRAFT); }
     @Override public String statusPhase() {
         String stage = CoordinationMemory.stage(storage());

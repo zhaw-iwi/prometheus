@@ -250,7 +250,7 @@ captions found no delivered joke. Fragmented wording and an extraneous failed-up
 clarification remain visible and are assigned to CR-05/06, not claimed fixed here.
 No additive schema change. New instances receive updated prompts/state labels.
 
-## CR-04: preserve revision terms (2026-10-28; Live acceptance outstanding)
+## CR-04: preserve revision terms (2026-10-28)
 
 Content edits compare protected agreement fields before mutation. A dry one-liner
 cannot remove sensor rules, change timing/count/session behavior, human commitments,
@@ -305,3 +305,28 @@ only a usage event before sideband disconnect, with no session.started or captur
 user turn. This is a provider startup failure, not a revision acceptance pass.
 The bounded Live revision check remains outstanding for CR-05/06/09 combined
 verification; no production rollout is justified by the Text result alone.
+
+## CR-05: bounded user-turn capture (2026-10-28)
+
+Coordination opts into the existing 2,000-ms user silence policy. Assistant timing,
+other agents, receipt identity, 30-second maximum open turns, late fragments and
+coverage-gap uncertainty are unchanged. Actual 24-kHz PCM tests reproduce the
+"A dry ... one-liner" and "tell me a ... joke" pauses at 1.2/1.7 seconds and keep
+subsequent turns distinct. Clearly unfinished requests cannot invoke inference or
+mutate task authority; the answer requests completion. This English guard covers
+the observed fragments, not arbitrary semantic completeness in every language.
+
+Passed **32 Java checks** in `1b0b5b1156`, including real local MySQL ingress with
+two durable receipts, one revision and idempotent duplicate admission. The final
+PCM case was strengthened to assert that the subsequent distinct turn is COMPLETE;
+all **12 segmenter tests** passed again in `82e8943eb5`. The paid capture scenario
+now composes two real synthetic speech clips with a reproducible 1.2-second pause.
+Latency increases by up to 1.2 seconds; no physical/acoustic guarantee is claimed.
+
+Paid Live `capture` **passed** (`82e8943eb5`): one admitted paused request, unchanged
+protected sensor terms, fresh preparation, explicit acceptance question including
+fresh-cue guidance, captured armed response with zero actions, then one response
+on fresh rock. This also closes CR-04's outstanding Live revision check. It does
+not establish CR-06's no-premature/duplicate-speech contract: captions include
+"No wet" during the partial input and unnecessary backend-waiting commentary.
+Owned application, schema and account were removed.
