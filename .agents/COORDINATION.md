@@ -8,6 +8,16 @@ coordination system already exists.
 
 ## Start here
 
+Implementation follow-up (2026-10-27): the owner requested a new
+`agentdefs/core/CoordinationAgent.java` as the eventual successor to both Generic
+variants, preserving their persona, institutional/team knowledge, humour and
+perception behaviour. The initial implementation adds dialogue agreements and
+bounded recognition preparation alongside the existing sensor task engine.
+Current contracts, verification and limitations are maintained in README and
+`COORDINATION_RESULTS.md`. Both Generic definitions and saved instances remain.
+The explanatory material below retains the original concept/source handoff;
+household manipulation and arbitrary generated workflows remain outlook scenarios.
+
 Read `.agents/CODEX.md`, `.agents/CONTEXT.MD`, and `PROJECT.md` from the beginning
 through `Current milestone state`, stopping before `Historical milestones
 checklist`. Then check the branch/worktree and the implementation, configuration,

@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination Agent foundation (2026-10-27): new `core.coordination` preserves
+  the shared Valerian persona, lab/team facts, humour and Social Space presence
+  remarks. Persisted dialogue/sensor agreements support clarification, bounded
+  observation preparation, acceptance, execution, reflection and revision.
+  Both Generic variants and saved instances remain available. Verification,
+  additive schema requirements and remaining provider/physical limits are in
+  `.agents/COORDINATION_RESULTS.md`. Full Java regression passed 673 cases;
+  the final focused rerun passed 58 and the activity footer passed eight Node
+  cases. Packaging passed; no provider, physical or deployment trial was run.
+
 - Shared core reference/persona follow-up (2026-10-27): the eight conversational
   core definitions share sourced SIRA/IWI/team facts and a separate fictional
   Valerian/Laureline backstory with mild grumpiness. SML, Reto and event knowledge
@@ -9457,3 +9467,28 @@ allowlist/test/documentation backport. Backend timing, audio playback and prompt
 are unchanged. The recording plan still requires a separate implementation task;
 its original Gala-specific trial files remain on `agents`. No standalone Valerian
 repository change or Heroku redeployment is included.
+
+## Coordination Agent foundation (2026-10-27)
+
+The owner requested a new `CoordinationAgent.java` as the eventual successor to
+both Generic variants while retaining persona, knowledge, humour and perception
+behaviour. `core.coordination` adds persisted partial/accepted agreements for
+dialogue and sensor tasks, bounded observation preparation, explicit acceptance,
+execution, pause, reflection and revision. Generic definitions and saved graphs
+remain intact. Shared Valerian/SIRA/IWI/team context and Social Space admission
+are reused; no application-specific identity or event knowledge enters main.
+
+The existing task engine still validates and executes sensor rules. Dialogue
+tasks need no invented rule. Preparation cannot be satisfied by verbal claims;
+acceptance and action remain separate from recognising a demonstration. Completed
+tasks stay completed when a proposed replacement is discarded. Accepted evidence,
+last matched rule and bounded operation history support reflection without
+claiming physical execution or subjective success.
+
+Verification passed 673 full Java cases on an isolated build/local MySQL setup,
+58 final focused cases after review fixes, eight Node activity-footer cases,
+packaging and whitespace checks. The results file records initial failures,
+fixture corrections, commands and artifact paths. The new decision discriminator
+field requires an additive schema update. Provider/classroom/physical quality and
+production capacity remain unverified. No commit, push or deployment was made;
+see `.agents/COORDINATION_RESULTS.md` for the review handoff.

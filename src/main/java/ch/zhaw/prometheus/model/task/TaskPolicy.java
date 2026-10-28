@@ -19,6 +19,8 @@ public class TaskPolicy extends Policy {
     public TaskPolicy(Storage storage, String instructions) { this.storage = storage; this.taskInstructions = instructions; }
     public Storage storage() { return storage; }
     public String configuredInstructions() { return taskInstructions; }
+    public boolean hasDraft() { return storage.containsKey(TaskMemory.DRAFT); }
+    public String statusPhase() { return TaskMemory.phase(storage); }
     /** Recovery transition for an explicitly tracked response; null uses the standard paused phase. */
     public String liveResponseFailureEventType() { return null; }
     public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }

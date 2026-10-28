@@ -20,7 +20,10 @@ final class CoreTaskVoice {
         return capturedPrompt(storage, event, owner, started, List.of());
     }
     static boolean capturedPrompt(Storage storage, Event event, ExternalSpeech owner, Instant started, List<LiveSpeechPart> parts) {
-        if (!storage.containsKey(INVITATION) || !storage.containsKey(TaskMemory.DRAFT) || started == null
+        return capturedPrompt(storage, event, owner, started, parts, TaskMemory.DRAFT);
+    }
+    static boolean capturedPrompt(Storage storage, Event event, ExternalSpeech owner, Instant started, List<LiveSpeechPart> parts, String draftKey) {
+        if (!storage.containsKey(INVITATION) || !storage.containsKey(draftKey) || started == null
                 || owner == null) return false;
         Instant boundary = Instant.parse(storage.get(INVITATION).getAsString());
         var p = event.speechProvenance();
@@ -66,7 +69,10 @@ final class CoreTaskVoice {
     }
     /** Current completed utterance context only. Ordinary task control must interpret acceptance. */
     static String prompt(Storage storage, EventHistory history, ExternalSpeech owner) {
-        if (!storage.containsKey(TaskMemory.DRAFT) || !storage.containsKey(INVITATION)) return null;
+        return prompt(storage, history, owner, TaskMemory.DRAFT);
+    }
+    static String prompt(Storage storage, EventHistory history, ExternalSpeech owner, String draftKey) {
+        if (!storage.containsKey(draftKey) || !storage.containsKey(INVITATION)) return null;
         Instant after = Instant.parse(storage.get(INVITATION).getAsString());
         var events = history.toList();
         for (int i = events.size() - 1; i >= 0; i--) {
@@ -114,13 +120,17 @@ final class CoreTaskVoice {
     }
     static int bytes(String value) { return value.getBytes(StandardCharsets.UTF_8).length; }
     static void response(Storage storage, String facts, boolean proactive, boolean gateNextCue, PolicyRuntime runtime) {
+        response(storage, facts, proactive, gateNextCue, runtime, null);
+    }
+    static void response(Storage storage, String facts, boolean proactive, boolean gateNextCue, PolicyRuntime runtime, String confirmedContext) {
         if (runtime.externalSpeech() == null) return;
         var value = new JsonObject(); var id = UUID.randomUUID(); Instant now = Instant.now();
         value.addProperty("id", id.toString()); value.addProperty("facts", facts);
         value.addProperty("proactive", proactive); value.addProperty("expires", now.plusSeconds(45).toString());
         value.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
         storage.put(RESPONSE, value);
-        if (TaskMemory.active(storage) && gateNextCue) TaskResponse.expect(storage, runtime.externalSpeech(), id, facts(storage, facts), now);
+        if (TaskMemory.active(storage) && gateNextCue) TaskResponse.expect(storage, runtime.externalSpeech(), id,
+                confirmedContext == null ? facts(storage, facts) : confirmedContext, now);
         else if (!TaskMemory.active(storage) && storage.containsKey(TaskResponse.KEY)) storage.remove(TaskResponse.KEY);
     }
     static LiveActivityContext context(Storage storage) {

@@ -46,6 +46,8 @@ prometheus.live.capacity=16
 
 # New Social Space instances may use unattended reception; Generic and saved graphs stay unchanged.
 prometheus.core.social-space.reception=false
+# Optional presence-controlled Live reception for new Coordination Agent instances.
+prometheus.core.coordination.reception=false
 
 # cross-origin browser clients, for example an external Valerian cockpit
 prometheus.cors.allowed-origins=

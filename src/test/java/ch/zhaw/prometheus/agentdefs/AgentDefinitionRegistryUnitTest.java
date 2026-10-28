@@ -37,6 +37,7 @@ class AgentDefinitionRegistryUnitTest {
         for (AgentDefinition definition : registryWithBuiltIns().list()) {
             var agent = definition.createAgent();
             boolean conversational = java.util.Set.of(
+                    "core.coordination",
                     "core.facial_expression_sensitivity", "core.generic_multimodal_behaviour",
                     "core.generic_multimodal_behaviour_at_social_space", "core.live_multimodal", "core.multimodal_behaviour",
                     "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
@@ -100,6 +101,7 @@ class AgentDefinitionRegistryUnitTest {
 
 
     private static final List<String> EXPECTED_KEYS = List.of(
+            "core.coordination",
             "core.facial_expression_sensitivity",
             "core.generic_multimodal_behaviour",
             "core.generic_multimodal_behaviour_at_social_space",
@@ -117,6 +119,7 @@ class AgentDefinitionRegistryUnitTest {
             "usecases.healthcare.therapy_appointment_reminder_intro");
 
     private static final Map<String, String> EXPECTED_LANGUAGE_BY_KEY = Map.ofEntries(
+            Map.entry("core.coordination", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.facial_expression_sensitivity", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.generic_multimodal_behaviour", AgentDefinition.LANGUAGE_ENGLISH),
             Map.entry("core.generic_multimodal_behaviour_at_social_space", AgentDefinition.LANGUAGE_ENGLISH),
@@ -180,6 +183,7 @@ class AgentDefinitionRegistryUnitTest {
 
     private static AgentDefinitionRegistry registryWithBuiltIns() {
         return new AgentDefinitionRegistry(List.of(
+                new ch.zhaw.prometheus.agentdefs.core.CoordinationAgent(),
                 new ch.zhaw.prometheus.agentdefs.core.FacialExpressionSensitivity(),
                 new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviour(),
                 new ch.zhaw.prometheus.agentdefs.core.GenericMultimodalBehaviourAtSocialSpace(),

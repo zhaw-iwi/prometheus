@@ -118,6 +118,11 @@ public class TaskDecision extends Decision {
         reason[0] = "insufficient_samples";
         return false;
     }
+    /** Reuse the same observation semantics for explicit preparation checks; never accepts utterances or old evidence. */
+    public static boolean matchesObservation(TaskSpec.Rule rule, Event event, Instant now) {
+        return Event.KIND_OBSERVATION.equals(event.getKind()) && rule.eventType().equals(event.getType())
+                && TaskMemory.fresh(event, now) && matches(rule, event, new String[]{"waiting_for_cue"});
+    }
     private static boolean matches(TaskSpec.Rule rule, Event event, String[] reason) {
         try {
             var object = JsonParser.parseString(event.getPayload()).getAsJsonObject();
