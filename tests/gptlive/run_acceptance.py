@@ -26,10 +26,13 @@ def main():
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue'], default='baseline')
     args = parser.parse_args()
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')
+    if args.coordination_scenario != 'baseline' and args.paid_core not in ('coordination', 'coordination-text'):
+        parser.error('--coordination-scenario requires a paid Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     provider_props = {}
@@ -61,7 +64,7 @@ def main():
     assert re.fullmatch(r'prometheus_gptlive_[0-9a-f]{10}', schema)
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
-    artifacts.mkdir()
+    artifacts.mkdir(parents=True)
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
         password=os.environ.get('GPTLIVE_MYSQL_ADMIN_PASSWORD', props.get('spring.datasource.password')), autocommit=True)
@@ -158,8 +161,9 @@ def main():
                         time.sleep(0.5)
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
-                run(['node', 'tests/gptlive/core_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
-                    '--agent=' + args.paid_core], 'paid-journey')
+                journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
+                run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
+                    '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',

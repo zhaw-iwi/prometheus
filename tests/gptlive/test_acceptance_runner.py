@@ -29,6 +29,15 @@ class AcceptanceRunnerTest(unittest.TestCase):
     def test_paid_and_mocked_provider_runs_cannot_be_combined(self):
         self.run_rejected(['--paid-core', 'live', '--browser'], {}, 'must run separately')
 
+    def test_coordination_scenario_cannot_silently_run_another_agent(self):
+        self.run_rejected(['--paid-core', 'live', '--coordination-scenario', 'revision'], {},
+                          'requires a paid Coordination journey')
+
+    def test_coordination_requires_valid_provider_configuration_before_billing(self):
+        self.run_rejected(['--paid-core', 'coordination'],
+                          {'OPENAI_MODEL': 'invalid model', 'OPENAI_API_KEY': 'not-a-real-key'},
+                          'requires an API key and configured openai.model')
+
 
 if __name__ == '__main__':
     unittest.main()

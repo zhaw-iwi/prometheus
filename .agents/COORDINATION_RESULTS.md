@@ -158,3 +158,29 @@ removed by the runner. All **8 activity-footer Node tests passed** and packaging
 with the isolated build POM passed. No paid provider or physical-device trial
 was run. Deployment-branch integration and release checks are recorded separately
 after the merge; these main checks do not establish production acceptance.
+
+## CR-01: refinement baseline and harness (2026-10-28)
+
+Consecutive CR-01 through CR-09 implementation and per-milestone publication are
+authorized by the owner. Work uses feature/gptlive based on current main; final
+integration follows main -> agents. The refinement plan is
+`PLAN_COORDINATION_REFINEMENT.md`.
+
+Added bounded Coordination Live/Text selections to the existing disposable-local-
+database runner, a synthetic regression manifest and three characterization tests.
+Those tests reproduce terminal outcome replacement, sensor-contract loss on a
+style revision, and Reflection before final Live capture. They document defects,
+not passing acceptance of the intended behavior. The manifest assigns the other
+observed contradictions to their acceptance milestones; no production transcript
+or identifiers are included. No application behavior or schema changed.
+
+Verification: runner unittest discovery passed **5 tests**. The disposable MySQL
+selection CoordinationAgentUnitTest, CoordinationAgentIntegrationTest and
+CoordinationRefinementBaselineUnitTest passed **17 tests**, no failures/errors/skips
+(`target/gptlive-acceptance-8de3943141/java.log`). The paid selection
+`--java-tests none --paid-core coordination` passed its real Live identity/lab and
+current-perception conversation (`target/gptlive-acceptance-a85cc3c6a3/journey.json`).
+The runner stopped both owned applications and removed their schemas/accounts.
+Provider journeys have a 420-second process deadline; the Text journey additionally
+bounds itself to 300 seconds and 12 turns. Future scenario names are reserved and
+fail explicitly until implemented. This baseline makes no physical-device claim.

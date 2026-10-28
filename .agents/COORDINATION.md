@@ -8,6 +8,11 @@ coordination system already exists.
 
 ## Start here
 
+Proposed refinement sequence (2026-10-28): see
+`PLAN_COORDINATION_REFINEMENT.md` for the trial-driven lifecycle, agreement,
+capture, delivery and diagnostic milestones, including local database and paid
+OpenAI acceptance gates. This is a plan, not an implementation or release record.
+
 Implementation follow-up (2026-10-27): the owner requested a new
 `agentdefs/core/CoordinationAgent.java` as the eventual successor to both Generic
 variants, preserving their persona, institutional/team knowledge, humour and

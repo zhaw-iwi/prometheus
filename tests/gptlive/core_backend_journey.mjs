@@ -6,15 +6,17 @@ import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
-const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
+const definitions = {coordination: 'core.coordination', live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
   social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space',
   task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space', rps: 'core.rock_scissor_paper',
   'user-guess': 'core.role_clarification_guessing_game', 'agent-guess': 'core.role_clarification_guessing_game', 'care-guess': 'usecases.healthcare.guessing_game_user_guess'};
 const taskJourney = selection === 'task' || selection === 'space-task';
+const coordinationJourney = selection === 'coordination';
+const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))?.split('=')[1] || 'baseline';
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
-const connectionOnly = !rpsJourney;
+const connectionOnly = !rpsJourney && !coordinationJourney;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
     || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname))
@@ -297,6 +299,11 @@ try {
     await say('acknowledge'); await wait(4000);
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
+  } else if (coordinationJourney) {
+    assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
+    report.finalState = await api(agentPath + '/state');
+    report.history = await api(agentPath + '/eventhistory');
+    assert.equal((await storage())['coordination.agreement'], undefined);
   } else if (selection === 'live') {
     // Gesture-only requests intentionally require no spoken acknowledgement.
     await say('gesture');
