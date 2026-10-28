@@ -53,6 +53,19 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid coordination agreement"); }
     }
     public boolean complete() { return questions.isEmpty() && !goal.isBlank() && !humanRole.isBlank() && !agentRole.isBlank() && !success.isBlank(); }
+    /** Editing response content cannot silently change the executable contract or the human's commitments. */
+    public boolean sameTerms(CoordinationAgreement other) {
+        return protectedTerms().equals(other.protectedTerms());
+    }
+    private JsonObject protectedTerms() {
+        var value = json();
+        for (String key : List.of("goal", "agentRole", "questions")) value.remove(key);
+        if (!value.get("reactions").isJsonNull()) {
+            var task = value.getAsJsonObject("reactions"); task.remove("goal");
+            for (var rule : task.getAsJsonArray("rules")) rule.getAsJsonObject().remove("action");
+        }
+        return value;
+    }
     public JsonObject json() {
         var value = JSON.toJsonTree(this).getAsJsonObject();
         value.add("reactions", reactions == null ? JsonNull.INSTANCE : reactions.json());

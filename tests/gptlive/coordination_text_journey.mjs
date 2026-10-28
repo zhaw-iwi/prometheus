@@ -59,6 +59,29 @@ try {
     const state = await say('Where are we?');
     assert.match(JSON.stringify(state.response), /Current state: CONVERSATION/i);
     assert.ok(state.memory['coordination.outcomes'].length >= 2);
+  } else if (scenario === 'revision') {
+    const proposal = await say('Propose one short joke on rock: I show the sign and judge the joke; success means I like it. One action in this session, standard recognition settings, no preparation checks. Do not start yet.');
+    assert.ok(proposal.memory['coordination.draft']?.reactions);
+    const accepted = await say('Start the saved proposal now.');
+    const original = accepted.memory['coordination.agreement'];
+    assert.equal(original.reactions.firstAction, 'ON_CUE'); assert.equal(original.reactions.maxActions, 1);
+    await new Promise(resolve => setTimeout(resolve, 3500));
+    await api(agentPath + '/acknowledge', 'POST', {type: 'obs.hand.sign', actor: 'camera', kind: 'observation', payload: JSON.stringify({sign:'rock', confidence:1, ts:new Date().toISOString()})});
+    assert.equal((await storage())['task.phase'], 'COMPLETED');
+    const edited = await say('Make only the response a dry one-liner, keeping every other term unchanged.');
+    const revised = edited.memory['coordination.draft']; assert.ok(revised?.reactions);
+    const protectedTerms = agreement => {
+      const copy = structuredClone(agreement); delete copy.goal; delete copy.agentRole; delete copy.questions;
+      delete copy.reactions.goal; copy.reactions.rules.forEach(rule => delete rule.action); return copy;
+    };
+    assert.deepEqual(protectedTerms(revised), protectedTerms(original));
+    assert.match(revised.reactions.rules[0].action, /dry|one.liner/i);
+    const restarted = await say('Start the revised proposal now.');
+    assert.equal(restarted.memory['task.actions'], 0); assert.equal(restarted.memory['task.phase'], 'RUNNING');
+    const replacement = await say('Instead replace this sensor task with a dialogue task: give one welcome sentence when I accept, with no sensor trigger or preparation; I judge whether it is suitable.');
+    assert.equal(replacement.memory['coordination.draft'].reactions, null);
+    assert.equal(replacement.memory['task.phase'], 'CONFIGURATION');
+    assert.match(JSON.stringify(replacement.response), /replacement proposal/i);
   } else assert.equal(scenario, 'baseline', 'Scenario is not implemented yet');
   report.passed = true;
 } catch (error) {report.error = error.message; process.exitCode = 1;}

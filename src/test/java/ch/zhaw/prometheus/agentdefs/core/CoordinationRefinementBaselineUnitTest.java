@@ -9,12 +9,6 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 class CoordinationRefinementBaselineUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
 
-    @Test void baselineStyleRevisionCanReplaceTheSensorContract() {
-        f.propose(f.sensor(false), f.text); f.start(f.text);
-        f.turn("PROPOSE", f.dialogue(), "Make the response a dry one-liner", f.text);
-        assertTrue(f.storage().get(CoordinationMemory.DRAFT).getAsJsonObject().get("reactions").isJsonNull());
-    }
-
     @Test void baselineSingleLiveContributionReflectsBeforeItsSpeechIsCaptured() {
         var agreement = f.dialogue(); agreement.addProperty("dialogueLimit", 1);
         f.propose(agreement, f.live); f.start(f.live);

@@ -249,3 +249,59 @@ zero actions -> fresh rock -> one dry joke/action. Inspection of its pre-cue
 captions found no delivered joke. Fragmented wording and an extraneous failed-update
 clarification remain visible and are assigned to CR-05/06, not claimed fixed here.
 No additive schema change. New instances receive updated prompts/state labels.
+
+## CR-04: preserve revision terms (2026-10-28; Live acceptance outstanding)
+
+Content edits compare protected agreement fields before mutation. A dry one-liner
+cannot remove sensor rules, change timing/count/session behavior, human commitments,
+success criteria or preparation. Unexpected material changes preserve the existing
+agreement and request clarification. Explicit REPLACE proposals can change those
+terms and still require acceptance. Current revision fencing also rejects late
+model results. Updated older tests that intentionally replaced dialogue/sensor
+tasks to express that intent through REPLACE rather than an ordinary content edit.
+
+The declared 3,000-byte agreement contract exceeded Storage's varchar(2048).
+Widened `storage_entry.entry_value` to varchar(8192), an additive schema change.
+A real MySQL test persists/reloads a valid agreement larger than 2,048 characters.
+Other consumers retain their existing validation limits; this does not make
+unbounded payloads acceptable.
+
+First Java run (`4b898bc192`) caught one remaining old test switching task types
+through PROPOSE; corrected its explicit replacement fixture. All **46 Java tests**
+then passed (`83fdafb783`), followed by the paid Text `revision` journey in the same
+artifact directory: complete original sensor task, edit only response style,
+assert protected fields, accept with zero initial actions, then explicitly replace
+with a dialogue proposal. The first Live run (`fe8756ba2f`) failed an overly narrow
+check requiring fresh-cue guidance in the final preparation sentence alone; the
+recorded proposal already explained the fresh cue and the final sentence asked to
+start. The check now examines both parts of the current proposal/preparation
+dialogue. All owned applications/schemas/accounts from those runs were cleaned up.
+
+Follow-up checks caught and fixed discarding restart preparation reviving a
+completed run. Control replies now discard invalid optional nonverbal expression
+while still validating speech, motion and the agreement. The provider had returned
+the literal enum alternatives as a gaze focus; a dedicated regression covers it.
+The final combined selection passed **49 Java tests** in `3538181c80`, including
+the one remaining characterization of premature Live reflection (CR-07).
+
+Further paid Live artifacts: `4983c38b0f` asked "Wanna try it?", a valid current
+invitation omitted from the test vocabulary; `72ec228444` missed the browser
+startup event despite attachment; `161e40e16f` returned the invalid optional gaze
+label; `eef23aacff` passed 27 focused Java tests but omitted fresh-cue guidance
+in its Live proposal/preparation wording. That wording remains a CR-06/final
+acceptance concern. The CR-04 Live scenario now establishes/completes the original
+task through real Text inference, then exercises revision/acceptance/cue response
+in Live; CR-09 retains the complete Live journey. `a80bef530c` failed before any
+revision was admitted: context delivery closed and the peer failed. The trace had
+unmute confirmation before server session-start, so the probe now waits for server
+startup as well as connected peer/data channel before unmuting. These failures are
+not accepted as successful workflow tests; their owned resources were cleaned up.
+
+`bf1269032d` failed unmute with HTTP 502; context append preceded provider
+session.started. The bridge now waits for both socket attachment and provider
+startup, tested in both arrival orders and against duplicate/late startup events.
+All **43 neighboring Java tests** passed in `a1e6a818b5`. Its paid attempt received
+only a usage event before sideband disconnect, with no session.started or captured
+user turn. This is a provider startup failure, not a revision acceptance pass.
+The bounded Live revision check remains outstanding for CR-05/06/09 combined
+verification; no production rollout is justified by the Text result alone.

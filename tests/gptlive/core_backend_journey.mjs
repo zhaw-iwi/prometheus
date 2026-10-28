@@ -13,6 +13,7 @@ const definitions = {coordination: 'core.coordination', live: 'core.live_multimo
 const taskJourney = selection === 'task' || selection === 'space-task';
 const coordinationJourney = selection === 'coordination';
 const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))?.split('=')[1] || 'baseline';
+const acceptanceQuestion = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?/i;
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
@@ -41,6 +42,7 @@ if (coordinationJourney && coordinationScenario !== 'baseline') {
   accept: 'Start the saved proposal now.',
   acknowledge: 'Okay.'
   });
+  if (coordinationScenario === 'revision') clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
 }
 const audio = {};
 if (rpsJourney) {
@@ -131,6 +133,33 @@ async function settled(index, expected) {
   assert.equal(status.state, 'attached', 'Live closed: ' + status.reason);
   return captionsFrom(index);
 }
+async function coordinationRevision() {
+  let index;
+  await until('first task completed', async () => (await storage())['task.phase'] === 'COMPLETED');
+  const original = (await storage())['coordination.agreement'];
+  index = await page.evaluate(() => logs.length); await say('revision');
+  const revised = await until('revised draft', async () => (await storage())['coordination.draft']);
+  const protectedTerms = agreement => {
+    const copy = structuredClone(agreement); delete copy.goal; delete copy.agentRole; delete copy.questions;
+    delete copy.reactions.goal; copy.reactions.rules.forEach(rule => delete rule.action); return copy;
+  };
+  assert.ok(revised.reactions); assert.deepEqual(protectedTerms(revised), protectedTerms(original));
+  report.revision = await settled(index, /one.liner|dry|rock|check/i);
+  assert.equal(Object.keys((await storage())['coordination.evidence']).length, 0);
+  index = await page.evaluate(() => logs.length);
+  await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+  report.reprepared = await settled(index, acceptanceQuestion);
+  await until('new acceptance question captured', async () => (await storage())['core.task.spokenPrompt']);
+  index = await page.evaluate(() => logs.length); await say('accept');
+  await until('revised activation captured', async () => (await storage())['task.response']?.status === 'CAPTURED');
+  report.reactivation = await settled(index, /wait|rock|active|armed/i);
+  assert.equal((await storage())['task.actions'], 0);
+  await wait(3500); index = await page.evaluate(() => logs.length);
+  await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
+  await until('revised response authorized', async () => (await storage())['task.actions'] === 1);
+  report.revisedContribution = await settled(index);
+  report.revisedAgreement = (await storage())['coordination.agreement'];
+}
 try {
   const admin = {'X-Prometheus-Admin-Token': token};
   const code = ('G' + Math.random().toString(36).slice(2, 6)).toUpperCase();
@@ -139,6 +168,20 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
+  if (coordinationJourney && coordinationScenario === 'revision') {
+    const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});
+    await text('Propose one short joke on rock after acceptance, first verifying rock recognition. I show the sign and judge the joke. One action in this session, standard settings. Do not start yet.');
+    let memory = await storage();
+    assert.equal(memory['coordination.draft'].checks.length, 1);
+    assert.deepEqual(memory['coordination.draft'].questions, []);
+    await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
+    await text('Start the saved proposal now.');
+    await wait(3500);
+    await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
+    memory = await storage(); assert.equal(memory['task.phase'], 'COMPLETED');
+    assert.equal(memory['task.actions'], 1);
+    report.textSetup = {agreement:memory['coordination.agreement'], outcome:memory['coordination.outcome']};
+  }
   if (ambientSensing) await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
@@ -193,7 +236,11 @@ try {
   }, {agentPath, code, connectionOnly});
   const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow'}); handle = session.handle;
   await page.evaluate(sdp => pc.setRemoteDescription({type: 'answer', sdp}), session.sdp);
-  await page.waitForFunction(() => logs.some(e => e.type === 'session.started'), {}, {timeout: 20000});
+  await page.waitForFunction(coordination => coordination
+    ? pc.connectionState === 'connected' && dc.readyState === 'open'
+    : logs.some(e => e.type === 'session.started'), coordinationJourney, {timeout: 20000});
+  if (coordinationJourney) await until('provider session started', async () =>
+    (await api(`${agentPath}/live/sessions/${handle}`)).recent?.some(e => e.type === 'session.started'));
   await api(`${agentPath}/live/sessions/${handle}/input?muted=false`, 'POST');
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
   if (coordinationJourney) {
@@ -314,7 +361,9 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    if (coordinationScenario === 'recognition') {
+    if (coordinationScenario === 'revision') {
+      await coordinationRevision();
+    } else if (coordinationScenario === 'recognition') {
       let index = await page.evaluate(() => logs.length); await say('proposal');
       await until('preparation draft', async () => (await storage())['coordination.draft']?.checks?.length === 1);
       report.proposal = await settled(index, /rock|recogn|check|prepar/i);
@@ -325,9 +374,10 @@ try {
       assert.equal(memory['coordination.agreement'], undefined);
       index = await page.evaluate(() => logs.length);
       await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-      report.prepared = await settled(index, /shall|would you like|(?:accept|start|begin|ready).{0,45}\?/i);
+      report.prepared = await settled(index, acceptanceQuestion);
       await until('completed acceptance question', async () => (await storage())['core.task.spokenPrompt']);
-      assert.match(report.prepared, /new|fresh|after.{0,20}(accept|start)/i);
+      assert.match(report.proposal + '\n' + report.prepared, /new|fresh|after.{0,20}(accept|start)/i,
+        'The current proposal/preparation dialogue must explain that a fresh cue follows acceptance');
       assert.equal((await storage())['coordination.agreement'], undefined);
       // Repeated demonstration is still not consent.
       await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
@@ -343,6 +393,7 @@ try {
       await until('one authorized contribution', async () => (await storage())['task.actions'] === 1);
       report.contribution = await settled(index);
       assert.equal((await storage())['task.actions'], 1);
+
     } else {
       assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
       assert.equal((await storage())['coordination.agreement'], undefined);
@@ -380,7 +431,8 @@ finally {
   if (agentPath) report.finalStorage = await storage().catch(error => ({error: error.message}));
   if (page) report.finalPlayback = await page.evaluate(() => {
     const p = window.playback, g = p?.gate, a = p?.audio || window.player;
-    return {cue: g?.cue, last: g?.last, voice: g?.voice, quiet: g?.quiet, received: g?.received,
+    return {connection: window.pc?.connectionState, channel: window.dc?.readyState,
+      cue: g?.cue, last: g?.last, voice: g?.voice, quiet: g?.quiet, received: g?.received,
       done: g ? [...g.done] : [], mediaTime: a?.currentTime, paused: a?.paused, muted: a?.muted,
       context: p?.context?.state, hidden: document.hidden};
   }).catch(() => null);

@@ -1935,6 +1935,12 @@ its preparation evidence. Discarding the replacement preserves an unfinished
 previous agreement, paused for explicit resume; a completed task stays completed.
 Ordinary questions preserve task progress.
 
+Content/style revisions preserve the trigger, timing, limits, preparation and
+human responsibilities. Unexpected changes are rejected without replacing the
+agreement. To change those terms deliberately, request a replacement (for example,
+"Instead replace this sensor task with a dialogue task"); review and accept the
+new proposal. Revisions require fresh preparation evidence where checks exist.
+
 Two execution forms are supported:
 
 - **Dialogue:** no sensor rule is required. For example, agree who supplies lab
@@ -1987,6 +1993,10 @@ Storage. New entity discriminators and nullable
 and an additive schema update before creation (`ddl-auto=update` handles this
 locally). No saved instance is rewritten. Monitor `task.phase` has additional
 coordination labels; existing task phases retain their meaning.
+Refinement also widens `storage_entry.entry_value` from varchar(2048) to
+varchar(8192), so the existing 3,000-byte agreement contract and response evidence
+fit durably. Apply this additive widening before using the refinement; the
+disposable local integration suite verifies large-agreement persistence/reload.
 
 This first version does not generate arbitrary workflows, supply a scored game
 engine, identify participants, fetch weather, control devices or verify physical

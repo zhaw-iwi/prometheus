@@ -44,6 +44,22 @@ class ScopedLiveSessionServiceUnitTest {
         service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void contextWaitsForProviderStartupRegardlessOfAttachmentEventOrder(boolean duringAttach) {
+        var bridge = mock(LiveContextBridgeService.class);
+        var context = mock(LiveContextBridgeService.Session.class);
+        when(bridge.open(any(), any(), any(), any(), any())).thenReturn(context);
+        service.configureBridge(bridge); gateway.startedDuringAttach = duringAttach;
+        var session = start();
+        verify(context, times(duringAttach ? 1 : 0)).ready();
+        gateway.receiver.accept(event("session.started"));
+        gateway.receiver.accept(event("session.started"));
+        verify(context, times(1)).ready();
+        service.close("ABCDE", agent, session.handle());
+        gateway.receiver.accept(event("session.started"));
+        verify(context, times(1)).ready();
+    }
     @Test void playbackAcknowledgementRequiresTheOwnedActiveSessionAndValidatedSegmentIdentity() {
         var session = start(); var cue = UUID.randomUUID();
         when(contexts.playbackSettled(eq("ABCDE"), eq(agent), any(), eq(cue), eq("captured-1"))).thenReturn(true);
@@ -143,13 +159,14 @@ class ScopedLiveSessionServiceUnitTest {
     }
     static JsonObject event(String type) { JsonObject event = new JsonObject(); event.addProperty("type", type); return event; }
     static class FakeGateway implements LiveSessionGateway {
-        int created; boolean failAttach, ack = true;
+        int created; boolean failAttach, startedDuringAttach, ack = true;
         final List<String> hangups = new ArrayList<>(); final List<JsonObject> sent = new ArrayList<>();
         Consumer<JsonObject> receiver; Runnable disconnected;
         public Session create(Request request) { return new Session("live_" + ++created, "v=0 answer"); }
         public Connection attach(String id, Consumer<JsonObject> receiver, Runnable disconnected) {
             if (failAttach) throw new LiveProviderException("synthetic failure");
             this.receiver = receiver; this.disconnected = disconnected;
+            if (startedDuringAttach) receiver.accept(event("session.started"));
             return new Connection() {
                 boolean open = true;
                 public boolean isOpen() { return open; }

@@ -1,6 +1,8 @@
 # Coordination workflow refinement
 
-Prepared: 2026-10-28. Status: CR-01 through CR-03 complete; CR-04 next. Evidence: COORDINATION_RESULTS.md.
+Prepared: 2026-10-28. Status: CR-01 through CR-03 complete; CR-04 implemented with
+unit/DB/Text checks passed and Live acceptance outstanding; CR-05 next.
+Evidence: COORDINATION_RESULTS.md.
 
 This plan covers the observed Coordination trial and its subsequent ordinary
 conversation. The owner has authorized consecutive implementation, the specified

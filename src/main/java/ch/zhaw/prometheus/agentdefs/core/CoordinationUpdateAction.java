@@ -15,7 +15,8 @@ import jakarta.persistence.Entity;
 /** Interpret one user turn, validate the whole update, then commit it under the existing agent-turn boundary. */
 @Entity
 public class CoordinationUpdateAction extends Action {
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
+    private static final class UnexpectedTerms extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -76,24 +77,31 @@ public class CoordinationUpdateAction extends Action {
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
                 operation = update.get("operation").getAsString();
                 proposed = update.get("agreement").isJsonNull() ? null : CoordinationAgreement.parse(update.get("agreement"));
-                reply = TaskMemory.plan(update.get("reply"));
+                reply = controlReply(operation, update.get("reply"));
             }
-            validate(operation, proposed, assent, invitation);
+            validate(operation, proposed, assent, invitation, text);
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)
                 throw new IllegalArgumentException("Coordination speech intent too long");
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) return;
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination update rejected; agreement and preparation preserved");
-            answer("I couldn't apply that update. Our agreement and preparation are preserved; we can clarify the missing requirement or retry.", runtime);
+            answer(failure instanceof UnexpectedTerms
+                    ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
+                    : "I couldn't apply that update. Our agreement and preparation are preserved; we can clarify the missing requirement or retry.", runtime);
             return;
         }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         commit(operation, proposed, reply, event, now, runtime);
     }
-    private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation) {
+    private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
-        if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
+        if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
+        var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
+        if (operation.equals("PROPOSE") && previous != null && previous.complete()
+                && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();
+        if (operation.equals("REPLACE") && !CoreTaskVoice.normalize(text).matches(
+                ".*\\b(replace|replacement|instead|switch|new task|different task)\\b.*|.*\\bchange\\b.*\\b(trigger|limit|role|roles|checks|preparation|timing|session|condition|success|criterion|confidence|cooldown|samples|responsibilities)\\b.*")) throw new UnexpectedTerms();
         if (assent && (!Set.of("KEEP", "START").contains(operation)
                 || operation.equals("START") && CoreTaskVoice.deferredQuestion(invitation))) throw new IllegalArgumentException();
         switch (operation) {
@@ -128,6 +136,7 @@ public class CoordinationUpdateAction extends Action {
         if (operation.equals("RESTART")) {
             CoordinationMemory.archive(storage);
             var restart = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
+            storage.put(CoordinationMemory.PREVIOUS_PHASE, new JsonPrimitive(TaskMemory.phase(storage)));
             storage.put(CoordinationMemory.DRAFT, restart.json()); CoordinationMemory.resetPreparation(storage, now);
             CoordinationMemory.phase(storage, "CONFIGURATION");
             if (CoordinationMemory.ready(storage)) operation = "START";
@@ -135,7 +144,7 @@ public class CoordinationUpdateAction extends Action {
         }
         boolean action = operation.equals("STEP"), gate = false;
         switch (operation) {
-            case "PROPOSE" -> {
+            case "PROPOSE", "REPLACE" -> {
                 if (!storage.containsKey(CoordinationMemory.DRAFT)) storage.put(CoordinationMemory.PREVIOUS_PHASE, new JsonPrimitive(TaskMemory.phase(storage)));
                 storage.put(CoordinationMemory.DRAFT, proposed.json()); CoordinationMemory.phase(storage, "CONFIGURATION");
                 CoordinationMemory.resetPreparation(storage, now);
@@ -195,7 +204,7 @@ public class CoordinationUpdateAction extends Action {
             CoordinationMemory.revise(storage);
             CoordinationMemory.remove(storage, CoreTaskVoice.INVITATION, CoreTaskVoice.SPOKEN_PROMPT, CoreTaskVoice.RESPONSE, TaskResponse.KEY);
         }
-        if (operation.equals("PROPOSE") && CoordinationMemory.ready(storage)) storage.put(CoreTaskVoice.INVITATION, new JsonPrimitive(now.toString()));
+        if (Set.of("PROPOSE", "REPLACE").contains(operation) && CoordinationMemory.ready(storage)) storage.put(CoreTaskVoice.INVITATION, new JsonPrimitive(now.toString()));
         if (Set.of("START", "RESUME").contains(operation)) {
             storage.put(TaskMemory.SESSION, new JsonPrimitive(live ? runtime.externalSpeech().sessionId().toString() : ""));
             storage.put(TaskMemory.AFTER, new JsonPrimitive(now.plusSeconds(3).toString()));
@@ -205,6 +214,7 @@ public class CoordinationUpdateAction extends Action {
         if (!operation.equals("KEEP")) CoordinationMemory.record(storage, operation, event, now);
         reply = switch (operation) {
             case "PROPOSE" -> BehaviourPlan.speechOnly(CoordinationMemory.proposalPrompt(storage));
+            case "REPLACE" -> BehaviourPlan.speechOnly("This is a replacement proposal; the earlier task is not executing. " + CoordinationMemory.proposalPrompt(storage));
             case "RETURN_TO_CONVERSATION" -> BehaviourPlan.speechOnly("We are now in Conversation. Task execution has ended; our earlier conversation and recorded outcomes are preserved.");
             case "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE" -> BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
                     + " Recorded outcome: " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".");
@@ -221,6 +231,7 @@ public class CoordinationUpdateAction extends Action {
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
                     + (CoordinationMemory.ready(storage) ? CoordinationMemory.acceptancePrompt(storage) : "Clarify remaining questions or request missing preparation. Do not ask to start until preparation is complete.");
+            case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Wait for a new cue; do not perform its future action now.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
@@ -236,6 +247,18 @@ public class CoordinationUpdateAction extends Action {
         CoreTaskVoice.response(storage, facts, false, gate, runtime, CoordinationMemory.facts(storage) + "\n" + facts);
     }
     private static String intent(String speech) { return speech == null ? "No spoken task action was requested." : "Required contribution: " + speech.substring(0, Math.min(350, speech.length())); }
+    private static BehaviourPlan controlReply(String operation, JsonElement raw) {
+        try { return TaskMemory.plan(raw); }
+        catch (IllegalArgumentException invalid) {
+            // Optional expression is not part of a proposal's executable agreement. Keep motion and speech strict.
+            if (!Set.of("PROPOSE", "REPLACE", "STATUS", "RETURN_TO_CONVERSATION", "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE").contains(operation)
+                    || raw == null || !raw.isJsonObject() || raw.toString().length() > 1800 || !raw.getAsJsonObject().has("nonVerbal")) throw invalid;
+            var withoutExpression = raw.getAsJsonObject().deepCopy(); withoutExpression.remove("nonVerbal");
+            var plan = TaskMemory.plan(withoutExpression);
+            org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination control reply discarded invalid optional expression");
+            return plan;
+        }
+    }
     private static EventHistory singleEvent(Event event) { var history = new EventHistory(); history.appendEvent(event); return history; }
     private void answer(String text, PolicyRuntime runtime) {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());

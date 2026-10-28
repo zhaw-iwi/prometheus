@@ -153,7 +153,7 @@ class CoordinationAgentUnitTest {
         assertTrue(policy().liveActivityContext().facts().contains("Last accepted cue: rule 2"));
         clearInvocations(gateway); assertNull(sign("rock", 1, Instant.now(), text)); verifyNoInteractions(gateway);
         propose(sensor(false), text); start(text); openCueWindow();
-        propose(dialogue(), text); clearInvocations(gateway);
+        turn("REPLACE", dialogue(), "Replace this with a dialogue task", text); clearInvocations(gateway);
         assertNull(sign("rock", 1, Instant.now(), text)); verifyNoInteractions(gateway);
         turn("DISCARD", null, "Discard the replacement proposal", text);
         assertEquals("PAUSED", TaskMemory.phase(storage())); assertNotNull(storage().get(TaskMemory.SPEC));
@@ -174,7 +174,7 @@ class CoordinationAgentUnitTest {
         var plan = dialogue(); plan.addProperty("dialogueLimit", 1); propose(plan, text); start(text);
         assertEquals("REFLECTION", CoordinationMemory.stage(storage())); assertEquals("LIMIT_REACHED", storage().get(CoordinationMemory.OUTCOME).getAsString());
         turn("STEP", null, "Do another task step", text); assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
-        propose(dialogue(), text); turn("DISCARD", null, "Discard the new proposal", text);
+        turn("REPLACE", dialogue(), "Replace this with a larger dialogue task", text); turn("DISCARD", null, "Discard the new proposal", text);
         assertEquals("REFLECTION", CoordinationMemory.stage(storage()));
         say("Resume the task", text); assertEquals("REFLECTION", CoordinationMemory.stage(storage()));
         agent.reset(); assertEquals("CONVERSATION", CoordinationMemory.stage(storage()));
@@ -245,7 +245,7 @@ class CoordinationAgentUnitTest {
         assertEquals(owner.sessionId().toString(), storage().get(TaskMemory.SESSION).getAsString());
         assertTrue(TaskMemory.pauseForSession(storage(), "live_session_ended"));
         var autonomous = sensor(false); autonomous.getAsJsonObject("reactions").addProperty("sessionBound", false);
-        propose(autonomous, text); start(text);
+        turn("REPLACE", autonomous, "Replace this with an autonomous sensor task", text); start(text);
         assertFalse(TaskMemory.pauseForSession(storage(), "live_session_ended"));
         assertTrue(TaskMemory.active(storage()));
     }
