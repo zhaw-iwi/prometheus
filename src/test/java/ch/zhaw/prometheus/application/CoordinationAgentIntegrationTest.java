@@ -119,8 +119,8 @@ class CoordinationAgentIntegrationTest {
     }
     @Test void validLargeAgreementAndContentRevisionSurviveReload() {
         var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
-        proposal.addProperty("goal", "g".repeat(300)); proposal.addProperty("humanRole", "h".repeat(200));
-        proposal.addProperty("agentRole", "a".repeat(200)); proposal.addProperty("success", "s".repeat(300));
+        proposal.addProperty("goal", "g".repeat(300)); proposal.addProperty("humanRole", "h".repeat(300));
+        proposal.addProperty("agentRole", "a".repeat(300)); proposal.addProperty("success", "s".repeat(300));
         for (int i = 0; i < 4; i++) proposal.getAsJsonArray("questions").add("q".repeat(160));
         for (String sign : List.of("rock", "paper", "scissor")) proposal.getAsJsonArray("checks").add(JsonParser.parseString(
                 "{\"eventType\":\"obs.hand.sign\",\"field\":\"sign\",\"operator\":\"eq\",\"value\":\"" + sign + "\",\"minConfidence\":0.8}"));

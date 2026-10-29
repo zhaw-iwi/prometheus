@@ -64,6 +64,7 @@ class LiveMultimodalBridgeIntegrationTest {
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("live_bridge", "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {
             receive.set(call.getArgument(1));
+            var started = new JsonObject(); started.addProperty("type", "session.started"); receive.get().accept(started);
             return new LiveSessionGateway.Connection() {
                 public boolean isOpen() { return true; }
                 public void close() {}

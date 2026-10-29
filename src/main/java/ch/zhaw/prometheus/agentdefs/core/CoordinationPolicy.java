@@ -23,6 +23,15 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     @Override public String liveSessionClaimEventType() { return CoordinationDelivery.finishing(storage()) ? CoordinationDelivery.ENDED : null; }
     @Override public String liveResponseFailureEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.FAILED : null; }
     @Override public boolean liveIncompleteResponseIsFailure() { return CoordinationDelivery.enabled(storage()); }
+    @Override public int liveUnrelatedResponseAllowance() { return CoordinationDelivery.enabled(storage()) ? 1 : 0; }
+    @Override public boolean liveObservationContextEnabled() {
+        if (!CoordinationDelivery.enabled(storage()) || !TaskMemory.active(storage())
+                || !storage().containsKey(TaskMemory.SPEC) || !storage().containsKey(CoreTaskVoice.RESPONSE)) return true;
+        var response = storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject();
+        // The next accepted cue replaces this occasion; an ordinary user turn clears an answered one.
+        return !(response.has("controlOnly") && response.get("controlOnly").getAsBoolean())
+                && !(storage().containsKey(TaskResponse.KEY) && TaskResponse.captured(storage(), TaskResponse.owner(storage())));
+    }
     @Override public boolean hasDraft() { return storage().containsKey(CoordinationMemory.DRAFT); }
     @Override public String statusPhase() {
         String stage = CoordinationMemory.stage(storage());
@@ -35,6 +44,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Wait silently for confirmed task updates, then phrase the requested response once. "
                 + "Do not answer a partial task request, supply a sample joke, or make a playful task-content preview. "
                 + "Describe a proposed contribution without performing it. Only the current identified speaking occasion permits that contribution. "
+                + "During proposal or preparation, never recite a supplied task line, even inside 'after you accept, I will say'. Refer to 'the line you supplied'. "
                 + "Never say checking, waiting for the backend, done, started, restarted or returned before confirmed control facts. "
                 + "Keep implementation details out of spoken replies. Ordinary unrelated questions and explicitly requested capability examples remain welcome. "
                 + "Returning to Conversation preserves history; never describe it as resetting or erasing the agent. "
@@ -96,10 +106,18 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 && !(storage.containsKey(TaskResponse.KEY) && response.get("id").equals(storage.get(TaskResponse.KEY).getAsJsonObject().get("id"))
                     && !"PENDING".equals(TaskResponse.status(storage)))
                 && now.isBefore(Instant.parse(response.get("expires").getAsString()));
-        String facts = CoordinationMemory.facts(storage);
+        // Arming carries only its control confirmation, not the future response script or perception estimate.
+        // A later cue creates a new occasion with the full accepted action; an answered ordinary question clears this one.
+        boolean controlOnly = response != null && response.has("controlOnly") && response.get("controlOnly").getAsBoolean()
+                && TaskMemory.active(storage);
+        boolean contributionOnly = response != null && response.has("contributionOnly") && response.get("contributionOnly").getAsBoolean()
+                && TaskResponse.accepting(storage);
+        String facts = controlOnly || contributionOnly ? CoordinationMemory.controls(storage) : CoordinationMemory.facts(storage);
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
-            return new LiveActivityContext(facts + "\n" + response.get("facts").getAsString(),
+            // The immediate response must precede background terms in the first append chunk.
+            String responseFacts = response.get("facts").getAsString();
+            return new LiveActivityContext(responseFacts + "\n" + facts,
                     new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
                             response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,
                             "Respond once to this confirmed coordination update using the current facts.", expires), expires);

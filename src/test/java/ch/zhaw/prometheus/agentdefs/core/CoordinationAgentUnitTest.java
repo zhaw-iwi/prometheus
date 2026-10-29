@@ -50,6 +50,15 @@ class CoordinationAgentUnitTest {
                 """));
         return agreement;
     }
+    @Test void roleDescriptionsFitMultimodalResponsibilitiesButRemainBounded() {
+        var proposal = dialogue();
+        for (String key : List.of("humanRole", "agentRole")) proposal.addProperty(key, "r".repeat(300));
+        assertEquals(proposal, CoordinationAgreement.parse(proposal).json());
+        for (String key : List.of("humanRole", "agentRole")) {
+            var invalid = proposal.deepCopy(); invalid.addProperty(key, "r".repeat(301));
+            assertThrows(IllegalArgumentException.class, () -> CoordinationAgreement.parse(invalid));
+        }
+    }
     static String update(String operation, JsonObject agreement, String words) {
         var result = new JsonObject(); result.addProperty("operation", operation);
         result.add("agreement", agreement == null ? JsonNull.INSTANCE : agreement);

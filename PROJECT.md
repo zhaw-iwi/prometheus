@@ -75,22 +75,21 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Coordination refinement (2026-10-28): CR-01 through CR-03 are complete on
-  feature/gptlive. Latest checks: 27 focused Java tests, eight Node tests, six
-  runner checks, one footer browser check and real OpenAI Live preparation/start/
-  fresh-cue smoke passed against disposable MySQL. Text return/restart also passed.
-  Failed provider attempts and remaining fragmented-turn effects are recorded.
-  CR-04 preserves protected revision terms (49 Java checks and paid Text
-  revision passed). CR-05's 32 capture/ingress checks and paid paused-input Live
-  revision passed, also closing CR-04 Live acceptance. Native premature/waiting
-  wording remains CR-06 work.
-  The related startup ordering fix passed 43 neighboring Java checks. Storage
-  values require additive widening to varchar(8192). Capture and speech work
-  CR-06 adds session/revision-bound speaking occasions and dialogue response
-  association; 66 Java checks and paid Live negative speech windows/return passed.
-  Final provider phrasing remains a combined-journey check. Delivery work
-  continues through CR-07 to CR-09 in
-  `.agents/PLAN_COORDINATION_REFINEMENT.md`; evidence is in COORDINATION_RESULTS.
+- Coordination refinement (2026-10-29): CR-01 through CR-09 are implemented with
+  shared automated acceptance passed. The lifecycle now supports authoritative state
+  queries, history-preserving return/restart, clear acceptance and protected
+  revision terms. Two-second Coordination input capture handles measured short
+  hesitations; response authority is owner/revision-bound. Final Live speech
+  waits in Finishing for association plus scoped playback acknowledgement,
+  with bounded uncertainty recovery. Content-free transition journals link
+  source events, runs, revisions and outcomes; the footer explains progress.
+  Focused Java/local MySQL, Node, browser and paid OpenAI evidence, including
+  failures, is retained in `.agents/COORDINATION_RESULTS.md`: 752 full Java tests,
+  147 Node tests, six runner tests, 71 browser cases and the three combined Live
+  journeys plus Text lifecycle/multimodal checks passed. Storage values require
+  additive widening to varchar(8192); create fresh instances for new graphs and
+  prompts. Physical audio/camera/robot checks and the cause of the original three
+  capture gaps remain unresolved. Plan: `.agents/PLAN_COORDINATION_REFINEMENT.md`.
 
 - Coordination release preparation (2026-10-28): implementation `293c987` and
   upstream Live playback readiness are combined in main. Fresh isolated builds
@@ -9524,3 +9523,32 @@ fixture corrections, commands and artifact paths. The new decision discriminator
 field requires an additive schema update. Provider/classroom/physical quality and
 production capacity remain unverified. No commit, push or deployment was made;
 see `.agents/COORDINATION_RESULTS.md` for the review handoff.
+
+## Coordination workflow refinement (2026-10-29)
+
+CR-01 through CR-09 refine the observed preparation, acceptance, revision and
+reflection failures through the existing state machine, Storage, task engine and
+Live capture/playback boundaries. State queries and explicit return/restart now
+reflect persisted authority; returning preserves history and outcomes. Ready
+means awaiting acceptance, sensor revisions preserve protected agreement terms,
+and short hesitant requests receive a bounded Coordination capture window.
+
+Speaking occasions belong to one owner/revision and current contribution. Final
+Live speech waits in Finishing for response association and scoped playback;
+timeouts, incomplete capture or ownership loss become uncertain without replay.
+Current perception is evaluated at execution; arming does not request the future
+action. One bounded unrelated-capture allowance and exact matching of eligible
+committed literals protect response association without spending another action
+or extending deadlines. Content-free journals and the footer explain transitions,
+delivery, outcomes and conservative capture/teardown diagnostics.
+
+Verification passed 752 Java tests against isolated local MySQL, 147 Node tests,
+six runner tests, 64 enabled and seven disabled browser cases (four intentional
+Live-only skips), three combined real OpenAI Live journeys and Text lifecycle /
+multimodal journeys. The results file records every failed provider attempt,
+fixture correction and final artifact. The operator guide covers fresh-instance
+creation and the additive storage-entry widening to varchar(8192). Existing saved
+graphs and transcripts are retained. Provider asides, physical audio/camera/robot
+quality and the original three capture-gap causes remain outside the automated
+acceptance claim. The owner authorized per-milestone commits/pushes and final
+main-to-agents deployment, with separate integration/release verification.

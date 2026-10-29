@@ -96,4 +96,85 @@ class TaskResponseUnitTest {
         assertFalse(TaskResponse.captured(storage,owner));
         assertTrue(TaskResponse.claim(storage,owner,speech("A new robot joke",owner,true,"new"),now.plusSeconds(6),now.plusSeconds(8)).isEmpty());
     }
+    @Test void optedInUnrelatedCandidateLeavesOneChanceWithinTheOriginalDeadline() {
+        var first = speech("The weather is nice", owner, true, "unrelated");
+        var check = TaskResponse.claim(storage, owner, first, now.plusSeconds(1), now.plusSeconds(2), 1).orElseThrow();
+        assertEquals(TaskResponse.Verdict.UNRELATED, check.verdict(result(check, "UNRELATED")));
+        assertTrue(TaskResponse.finish(storage, owner, check, TaskResponse.Verdict.UNRELATED, now.plusSeconds(3)));
+        assertEquals("PENDING", TaskResponse.status(storage));
+        assertEquals(now.plusSeconds(45), TaskResponse.deadline(storage));
+        assertTrue(TaskResponse.claim(storage, owner, first, now.plusSeconds(1), now.plusSeconds(4), 1).isEmpty());
+        assertFalse(storage.containsKey(TaskMemory.AFTER));
+        var second = TaskResponse.claim(storage, owner, speech("A complete robot joke", owner, true, "actual"),
+                now.plusSeconds(4), now.plusSeconds(5), 1).orElseThrow();
+        assertTrue(TaskResponse.finish(storage, owner, second, TaskResponse.Verdict.MATCH, now.plusSeconds(6)));
+        assertTrue(TaskResponse.captured(storage, owner));
+    }
+    @Test void allowanceCannotBeRenewedAndDefaultOrAmbiguousResultsRemainConservative() {
+        for (var verdict : List.of(TaskResponse.Verdict.UNRELATED, TaskResponse.Verdict.AMBIGUOUS)) {
+            TaskResponse.expect(storage, owner, response, "A robot joke", now);
+            var first = TaskResponse.claim(storage, owner, speech("Unrelated speech", owner, true, "one"), now.plusSeconds(1), now.plusSeconds(2), 1).orElseThrow();
+            TaskResponse.finish(storage, owner, first, TaskResponse.Verdict.UNRELATED, now.plusSeconds(3));
+            var last = TaskResponse.claim(storage, owner, speech("Another utterance", owner, true, "two"), now.plusSeconds(4), now.plusSeconds(5), 99).orElseThrow();
+            TaskResponse.finish(storage, owner, last, verdict, now.plusSeconds(6));
+            assertEquals("UNCERTAIN", TaskResponse.status(storage));
+        }
+        TaskResponse.expect(storage, owner, response, "A robot joke", now);
+        var check = TaskResponse.claim(storage, owner, speech("Unrelated speech", owner, true, "default"), now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
+        TaskResponse.finish(storage, owner, check, TaskResponse.Verdict.UNRELATED, now.plusSeconds(3));
+        assertEquals("UNCERTAIN", TaskResponse.status(storage));
+        assertEquals(0, new TaskPolicy(storage, "").liveUnrelatedResponseAllowance());
+    }
+    @Test void queuedCandidateSurvivesReloadButCannotCrossOwnerRevisionOrResponse() {
+        var check = TaskResponse.claim(storage, owner, speech("Unrelated speech", owner, true, "one"), now.plusSeconds(1), now.plusSeconds(2), 1).orElseThrow();
+        var actual = speech("A complete joke", owner, true, "two");
+        assertTrue(TaskResponse.claim(storage, owner, actual, now.plusSeconds(3), now.plusSeconds(4), 1).isEmpty());
+        var reload = new Storage(); storage.toMap().forEach((k,v) -> reload.put(k, JsonParser.parseString(v.toString())));
+        assertTrue(TaskResponse.finish(reload, owner, check, TaskResponse.Verdict.UNRELATED, now.plusSeconds(5)));
+        assertTrue(TaskResponse.takeCandidate(reload, new ExternalSpeech(UUID.randomUUID(), owner.epoch())).isEmpty());
+        var candidate = TaskResponse.takeCandidate(reload, owner).orElseThrow();
+        assertEquals("two", candidate.segment()); assertEquals(now.plusSeconds(3), candidate.started());
+        assertTrue(TaskResponse.takeCandidate(reload, owner).isEmpty());
+        TaskMemory.revise(storage);
+        assertFalse(TaskResponse.finish(storage, owner, check, TaskResponse.Verdict.UNRELATED, now.plusSeconds(5)));
+        TaskResponse.expect(storage, owner, UUID.randomUUID(), "New occasion", now.plusSeconds(6));
+        assertTrue(TaskResponse.takeCandidate(storage, owner).isEmpty());
+    }
+    @Test void invalidIdentityOrExpiredUnrelatedResultCannotExtendTheOccasion() {
+        var check = TaskResponse.claim(storage, owner, speech("Unrelated speech", owner, true, "one"), now.plusSeconds(1), now.plusSeconds(2), 1).orElseThrow();
+        assertEquals(TaskResponse.Verdict.AMBIGUOUS, check.verdict(result(check, "UNRELATED").replace(check.id().toString(), UUID.randomUUID().toString())));
+        assertEquals(TaskResponse.Verdict.AMBIGUOUS, check.verdict(result(check, "INVALID")));
+        TaskResponse.finish(storage, owner, check, TaskResponse.Verdict.UNRELATED, now.plusSeconds(45));
+        assertEquals("UNCERTAIN", TaskResponse.status(storage)); assertNull(TaskResponse.deadline(storage));
+    }
+    @Test void committingPurposeSurvivesReloadAndCannotReclassifyAnInFlightCheck() {
+        TaskResponse.purpose(storage, TaskResponse.Purpose.CONTRIBUTION);
+        var reload = new Storage(); storage.toMap().forEach((k,v) -> reload.put(k, JsonParser.parseString(v.toString())));
+        var check = TaskResponse.claim(reload, owner, speech("An actual joke", owner, true, "purpose"), now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
+        TaskResponse.purpose(reload, TaskResponse.Purpose.ARMING);
+        assertEquals(TaskResponse.Purpose.CONTRIBUTION, check.purpose());
+        var request = JsonParser.parseString(check.request().messages().getLast().getContent()).getAsJsonObject();
+        assertEquals("CONTRIBUTION", request.get("responsePurpose").getAsString());
+        assertEquals("CONTRIBUTION", reload.get(TaskResponse.KEY).getAsJsonObject().get("purpose").getAsString());
+        assertFalse(TaskResponse.captured(reload, owner));
+        TaskResponse.expect(reload, owner, UUID.randomUUID(), "A separate legacy occasion", now.plusSeconds(3));
+        var legacy = TaskResponse.claim(reload, owner, speech("Another response", owner, true, "legacy"), now.plusSeconds(4), now.plusSeconds(5)).orElseThrow();
+        assertEquals(TaskResponse.Purpose.UNSPECIFIED, legacy.purpose());
+    }
+    @Test void explicitLiteralRequiresEveryWordAndCannotBypassIdentityOrDeadline() {
+        TaskResponse.contribution(storage, "Required spoken content: Welcome to the lab.", "Welcome to the lab.");
+        var check = TaskResponse.claim(storage, owner, speech("WELCOME, to the lab!", owner, true, "literal"), now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
+        assertTrue(check.exactlyMatches());
+        TaskResponse.contribution(storage, "Changed content", "Different words");
+        assertEquals("Welcome to the lab.", storage.get(TaskResponse.KEY).getAsJsonObject().get("exactSpeech").getAsString());
+        assertFalse(TaskResponse.finish(storage, new ExternalSpeech(UUID.randomUUID(), owner.epoch()), check, true, now.plusSeconds(3)));
+        assertTrue(TaskResponse.finish(storage, owner, check, true, now.plusSeconds(45)));
+        assertEquals("UNCERTAIN", TaskResponse.status(storage));
+        for (String text : List.of("Welcome to lab", "Welcome to the lab later", "I'll say welcome to the lab")) {
+            TaskResponse.expect(storage, owner, UUID.randomUUID(), "Current task", now);
+            TaskResponse.contribution(storage, "Required spoken content: Welcome to the lab.", "Welcome to the lab.");
+            var changed = TaskResponse.claim(storage, owner, speech(text, owner, true, UUID.randomUUID().toString()), now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
+            assertFalse(changed.exactlyMatches(), text);
+        }
+    }
 }

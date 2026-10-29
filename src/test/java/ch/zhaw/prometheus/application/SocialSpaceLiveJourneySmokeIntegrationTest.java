@@ -65,6 +65,7 @@ class SocialSpaceLiveJourneySmokeIntegrationTest {
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("social_" + id, "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {
             Consumer<JsonObject> receive = call.getArgument(1);
+            var started = new JsonObject(); started.addProperty("type", "session.started"); receive.accept(started);
             return new LiveSessionGateway.Connection() {
                 public boolean isOpen() { return true; }
                 public void close() {}

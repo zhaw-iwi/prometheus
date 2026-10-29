@@ -12,6 +12,47 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationVoiceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    @Test void pendingPreparationNamesTheRequiredEvidenceBeforeRequestingAcceptance() {
+        f.propose(f.sensor(true), f.live);
+        var facts = f.policy().liveActivityContext().facts();
+        assertTrue(facts.contains("Before asking for acceptance, request fresh recognition evidence for: rock"));
+        assertTrue(facts.contains("without quoting it"));
+        assertFalse(ch.zhaw.prometheus.model.coordination.CoordinationMemory.ready(f.storage()));
+    }
+    @Test void armingDoesNotExposeFutureActionScriptButTheQualifiedCueDoes() {
+        f.propose(f.sensor(false), f.live); f.start(f.live);
+        var context = f.policy().liveActivityContext();
+        assertNotNull(context.continuation()); assertTrue(context.facts().contains("rock"));
+        assertFalse(f.policy().liveObservationContextEnabled());
+        assertTrue(context.facts().startsWith("Task accepted and armed."));
+        assertFalse(context.facts().contains("Offer one welcome idea"));
+        var response = f.storage().get(TaskResponse.KEY).getAsJsonObject();
+        assertEquals("ARMING", response.get("purpose").getAsString());
+        assertFalse(response.get("facts").getAsString().contains("Offer one welcome idea"));
+        var started = Instant.parse(response.get("created").getAsString()).plusNanos(1);
+        var speech = f.hear("Armed, waiting for rock", true, started);
+        var check = TaskResponse.claim(f.storage(), f.owner, speech, started, started.plusMillis(1)).orElseThrow();
+        TaskResponse.finish(f.storage(), f.owner, check, true, started.plusMillis(2));
+        assertFalse(f.policy().liveObservationContextEnabled());
+        assertFalse(f.policy().liveActivityContext().facts().contains("Offer one welcome idea"));
+        f.openCueWindow();
+        org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn("{\"speech\":\"One welcome idea\"}");
+        f.sign("rock", 1, Instant.now(), f.live);
+        assertEquals(1, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("CONTRIBUTION", f.storage().get(TaskResponse.KEY).getAsJsonObject().get("purpose").getAsString());
+        assertTrue(f.policy().liveObservationContextEnabled());
+        assertTrue(f.policy().liveActivityContext().facts().contains("Required spoken content: One welcome idea"));
+        assertFalse(f.policy().liveActivityContext().facts().contains("Offer one welcome idea"));
+        var contribution = f.storage().get(TaskResponse.KEY).getAsJsonObject();
+        var contributionStart = Instant.parse(contribution.get("created").getAsString()).plusNanos(1);
+        var spoken = f.hear("One welcome idea", true, contributionStart);
+        var delivered = TaskResponse.claim(f.storage(), f.owner, spoken, contributionStart, contributionStart.plusMillis(1)).orElseThrow();
+        TaskResponse.finish(f.storage(), f.owner, delivered, true, contributionStart.plusMillis(2));
+        assertFalse(f.policy().liveObservationContextEnabled());
+        f.turn("KEEP", null, "What can you see?", f.live);
+        assertTrue(f.policy().liveObservationContextEnabled());
+        assertEquals(1, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+    }
     @ParameterizedTest @ValueSource(strings = {"revision", "expired", "checked"})
     void obsoleteOrAlreadyAssociatedContributionCannotRemainASpeakingOccasion(String condition) {
         f.propose(f.dialogue(), f.live); f.start(f.live);
@@ -28,6 +69,8 @@ class CoordinationVoiceUnitTest {
     }
     @Test void controlOccasionIsStableConsumedOnceAndCannotCrossSessionOrRevision() {
         f.propose(f.sensor(false), f.live);
+        assertTrue(f.policy().liveActivityContext().facts().startsWith("Proposal saved, not active."));
+        assertTrue(f.policy().liveActivityContext().facts().contains("fresh matching cue"));
         var first = f.policy().liveActivityContext().continuation();
         assertEquals(first, f.policy().liveActivityContext().continuation());
         Instant created = Instant.parse(f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().get("created").getAsString());
@@ -72,5 +115,25 @@ class CoordinationVoiceUnitTest {
         f.turn("KEEP", null, "What can you see?", f.live);
         assertEquals(count, f.storage().get(TaskMemory.ACTIONS).getAsInt());
         assertTrue(f.policy().voiceInstructions().contains("Ordinary unrelated questions"));
+    }
+    @Test void cueUsesCurrentCommittedContentAndOnlyCompleteExplicitLiteralsGetExactMatching() {
+        for (String action : List.of("Say exactly: \"Welcome to the lab.\"", "Say exactly: Welcome to the lab.",
+                "Say exactly: \"Welcome to the lab.\" Then estimate the face (e.g. neutral).", "Say exactly: A different line.")) {
+            var fixture = new CoordinationAgentUnitTest(); var agreement = fixture.sensor(false);
+            agreement.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", action);
+            fixture.propose(agreement, fixture.live); fixture.start(fixture.live);
+            var response = fixture.storage().get(TaskResponse.KEY).getAsJsonObject();
+            var at = Instant.parse(response.get("created").getAsString()).plusNanos(1);
+            var armed = fixture.hear("Waiting for rock", true, at);
+            var check = TaskResponse.claim(fixture.storage(), fixture.owner, armed, at, at.plusMillis(1)).orElseThrow();
+            TaskResponse.finish(fixture.storage(), fixture.owner, check, true, at.plusMillis(2)); fixture.openCueWindow();
+            org.mockito.Mockito.when(fixture.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn("{\"speech\":\"Welcome to the lab.\"}");
+            fixture.sign("rock", 1, Instant.now(), fixture.live);
+            var committed = fixture.storage().get(TaskResponse.KEY).getAsJsonObject();
+            assertTrue(committed.get("facts").getAsString().contains("Required spoken content: Welcome to the lab."));
+            assertFalse(committed.get("facts").getAsString().contains("neutral"));
+            assertFalse(fixture.policy().liveActivityContext().facts().contains("neutral"));
+            assertEquals(!action.contains("Then") && !action.contains("different"), committed.has("exactSpeech"));
+        }
     }
 }

@@ -1,6 +1,7 @@
 # Coordination workflow refinement
 
-Prepared: 2026-10-28. Status: CR-01 through CR-08 implemented and checked; CR-09 next.
+Prepared: 2026-10-28. Updated: 2026-10-29. Status: CR-01 through CR-09 implemented;
+shared automated acceptance passed. Physical operator acceptance remains open.
 Evidence: COORDINATION_RESULTS.md.
 
 This plan covers the observed Coordination trial and its subsequent ordinary

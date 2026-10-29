@@ -19,6 +19,12 @@ test("context diagnostics distinguish observed teardown from active failure with
     assert.equal(s.server.context.recent.length, 2);
     assert.match(s.coverage.captureGaps, /not_proof/);
   }
+  const old = new LiveDiagnostics();
+  old.record({handle: "old", phase: "status", browserMs: 100, status: {context: {state: "context_delivery_unconfirmed",
+    recent: [{sequence: 1, phase: "failed", serverMs: 30}]}}});
+  old.record({handle: "old", phase: "output_end", browserMs: 20100, reason: "operator_stop"});
+  assert.equal(old.snapshot().sessions[0].contextAssessment.classification, "active_delivery_failure",
+    "A later operator Stop cannot reclassify an earlier active failure");
 });
 
 test("presence grace metadata is session-scoped without observation payloads", () => {

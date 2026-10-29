@@ -252,10 +252,13 @@ public class CoordinationUpdateAction extends Action {
         if (operation.equals("KEEP") || operation.equals("REFLECT")) { CoreTaskVoice.clearAnswered(storage); return; }
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
-                    + (CoordinationMemory.ready(storage) ? CoordinationMemory.acceptancePrompt(storage) : "Clarify remaining questions or request missing preparation. Do not ask to start until preparation is complete.");
+                    + "Refer to the supplied action text without quoting it, even as a future-tense example. " + proposalNextStep(storage);
             case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
-                    : "Task accepted and armed. Wait for a new cue; do not perform its future action now.";
+                    : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
+                        + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
+                            .map(rule -> rule.value().toString()).collect(java.util.stream.Collectors.joining(", "))
+                        + ". Do not perform any part of the future action, including a joke or perception estimate. Do not say done.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
             case "STOP" -> "No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
@@ -266,11 +269,26 @@ public class CoordinationUpdateAction extends Action {
             default -> throw new IllegalStateException("Unsupported coordination continuation");
         };
         if (action && Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
-        CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime,
-                "CURRENT requested response: " + facts + "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage));
+        String associationFacts = "CURRENT requested response: " + facts;
+        if (!(operation.equals("START") && !action)) associationFacts +=
+                "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
+        CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
+        if (live) TaskResponse.purpose(storage, action ? TaskResponse.Purpose.CONTRIBUTION : TaskResponse.Purpose.ARMING);
+        if (live && operation.equals("START") && !action) {
+            var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("controlOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
+        }
         if (action) CoordinationDelivery.attach(storage);
     }
     private static String intent(String speech) { return speech == null ? "No spoken task action was requested." : "Required contribution: " + speech.substring(0, Math.min(350, speech.length())); }
+    private static String proposalNextStep(Storage storage) {
+        if (CoordinationMemory.ready(storage)) return CoordinationMemory.acceptancePrompt(storage);
+        var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
+        if (!draft.complete()) return "Clarify the remaining questions; do not ask to start yet.";
+        return "Before asking for acceptance, request fresh recognition evidence for: "
+                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + ". Do not ask to start until these checks are confirmed.";
+    }
     private static BehaviourPlan controlReply(String operation, JsonElement raw) {
         try { return TaskMemory.plan(raw); }
         catch (IllegalArgumentException invalid) {

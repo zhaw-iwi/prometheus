@@ -92,6 +92,57 @@ class CoordinationDeliveryIntegrationTest {
             assertEquals("LIMIT_REACHED", memory(scope).get(CoordinationMemory.OUTCOME).getAsString());
         } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
     }
+    @Test void exactCommittedLiteralNeedsNoSemanticCallButStillWaitsForScopedPlayback() throws Exception {
+        var scope = start();
+        try {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            var storage = ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+            TaskResponse.contribution(storage, "Required spoken content: The class is invited to the lab.", "The class is invited to the lab.");
+            agents.saveAndFlush(agent); clearInvocations(gateway);
+            var started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
+            recording.record(scope.id(), scope.owner(), "literal", "The class is invited to the lab!", List.of(), SpeechProvenance.Association.NONE, true, started).orElseThrow();
+            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
+            assertEquals("CAPTURED", TaskResponse.status(memory(scope))); verifyNoInteractions(gateway);
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "literal"));
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
+    }
+    @Test void oneUnrelatedSegmentCannotStealTheActualResponseWhileItsCheckIsRunning() throws Exception {
+        var scope = start();
+        var checking = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        try {
+            var response = memory(scope).get(TaskResponse.KEY).getAsJsonObject();
+            Instant started = Instant.parse(response.get("created").getAsString()).plusNanos(1);
+            when(gateway.infer(any())).thenAnswer(call -> {
+                var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
+                int n = calls.incrementAndGet();
+                if (n == 1) { checking.countDown(); assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS)); }
+                var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
+                result.addProperty("verdict", n == 1 ? "UNRELATED" : "MATCH"); return result.toString();
+            });
+            recording.record(scope.id(), scope.owner(), "unrelated", "I am waiting for further conversation.", List.of(), SpeechProvenance.Association.NONE, true, started).orElseThrow();
+            assertTrue(checking.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            recording.record(scope.id(), scope.owner(), "actual", "The class is invited to the lab.", List.of(), SpeechProvenance.Association.NONE, true, started.plusNanos(1)).orElseThrow();
+            assertEquals("actual", memory(scope).get(TaskResponse.KEY).getAsJsonObject().getAsJsonObject("candidate").get("segment").getAsString());
+            release.countDown();
+            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+            while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
+            assertEquals("CAPTURED", TaskResponse.status(memory(scope))); assertEquals(2, calls.get());
+            var captured = memory(scope).get(TaskResponse.KEY).getAsJsonObject();
+            assertEquals(response.get("id"), captured.get("id")); assertEquals(response.get("deadline"), captured.get("deadline"));
+            assertEquals("actual", captured.get("segment").getAsString()); assertFalse(captured.has("candidate"));
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope))); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
+            assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "unrelated"));
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "actual"));
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        } finally { release.countDown(); ownership.release(scope.id(), scope.owner().sessionId()); }
+    }
     @Test void aFreshSessionAfterOwnershipLossCannotReplayAPersistedFinalResponse() {
         var scope = start(); ownership.release(scope.id(), scope.owner().sessionId());
         var session = UUID.randomUUID();

@@ -1954,6 +1954,9 @@ with its expected response before another dialogue contribution can run. Opening
 a new Live session clears old speaking permissions; pending task speech requires
 explicit recovery. Ordinary questions remain available. Native wording is still
 provider-generated and needs the paid behavioral checks described in the results.
+These permissions are not a hard acoustic gate: unsolicited waiting remarks or
+asides remain possible. Keep the recorded failed attempts and manual listening
+check alongside successful bounded provider journeys.
 
 For new Coordination instances, a final spoken Live contribution enters
 **Finishing** as soon as its budget is spent. Further task actions are blocked.
@@ -1967,6 +1970,27 @@ publication, and silent actions do not wait for speech. These boundaries do not
 prove physical audibility or robot motion. Saved graphs need a fresh instance to
 receive Finishing/Uncertain transitions; deployment does not rewrite them.
 
+Within the original capture deadline, Coordination may skip one semantically
+verified unrelated utterance and check one further candidate. A candidate arriving
+during the first check retains only its segment/start metadata alongside the
+existing response; its wording remains in ordinary event history. This allows at
+most two semantic checks, without another action, new deadline or automatic speech
+replay. Ambiguous, invalid and incomplete results remain conservative. Generic's
+default single-candidate behavior is unchanged.
+Coordination records whether that occasion requests arming or an actual task
+contribution, so a cue-triggered action cannot be confused with initial ON_CUE
+activation during semantic verification. Capture still does not prove audibility.
+While an armed sensor task waits quietly, new Coordination instances defer
+unsolicited sensory updates to Live. Backend sensing, history and cue matching
+continue. An authorized contribution or ordinary user turn restores selected
+observations with their original freshness; expired evidence stays unknown.
+Live sensor contributions use the backend's committed current speech intent as
+their delivery reference, excluding hypothetical examples from the agreement.
+A complete explicit `Say exactly:` literal that matches that intent can be
+associated by word equality (ignoring case/punctuation) without a model call.
+Other content still requires semantic verification; neither path proves task
+success or bypasses scoped playback.
+
 The activity footer distinguishes acceptance, fresh-cue waiting, finishing and
 uncertain delivery. Telemetry's content-free `coordination` entries carry the
 operation, before/after phase, run, revision, action count, outcome and source
@@ -1977,6 +2001,11 @@ active failure; a failure near operator Stop retains an uncertain timing label.
 `audio_coverage_gap` means capture evidence is incomplete, not that audible clipping
 has been proved or repaired. The original three gaps still have no established
 physical cause.
+
+Agreement goals, roles and success criteria each allow up to 300 characters;
+the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current
+perception stays an instruction to use fresh observations during execution,
+not a prewritten expression estimate in the proposal.
 
 Two execution forms are supported:
 

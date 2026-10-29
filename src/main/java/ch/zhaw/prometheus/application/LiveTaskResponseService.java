@@ -13,7 +13,7 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.logging.AgentMonitorBroadcaster;
 
-/** One durable claim per pending response; immutable inference uses the existing bounded action workers. */
+/** Durable, bounded candidate claims; immutable inference uses the existing bounded action workers. */
 @Service
 public class LiveTaskResponseService {
     private final AgentApplicationService turns;
@@ -46,21 +46,21 @@ public class LiveTaskResponseService {
         if (policy.liveIncompleteResponseIsFailure() && TaskResponse.incomplete(policy.storage(), owner, speech, started, clock.instant())) {
             recover(agent, owner, "response_capture_incomplete"); return;
         }
-        var candidate = TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant());
+        var candidate = TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant(), policy.liveUnrelatedResponseAllowance());
         if (candidate.isEmpty()) return;
         var check = candidate.get();
         UUID id = agent.getId();
         var work = new PreparedAction(check.id(), policy.storage().getID(), Map.of(TaskResponse.KEY, policy.storage().get(TaskResponse.KEY).toString()), model -> {
-            boolean match = false;
+            var verdict = TaskResponse.Verdict.AMBIGUOUS;
             // A restarted/lost worker is never replayed. The persisted CHECKING claim expires instead.
             if (clock.instant().isBefore(check.deadline()) && ownership.taskWorkAllowed(id, owner)) {
-                try { match = check.matches(model.infer(check.request())); }
+                try { verdict = check.exactlyMatches() ? TaskResponse.Verdict.MATCH : check.verdict(model.infer(check.request())); }
                 catch (RuntimeException failure) { /* One failure has one uncertain outcome, never a retry. */ }
             }
-            return Map.of(TaskResponse.KEY, Boolean.toString(match));
+            return Map.of(TaskResponse.KEY, verdict.name());
         });
         BackgroundActionExecutor.Reservation job;
-        try { job = workers.reserve(work, gateway, (ignored, values, versions) -> finish(id, owner, check, Boolean.parseBoolean(values.get(TaskResponse.KEY)))); }
+        try { job = workers.reserve(work, gateway, (ignored, values, versions) -> finish(id, owner, check, TaskResponse.Verdict.valueOf(values.get(TaskResponse.KEY)))); }
         catch (RuntimeException full) {
             TaskResponse.finish(policy.storage(), owner, check, false, clock.instant());
             recover(agent, owner, "response_check_unavailable"); return;
@@ -73,17 +73,24 @@ public class LiveTaskResponseService {
             @Override public void afterCompletion(int status) { job.close(); }
         });
     }
-    private String finish(UUID id, ExternalSpeech owner, TaskResponse.Check check, boolean match) {
+    private String finish(UUID id, ExternalSpeech owner, TaskResponse.Check check, TaskResponse.Verdict verdict) {
         return turns.serialized(id, () -> transaction.execute(status -> {
             var agent = agents.findById(id).orElse(null);
             if (agent == null || !owner.equals(ownership.current(agent)) || !ownership.taskWorkAllowed(id, owner)
                     || !(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy)) return "obsolete";
-            if (!TaskResponse.finish(policy.storage(), owner, check, match, clock.instant())) return "obsolete";
+            if (!TaskResponse.finish(policy.storage(), owner, check, verdict, clock.instant())) return "obsolete";
             boolean captured = TaskResponse.captured(policy.storage(), owner);
-            if (!captured) recover(agent, owner, "response_association_uncertain");
+            boolean pending = "PENDING".equals(TaskResponse.status(policy.storage()));
+            if (pending) TaskResponse.takeCandidate(policy.storage(), owner).ifPresent(candidate ->
+                agent.getEventHistory().toList().stream().filter(e -> {
+                    var p = e.speechProvenance();
+                    return p != null && candidate.segment().equals(p.segmentId())
+                            && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch());
+                }).findFirst().ifPresent(e -> prepare(agent, owner, e, candidate.started())));
+            else if (!captured) recover(agent, owner, "response_association_uncertain");
             agents.saveAndFlush(agent);
             AfterCommit.run(() -> { events.publishEvent(new AgentCommitted(id, owner.epoch())); monitor.publish(agent); });
-            return captured ? "response_captured" : "response_uncertain";
+            return captured ? "response_captured" : pending ? "response_unrelated" : "response_uncertain";
         }));
     }
     /** Existing context refresh supplies deadlines; this adds no polling or query. Caller saves the loaded agent. */

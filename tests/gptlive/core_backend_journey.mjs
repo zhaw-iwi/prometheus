@@ -43,9 +43,21 @@ if (coordinationJourney && coordinationScenario !== 'baseline') {
   accept: 'Start the saved proposal now.',
   acknowledge: 'Okay.'
   });
-  if (coordinationScenario === 'revision') clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
+  if (['revision', 'recognition'].includes(coordinationScenario)) clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
   if (coordinationScenario === 'capture') Object.assign(clips, {fragment: 'A dry', ending: 'one-liner, keeping every other term unchanged.'});
   if (coordinationScenario === 'delivery') Object.assign(clips, {back: 'Return to the initial conversation state.', status: 'Which state are we in?'});
+  if (coordinationScenario === 'recognition') {
+    clips.proposal = "Propose, don't start: after acceptance, on a fresh rock say exactly: I told my computer I needed a break, and it froze. First check rock recognition. I show signs and judge the joke; success is my acceptance. One action this session, default settings.";
+    delete clips.revision;
+    clips.revisionLead = 'Change only the response to a different dry one-liner, using exactly the following words.';
+    clips.revisionLine = 'My calendar is full of empty promises.';
+    clips.revisionTail = 'Keep every other term unchanged.';
+  }
+  if (['multimodal', 'dialogue'].includes(coordinationScenario)) Object.assign(clips, {
+    back: 'Return to the initial conversation state.', status: 'Which state are we in?',
+    another: 'Propose a different dialogue task: give one welcome sentence for lab visitors, I judge whether it suits them. Success is my acceptance. Limit one contribution. No sensors or preparation checks. Do not start yet.',
+    ambiguous: 'Start all over again.', restart: 'Explicitly restart the same agreed task with a fresh contribution.'
+  });
 }
 const audio = {};
 if (rpsJourney) {
@@ -77,6 +89,12 @@ for (const [name, input] of Object.entries(clips)) {
   audio[name] = [...fs.readFileSync(file)];
 }
 if (coordinationScenario === 'capture') audio.revision = [...audio.fragment, ...new Uint8Array(24000 * 2 * 1.2), ...audio.ending];
+if (coordinationScenario === 'recognition') {
+  // Synthesis can follow an embedded "say exactly" instruction instead of reading the whole request.
+  audio.revision = [...audio.revisionLead, ...audio.revisionLine, ...audio.revisionTail];
+  report.revisionInputSeconds = audio.revision.length / 48000;
+  assert.ok(report.revisionInputSeconds >= 6, 'Synthetic revision omitted part of the requested input');
+}
 const browser = await chromium.launch({headless: true, args: ['--autoplay-policy=no-user-gesture-required']});
 let page, agentPath, handle, heartbeat, scoped;
 let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 'neutral', confidence: .95, facePresent: true}}
@@ -99,6 +117,14 @@ async function until(label, action, timeout = 40000) {
   const start = Date.now();
   while (Date.now() - start < timeout) { const result = await action(); if (result) return result; await wait(500); }
   throw Error(`Timed out: ${label}`);
+}
+async function capturedResponse(label) {
+  // Allow the production 45-second capture deadline plus ingress/refresh time; fail promptly on uncertainty.
+  return until(label, async () => {
+    const response = (await storage())['task.response'];
+    if (response?.status === 'UNCERTAIN') throw Error(`${label}: response association became uncertain`);
+    return response?.status === 'CAPTURED';
+  }, 55000);
 }
 async function say(name) {
   console.log(`Visitor: ${name}`);
@@ -142,13 +168,30 @@ async function coordinationRevision() {
   await until('first task completed', async () => (await storage())['task.phase'] === 'COMPLETED');
   const original = (await storage())['coordination.agreement'];
   index = await page.evaluate(() => logs.length); await say('revision');
-  const revised = await until('revised draft', async () => (await storage())['coordination.draft']);
+  const revisionStart = index;
+  if (coordinationScenario === 'recognition') {
+    const input = await until('complete revision input', async () => (await api(agentPath + '/live/history'))
+      .filter(e => e.type === 'obs.user_utterance' && /calendar/i.test(e.payload)).at(-1));
+    assert.match(input.payload, /change.*response|the response to a different/i, 'Synthetic input must include the revision request');
+    assert.match(input.payload, /every other term unchanged/i, 'Synthetic input must include its preservation constraint');
+    report.revisionInput = input.payload;
+  }
+  const revised = await until('revised draft', async () => {
+    const memory = await storage();
+    const reply = memory['core.task.response']?.facts || '';
+    if (/couldn't apply that update|edit also changes agreed/i.test(reply)) throw Error('Revision rejected without replacing the agreement: ' + reply);
+    return memory['coordination.draft'];
+  });
   const protectedTerms = agreement => {
     const copy = structuredClone(agreement); delete copy.goal; delete copy.agentRole; delete copy.questions;
     delete copy.reactions.goal; copy.reactions.rules.forEach(rule => delete rule.action); return copy;
   };
   assert.ok(revised.reactions); assert.deepEqual(protectedTerms(revised), protectedTerms(original));
-  report.revision = await settled(index, /one.liner|dry|rock|check/i);
+  report.revision = await settled(index, /one.liner|dry|rock|check|proposal.{0,50}(same|chang|active)/i);
+  if (coordinationScenario === 'recognition') {
+    assert.match(revised.reactions.rules[0].action, /My calendar is full of empty promises/i);
+    assert.notEqual(revised.reactions.rules[0].action, original.reactions.rules[0].action);
+  }
   if (coordinationScenario === 'capture') {
     const history = await api(agentPath + '/live/history');
     report.captureHistory = history;
@@ -162,14 +205,95 @@ async function coordinationRevision() {
   report.reprepared = await settled(index, acceptanceQuestion);
   await until('new acceptance question captured', async () => (await storage())['core.task.spokenPrompt']);
   index = await page.evaluate(() => logs.length); await say('accept');
-  await until('revised activation captured', async () => (await storage())['task.response']?.status === 'CAPTURED');
+  await capturedResponse('revised activation captured');
   report.reactivation = await settled(index, /wait|rock|active|armed/i);
   assert.equal((await storage())['task.actions'], 0);
+  if (coordinationScenario === 'recognition') assert.doesNotMatch(await captionsFrom(revisionStart), /empty promises|computer.*froze/i,
+    'The revised contribution must not be spoken before renewed acceptance and a fresh cue');
   await wait(3500); index = await page.evaluate(() => logs.length);
   await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
   await until('revised response authorized', async () => (await storage())['task.actions'] === 1);
   report.revisedContribution = await settled(index);
+  await completedDelivery('revised task');
+  if (coordinationScenario === 'recognition') {
+    assert.match(report.revisedContribution, /My calendar is full of empty promises/i);
+    assert.equal(report.revisedContribution.toLowerCase().split('empty promises').length - 1, 1);
+    assert.doesNotMatch(report.revisedContribution, /computer.*froze/i);
+  }
+  assert.equal((await storage())['task.actions'], 1);
+  index = await page.evaluate(() => logs.length); await say('acknowledge');
+  await wait(5000);
+  const after = await captionsFrom(index);
+  assert.ok(!after.includes(report.revisedContribution.trim()), 'A harmless acknowledgement must not repeat the revised contribution');
+  if (coordinationScenario === 'recognition') assert.doesNotMatch(after, /empty promises|computer.*froze/i,
+    'An acknowledgement must not repeat either run\'s contribution');
+  report.afterRevisedAcknowledgement = after;
   report.revisedAgreement = (await storage())['coordination.agreement'];
+}
+async function completedDelivery(label) {
+  await until(label + ' playback confirmation', async () => {
+    const memory = await storage();
+    assert.notEqual(memory['task.phase'], 'UNCERTAIN', label + ' delivery became uncertain');
+    return memory['task.phase'] === 'COMPLETED';
+  }, 70000);
+  const delivery = (await storage())['coordination.delivery'];
+  assert.equal(delivery?.status, 'PLAYBACK_CONFIRMED');
+  (report.deliveries ??= []).push({label, ...delivery});
+}
+async function returnAndQuery() {
+  let index = await page.evaluate(() => logs.length); await say('back');
+  await until('return to Conversation', async () => (await storage())['task.phase'] === 'CONFIGURATION' && !(await storage())['coordination.draft']);
+  report.returned = await settled(index, /conversation/i);
+  index = await page.evaluate(() => logs.length); await say('status');
+  report.stateAnswer = await settled(index, /conversation/i);
+  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
+}
+async function coordinationMultimodal() {
+  let index = await page.evaluate(() => logs.length); await say('accept');
+  await capturedResponse('multimodal armed');
+  report.activation = await settled(index, /wait|armed|active|scissor/i);
+  assert.equal((await storage())['task.actions'], 0);
+  await noTaskSpeech(index, 'multimodal before cue');
+  const face = () => observe('obs.emotion.face', {emotion:'happy', valence:.8, confidence:.95, facePresent:true, ts:new Date().toISOString()});
+  await face();
+  let sampling = true, sampleError;
+  const samples = (async () => { while (sampling) { await face(); await wait(1000); } })()
+    .catch(error => {sampleError = error; sampling = false;});
+  try {
+    index = await page.evaluate(() => logs.length);
+    await observe('obs.hand.sign', {sign:'scissor', confidence:1, ts:new Date().toISOString()});
+    report.contribution = await settled(index, deliveredJoke);
+    assert.match(report.contribution, /look|seem|appear|estimate|suggest|might/i);
+    assert.match(report.contribution, /happy|smil|cheer|positive|amused/i);
+    assert.match(report.contribution, /maybe|might|seems?|appears?|not.{0,15}sure|uncertain/i);
+    await completedDelivery('scissor and facial expression');
+  } finally { sampling = false; await samples; if (sampleError) throw sampleError; }
+  assert.equal((await storage())['task.actions'], 1);
+  await returnAndQuery();
+  index = await page.evaluate(() => logs.length); await say('another');
+  await until('another draft', async () => (await storage())['coordination.draft']);
+  report.another = await settled(index, /welcome|visitor|proposal|accept/i);
+  const draft = (await storage())['coordination.draft']; assert.equal(draft.reactions, null); assert.equal(draft.dialogueLimit, 1);
+  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
+}
+async function coordinationDialogue() {
+  let index = await page.evaluate(() => logs.length); await say('accept');
+  await until('dialogue finishing', async () => (await storage())['task.phase'] === 'FINISHING');
+  report.contribution = await settled(index, /welcome.*lab/is); await completedDelivery('first dialogue');
+  const first = await storage(), run = first['coordination.run'];
+  assert.equal(first['task.actions'], 1);
+  index = await page.evaluate(() => logs.length); await say('ambiguous');
+  report.clarification = await settled(index, /restart|same task|conversation/i);
+  assert.equal((await storage())['coordination.run'], run); assert.equal((await storage())['task.phase'], 'COMPLETED');
+  index = await page.evaluate(() => logs.length); await say('restart');
+  await until('new run', async () => (await storage())['coordination.run'] !== run);
+  report.restarted = await settled(index, /welcome.*lab/is); await completedDelivery('restarted dialogue');
+  assert.equal((await storage())['task.actions'], 1);
+  assert.ok((await storage())['coordination.outcomes'].some(o => o.run === run && o.outcome === 'LIMIT_REACHED'));
+  await returnAndQuery();
+  const history = await api(agentPath + '/live/history');
+  assert.ok(history.filter(e => e.type === 'resp.behaviour_plan' && /welcome.*lab/is.test(e.payload)).length >= 2);
+  assert.ok((await storage())['coordination.outcomes'].length >= 2);
 }
 const joke = 'I told my computer I needed a break, and it froze.';
 const deliveredJoke = /computer.*(?:break|brake).*froze/is;
@@ -183,7 +307,7 @@ async function coordinationDelivery() {
   let index = await page.evaluate(() => logs.length);
   await noTaskSpeech(index, 'before acceptance');
   index = await page.evaluate(() => logs.length); await say('accept');
-  await until('armed response captured', async () => (await storage())['task.response']?.status === 'CAPTURED');
+  await capturedResponse('armed response captured');
   report.activation = await settled(index, /wait|armed|active/i);
   assert.equal((await storage())['task.actions'], 0);
   await noTaskSpeech(index, 'armed before fresh cue');
@@ -223,6 +347,16 @@ try {
       payload:`Propose but do not start: after acceptance, wait for a fresh rock then tell exactly this one-line joke once: ${joke} I show the sign and judge the joke; success means I accept it. One action in this session, standard recognition settings. No preparation checks.`});
     assert.deepEqual((await storage())['coordination.draft'].questions, [], 'Complete supplied terms need no additional preference question');
     assert.equal((await storage())['coordination.draft'].checks.length, 0);
+  }
+  if (coordinationJourney && ['multimodal', 'dialogue'].includes(coordinationScenario)) {
+    const payload = coordinationScenario === 'multimodal'
+      ? `Propose but do not start: after acceptance, on a fresh scissor sign say the joke: ${joke} Then briefly estimate my current visible facial expression, clearly uncertain. I show the sign and judge the response; success is my acceptance. One action this session, standard settings, no preparation checks.`
+      : 'Propose but do not start a dialogue task: say exactly Welcome to the lab. I judge the welcome; success is my acceptance. One contribution, no sensors or preparation checks.';
+    await api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload});
+    const draft = (await storage())['coordination.draft']; assert.ok(draft, 'Proposal must pass bounded agreement validation');
+    assert.deepEqual(draft.questions, []); assert.equal(draft.checks.length, 0);
+    if (coordinationScenario === 'multimodal') assert.equal(draft.reactions.rules[0].value, 'scissor');
+    else { assert.equal(draft.reactions, null); assert.equal(draft.dialogueLimit, 1); }
   }
   if (coordinationJourney && ['revision', 'capture'].includes(coordinationScenario)) {
     const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});
@@ -267,6 +401,18 @@ try {
       });
       mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json()});
     }, value => mark('trial.playback_diagnostic', value));
+    window.playbackSamples = [];
+    if (playback) {
+      const sample = playback.gate.sample.bind(playback.gate);
+      playback.gate.sample = value => {
+        const at = performance.now(), gapMs = playback.gate.last === null ? null : at - playback.gate.last;
+        const rms = playback.samples ? Math.sqrt(playback.samples.reduce((s, v) => s + v * v, 0) / playback.samples.length) : null;
+        sample(value);
+        playbackSamples.push({at, gapMs, rms, ...value, cue: playback.gate.cue?.id, voice: playback.gate.voice,
+          quiet: playback.gate.quiet, progressAt: playback.gate.progressAt});
+        if (playbackSamples.length > 1400) playbackSamples.shift();
+      };
+    }
     window.startPlaybackPoll = handle => {
       window.liveHandle = handle; let busy = false;
       window.playbackTimer = setInterval(async () => {
@@ -419,6 +565,10 @@ try {
   } else if (coordinationJourney) {
     if (coordinationScenario === 'delivery') {
       await coordinationDelivery();
+    } else if (coordinationScenario === 'multimodal') {
+      await coordinationMultimodal();
+    } else if (coordinationScenario === 'dialogue') {
+      await coordinationDialogue();
     } else if (['revision', 'capture'].includes(coordinationScenario)) {
       await coordinationRevision();
     } else if (coordinationScenario === 'recognition') {
@@ -437,21 +587,25 @@ try {
       assert.match(report.proposal + '\n' + report.prepared, /new|fresh|after.{0,20}(accept|start)/i,
         'The current proposal/preparation dialogue must explain that a fresh cue follows acceptance');
       assert.equal((await storage())['coordination.agreement'], undefined);
+      await noTaskSpeech(0, 'recognition before acceptance');
       // Repeated demonstration is still not consent.
       await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
       await wait(2000); assert.equal((await storage())['coordination.agreement'], undefined);
       index = await page.evaluate(() => logs.length); await say('accept');
-      await until('captured activation', async () => (await storage())['task.response']?.status === 'CAPTURED');
+      await capturedResponse('captured activation');
       report.activation = await settled(index, /wait|armed|active|fresh/i);
       assert.doesNotMatch(report.activation, /shall.{0,20}start|want.{0,20}start|not (yet )?active/i);
       memory = await storage(); assert.equal(memory['task.phase'], 'RUNNING'); assert.equal(memory['task.actions'], 0);
       report.beforeCue = await captionsFrom(0);
+      await noTaskSpeech(0, 'recognition before fresh cue');
       await wait(3500); index = await page.evaluate(() => logs.length);
       await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
       await until('one authorized contribution', async () => (await storage())['task.actions'] === 1);
-      report.contribution = await settled(index);
+      report.contribution = await settled(index, deliveredJoke);
       assert.equal((await storage())['task.actions'], 1);
-
+      await completedDelivery('first rock task');
+      assert.equal(report.contribution.toLowerCase().split('froze').length - 1, 1);
+      await coordinationRevision();
     } else {
       assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
       assert.equal((await storage())['coordination.agreement'], undefined);
@@ -494,6 +648,7 @@ finally {
       done: g ? [...g.done] : [], mediaTime: a?.currentTime, paused: a?.paused, muted: a?.muted,
       context: p?.context?.state, hidden: document.hidden};
   }).catch(() => null);
+  if (page) report.playbackSamples = await page.evaluate(() => window.playbackSamples).catch(() => []);
   if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); window.playback?.close();}).catch(() => {});
   if (handle) {
     report.finalStatus = await api(`${agentPath}/live/sessions/${handle}`).catch(error => ({error: error.message}));

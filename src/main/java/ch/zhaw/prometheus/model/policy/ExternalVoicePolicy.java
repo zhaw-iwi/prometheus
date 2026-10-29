@@ -43,6 +43,8 @@ public interface ExternalVoicePolicy {
     default String livePlaybackCompletionEventType() { return null; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */
     default int liveHistoryStartIndex() { return 0; }
+    /** Defer unsolicited sensory facts to Live only; backend history and task matching remain available. */
+    default boolean liveObservationContextEnabled() { return true; }
     default String liveOpeningInstructions() { return ""; }
     /** Optional internal event, acknowledged once on close through ordinary state transitions. */
     default String liveSessionEndEventType() { return null; }

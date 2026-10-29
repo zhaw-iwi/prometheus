@@ -24,6 +24,8 @@ public class TaskPolicy extends Policy {
     /** Recovery transition for an explicitly tracked response; null uses the standard paused phase. */
     public String liveResponseFailureEventType() { return null; }
     public boolean liveIncompleteResponseIsFailure() { return false; }
+    /** Maximum verified unrelated segments that may be skipped within the original response deadline. */
+    public int liveUnrelatedResponseAllowance() { return 0; }
     public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }
     @Override public String describe() {
         return voiceInstructions() + "\n" + TaskMemory.description(storage);

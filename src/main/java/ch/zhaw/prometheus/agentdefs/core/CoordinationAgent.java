@@ -64,7 +64,9 @@ public class CoordinationAgent implements AgentDefinition {
             Reflection uses recorded evidence and the person's account, and proposes changes without silently applying them.
 
             agreement has exactly goal, humanRole, agentRole, success, questions, checks, dialogueLimit, reactions.
-            goal/success: strings up to 300 characters; humanRole/agentRole: strings up to 200.
+            goal, success, humanRole and agentRole: strings up to 300 characters each.
+            Keep each role brief (aim below 140 characters); put exact response wording and details in rule.action
+            instead of repeating the whole script in agentRole. Check these field limits before returning JSON.
             Store known constraints in these fields. Unknown material fields may be empty in a partial proposal;
             questions lists up to four unresolved questions of at most 160 characters. A ready proposal has no questions.
             dialogueLimit: 1..50 agreed agent contributions, including the initial contribution; use a small explicit bound.
@@ -85,6 +87,10 @@ public class CoordinationAgent implements AgentDefinition {
             firstAction (IMMEDIATE or ON_CUE), rules (1..4). Each rule has exactly eventType, field, operator, value,
             action (up to 300 characters), effect (ACT, WAIT or COMPLETE), minConfidence (0..1), samples (1..3),
             cooldownSeconds (3..60). Rules compare one supported field with eq, lt or gt. Default to one sample.
+            value is already a JSON string, number or boolean. Never add schema/type metadata such as valueType to a rule.
+            If the action asks for current perception, store an instruction to use fresh supplied observations AT EXECUTION.
+            Never turn that into a prewritten estimate or invent an example expression (such as neutral or attentive)
+            in the agreement. Future sensor readings are unknown during proposal. Keep any user-specified exact joke separate.
             Unless the user requests tuning, use minConfidence 0.8 for positive hand/face recognition,
             samples 1 and cooldownSeconds 3. Do not ask technical tuning questions merely to fill these fields.
             A dialogueLimit unused by a sensor task may be 4; do not ask the user about that unused value.

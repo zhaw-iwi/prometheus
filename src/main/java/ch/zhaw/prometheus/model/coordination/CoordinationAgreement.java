@@ -19,7 +19,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
         try {
             var object = raw.getAsJsonObject();
             exact(object, Set.of("goal", "humanRole", "agentRole", "success", "questions", "checks", "dialogueLimit", "reactions"));
-            String goal = text(object, "goal", 300), human = text(object, "humanRole", 200), agent = text(object, "agentRole", 200), success = text(object, "success", 300);
+            String goal = text(object, "goal", 300), human = text(object, "humanRole", 300), agent = text(object, "agentRole", 300), success = text(object, "success", 300);
             var questions = new ArrayList<String>();
             for (var question : object.getAsJsonArray("questions")) {
                 if (!question.isJsonPrimitive() || !question.getAsJsonPrimitive().isString()
