@@ -172,6 +172,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             String providerId = call.getArgument(0);
             Peer peer = peers.stream().filter(value -> value.providerId.equals(providerId)).findFirst().orElseThrow();
             Consumer<JsonObject> receive = call.getArgument(1);
+            var started = new JsonObject(); started.addProperty("type", "session.started"); receive.accept(started);
             return new LiveSessionGateway.Connection() {
                 public boolean isOpen() { return !peer.closed; }
                 public void close() { peer.closed = true; }

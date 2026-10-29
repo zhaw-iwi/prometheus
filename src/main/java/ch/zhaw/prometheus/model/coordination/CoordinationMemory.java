@@ -12,12 +12,14 @@ public final class CoordinationMemory {
     public static final String DRAFT = "coordination.draft", AGREEMENT = "coordination.agreement",
             PREPARED_AFTER = "coordination.preparedAfter", EVIDENCE = "coordination.evidence",
             ACCEPTED_EVIDENCE = "coordination.acceptedEvidence", PREVIOUS_PHASE = "coordination.previousPhase",
-            OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue";
+            OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue",
+            RUN = "coordination.run", OUTCOMES = "coordination.outcomes", LOG_DROPPED = "coordination.logDropped";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
     }
     public static String stage(Storage storage) {
+        if (Set.of("FINISHING", "UNCERTAIN").contains(TaskMemory.phase(storage))) return TaskMemory.phase(storage);
         if ("PAUSED".equals(TaskMemory.phase(storage))) return "PAUSED";
         if ("COMPLETED".equals(TaskMemory.phase(storage))) return "REFLECTION";
         if (TaskMemory.active(storage)) return "EXECUTION";
@@ -29,6 +31,22 @@ public final class CoordinationMemory {
     public static boolean ready(Storage storage) {
         var draft = agreement(storage, DRAFT);
         return draft != null && draft.complete() && evidence(storage).size() == draft.checks().size();
+    }
+    public static String acceptancePrompt(Storage storage) {
+        var draft = agreement(storage, DRAFT);
+        return "The proposal is awaiting your acceptance and is not active."
+                + (draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
+                    ? " After you accept, show a fresh matching cue; preparation signs do not count as task actions." : "")
+                + " Shall we start it now?";
+    }
+    public static String proposalPrompt(Storage storage) {
+        var draft = agreement(storage, DRAFT);
+        if (ready(storage)) return "Proposed task: " + draft.goal() + ". " + acceptancePrompt(storage);
+        if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
+                ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
+        return "Proposed task: " + draft.goal() + ". Before acceptance, we need fresh recognition evidence for: "
+                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + ". The task is not active. I will ask to start after those checks are recognised.";
     }
     public static JsonObject evidence(Storage storage) {
         return storage.containsKey(EVIDENCE) ? storage.get(EVIDENCE).getAsJsonObject().deepCopy() : new JsonObject();
@@ -59,32 +77,69 @@ public final class CoordinationMemory {
     }
     public static void phase(Storage storage, String phase) { storage.put(TaskMemory.PHASE, new JsonPrimitive(phase)); }
     public static void remove(Storage storage, String... keys) { for (String key : keys) if (storage.containsKey(key)) storage.remove(key); }
-    public static void record(Storage storage, String operation, Event event, Instant now) {
+    /** Retain completed run outcomes independently of the next task's mutable control. */
+    public static void archive(Storage storage) {
+        if (!storage.containsKey(OUTCOME)) return;
+        var entries = storage.containsKey(OUTCOMES) ? storage.get(OUTCOMES).getAsJsonArray().deepCopy() : new JsonArray();
+        String run = TaskMemory.text(storage, RUN, "legacy");
+        for (var item : entries) if (item.getAsJsonObject().get("run").getAsString().equals(run)) return;
+        var entry = new JsonObject(); entry.addProperty("run", run);
+        entry.addProperty("outcome", TaskMemory.text(storage, OUTCOME, "unknown"));
+        entry.addProperty("actions", TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
+        if (storage.containsKey("coordination.delivery")) entry.add("delivery", storage.get("coordination.delivery").deepCopy());
+        entries.add(entry); while (entries.size() > 8) entries.remove(0); storage.put(OUTCOMES, entries);
+    }
+    public static String controls(Storage storage) {
+        return "Initial state: CONVERSATION. Current state: " + stage(storage) + ". " + switch (stage(storage)) {
+            case "CONVERSATION" -> "Explore or propose a task.";
+            case "COORDINATION" -> "Clarify missing terms; execution is unavailable.";
+            case "PREPARATION" -> "Demonstrate the remaining checks; execution is unavailable.";
+            case "READY" -> "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
+            case "EXECUTION" -> "Pause, stop, revise, or report completion.";
+            case "PAUSED" -> "Explicitly resume, revise or stop.";
+            case "FINISHING" -> "No further action is allowed. Waiting for final response association and client playback; delivery is not yet confirmed.";
+            case "UNCERTAIN" -> "Final delivery is uncertain. No automatic repeat. Reflect, revise, return, or explicitly restart with a fresh budget.";
+            default -> "Reflect, revise or explicitly restart the same task.";
+        } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";
+    }
+    public static void record(Storage storage, String operation, String before, Event event, Instant now) {
         var log = storage.containsKey(LOG) ? storage.get(LOG).getAsJsonArray().deepCopy() : new JsonArray();
         var entry = new JsonObject(); entry.addProperty("operation", operation); entry.addProperty("at", now.toString());
+        var facts = Map.of("operation", operation, "beforePhase", before, "phase", stage(storage),
+                "run", TaskMemory.text(storage, RUN, "none"), "taskOutcome", TaskMemory.text(storage, OUTCOME, "not_established"));
+        facts.forEach(entry::addProperty);
         entry.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
         entry.addProperty("actions", TaskMemory.text(storage, TaskMemory.ACTIONS, "0"));
-        entry.addProperty("source", event == null || event.getId() == null ? "unpersisted" : event.getId().toString());
+        Long position = event == null ? null : event.sourcePosition();
+        entry.addProperty("source", event != null && event.getId() != null ? event.getId().toString()
+                : position == null ? "unavailable" : "history:" + position);
+        if (position != null) entry.addProperty("sourcePosition", position);
         if (event != null) {
             entry.addProperty("eventType", event.getType());
             var observed = TaskMemory.observed(event);
             if (observed != null) entry.addProperty("observed", observed.toString());
         }
-        if (Set.of("SENSOR_RUNNING", "SENSOR_COMPLETED").contains(operation) && storage.containsKey(LAST_CUE))
+        if (Set.of("SENSOR_RUNNING", "SENSOR_COMPLETED", "SENSOR_FINISHING").contains(operation) && storage.containsKey(LAST_CUE))
             entry.add("cue", storage.get(LAST_CUE).deepCopy());
-        log.add(entry); while (log.size() > 12) log.remove(0); storage.put(LOG, log);
+        int dropped = Integer.parseInt(TaskMemory.text(storage, LOG_DROPPED, "0"));
+        log.add(entry);
+        while (log.size() > 12 || log.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 6000) { log.remove(0); dropped++; }
+        storage.put(LOG, log); storage.put(LOG_DROPPED, new JsonPrimitive(dropped));
+        ch.zhaw.prometheus.logging.ActivityTrace.coordination(facts, position,
+                Integer.parseInt(TaskMemory.text(storage, TaskMemory.REVISION, "0")),
+                Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0")), dropped);
     }
     public static String facts(Storage storage) {
-        String prefix = "Coordination stage: " + stage(storage) + "; actions: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
+        String prefix = controls(storage) + " Coordination stage: " + stage(storage) + "; actions: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
                 + "; outcome: " + TaskMemory.text(storage, OUTCOME, "not established") + ". ";
         String key = storage.containsKey(DRAFT) ? DRAFT : AGREEMENT;
         var agreement = agreement(storage, key);
-        if (agreement == null) return prefix + "No task agreed. Explore capabilities and possible useful activities.";
+        if (agreement == null || "CONVERSATION".equals(stage(storage))) return prefix + "No active task. Explore capabilities and possible useful activities.";
         String cue = !key.equals(DRAFT) && storage.containsKey(LAST_CUE)
                 ? "Last accepted cue: rule " + storage.get(LAST_CUE).getAsJsonObject().get("rule").getAsInt()
                     + "; output requests do not prove physical execution. " : "";
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, REVIEW, LAST_CUE); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES); }
 }

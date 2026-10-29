@@ -18,13 +18,14 @@ public class CoordinationPreparationAction extends Action {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         if (!runtime.taskContinuation().getAsBoolean() || events.isEmpty()) return;
         var storage = getStorage(); var now = Instant.now(); var event = events.toList().getLast();
+        String before = CoordinationMemory.stage(storage);
         if (!CoordinationMemory.observe(storage, event, now)) return;
-        CoordinationMemory.record(storage, "PREPARATION_EVIDENCE", event, now);
+        CoordinationMemory.record(storage, "PREPARATION_EVIDENCE", before, event, now);
         if (!CoordinationMemory.ready(storage)) return;
         storage.put(CoreTaskVoice.INVITATION, new JsonPrimitive(now.toString()));
         if (runtime.externalSpeech() == null)
-            storage.put(TaskMemory.REPLY, BehaviourPlan.speechOnly("I've recognised the required observations. The proposal is ready; shall we start?").toJsonObject());
-        else CoreTaskVoice.response(storage, "Required observations were recognised. The proposal remains inactive. Ask whether to start it now.",
+            storage.put(TaskMemory.REPLY, BehaviourPlan.speechOnly("I've recognised the required observations. " + CoordinationMemory.acceptancePrompt(storage)).toJsonObject());
+        else CoreTaskVoice.response(storage, "Required observations were recognised. Explicitly ask for acceptance: " + CoordinationMemory.acceptancePrompt(storage),
                 true, false, runtime, CoordinationMemory.facts(storage));
     }
 }

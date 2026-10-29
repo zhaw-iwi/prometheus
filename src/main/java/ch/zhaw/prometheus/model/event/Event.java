@@ -85,6 +85,9 @@ public class Event {
     }
 
     Long historyPosition() { return historyPosition; }
+    /** Stable diagnostic reference within this agent's history; not a database identity. */
+    @JsonIgnore
+    public Long sourcePosition() { return historyPosition; }
     void historyPosition(long position) { this.historyPosition = position; }
     @ElementCollection(fetch = FetchType.EAGER)
     // Preserve eager detached history while loading paths together, not once per event.

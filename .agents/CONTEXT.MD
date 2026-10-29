@@ -85,7 +85,12 @@ PROMETHEUS currently provides:
 
 - a new Coordination Agent with persisted partial/accepted dialogue or sensor
   agreements, observation-based preparation, explicit execution/reflection and
-  revision; it reuses the Generic/Social Space persona, knowledge, perception
+  revision, authoritative state queries and history-preserving return/restart;
+  protected revision terms, clear acceptance, bounded hesitant-speech capture and
+  revision/owner-bound response authority. New Live instances finish only after
+  associated speech and scoped playback confirmation; uncertain delivery never
+  automatically replays work. Bounded content-free journals explain transitions;
+  it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Both Generic variants remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;
 - persisted explicit state-machine agents with policies, transitions, actions,

@@ -17,6 +17,8 @@ public class CoordinationDecision extends Decision {
     }
     @Override public boolean decide(EventHistory events, PolicyRuntime runtime) {
         var storage = ((TaskPolicy) getPolicy()).storage();
+        if ("DELIVERY".equals(coordinationCondition)) return !events.isEmpty()
+                && CoordinationDelivery.matches(storage, events.toList().getLast(), runtime, java.time.Instant.now());
         if ("OBSERVE_PREPARATION".equals(coordinationCondition))
             return "PREPARATION".equals(CoordinationMemory.stage(storage)) && !events.isEmpty()
                     && TaskSpec.FIELDS.containsKey(events.toList().getLast().getType());

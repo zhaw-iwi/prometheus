@@ -350,11 +350,13 @@ public class AgentApplicationService {
                     agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {
                 Optional<ResponseView> result = actionTurn(agent, acknowledgementRuntime, runtime -> {
                     PolicyRuntime turnRuntime = runtime.withBehaviourSpeculation(preview);
+                    long sourcePosition = agent.getEventHistory().nextPosition();
                     Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
-                    ch.zhaw.prometheus.logging.ActivityTrace.bind(null, null, event.getId());
                     Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
                     Event responseToReturn = computedResponse == null ? response : computedResponse;
                     Agent saved = this.persistAndPublishMonitor(agent);
+                    saved.getEventHistory().toList().stream().filter(input -> Long.valueOf(sourcePosition).equals(input.sourcePosition()))
+                            .findFirst().ifPresent(input -> ch.zhaw.prometheus.logging.ActivityTrace.bind(null, null, input.getId()));
                     this.publishBehaviour(saved, responseToReturn);
                     if (preview != null) preview.result(lastEventId(saved), responseToReturn != null);
                     return Optional.of(new ResponseView(responseToReturn, agent.isActive()));

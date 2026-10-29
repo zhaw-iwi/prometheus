@@ -21,6 +21,23 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class CoreTaskVoicePersistenceIntegrationTest {
     @Autowired AgentRepository agents;
     @MockitoBean LanguageModelGateway language;
+    @Test void coordinationControlPermissionRemainsConsumedAfterReload() {
+        var agent = new CoordinationAgent().createAgent(); var id = agents.saveAndFlush(agent).getId();
+        var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
+        var runtime = new PolicyRuntime(new PromptMessageAssembler(), language).withExternalSpeech(owner);
+        when(language.infer(any())).thenReturn("{\"operation\":\"PROPOSE\",\"agreement\":" + CoordinationAgentIntegrationTest.AGREEMENT
+                + ",\"reply\":{\"speech\":\"Propose an invitation\"}}");
+        agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Propose an invitation"), runtime);
+        agents.saveAndFlush(agent); agent = agents.findById(id).orElseThrow();
+        var policy = (CoordinationPolicy) agent.getCurrentState().ownPolicy();
+        assertNotNull(policy.liveActivityContext().continuation()); Instant start = Instant.now();
+        var speech = agent.recordExternalSpeech("The proposal is not active. Shall we start now?", new SpeechProvenance(
+                SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(), "proposal-capture", SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(policy.liveSpeechCaptured(speech, owner, start, Instant.now(), List.of())); agents.saveAndFlush(agent);
+        policy = (CoordinationPolicy) agents.findById(id).orElseThrow().getCurrentState().ownPolicy();
+        assertNull(policy.liveActivityContext().continuation());
+        assertEquals("READY", policy.statusPhase());
+    }
     @Test void bothDefinitionsReloadConfirmedProposalAndAcceptOnceWithCurrentInvitation() {
         for (var candidate : List.of(new GenericMultimodalBehaviour().createAgent(), new GenericMultimodalBehaviourAtSocialSpace().createAgent())) {
             var id = agents.saveAndFlush(candidate).getId(); var agent = agents.findById(id).orElseThrow();

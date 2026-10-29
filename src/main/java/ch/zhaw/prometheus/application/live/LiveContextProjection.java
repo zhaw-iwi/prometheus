@@ -47,6 +47,8 @@ public class LiveContextProjection {
             // Weather belongs to the environment, not the previous visitor. Retain only
             // selected, fresh source evidence; never renew its age at encounter startup.
             selected = selected.stream().filter(event -> encounter.contains(event) || freshWeather(event, now)).toList();
+            if (!external.liveObservationContextEnabled()) selected = selected.stream()
+                    .filter(event -> !ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType())).toList();
         }
         List<Item> candidates = new ArrayList<>();
         List<Event> aggregateEvents = new ArrayList<>();

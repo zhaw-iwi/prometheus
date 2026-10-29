@@ -47,10 +47,12 @@ class LiveContextProjectionUnitTest {
     State leaf(Agent agent) { return LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast(); }
     static final class EncounterPolicy extends PromptPolicy implements ch.zhaw.prometheus.model.policy.ExternalVoicePolicy {
         final int start;
+        boolean observations = true;
         EncounterPolicy(int start) { super("Speak briefly.", null, null); this.start = start; }
         public boolean supportsLiveState(State state) { return true; }
         public String voiceInstructions() { return "Speak briefly."; }
         public int liveHistoryStartIndex() { return start; }
+        public boolean liveObservationContextEnabled() { return observations; }
     }
     Event append(Agent agent, String type, String payload, Instant observed, String... path) {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(type)) {
@@ -97,6 +99,26 @@ class LiveContextProjectionUnitTest {
         var weather = result.items().stream().filter(item -> item.type().equals(Event.TYPE_WEATHER_CURRENT)).findFirst().orElseThrow();
         assertEquals(NOW.minusSeconds(60), weather.observedAt()); assertEquals(NOW, weather.receivedAt());
         assertTrue(result.items().stream().allMatch(item -> item.role().equals("developer")));
+    }
+    @Test void deferredObservationContextRetainsBackendEvidenceAndRestoresOnlyItsOriginalFreshness() {
+        var policy = new EncounterPolicy(0); var state = new State("waiting", policy, List.of());
+        var agent = new Agent("quiet task", "", state);
+        agent.setInteractionProfile(new MultimodalBehaviour().createAgent().getInteractionProfile());
+        var face = append(agent, Event.TYPE_FACE_EMOTION, "{\"emotion\":\"happy\",\"confidence\":0.9,\"facePresent\":true}", NOW, "waiting");
+        append(agent, Event.TYPE_USER_UTTERANCE, "Wait for a cue", NOW, "waiting");
+        var initial = projection(NOW).project(agent);
+        assertTrue(initial.items().stream().anyMatch(i -> i.type().equals(Event.TYPE_FACE_EMOTION)));
+        policy.observations = false;
+        var waiting = projection(NOW.plusSeconds(1)).project(agent);
+        assertEquals(1, waiting.items().size()); assertEquals(Event.TYPE_USER_UTTERANCE, waiting.items().getFirst().type());
+        assertEquals(2, agent.getEventHistory().toList().size());
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        assertTrue(delivery.plan(waiting, List.of()).commands().stream().anyMatch(c -> c.content().contains("obs.emotion.face removed")));
+        policy.observations = true;
+        var restored = projection(NOW.plusSeconds(2)).project(agent).items().stream().filter(i -> i.type().equals(Event.TYPE_FACE_EMOTION)).findFirst().orElseThrow();
+        assertEquals(List.of(face.getId()), restored.sourceIds()); assertEquals(NOW, restored.observedAt()); assertEquals("fresh", restored.freshness());
+        var expired = projection(NOW.plusSeconds(16)).project(agent).items().stream().filter(i -> i.type().equals(Event.TYPE_FACE_EMOTION)).findFirst().orElseThrow();
+        assertEquals("expired", expired.freshness()); assertFalse(expired.text().contains("happy"));
     }
     @Test void expiryUnknownAgeAndSelectorRemovalChangeRevisionWithoutRefreshingOldFacts() {
         Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();

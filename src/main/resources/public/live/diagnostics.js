@@ -88,7 +88,20 @@ export class LiveDiagnostics {
         entry.speakingSource = { sourceId: occasion.sourceId, browserMs };
       }
     }
+    const contextFailure = entry.server?.context?.recent?.findLast(value =>
+      value.phase === "session_closed_during_delivery" || value.phase === "failed" && entry.server.context.state === "context_delivery_unconfirmed");
+    if (contextFailure && entry.contextFailureObserved?.sequence !== contextFailure.sequence)
+      entry.contextFailureObserved = {sequence: contextFailure.sequence, browserMs};
+    const nearOperatorStop = entry.outputEnd?.reason === "operator_stop" && entry.contextFailureObserved
+      && Math.abs(entry.outputEnd.browserMs - entry.contextFailureObserved.browserMs) <= 5000;
+    entry.contextAssessment = contextFailure ? {
+      sequence: contextFailure.sequence, serverMs: contextFailure.serverMs,
+      classification: contextFailure.phase === "session_closed_during_delivery" ? "expected_teardown"
+        : nearOperatorStop ? "unconfirmed_delivery_near_operator_stop" : "active_delivery_failure",
+      timing: "separate_clocks_no_causal_claim"
+    } : null;
     entry.coverage = { audioContent: "not_collected", physicalAudibility: "not_measured", providerTurnEnd: "not_available",
+      captureGaps: "incomplete_evidence_not_proof_of_audible_clipping",
       outputEnd: entry.outputEnd ? "local_stop_observed" : "unknown", responseAssociation: "approximate_context_only",
       usage: entry.provider?.usageSeconds === null || !entry.provider ? "not_reported" : "cumulative_latest",
       media: entry.media.length ? "observed" : "not_observed", captureSettings: entry.captureConfiguration ? "observed" : "not_observed" };

@@ -128,10 +128,13 @@ final class CoreTaskVoice {
         value.addProperty("id", id.toString()); value.addProperty("facts", facts);
         value.addProperty("proactive", proactive); value.addProperty("expires", now.plusSeconds(45).toString());
         value.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
+        value.addProperty("session", runtime.externalSpeech().sessionId().toString());
+        value.addProperty("epoch", runtime.externalSpeech().epoch().toString());
+        value.addProperty("created", now.toString());
         storage.put(RESPONSE, value);
-        if (TaskMemory.active(storage) && gateNextCue) TaskResponse.expect(storage, runtime.externalSpeech(), id,
+        if (TaskResponse.accepting(storage) && gateNextCue) TaskResponse.expect(storage, runtime.externalSpeech(), id,
                 confirmedContext == null ? facts(storage, facts) : confirmedContext, now);
-        else if (!TaskMemory.active(storage) && storage.containsKey(TaskResponse.KEY)) storage.remove(TaskResponse.KEY);
+        else if (!TaskResponse.accepting(storage) && storage.containsKey(TaskResponse.KEY)) storage.remove(TaskResponse.KEY);
     }
     static LiveActivityContext context(Storage storage) {
         var now = Instant.now(); var value = storage.containsKey(RESPONSE) ? storage.get(RESPONSE).getAsJsonObject() : null;

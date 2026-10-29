@@ -34,6 +34,8 @@ class CoordinationAgentIntegrationTest {
     @Autowired ScopedDemoService demo;
     @Autowired GenericTaskSessionLifecycleService lifecycle;
     @Autowired PlatformTransactionManager transactions;
+    @Autowired LiveTranscriptIngressService ingress;
+    @Autowired ExternalSpeechOwnership ownership;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
     static final String AGREEMENT = """
@@ -98,5 +100,56 @@ class CoordinationAgentIntegrationTest {
         proposal.addProperty("agentRole", "Clarify references and edit the supplied details");
         turn(scope, "PROPOSE", proposal.toString(), "Revise the proposal to clarify references");
         assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope))); assertEquals(0, CoordinationMemory.evidence(memory(scope)).size());
+    }
+    @Test void returnAndRestartReloadWithHistoryAndEarlierOutcomesPreserved() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose an invitation task");
+        turn(scope, "START", "null", "Start now");
+        String run = memory(scope).get(CoordinationMemory.RUN).getAsString();
+        turn(scope, "COMPLETE", "null", "The invitation is accepted; complete the task");
+        int history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
+        turn(scope, "RETURN_TO_CONVERSATION", "null", "Go back to the beginning state");
+        assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+        assertEquals("USER_REPORTED_COMPLETION", memory(scope).get(CoordinationMemory.OUTCOME).getAsString());
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size() > history);
+        turn(scope, "RESTART", "null", "Restart the same task");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertNotEquals(run, memory(scope).get(CoordinationMemory.RUN).getAsString());
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(1, memory(scope).get(CoordinationMemory.OUTCOMES).getAsJsonArray().size());
+    }
+    @Test void validLargeAgreementAndContentRevisionSurviveReload() {
+        var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+        proposal.addProperty("goal", "g".repeat(300)); proposal.addProperty("humanRole", "h".repeat(300));
+        proposal.addProperty("agentRole", "a".repeat(300)); proposal.addProperty("success", "s".repeat(300));
+        for (int i = 0; i < 4; i++) proposal.getAsJsonArray("questions").add("q".repeat(160));
+        for (String sign : List.of("rock", "paper", "scissor")) proposal.getAsJsonArray("checks").add(JsonParser.parseString(
+                "{\"eventType\":\"obs.hand.sign\",\"field\":\"sign\",\"operator\":\"eq\",\"value\":\"" + sign + "\",\"minConfidence\":0.8}"));
+        assertTrue(proposal.toString().length() > 2048);
+        turn(scope, "PROPOSE", proposal.toString(), "Propose these detailed terms");
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.DRAFT));
+        proposal.addProperty("agentRole", "Keep the same terms and use a concise response");
+        turn(scope, "PROPOSE", proposal.toString(), "Make the response concise");
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.DRAFT));
+    }
+    @Test void twoReceiptsCommitOneRevisionAndDuplicatesCannotRepeatIt() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose an invitation task");
+        var agent = agents.findById(scope.id()).orElseThrow();
+        var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
+        agents.saveAndFlush(agent); ownership.acquire(scope.id(), owner);
+        var changed = JsonParser.parseString(AGREEMENT).getAsJsonObject(); changed.addProperty("agentRole", "Use a dry one-liner");
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"PROPOSE\",\"agreement\":" + changed + ",\"reply\":{\"speech\":\"Propose concise wording\"}}");
+        clearInvocations(gateway);
+        long now = Instant.now().toEpochMilli();
+        var first = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("dry", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.USER, 0L, 200L, now, 1, "A dry");
+        var last = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Fragment("line", first.speaker(), 1400L, 1800L, now + 1400, 2, " one-liner");
+        assertTrue(ingress.receipt(scope.id(), owner, first)); assertTrue(ingress.receipt(scope.id(), owner, last));
+        assertFalse(ingress.receipt(scope.id(), owner, first));
+        var segment = new ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment(UUID.randomUUID(), first.speaker(), List.of(first, last),
+                ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", now, now + 1400);
+        var committed = ingress.commit(scope.id(), owner, segment, List.of("Coordination awaiting acceptance")).orElseThrow();
+        assertEquals(List.of("dry", "line"), committed.receiptIds()); assertEquals("COMPLETE", committed.status());
+        assertEquals(changed, memory(scope).get(CoordinationMemory.DRAFT));
+        assertEquals(committed.eventId(), ingress.commit(scope.id(), owner, segment, List.of()).orElseThrow().eventId());
+        verify(gateway, times(1)).infer(any()); ownership.release(scope.id(), owner.sessionId());
     }
 }

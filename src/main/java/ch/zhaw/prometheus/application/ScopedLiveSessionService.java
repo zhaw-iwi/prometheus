@@ -145,7 +145,7 @@ public class ScopedLiveSessionService {
             lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> failed(lease, "sideband_disconnected"));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
-            if (lease.bridge != null) lease.bridge.ready();
+            lease.startBridge();
             return Optional.of(new SessionView(lease.handle, lease.provider.sdp(), properties.getModel(), voice, true));
         } catch (RuntimeException failure) {
             sessions.remove(lease.handle, lease);
@@ -306,6 +306,8 @@ public class ScopedLiveSessionService {
         volatile java.util.function.Consumer<String> failure = ignored -> {};
         final AtomicBoolean cleanupQueued = new AtomicBoolean();
         final AtomicBoolean stopped = new AtomicBoolean(), disconnected = new AtomicBoolean(), hungUp = new AtomicBoolean();
+        final AtomicBoolean bridgeStarted = new AtomicBoolean();
+        volatile boolean providerStarted;
         final CompletableFuture<Void> finalized = new CompletableFuture<>();
         final Map<String, Pending> pending = new ConcurrentHashMap<>();
         final Semaphore commandSlots = new Semaphore(4);
@@ -330,10 +332,16 @@ public class ScopedLiveSessionService {
         Lease(UUID agentId, byte[] scope, Instant expires, Clock clock) {
             this.agentId = agentId; this.scope = scope; this.expires = expires; this.clock = clock; this.clientSeen = clock.instant();
         }
+        void startBridge() {
+            // Socket attachment may precede WebRTC/session startup. Context appends must wait for both.
+            if (providerStarted && connection != null && bridge != null && !stopped.get() && !disconnected.get()
+                    && bridgeStarted.compareAndSet(false, true)) bridge.ready();
+        }
         synchronized void receive(JsonObject event) {
             String type = event.has("type") ? event.get("type").getAsString() : "invalid";
             if (!type.matches("[a-z_.]{1,100}")) type = "invalid";
             count++;
+            if (type.equals("session.started")) { providerStarted = true; startBridge(); }
             if (event.has("usage") && event.get("usage").isJsonObject()) {
                 Double seconds = numeric(event.getAsJsonObject("usage"), "seconds");
                 if (seconds != null && seconds >= 0) usageSeconds = seconds;

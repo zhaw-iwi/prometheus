@@ -2485,11 +2485,88 @@ The backend persists partial proposals containing the goal, human/agent roles,
 success criterion and unresolved questions. Diagnostics shows conversation,
 agreement clarification, preparation, readiness, execution, pause and reflection;
 the shared activity footer distinguishes clarification/preparation from acceptance.
+Ready means **Awaiting your acceptance**. The last preparation check explicitly
+asks to start; an ON_CUE task then waits for a fresh sign. A fully specified new
+task explicitly requested to start now needs no second confirmation when it has
+no preparation checks. An unfinished agreement, recognition evidence alone or a
+casual acknowledgement cannot authorize execution.
 The agreement must be complete before it can start, and acceptance applies to the
 saved proposal unchanged. Changing a proposal suspends earlier execution and clears
 its preparation evidence. Discarding the replacement preserves an unfinished
 previous agreement, paused for explicit resume; a completed task stays completed.
 Ordinary questions preserve task progress.
+
+Content/style revisions preserve the trigger, timing, limits, preparation and
+human responsibilities. Unexpected changes are rejected without replacing the
+agreement. To change those terms deliberately, request a replacement (for example,
+"Instead replace this sensor task with a dialogue task"); review and accept the
+new proposal. Revisions require fresh preparation evidence where checks exist.
+
+Coordination Live capture allows two seconds of measured user silence before
+admitting a turn (other agents keep their existing policy). This adds up to 1.2
+seconds compared with the default and can keep a short hesitation in one request.
+It does not change provider speech generation. Clearly unfinished requests ask
+for completion without changing the agreement; gaps, late data and interrupted
+capture retain their conservative handling.
+
+Live response permissions belong to one session and agreement revision. Captured
+control replies are consumed, and a spoken task contribution must be associated
+with its expected response before another dialogue contribution can run. Opening
+a new Live session clears old speaking permissions; pending task speech requires
+explicit recovery. Ordinary questions remain available. Native wording is still
+provider-generated and needs the paid behavioral checks described in the results.
+These permissions are not a hard acoustic gate: unsolicited waiting remarks or
+asides remain possible. Keep the recorded failed attempts and manual listening
+check alongside successful bounded provider journeys.
+
+For new Coordination instances, a final spoken Live contribution enters
+**Finishing** as soon as its budget is spent. Further task actions are blocked.
+Reflection follows only after the matching speech is captured and the current
+client acknowledges playback settling. Capture has a 45-second deadline; the
+complete capture/playback boundary is bounded by 60 seconds. Stop, incomplete
+capture, lost ownership or deadline expiry leaves **Response delivery uncertain**,
+preserving the budget outcome without automatically repeating the response.
+An explicit restart creates a new run. Text/Continuous complete at canonical
+publication, and silent actions do not wait for speech. These boundaries do not
+prove physical audibility or robot motion. Saved graphs need a fresh instance to
+receive Finishing/Uncertain transitions; deployment does not rewrite them.
+
+Within the original capture deadline, Coordination may skip one semantically
+verified unrelated utterance and check one further candidate. A candidate arriving
+during the first check retains only its segment/start metadata alongside the
+existing response; its wording remains in ordinary event history. This allows at
+most two semantic checks, without another action, new deadline or automatic speech
+replay. Ambiguous, invalid and incomplete results remain conservative. Generic's
+default single-candidate behavior is unchanged.
+Coordination records whether that occasion requests arming or an actual task
+contribution, so a cue-triggered action cannot be confused with initial ON_CUE
+activation during semantic verification. Capture still does not prove audibility.
+While an armed sensor task waits quietly, new Coordination instances defer
+unsolicited sensory updates to Live. Backend sensing, history and cue matching
+continue. An authorized contribution or ordinary user turn restores selected
+observations with their original freshness; expired evidence stays unknown.
+Live sensor contributions use the backend's committed current speech intent as
+their delivery reference, excluding hypothetical examples from the agreement.
+A complete explicit `Say exactly:` literal that matches that intent can be
+associated by word equality (ignoring case/punctuation) without a model call.
+Other content still requires semantic verification; neither path proves task
+success or bypasses scoped playback.
+
+The activity footer distinguishes acceptance, fresh-cue waiting, finishing and
+uncertain delivery. Telemetry's content-free `coordination` entries carry the
+operation, before/after phase, run, revision, action count, outcome and source
+history position; the enclosing operation links to the persisted input ID.
+The storage journal retains at most 12 entries/6000 UTF-8 bytes and exposes its
+dropped count. Live diagnostics distinguish observed delivery teardown from an
+active failure; a failure near operator Stop retains an uncertain timing label.
+`audio_coverage_gap` means capture evidence is incomplete, not that audible clipping
+has been proved or repaired. The original three gaps still have no established
+physical cause.
+
+Agreement goals, roles and success criteria each allow up to 300 characters;
+the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current
+perception stays an instruction to use fresh observations during execution,
+not a prewritten expression estimate in the proposal.
 
 Two execution forms are supported:
 
@@ -2520,7 +2597,15 @@ by an agreed cue, a user completion report, cancellation and an exhausted budget
 remain distinct recorded outcomes. Reflection can use the bounded operation log,
 durable event history and the user's account; it does not turn generated output
 into proof of human understanding or physical execution. A revision needs renewed
-acceptance. Reset clears agreements, preparation, progress and reflection.
+acceptance. Ask "Where are we?" for the actual state and available controls.
+"Go back to the beginning state" returns to Conversation, revokes pending task
+authority and preserves dialogue history and completed outcomes. "Restart the same
+task" creates a fresh run and budget; required preparation must be demonstrated
+again before accepting. Without preparation checks, an explicit restart begins
+immediately. Ambiguous "start over" asks which of these you mean. Stop after
+completion preserves the recorded outcome. The last eight run outcomes are kept
+in ordinary Storage; the full conversation remains in history. Reset, by contrast,
+clears agreements, preparation, progress and reflection.
 
 Dialogue tasks pause on associated Live session loss. Sensor tasks retain Generic's
 explicit `sessionBound` choice. Optional `prometheus.core.coordination.reception=true`
@@ -2535,6 +2620,10 @@ Storage. New entity discriminators and nullable
 and an additive schema update before creation (`ddl-auto=update` handles this
 locally). No saved instance is rewritten. Monitor `task.phase` has additional
 coordination labels; existing task phases retain their meaning.
+Refinement also widens `storage_entry.entry_value` from varchar(2048) to
+varchar(8192), so the existing 3,000-byte agreement contract and response evidence
+fit durably. Apply this additive widening before using the refinement; the
+disposable local integration suite verifies large-agreement persistence/reload.
 
 This first version does not generate arbitrary workflows, supply a scored game
 engine, identify participants, fetch weather, control devices or verify physical

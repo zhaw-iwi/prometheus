@@ -436,6 +436,24 @@ class LiveContextDeliveryUnitTest {
             assertFalse(session.status().toString().contains("Result"));
         } finally { release.countDown(); bridge.shutdown(); }
     }
+    @Test void closingDuringAcknowledgementRetainsTeardownEvidenceWithoutActiveFailure() throws Exception {
+        var contexts = mock(LiveAgentContextService.class); var initial = snapshot("r1", "Guide");
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(initial,
+                List.of(new LiveContextDelivery.Narration(UUID.randomUUID(), "Synthetic final result")))));
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1); var failures = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, Clock.systemUTC());
+        var session = bridge.open(initial, owner, command -> {
+            entered.countDown();
+            try { assertTrue(release.await(3, TimeUnit.SECONDS)); } catch (InterruptedException e) { throw new IllegalStateException(e); }
+            throw new IllegalStateException("Synthetic acknowledgement ended during close");
+        }, value -> {}, code -> failures.incrementAndGet());
+        try {
+            session.ready(); assertTrue(entered.await(3, TimeUnit.SECONDS)); session.close(); release.countDown();
+            await().atMost(Duration.ofSeconds(3)).until(() -> session.status().recent().stream().anyMatch(t -> t.phase().equals("session_closed_during_delivery")));
+            assertEquals(0, failures.get()); assertEquals("closed", session.status().state());
+        } finally { release.countDown(); bridge.shutdown(); }
+    }
     @Test void resetDuringFreshReadDiscardsDelayedTaskContext() throws Exception {
         var contexts = mock(LiveAgentContextService.class); var initial = snapshot("r1", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
         CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1), finished = new CountDownLatch(1);

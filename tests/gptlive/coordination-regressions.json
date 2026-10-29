@@ -1,0 +1,14 @@
+{
+  "description": "Synthetic regression scenarios derived from the 2026-10-28 trial; no production identities or transcripts.",
+  "baselineIsAcceptance": false,
+  "cases": [
+    {"id":"acceptance", "milestone":"CR-03", "input":["Propose one response on rock after a recognition check", "rock", "Start now", "rock"], "expected":"Explicit acceptance question, then armed, then one response"},
+    {"id":"revision", "milestone":"CR-04", "input":["Change only the response to a dry one-liner"], "expected":"Rock, ON_CUE, limit, roles and preparation retained"},
+    {"id":"fragmentation", "milestone":"CR-05", "input":["Make it a", "1200ms silence", "dry one-liner"], "expected":"One complete revision; no update from an ambiguous fragment"},
+    {"id":"early-or-duplicate-speech", "milestone":"CR-06", "input":["Propose a joke on rock", "Start now", "rock", "Okay"], "expected":"No joke before cue; exactly one task contribution afterward"},
+    {"id":"delivery", "milestone":"CR-07", "input":["Start a one-contribution dialogue task", "delayed playback acknowledgement"], "expected":"Finishing until matching capture and playback, then Reflection"},
+    {"id":"return", "milestone":"CR-02", "input":["Go back to the beginning state", "Where are we?"], "expected":"Conversation in response and persisted state; history retained"},
+    {"id":"restart", "milestone":"CR-02", "input":["Start all over again", "Restart the same task"], "expected":"Clarification first; explicit restart creates a new run with preparation guards"},
+    {"id":"terminal-stop", "milestone":"CR-02", "input":["Complete task", "Stop", "Stop"], "expected":"Completed outcome is not overwritten"}
+  ]
+}

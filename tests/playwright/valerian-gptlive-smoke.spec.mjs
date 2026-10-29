@@ -2,6 +2,51 @@ import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 // This suite must run only via tests/gptlive/run_acceptance.py. No PROMETHEUS HTTP or SSE mocks.
 const enabled = process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== "false";
+test("Coordination finishing persists until a delayed scoped playback acknowledgement", async ({ page, context, request }) => {
+  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
+  const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post('/admin/access-codes', {headers, data:{code, enabled:true}})).json();
+  await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers, data:{agentTypeKeys:['core.coordination']}});
+  const scoped = {'X-Prometheus-Access-Code':code};
+  await hardware(context); await page.goto('/valerian/');
+  await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
+  await page.locator('#open_diagnostics').click(); await page.getByTestId('agent-type-select').selectOption('core.coordination');
+  const creation = page.waitForResponse(r => r.url().endsWith('/demo/agents') && r.request().method() === 'POST');
+  await page.getByTestId('create-agent-instance').click(); const agent = await (await creation).json();
+  const path = `/demo/agents/${agent.id}`;
+  try {
+    await page.getByTestId('connect-agent').click(); await expect(page.locator('#behaviour_status')).toHaveText('Behaviour Live');
+    await page.keyboard.press('Escape'); await page.getByTestId('gptlive-tab').click();
+    const opening = page.waitForResponse(r => r.url().endsWith('/live/sessions') && r.status() === 201);
+    await page.getByTestId('gptlive-start').click(); const session = await (await opening).json();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    expect((await request.post(path + '/acknowledge', {headers:scoped, data:{type:'obs.user_utterance', actor:'user', kind:'observation',
+      payload:'Start one fixture observation contribution now'}})).ok()).toBe(true);
+    let cue;
+    await expect.poll(async () => {
+      cue = (await (await request.get(`${path}/live/sessions/${session.handle}/updates`, {headers:scoped})).json()).playbackCue;
+      return !!cue?.segmentId;
+    }).toBe(true);
+    await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
+    await page.waitForTimeout(1000); // Deliberately hold acknowledgement after capture.
+    await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
+    const acknowledgement = await request.post(`${path}/live/sessions/${session.handle}/playback-cues/${cue.id}`,
+      {headers:scoped, data:{segmentId:cue.segmentId}});
+    expect(await acknowledgement.json()).toBe(true);
+    await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
+    await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
+      e => e.stage === 'coordination' && e.details.beforePhase === 'READY' && e.details.phase === 'FINISHING'
+        || e.stage === 'coordination' && e.details.phase === 'FINISHING' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
+    const timeline = await page.evaluate(() => window.PrometheusActivity.snapshot());
+    expect(JSON.stringify(timeline)).not.toContain('Start one fixture observation contribution now');
+    expect(timeline.coverage.physicalAudibility).toBe('not_measured');
+    await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
+      e => e.stage === 'coordination' && e.details.beforePhase === 'FINISHING' && e.details.phase === 'REFLECTION'
+        && e.details.taskOutcome === 'LIMIT_REACHED' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
+    await page.getByTestId('gptlive-stop').click();
+  } finally { await request.delete(path, {headers:scoped}); }
+});
 test("real scoped cockpit, durable Live conversation and legacy feature-off speech", async ({ page, context, request }, info) => {
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Use the isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };

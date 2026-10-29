@@ -57,6 +57,42 @@ Use English for these built-in core/healthcare definitions.
    task agreements remain durable. Verify Stop prevents automatic restart.
    Revoking the scoped access code must stop access immediately, without grace.
 
+## Coordination refinement
+
+For **Coordination**, create a fresh `core.coordination` instance after deployment.
+Existing saved graphs and prompts are preserved and do not gain these transitions.
+
+1. Ask for one joke after a rock sign, with rock recognition checked first. Supply
+   meaningful missing terms, then demonstrate rock. The footer should say
+   **Awaiting your acceptance** and the reply should explain how to accept. More
+   preparation signs must not tell the joke. Say "Start the saved proposal now",
+   then show a new rock. Expect one response, **Finishing** while final speech is
+   pending, then **Reflecting on the task** after client playback confirmation.
+2. In reflection, say "Make only the response a dry one-liner, keeping every other
+   term unchanged." Confirm rock, confidence/sample/cooldown settings, session
+   limit and roles are retained. Repeat preparation and acceptance; a fresh rock
+   should produce one revised response. Try a short hesitation in "A dry ...
+   one-liner"; it should become one update or a clarification, never two guesses.
+3. Try one joke plus an uncertain facial-expression estimate on scissors. Return
+   with "Return to the initial conversation state", then ask the current state:
+   both the reply and graph must say Conversation. Configure another task.
+4. Try a one-contribution dialogue task. "Start all over again" should clarify
+   return versus restart. "Restart the same agreed task" creates a new run/budget;
+   returning to Conversation preserves the earlier transcript and outcomes.
+5. Stop or mute during final speech: no automatic replay and no claim of successful
+   delivery. A stopped/lost session or expired deadline leaves uncertainty. Check
+   actual listening, camera classification and robot movement separately. These
+   physical checks cannot be supplied by headless browser acceptance.
+
+Use `tests/gptlive/run_acceptance.py` with a disposable local MySQL administrator
+properties file for automated checks. `--paid-core coordination` supports the
+combined `--coordination-scenario recognition`, `multimodal` and `dialogue`
+journeys; `--paid-core coordination-text` supports `lifecycle` and `multimodal`.
+These switches explicitly incur OpenAI charges. Each run has finite request/time
+budgets and writes ignored local artifacts, then removes its schema/account and
+stops its owned application. The retained failure/verification record is
+`.agents/COORDINATION_RESULTS.md`.
+
 ## What to capture
 
 Record the unexpected wording and approximate time, export cockpit telemetry and
@@ -80,6 +116,11 @@ documented in README before rollout if schema management is external (gesture,
 sensory, RPS and guessing policy/action/decision fields). Default Social Space
 reception is off; default new RPS Live countdown is on. Talk to Me remains exact
 text and is outside these changes.
+
+Coordination refinement additionally widens `storage_entry.entry_value` to
+`varchar(8192)`; apply that additive change if automatic schema updates are disabled.
+The frontend uses the existing playback-cue endpoint. Captions alone never release
+Finishing, and browser acknowledgement does not prove physical audibility.
 
 The inspected standalone Valerian branch `feature/galadinnerupdate` at `398f410`
 already consumes `display.captureId`, scoped playback cues and

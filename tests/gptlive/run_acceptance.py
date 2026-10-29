@@ -23,13 +23,15 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
+    parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
     parser.add_argument('--paid-gala', action='store_true', help='Opt in to real OpenAI audio/control journeys on the disposable local database')
     parser.add_argument('--connection-only', action='store_true', help='With --paid-gala, probe greeting/question/context update without games')
     parser.add_argument('--game', choices=['all', 'RPS', 'GUESS'], default='all', help='Paid journey selection; each game includes two rounds/replay')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue'], default='baseline')
     args = parser.parse_args()
     if args.paid_gala and args.browser:
         parser.error('--paid-gala and mocked --browser acceptance are separate runs')
@@ -39,6 +41,10 @@ def main():
         parser.error('--paid-core and mocked --browser acceptance must run separately')
     if args.paid_gala and args.paid_core:
         parser.error('--paid-gala and --paid-core must run separately')
+    if args.browser_mode != 'both' and not args.browser:
+        parser.error('--browser-mode requires --browser')
+    if args.coordination_scenario != 'baseline' and args.paid_core not in ('coordination', 'coordination-text'):
+        parser.error('--coordination-scenario requires a paid Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     provider_props = {}
@@ -70,7 +76,7 @@ def main():
     assert re.fullmatch(r'prometheus_gptlive_[0-9a-f]{10}', schema)
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
-    artifacts.mkdir()
+    artifacts.mkdir(parents=True)
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
         password=os.environ.get('GPTLIVE_MYSQL_ADMIN_PASSWORD', props.get('spring.datasource.password')), autocommit=True)
@@ -146,15 +152,21 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
-            run([*maven, '-q', '-DskipTests', 'compile', 'dependency:build-classpath',
+            run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
-            classpath = os.pathsep.join([str(root / 'target/classes'), (artifacts / 'classpath.txt').read_text().strip()])
+            fixture_root = artifacts / 'provider-classes'
+            fixtures = fixture_root / 'fixtures' / 'provider'
+            fixtures.mkdir(parents=True)
+            for source in (root / 'target/test-classes/fixtures/provider').glob('*.class'):
+                shutil.copy2(source, fixtures / source.name)
+            classpath = os.pathsep.join([str(root / 'target/classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
+            env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
                 port = port_socket.getsockname()[1]
             env.update(SERVER_ADDRESS='127.0.0.1', SERVER_PORT=str(port), PROMETHEUS_BASE_URL=f'http://127.0.0.1:{port}')
             with (artifacts / 'app-paid.log').open('w', encoding='utf-8') as log:
-                app = subprocess.Popen(['java', '-cp', classpath, 'ch.zhaw.prometheus.PrometheusApplication'], env=env,
+                app = subprocess.Popen(['java', '-cp', classpath, 'fixtures.provider.ProviderCaptureApplication'], env=env,
                     stdout=log, stderr=subprocess.STDOUT, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
                 for attempt in range(180):
                     if app.poll() is not None:
@@ -171,8 +183,9 @@ def main():
                     run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
                         '--game=' + args.game, *(['--connection-only'] if args.connection_only else [])], 'paid-journey')
                 else:
-                    run(['node', 'tests/gptlive/core_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
-                        '--agent=' + args.paid_core], 'paid-journey')
+                    journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
+                    run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
+                        '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
@@ -184,7 +197,7 @@ def main():
                 shutil.copy2(source, fixtures / source.name)
             classpath = os.pathsep.join([str(root / 'target/classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
-            for enabled in ('true', 'false'):
+            for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:
                     port_socket.bind(('127.0.0.1', 0))
                     port = port_socket.getsockname()[1]

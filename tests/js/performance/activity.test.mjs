@@ -2,10 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { InteractionActivity } from "../../../src/main/resources/public/performance/activity.js";
 
+test("Coordination exports control correlation and explains armed and uncertain states", () => {
+  const a = new InteractionActivity(); a.scope("agent");
+  a.accept({version: 1, agentId: "agent", epoch: "epoch", revision: 1, recent: [{sequence: 1, stage: "coordination",
+    operationId: "op", details: {operation: "START", beforePhase: "READY", phase: "FINISHING", run: "run",
+      taskOutcome: "LIMIT_REACHED", sourcePosition: 7, actions: 1, taskRevision: 3, logDropped: 2, prompt: "private"}}]});
+  const change = a.snapshot().journals[0].recent[0];
+  assert.equal(change.details.sourcePosition, 7); assert.equal(change.details.beforePhase, "READY");
+  assert.equal(change.details.logDropped, 2); assert.equal(JSON.stringify(change).includes("private"), false);
+  a.taskStatus({phase: "RUNNING", responseCaptured: true}); assert.equal(a.view().label, "Waiting for a fresh cue");
+  a.taskStatus({phase: "UNCERTAIN"}); assert.equal(a.view().tone, "warning"); assert.match(a.view().detail, /not repeat/);
+  a.taskStatus({phase: "FINISHING"}); assert.match(a.view().detail, /playback confirmation/);
+});
+
 test("coordination distinguishes unresolved agreements and preparation from permission to start", () => {
   const activity = new InteractionActivity({ now: () => 0 }); activity.scope("agent");
   for (const [phase, label] of Object.entries({ CONVERSATION: "Ready to explore", COORDINATION: "Clarifying the agreement",
-    PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", REFLECTION: "Reflecting on the task" })) {
+    PREPARATION: "Checking preparation", READY: "Awaiting your acceptance", FINISHING: "Finishing the response",
+    UNCERTAIN: "Response delivery uncertain", REFLECTION: "Reflecting on the task" })) {
     activity.taskStatus({ epoch: "epoch", phase, draft: true });
     assert.equal(activity.view().label, label); assert.equal(activity.view().busy, false);
   }

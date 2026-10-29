@@ -82,6 +82,30 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination refinement deployment integration (2026-10-29): published main
+  `86fc501` is merged into agents, preserving Gala/catalog additions and both
+  embodiments. All 178 selected Java/local MySQL checks and seven merged runner
+  checks passed. The unchanged agents workflow deploys valerian; read-only release
+  verification compares against v157, 40 saved agents and 89 catalog entries and
+  checks the additive storage-column widening. Evidence and remaining physical
+  acceptance limits are in `.agents/COORDINATION_RESULTS.md`.
+
+- Coordination refinement (2026-10-29): CR-01 through CR-09 are implemented with
+  shared automated acceptance passed. The lifecycle now supports authoritative state
+  queries, history-preserving return/restart, clear acceptance and protected
+  revision terms. Two-second Coordination input capture handles measured short
+  hesitations; response authority is owner/revision-bound. Final Live speech
+  waits in Finishing for association plus scoped playback acknowledgement,
+  with bounded uncertainty recovery. Content-free transition journals link
+  source events, runs, revisions and outcomes; the footer explains progress.
+  Focused Java/local MySQL, Node, browser and paid OpenAI evidence, including
+  failures, is retained in `.agents/COORDINATION_RESULTS.md`: 752 full Java tests,
+  147 Node tests, six runner tests, 71 browser cases and the three combined Live
+  journeys plus Text lifecycle/multimodal checks passed. Storage values require
+  additive widening to varchar(8192); create fresh instances for new graphs and
+  prompts. Physical audio/camera/robot checks and the cause of the original three
+  capture gaps remain unresolved. Plan: `.agents/PLAN_COORDINATION_REFINEMENT.md`.
+
 - Coordination deployment integration (2026-10-28): published main `38b32d8`
   merged into current agents, retaining Gala/catalog additions and preserving
   the selected embodiment with Coordination's Valerian identity. The merged tree
@@ -11588,3 +11612,32 @@ fixture corrections, commands and artifact paths. The new decision discriminator
 field requires an additive schema update. Provider/classroom/physical quality and
 production capacity remain unverified. No commit, push or deployment was made;
 see `.agents/COORDINATION_RESULTS.md` for the review handoff.
+
+## Coordination workflow refinement (2026-10-29)
+
+CR-01 through CR-09 refine the observed preparation, acceptance, revision and
+reflection failures through the existing state machine, Storage, task engine and
+Live capture/playback boundaries. State queries and explicit return/restart now
+reflect persisted authority; returning preserves history and outcomes. Ready
+means awaiting acceptance, sensor revisions preserve protected agreement terms,
+and short hesitant requests receive a bounded Coordination capture window.
+
+Speaking occasions belong to one owner/revision and current contribution. Final
+Live speech waits in Finishing for response association and scoped playback;
+timeouts, incomplete capture or ownership loss become uncertain without replay.
+Current perception is evaluated at execution; arming does not request the future
+action. One bounded unrelated-capture allowance and exact matching of eligible
+committed literals protect response association without spending another action
+or extending deadlines. Content-free journals and the footer explain transitions,
+delivery, outcomes and conservative capture/teardown diagnostics.
+
+Verification passed 752 Java tests against isolated local MySQL, 147 Node tests,
+six runner tests, 64 enabled and seven disabled browser cases (four intentional
+Live-only skips), three combined real OpenAI Live journeys and Text lifecycle /
+multimodal journeys. The results file records every failed provider attempt,
+fixture correction and final artifact. The operator guide covers fresh-instance
+creation and the additive storage-entry widening to varchar(8192). Existing saved
+graphs and transcripts are retained. Provider asides, physical audio/camera/robot
+quality and the original three capture-gap causes remain outside the automated
+acceptance claim. The owner authorized per-milestone commits/pushes and final
+main-to-agents deployment, with separate integration/release verification.

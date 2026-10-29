@@ -26,7 +26,7 @@ public class StorageEntry {
 
     private String entryKey;
     private UUID writeToken;
-    @Column(name = "entry_value", length = 2048)
+    @Column(name = "entry_value", length = 8192)
     @Convert(converter = JsonObjectConverter.class)
     private JsonElement entryValue;
 

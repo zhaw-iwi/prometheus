@@ -190,6 +190,7 @@ class GenericMultimodalTaskIntegrationTest {
         when(gateway.create(any())).thenReturn(new LiveSessionGateway.Session("live_generic_task", "v=0 answer"));
         when(gateway.attach(anyString(), any(), any())).thenAnswer(call -> {
             receiver.set(call.getArgument(1));
+            var started = new JsonObject(); started.addProperty("type", "session.started"); receiver.get().accept(started);
             return new LiveSessionGateway.Connection() {
                 public boolean isOpen() { return true; }
                 public void close() {}

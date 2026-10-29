@@ -80,6 +80,19 @@ class LiveTranscriptSegmenterUnitTest {
         segmenter.fragment(fragment("large", Speaker.USER, 4000, 4100, 33000, "x".repeat(2800)));
         assertThrows(IllegalStateException.class, () -> segmenter.fragment(fragment("overflow", Speaker.USER, 4101, 4200, 33100, "x")));
     }
+    @Test void delayedAudioWithFullSampleCoverageDiffersFromAnActualCaptureGap() {
+        for (boolean fullCoverage : new boolean[]{true, false}) {
+            var capture = new LiveTranscriptSegmenter(UUID.randomUUID());
+            capture.fragment(fragment("output", Speaker.ASSISTANT, 0, 100, 100, "Synthetic final response"));
+            capture.audio(Speaker.ASSISTANT, 2400, true, 100);
+            // Same 800ms delivery interval: one chunk covers it, the other leaves 700ms unobserved.
+            capture.audio(Speaker.ASSISTANT, fullCoverage ? 19200 : 2400, true, 900);
+            for (int i = 1; i <= 8; i++) capture.audio(Speaker.ASSISTANT, 2400, false, 900 + i * 100);
+            var result = capture.poll(1700).getFirst();
+            assertEquals(fullCoverage ? Closure.COMPLETE : Closure.INCOMPLETE, result.closure());
+            if (!fullCoverage) assertEquals("audio_coverage_gap", result.reason());
+        }
+    }
 
     @ParameterizedTest
     @CsvSource({"770,Ist die Person männlich oder,weiblich", "1200,Ist die Person schon lange,verstorben", "1708,Etwas,spielen"})
@@ -114,5 +127,31 @@ class LiveTranscriptSegmenterUnitTest {
         assertEquals("audio_coverage_gap", capture.poll(6100).getFirst().reason());
         assertThrows(IllegalArgumentException.class, () -> new LiveTranscriptSegmenter(UUID.randomUUID(), 799));
         assertThrows(IllegalArgumentException.class, () -> new LiveTranscriptSegmenter(UUID.randomUUID(), 3001));
+    }
+    @ParameterizedTest @CsvSource({"1200,A dry,one-liner", "1700,tell me a,joke"})
+    void coordinationPolicyKeepsRealPcmHesitationButSeparatesSubsequentTurns(int pause, String first, String last) {
+        var policy = new ch.zhaw.prometheus.agentdefs.core.CoordinationPolicy(new ch.zhaw.prometheus.model.Storage(), "");
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), policy.liveUserSilenceMs());
+        capture.fragment(fragment("first", Speaker.USER, 0, 100, 100, first));
+        for (int at = 120; at <= 100 + pause; at += 20) {
+            pcm(capture, at, 0); assertTrue(capture.poll(at).isEmpty());
+        }
+        pcm(capture, 120 + pause, 1000);
+        capture.fragment(fragment("last", Speaker.USER, 100 + pause, 200 + pause, 120 + pause, " " + last));
+        for (int at = 140 + pause; at <= 2120 + pause; at += 20) pcm(capture, at, 0);
+        var done = capture.poll(2120 + pause);
+        assertEquals(1, done.size()); assertEquals(Closure.COMPLETE, done.getFirst().closure());
+        assertEquals(first + " " + last, done.getFirst().text());
+        for (int at = 2140 + pause; at <= 3100 + pause; at += 20) pcm(capture, at, 0);
+        capture.fragment(fragment("separate", Speaker.USER, 3000 + pause, 3100 + pause, 3100 + pause, "Stop"));
+        for (int at = 3120 + pause; at <= 5100 + pause; at += 20) pcm(capture, at, 0);
+        var separate = capture.poll(5100 + pause).getFirst();
+        assertEquals("Stop", separate.text()); assertEquals(Closure.COMPLETE, separate.closure());
+    }
+    private void pcm(LiveTranscriptSegmenter capture, long at, int level) {
+        byte[] bytes = new byte[960];
+        for (int i = 0; i < bytes.length; i += 2) { bytes[i] = (byte) level; bytes[i + 1] = (byte) (level >> 8); }
+        var activity = LivePcmActivity.measure(bytes);
+        capture.audio(Speaker.USER, activity.samples(), activity.trailingQuietSamples(), activity.voiced(), at);
     }
 }
