@@ -82,6 +82,25 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Recorded-interaction deployment integration (2026-10-30): main `43bd0729`
+  is merged into agents, preserving the deployment catalog, Gala journeys and
+  embodiments. The merged checkout passed 174 Java/local MySQL, 75 Live JavaScript,
+  eight runner and two Live-enabled Cockpit browser tests; one opt-in capacity
+  soak was skipped. The unchanged agents workflow triggers deployment on push.
+  Production quota headroom and physical acceptance remain open; details are in
+  `.agents/COORDINATION_RESULTS.md`.
+
+- Recorded Coordination interaction (2026-10-30, directly on main at the owner's
+  request): consolidated this device to one registered checkout, preserving local
+  work in a verified recovery archive. Added the persona/capability/scissors/
+  one-joke/Reflection/return regression and a prepared real-provider journey.
+  Explicit sensor-task acceptance avoids unnecessary inference; rejection and
+  playback diagnostics explain failed boundaries; camera delivery backs off
+  backend errors. Shared Coordination graph nodes reduced the measured synthetic
+  minute from 2,065 to 1,993 MySQL Questions (3.5%). The current 36,000/hour quota
+  remains insufficient for that sustained workload. Automated evidence and
+  unrun provider/physical checks are in `.agents/COORDINATION_RESULTS.md`.
+
 - Coordination refinement deployment integration (2026-10-29): published main
   `86fc501` is merged into agents, preserving Gala/catalog additions and both
   embodiments. All 178 selected Java/local MySQL checks and seven merged runner

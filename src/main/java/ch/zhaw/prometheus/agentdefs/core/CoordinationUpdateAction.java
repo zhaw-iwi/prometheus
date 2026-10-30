@@ -45,11 +45,16 @@ public class CoordinationUpdateAction extends Action {
                     ? "Please say explicitly whether to start the current proposal; its preparation must be ready first." : "Understood.", runtime);
             return;
         }
-        String operation; CoordinationAgreement proposed = null; BehaviourPlan reply;
+        String operation = "UNKNOWN"; CoordinationAgreement proposed = null; BehaviourPlan reply;
         boolean inferred = false;
+        String rejection = "inference_failed";
         try {
             String command = CoreTaskVoice.normalize(text);
-            if (command.matches("(please )?(go |get |take us )?back to (the )?(beginning|initial|first|conversation)( state)?")
+            if (!text.contains("?") && !text.stripLeading().matches("[\"'“‘].*") && explicitCueStart(command)) {
+                // Arming an unchanged ON_CUE proposal needs no generated contribution.
+                // Validation below still requires all terms and preparation to be ready.
+                operation = "START"; reply = BehaviourPlan.speechOnly("Start the saved proposal.");
+            } else if (command.matches("(please |lets )?(go |get |take us )?back to (the )?(beginning|initial|first|conversation)( state)?")
                     || command.matches("(please )?return to (general )?conversation")) {
                 operation = "RETURN_TO_CONVERSATION"; reply = BehaviourPlan.speechOnly("Returned to Conversation.");
             } else if (command.matches("(please )?(start|let s start)( all)? over( again)?")) {
@@ -78,13 +83,18 @@ public class CoordinationUpdateAction extends Action {
                         TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
                 if (!runtime.taskContinuation().getAsBoolean() || !revision.equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return;
                 inferred = true;
+                rejection = "update_shape";
                 var update = JsonParser.parseString(raw).getAsJsonObject();
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
                 operation = update.get("operation").getAsString();
+                rejection = "agreement_shape";
                 proposed = update.get("agreement").isJsonNull() ? null : CoordinationAgreement.parse(update.get("agreement"));
+                rejection = "reply_shape";
                 reply = controlReply(operation, update.get("reply"));
             }
+            rejection = "operation_constraints";
             validate(operation, proposed, assent, invitation, text);
+            rejection = "speech_intent_length";
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)
                 throw new IllegalArgumentException("Coordination speech intent too long");
         } catch (RuntimeException failure) {
@@ -94,7 +104,12 @@ public class CoordinationUpdateAction extends Action {
                 storage.put(TaskMemory.REPLY, new JsonObject()); return;
             }
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
-            org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination update rejected; agreement and preparation preserved");
+            String category = failure instanceof UnexpectedTerms ? "protected_terms" : rejection;
+            String safeOperation = OPERATIONS.contains(operation) ? operation : "UNKNOWN";
+            ch.zhaw.prometheus.logging.ActivityTrace.rejected(category, safeOperation, CoordinationMemory.stage(storage));
+            org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
+                    "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
+                    category, safeOperation, CoordinationMemory.stage(storage));
             answer(failure instanceof UnexpectedTerms
                     ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
                     : "I couldn't apply that update. Our agreement and preparation are preserved; we can clarify the missing requirement or retry.", runtime);
@@ -102,6 +117,11 @@ public class CoordinationUpdateAction extends Action {
         }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         commit(operation, proposed, reply, event, now, runtime);
+    }
+    private boolean explicitCueStart(String command) {
+        var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
+        return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
+                && command.matches("(yes |okay |ok )?(please )?(lets start( it| the task| the saved proposal)? now|start( it| the task| the saved proposal)?( now)?|run (it|the task|the saved proposal))");
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);

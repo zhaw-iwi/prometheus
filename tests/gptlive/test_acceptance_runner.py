@@ -44,6 +44,10 @@ class AcceptanceRunnerTest(unittest.TestCase):
     def test_browser_mode_cannot_be_ignored(self):
         self.run_rejected(['--browser-mode', 'enabled'], {}, 'requires --browser')
 
+    def test_interaction_cannot_silently_run_as_text(self):
+        self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', 'interaction'], {},
+                          'requires the Live Coordination journey')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -31,7 +31,7 @@ function fixture({ live = true, interval = 2500 } = {}) {
     },
   });
   for (const name of ["maybeEmitEmotion", "armedFaceCue", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
-    "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads", "acknowledgeObservationBatch",
+    "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads", "acknowledgeObservationBatch", "sensorBackendReady", "sensorBackendResult", "emitCameraObservation",
     "socialContextPayload", "socialContextPerson", "socialContextSignature", "normalizeAttentionSignal",
     "normalizeAttentionState", "normalizeMovementState", "asUnitNumber", "clamp", "round", "average"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
@@ -127,6 +127,24 @@ test("late batch replies cannot update a different agent or advance sensor dedup
   assert.equal(f.context.camera.lastPresenceSignature, undefined);
   assert.equal(f.context.camera.lastGroupingSignature, undefined);
   assert.equal(f.context.camera.lastSocialContextSignature, undefined);
+});
+
+test("camera emissions back off repeated backend errors, recover on success and fence old scopes", async () => {
+  const f = fixture(); let sent = 0;
+  f.context.send = async () => { sent++; };
+  const scope = {agentId: 'agent', code: 'code'};
+  f.context.sensorBackendResult(500, scope);
+  await vm.runInContext("emitCameraObservation('hand', send)", f.context); assert.equal(sent, 0);
+  f.advance(2499); assert.equal(f.context.sensorBackendReady(), false);
+  f.advance(1); await vm.runInContext("emitCameraObservation('hand', send)", f.context); assert.equal(sent, 1);
+  f.context.sensorBackendResult(500, scope); f.advance(2500); assert.equal(f.context.sensorBackendReady(), false);
+  f.advance(2500); assert.equal(f.context.sensorBackendReady(), true);
+  for (let failure = 0; failure < 8; failure++) f.context.sensorBackendResult(503, scope);
+  assert.equal(f.context.camera.backendRetry.after - f.context.Date.now(), 60000);
+  f.context.sensorBackendResult(200, scope); assert.equal(f.context.sensorBackendReady(), true);
+  f.context.state.agentId = 'different'; f.context.sensorBackendResult(500, scope);
+  assert.equal(f.context.sensorBackendReady(), true);
+  assert.equal(f.context.camera.backendRetry, null);
 });
 
 test("text and TTS retain change-only deduplication, including after Live stops", async () => {

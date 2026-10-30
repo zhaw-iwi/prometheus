@@ -1,0 +1,25 @@
+{
+  "description": "Regression journey derived from the 2026-10-29 Valerian Cockpit trial. Synthetic task content; no private conversation history.",
+  "turns": {
+    "persona": "Who are you?",
+    "capabilities": "What are you able to do?",
+    "sense": "Can you see that sign? Tell me what it is.",
+    "proposal": "How about you tell me a joke when I show this scissor sign? Let's do it once.",
+    "accept": "Yes, let's start now.",
+    "acknowledge": "Okay. That worked.",
+    "back": "Let's go back to the conversation."
+  },
+  "agreement": {
+    "goal": "Tell one short joke when a scissor sign is detected.",
+    "humanRole": "Show a scissor sign when you want the joke, then report whether it worked.",
+    "agentRole": "Tell one short joke after a recognised fresh scissor sign.",
+    "success": "The user reports that the one requested joke worked.",
+    "questions": [], "checks": [], "dialogueLimit": 4,
+    "reactions": {
+      "goal": "Tell one short joke when a scissor sign is detected.",
+      "maxActions": 1, "sessionBound": true, "firstAction": "ON_CUE",
+      "rules": [{"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"scissor",
+        "action":"Tell one short joke","effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3}]
+    }
+  }
+}

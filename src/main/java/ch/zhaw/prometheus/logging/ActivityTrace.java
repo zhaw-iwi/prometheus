@@ -13,6 +13,7 @@ public final class ActivityTrace {
         default void cue(String reason, UUID source, String kind) { cue(reason, source); }
         default void task(String phase, int revision) {}
         default void coordination(Map<String, String> facts, Long sourcePosition, int revision, int actions, int dropped) {}
+        default void rejected(String category, String operation, String phase) {}
         void inference(String request, String purpose, String model, String effort, Integer input, Integer output, int requests, boolean success);
         void event(UUID id);
         void failed(String reason);
@@ -40,6 +41,9 @@ public final class ActivityTrace {
     public static void cue(String reason, UUID source) { if (CURRENT.get() != null) CURRENT.get().cue(reason, source); }
     public static void cue(String reason, UUID source, String kind) { if (CURRENT.get() != null) CURRENT.get().cue(reason, source, kind); }
     public static void failed(String reason) { if (CURRENT.get() != null) CURRENT.get().failed(reason); }
+    public static void rejected(String category, String operation, String phase) {
+        if (CURRENT.get() != null) CURRENT.get().rejected(category, operation, phase);
+    }
     public static void task(String phase, int revision) { if (CURRENT.get() != null) CURRENT.get().task(phase, revision); }
     public static void coordination(Map<String, String> facts, Long sourcePosition, int revision, int actions, int dropped) {
         if (CURRENT.get() != null) CURRENT.get().coordination(facts, sourcePosition, revision, actions, dropped);

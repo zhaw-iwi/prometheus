@@ -36,6 +36,7 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 import ch.zhaw.prometheus.model.access.*;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
+import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.*;
 import ch.zhaw.prometheus.spi.*;
 import ch.zhaw.prometheus.spi.live.*;
@@ -45,10 +46,17 @@ import ch.zhaw.prometheus.spi.live.*;
         "prometheus.live.close-timeout-ms=100", "spring.jpa.open-in-view=false",
         "spring.datasource.hikari.maximum-pool-size=1", "spring.datasource.hikari.minimum-idle=1",
         "spring.jpa.properties.hibernate.generate_statistics=true",
+        "spring.jpa.properties.hibernate.session_factory.statement_inspector=ch.zhaw.prometheus.application.QueryVolumeIntegrationTest$QueryInspector",
         "logging.level.org.hibernate.stat=OFF",
         "logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener=OFF"})
 @AutoConfigureMockMvc
 class QueryVolumeIntegrationTest {
+    public static class QueryInspector implements org.hibernate.resource.jdbc.spi.StatementInspector {
+        static final ThreadLocal<List<String>> recording = new ThreadLocal<>();
+        @Override public String inspect(String sql) {
+            var statements = recording.get(); if (statements != null) statements.add(sql); return sql;
+        }
+    }
     @Autowired MockMvc mvc;
     @Autowired EntityManagerFactory emf;
     @Autowired AgentRepository agents;
@@ -513,6 +521,79 @@ class QueryVolumeIntegrationTest {
             var totals = operations.computeIfAbsent(name, key -> new LinkedHashMap<>());
             statistics().forEach((key, value) -> totals.merge(key, value - prior.get(key), Long::sum));
         }
+    }
+
+
+    @Test void coordinationMixedMinuteRetainsDurableInputAndReportsCapacity() throws Exception {
+        var f = fixture(new CoordinationAgent().createAgent());
+        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
+        doReturn("{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Answer the ordinary question from current facts.\"}}").when(language).infer(any());
+        var paths = new LinkedHashMap<String, long[]>();
+        class Meter {
+            long calls;
+            void run(String path, Check work) throws Exception {
+                long before = questions(); work.run(); long count = questions() - before - 1; calls++;
+                var values = paths.computeIfAbsent(path, ignored -> new long[2]); values[0]++; values[1] += count;
+            }
+        }
+        var meter = new Meter(); var firstFaceStatements = new ArrayList<String>();
+        long revision = -1, sequence = 0, before = questions();
+        try {
+            for (int interval = 0; interval < 12; interval++) {
+                String timestamp = java.time.Instant.now().toString();
+                meter.run("social_batch", () -> assertEquals(List.of(200, 200, 200),
+                        demo.acknowledgeObservations(f.code(), f.id(), List.of(
+                                sensor(Event.TYPE_HUMAN_PRESENCE, "{\"humanCount\":1,\"ts\":\"" + timestamp + "\"}"),
+                                sensor(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":1,\"groupCount\":0,\"singletonCount\":1,\"largestGroupSize\":1,\"ts\":\"" + timestamp + "\"}"),
+                                sensor(Event.TYPE_SOCIAL_CONTEXT, "{\"humanCount\":1,\"people\":[],\"ts\":\"" + timestamp + "\"}")))
+                                .stream().map(ScopedDemoService.ObservationResult::status).toList()));
+                if (interval == 0) QueryInspector.recording.set(firstFaceStatements);
+                try {
+                    meter.run("face", () -> demo.acknowledge(f.code(), f.id(), sensor(Event.TYPE_FACE_EMOTION,
+                            "{\"emotion\":\"neutral\",\"confidence\":0.9,\"ts\":\"" + timestamp + "\"}"), OutputProfile.FULL_PLAN));
+                } finally { QueryInspector.recording.remove(); }
+                for (int hand = 0; hand < 2; hand++) meter.run("hand", () -> demo.acknowledge(f.code(), f.id(),
+                        sensor(Event.TYPE_HAND_SIGN, "{\"sign\":\"scissor\",\"confidence\":0.93,\"ts\":\"" + timestamp + "\"}"), OutputProfile.FULL_PLAN));
+                Speaker speaker = interval % 3 == 0 ? Speaker.USER : Speaker.ASSISTANT;
+                String text = speaker == Speaker.USER ? "What are you able to do?" : "We can agree on a task using fresh hand observations.";
+                var fragments = new ArrayList<Fragment>(); long now = System.currentTimeMillis();
+                for (int part = 0; part < 6; part++) {
+                    long index = ++sequence;
+                    var fragment = new Fragment("coordination-load-" + index, speaker, index * 200, (index + 1) * 200,
+                            now, index, text.substring(text.length() * part / 6, text.length() * (part + 1) / 6));
+                    fragments.add(fragment); meter.run("receipt", () -> assertTrue(ingress.receipt(f.id(), owner, fragment)));
+                }
+                var segment = new Segment(UUID.randomUUID(), speaker, fragments, Closure.COMPLETE, "observed_silence", now, now);
+                meter.run("segment", () -> assertEquals("COMPLETE", ingress.commit(f.id(), owner, segment, List.of("Coordination conversation")).orElseThrow().status()));
+                meter.run("context", () -> assertTrue(contexts.refresh(f.id(), owner).isPresent()));
+                meter.run("lease", () -> assertTrue(ownership.isCurrent(f.id(), owner)));
+                for (int poll = 0; poll < 5; poll++) {
+                    long previous = revision; long[] next = {revision};
+                    meter.run("poll", () -> next[0] = live.updates(f.code(), f.id(), session.handle(), previous).orElseThrow().transcriptRevision());
+                    revision = next[0];
+                    if (revision != previous) meter.run("history", () -> mvc.perform(get("/demo/agents/" + f.id() + "/live/history")
+                            .header("X-Prometheus-Access-Code", f.code())).andExpect(status().isOk()));
+                }
+            }
+            long total = questions() - before - 1 - 2 * meter.calls;
+            var report = new com.google.gson.JsonObject();
+            report.addProperty("questionsPerSyntheticMinute", total);
+            report.addProperty("projectedQuestionsPerHour", total * 60);
+            report.addProperty("quotaPerHour", 36000);
+            report.addProperty("headroomMet", total * 60 <= 27000);
+            report.addProperty("scope", "One client; 12 social batches, 12 face, 24 hand, 60 polls, 12 context/lease/history reads, 4 user and 8 native segments, 72 receipts. No wall-clock sleep, scheduled ticks, SSE reconnects or real providers.");
+            report.add("pathsCallsAndQuestions", new com.google.gson.Gson().toJsonTree(paths));
+            java.nio.file.Files.writeString(java.nio.file.Path.of("target/coordination-query-shapes.json"), new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(firstFaceStatements));
+            java.nio.file.Files.writeString(java.nio.file.Path.of("target/coordination-query-report.json"), new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(report));
+            System.out.println("COORDINATION_QUERY_VOLUME " + report);
+            // Regression ceiling only; 1,993 remains above this account's sustained quota.
+            assertTrue(total <= 2000, "Coordination mixed-minute query regression: " + total);
+            var ledger = ingress.history(f.id(), owner.sessionId());
+            assertEquals(12, ledger.size());
+            assertTrue(ledger.stream().allMatch(row -> "COMPLETE".equals(row.status()) && row.receiptIds().size() == 6));
+            assertEquals("Coordination conversation", agents.findById(f.id()).orElseThrow().getCurrentState().getName());
+        } finally { live.close(f.code(), f.id(), session.handle()); }
     }
 
     @Test void measureCurrentPaths() throws Exception {

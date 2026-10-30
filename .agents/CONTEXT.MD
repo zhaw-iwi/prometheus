@@ -222,9 +222,17 @@ sensor input, rendered output or confirmed action completion.
 
 ## GPT-Live Experiment
 
-Changes prompted by GPT-Live usage start on `feature/gptlive`, then merge into
-`main`, and only then from `main` into `agents` for the Heroku deployment. Preserve
-ordinary Text/Continuous contracts and the deployment-only catalog/persona layer.
+Application-owned Live policies may disable pending-work acknowledgments through
+`ExternalVoicePolicy.livePendingAcknowledgements()` (default true). The adapter
+removes permission from common voice and task guidance when false. This is prompt
+guidance, not audio gating; default core wording remains identical.
+
+As requested on 2026-10-30, all follow-up work on the recorded Coordination
+interaction and database load starts directly on `main`. This overrides the
+earlier feature/gptlive-first workflow. Keep one local checkout and switch branches
+there; do not create separate worktrees for routine development. `agents` remains
+the deployment branch with its separate catalog/persona layer. Commit, merge,
+push and deploy only when authorized. Preserve ordinary Text/Continuous contracts.
 
 The database query reduction follow-up (2026-10-01) explicitly starts on `main`
 at the user's request. Local verification uses `application-test.properties`.

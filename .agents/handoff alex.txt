@@ -1,0 +1,126 @@
+PROMETHEUS Coordination handoff for Alex
+Updated: 2026-10-29
+
+Status
+
+CR-01 through CR-09 are implemented, committed and pushed. Automated acceptance
+passed, main was merged into agents, and Heroku valerian v158 was deployed and
+verified. Physical operator acceptance remains open.
+
+Implementation release: main / feature/gptlive 86fc501.
+Deployment merge: agents 1ace77a (parents f76dda7 and 86fc501).
+Successful deployment workflow:
+https://github.com/zhaw-iwi/prometheus/actions/runs/40856986585
+
+What changed
+
+- CR-01, 3627bfc: recorded the observed workflow failures and extended the isolated
+  local-database and paid-provider acceptance harness.
+- CR-02, 7793826: authoritative state queries, explicit return to Conversation,
+  and same-task restart. Return preserves history/outcomes; ambiguous "start over"
+  requests clarify intent. STOP no longer replaces an already terminal outcome.
+- CR-03, 0b9c5f6: preparation and acceptance are distinct and explained. Ready means
+  awaiting acceptance. Sensor execution requires acceptance followed by a fresh cue.
+- CR-04, 4eb2047: content/style revisions preserve unchanged triggers, recognition
+  settings, roles, limits and other protected terms. Preparation and acceptance
+  must be renewed. Storage values were widened to 8192 characters; Live startup
+  also waits for the provider's session.started event.
+- CR-05, a3b3947: a bounded two-second Coordination input window handles measured
+  short hesitations without interpreting each fragment as a separate task update.
+- CR-06, 61ddf13: speaking occasions are tied to committed task authority and the
+  current session/revision. Proposal, arming and contribution have distinct duties.
+- CR-07, c663ca6: final spoken Live contributions enter Finishing until associated
+  speech and scoped client playback confirmation arrive. Timeout, incomplete
+  capture or lost ownership produces uncertainty, without automatic replay.
+- CR-08, 738501a: bounded content-free transition telemetry and clearer activity
+  feedback explain acceptance, waiting, finishing, reflection and uncertainty.
+  Capture/teardown diagnostics remain conservative about causes.
+- CR-09, 86fc501: combined journeys and rollout documentation. Acceptance exposed
+  additional fixes: current perception is evaluated at execution; committed speech
+  supplies the current Live contribution reference; arming defers unsolicited
+  sensory context; response association can skip one verified unrelated capture
+  within the original deadline. Eligible exact literals can match without another
+  model call, while still requiring scoped playback confirmation.
+
+The existing state machine, Storage, task engine and event history remain the
+authority. Live wording cannot authorize transitions. Text/Continuous retain their
+existing publication contracts. Generic agents and saved graphs are preserved.
+The agents merge retains Gala/catalog additions, Valerian identity and both
+Cockpit/Robot embodiments. Its Gala test fixture now emits session.started too.
+
+What was actually verified
+
+- Shared full Java regression: 752 tests in 159 suites, no failures/errors/skips;
+  artifact 7f0a7dd30f. Final focused contribution/delivery checks: 37 tests.
+- Deployment integration: 178 Java tests in 20 suites, no failures/errors/skips;
+  artifact 8a4f83765a, covering Coordination, Gala, catalog and embodiments.
+- 147 Node tests across 23 files; seven diagnostics checks passed after the final
+  diagnostic adjustment. Six shared runner checks and seven merged runner checks.
+- Browser regression: 64 enabled-mode and seven disabled-mode cases passed, with
+  four intentional Live-only skips; artifact dd5e930905.
+- Real OpenAI Live with synthetic spoken/sensor inputs and disposable local MySQL:
+  rock preparation -> acceptance -> delivery -> distinct response revision ->
+  renewed preparation/acceptance -> fresh rock -> confirmed delivery (ce9728ec53);
+  scissors plus current uncertain facial estimate -> delivery -> Conversation ->
+  truthful state query -> another proposal (8bf0468b26);
+  one-contribution dialogue -> same-task restart -> Conversation, preserving
+  history/outcomes and clarifying ambiguous restart wording (7f98940544).
+- Paid Text multimodal and lifecycle journeys: c406058c9d and c8d7340820.
+- Shared and merged packaging and whitespace checks passed. Failed provider
+  attempts and their diagnoses remain in COORDINATION_RESULTS.md.
+- Production after v158: health UP; all 40 baseline saved-agent IDs and all 89
+  catalog entries retained; event count unchanged at 11214; storage_entry.entry_value
+  widened from 2048 to 8192. Verification was read-only, without production test
+  agents. Release verification data is in ignored target/coordination-release-*.json.
+
+What is left to do
+
+1. Create a FRESH core.coordination instance on the deployed application. Existing
+   saved graphs/prompts were deliberately not rewritten and do not acquire the
+   complete new workflow. Preserve previous agents/transcripts for comparison.
+2. Perform the physical operator journeys in tests/gptlive/CORE_AGENTS.md:
+   rock recognition/acceptance/revision; scissors plus facial estimate; dialogue
+   restart and return/state query. Listen for early/duplicate/cut-off speech and
+   check actual camera recognition and robot behavior. Include Stop or mute during
+   final delivery: uncertainty must not automatically replay the contribution.
+3. Export telemetry for any discrepancy, recording the wording, approximate time,
+   observed state and whether audio was actually heard. Captions/association alone
+   do not prove playback, and browser playback acknowledgement does not prove
+   physical audibility. Synthetic tests do not establish camera or robot quality.
+4. Investigate the original three audio_coverage_gap cases if still reproducible.
+   Their physical cause has not been established or repaired. The separate
+   .agents/PLAN_CUTOFFINSPECTION.md recorder plan remains unimplemented.
+5. Assess remaining provider wording during real use. Waiting remarks, playful
+   asides and imperfect turn-taking can still occur; the current permissions are
+   not a hard audio gate. Passing bounded task-content tests is not a guarantee
+   of perfect silence or universally reliable wording.
+6. If using the standalone Valerian client, integrate/test its separate
+   feature/galadinnerupdate branch as needed. This work reviewed compatibility
+   only; it did not publish or physically validate that separate client.
+
+Where to continue
+
+- Read .agents/CODEX.md, .agents/CONTEXT.MD and PROJECT.md through Current milestone
+  state, stopping before Historical milestones checklist.
+- Scope/acceptance: .agents/PLAN_COORDINATION_REFINEMENT.md.
+- Detailed evidence/failures: .agents/COORDINATION_RESULTS.md; agents also contains
+  the deployment-integration section. README documents the workflow contracts.
+- Operator steps and runner usage: tests/gptlive/CORE_AGENTS.md and run_acceptance.py.
+- Main implementation: agentdefs/core/Coordination*; model/coordination;
+  model/task/TaskResponse; application/LiveTaskResponseService;
+  application/live/LiveContextProjection (all under src/main/java/ch/zhaw/prometheus).
+- Test anchors: Coordination lifecycle/revision/voice/delivery unit tests,
+  CoordinationAgentIntegrationTest, CoordinationDeliveryIntegrationTest,
+  TaskResponseUnitTest, and the Coordination Playwright/provider journeys.
+- Local worktrees: D:/VSCWorkSpace/prometheus (main),
+  D:/VSCWorkSpace/prometheus-coordination-refinement (feature/gptlive), and
+  D:/VSCWorkSpace/prometheus-coordination-agents (agents). Ignored acceptance
+  artifacts remain under each worktree's target directory; they are not published.
+
+All implementation commits were pushed and the three worktrees were clean at
+release handoff. Disposable schemas/accounts were removed and the owned temporary
+MySQL server was shut down. Restart/provision an isolated loopback database before
+running database tests again; never point the acceptance runner at production.
+The unrelated features/transcribe stash was preserved. Credentials and private
+trial artifacts remain uncommitted. This handoff is a documentation follow-up to
+the verified v158 release.

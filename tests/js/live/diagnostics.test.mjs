@@ -2,6 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveDiagnostics } from "../../../src/main/resources/public/live/diagnostics.js";
 
+test("playback gate exports bounded cue correlation and fixed outcomes without speech or samples", () => {
+  const d = new LiveDiagnostics({traceLimit: 2});
+  for (const outcome of ['awaiting_capture', 'input_interrupted', 'already_finished'])
+    d.record({handle:'session', phase:'playback_gate', cueId:'cue-1', segmentId:'segment-1', outcome,
+      transcript:'private speech', samples:[1,2,3]});
+  const session = d.snapshot().sessions[0];
+  assert.equal(session.browser.length, 2); assert.equal(session.browserDropped, 1);
+  assert.equal(session.browser[0].cueId, 'cue-1'); assert.equal(session.browser[0].outcome, 'input_interrupted');
+  assert.equal(session.browser[0].segmentId, 'segment-1');
+  assert.doesNotMatch(JSON.stringify(session), /private speech|samples/);
+});
+
 test("context diagnostics distinguish observed teardown from active failure without erasing either", () => {
   for (const stopFirst of [true, false]) {
     const d = new LiveDiagnostics();

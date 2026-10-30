@@ -58,6 +58,10 @@ if (coordinationJourney && coordinationScenario !== 'baseline') {
     another: 'Propose a different dialogue task: give one welcome sentence for lab visitors, I judge whether it suits them. Success is my acceptance. Limit one contribution. No sensors or preparation checks. Do not start yet.',
     ambiguous: 'Start all over again.', restart: 'Explicitly restart the same agreed task with a fresh contribution.'
   });
+  if (coordinationScenario === 'interaction') {
+    for (const name of Object.keys(clips)) delete clips[name];
+    Object.assign(clips, JSON.parse(fs.readFileSync('src/test/resources/coordination/scissors-interaction.json', 'utf8')).turns);
+  }
 }
 const audio = {};
 if (rpsJourney) {
@@ -334,6 +338,51 @@ async function coordinationDelivery() {
   report.stateAnswer = await settled(index, /conversation/i);
   assert.equal((await storage())['task.phase'], 'CONFIGURATION');
 }
+async function coordinationInteraction() {
+  async function turn(name, expected) {
+    const index = await page.evaluate(() => logs.length); await say(name);
+    const answer = await settled(index, expected); report.turns.push({name, answer}); return answer;
+  }
+  await turn('persona', /Valerian/i);
+  await turn('capabilities', /hand|sign|sensor|gesture|task|cue/i);
+  let sensingBusy = false;
+  const freshSign = async () => {
+    if (sensingBusy) return; sensingBusy = true;
+    try { await observe('obs.hand.sign', {sign:'scissor', confidence:.93, source:'valerian.hand.camera', ts:new Date().toISOString()}); }
+    finally { sensingBusy = false; }
+  };
+  await freshSign();
+  const signTimer = setInterval(() => void freshSign().catch(error => {report.sensorError = error.message;}), 3000);
+  try {
+    const answer = await turn('sense', /scissor/i);
+    assert.doesNotMatch(answer, /(?:can.?t|cannot|not).{0,18}(?:see|sense|recognis|recogniz)|don.?t have eyes/i,
+      'Fresh recognised signs must not be denied on the basis of being a digital agent');
+  } finally { clearInterval(signTimer); }
+  const proposal = await turn('proposal', acceptanceQuestion);
+  assert.doesNotMatch(proposal, /wrong buttons|cut through the small talk|why (?:did|do|does|don.t) (?:the |a )?robot/i, 'Do not reproduce the trial preview failure');
+  const draft = (await storage())['coordination.draft']; assert.ok(draft, 'Task proposal was not persisted');
+  assert.equal(draft.reactions.firstAction, 'ON_CUE'); assert.equal(draft.reactions.maxActions, 1);
+  assert.ok(draft.reactions.rules.some(rule => rule.value === 'scissor' && rule.effect === 'ACT'));
+  assert.equal((await storage())['coordination.agreement'], undefined);
+  await turn('accept', /wait|armed|active|scissor/i); await capturedResponse('interaction arming');
+  assert.deepEqual((await storage())['coordination.agreement'], draft, 'Acceptance must preserve the proposal');
+  assert.equal((await storage())['task.actions'], 0);
+  const index = await page.evaluate(() => logs.length);
+  await wait(3200); await freshSign();
+  await completedDelivery('interaction joke');
+  report.contribution = await captionsFrom(index);
+  assert.ok(report.contribution.trim(), 'Expected the single authorized joke');
+  assert.equal((await storage())['task.actions'], 1);
+  assert.match(JSON.stringify(await api(agentPath + '/state')), /Coordination reflection/i);
+  await turn('acknowledge', /good|glad|work|okay|ok|thank|great/i);
+  assert.match((await storage())['coordination.review']?.userReport || '', /worked|okay|ok/i);
+  assert.equal((await storage())['task.phase'], 'COMPLETED');
+  await freshSign(); assert.equal((await storage())['task.actions'], 1);
+  await turn('back', /conversation/i);
+  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
+  assert.equal((await storage())['coordination.outcomes'].at(-1).delivery.status, 'PLAYBACK_CONFIRMED');
+  report.manualReview = 'Review persona/capability accuracy, joke quality and all setup captions for previews; lexical checks are not a complete semantic judge. Physical audio/camera remain separate.';
+}
 try {
   const admin = {'X-Prometheus-Admin-Token': token};
   const code = ('G' + Math.random().toString(36).slice(2, 6)).toUpperCase();
@@ -563,7 +612,9 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    if (coordinationScenario === 'delivery') {
+    if (coordinationScenario === 'interaction') {
+      await coordinationInteraction();
+    } else if (coordinationScenario === 'delivery') {
       await coordinationDelivery();
     } else if (coordinationScenario === 'multimodal') {
       await coordinationMultimodal();
